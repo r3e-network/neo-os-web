@@ -1,10 +1,9 @@
 <template>
   <ActionModal :visible="visible" :closeable="false" size="md" @close="emit('close')">
     <div class="envelope-stage">
-      <div
+      <button
+        type="button"
         class="red-packet"
-        role="button"
-        tabindex="0"
         :aria-label="t('openNow')"
         :class="{ 'is-opening': isOpening, 'is-shaking': !isOpening }"
         @click="handleOpen"
@@ -21,12 +20,12 @@
           </span>
           <span class="packet-note" v-if="envelope?.description">{{ envelope.description }}</span>
         </div>
-      </div>
+      </button>
 
       <div v-if="eligibility" class="eligibility-info">
         <div class="eligibility-row">
           <span class="eligibility-label">{{ t("neoBalance") }}</span>
-          <span class="eligibility-value">{{ eligibility.neoBalance }} NEO</span>
+          <span class="eligibility-value">{{ eligibility.neoBalance }} {{ t("tokenNeo") }}</span>
         </div>
         <div class="eligibility-row">
           <span class="eligibility-label">{{ t("holdingDays") }}</span>
@@ -83,7 +82,12 @@ const props = defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-const emit = defineEmits(["connect", "open", "open-claim", "close"]);
+const emit = defineEmits<{
+  (e: "connect"): void;
+  (e: "open"): void;
+  (e: "open-claim", claim: ClaimItem): void;
+  (e: "close"): void;
+}>();
 
 const isClaim = computed(() => !!props.claim);
 
@@ -126,7 +130,9 @@ const handleOpen = () => {
   cursor: pointer;
   transform-style: preserve-3d;
   transition: transform 0.5s;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &.is-shaking {
     animation: float 3s ease-in-out infinite;

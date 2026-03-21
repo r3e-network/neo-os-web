@@ -24,36 +24,33 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { NeoCard, StatsDisplay, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
-import { useDatafeed, useWallet } from "@shared/utils/wallet-sdk";
+import { useWallet } from "@shared/utils/wallet-sdk";
+import { getPrices } from "@shared/utils/price";
 import type { UniAppGlobals } from "@shared/types/globals";
 
 const { t } = createUseI18n(messages)();
 
-const { getPrice } = useDatafeed();
 const { getContractAddress } = useWallet() as WalletSDK;
 
-const neoPrice = ref<number | null>(null);
-const gasPrice = ref<number | null>(null);
+const priceData = ref<{ neo: number; neoBurger: number } | null>(null);
 const routerAddress = ref<string>("");
 
 const poolStats = computed<StatsDisplayItem[]>(() => [
-  { label: "NEO/USD", value: neoPrice.value ? neoPrice.value.toFixed(4) : "--" },
-  { label: "GAS/USD", value: gasPrice.value ? gasPrice.value.toFixed(4) : "--" },
-  { label: "NEO/GAS", value: priceRatio.value },
+  { label: `${t("tokenNeo")}/USD`, value: priceData.value ? priceData.value.neo.toFixed(2) : t("notAvailable") },
+  { label: `${t("tokenNeo")}/${t("tokenGas")}`, value: priceRatio.value },
 ]);
 
 const priceRatio = computed(() => {
-  if (!neoPrice.value || !gasPrice.value) return "--";
-  const ratio = neoPrice.value / gasPrice.value;
-  return Number.isFinite(ratio) ? ratio.toFixed(6) : "--";
+  if (!priceData.value) return t("notAvailable");
+  // neoBurger price is in NEO terms per price.ts
+  const ratio = priceData.value.neo / priceData.value.neoBurger;
+  return Number.isFinite(ratio) ? ratio.toFixed(6) : t("notAvailable");
 });
 
 const loadPrices = async () => {
   try {
-    const neo = await getPrice("NEO-USD");
-    const gas = await getPrice("GAS-USD");
-    if (neo?.price) neoPrice.value = Number(neo.price);
-    if (gas?.price) gasPrice.value = Number(gas.price);
+    const prices = await getPrices();
+    priceData.value = { neo: prices.neo, neoBurger: prices.neoBurger };
   } catch (e: unknown) {
     /* non-critical: pool price load */
   }
@@ -61,6 +58,8 @@ const loadPrices = async () => {
 
 const openDex = () => {
   const url = "https://flamingo.finance";
+  // Double-cast needed: globalThis is untyped, UniAppGlobals provides platform API types.
+  // First cast to 'unknown' then to UniAppGlobals to satisfy TypeScript's strict casting rules.
   const uniApi = (globalThis as unknown as UniAppGlobals)?.uni as
     | Record<string, (...args: unknown[]) => void>
     | undefined;
@@ -85,8 +84,12 @@ const openDex = () => {
 };
 
 onMounted(async () => {
-  routerAddress.value = (await getContractAddress()) || "";
-  loadPrices();
+  try {
+    routerAddress.value = (await getContractAddress()) || "";
+    await loadPrices();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 </script>
 
@@ -103,6 +106,20 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .tab-content {
+    padding: 16px;
+  }
+
+  .router-row {
+    padding: 8px;
+  }
+
+  .router-value {
+    font-size: 10px;
+  }
 }
 
 .pool-subtitle {

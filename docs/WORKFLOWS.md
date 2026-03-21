@@ -2,12 +2,10 @@
 
 This document describes the **end-to-end workflows** for Neo N3 MiniApps.
 
-Legacy workflow note:
+Current workflow note:
 
-- some later sections still preserve older PaymentHub-first examples as historical
-  reference
-- current flagship paths prefer direct prepaid MiniApp contract flows, direct
-  Oracle callbacks, and direct AA relay integrations where applicable
+- flagship paths use direct prepaid MiniApp contract flows, direct Oracle
+  callbacks, and direct AA relay integrations where applicable
 
 Primary rule:
 
@@ -101,12 +99,6 @@ This is the **correct business workflow** for MiniApps that involve payments
 │                    └─ user then invokes MiniApp method                     │
 │                    └─ contract consumes credit and updates state           │
 │                                                                             │
-│  Legacy receipt flow                                                       │
-│  User wallet ──▶ GAS transfer ──▶ PaymentHub                               │
-│                    └─ PaymentReceived emits numeric receiptId              │
-│                    └─ user then invokes MiniApp method with receiptId      │
-│                    └─ contract validates receipt before updating state     │
-│                                                                             │
 │  Oracle / VRF apps                                                         │
 │  MiniApp contract ──▶ Morpheus Oracle callback request                     │
 │                    └─ callback contract may need prepaid Oracle fee credit │
@@ -118,13 +110,11 @@ This is the **correct business workflow** for MiniApps that involve payments
 
 1. **USER ACTION: SDK prepares the correct transfer**
     - direct prepaid apps return a transfer intent targeting the MiniApp contract
-    - legacy receipt apps return a transfer intent targeting `PaymentHub`
     - hybrid direct-prepaid apps may still pass `receiptId=0` later for ABI compatibility
     - the wallet signs and broadcasts the transfer
 
 2. **USER ACTION: call the MiniApp contract**
     - direct prepaid apps call the MiniApp contract after credit is recorded
-    - legacy receipt apps pass the numeric `receiptId` emitted by `PaymentReceived`
 
 3. **CONTRACT ACTION: update app state**
     - MiniApp contracts record bets, tickets, streams, keys, envelopes, or inventory
@@ -163,7 +153,6 @@ Contract transfers prize and emits PlayResolved
 - users sign both value transfer and MiniApp contract calls when required
 - MiniApp contracts own app-specific state and settlement logic
 - some flagship contracts still keep a legacy `receiptId` argument for ABI stability even though the live funding path is direct prepaid GAS
-- `PaymentHub` is a compatibility path, not the universal payment path
 - Oracle callback apps may require separate prepaid fee credit for the callback contract
 
 ## Off-Chain (Gateway) Workflows
@@ -175,8 +164,7 @@ Contract transfers prize and emits PlayResolved
     - manifest permissions (`payments`)
     - `assets_allowed == ["GAS"]`
     - per-user daily caps
-3. Edge returns a GAS `transfer` invocation to either the MiniApp contract or `PaymentHub`,
-   depending on the app integration path.
+3. Edge returns a GAS `transfer` invocation to the MiniApp contract.
 4. Wallet signs and broadcasts the network.
 
 ### Governance (bNEO only)
@@ -204,14 +192,8 @@ Use these scripts to validate GAS payments and bNEO governance flows on testnet.
 
 ### GAS Payment
 
-```bash
-# Send a real GAS transfer for a compatibility receipt flow
-go run scripts/send_paymenthub_gas.go
-
-# Optional overrides
-# PAY_APP_ID=miniapp-lottery
-# PAY_GAS_AMOUNT=100000   # 0.001 GAS
-```
+Use `pay-gas` to obtain a wallet-signed GAS transfer intent that targets the
+MiniApp contract directly.
 
 ### Governance (Stake + Vote)
 

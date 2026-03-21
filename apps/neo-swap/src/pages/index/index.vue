@@ -16,7 +16,7 @@
         <div class="hero-swap-display">
           <div class="hero-token">
             <div class="token-icon token-icon--from">N</div>
-            <span class="token-name">NEO</span>
+            <span class="token-name">{{ t("tokenNeo") }}</span>
           </div>
           <div class="hero-arrow" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
@@ -31,7 +31,7 @@
           </div>
           <div class="hero-token">
             <div class="token-icon token-icon--to">G</div>
-            <span class="token-name">GAS</span>
+            <span class="token-name">{{ t("tokenGas") }}</span>
           </div>
         </div>
         <div class="hero-price-quote">
@@ -98,7 +98,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   sidebarItems: [
     { labelKey: "tabSwap", value: () => selectedPair.value.toUpperCase() },
     { labelKey: "popularPairs", value: () => popularPairs.length },
-    { labelKey: "sidebarRate", value: () => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "-" },
+    { labelKey: "sidebarRate", value: () => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? t("notAvailable") },
   ],
 });
 
@@ -106,7 +106,7 @@ const appState = computed(() => ({
   selectedPair: selectedPair.value,
 }));
 
-const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? "—");
+const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPair.value)?.rate ?? t("notAvailable"));
 </script>
 
 <style lang="scss" scoped>
@@ -141,8 +141,8 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
   }
 
   &.active {
-    background: var(--accent-bg, rgba(0, 166, 81, 0.1));
-    border-color: var(--swap-primary);
+    background: var(--swap-accent-soft);
+    border-color: var(--swap-accent);
   }
 }
 
@@ -159,7 +159,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
 
 .pair-rate {
   font-size: 12px;
-  color: var(--swap-text-secondary);
+  color: var(--swap-text-muted);
 }
 
 .hero-container {
@@ -171,7 +171,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
   text-align: center;
   gap: 16px;
   padding: 32px 20px;
-  background: linear-gradient(180deg, rgba(0, 166, 81, 0.06) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--swap-accent-soft) 0%, transparent 100%);
   border-radius: 20px;
   margin-bottom: 20px;
 }
@@ -201,13 +201,13 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
   color: #fff;
 
   &--from {
-    background: linear-gradient(135deg, #00e676, #00a651);
-    box-shadow: 0 0 16px rgba(0, 166, 81, 0.3);
+    background: linear-gradient(135deg, var(--swap-accent) 0%, var(--swap-accent-strong) 100%);
+    box-shadow: 0 0 16px var(--swap-accent-glow);
   }
 
   &--to {
-    background: linear-gradient(135deg, #64b5f6, #1976d2);
-    box-shadow: 0 0 16px rgba(25, 118, 210, 0.3);
+    background: linear-gradient(135deg, var(--swap-accent-strong) 0%, var(--swap-accent-secondary) 100%);
+    box-shadow: 0 0 16px var(--swap-accent-glow-strong);
   }
 }
 
@@ -218,7 +218,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
 }
 
 .hero-arrow {
-  color: var(--swap-primary, #00a651);
+  color: var(--swap-accent);
   opacity: 0.7;
 }
 
@@ -242,7 +242,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
 .price-value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--swap-primary, #00a651);
+  color: var(--swap-accent);
 }
 
 /* ── Neo Swap Hero Enhancements: Token Exchange ── */

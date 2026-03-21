@@ -33,7 +33,7 @@ const appMessages = {
   loadVault: { en: "Load Vault", zh: "加载保险库" },
   secretAttemptLabel: { en: "Break Secret", zh: "破解密钥" },
   secretAttemptPlaceholder: { en: "Enter secret attempt", zh: "输入尝试密钥" },
-  attemptFeeNote: { en: "Attempt fee (by difficulty): {fee} GAS", zh: "尝试费用（按难度）：{fee} GAS" },
+  attemptFeeNote: { en: "Attempt fee (by difficulty): {fee} {tokenGas}", zh: "尝试费用（按难度）：{fee} {tokenGas}" },
   attemptBreak: { en: "Attempt Break", zh: "尝试破解" },
   attempting: { en: "Attempting...", zh: "破解中..." },
   vaultStatus: { en: "Status", zh: "状态" },
@@ -80,6 +80,7 @@ const appMessages = {
   feature3Desc: { en: "Attempt fees scale with difficulty.", zh: "尝试费用随难度提升。" },
   sidebarDifficulty: { en: "Difficulty", zh: "难度" },
   sidebarAttemptFee: { en: "Attempt Fee", zh: "尝试费用" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

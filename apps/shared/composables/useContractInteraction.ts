@@ -3,7 +3,7 @@
  *
  * Provides a unified API for reading from and writing to Neo N3 smart contracts.
  * Wraps invokeRead with automatic result parsing, invokeContract with the
- * payment flow, and event waiting — the three operations repeated across
+ * direct-prepaid GAS flow, and event waiting — the three operations repeated across
  * virtually every miniapp composable.
  *
  * @example
@@ -16,7 +16,7 @@
  * // Read-only call with automatic parsing
  * const totalBurned = parseGas(await read("TotalBurned"));
  *
- * // Write call through payment flow
+ * // Write call through direct-prepaid GAS
  * const { txid, waitForEvent } = await invoke("1.0", "burn", "burnGas", [
  *   { type: "Hash160", value: address.value },
  *   { type: "Integer", value: toFixed8("1") },
@@ -32,7 +32,7 @@ import { useContractAddress } from "./useContractAddress";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
 import { extractTxid, pollForTxEvent } from "../utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 
 type InvokeArg = {
   type: string;
@@ -60,6 +60,14 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const isProcessing = ref(false);
   const paymentError = ref<Error | null>(null);
   const paymentSuccess = ref(false);
+  let successTimer: ReturnType<typeof setTimeout> | null = null;
+
+  onUnmounted(() => {
+    if (successTimer !== null) {
+      clearTimeout(successTimer);
+      successTimer = null;
+    }
+  });
 
   /**
    * Ensure wallet is connected, connecting if needed.
@@ -99,12 +107,13 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   };
 
   /**
-   * Full payment + invoke flow.
+   * Full direct-prepaid payment + invoke flow.
    *
    * 1. Ensures wallet connection
-   * 2. Processes GAS payment
-   * 3. Invokes the contract operation
-   * 4. Returns txid and a bound waitForEvent helper
+   * 2. Prepays GAS directly to the MiniApp contract
+   * 3. Waits briefly for the prepaid credit to settle
+   * 4. Invokes the contract operation
+   * 5. Returns txid and a bound waitForEvent helper
    */
   const invoke = async (
     paymentAmount: string,
@@ -112,7 +121,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     operation: string,
     args: InvokeArg[],
     scriptHash?: string
-  ) => {
+  ): Promise<{ txid: string; receiptId: string; waitForEvent: (targetTxid: string, eventName: string, timeoutMs?: number) => Promise<unknown>; triggerSuccess: () => void; tx: unknown }> => {
     await ensureWallet();
     const contract = scriptHash ?? (await ensureContractAddress());
 
@@ -120,8 +129,9 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       isProcessing.value = true;
       paymentError.value = null;
 
-      const payment = await payGAS(paymentAmount, paymentMemo);
+      const payment = await payGAS(paymentAmount, paymentMemo, contract, appId);
       const receiptId = payment.receipt_id || "";
+      await new Promise((resolve) => setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4));
 
       const tx = (await invokeContract({
         scriptHash: contract,
@@ -148,14 +158,18 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       };
 
       const triggerSuccess = () => {
+        if (successTimer !== null) {
+          clearTimeout(successTimer);
+        }
         paymentSuccess.value = true;
-        setTimeout(() => {
+        successTimer = setTimeout(() => {
           paymentSuccess.value = false;
+          successTimer = null;
         }, 3500);
       };
 
       return { txid, receiptId, waitForEvent, triggerSuccess, tx };
-    } catch (error) {
+    } catch (error: unknown) {
       paymentError.value = error instanceof Error ? error : new Error(String(error));
       throw error;
     } finally {

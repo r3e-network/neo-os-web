@@ -20,8 +20,8 @@
               <div class="contract-doc">
                 <div class="contract-line" v-for="i in 4" :key="i" />
                 <div class="contract-signatures">
-                  <span class="signature signature--left">✍️</span>
-                  <span class="signature signature--right">✍️</span>
+                  <span class="signature signature--left" aria-hidden="true">✍️</span>
+                  <span class="signature signature--right" aria-hidden="true">✍️</span>
                 </div>
               </div>
             </div>
@@ -30,15 +30,15 @@
             <div class="hero-stats">
               <div class="hero-stat">
                 <span class="hero-stat-value">{{ contracts.filter((c) => c.status === "active").length }}</span>
-                <span class="hero-stat-label">{{ t("active") || "Active" }}</span>
+                <span class="hero-stat-label">{{ t("active") }}</span>
               </div>
               <div class="hero-stat">
                 <span class="hero-stat-value">{{ contracts.filter((c) => c.status === "pending").length }}</span>
-                <span class="hero-stat-label">{{ t("pending") || "Pending" }}</span>
+                <span class="hero-stat-label">{{ t("pending") }}</span>
               </div>
               <div class="hero-stat">
                 <span class="hero-stat-value">{{ contracts.length }}</span>
-                <span class="hero-stat-label">{{ t("total") || "Total" }}</span>
+                <span class="hero-stat-label">{{ t("total") }}</span>
               </div>
             </div>
           </template>

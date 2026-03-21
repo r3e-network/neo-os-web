@@ -5,7 +5,7 @@
         <div class="flex flex-col items-center gap-2 py-1">
           <span class="text-center font-bold text-red-400">{{ t("wrongChain") }}</span>
           <span class="text-center text-xs text-white opacity-80">{{ t("wrongChainMessage") }}</span>
-          <NeoButton size="sm" variant="secondary" class="mt-2" @click="$emit('switchChain')">
+          <NeoButton size="sm" variant="secondary" type="button" class="mt-2" @click="$emit('switchChain')" :aria-label="t('switchToNeo')">
             {{ t("switchToNeo") }}
           </NeoButton>
         </div>
@@ -45,7 +45,9 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["switchChain"]);
+defineEmits<{
+  (e: "switchChain"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

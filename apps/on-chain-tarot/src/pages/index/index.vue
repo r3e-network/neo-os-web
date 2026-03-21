@@ -83,7 +83,7 @@ import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
 import { MiniAppPage, HeroSection } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
+import { pollForEvent } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { waitForListedEventByTransaction } from "@shared/utils";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -259,14 +259,18 @@ const loadReadingCount = async () => {
   try {
     const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 50 });
     readingsCount.value = res.events.length;
-  } catch (e: unknown) {
-    /* non-critical: reading count is cosmetic */
+  } catch (_e: unknown) {
+    // non-critical: reading count is cosmetic
     readingsCount.value = Math.max(readingsCount.value, 0);
   }
 };
 
 onMounted(async () => {
-  await loadReadingCount();
+  try {
+    await loadReadingCount();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 </script>
 

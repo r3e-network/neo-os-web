@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from "vue";
+import { useI18n } from "@shared/composables/useI18n";
+
 /**
  * StakeForm - TrustAnchor Stake/Unstake Form Component
  *
@@ -38,11 +41,13 @@ const unstakeAmount = ref("");
 
 const handleStake = () => {
   const amount = parseFloat(stakeAmount.value);
+  if (Number.isNaN(amount) || amount <= 0) return;
   emit("stake", amount);
 };
 
 const handleUnstake = () => {
   const amount = parseFloat(unstakeAmount.value);
+  if (Number.isNaN(amount) || amount <= 0) return;
   emit("unstake", amount);
 };
 </script>
@@ -55,15 +60,16 @@ const handleUnstake = () => {
 
     <div v-if="address" class="stake-form">
       <div class="input-group mb-4">
-        <span class="input-label">{{ t("stake NEO") }}</span>
+        <span class="input-label">{{ t("stake") }}</span>
         <div class="input-row">
           <input
             type="number"
             v-model="stakeAmount"
             class="amount-input"
             :placeholder="t('amount')"
+            :aria-label="t('stake')"
           />
-          <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
+          <NeoButton variant="primary" type="button" :loading="isStaking" @click="handleStake" :aria-label="t('stake')">
             {{ t("stake") }}
           </NeoButton>
         </div>
@@ -77,8 +83,9 @@ const handleUnstake = () => {
             v-model="unstakeAmount"
             class="amount-input"
             :placeholder="t('amount')"
+            :aria-label="t('unstake')"
           />
-          <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
+          <NeoButton variant="secondary" type="button" :loading="isUnstaking" @click="handleUnstake" :aria-label="t('unstake')">
             {{ t("unstake") }}
           </NeoButton>
         </div>
@@ -86,7 +93,7 @@ const handleUnstake = () => {
     </div>
 
     <div v-else class="connect-prompt">
-      <NeoButton variant="primary" @click="connect">
+      <NeoButton variant="primary" type="button" @click="requestWallet()" :aria-label="t('connectWallet')">
         {{ t("connectWallet") }}
       </NeoButton>
     </div>
@@ -134,7 +141,7 @@ export default {
   padding: 12px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  color: white;
+  color: var(--text-primary, white);
 }
 
 .connect-prompt {

@@ -35,7 +35,7 @@ export function useCertificates(): UseCertificatesReturn {
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch {
+    } catch (_e: unknown) {
       return 0n;
     }
   };
@@ -46,7 +46,7 @@ export function useCertificates(): UseCertificatesReturn {
     try {
       const bytes = new TextEncoder().encode(tokenId);
       return btoa(String.fromCharCode(...bytes));
-    } catch {
+    } catch (_e: unknown) {
       return tokenId;
     }
   };
@@ -123,8 +123,8 @@ export function useCertificates(): UseCertificatesReturn {
       const ids = await fetchTemplateIds(address.value);
       const details = await Promise.all(ids.map(fetchTemplateDetails));
       templates.value = details.filter(Boolean) as TemplateItem[];
-    } catch (e: unknown) {
-      /* non-critical: template refresh */
+    } catch (_e: unknown) {
+      // non-critical: template refresh
       templates.value = [];
     }
   };
@@ -164,14 +164,14 @@ export function useCertificates(): UseCertificatesReturn {
           if (!certQrs[cert.tokenId]) {
             try {
               certQrs[cert.tokenId] = await QRCode.toDataURL(cert.tokenId, { margin: 1 });
-            } catch {
+            } catch (_e: unknown) {
               /* QR generation is non-critical */
             }
           }
         })
       );
-    } catch (e: unknown) {
-      /* non-critical: certificate refresh */
+    } catch (_e: unknown) {
+      // non-critical: certificate refresh
       certificates.value = [];
     }
   };

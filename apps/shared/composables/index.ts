@@ -18,6 +18,6 @@ export type { ContractInteractionOptions } from "./useContractInteraction";
 
 // Advanced platform capabilities (AA, Oracle, Keeper)
 export { useAbstractAccount } from "./useAbstractAccount";
-export type { AAConfig, SessionKey } from "./useAbstractAccount";
+export type { AAConfig } from "./useAbstractAccount";
 export { useOracle } from "./useOracle";
 export type { OracleConfig, VRFResult, TEEResult } from "./useOracle";

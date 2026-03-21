@@ -111,33 +111,7 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 
-	paymentHubHash := strings.TrimSpace(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
-	if paymentHubHash == "" {
-		fmt.Println("\nPaymentHub hash not set; skipping app configuration")
-		return
-	}
-
-	fmt.Println("\n=== Configuring PaymentHub MiniApps ===")
-	paymentHub, err := parseContractHash(paymentHubHash)
-	if err != nil {
-		fmt.Printf("Invalid PaymentHub hash: %v\n", err)
-		os.Exit(1)
-	}
-
-	for _, app := range miniApps {
-		fmt.Printf("- %s\n", app.AppID)
-		if alreadyConfigured(act, paymentHub, app.AppID) {
-			fmt.Printf("  ✅ already configured\n")
-			continue
-		}
-
-		if err := configureApp(ctx, client, act, paymentHub, app.AppID, deployerHash); err != nil {
-			fmt.Printf("  ❌ configure failed: %v\n", err)
-		} else {
-			fmt.Printf("  ✅ configured\n")
-		}
-		time.Sleep(2 * time.Second)
-	}
+	fmt.Println("\nSkipping PaymentHub app configuration: flagship live flows no longer depend on PaymentHub.")
 }
 
 func parseContractHash(hashStr string) (util.Uint160, error) {

@@ -12,19 +12,19 @@
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">{{ t("contractName") }}</span>
-          <span class="info-value mono">MiniAppFlashLoan</span>
+          <span class="info-value mono">{{ contractName || "MiniAppFlashLoan" }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("version") }}</span>
-          <span class="info-value">v2.0.0</span>
+          <span class="info-value">{{ version || "v2.0.0" }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("minLoan") }}</span>
-          <span class="info-value">1 GAS</span>
+          <span class="info-value">1 {{ t("tokenGas") }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("maxLoan") }}</span>
-          <span class="info-value">100,000 GAS</span>
+          <span class="info-value">100,000 {{ t("tokenGas") }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("cooldown") }}</span>
@@ -40,7 +40,7 @@
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("protocolFee") }}</span>
-          <span class="info-value highlight">0.09%</span>
+          <span class="info-value highlight">{{ protocolFeeValue || "0.09%" }}</span>
         </div>
       </div>
 
@@ -180,6 +180,9 @@ defineProps<{
   t: (key: string, ...args: unknown[]) => string;
   contractAddress?: string | null;
   networkLabel?: string;
+  contractName?: string;
+  version?: string;
+  protocolFeeValue?: string;
 }>();
 </script>
 

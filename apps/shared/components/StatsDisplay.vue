@@ -8,7 +8,7 @@
       loading ? 'stats-display--loading' : '',
     ]"
     role="list"
-    :aria-label="ariaLabel || 'Statistics'"
+    :aria-label="ariaLabel || t('statistics')"
   >
     <!-- Loading state -->
     <template v-if="loading">
@@ -17,7 +17,7 @@
         :key="`skeleton-${n}`"
         class="stats-display__item stats-display__item--skeleton"
         role="listitem"
-        aria-label="Loading"
+        :aria-label="t('loading')"
       >
         <div class="stats-display__skeleton-value" />
         <div class="stats-display__skeleton-label" />
@@ -44,8 +44,7 @@
             class="stats-display__trend"
             :class="`stats-display__trend--${item.trend}`"
             aria-hidden="true"
-            >{{ item.trend === "up" ? "\u25B2" : item.trend === "down" ? "\u25BC" : "\u2014" }}</span
-          >
+          />
         </div>
         <span class="stats-display__label" aria-hidden="true">{{ item.label }}</span>
       </div>
@@ -62,6 +61,8 @@ export interface StatsDisplayItem {
   /** Optional trend indicator */
   trend?: "up" | "down" | "neutral";
 }
+
+import { useI18n } from "@shared/composables/useI18n";
 
 export type StatsDisplayLayout = "grid" | "rows";
 
@@ -89,15 +90,17 @@ const props = withDefaults(
 
 /** Number of skeleton items to show while loading */
 const loadingCount = props.columns;
+
+const { t } = useI18n();
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .stats-display {
   &--grid {
     display: grid;
-    gap: 12px;
+    gap: $spacing-3;
   }
 
   &--cols-2 {
@@ -119,8 +122,8 @@ const loadingCount = props.columns;
     .stats-display--grid & {
       background: var(--bg-card, rgba(255, 255, 255, 0.03));
       border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: $spacing-3;
+      padding: $spacing-3;
       text-align: center;
       backdrop-filter: blur(10px);
       transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -136,7 +139,7 @@ const loadingCount = props.columns;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
+      padding: $spacing-3 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
       &:last-child {
@@ -146,46 +149,53 @@ const loadingCount = props.columns;
 
     // Variant colors
     &--success .stats-display__value {
-      color: #00e599;
+      --stat-color: #00e599;
+      color: var(--stat-color);
       text-shadow: 0 0 10px rgba(0, 229, 153, 0.2);
     }
     &--danger .stats-display__value {
-      color: #ef4444;
+      --stat-color: #ef4444;
+      color: var(--stat-color);
       text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
     }
     &--warning .stats-display__value {
-      color: #fde047;
+      --stat-color: #fde047;
+      color: var(--stat-color);
       text-shadow: 0 0 10px rgba(253, 224, 71, 0.2);
     }
     &--accent .stats-display__value {
-      color: #00e599;
+      --stat-color: #00e599;
+      color: var(--stat-color);
       text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
     }
     &--erobo .stats-display__value {
-      color: #9f9df3;
+      --stat-color: #9f9df3;
+      color: var(--stat-color);
       text-shadow: 0 0 15px rgba(159, 157, 243, 0.4);
     }
     &--erobo-neo .stats-display__value {
-      color: #00e599;
+      --stat-color: #00e599;
+      color: var(--stat-color);
       text-shadow: 0 0 15px rgba(0, 229, 153, 0.4);
     }
     &--erobo-bitcoin .stats-display__value {
-      color: #ffde59;
+      --stat-color: #ffde59;
+      color: var(--stat-color);
       text-shadow: 0 0 15px rgba(255, 222, 89, 0.4);
     }
   }
 
   &__icon {
     display: block;
-    font-size: 24px;
-    margin-bottom: 4px;
+    font-size: $font-size-3xl;
+    margin-bottom: $spacing-1;
   }
 
   &__value-row {
     display: flex;
     align-items: baseline;
     justify-content: center;
-    gap: 4px;
+    gap: $spacing-1;
 
     .stats-display--rows & {
       justify-content: flex-end;
@@ -193,36 +203,44 @@ const loadingCount = props.columns;
   }
 
   &__value {
-    font-size: 18px;
+    font-size: $font-size-xl;
     font-weight: 800;
     color: var(--text-primary, #ffffff);
     font-family: $font-family;
 
     .stats-display--rows & {
-      font-size: 14px;
+      font-size: $font-size-sm;
       font-weight: 700;
       font-family: $font-mono;
     }
   }
 
   &__trend {
-    font-size: 10px;
+    font-size: $font-size-xs;
     font-weight: 700;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
 
-    &--up {
-      color: #00e599;
+    &--up::before {
+      content: "\25B2";
+      --trend-color: #00e599;
+      color: var(--trend-color);
     }
-    &--down {
-      color: #ef4444;
+    &--down::before {
+      content: "\25BC";
+      --trend-color: #ef4444;
+      color: var(--trend-color);
     }
-    &--neutral {
+    &--neutral::before {
+      content: "\2014";
       color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     }
   }
 
   &__label {
     display: block;
-    font-size: 11px;
+    font-size: $font-size-xs;
     font-weight: 600;
     color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     text-transform: uppercase;
@@ -237,15 +255,15 @@ const loadingCount = props.columns;
 
   // Compact mode
   &--compact &__item {
-    padding: 8px;
+    padding: $spacing-2;
   }
 
   &--compact &__value {
-    font-size: 14px;
+    font-size: $font-size-sm;
   }
 
   &--compact &__label {
-    font-size: 10px;
+    font-size: $font-size-xs;
   }
 
   &--compact &__icon {

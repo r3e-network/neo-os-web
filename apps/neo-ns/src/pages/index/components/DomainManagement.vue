@@ -37,7 +37,7 @@ defineEmits<{
 }>();
 
 const formatDate = (ts: number): string => {
-  return new Date(ts).toLocaleDateString();
+  return new Date(ts).toLocaleDateString("en");
 };
 </script>
 

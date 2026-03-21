@@ -1,26 +1,26 @@
 <template>
   <NeoCard variant="erobo" class="loan-card">
     <div class="tabs" role="tablist">
-      <div
+      <button
+        type="button"
         :class="['tab', { active: activeTab === 'lookup' }]"
         role="tab"
-        tabindex="0"
         :aria-selected="activeTab === 'lookup'"
         :aria-label="t('tabLookup')"
         @click="activeTab = 'lookup'"
       >
         <span>{{ t("tabLookup") }}</span>
-      </div>
-      <div
+      </button>
+      <button
+        type="button"
         :class="['tab', { active: activeTab === 'create' }]"
         role="tab"
-        tabindex="0"
         :aria-selected="activeTab === 'create'"
         :aria-label="t('tabCreate')"
         @click="activeTab = 'create'"
       >
         <span>{{ t("tabCreate") }}</span>
-      </div>
+      </button>
     </div>
 
     <!-- Lookup Tab -->
@@ -35,7 +35,7 @@
         />
       </div>
 
-      <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('lookup')" class="execute-btn">
+      <NeoButton variant="primary" size="lg" block :loading="isLoading" type="button" @click="$emit('lookup')" class="execute-btn" :aria-label="t('checkStatus')">
         <span v-if="!isLoading">{{ t("checkStatus") }}</span>
         <span v-else>{{ t("checking") }}</span>
       </NeoButton>
@@ -51,11 +51,11 @@
         </div>
         <div class="status-row">
           <span class="status-label">{{ t("amount") }}</span>
-          <span class="status-value">{{ loanDetails.amount }} GAS</span>
+          <span class="status-value">{{ loanDetails.amount }} {{ t("tokenGas") }}</span>
         </div>
         <div class="status-row">
           <span class="status-label">{{ t("feeShort") }}</span>
-          <span class="status-value">{{ loanDetails.fee }} GAS</span>
+          <span class="status-value">{{ loanDetails.fee }} {{ t("tokenGas") }}</span>
         </div>
         <div class="status-row">
           <span class="status-label">{{ t("borrower") }}</span>
@@ -91,7 +91,7 @@
             type="number"
             :placeholder="t('amountPlaceholder')"
             :label="t('loanAmount')"
-            suffix="GAS"
+            :suffix="t('tokenGas')"
           />
         </div>
 
@@ -119,10 +119,12 @@
           variant="primary"
           size="lg"
           block
+          type="button"
           :loading="isCreating"
           @click="handleRequestLoan"
           class="execute-btn"
           :disabled="!canRequest"
+          :aria-label="t('requestLoan')"
         >
           <span v-if="!isCreating">{{ t("requestLoan") }}</span>
           <span v-else>{{ t("requesting") }}</span>
@@ -153,11 +155,19 @@ const props = defineProps<{
   loanId: string;
   loanDetails: LoanDetails | null;
   isLoading: boolean;
+  validationError: string | null;
+  isConnected: boolean;
+  status: { msg: string; type: string } | null;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 
 const { t } = createUseI18n(messages)();
 
-const emit = defineEmits(["update:loanId", "lookup", "request-loan"]);
+const emit = defineEmits<{
+  (e: "update:loanId", value: string): void;
+  (e: "lookup"): void;
+  (e: "request-loan", data: { amount: string; callbackContract: string; callbackMethod: string }): void;
+}>();
 
 const activeTab = ref("lookup");
 const loanAmount = ref("");
@@ -216,6 +226,9 @@ const handleRequestLoan = async () => {
   color: var(--text-secondary);
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  border: none;
+  appearance: none;
+  background: transparent;
 
   &.active {
     color: var(--text-primary);

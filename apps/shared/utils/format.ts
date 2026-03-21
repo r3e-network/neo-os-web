@@ -8,7 +8,7 @@ export function formatNumber(value: number | string, decimals = 2): string {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(num);
-  } catch {
+  } catch (_e: unknown) {
     return num.toFixed(decimals);
   }
 }
@@ -86,16 +86,16 @@ export function toFixed8(value: string | number): string {
 
 export function formatAddress(address?: string, head = 6, tail = 4): string {
   const value = (address ?? "").trim();
-  if (!value) return "--";
+  if (!value) return "";
   if (value.length <= head + tail + 3) return value;
   return `${value.slice(0, head)}...${value.slice(-tail)}`;
 }
 
 export function formatCountdown(targetSeconds: number): string {
-  if (!Number.isFinite(targetSeconds)) return "--";
+  if (!Number.isFinite(targetSeconds)) return "";
   const targetMs = targetSeconds > 1e12 ? targetSeconds : targetSeconds * 1000;
   const diff = Math.max(0, targetMs - Date.now());
-  if (diff <= 0) return "Ended";
+  if (diff <= 0) return "";
 
   const totalSeconds = Math.floor(diff / 1000);
   const days = Math.floor(totalSeconds / 86400);
@@ -162,7 +162,7 @@ function trimTrailingZero(value: string): string {
  * e.g., 1500000 -> "1.5M"
  */
 export function formatCompactNumber(value: number): string {
-  if (!Number.isFinite(value)) return "--";
+  if (!Number.isFinite(value)) return "";
   const absValue = Math.abs(value);
   const format = (num: number, unit: string) => `${trimTrailingZero(num.toFixed(1))}${unit}`;
 

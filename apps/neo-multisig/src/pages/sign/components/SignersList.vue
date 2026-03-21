@@ -1,8 +1,13 @@
 <template>
   <NeoCard class="signers-card">
     <span class="card-title">{{ t("signersTitle") }}</span>
+    <!--
+      ItemList expects Record<string, unknown>[] but we have SignerEntry[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from SignerEntry[] to unknown first.
+    -->
     <ItemList
-      :items="signers as unknown as Record<string, unknown>[]"
+      :items="(signers as unknown) as Record<string, unknown>[]"
       item-key="publicKey"
       :aria-label="t('ariaSigners')"
     >

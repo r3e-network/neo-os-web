@@ -5,9 +5,11 @@ const appMessages = {
   checkin: { en: "Check-in", zh: "签到" },
   ready: { en: "Ready!", zh: "可签到!" },
   nextCheckin: { en: "Next Check-in", zh: "下次签到" },
+  countdownDefault: { en: "Countdown", zh: "倒计时" },
   dayStreak: { en: "Day Streak", zh: "天连续" },
   bestStreak: { en: "Best", zh: "最高" },
   day: { en: "Day", zh: "第" },
+  days: { en: "Days", zh: "天" },
   rewardProgress: { en: "Reward Progress", zh: "奖励进度" },
   checkInNow: { en: "Check In Now", zh: "立即签到" },
   waitForNext: { en: "Wait for Next", zh: "等待下次" },
@@ -53,6 +55,9 @@ const appMessages = {
   yourStatsTitle: { en: "Your Stats", zh: "你的统计" },
   statusReady: { en: "Complete your daily check-in now!", zh: "立即完成每日签到！" },
   statusDone: { en: "You have secured your streak for today.", zh: "您已锁定今日连续签到。" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  utcLabel: { en: "UTC", zh: "UTC" },
+  dayPrefix: { en: "D", zh: "第" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

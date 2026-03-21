@@ -40,16 +40,16 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     { labelKey: "currentStreak", value: () => `${currentStreak.value} ${t("days")}` },
     { labelKey: "highestStreak", value: () => `${highestStreak.value} ${t("days")}` },
     { labelKey: "totalUserCheckins", value: () => totalUserCheckins.value },
-    { labelKey: "unclaimed", value: () => `${formatGas(unclaimedRewards.value)} GAS` },
-    { labelKey: "totalClaimed", value: () => `${formatGas(totalClaimed.value)} GAS` },
+    { labelKey: "unclaimed", value: () => `${formatGas(unclaimedRewards.value)} ${t("tokenGas")}` },
+    { labelKey: "totalClaimed", value: () => `${formatGas(totalClaimed.value)} ${t("tokenGas")}` },
   ]);
 
   const userStats = computed<StatsDisplayItem[]>(() => [
     { label: t("currentStreak"), value: `${currentStreak.value} ${t("days")}`, variant: "accent" },
     { label: t("highestStreak"), value: `${highestStreak.value} ${t("days")}`, variant: "success" },
     { label: t("totalUserCheckins"), value: totalUserCheckins.value },
-    { label: t("totalClaimed"), value: `${formatGas(totalClaimed.value)} GAS` },
-    { label: t("unclaimed"), value: `${formatGas(unclaimedRewards.value)} GAS` },
+    { label: t("totalClaimed"), value: `${formatGas(totalClaimed.value)} ${t("tokenGas")}` },
+    { label: t("unclaimed"), value: `${formatGas(unclaimedRewards.value)} ${t("tokenGas")}` },
   ]);
 
   const waitForPendingOrConfirm = async (
@@ -80,8 +80,8 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
         totalClaimed.value = Number(data[4] ?? 0);
         totalUserCheckins.value = Number(data[5] ?? 0);
       }
-    } catch (_e: unknown) {
-      // User stats load failure handled silently
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
 
@@ -116,7 +116,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
           const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
           return {
             streak: Number(values[1] ?? 0),
-            time: new Date(evt.created_at || Date.now()).toLocaleString(),
+            time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
             reward: Number(values[2] ?? 0),
           };
         });

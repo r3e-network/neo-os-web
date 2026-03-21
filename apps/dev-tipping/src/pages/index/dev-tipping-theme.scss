@@ -1,3 +1,52 @@
+/* Responsive adjustments for mobile */
+@media (max-width: 480px) {
+  .dev-avatar-glass {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .avatar-badge-glass {
+    font-size: 8px;
+    padding: 2px 4px;
+    bottom: -4px;
+    right: -4px;
+  }
+
+  .dev-card-glass {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .dev-card-header {
+    gap: 10px;
+  }
+
+  .preset-amounts {
+    gap: 6px;
+  }
+
+  .preset-btn-glass {
+    padding: 8px;
+  }
+
+  .preset-value-glass {
+    font-size: 14px;
+  }
+
+  .stat-value-neo {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dev-avatar-glass {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
+
 :global(.theme-dev-tipping) {
   --cafe-bg: #1c1917;
   --cafe-neon: #f97316;

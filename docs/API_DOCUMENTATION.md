@@ -3,11 +3,10 @@
 The **MiniApp Platform** exposes its public gateway via **Supabase Edge Functions**.
 TEE services are internal (mesh/mTLS) and should be reached through Edge routing.
 
-Legacy API note:
+Current API note:
 
-- some endpoint descriptions below preserve older `PaymentHub`-centric examples
-- for current payment behavior, prefer `docs/service-api.md` and the latest
-  flagship live validation report
+- payments now use direct prepaid transfers to the MiniApp contract
+- historical `PaymentHub` examples are no longer authoritative
 
 For the full intended API surface, see:
 
@@ -24,9 +23,8 @@ Key gateway endpoints in this repo:
 
 - `wallet-nonce`, `wallet-bind` (bind Neo N3 address to Supabase user)
 - `api-keys-*` (user API keys: create/list/revoke; raw key returned once)
-- `pay-gas` (returns a GAS transfer intent that prefers the MiniApp contract
-  when the registered manifest exposes `contract_hash`, and falls back to
-  `PaymentHub` only for legacy receipt-oriented flows)
+- `pay-gas` (returns a GAS transfer intent directly to the MiniApp contract
+  when the registered manifest exposes `contract_hash`)
 - `vote-bneo` (Governance intent; governance **bNEO only**)
 - `rng-request` (randomness via `neovrf`; optional RandomnessLog anchoring)
 - `compute-execute`, `compute-jobs`, `compute-job` (host-gated `neocompute` script execution + job inspection)

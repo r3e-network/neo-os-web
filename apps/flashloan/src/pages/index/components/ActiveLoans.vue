@@ -17,14 +17,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { NeoCard, StatsDisplay } from "@shared/components";
-import { createUseI18n } from "@shared/composables";
-import { messages } from "@/locale/messages";
+import type { StatsDisplayItem } from "@shared/components";
 import { formatNumber } from "@shared/utils/format";
 import FlowVisualization from "./FlowVisualization.vue";
 import LiquidityPoolCard from "./LiquidityPoolCard.vue";
 import RecentLoansTable from "./RecentLoansTable.vue";
 
-const { t } = createUseI18n(messages)();
 const formatNum = (n: number) => formatNumber(n, 2);
 
 const props = defineProps<{

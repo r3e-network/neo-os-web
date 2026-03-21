@@ -1,13 +1,13 @@
 <template>
   <NeoCard class="request-card">
     <div v-if="!isEligible" class="not-eligible-msg">
-      <div class="warning-icon">⚠️</div>
+      <div class="warning-icon" aria-hidden="true">⚠️</div>
       <span class="warning-title">{{ t("notEligibleTitle") }}</span>
       <span class="warning-desc">{{ t("balanceExceeds") }}</span>
       <span class="warning-desc">{{ t("newUsersOnly") }}</span>
     </div>
     <div v-else-if="remainingQuota <= 0" class="not-eligible-msg">
-      <div class="warning-icon">🚫</div>
+      <div class="warning-icon" aria-hidden="true">🚫</div>
       <span class="warning-title">{{ t("quotaExhausted") }}</span>
       <span class="warning-desc">{{ t("tryTomorrow") }}</span>
     </div>
@@ -16,11 +16,11 @@
         <div class="pump-screen">
           <span class="pump-label">{{ t("requestAmount") }}</span>
           <span class="pump-amount">{{ requestAmount || "0.00" }}</span>
-          <span class="pump-unit">GAS</span>
+          <span class="pump-unit">{{ t("tokenGas") }}</span>
         </div>
         <div class="pump-limits">
-          <span class="limit-text">{{ t("maxRequest") }}: {{ formatBalance(maxRequestAmount) }} GAS</span>
-          <span class="limit-text">{{ t("remaining") }}: {{ formatBalance(remainingQuota) }} GAS</span>
+          <span class="limit-text">{{ t("maxRequest") }}: {{ formatBalance(maxRequestAmount) }} {{ t("tokenGas") }}</span>
+          <span class="limit-text">{{ t("remaining") }}: {{ formatBalance(remainingQuota) }} {{ t("tokenGas") }}</span>
         </div>
       </div>
 
@@ -29,19 +29,21 @@
         @update:modelValue="$emit('update:requestAmount', $event)"
         type="number"
         :label="t('amountToRequest')"
-        placeholder="0.01"
-        suffix="GAS"
+        :placeholder="t('amountToRequestPlaceholder')"
+        :suffix="t('tokenGas')"
       />
 
       <div class="quick-amounts">
-        <div
+        <button
+          type="button"
           v-for="amount in quickAmounts"
           :key="amount"
           class="quick-btn"
+          :aria-label="amount + ' ' + t('tokenGas')"
           @click="$emit('update:requestAmount', amount.toString())"
         >
           <span>{{ amount }}</span>
-        </div>
+        </button>
       </div>
 
       <div class="submit-action">
@@ -49,8 +51,10 @@
           variant="primary"
           size="lg"
           block
+          type="button"
           :loading="isRequesting"
           :disabled="!isEligible || remainingQuota <= 0"
+          :aria-label="t('requestGas')"
           @click="$emit('request')"
         >
           <div class="btn-content">
@@ -79,7 +83,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["update:requestAmount", "request"]);
+defineEmits<{
+  (e: "update:requestAmount", value: string): void;
+  (e: "request"): void;
+}>();
 
 const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(4);
 </script>
@@ -215,6 +222,8 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   color: var(--gas-text);
   position: relative;
   overflow: hidden;
+  appearance: none;
+  border-style: solid;
 
   &:hover {
     background: var(--gas-quick-btn-hover-bg);

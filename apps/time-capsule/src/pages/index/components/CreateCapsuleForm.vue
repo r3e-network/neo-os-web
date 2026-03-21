@@ -109,7 +109,14 @@ const categories = [
 
 const selectedCategory = computed(() => props.category || 1);
 
-defineEmits(["update:title", "update:content", "update:days", "update:isPublic", "update:category", "create"]);
+defineEmits<{
+  (e: "update:title", value: string): void;
+  (e: "update:content", value: string): void;
+  (e: "update:days", value: string): void;
+  (e: "update:isPublic", value: boolean): void;
+  (e: "update:category", value: number): void;
+  (e: "create"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

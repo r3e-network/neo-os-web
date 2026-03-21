@@ -1,5 +1,5 @@
 <template>
-  <div class="stats-tab" :aria-label="ariaLabel || 'Statistics'">
+  <div class="stats-tab" :aria-label="ariaLabel || t('statistics')">
     <!-- Grid section (top cards) -->
     <div v-if="gridItems.length > 0" class="stats-tab__grid">
       <StatsDisplay :items="gridItems" layout="grid" :columns="gridColumns" :compact="compact" :loading="loading" />
@@ -75,7 +75,7 @@ withDefaults(
 );
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .stats-tab {

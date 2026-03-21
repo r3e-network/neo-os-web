@@ -20,7 +20,17 @@ const appMessages = {
   feature2Name: { en: "Hook", zh: "Hook" },
   feature2Desc: { en: "Change hook policy bindings.", zh: "切换 hook 策略绑定。" },
   feature3Name: { en: "Direct Wallet", zh: "钱包直连" },
-  feature3Desc: { en: "Writes go straight to the shared AA core.", zh: "写操作直接发往共享 AA Core。" }
+  feature3Desc: { en: "Writes go straight to the shared AA core.", zh: "写操作直接发往共享 AA Core。" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  notConnected: { en: "not connected", zh: "未连接" },
+  configured: { en: "configured", zh: "已配置" },
+  inspectFailed: { en: "Inspect failed", zh: "查询失败" },
+  updateVerifierFailed: { en: "Update verifier failed", zh: "更新 Verifier 失败" },
+  updateHookFailed: { en: "Update hook failed", zh: "更新 Hook 失败" },
+  accountIdHashPlaceholder: { en: "20-byte hash", zh: "20字节哈希" },
+  verifierHashPlaceholder: { en: "0x...", zh: "0x..." },
+  verifierParamsPlaceholder: { en: "hex payload", zh: "十六进制数据" },
+  hookHashPlaceholder: { en: "0x...", zh: "0x..." },
 } as const;
 
 export const messages = mergeMessages(appMessages);

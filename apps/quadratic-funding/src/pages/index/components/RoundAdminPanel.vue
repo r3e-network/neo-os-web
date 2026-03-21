@@ -16,6 +16,7 @@
       <NeoButton
         size="sm"
         variant="secondary"
+        type="button"
         :loading="isAddingMatching"
         :disabled="!canManage"
         @click="emitAddMatching"
@@ -41,6 +42,7 @@
       <NeoButton
         size="sm"
         variant="primary"
+        type="button"
         :loading="isFinalizing"
         :disabled="!canFinalize"
         @click="emitFinalize"
@@ -54,6 +56,7 @@
     <NeoButton
       size="sm"
       variant="secondary"
+      type="button"
       :loading="isClaimingUnused"
       :disabled="!canClaimUnused"
       @click="emitClaimUnused"

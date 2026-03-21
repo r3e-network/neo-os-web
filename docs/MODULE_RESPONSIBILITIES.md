@@ -13,8 +13,6 @@ and policy details, see `docs/DATAFLOWS.md`, `docs/service-api.md`, and
 
 Current platform note:
 
-- `PaymentHub` is now a legacy / optional settlement contract, not the default
-  path for flagship MiniApps.
 - direct Oracle, direct AA relay, and direct prepaid MiniApp contract flows are
   the preferred integration model.
 
@@ -26,7 +24,6 @@ Current platform note:
 
 Platform contracts only:
 
-- `PaymentHub` (**legacy / optional GAS-only** settlement)
 - `Governance` (**bNEO-only** staking/voting)
 - `PriceFeed` (datafeed anchoring)
 - `RandomnessLog` (randomness anchoring; randomness is provided via NeoVRF)

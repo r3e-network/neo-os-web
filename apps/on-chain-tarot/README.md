@@ -32,9 +32,9 @@ Blockchain fortune telling with verifiable randomness
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e` |
+| **Contract** | `0x5cdf29c30727ce06696736ae0fb49abd9fd79730` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xc2bb26d21f357f125a0e49cbca7718b6aa5c3b1e) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x5cdf29c30727ce06696736ae0fb49abd9fd79730) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet

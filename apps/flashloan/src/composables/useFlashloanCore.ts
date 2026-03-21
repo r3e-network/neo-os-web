@@ -70,7 +70,7 @@ export function useFlashloanCore() {
   const formatTimestamp = (value: unknown) => {
     const ts = toNumber(value);
     if (!ts) return t("notAvailable");
-    return new Date(ts * 1000).toLocaleString();
+    return new Intl.DateTimeFormat("en").format(new Date(ts * 1000));
   };
 
   const toGas = (value: unknown): number => {
@@ -92,10 +92,10 @@ export function useFlashloanCore() {
 
     return {
       id: String(loanId),
-      borrower: formatAddress(String(borrower || "")),
+      borrower: formatAddress(String(borrower || "")) || t("notAvailable"),
       amount: formatGas(amountRaw),
       fee: formatGas(feeRaw),
-      callbackContract: formatAddress(String(callbackContract || "")),
+      callbackContract: formatAddress(String(callbackContract || "")) || t("notAvailable"),
       callbackMethod: callbackMethodText || t("notAvailable"),
       timestamp: formatTimestamp(timestamp),
       status: statusValue,

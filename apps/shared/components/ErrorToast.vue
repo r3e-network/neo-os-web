@@ -5,13 +5,12 @@
         v-if="show"
         :class="['error-toast', `error-toast--${type}`]"
         role="alert"
-        aria-live="assertive"
       >
         <div class="error-toast__content">
           <span class="error-toast__icon">{{ iconMap[type] }}</span>
           <span class="error-toast__message">{{ message }}</span>
         </div>
-        <button class="error-toast__close" aria-label="Close" @click="$emit('close')">×</button>
+        <button type="button" class="error-toast__close" :aria-label="t('close')" @click="$emit('close')">×</button>
       </div>
     </Transition>
   </Teleport>
@@ -19,40 +18,25 @@
 
 <script setup lang="ts">
 import { watch, onBeforeUnmount } from "vue";
+import { useI18n } from "@shared/composables";
+import { type StatusType } from "@shared/composables/useStatusMessage";
 
-/** Toast notification type */
-export type ToastType = "error" | "success" | "warning";
+const { t } = useI18n();
 
-/**
- * ErrorToast - Shared toast notification for all miniapps
- *
- * Replaces per-app custom error toast implementations with a single,
- * consistent component. Supports error, success, and warning types.
- *
- * @example
- * ```vue
- * <ErrorToast
- *   :show="!!errorMsg"
- *   :message="errorMsg"
- *   type="error"
- *   @close="errorMsg = ''"
- * />
- * ```
- */
+type ToastType = StatusType;
+
+const DEFAULT_AUTO_HIDE_DURATION_MS = 5000;
+
 const props = withDefaults(
   defineProps<{
-    /** Toast message text */
     message: string;
-    /** Visual type: error (red), success (green), warning (amber) */
     type?: ToastType;
-    /** Whether the toast is visible */
     show: boolean;
-    /** Auto-hide duration in ms (0 = no auto-hide) */
     autoHideDuration?: number;
   }>(),
   {
     type: "error",
-    autoHideDuration: 5000,
+    autoHideDuration: DEFAULT_AUTO_HIDE_DURATION_MS,
   }
 );
 
@@ -60,10 +44,13 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const iconMap: Record<string, string> = {
+const iconMap: Record<ToastType, string> = {
   error: "✕",
   success: "✓",
   warning: "⚠",
+  info: "ℹ",
+  danger: "⚡",
+  loading: "⟳",
 };
 
 let hideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -90,14 +77,14 @@ onBeforeUnmount(clearTimer);
 </script>
 
 <style lang="scss" scoped>
-@use "../styles/tokens.scss" as *;
+@use "@shared/styles/tokens.scss" as *;
 
 .error-toast {
   position: fixed;
   top: 80px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1050;
+  z-index: $z-index-toast;
   display: flex;
   align-items: center;
   gap: $spacing-3;
@@ -114,31 +101,55 @@ onBeforeUnmount(clearTimer);
   &--error {
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    --toast-color: #fca5a5;
+    color: var(--toast-color);
   }
 
   &--success {
     background: rgba(16, 185, 129, 0.15);
     border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #6ee7b7;
+    --toast-color: #6ee7b7;
+    color: var(--toast-color);
   }
 
   &--warning {
     background: rgba(245, 158, 11, 0.15);
     border: 1px solid rgba(245, 158, 11, 0.3);
-    color: #fcd34d;
+    --toast-color: #fcd34d;
+    color: var(--toast-color);
+  }
+
+  &--info {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    --toast-color: #60a5fa;
+    color: var(--toast-color);
+  }
+
+  &--danger {
+    background: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    --toast-color: #f87171;
+    color: var(--toast-color);
+  }
+
+  &--loading {
+    background: rgba(75, 85, 99, 0.15);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    --toast-color: #9ca3af;
+    color: var(--toast-color);
   }
 
   &__content {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: $spacing-2;
     flex: 1;
     min-width: 0;
   }
 
   &__icon {
-    font-size: 14px;
+    font-size: $font-size-sm;
     font-weight: 700;
     flex-shrink: 0;
   }
@@ -153,8 +164,8 @@ onBeforeUnmount(clearTimer);
 
   &__close {
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
+    width: $spacing-6;
+    height: $spacing-6;
     display: flex;
     align-items: center;
     justify-content: center;

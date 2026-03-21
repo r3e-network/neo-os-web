@@ -11,7 +11,7 @@
     />
 
     <div class="actions">
-      <NeoButton variant="primary" block @click="$emit('next')" :disabled="!isValid">
+      <NeoButton variant="primary" block type="button" @click="$emit('next')" :disabled="!isValid" :aria-label="nextLabel">
         {{ nextLabel }}
       </NeoButton>
     </div>
@@ -34,7 +34,12 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["addSigner", "removeSigner", "updateSigner", "next"]);
+defineEmits<{
+  (e: "addSigner"): void;
+  (e: "removeSigner", index: number): void;
+  (e: "updateSigner", data: { index: number; value: string }): void;
+  (e: "next"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

@@ -3,7 +3,7 @@
     <div class="stats-grid-neo">
       <div class="stat-item-neo">
         <span class="stat-label-neo">{{ t("totalDonated") }}</span>
-        <span class="stat-value-neo">{{ formatNum(totalDonated) }} GAS</span>
+        <span class="stat-value-neo">{{ formatNum(totalDonated) }} {{ t("tokenGas") }}</span>
       </div>
     </div>
   </NeoCard>
@@ -11,12 +11,12 @@
   <NeoCard v-if="recentTips.length > 0" variant="erobo-neo">
     <div class="recent-tips-glass">
       <div v-for="tip in recentTips" :key="tip.id" class="recent-tip-item-glass">
-        <span class="recent-tip-emoji">✨</span>
+        <span class="recent-tip-emoji" aria-hidden="true">✨</span>
         <div class="recent-tip-info">
           <span class="recent-tip-to-glass">{{ tip.to }}</span>
           <span class="recent-tip-time-glass">{{ tip.time }}</span>
         </div>
-        <span class="recent-tip-amount-glass">{{ tip.amount }} GAS</span>
+        <span class="recent-tip-amount-glass">{{ tip.amount }} {{ t("tokenGas") }}</span>
       </div>
     </div>
   </NeoCard>

@@ -34,7 +34,7 @@
             @update:modelValue="$emit('update:stakeAmount', $event)"
             type="number"
             :placeholder="t('stakePlaceholder')"
-            suffix="GAS"
+            :suffix="t('tokenGas')"
           />
         </div>
 
@@ -65,7 +65,7 @@
         <div class="signature-pad-glass">
           <div class="sign-line"></div>
           <span class="signature-text mono" :class="{ signed: !!address }">
-            {{ address ? `✍️ ${address}` : t("connectWallet") }}
+            <span aria-hidden="true">✍️</span> {{ address ? address : t("connectWallet") }}
           </span>
           <div class="biometric-scan" v-if="address"></div>
         </div>
@@ -95,14 +95,14 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits([
-  "update:partnerAddress",
-  "update:stakeAmount",
-  "update:duration",
-  "update:title",
-  "update:terms",
-  "create",
-]);
+defineEmits<{
+  (e: "update:partnerAddress", value: string): void;
+  (e: "update:stakeAmount", value: string): void;
+  (e: "update:duration", value: string): void;
+  (e: "update:title", value: string): void;
+  (e: "update:terms", value: string): void;
+  (e: "create"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

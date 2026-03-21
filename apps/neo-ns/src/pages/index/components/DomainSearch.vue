@@ -1,6 +1,6 @@
 <template>
   <div class="mb-4">
-    <NeoInput v-model="localQuery" :placeholder="t('searchPlaceholder')" suffix=".neo" @input="onSearch" />
+    <NeoInput v-model="localQuery" :placeholder="t('searchPlaceholder')" :suffix="t('domainSuffix')" @input="onSearch" />
   </div>
 
   <NeoCard
@@ -24,7 +24,7 @@
       <div class="price-display">
         <span class="price-label">{{ t("registrationPrice") }}</span>
         <span class="price-value" :class="{ 'premium-price': localQuery.length <= 3 }">
-          {{ searchResult.price }} GAS
+          {{ searchResult.price }} {{ t("tokenGas") }}
         </span>
         <span class="price-period">{{ t("perYear") }}</span>
       </div>

@@ -2,13 +2,18 @@
   <NeoCard variant="erobo" class="project-list">
     <div class="projects-header">
       <span class="section-title">{{ t("tabProjects") }}</span>
-      <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="emitRefresh">
+      <NeoButton size="sm" variant="secondary" type="button" :loading="isRefreshing" @click="emitRefresh">
         {{ t("refresh") }}
       </NeoButton>
     </div>
 
+    <!--
+      ItemList expects Record<string, unknown>[] but we have ProjectItem[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from ProjectItem[] to unknown first.
+    -->
     <ItemList
-      :items="projects as unknown as Record<string, unknown>[]"
+      :items="(projects as unknown) as Record<string, unknown>[]"
       item-key="id"
       :empty-text="t('emptyProjects')"
       :aria-label="t('ariaProjects')"
@@ -32,7 +37,7 @@
             }}</span>
           </div>
 
-          <span class="project-desc">{{ (item as unknown as ProjectItem).description || "--" }}</span>
+          <span class="project-desc">{{ (item as unknown as ProjectItem).description || t("notAvailable") }}</span>
           <span v-if="(item as unknown as ProjectItem).link" class="project-link">{{
             (item as unknown as ProjectItem).link
           }}</span>
@@ -42,13 +47,13 @@
               <span class="metric-label">{{ t("totalContributed") }}</span>
               <span class="metric-value"
                 >{{ formatAmount(assetSymbol, (item as unknown as ProjectItem).totalContributed) }}
-                {{ assetSymbol }}</span
+                {{ assetLabel }}</span
           >
             </div>
             <div>
               <span class="metric-label">{{ t("matchedAmount") }}</span>
               <span class="metric-value"
-                >{{ formatAmount(assetSymbol, (item as unknown as ProjectItem).matchedAmount) }} {{ assetSymbol }}</span
+                >{{ formatAmount(assetSymbol, (item as unknown as ProjectItem).matchedAmount) }} {{ assetLabel }}</span
           >
             </div>
             <div>
@@ -58,12 +63,13 @@
           </div>
 
           <div class="project-actions">
-            <NeoButton size="sm" variant="secondary" @click="emitContribute(item as unknown as ProjectItem)">
+            <NeoButton size="sm" variant="secondary" type="button" @click="emitContribute(item as unknown as ProjectItem)">
               {{ t("contributeNow") }}
             </NeoButton>
             <NeoButton
               size="sm"
               variant="primary"
+              type="button"
               :loading="claimingProjectId === (item as unknown as ProjectItem).id"
               :disabled="!canClaimProject(item as unknown as ProjectItem)"
               @click="emitClaim(item as unknown as ProjectItem)"
@@ -78,6 +84,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { NeoCard, NeoButton, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -116,6 +123,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = createUseI18n(messages)();
+
+const assetLabel = computed(() => t("tokenGas"));
 
 const emitRefresh = () => emit("refresh");
 </script>
@@ -219,17 +228,17 @@ const emitRefresh = () => emit("refresh");
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: rgba(20, 184, 166, 0.2);
+  background: var(--qf-accent-soft, rgba(20, 184, 166, 0.2));
   color: var(--qf-accent);
 }
 
 .status-pill.inactive {
-  background: rgba(148, 163, 184, 0.2);
+  background: var(--qf-muted-soft, rgba(148, 163, 184, 0.2));
   color: var(--qf-muted);
 }
 
 .status-pill.claimed {
-  background: rgba(16, 185, 129, 0.2);
+  background: var(--qf-success-soft, rgba(16, 185, 129, 0.2));
   color: var(--qf-success-alt);
 }
 

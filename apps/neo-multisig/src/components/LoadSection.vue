@@ -1,33 +1,34 @@
 <template>
   <div class="load-section">
-    <span class="load-label">{{ label }}</span>
+    <span class="load-label" :id="`load-label-${uid}`">{{ label }}</span>
     <div class="load-input-row">
       <div class="input-wrapper">
-        <span class="input-icon">🔗</span>
+        <span class="input-icon" aria-hidden="true">🔗</span>
         <input
           type="text"
           class="load-input"
           :placeholder="placeholder"
           :value="modelValue"
+          :aria-labelledby="`load-label-${uid}`"
           @input="$emit('update:modelValue', ($event as unknown as { detail: { value: string } }).detail.value)"
         />
       </div>
-      <div
+      <button
+        type="button"
         :class="['load-btn', { disabled: !modelValue }]"
-        role="button"
         :aria-label="buttonText"
-        :tabindex="modelValue ? 0 : -1"
-        :aria-disabled="!modelValue"
+        :disabled="!modelValue"
         @click="$emit('load')"
-        @keydown.enter="$emit('load')"
       >
         <span class="load-btn-text">{{ buttonText }}</span>
-      </div>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+const uid = `load-${Math.random().toString(36).slice(2, 9)}`;
+
 defineProps<{
   modelValue: string;
   label: string;
@@ -117,12 +118,13 @@ defineEmits<{
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:active:not(.disabled) {
+  &:active:not(.disabled):not(:disabled) {
     background: var(--multi-button-active-bg);
     border-color: var(--multi-button-active-border);
   }
 
-  &.disabled {
+  &.disabled,
+  &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
   }

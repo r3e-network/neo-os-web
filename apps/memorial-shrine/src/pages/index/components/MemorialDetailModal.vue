@@ -4,61 +4,63 @@
       <!-- Tombstone Header -->
       <div class="tombstone-header">
         <div class="header-actions">
-          <div class="action-btn share" role="button" tabindex="0" :aria-label="t('share')" @click="$emit('share')">
+          <button type="button" class="action-btn share" :aria-label="t('share')" @click="$emit('share')">
             <span aria-hidden="true">&#x1F517;</span>
-          </div>
+          </button>
         </div>
         <div class="photo-frame">
           <img
             v-if="memorial.photoHash"
             :src="memorial.photoHash"
             mode="aspectFill"
-            :alt="memorial.name || t('memorialPhoto')"
+            :alt="memorial.name?.trim() || t('memorialPhoto')"
           />
-          <span v-else class="default-icon">&#x1F56F;&#xFE0F;</span>
+          <span v-else class="default-icon" aria-hidden="true">&#x1F56F;&#xFE0F;</span>
         </div>
         <span class="name">{{ memorial.name }}</span>
-        <span class="lifespan">{{ memorial.birthYear }} - {{ memorial.deathYear }}</span>
+        <span class="lifespan">{{ memorial.birthYear }}{{ t("yearRangeSeparator") }}{{ memorial.deathYear }}</span>
         <span class="relationship">{{ memorial.relationship || t("foreverRemember") }}</span>
       </div>
 
       <!-- Biography -->
       <div class="section">
-        <span class="section-title">&#x1F4DC; {{ t("biography") }}</span>
+        <span class="section-title" aria-hidden="true">&#x1F4DC;</span>
+        <span class="section-title-text">{{ t("biography") }}</span>
         <span class="biography">{{ memorial.biography || t("noBio") }}</span>
       </div>
 
       <!-- Offerings Received -->
       <div class="section">
-        <span class="section-title">&#x1F64F; {{ t("offeringsReceived") }}</span>
+        <span class="section-title" aria-hidden="true">&#x1F64F;</span>
+        <span class="section-title-text">{{ t("offeringsReceived") }}</span>
         <div class="offering-counts">
           <div class="count-item">
-            <span class="icon">&#x1F56F;&#xFE0F;</span>
+            <span class="icon" aria-hidden="true">&#x1F56F;&#xFE0F;</span>
             <span class="label">{{ t("incense") }}</span>
             <span class="count">{{ memorial.offerings.incense }}</span>
           </div>
           <div class="count-item">
-            <span class="icon">&#x1F56F;</span>
+            <span class="icon" aria-hidden="true">&#x1F56F;</span>
             <span class="label">{{ t("candle") }}</span>
             <span class="count">{{ memorial.offerings.candle }}</span>
           </div>
           <div class="count-item">
-            <span class="icon">&#x1F338;</span>
+            <span class="icon" aria-hidden="true">&#x1F338;</span>
             <span class="label">{{ t("flower") }}</span>
             <span class="count">{{ memorial.offerings.flower }}</span>
           </div>
           <div class="count-item">
-            <span class="icon">&#x1F347;</span>
+            <span class="icon" aria-hidden="true">&#x1F347;</span>
             <span class="label">{{ t("fruit") }}</span>
             <span class="count">{{ memorial.offerings.fruit }}</span>
           </div>
           <div class="count-item">
-            <span class="icon">&#x1F376;</span>
+            <span class="icon" aria-hidden="true">&#x1F376;</span>
             <span class="label">{{ t("wine") }}</span>
             <span class="count">{{ memorial.offerings.wine }}</span>
           </div>
           <div class="count-item">
-            <span class="icon">&#x1F371;</span>
+            <span class="icon" aria-hidden="true">&#x1F371;</span>
             <span class="label">{{ t("feast") }}</span>
             <span class="count">{{ memorial.offerings.feast }}</span>
           </div>
@@ -67,43 +69,42 @@
 
       <!-- Pay Tribute -->
       <div class="section">
-        <span class="section-title">&#x1F56F;&#xFE0F; {{ t("payTribute") }}</span>
+        <span class="section-title" aria-hidden="true">&#x1F56F;&#xFE0F;</span>
+        <span class="section-title-text">{{ t("payTribute") }}</span>
         <div class="offerings-grid">
-          <div
+          <button
             v-for="offering in offerings"
             :key="offering.type"
+            type="button"
             class="offering-option"
             :class="{ selected: selectedOffering === offering.type }"
-            role="button"
-            tabindex="0"
-            :aria-label="t(offering.nameKey) + ' - ' + offering.cost + ' GAS'"
+            :aria-label="t(offering.nameKey) + ' - ' + offering.cost + ' ' + t('tokenGas')"
             :aria-pressed="selectedOffering === offering.type"
             @click="selectedOffering = offering.type"
           >
-            <span class="icon">{{ offering.icon }}</span>
+            <span class="icon" aria-hidden="true">{{ offering.icon }}</span>
             <span class="name">{{ t(offering.nameKey) }}</span>
-            <span class="cost">{{ offering.cost }} GAS</span>
-          </div>
+            <span class="cost">{{ offering.cost }} {{ t("tokenGas") }}</span>
+          </button>
         </div>
 
         <div class="message-input">
-          <input v-model="message" :placeholder="t('messagePlaceholder')" class="input" />
+          <input v-model="message" :placeholder="t('messagePlaceholder')" class="input" :aria-label="t('messagePlaceholder')" />
         </div>
 
         <div v-if="status" class="status-bar" :class="status.type">
           <span class="status-text">{{ status.msg }}</span>
         </div>
 
-        <div
+        <button
+          type="button"
           class="tribute-btn"
-          role="button"
-          tabindex="0"
           :aria-label="isPaying ? t('paying') : t('payTributeBtn')"
-          :class="{ disabled: isPaying }"
+          :disabled="isPaying"
           @click="payTribute"
         >
           <span>{{ isPaying ? t("paying") : t("payTributeBtn") }}</span>
-        </div>
+        </button>
       </div>
     </div>
   </ActionModal>
@@ -149,11 +150,15 @@ const payTribute = async () => {
   const offering = props.offerings.find((o) => o.type === selectedOffering.value);
   if (!offering) return;
 
-  await memorial.payTribute(props.memorial.id, selectedOffering.value, offering.cost, message.value, setStatus);
+  try {
+    await memorial.payTribute(props.memorial.id, selectedOffering.value, offering.cost, message.value, setStatus);
 
-  if (status.value?.type === "success") {
-    message.value = "";
-    emit("tribute-paid", props.memorial.id, selectedOffering.value);
+    if (status.value?.type === "success") {
+      message.value = "";
+      emit("tribute-paid", props.memorial.id, selectedOffering.value);
+    }
+  } catch (_e: unknown) {
+    /* non-critical: tribute payment */
   }
 };
 </script>
@@ -191,6 +196,9 @@ const payTribute = async () => {
   color: var(--shrine-text);
   cursor: pointer;
   transition: background 0.2s;
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &:hover {
     background: var(--shrine-panel-soft);
@@ -252,6 +260,13 @@ const payTribute = async () => {
   margin-bottom: 12px;
 }
 
+.section-title-text {
+  display: block;
+  font-size: 14px;
+  color: var(--shrine-gold-light);
+  margin-bottom: 12px;
+}
+
 .biography {
   font-size: 13px;
   color: var(--shrine-text);
@@ -300,8 +315,11 @@ const payTribute = async () => {
   background: var(--shrine-panel-soft);
   border: 1px solid var(--shrine-panel-border);
   border-radius: 8px;
+  appearance: none;
+  cursor: pointer;
 
-  &.selected {
+  &.selected,
+  &[aria-pressed="true"] {
     border-color: var(--shrine-gold);
     background: var(--shrine-gold-soft);
   }
@@ -342,6 +360,10 @@ const payTribute = async () => {
   background: var(--shrine-button-bg);
   border-radius: 10px;
   text-align: center;
+  border: none;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
 
   text {
     font-size: 15px;
@@ -349,7 +371,7 @@ const payTribute = async () => {
     color: var(--shrine-button-text);
   }
 
-  &.disabled {
+  &:disabled {
     opacity: 0.6;
   }
 }

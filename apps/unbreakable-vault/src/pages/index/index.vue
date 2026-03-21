@@ -18,7 +18,7 @@
             <div class="vault-scene" aria-hidden="true">
               <div class="vault-door">
                 <div class="vault-handle" />
-                <div class="vault-lock">🔒</div>
+                <div class="vault-lock" aria-hidden="true">🔒</div>
               </div>
             </div>
           </template>
@@ -73,7 +73,7 @@
             <NeoInput v-model="breaker.vaultIdInput.value" type="number" :placeholder="t('vaultIdPlaceholder')" />
           </div>
 
-          <NeoButton variant="secondary" block :loading="breaker.isLoading.value" @click="breaker.loadVault">
+          <NeoButton variant="secondary" block type="button" :loading="breaker.isLoading.value" @click="breaker.loadVault">
             {{ t("loadVault") }}
           </NeoButton>
 
@@ -82,7 +82,7 @@
             <NeoInput v-model="breaker.attemptSecret.value" :placeholder="t('secretAttemptPlaceholder')" />
           </div>
 
-          <span class="helper-text">{{ t("attemptFeeNote").replace("{fee}", breaker.attemptFeeDisplay.value) }}</span>
+          <span class="helper-text">{{ t("attemptFeeNote", { fee: breaker.attemptFeeDisplay.value, tokenGas: t("tokenGas") }) }}</span>
 
           <NeoButton
             variant="primary"
@@ -133,14 +133,17 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
     { labelKey: "create", value: () => creator.myVaults.value.length },
     { labelKey: "break", value: () => breaker.recentVaults.value.length },
     { labelKey: "sidebarDifficulty", value: () => vaultDifficulty.value },
-    { labelKey: "sidebarAttemptFee", value: () => `${breaker.attemptFeeDisplay.value} GAS` },
+    { labelKey: "sidebarAttemptFee", value: () => `${breaker.attemptFeeDisplay.value} ${t("tokenGas")}` },
   ],
 });
 
 const breaker = useVaultBreaker(APP_ID, t);
 const creator = useVaultCreator(APP_ID, t, breaker.setStatus);
 
-const appState = computed(() => ({}));
+const appState = computed(() => ({
+  hasVault: Boolean(breaker.currentVault.value || creator.myVaults.value.length),
+  difficulty: vaultDifficulty.value,
+}));
 
 const bounty = ref("");
 const vaultTitle = ref("");
@@ -173,7 +176,11 @@ const createVault = async () => {
 };
 
 watch(secret, async (value) => {
-  secretHash.value = value ? await sha256Hex(value) : "";
+  try {
+    secretHash.value = value ? await sha256Hex(value) : "";
+  } catch (_e: unknown) {
+    secretHash.value = "";
+  }
 });
 
 onMounted(() => {
@@ -182,8 +189,12 @@ onMounted(() => {
 });
 
 const resetAndReload = async () => {
-  breaker.loadRecentVaults();
-  creator.loadMyVaults();
+  try {
+    breaker.loadRecentVaults();
+    creator.loadMyVaults();
+  } catch (_e: unknown) {
+    /* non-critical: reload failed */
+  }
 };
 </script>
 

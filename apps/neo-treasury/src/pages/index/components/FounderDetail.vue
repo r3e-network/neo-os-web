@@ -8,17 +8,17 @@
             <AppIcon name="user" :size="24" />
             <span class="badge-text">{{ category.name }}</span>
           </div>
-          <span class="hero-usd">${{ formatNum(category.totalUsd) }}</span>
+          <span class="hero-usd">{{ t("currencySymbol") }}{{ formatNum(category.totalUsd) }}</span>
         </div>
 
         <div class="hero-tokens">
           <div class="hero-token-item">
-            <span class="token-label">NEO</span>
+            <span class="token-label">{{ t("tokenNeo") }}</span>
             <span class="token-val">{{ formatNum(category.totalNeo) }}</span>
           </div>
           <div class="v-divider"></div>
           <div class="hero-token-item">
-            <span class="token-label">GAS</span>
+            <span class="token-label">{{ t("tokenGas") }}</span>
             <span class="token-val">{{ formatNum(category.totalGas, 2) }}</span>
           </div>
         </div>
@@ -42,11 +42,11 @@
       >
         <div class="wallet-main">
           <div class="wallet-prefix">
-            <span class="idx">#{{ idx + 1 }}</span>
+            <span class="idx">{{ t("idPrefix") }}{{ idx + 1 }}</span>
             <span class="addr">{{ shortAddr(wallet.address) }}</span>
           </div>
           <div class="wallet-right">
-            <span class="addr-usd">${{ formatNum(walletUsd(wallet)) }}</span>
+            <span class="addr-usd">{{ t("currencySymbol") }}{{ formatNum(walletUsd(wallet)) }}</span>
             <AppIcon name="chevron-right" :size="16" :class="['arrow', { rotated: expandedIdx === idx }]" />
           </div>
         </div>
@@ -64,14 +64,14 @@
             <span class="d-label">{{ t("breakdown") }}</span>
             <div class="breakdown-grid">
               <div class="break-item">
-                <span class="b-sym">NEO</span>
+                <span class="b-sym">{{ t("tokenNeo") }}</span>
                 <span class="b-amt">{{ formatNum(wallet.neo) }}</span>
-                <span class="b-usd">≈ ${{ formatNum(wallet.neo * prices.neo.usd) }}</span>
+                <span class="b-usd">{{ t("approxEqual") }}{{ t("currencySymbol") }}{{ formatNum(wallet.neo * prices.neo.usd) }}</span>
               </div>
               <div class="break-item">
-                <span class="b-sym">GAS</span>
+                <span class="b-sym">{{ t("tokenGas") }}</span>
                 <span class="b-amt">{{ formatNum(wallet.gas, 2) }}</span>
-                <span class="b-usd">≈ ${{ formatNum(wallet.gas * prices.gas.usd) }}</span>
+                <span class="b-usd">{{ t("approxEqual") }}{{ t("currencySymbol") }}{{ formatNum(wallet.gas * prices.gas.usd) }}</span>
               </div>
             </div>
           </div>

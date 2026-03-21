@@ -16,7 +16,7 @@
         <span class="hero-label">{{ t("appName") }}</span>
         <span class="hero-description">{{ t("heroDescription") }}</span>
 
-        <div class="hero-gauge">
+        <div class="hero-gauge" aria-hidden="true">
           <svg viewBox="0 0 200 120" class="gauge-svg">
             <path
               d="M20 100 A80 80 0 0 1 180 100"
@@ -44,7 +44,7 @@
           </svg>
           <div class="gauge-center">
             <span class="gauge-value">{{ formatNum(stats?.totalStaked ?? 0) }}</span>
-            <span class="gauge-unit">NEO</span>
+            <span class="gauge-unit">{{ t("tokenNeo") }}</span>
           </div>
         </div>
 
@@ -74,6 +74,7 @@
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
         compact
+        :t="t"
       />
       <NeoCard v-else variant="erobo" :title="t('stake')" class="mb-4 px-1">
         <div v-if="address" class="stake-form">
@@ -98,7 +99,7 @@
           <div class="claim-panel">
             <div class="claim-panel__copy">
               <span class="claim-panel__label">{{ t("pendingRewards") }}</span>
-              <span class="claim-panel__value">{{ formatNum(pendingRewards) }} GAS</span>
+              <span class="claim-panel__value">{{ formatNum(pendingRewards) }} {{ t("tokenGas") }}</span>
             </div>
             <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
               {{ t("claim") }}
@@ -108,7 +109,7 @@
           <div class="claim-panel claim-panel--withdraw">
             <div class="claim-panel__copy">
               <span class="claim-panel__label">{{ t("pendingWithdrawLabel") }}</span>
-              <span class="claim-panel__value">{{ formatNum(pendingWithdraw) }} NEO</span>
+              <span class="claim-panel__value">{{ formatNum(pendingWithdraw) }} {{ t("tokenNeo") }}</span>
               <span class="claim-panel__hint">{{ t("withdrawQueueDesc") }}</span>
             </div>
             <NeoButton variant="secondary" :disabled="pendingWithdraw <= 0" @click="handleClaimPendingWithdraw">
@@ -187,8 +188,8 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
     docFeatureCount: 3,
   },
   sidebarItems: [
-    { labelKey: "myStake", value: () => `${formatNum(myStake.value)} NEO` },
-    { labelKey: "pendingRewards", value: () => `${formatNum(pendingRewards.value)} GAS` },
+    { labelKey: "myStake", value: () => `${formatNum(myStake.value)} ${t("tokenNeo")}` },
+    { labelKey: "pendingRewards", value: () => `${formatNum(pendingRewards.value)} ${t("tokenGas")}` },
     { labelKey: "agentAccountsLabel", value: () => agentAccounts.length },
     { labelKey: "defaultIngressLabel", value: () => 21 },
   ],
@@ -275,16 +276,28 @@ const handleClaim = async () => {
 
 const handleClaimPendingWithdraw = async () => {
   if (pendingWithdraw.value <= 0) return;
-  await claimPendingWithdraw();
+  try {
+    await claimPendingWithdraw();
+  } catch (_e: unknown) {
+    /* non-critical: claim pending withdraw */
+  }
 };
 
 const resetAndReload = async () => {
-  if (!(await ensureContractReady())) return;
-  await loadAll();
+  try {
+    if (!(await ensureContractReady())) return;
+    await loadAll();
+  } catch (_e: unknown) {
+    /* non-critical: reload trustanchor data */
+  }
 };
 
 onMounted(async () => {
-  await resetAndReload();
+  try {
+    await resetAndReload();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 </script>
 

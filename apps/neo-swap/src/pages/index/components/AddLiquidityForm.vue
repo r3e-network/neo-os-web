@@ -2,14 +2,14 @@
   <NeoCard variant="erobo" class="mb-4">
     <div class="token-input-section">
       <div class="section-header">
-        <span class="input-label">NEO</span>
-        <span class="balance-label">{{ t("balance") }}: 0.00</span>
+        <span class="input-label">{{ t("tokenNeo") }}</span>
+        <span class="balance-label">{{ t("balance") }}: {{ t("balanceDefault") }}</span>
       </div>
       <NeoInput
         :modelValue="amountA"
         @update:modelValue="$emit('update:amountA', $event)"
         type="number"
-        placeholder="0.0"
+        :placeholder="t('enterAmount')"
         @input="$emit('calculateB')"
         class="seamless-input"
       />
@@ -23,20 +23,20 @@
 
     <div class="token-input-section">
       <div class="section-header">
-        <span class="input-label">GAS</span>
-        <span class="balance-label">{{ t("balance") }}: 0.00</span>
+        <span class="input-label">{{ t("tokenGas") }}</span>
+        <span class="balance-label">{{ t("balance") }}: {{ t("balanceDefault") }}</span>
       </div>
       <NeoInput
         :modelValue="amountB"
         @update:modelValue="$emit('update:amountB', $event)"
         type="number"
-        placeholder="0.0"
+        :placeholder="t('enterAmount')"
         @input="$emit('calculateA')"
         class="seamless-input"
       />
     </div>
 
-    <div class="rate-info"> 1 NEO ≈ 8.5 GAS </div>
+    <div class="rate-info"> {{ t("neoGasRate") }} </div>
 
     <NeoButton variant="primary" block @click="$emit('addLiquidity')" :loading="loading">
       {{ t("addLiquidity") }}
@@ -57,7 +57,13 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["update:amountA", "update:amountB", "calculateA", "calculateB", "addLiquidity"]);
+defineEmits<{
+  (e: "update:amountA", value: string): void;
+  (e: "update:amountB", value: string): void;
+  (e: "calculateA"): void;
+  (e: "calculateB"): void;
+  (e: "addLiquidity"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -75,6 +81,18 @@ defineEmits(["update:amountA", "update:amountB", "calculateA", "calculateB", "ad
     border-color: var(--swap-panel-focus-border);
     box-shadow: 0 0 15px var(--swap-panel-focus-glow);
     background: var(--swap-chip-hover-bg);
+  }
+}
+
+@media (max-width: 480px) {
+  .token-input-section {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .seamless-input :deep(.uni-easyinput__content-input) {
+    font-size: 18px !important;
+    height: 28px;
   }
 }
 

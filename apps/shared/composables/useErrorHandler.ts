@@ -43,16 +43,14 @@ export interface ErrorHandlerState {
   isRecoverable: Ref<boolean>;
 }
 
-// Error message mappings for user-friendly display
-const ERROR_MESSAGES: Record<string, Record<ErrorCategory, string>> = {
-  en: {
-    wallet: "Please connect your wallet and try again",
-    network: "Network error. Please check your connection and retry",
-    contract: "Contract interaction failed. Please try again later",
-    validation: "Invalid input. Please check your entries and try again",
-    timeout: "Operation timed out. Please try again",
-    unknown: "An unexpected error occurred. Please try again",
-  },
+// Error message keys for user-friendly display
+const ERROR_MESSAGE_KEYS: Record<ErrorCategory, string> = {
+  wallet: "errorHandlerWallet",
+  network: "errorHandlerNetwork",
+  contract: "errorHandlerContract",
+  validation: "errorHandlerValidation",
+  timeout: "errorHandlerTimeout",
+  unknown: "errorHandlerUnknown",
 };
 
 // Error patterns for categorization
@@ -88,8 +86,9 @@ function isRecoverableError(category: ErrorCategory): boolean {
 
 /**
  * Create error handler composable
+ * @param translator - Optional i18n translator function; if provided, messages will be translated
  */
-export function useErrorHandler(): ErrorHandlerState & {
+export function useErrorHandler(translator?: (key: string) => string): ErrorHandlerState & {
   /** Handle and categorize an error */
   handleError: (error: unknown, context?: ErrorContext) => void;
   /** Get user-friendly message for error */
@@ -112,8 +111,18 @@ export function useErrorHandler(): ErrorHandlerState & {
    */
   const getUserMessage = (error: unknown, category?: ErrorCategory): string => {
     const cat = category || categorizeError(error);
-    const messages = ERROR_MESSAGES.en;
-    return messages[cat] || messages.unknown;
+    const key = ERROR_MESSAGE_KEYS[cat] || ERROR_MESSAGE_KEYS.unknown;
+    if (translator) return translator(key);
+    // Fallback English strings when no translator provided
+    const fallbackMessages: Record<ErrorCategory, string> = {
+      wallet: "Please connect your wallet and try again",
+      network: "Network error. Please check your connection and retry",
+      contract: "Contract interaction failed. Please try again later",
+      validation: "Invalid input. Please check your entries and try again",
+      timeout: "Operation timed out. Please try again",
+      unknown: "An unexpected error occurred. Please try again",
+    };
+    return fallbackMessages[cat] || fallbackMessages.unknown;
   };
 
   /**

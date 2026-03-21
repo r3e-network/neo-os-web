@@ -4,12 +4,11 @@
       <span>{{ t("loading") }}</span>
     </div>
     <div v-else class="gallery-grid">
-      <div
+      <button
         v-for="photo in photos"
         :key="photo.id"
+        type="button"
         class="photo-item"
-        role="button"
-        tabindex="0"
         :aria-label="photo.encrypted ? t('encrypted') : t('albumPhoto')"
         @click="$emit('view', photo)"
       >
@@ -18,18 +17,17 @@
           <span class="lock-label">{{ t("encrypted") }}</span>
         </div>
         <div v-if="photo.encrypted" class="lock-icon" aria-hidden="true">{{ t("encrypted") }}</div>
-      </div>
+      </button>
 
-      <div
+      <button
+        type="button"
         class="photo-item placeholder"
-        role="button"
-        tabindex="0"
         :aria-label="t('addPhoto')"
         @click="$emit('upload')"
       >
         <span class="plus-icon" aria-hidden="true">+</span>
         <span class="add-label">{{ t("addPhoto") }}</span>
-      </div>
+      </button>
     </div>
 
     <div v-if="!loading && photos.length === 0" class="empty-state">
@@ -66,6 +64,22 @@ defineEmits<{
 .gallery-grid {
   @include grid-layout(3, 12px);
 }
+
+@media (max-width: 480px) {
+  .gallery-card {
+    padding: 12px;
+  }
+
+  .gallery-grid {
+    @include grid-layout(3, 8px);
+  }
+}
+
+@media (max-width: 360px) {
+  .gallery-grid {
+    @include grid-layout(2, 6px);
+  }
+}
 .photo-item {
   aspect-ratio: 1 / 1;
   border-radius: 16px;
@@ -73,6 +87,9 @@ defineEmits<{
   position: relative;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
 }
 .photo-img {
   width: 100%;
@@ -112,6 +129,9 @@ defineEmits<{
   justify-content: center;
   background: transparent;
   gap: 6px;
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
 }
 .plus-icon {
   font-size: 32px;

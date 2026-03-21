@@ -18,10 +18,10 @@
         <div class="chart-card">
           <span class="chart-title">{{ t("bneoTotalSupplyTitle") }}</span>
           <div class="chart-tabs">
-            <button class="chart-tab" :class="{ active: supplyRange === '7' }" @click="supplyRange = '7'">
+            <button type="button" class="chart-tab" :class="{ active: supplyRange === '7' }" :aria-label="t('days7Range')" @click="supplyRange = '7'">
               {{ t("days7") }}
             </button>
-            <button class="chart-tab" :class="{ active: supplyRange === '30' }" @click="supplyRange = '30'">
+            <button type="button" class="chart-tab" :class="{ active: supplyRange === '30' }" :aria-label="t('days30Range')" @click="supplyRange = '30'">
               {{ t("days30") }}
             </button>
           </div>
@@ -30,10 +30,10 @@
         <div class="chart-card">
           <span class="chart-title">{{ t("dailyGasRewardsPerNeo") }}</span>
           <div class="chart-tabs">
-            <button class="chart-tab" :class="{ active: rewardsRange === '7' }" @click="rewardsRange = '7'">
+            <button type="button" class="chart-tab" :class="{ active: rewardsRange === '7' }" :aria-label="t('days7Label')" @click="rewardsRange = '7'">
               {{ t("days7") }}
             </button>
-            <button class="chart-tab" :class="{ active: rewardsRange === '30' }" @click="rewardsRange = '30'">
+            <button type="button" class="chart-tab" :class="{ active: rewardsRange === '30' }" :aria-label="t('days30Label')" @click="rewardsRange = '30'">
               {{ t("days30") }}
             </button>
           </div>

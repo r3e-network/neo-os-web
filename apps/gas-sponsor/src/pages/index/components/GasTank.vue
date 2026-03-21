@@ -23,14 +23,14 @@
           </div>
           <div class="tank-glass-highlight"></div>
           <div class="tank-gauge">
-            <span class="gauge-label">GAS</span>
+            <span class="gauge-label">{{ t("tokenGas") }}</span>
             <span class="gauge-value">{{ formatBalance(gasBalance) }}</span>
           </div>
         </div>
       </div>
       <div class="tank-status">
         <div :class="['status-indicator', isEligible ? 'eligible' : 'full']">
-          <span class="status-icon">{{ isEligible ? "⚡" : "✓" }}</span>
+          <span class="status-icon"><span aria-hidden="true">{{ isEligible ? "⚡" : "✓" }}</span></span>
           <span class="status-text">{{ isEligible ? t("needsFuel") : t("tankFull") }}</span>
         </div>
       </div>

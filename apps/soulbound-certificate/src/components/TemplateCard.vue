@@ -12,7 +12,7 @@
 
     <div class="template-meta">
       <span class="meta-label">{{ t("category") }}</span>
-      <span class="meta-value">{{ template.category || "--" }}</span>
+      <span class="meta-value">{{ template.category || t("notAvailable") }}</span>
     </div>
 
     <div class="template-metrics">
@@ -26,7 +26,7 @@
       </div>
     </div>
 
-    <span class="template-desc">{{ template.description || "--" }}</span>
+    <span class="template-desc">{{ template.description || t("notAvailable") }}</span>
 
     <div class="template-actions">
       <NeoButton
@@ -64,7 +64,7 @@ const { t } = createUseI18n(messages)();
 
 const addressShort = (value: string) => {
   const trimmed = String(value || "");
-  if (!trimmed) return "--";
+  if (!trimmed) return t("notAvailable");
   if (trimmed.length <= 12) return trimmed;
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };

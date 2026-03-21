@@ -3,7 +3,7 @@
     <NeoCard class="mb-4">
       <div class="manage-header mb-4">
         <span class="manage-title text-xl font-bold">{{ t("manageTitle") }}: {{ domain.name }}</span>
-        <NeoButton size="sm" variant="secondary" @click="$emit('cancel')">{{ t("cancelManage") }}</NeoButton>
+        <NeoButton size="sm" variant="secondary" type="button" @click="$emit('cancel')" :aria-label="t('cancelManage')">{{ t("cancelManage") }}</NeoButton>
       </div>
 
       <div class="manage-details mb-4">
@@ -19,7 +19,7 @@
         <div class="action-card mb-4">
           <span class="action-title mb-2 block font-bold">{{ t("setTarget") }}</span>
           <NeoInput v-model="targetInput" :placeholder="t('targetAddress')" class="mb-2" />
-          <NeoButton :loading="loading" :disabled="loading" block @click="$emit('setTarget', targetInput)">{{
+          <NeoButton :loading="loading" :disabled="loading" block type="button" @click="$emit('setTarget', targetInput)" :aria-label="t('setTarget')">{{
             t("setTarget")
           }}</NeoButton>
         </div>
@@ -32,7 +32,9 @@
             :disabled="loading"
             block
             variant="danger"
+            type="button"
             @click="$emit('transfer', transferInput)"
+            :aria-label="t('transferDomain')"
             >{{ t("transferDomain") }}</NeoButton
           >
         </div>
@@ -66,7 +68,7 @@ const targetInput = ref("");
 const transferInput = ref("");
 
 function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString();
+  return new Date(ts).toLocaleDateString("en");
 }
 </script>
 

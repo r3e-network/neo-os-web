@@ -1,49 +1,49 @@
 <template>
   <div class="my-envelopes">
     <div class="section-header">
-      <span class="section-title">🧧 {{ t("sectionPools") }}</span>
+      <span class="section-title"><span aria-hidden="true">🧧</span> {{ t("sectionPools") }}</span>
     </div>
 
     <div v-if="createdEnvelopes.length === 0" class="empty-state">
-      <span class="empty-icon">🧧</span>
+      <span class="empty-icon" aria-hidden="true">🧧</span>
       <span class="empty-text">{{ t("noEnvelopesHeld") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="envelope in createdEnvelopes" :key="envelope.id" class="envelope-card">
         <div class="card-header">
-          <span class="envelope-icon">🧧</span>
+          <span class="envelope-icon" aria-hidden="true">🧧</span>
           <div class="status-badge" :class="statusClass(envelope)">
             <span class="status-text">{{ statusLabel(envelope) }}</span>
           </div>
         </div>
-        <span class="envelope-amount">{{ envelope.totalAmount.toFixed(2) }} GAS</span>
+        <span class="envelope-amount">{{ envelope.totalAmount.toFixed(2) }} {{ t("tokenGas") }}</span>
         <span class="envelope-from">{{ envelope.from }}</span>
         <span class="envelope-packets">
-          {{ t("claimedCount").replace("{0}", String(envelope.openedCount)).replace("{1}", String(envelope.packetCount)) }}
+          {{ t("claimedCount", { claimed: String(envelope.openedCount), total: String(envelope.packetCount) }) }}
         </span>
         <span class="envelope-packets">
-          {{ t("remaining").replace("{0}", String(envelope.remainingPackets)).replace("{1}", String(envelope.packetCount)) }}
+          {{ t("remaining", { remaining: String(envelope.remainingPackets), total: String(envelope.packetCount) }) }}
         </span>
       </div>
     </div>
 
     <div class="section-header">
-      <span class="section-title">🎁 {{ t("sectionClaims") }}</span>
+      <span class="section-title"><span aria-hidden="true">🎁</span> {{ t("sectionClaims") }}</span>
     </div>
 
     <div v-if="claims.length === 0" class="empty-state">
-      <span class="empty-icon">🎁</span>
+      <span class="empty-icon" aria-hidden="true">🎁</span>
       <span class="empty-text">{{ t("noClaims") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="claim in claims" :key="claim.id" class="envelope-card claim-card">
         <div class="card-header">
-          <span class="envelope-icon">✅</span>
-          <span class="claim-origin">{{ t("fromPool").replace("{0}", claim.poolId) }}</span>
+          <span class="envelope-icon" aria-hidden="true">✅</span>
+          <span class="claim-origin">{{ t("fromPool", { poolId: claim.poolId }) }}</span>
         </div>
-        <span class="envelope-amount">{{ t("claimedGas").replace("{0}", claim.amount.toFixed(4)) }}</span>
+        <span class="envelope-amount">{{ t("claimedGas", { amount: claim.amount.toFixed(4), tokenGas: t("tokenGas") }) }}</span>
       </div>
     </div>
   </div>
@@ -59,10 +59,6 @@ const props = defineProps<{
   envelopes: EnvelopeItem[];
   claims: ClaimItem[];
   currentAddress: string;
-}>();
-
-defineEmits<{
-  open: [envelope: EnvelopeItem];
 }>();
 
 const { t } = createUseI18n(messages)();
@@ -135,6 +131,21 @@ const statusLabel = (env: EnvelopeItem) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .envelope-grid {
+    gap: 10px;
+  }
+
+  .envelope-card {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
 }
 
 .card-header {

@@ -9,22 +9,20 @@
             :value="item.value"
             @input="$emit('update', { index, value: $event.target.value })"
             :placeholder="t('signerPlaceholder')"
+            :aria-label="t('signerLabel')"
           />
-          <span
+          <button
             v-if="signers.length > 1"
+            type="button"
             class="remove-btn"
-            role="button"
-            :aria-label="t('removeSigner') || 'Remove signer'"
-            tabindex="0"
+            :aria-label="t('removeSigner')"
             @click="$emit('remove', index)"
-            @keydown.enter="$emit('remove', index)"
-            >×</span
-          >
+          >×</button>
         </div>
       </template>
     </ItemList>
 
-    <NeoButton variant="secondary" size="sm" @click="$emit('add')" class="add-btn">
+    <NeoButton variant="secondary" size="sm" type="button" @click="$emit('add')" class="add-btn" :aria-label="t('addSigner')">
       {{ t("addSigner") }}
     </NeoButton>
   </div>
@@ -44,7 +42,11 @@ const { t } = createUseI18n(messages)();
 
 const signerItems = computed(() => props.signers.map((value, i) => ({ _index: String(i), value })));
 
-defineEmits(["add", "remove", "update"]);
+defineEmits<{
+  (e: "add"): void;
+  (e: "remove", index: number): void;
+  (e: "update", data: { index: number; value: string }): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -83,6 +85,11 @@ defineEmits(["add", "remove", "update"]);
 .remove-btn {
   font-size: 20px;
   color: var(--multisig-remove);
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .add-btn {

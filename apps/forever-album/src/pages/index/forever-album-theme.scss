@@ -1,3 +1,31 @@
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .photo-grid-scene {
+    height: 80px;
+    padding: 12px;
+  }
+
+  .hero-stats {
+    gap: 8px;
+  }
+
+  .hero-stat {
+    padding: 6px 12px;
+  }
+
+  .hero-stat-value {
+    font-size: 16px;
+  }
+
+  .hero-stat-label {
+    font-size: 9px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+}
+
 :global(.theme-forever-album) {
   --album-error: #ff6b6b;
   --album-accent: #00e599;

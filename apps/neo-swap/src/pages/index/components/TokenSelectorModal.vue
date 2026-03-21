@@ -1,16 +1,14 @@
 <template>
   <ActionModal :visible="show" :title="t('selectToken')" :closeable="true" @close="$emit('close')">
     <scroll-view scroll-y class="token-list" role="listbox" :aria-label="t('selectToken')">
-      <div
+      <li
         v-for="token in tokens"
         :key="token.symbol"
         class="token-option"
         role="option"
         :aria-selected="token.symbol === currentSymbol"
         :aria-label="token.symbol"
-        tabindex="0"
         @click="$emit('select', token)"
-        @keydown.enter="$emit('select', token)"
       >
         <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
         <div class="token-info">
@@ -18,7 +16,7 @@
           <span class="token-balance">{{ formatAmount(token.balance) }}</span>
         </div>
         <AppIcon v-if="token.symbol === currentSymbol" name="check" :size="20" class="check-mark" />
-      </div>
+      </li>
     </scroll-view>
   </ActionModal>
 </template>
@@ -41,7 +39,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["close", "select"]);
+defineEmits<{
+  (e: "close"): void;
+  (e: "select", token: Token): void;
+}>();
 
 function formatAmount(amount: number): string {
   return amount.toFixed(4);
@@ -54,6 +55,9 @@ function formatAmount(amount: number): string {
 
 .token-list {
   max-height: 400px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .token-option {
@@ -64,6 +68,7 @@ function formatAmount(amount: number): string {
   border-radius: 12px;
   cursor: pointer;
   transition: background 0.2s;
+  list-style: none;
 
   &:hover {
     background: var(--bg-card, rgba(255, 255, 255, 0.05));
@@ -91,5 +96,23 @@ function formatAmount(amount: number): string {
 
 .check-mark {
   color: var(--swap-accent);
+}
+
+@media (max-width: 480px) {
+  .token-list {
+    max-height: 300px;
+  }
+
+  .token-option {
+    padding: 10px;
+  }
+
+  .token-name {
+    font-size: 14px;
+  }
+
+  .token-balance {
+    font-size: 11px;
+  }
 }
 </style>

@@ -109,7 +109,7 @@ export function useDevTippingStats() {
           id: evt.id,
           to,
           amount: amount.toFixed(2),
-          time: new Date(evt.created_at || Date.now()).toLocaleString(),
+          time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
         };
       });
     } catch (_e: unknown) {

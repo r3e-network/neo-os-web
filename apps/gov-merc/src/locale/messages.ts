@@ -23,6 +23,8 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
   withdrawSuccess: { en: "Withdrawal submitted", zh: "提取已提交" },
   bidSuccess: { en: "Bid submitted", zh: "竞价已提交" },
   enterAmount: { en: "Enter an amount", zh: "请输入金额" },
+  loadFailed: { en: "Failed to load data", zh: "加载数据失败" },
+  error: { en: "Error", zh: "错误" },
 
   docSubtitle: {
     en: "Governance mercenary pool with competitive bidding",
@@ -64,6 +66,8 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
     zh: "竞价、存入与周期状态全程透明。",
   },
     activeBids: { en: "Active Bids", zh: "活跃竞价" },
+  tokenNeo: { en: "NEO", zh: "NEO" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

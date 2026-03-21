@@ -1,6 +1,6 @@
 <template>
-  <div class="detail-grid" :class="columnsClass">
-    <div v-for="item in items" :key="item.label" class="detail-card">
+  <div class="detail-grid" :class="columnsClass" role="list" :aria-label="t('detailsLabel')">
+    <div v-for="item in items" :key="item.label" class="detail-card" role="listitem" :aria-label="`${item.label}: ${item.value}`">
       <span class="detail-label">{{ item.label }}</span>
       <span class="detail-value">{{ item.value }}</span>
     </div>
@@ -9,6 +9,10 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@shared/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 const props = withDefaults(defineProps<{
   items: Array<{ label: string; value: string | number }>;

@@ -18,7 +18,7 @@
         </div>
         <div class="policy-detail-row">
           <span class="label-mute">{{ t("policyValue") }}</span>
-          <span class="value-mono">{{ proposal.policyValue || "-" }}</span>
+          <span class="value-mono">{{ proposal.policyValue || t("notAvailable") }}</span>
         </div>
       </div>
 
@@ -48,6 +48,7 @@
           <NeoButton
             variant="primary"
             block
+            type="button"
             :disabled="!canVote"
             :loading="isVoting"
             @click="$emit('vote', proposal.id, 'for')"
@@ -57,6 +58,7 @@
           <NeoButton
             variant="danger"
             block
+            type="button"
             :disabled="!canVote"
             :loading="isVoting"
             @click="$emit('vote', proposal.id, 'against')"
@@ -73,7 +75,7 @@
 
       <!-- Execution Section -->
       <div v-if="canExecute" class="execution-section mt-4 border-t border-white/10 pt-4">
-        <NeoButton variant="success" block :loading="isVoting" @click="$emit('execute', proposal.id)">
+        <NeoButton variant="success" block type="button" :loading="isVoting" @click="$emit('execute', proposal.id)">
           {{ t("execute") }}
         </NeoButton>
       </div>
@@ -117,17 +119,17 @@ const canExecute = computed(() => {
   return props.isCandidate && isExpired && props.proposal.status !== 6;
 });
 
-const policyMethods = [
-  { value: "setFeePerByte", label: "Set Fee Per Byte" },
-  { value: "setExecFeeFactor", label: "Set Exec Fee Factor" },
-  { value: "setStoragePrice", label: "Set Storage Price" },
-  { value: "setMaxBlockSize", label: "Set Max Block Size" },
-  { value: "setMaxTransactionsPerBlock", label: "Set Max Transactions/Block" },
-  { value: "setMaxSystemFee", label: "Set Max System Fee" },
-];
+const policyMethods = computed(() => [
+  { value: "setFeePerByte", label: props.t("methodFeePerByte") },
+  { value: "setExecFeeFactor", label: props.t("methodExecFeeFactor") },
+  { value: "setStoragePrice", label: props.t("methodStoragePrice") },
+  { value: "setMaxBlockSize", label: props.t("methodMaxBlockSize") },
+  { value: "setMaxTransactionsPerBlock", label: props.t("methodMaxTransactions") },
+  { value: "setMaxSystemFee", label: props.t("methodMaxSystemFee") },
+]);
 
 const getPolicyMethodLabel = (method?: string) =>
-  policyMethods.find((item) => item.value === method)?.label || method || "-";
+  policyMethods.value.find((item) => item.value === method)?.label || method || props.t("notAvailable");
 </script>
 
 <style lang="scss" scoped>
@@ -140,7 +142,7 @@ const getPolicyMethodLabel = (method?: string) =>
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
 }
 
 .proposal-id {
@@ -240,7 +242,7 @@ const getPolicyMethodLabel = (method?: string) =>
   }
   &.inactive {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
   }
 }
 

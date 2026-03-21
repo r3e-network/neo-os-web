@@ -40,12 +40,12 @@
         <div class="hero-sides">
           <div :class="['side-badge', { active: displayOutcome === 'heads' || (!displayOutcome && !isFlipping) }]">
             <span class="side-icon">👑</span>
-            <span class="side-text">HEADS</span>
+            <span class="side-text">{{ t("heads") }}</span>
           </div>
-          <div class="side-vs">VS</div>
+          <div class="side-vs">{{ t("vs") }}</div>
           <div :class="['side-badge', { active: displayOutcome === 'tails' }]">
             <span class="side-icon">🌙</span>
-            <span class="side-text">TAILS</span>
+            <span class="side-text">{{ t("tails") }}</span>
           </div>
         </div>
 
@@ -119,7 +119,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage } = creat
     { labelKey: "totalGames", value: () => totalGames.value },
     { labelKey: "wins", value: () => wins.value },
     { labelKey: "losses", value: () => losses.value },
-    { labelKey: "totalWon", value: () => `${formatNum(totalWon.value)} GAS` },
+    { labelKey: "totalWon", value: () => `${formatNum(totalWon.value)} ${t("tokenGas")}` },
   ],
   fallbackMessageKey: "gameErrorFallback",
 });
@@ -159,7 +159,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   { label: t("totalGames"), value: totalGames.value, icon: "🎮" },
   { label: t("wins"), value: wins.value, icon: "🏆" },
   { label: t("losses"), value: losses.value, icon: "💔" },
-  { label: t("totalWon"), value: `${formatNum(totalWon.value)} GAS`, icon: "💰" },
+  { label: t("totalWon"), value: `${formatNum(totalWon.value)} ${t("tokenGas")}`, icon: "💰" },
 ]);
 </script>
 

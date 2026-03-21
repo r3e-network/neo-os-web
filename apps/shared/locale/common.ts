@@ -34,12 +34,13 @@ export const commonMessages = {
   game: { en: "Game", zh: "游戏" },
   games: { en: "Games", zh: "游戏" },
   stats: { en: "Stats", zh: "统计" },
+  statistics: { en: "Statistics", zh: "统计数据" },
   docsTab: { en: "Docs", zh: "文档" },
   settings: { en: "Settings", zh: "设置" },
   about: { en: "About", zh: "关于" },
 
   // Documentation labels
-  docSubtitle: { en: "Documentation", zh: "文档" },
+  docsSubtitle: { en: "Documentation", zh: "文档" },
   docDescription: {
     en: "Learn how to use this miniapp",
     zh: "了解如何使用此迷你应用",
@@ -96,6 +97,38 @@ export const commonMessages = {
     en: "NeoHub MiniApp Protocol v2.4.0",
     zh: "NeoHub MiniApp Protocol v2.4.0",
   },
+
+  // Accessibility labels
+  heroStatsAriaLabel: { en: "Hero statistics", zh: "英雄数据统计" },
+  heroSectionAriaLabel: { en: "Hero section", zh: "英雄区域" },
+  dialogAriaLabel: { en: "Dialog", zh: "对话框" },
+  bridgeLeftDefault: { en: "N3", zh: "N3" },
+  bridgeRightDefault: { en: "X", zh: "X" },
+  heroMarkDefault: { en: "F", zh: "F" },
+  iconFallbackLabel: { en: "Icon", zh: "图标" },
+  postComment: { en: "Post comment", zh: "发布评论" },
+  likeComment: { en: "Like comment", zh: "点赞评论" },
+
+  // MiniAppPage labels
+  commentsTitle: { en: "Comments", zh: "评论" },
+  commentPlaceholder: { en: "Write a comment...", zh: "写评论..." },
+  noComments: { en: "No comments yet", zh: "暂无评论" },
+  post: { en: "Post", zh: "发布" },
+  navigationSidebar: { en: "Navigation sidebar", zh: "导航侧边栏" },
+  operationsPanel: { en: "Operations panel", zh: "操作面板" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  errorFallback: { en: "Something went wrong", zh: "出错了" },
+  howToPlay: { en: "How to play", zh: "如何参与" },
+  keyFeatures: { en: "Key Features", zh: "关键特性" },
+  neoN3: { en: "Neo N3", zh: "Neo N3" },
+  docSubtitle: { en: "Documentation", zh: "文档" },
+  subtitle: { en: "Subtitle", zh: "副标题" },
+  formLabel: { en: "Form", zh: "表单" },
+  countdownDefault: { en: "Countdown", zh: "倒计时" },
+  detailsLabel: { en: "Details", zh: "详情" },
+  listLabel: { en: "List", zh: "列表" },
+  emptyText: { en: "No items", zh: "暂无内容" },
+  loadMore: { en: "Load more", zh: "加载更多" },
 } as const;
 
 /**

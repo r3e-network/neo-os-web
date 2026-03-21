@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
@@ -17,9 +18,10 @@ export interface UseNeoEligibilityReturn {
 }
 
 export function useNeoEligibility(): UseNeoEligibilityReturn {
+  const { t } = createUseI18n(messages)();
   const { address, read } = useContractInteraction({
     appId: APP_ID,
-    t: (key: string) => key,
+    t,
   });
 
   const isEligible = ref(false);
@@ -35,7 +37,7 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
   const checkEligibility = async (contractHash: string, envelopeId: string) => {
     if (!address.value) {
       isEligible.value = false;
-      reason.value = "wallet not connected";
+      reason.value = t("walletNotConnected");
       return false;
     }
 
@@ -52,7 +54,7 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
 
       if (!data) {
         isEligible.value = false;
-        reason.value = "failed to check";
+        reason.value = t("eligibilityCheckFailed");
         return false;
       }
 
@@ -64,7 +66,7 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
       return isEligible.value;
     } catch (e: unknown) {
       isEligible.value = false;
-      reason.value = formatErrorMessage(e, "check failed");
+      reason.value = t("checkFailed");
       return false;
     } finally {
       checking.value = false;
@@ -80,8 +82,8 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
       const balance = Number((await read("balanceOf", [{ type: "Hash160", value: address.value }], NEO_HASH)) ?? 0);
       neoBalance.value = balance;
       return balance;
-    } catch (e: unknown) {
-      /* non-critical: NEO balance check */
+    } catch (_e: unknown) {
+      // non-critical: NEO balance check
       return 0;
     }
   };

@@ -14,7 +14,7 @@
     <div class="card doc-link-card fade-up delay-1">
       <span class="section-title">{{ t("docsLinkTitle") }}</span>
       <span class="section-text">{{ t("docsLinkText") }}</span>
-      <span class="doc-link" role="link" tabindex="0" :aria-label="t('docsLinkTitle')" @click="emit('openDocs', t('docsUrl'))">{{ t("docsUrl") }}</span>
+      <button type="button" class="doc-link" :aria-label="t('docsLinkTitle')" @click="emit('openDocs', t('docsUrl'))">{{ t("docsUrl") }}</button>
     </div>
   </div>
 </template>
@@ -98,6 +98,11 @@ const docFeatures = computed(() => [
   font-size: 13px;
   color: var(--burger-accent-deep);
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  text-align: center;
 }
 
 .fade-up {

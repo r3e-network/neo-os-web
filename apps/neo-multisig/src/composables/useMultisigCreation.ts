@@ -80,7 +80,7 @@ export function useMultisigCreation() {
     try {
       normalizePublicKeys(trimmedSigners.value);
       return true;
-    } catch {
+    } catch (_e: unknown) {
       return false;
     }
   });
@@ -168,7 +168,15 @@ export function useMultisigCreation() {
         memo: form.value.memo || undefined,
       });
 
-      const history = uni.getStorageSync("multisig_history") ? JSON.parse(uni.getStorageSync("multisig_history")) : [];
+      let history: Array<Record<string, unknown>> = [];
+      try {
+        const stored = uni.getStorageSync("multisig_history");
+        if (stored) {
+          history = JSON.parse(stored);
+        }
+      } catch (_e: unknown) {
+        history = [];
+      }
       history.unshift({
         id: result.id,
         scriptHash: multisigAccount.value.scriptHash,

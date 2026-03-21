@@ -50,7 +50,7 @@ const appMessages = {
     en: "Try your luck to discover a public capsule. A capsule is returned only if a public, unrevealed one exists.",
     zh: "尝试发现公开胶囊，仅在存在公开且未揭示的胶囊时返回。",
   },
-  fishResult: { en: "Fished capsule #{id}", zh: "打捞到胶囊 #{id}" },
+  fishResult: { en: "Fished capsule {id}", zh: "打捞到胶囊 {id}" },
   fishNone: { en: "No public capsule found", zh: "未发现公开胶囊" },
   hashStored: { en: "Content hash stored on-chain", zh: "内容哈希已上链" },
   hashLabel: { en: "Hash:", zh: "哈希：" },
@@ -110,6 +110,7 @@ const appMessages = {
   sidebarTotalCapsules: { en: "Total Capsules", zh: "总胶囊数" },
   sidebarLocked: { en: "Locked", zh: "已锁定" },
   sidebarRevealed: { en: "Revealed", zh: "已揭示" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

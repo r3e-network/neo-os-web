@@ -7,13 +7,13 @@
       </NeoButton>
     </div>
 
-    <div v-for="(milestone, index) in milestones" :key="`milestone-${index}`" class="milestone-row">
+    <div v-for="(milestone, index) in milestones" :key="milestone.amount + index" class="milestone-row">
       <NeoInput
         v-model="milestone.amount"
         type="number"
-        :label="`${t('milestoneAmount')} #${index + 1}`"
+        :label="`${t('milestoneAmount')} ${t('idPrefix')}${index + 1}`"
         :suffix="asset"
-        placeholder="1.5"
+        :placeholder="t('milestoneAmountPlaceholder')"
       />
       <NeoButton
         size="sm"

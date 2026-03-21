@@ -57,9 +57,9 @@ Hacker bounty vaults secured by SHA-256 hashes
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4` |
+| **Contract** | `0x78fbd57ccfae14fff4b043a82eb491de542d8eb0` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xb60bf51f7fc9b7e0beeabfde0765d8ec9b895dd4) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x78fbd57ccfae14fff4b043a82eb491de542d8eb0) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet

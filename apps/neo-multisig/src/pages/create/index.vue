@@ -1,15 +1,12 @@
 <template>
   <div class="page-container">
     <div class="nav-header">
-      <span
+      <button
+        type="button"
         class="back-btn"
-        role="button"
-        :aria-label="t('buttonBack') || 'Go back'"
-        tabindex="0"
+        :aria-label="t('buttonBack')"
         @click="goBack"
-        @keydown.enter="goBack"
-        >←</span
-          >
+      >←</button>
       <div class="nav-text">
         <span class="title">{{ t("createTitle") }}</span>
         <span class="subtitle">{{ t("appSubtitle") }}</span>
@@ -49,11 +46,11 @@
         <div class="summary-block">
           <div class="summary-row">
             <span class="label">{{ t("multisigAddressLabel") }}</span>
-            <span class="value mono">{{ multisigAccount?.address || "--" }}</span>
+            <span class="value mono">{{ multisigAccount?.address || t("notAvailable") }}</span>
           </div>
           <div class="summary-row">
             <span class="label">{{ t("multisigScriptHashLabel") }}</span>
-            <span class="value mono">{{ multisigAccount?.scriptHash || "--" }}</span>
+            <span class="value mono">{{ multisigAccount?.scriptHash || t("notAvailable") }}</span>
           </div>
         </div>
 
@@ -115,22 +112,22 @@
 
         <div class="form-group">
           <span class="label">{{ t("toAddressLabel") }}</span>
-          <input class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" />
+          <input class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" :aria-label="t('toAddressLabel')" />
         </div>
 
         <div class="form-group">
           <span class="label">{{ t("amountLabel") }}</span>
-          <input class="input" v-model="form.amount" type="digit" :placeholder="t('amountPlaceholder')" />
+          <input class="input" v-model="form.amount" type="digit" :placeholder="t('amountPlaceholder')" :aria-label="t('amountLabel')" />
         </div>
 
         <div class="form-group">
           <span class="label">{{ t("memoLabel") }}</span>
-          <input class="input" v-model="form.memo" :placeholder="t('memoPlaceholder')" />
+          <input class="input" v-model="form.memo" :placeholder="t('memoPlaceholder')" :aria-label="t('memoLabel')" />
         </div>
 
         <div class="actions row">
-          <NeoButton variant="secondary" @click="step = 2">{{ t("buttonBack") }}</NeoButton>
-          <NeoButton variant="primary" @click="prepareTransaction" :disabled="!isValidTx || isPreparing">
+          <NeoButton variant="secondary" type="button" @click="step = 2">{{ t("buttonBack") }}</NeoButton>
+          <NeoButton variant="primary" type="button" @click="prepareTransaction" :disabled="!isValidTx || isPreparing">
             {{ isPreparing ? t("loading") : t("buttonReview") }}
           </NeoButton>
         </div>
@@ -165,11 +162,11 @@
           <div class="fee-grid">
             <div class="fee-row">
               <span class="fee-label">{{ t("reviewNetworkFee") }}</span>
-              <span class="fee-value">{{ formatFixed8(feeSummary.networkFee) }} GAS</span>
+              <span class="fee-value">{{ formatFixed8(feeSummary.networkFee) }} {{ t("tokenGas") }}</span>
             </div>
             <div class="fee-row">
               <span class="fee-label">{{ t("reviewSystemFee") }}</span>
-              <span class="fee-value">{{ formatFixed8(feeSummary.systemFee) }} GAS</span>
+              <span class="fee-value">{{ formatFixed8(feeSummary.systemFee) }} {{ t("tokenGas") }}</span>
             </div>
           </div>
         </div>
@@ -183,8 +180,8 @@
         </div>
 
         <div class="actions row">
-          <NeoButton variant="secondary" @click="step = 3">{{ t("buttonBack") }}</NeoButton>
-          <NeoButton variant="primary" @click="handleSubmit" :disabled="isSubmitting">
+          <NeoButton variant="secondary" type="button" @click="step = 3">{{ t("buttonBack") }}</NeoButton>
+          <NeoButton variant="primary" type="button" @click="handleSubmit" :disabled="isSubmitting">
             {{ isSubmitting ? t("buttonCreating") : t("buttonCreate") }}
           </NeoButton>
         </div>
@@ -239,7 +236,7 @@ const handleSubmit = async () => {
 @use "@shared/styles/tokens.scss" as *;
 
 .page-container {
-  --multisig-accent: var(--status-success);
+  --multisig-accent: var(--accent-success);
   --multisig-accent-soft: rgba(0, 229, 153, 0.12);
   --multisig-accent-strong: rgba(0, 229, 153, 0.2);
   --multisig-accent-text: #0b0c16;
@@ -251,8 +248,8 @@ const handleSubmit = async () => {
   --multisig-pill-bg: rgba(255, 255, 255, 0.05);
   --multisig-pill-active-bg: rgba(0, 229, 153, 0.12);
   --multisig-pill-active-text: var(--text-primary);
-  --multisig-remove: var(--status-error);
-  --multisig-highlight: var(--status-success);
+  --multisig-remove: var(--accent-error);
+  --multisig-highlight: var(--accent-success);
   --multisig-input-bg: rgba(255, 255, 255, 0.05);
   --multisig-input-text: var(--text-primary);
 
@@ -275,8 +272,8 @@ const handleSubmit = async () => {
   --multisig-pill-bg: rgba(15, 23, 42, 0.04);
   --multisig-pill-active-bg: rgba(0, 229, 153, 0.18);
   --multisig-pill-active-text: var(--text-primary);
-  --multisig-remove: var(--status-error);
-  --multisig-highlight: var(--status-success);
+  --multisig-remove: var(--accent-error);
+  --multisig-highlight: var(--accent-success);
   --multisig-input-bg: rgba(15, 23, 42, 0.04);
   --multisig-input-text: var(--text-primary);
 }
@@ -296,6 +293,10 @@ const handleSubmit = async () => {
 .back-btn {
   font-size: 24px;
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
 }
 
 .title {

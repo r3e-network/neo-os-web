@@ -16,7 +16,7 @@
 
       <div class="cards-row">
         <template v-if="drawn.length > 0">
-          <TarotCard v-for="(card, i) in drawn" :key="i" :card="card" @flip="$emit('flip', i)" />
+          <TarotCard v-for="(card, i) in drawn" :key="card.id ?? i" :card="card" @flip="$emit('flip', i)" />
         </template>
         <template v-else>
           <div v-for="i in 3" :key="`placeholder-${i}`" class="card-placeholder">
@@ -49,7 +49,12 @@ defineProps<{
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["update:question", "draw", "reset", "flip"]);
+defineEmits<{
+  (e: "update:question", value: string): void;
+  (e: "draw"): void;
+  (e: "reset"): void;
+  (e: "flip", index: number): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

@@ -1,7 +1,12 @@
 <template>
   <NeoCard variant="erobo">
+    <!--
+      ItemList expects Record<string, unknown>[] but we have EnvelopeItem[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from EnvelopeItem[] to unknown first.
+    -->
     <ItemList
-      :items="envelopes as unknown as Record<string, unknown>[]"
+      :items="(envelopes as unknown) as Record<string, unknown>[]"
       item-key="id"
       :loading="loadingEnvelopes"
       :loading-text="t('loadingEnvelopes')"
@@ -12,12 +17,12 @@
         <div class="empty-state">{{ t("noEnvelopes") }}</div>
       </template>
       <template #item="{ item }">
-        <div
+        <button
+          type="button"
           class="glass-envelope"
           :class="{ disabled: !(item as unknown as EnvelopeItem).canClaim }"
-          role="button"
-          :aria-label="`${(item as unknown as EnvelopeItem).name || (item as unknown as EnvelopeItem).from} - ${(item as unknown as EnvelopeItem).totalAmount.toFixed(2)} GAS`"
-          @click="$emit('claim', item)"
+          :aria-label="`${(item as unknown as EnvelopeItem).name || (item as unknown as EnvelopeItem).from} - ${(item as unknown as EnvelopeItem).totalAmount.toFixed(2)} ${t('tokenGas')}`"
+          @click="$emit('claim', item as EnvelopeItem)"
         >
           <div class="envelope-content">
             <div class="envelope-icon">
@@ -30,11 +35,9 @@
               <span class="envelope-from">{{ (item as unknown as EnvelopeItem).from }}</span>
               <span class="envelope-detail">
                 {{
-                  t("remaining")
-                    .replace("{0}", String((item as unknown as EnvelopeItem).remaining))
-                    .replace("{1}", String((item as unknown as EnvelopeItem).total))
+                  t("remaining", { remaining: String((item as unknown as EnvelopeItem).remaining), total: String((item as unknown as EnvelopeItem).total) })
                 }}
-                · {{ (item as unknown as EnvelopeItem).totalAmount.toFixed(2) }} GAS
+                · {{ (item as unknown as EnvelopeItem).totalAmount.toFixed(2) }} {{ t("tokenGas") }}
               </span>
               <div
                 v-if="
@@ -42,12 +45,12 @@
                 "
                 class="best-luck"
               >
-                <span class="best-luck-icon">🎉</span>
+                <span class="best-luck-icon" aria-hidden="true">🎉</span>
                 <span class="best-luck-text"
                   >{{ t("bestLuck") }}: {{ formatAddress((item as unknown as EnvelopeItem).bestLuckAddress!) }} ({{
                     ((item as unknown as EnvelopeItem).bestLuckAmount! / 1e8).toFixed(4)
                   }}
-                  GAS)</span
+                  {{ t("tokenGas") }})</span
           >
               </div>
             </div>
@@ -69,12 +72,12 @@
                       : t("notReady")
                 }}
               </span>
-              <div class="share-btn" role="button" :aria-label="t('ariaShare')" @click.stop="$emit('share', item)">
+              <button type="button" class="share-btn" :aria-label="t('ariaShare')" @click.stop="$emit('share', item)">
                 <span aria-hidden="true">🔗</span>
-              </div>
+              </button>
             </div>
           </div>
-        </div>
+        </button>
       </template>
     </ItemList>
   </NeoCard>
@@ -83,6 +86,7 @@
 <script setup lang="ts">
 import { NeoCard, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
+import { formatAddress } from "@shared/utils/format";
 import { messages } from "@/locale/messages";
 
 type EnvelopeItem = {
@@ -109,7 +113,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["claim", "share"]);
+defineEmits<{
+  (e: "claim", item: EnvelopeItem): void;
+  (e: "share", item: EnvelopeItem): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -124,7 +131,6 @@ defineEmits(["claim", "share"]);
 
 .glass-envelope {
   background: linear-gradient(135deg, var(--envelope-premium-red-light) 0%, var(--envelope-premium-red-dark) 100%);
-  border: 1px solid rgba(255, 230, 230, 0.2);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
@@ -132,6 +138,10 @@ defineEmits(["claim", "share"]);
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: none;
+  appearance: none;
+  width: 100%;
+  text-align: left;
 
   &:hover:not(.disabled) {
     transform: translateY(-2px);
@@ -139,7 +149,8 @@ defineEmits(["claim", "share"]);
     border-color: var(--red-envelope-gold-border);
   }
 
-  &.disabled {
+  &.disabled,
+  &:disabled {
     opacity: 0.6;
     filter: grayscale(0.8);
     pointer-events: none;
@@ -272,6 +283,9 @@ defineEmits(["claim", "share"]);
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &:hover {
     background: rgba(255, 255, 255, 0.3);

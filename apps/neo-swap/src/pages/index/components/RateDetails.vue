@@ -1,32 +1,23 @@
 <template>
   <div class="rate-card">
-    <div
+    <button
+      type="button"
       class="rate-header"
-      role="button"
       :aria-expanded="showDetails"
       :aria-label="t('exchangeRate')"
-      tabindex="0"
       @click="showDetails = !showDetails"
-      @keydown.enter="showDetails = !showDetails"
     >
       <div class="rate-info">
         <span class="rate-label">{{ t("exchangeRate") }}</span>
-        <span class="rate-value">1 {{ fromSymbol }} ≈ {{ exchangeRate }} {{ toSymbol }}</span>
+        <span class="rate-value">1 {{ fromSymbol }} {{ t("approxEqual") }} {{ exchangeRate }} {{ toSymbol }}</span>
       </div>
       <div class="rate-actions">
-        <AppIcon
-          name="history"
-          :size="20"
-          class="refresh-icon"
-          role="button"
-          :aria-label="t('exchangeRate')"
-          tabindex="0"
-          @click.stop="$emit('refresh')"
-          @keydown.enter.stop="$emit('refresh')"
-        />
+        <button type="button" class="refresh-icon-btn" :aria-label="t('exchangeRate')" @click.stop="$emit('refresh')">
+          <AppIcon name="history" :size="20" />
+        </button>
         <AppIcon name="chevron-right" :size="16" :rotate="showDetails ? 270 : 90" />
       </div>
-    </div>
+    </button>
 
     <!-- Transaction Details Accordion -->
     <div v-if="showDetails" class="details-accordion">
@@ -68,7 +59,9 @@ const props = defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["refresh"]);
+defineEmits<{
+  (e: "refresh"): void;
+}>();
 
 const showDetails = ref(false);
 
@@ -104,6 +97,12 @@ const priceImpactClass = computed(() => {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
 .rate-label {
@@ -133,6 +132,25 @@ const priceImpactClass = computed(() => {
   transition: opacity 0.2s;
   &:active {
     opacity: 0.6;
+  }
+}
+
+.refresh-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  &:hover {
+    opacity: 1;
+  }
+  &:active {
+    opacity: 0.5;
   }
 }
 
@@ -170,6 +188,26 @@ const priceImpactClass = computed(() => {
   }
   &.impact-na {
     color: var(--text-secondary);
+  }
+}
+
+@media (max-width: 480px) {
+  .rate-card {
+    padding: 10px;
+    margin-bottom: 16px;
+    border-radius: 10px;
+  }
+
+  .rate-value {
+    font-size: 12px;
+  }
+
+  .detail-value {
+    font-size: 10px;
+  }
+
+  .detail-label {
+    font-size: 9px;
   }
 }
 </style>

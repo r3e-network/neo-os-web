@@ -161,7 +161,7 @@ export function useEventTicketContract(
           if (!ticketQrs[ticket.tokenId]) {
             try {
               ticketQrs[ticket.tokenId] = await QRCode.toDataURL(ticket.tokenId, { margin: 1 });
-            } catch {
+            } catch (_e: unknown) {
               /* QR generation is non-critical */
             }
           }

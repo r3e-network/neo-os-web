@@ -16,12 +16,12 @@
         <HeroSection variant="accent" compact>
           <template #background>
             <div v-if="heroMode === 'bridge'" class="bridge-scene" aria-hidden="true">
-              <div class="bridge-orb">{{ bridgeLeftLabel || "N3" }}</div>
+              <div class="bridge-orb">{{ bridgeLeftLabel || t("bridgeLeftDefault") }}</div>
               <div class="bridge-link" />
-              <div class="bridge-orb">{{ bridgeRightLabel || "X" }}</div>
+              <div class="bridge-orb">{{ bridgeRightLabel || t("bridgeRightDefault") }}</div>
             </div>
             <div v-else class="flamingo-scene" aria-hidden="true">
-              <div class="flamingo-mark">{{ heroMark || "F" }}</div>
+              <div class="flamingo-mark">{{ heroMark || t("heroMarkDefault") }}</div>
               <div class="flamingo-trail" />
             </div>
           </template>
@@ -70,8 +70,11 @@
           <NeoButton
             v-for="option in operationToggle.options"
             :key="option.key"
+            type="button"
             size="sm"
             :variant="operationToggle.selectedKey === option.key ? 'primary' : 'secondary'"
+            :aria-pressed="operationToggle.selectedKey === option.key"
+            :aria-label="option.label"
             @click="option.onSelect()"
           >
             {{ option.label }}
@@ -81,7 +84,9 @@
           <NeoButton
             v-for="action in operationActions"
             :key="`${action.label}-${action.variant || 'secondary'}`"
+            type="button"
             :variant="action.variant || 'secondary'"
+            :aria-label="action.label"
             @click="action.onClick()"
           >
             {{ action.label }}
@@ -95,6 +100,8 @@
 <script setup lang="ts">
 import { HeroSection, MiniAppPage, NeoButton, NeoCard, StatsDisplay } from "@shared/components";
 import type { StatsDisplayItem, CardVariant } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import type { StatusMessage } from "@shared/composables/useStatusMessage";
 
 type LauncherCard = {
   title: string;
@@ -121,11 +128,11 @@ type LauncherToggle = {
 
 defineProps<{
   pageName: string;
-  templateConfig: object;
+  templateConfig: MiniAppTemplateConfig;
   appState: Record<string, unknown>;
   t: (key: string) => string;
-  status: unknown;
-  sidebarItems: unknown;
+  status: StatusMessage | null;
+  sidebarItems: Array<{ label: string; value: string | number | boolean | null | undefined }>;
   sidebarTitle: string;
   fallbackMessage: string;
   handleBoundaryError: (error: Error) => void;
