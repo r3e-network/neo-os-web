@@ -23,14 +23,21 @@ Usage tracking:
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
 - `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
 
-TEE routing env vars (required by functions that proxy to internal services):
+Morpheus routing env vars (required by functions that proxy to runtime services):
 
-- `NEOFEEDS_URL`
-- `NEOCOMPUTE_URL`
-- `NEOVRF_URL`
-- `NEOORACLE_URL`
-- `NEOFLOW_URL`
-- `TXPROXY_URL`
+- preferred unified routing:
+  - `MORPHEUS_RUNTIME_URL`
+  - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  - `MORPHEUS_PUBLIC_API_URL`
+  - `MORPHEUS_EDGE_URL`
+  - `MORPHEUS_CONTROL_PLANE_URL`
+- legacy compatibility:
+  - `NEOFEEDS_URL`
+  - `NEOCOMPUTE_URL`
+  - `NEOVRF_URL`
+  - `NEOORACLE_URL`
+  - `NEOFLOW_URL`
+  - `TXPROXY_URL`
 
 Notes:
 
