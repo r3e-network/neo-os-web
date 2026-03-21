@@ -30,9 +30,14 @@ export function parseStackItem(item: unknown): unknown {
         if (typeof typed.value === "string") {
           // Handle hex strings
           if (typed.value.startsWith("0x")) {
-            return BigInt(typed.value).toString();
+            try {
+              return BigInt(typed.value).toString();
+            } catch (_e: unknown) {
+              return "0";
+            }
           }
-          return parseInt(typed.value, 10);
+          const parsed = parseInt(typed.value, 10);
+          return Number.isFinite(parsed) ? parsed : 0;
         }
         return Number(typed.value);
 
@@ -172,7 +177,7 @@ export function addressToScriptHash(address: string): string {
  * @returns Normalized script hash (0x prefix, lowercase)
  */
 export function normalizeScriptHash(hash: string): string {
-  let normalized = hash.trim();
+  let normalized = String(hash ?? "").trim();
 
   // Add 0x prefix if missing
   if (!normalized.startsWith("0x")) {

@@ -152,9 +152,9 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 const healthColor = computed(() => {
   const hf = core.healthFactor.value;
   if (hf == null) return "rgba(255,255,255,0.2)";
-  if (hf >= 1.5) return "#34d399";
-  if (hf >= 1.2) return "#fbbf24";
-  return "#f87171";
+  if (hf >= 1.5) return "var(--checkbook-success, #34d399)";
+  if (hf >= 1.2) return "var(--checkbook-warning, #fbbf24)";
+  return "var(--checkbook-danger, #f87171)";
 });
 
 const healthArc = computed(() => {
@@ -340,10 +340,10 @@ onMounted(() => {
   font-size: 16px;
 
   .locked & {
-    color: #fbbf24;
+    color: var(--checkbook-locked-asset, #fbbf24);
   }
   .borrowed & {
-    color: #34d399;
+    color: var(--checkbook-borrowed-asset, #34d399);
   }
 }
 
@@ -353,10 +353,10 @@ onMounted(() => {
   font-family: $font-mono;
 
   .locked & {
-    color: #fbbf24;
+    color: var(--checkbook-locked-asset, #fbbf24);
   }
   .borrowed & {
-    color: #34d399;
+    color: var(--checkbook-borrowed-asset, #34d399);
   }
 }
 
@@ -364,7 +364,7 @@ onMounted(() => {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--checkbook-asset-token, rgba(255, 255, 255, 0.4));
 }
 
 .asset-label {
@@ -460,7 +460,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #34d399, #fbbf24, #f87171);
+  background: linear-gradient(90deg, var(--checkbook-success, #34d399), var(--checkbook-warning, #fbbf24), var(--checkbook-danger, #f87171));
   border-radius: 4px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;

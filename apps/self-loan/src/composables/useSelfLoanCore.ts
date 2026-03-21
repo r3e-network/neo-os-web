@@ -178,13 +178,19 @@ export function useSelfLoanCore() {
       }
     } catch (e: unknown) {
       handleError(e, { operation: "loadPlatformStats" });
+      // Non-critical: retain previous platform stats values
     }
   };
 
   const loadBalance = async () => {
     if (!address.value) return;
-    const neo = await getBalance("NEO");
-    neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
+    try {
+      const neo = await getBalance("NEO");
+      neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
+    } catch (e: unknown) {
+      handleError(e, { operation: "loadBalance" });
+      // Non-critical: retain previous balance
+    }
   };
 
   const takeLoan = async (onFetchData: () => Promise<void>, onError?: (e: unknown, retryable: boolean) => void) => {

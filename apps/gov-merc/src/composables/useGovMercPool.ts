@@ -38,8 +38,13 @@ export function useGovMercPool(t: (key: string) => string) {
 
   const ownerMatches = (value: unknown) => ownerMatchesAddress(value, address.value);
   const ensureConnectedAddress = async () => {
-    await ensureWallet();
-    return address.value as string;
+    try {
+      await ensureWallet();
+      return address.value as string;
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("error")), "error");
+      throw e;
+    }
   };
 
   const poolStats = computed<StatsDisplayItem[]>(() => [

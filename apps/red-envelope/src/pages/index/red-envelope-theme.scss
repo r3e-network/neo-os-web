@@ -19,6 +19,19 @@
   --envelope-premium-red: #c0392b;
   --envelope-premium-red-light: #e74c3c;
   --envelope-premium-red-dark: #922b21;
+  --envelope-flap-start: #dc2626;
+  --envelope-flap-end: #b91c1c;
+  --envelope-body-gradient: linear-gradient(180deg, #ef4444, #dc2626 30%, #b91c1c);
+  --envelope-shadow-red: rgba(185, 28, 28, 0.4);
+  --envelope-shadow-white: rgba(255, 255, 255, 0.15);
+  --envelope-seal-gradient: radial-gradient(circle, #fbbf24, #d97706);
+  --envelope-gold-rgb: 251, 191, 36;
+  --envelope-trim-gold: rgba(251, 191, 36, 0.4);
+  --envelope-stat-bg: rgba(255, 255, 255, 0.04);
+  --envelope-stat-border: rgba(255, 255, 255, 0.08);
+  --envelope-stat-value: #fbbf24;
+  --envelope-stat-label: rgba(255, 255, 255, 0.4);
+  --envelope-divider: rgba(255, 255, 255, 0.1);
   --text-primary: #fff7e6;
   --bg-primary: var(--red-envelope-base);
 }
@@ -42,6 +55,19 @@
   --envelope-premium-red: #a93226;
   --envelope-premium-red-light: #dc2626;
   --envelope-premium-red-dark: #7f1d1d;
+  --envelope-flap-start: #dc2626;
+  --envelope-flap-end: #b91c1c;
+  --envelope-body-gradient: linear-gradient(180deg, #ef4444, #dc2626 30%, #b91c1c);
+  --envelope-shadow-red: rgba(169, 50, 38, 0.4);
+  --envelope-shadow-white: rgba(255, 255, 255, 0.2);
+  --envelope-seal-gradient: radial-gradient(circle, #fbbf24, #d97706);
+  --envelope-gold-rgb: 251, 191, 36;
+  --envelope-trim-gold: rgba(251, 191, 36, 0.4);
+  --envelope-stat-bg: rgba(255, 255, 255, 0.06);
+  --envelope-stat-border: rgba(0, 0, 0, 0.08);
+  --envelope-stat-value: #d4a017;
+  --envelope-stat-label: rgba(0, 0, 0, 0.5);
+  --envelope-divider: rgba(0, 0, 0, 0.1);
   --text-primary: #3b1f15;
   --bg-primary: var(--red-envelope-base);
 }

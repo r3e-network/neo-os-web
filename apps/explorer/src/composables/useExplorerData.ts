@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNumber } from "@shared/utils/format";
@@ -273,9 +273,10 @@ export function useExplorerData(t: (key: string) => string) {
   };
 
   const watchNetwork = () => {
-    watch(selectedNetwork, () => {
+    const stop = watch(selectedNetwork, () => {
       loadRecentTxs();
     });
+    onUnmounted(stop);
   };
 
   return {

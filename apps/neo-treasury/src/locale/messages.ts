@@ -40,6 +40,15 @@ const appMessages = {
   trendDown: { en: "▼", zh: "▼" },
   approxEqual: { en: "≈ ", zh: "≈ " },
   idPrefix: { en: "#", zh: "#" },
+  founders: { en: "Founders", zh: "创始人" },
+  wallets: { en: "wallets", zh: "个钱包" },
+  walletList: { en: "Wallet List", zh: "钱包列表" },
+  addresses: { en: "addresses", zh: "个地址" },
+  fullAddress: { en: "Full Address", zh: "完整地址" },
+  breakdown: { en: "Breakdown", zh: "明细" },
+  lastUpdated: { en: "Last updated", zh: "最后更新" },
+  loading: { en: "Loading...", zh: "加载中..." },
+  retry: { en: "Retry", zh: "重试" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

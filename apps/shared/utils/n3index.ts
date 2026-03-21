@@ -104,7 +104,12 @@ async function apiFetch<T>(path: string, params?: Record<string, string | number
   if (!res.ok) {
     throw new Error(`N3Index API error: ${res.status} ${res.statusText} — ${path}`);
   }
-  return res.json() as Promise<T>;
+  try {
+    const text = await res.text();
+    return JSON.parse(text) as T;
+  } catch (_e: unknown) {
+    throw new Error(`N3Index API error: failed to parse response from ${path}`);
+  }
 }
 
 // ─── Indexer API ─────────────────────────────────────────────────────────

@@ -219,7 +219,7 @@ const resetAndReload = async () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: conic-gradient(var(--health-accent, #00e599) calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.08) 0);
+  background: conic-gradient(var(--health-accent) calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.08) 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -231,7 +231,7 @@ const resetAndReload = async () => {
     width: 62px;
     height: 62px;
     border-radius: 50%;
-    background: var(--health-bg-start, #0d0f14);
+    background: var(--health-bg-start);
   }
 }
 
@@ -240,7 +240,7 @@ const resetAndReload = async () => {
   z-index: 1;
   font-size: 22px;
   font-weight: 900;
-  color: var(--health-accent-strong, #00e599);
+  color: var(--health-accent-strong);
 }
 
 .op-btn {
@@ -399,35 +399,35 @@ const resetAndReload = async () => {
 }
 
 .hero-container {
-  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft) 0%, transparent 55%);
 }
 .gauge-ring {
   animation: heartbeat-pulse 2.5s ease-in-out infinite;
-  box-shadow: 0 0 20px var(--health-accent-glow, rgba(0, 229, 153, 0.15));
+  box-shadow: 0 0 20px var(--health-accent-glow);
 }
 .gauge-value {
-  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
+  text-shadow: 0 0 12px var(--health-accent-glow-strong);
 }
 .progress-fill {
   background: linear-gradient(90deg, var(--health-accent), var(--health-accent-strong), var(--health-accent));
   background-size: 200% 100%;
   animation: vitals-sweep 3s linear infinite;
-  box-shadow: 0 0 8px var(--health-accent-glow, rgba(0, 229, 153, 0.3));
+  box-shadow: 0 0 8px var(--health-accent-glow);
 }
 .health-stack {
   transition: opacity 0.3s ease;
 }
 .score-card {
-  box-shadow: 0 4px 20px var(--health-accent-soft, rgba(0, 229, 153, 0.1));
+  box-shadow: 0 4px 20px var(--health-accent-soft);
   transition:
     box-shadow 0.3s ease,
     transform 0.3s ease;
   &:hover {
-    box-shadow: 0 6px 28px var(--health-accent-soft-strong, rgba(0, 229, 153, 0.25));
+    box-shadow: 0 6px 28px var(--health-accent-soft-strong);
     transform: translateY(-2px);
   }
 }
 .checklist-item {
-  background: linear-gradient(180deg, var(--bg-card-subtle, rgba(255, 255, 255, 0.04)), transparent);
+  background: linear-gradient(180deg, var(--bg-card-subtle), transparent);
 }
 </style>

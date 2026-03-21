@@ -11,7 +11,7 @@
     :aria-busy="loading"
     :aria-disabled="disabled || loading"
     :aria-label="ariaLabel"
-    @click="$emit('click', $event)"
+    @click="handleClick"
   >
     <div v-if="loading" class="neo-btn__spinner" aria-hidden="true" />
     <slot v-else />
@@ -22,7 +22,7 @@
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "warning" | "erobo";
 export type ButtonSize = "sm" | "md" | "lg";
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     variant?: ButtonVariant;
     size?: ButtonSize;
@@ -42,9 +42,19 @@ withDefaults(
   }
 );
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "click", event: MouseEvent): void;
 }>();
+
+let lastClickTime = 0;
+
+function handleClick(event: MouseEvent) {
+  if (props.loading || props.disabled) return;
+  const now = Date.now();
+  if (now - lastClickTime < 300) return; // Debounce double-clicks within 300ms
+  lastClickTime = now;
+  emit("click", event);
+}
 </script>
 
 <style lang="scss" scoped>

@@ -5,6 +5,7 @@
     role="dialog"
     aria-modal="true"
     :aria-labelledby="title ? `${modalId}-title` : undefined"
+    :aria-describedby="description ? `${modalId}-desc` : undefined"
     :aria-label="title ? undefined : t('dialogAriaLabel')"
     @click.self="closeable && $emit('close')"
     @keydown.escape="closeable && $emit('close')"
@@ -27,7 +28,7 @@
         </button>
       </div>
 
-      <div v-if="description" class="action-modal__description">
+      <div v-if="description" :id="`${modalId}-desc`" class="action-modal__description">
         <span>{{ description }}</span>
       </div>
 
@@ -64,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onUnmounted } from "vue";
+import { ref, watch, nextTick, onUnmounted, computed } from "vue";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "@shared/composables/useI18n";
 
@@ -110,10 +111,9 @@ const { t } = useI18n();
 const contentRef = ref<HTMLElement | null>(null);
 let previouslyFocused: HTMLElement | null = null;
 
-let modalCounter = 0;
-const modalId = `action-modal-${++modalCounter}`;
+const modalId = `action-modal-${useId()}`;
 
-const sizeClass = `action-modal--size-${props.size}`;
+const sizeClass = computed(() => `action-modal--size-${props.size}`);
 
 watch(
   () => props.visible,
