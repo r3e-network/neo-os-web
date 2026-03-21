@@ -42,7 +42,7 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus compatibility contracts such as `PaymentHub` for older receipt-based flows.
+- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus a small set of dormant compatibility artifacts kept outside the flagship path.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
 
@@ -67,7 +67,6 @@ Primary integration rule:
 Current flagship payment rule:
 
 - prefer direct prepaid transfer to the MiniApp contract itself
-- use `PaymentHub` only when the contract still explicitly validates a numeric receiptId
 - Oracle callback apps may additionally require prepaid Oracle request fee credit on the callback contract
 
 ## Architecture
@@ -148,7 +147,6 @@ Operational alignment now applied on mainnet:
 - all 7 flagship contracts point `abstractAccount` to mainnet AA Core `0x9742b4ed62a84a886f404d36149da6147528ee33`
 - `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x017520f068fd602082fe5572596185e62a4ad991`
 - those callback consumers are allowlisted on the mainnet Oracle and funded with callback fee credit
-- `LastSurvivor` points `paymentHub` to mainnet `PaymentHubV2` `0x5c389477ce466224f02935dae61e0690846478b2`
 
 ## Platform Contracts
 
@@ -156,19 +154,11 @@ Current Neo N3 testnet platform contract values from `.env`:
 
 | Contract            | Hash                                         | Description               |
 | ------------------- | -------------------------------------------- | ------------------------- |
-| PaymentHub          | `0x340cb33d770b38f26d066716dd1f9df5283d629e` | Compatibility-only GAS receipt settlement |
 | Governance          | `0x2ec930202e6d03313d97198259b298cc3c29295e` | NEO staking and voting    |
 | PriceFeed           | `0x5284ef25f1bbbf36d139f6f94356e46b89138602` | Oracle price data         |
 | RandomnessLog       | `0xa24f83dcbafff909d4209ac76ca5d09237c0cda6` | VRF attestation anchoring |
 | AppRegistry         | `0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d` | MiniApp registration      |
 | AutomationAnchor    | `0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b` | Periodic task scheduling  |
-
-Mainnet compatibility settlement / support contract deployed by the current
-flagship admin:
-
-| Contract | Hash | Description |
-| --- | --- | --- |
-| PaymentHubV2 | `0x5c389477ce466224f02935dae61e0690846478b2` | Mainnet compatibility receipt settlement for LastSurvivor |
 
 ## MiniApps
 
@@ -191,7 +181,7 @@ Current featured flagship 7:
 | Red Envelope | `miniapp-redenvelope` | prepaid GAS + Oracle callback flow |
 | FogPlay | `miniapp-fogplay` | prepaid GAS + Oracle RNG callback flow |
 | Daily Check-in | `miniapp-dailycheckin` | direct GAS check-in reward path |
-| LastSurvivor | `miniapp-last-survivor` | PaymentHub receipt-based key purchase |
+| LastSurvivor | `miniapp-last-survivor` | direct prepaid GAS key purchase |
 | NeoPay | `miniapp-neo-pay` | prepaid asset credit recurring streams |
 | GASBOX | `miniapp-gasbox` | prepaid GAS hybrid gacha settlement |
 
@@ -258,7 +248,7 @@ set -a; source .env; set +a
 FLAGSHIP_LIVE_WIF=<funded-testnet-wif> \
   node deploy/scripts/live_validate_flagship_user_flows.js
 
-# Legacy platform-only compatibility verification
+# Legacy platform-native governance / pricefeed verification
 ./deploy/scripts/verify_testnet_workflows.sh --env-file .env
 
 # Cross-repo preferred path verification
@@ -275,7 +265,7 @@ Notes:
 
 - `live_validate_flagship_user_flows.js` is the current end-to-end flagship testnet proof path.
 - `verify_cross_repo_testnet.sh` is the preferred validation entrypoint.
-- `verify_testnet_workflows.sh` is legacy / compatibility-oriented.
+- `verify_testnet_workflows.sh` is legacy / platform-native only and no longer covers MiniApp payment routing.
 - `verify_cross_repo_testnet.sh` expects `AA_TEST_WIF` to control the configured `PAYMASTER_ACCOUNT_ID` for the stable allowlisted paymaster path.
 - The current stable default `PAYMASTER_ACCOUNT_ID` used by `verify_cross_repo_testnet.sh` is `0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56`.
 - Mainnet flagship alignment and post-update validation are recorded in `docs/reports/2026-03-18-mainnet-flagship-alignment.md`.
@@ -291,10 +281,12 @@ Notes:
 | `NEO_RPC_URL` | Neo N3 RPC endpoint |
 | `NEO_NETWORK_MAGIC` | Neo network magic |
 | `CONTRACT_*_HASH` | MiniApp platform contract hashes |
-| `NEOFEEDS_URL` | external Morpheus DataFeed service URL |
-| `NEOORACLE_URL` | external Morpheus Oracle service URL |
-| `NEOVRF_URL` | external Morpheus VRF service URL |
-| `NEOCOMPUTE_URL` | external Morpheus Compute service URL |
+| `MORPHEUS_RUNTIME_URL` | preferred unified Morpheus runtime URL |
+| `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` | runtime auth for unified Morpheus endpoints |
+| `MORPHEUS_PUBLIC_API_URL` | Morpheus web/public API URL |
+| `MORPHEUS_EDGE_URL` | Morpheus edge URL |
+| `MORPHEUS_CONTROL_PLANE_URL` | Morpheus control-plane URL |
+| `NEOFEEDS_URL` / `NEOORACLE_URL` / `NEOVRF_URL` / `NEOCOMPUTE_URL` | legacy split-service compatibility only |
 | `TXPROXY_URL` | external txproxy URL |
 | `AA_RELAY_URL` | external AA relay URL used by `/api/aa/relay` |
 | `AA_PAYMASTER_ENDPOINT` or `MORPHEUS_PAYMASTER_*` | paymaster authorization endpoint |
