@@ -58,11 +58,23 @@ At minimum:
 - `NEXT_PUBLIC_EDGE_URL`
 - `NEO_RPC_URL`
 - `NEO_NETWORK_MAGIC`
+- `TXPROXY_URL`
+
+Preferred Morpheus wiring:
+
+- `MORPHEUS_RUNTIME_URL`
+- `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+- `MORPHEUS_PUBLIC_API_URL`
+- `MORPHEUS_EDGE_URL`
+- `MORPHEUS_CONTROL_PLANE_URL`
+
+Legacy split-service wiring is still supported when you are intentionally
+running the old internal mesh locally:
+
 - `NEOFEEDS_URL`
 - `NEOORACLE_URL`
 - `NEOVRF_URL`
 - `NEOCOMPUTE_URL`
-- `TXPROXY_URL`
 
 Optional but recommended when AA integration is needed:
 
