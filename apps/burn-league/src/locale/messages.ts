@@ -16,7 +16,7 @@ const appMessages = {
   leaderboard: { en: "Leaderboard", zh: "排行榜" },
   burned: { en: "Burned", zh: "已燃烧" },
   success: { en: "successfully!", zh: "成功！" },
-  minBurn: { en: "Minimum burn is {amount} GAS", zh: "最低燃烧 {amount} GAS" },
+  minBurn: { en: "Minimum burn is {amount} {tokenGas}", zh: "最低燃烧 {amount} {tokenGas}" },
   missingContract: { en: "Contract not configured", zh: "合约未配置" },
   loadFailed: { en: "Failed to load burn data", zh: "燃烧数据加载失败" },
   docSubtitle: {
@@ -63,6 +63,8 @@ const appMessages = {
   sidebarRank: { en: "Rank", zh: "排名" },
   sidebarBurns: { en: "Burns", zh: "燃烧次数" },
   sidebarRewardPool: { en: "Reward Pool", zh: "奖励池" },
+  gasSuffix: { en: "GAS", zh: "GAS" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

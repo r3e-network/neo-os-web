@@ -49,6 +49,11 @@ const appMessages = {
   yourProofs: { en: "Your Proofs", zh: "你的证明" },
   ariaProofs: { en: "Proofs", zh: "证明" },
   latestId: { en: "Latest ID", zh: "最新编号" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  ellipsis: { en: "...", zh: "..." },
+  idPrefix: { en: "#", zh: "#" },
+  labelSeparator: { en: ": ", zh: "：" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

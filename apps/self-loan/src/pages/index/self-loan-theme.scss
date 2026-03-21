@@ -16,6 +16,7 @@
   --checkbook-success-deep: #059669;
   --checkbook-warning-deep: #ca8a04;
   --checkbook-danger-deep: #b91c1c;
+  --neo-green: var(--checkbook-success);
 }
 
 :global(.theme-light .theme-self-loan),
@@ -35,4 +36,5 @@
   --checkbook-success-deep: #047857;
   --checkbook-warning-deep: #a16207;
   --checkbook-danger-deep: #991b1b;
+  --neo-green: var(--checkbook-success);
 }

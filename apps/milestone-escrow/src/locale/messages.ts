@@ -14,6 +14,7 @@ const appMessages = {
   assetGas: { en: "GAS", zh: "GAS" },
   milestones: { en: "Milestones", zh: "里程碑" },
   milestoneAmount: { en: "Milestone amount", zh: "里程碑金额" },
+  milestoneAmountPlaceholder: { en: "1.5", zh: "1.5" },
   addMilestone: { en: "Add milestone", zh: "新增里程碑" },
   remove: { en: "Remove", zh: "移除" },
   totalAmount: { en: "Total amount", zh: "总金额" },
@@ -73,7 +74,8 @@ const appMessages = {
   feature2Desc: { en: "Funds are unlocked only when a milestone is approved.", zh: "仅在里程碑批准后释放对应资金。" },
   feature3Name: { en: "Refundable Escrow", zh: "可退款托管" },
   feature3Desc: { en: "Unapproved funds can be reclaimed by the creator.", zh: "未批准资金可由创建者取回。" },
-
+  tokenGas: { en: "GAS", zh: "GAS" },
+  idPrefix: { en: "#", zh: "#" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

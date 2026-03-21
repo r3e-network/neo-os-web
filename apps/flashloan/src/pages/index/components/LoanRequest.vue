@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoButton } from "@shared/components";
+import { type StatusMessage } from "@shared/composables/useStatusMessage";
 import LoanRequestForm from "./LoanRequestForm.vue";
 
 defineProps<{
@@ -43,7 +44,7 @@ defineProps<{
   isLoading: boolean;
   validationError: string | null;
   isConnected: boolean;
-  status: { msg: string; type: string } | null;
+  status: StatusMessage | null;
   t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 

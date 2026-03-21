@@ -26,7 +26,7 @@ export function useQuadraticProjects(
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch {
+    } catch (_e: unknown) {
       return 0n;
     }
   };
@@ -192,12 +192,24 @@ export function useQuadraticProjects(
   watch(
     () => selectedRound.value?.id,
     async (roundId) => {
-      if (roundId) await refreshProjects();
+      if (roundId) {
+        try {
+          await refreshProjects();
+        } catch (_e: unknown) {
+          /* non-critical: round change handler */
+        }
+      }
     }
   );
 
   watch(address, async (newAddr) => {
-    if (!newAddr) claimingProjectId.value = null;
+    if (!newAddr) {
+      try {
+        claimingProjectId.value = null;
+      } catch (_e: unknown) {
+        /* non-critical: address change handler */
+      }
+    }
   });
 
   return {

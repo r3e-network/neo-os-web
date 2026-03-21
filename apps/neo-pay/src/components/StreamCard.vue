@@ -3,7 +3,7 @@
     <div class="vault-card__header">
       <div>
         <span class="vault-title">{{ stream.title || `#${stream.id}` }}</span>
-        <span class="vault-subtitle">{{ formatAddress(isCreator ? stream.beneficiary : stream.creator) }}</span>
+        <span class="vault-subtitle">{{ (isCreator ? stream.beneficiary : stream.creator) ? formatAddress(isCreator ? stream.beneficiary : stream.creator) : t("notAvailable") }}</span>
       </div>
       <span :class="['status-pill', stream.status]">{{ statusLabel(stream.status) }}</span>
     </div>

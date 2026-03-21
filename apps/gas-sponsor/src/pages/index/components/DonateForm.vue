@@ -7,25 +7,27 @@
         <div class="input-section">
           <span class="input-label">{{ t("donateAmount") }}</span>
           <div class="preset-amounts">
-            <div
+            <button
+              type="button"
               v-for="amt in presets"
               :key="amt"
               :class="['preset-btn glass-btn', { active: modelValue === amt.toString() }]"
+              :aria-label="t('donateAmount') + ' ' + amt + ' ' + t('tokenGas')"
               @click="$emit('update:modelValue', amt.toString())"
             >
               <span class="preset-value">{{ amt }}</span>
-              <span class="preset-unit">GAS</span>
-            </div>
+              <span class="preset-unit">{{ t("tokenGas") }}</span>
+            </button>
           </div>
           <NeoInput
-            :model-value="modelValue"
-            @update:model-value="$emit('update:modelValue', $event)"
+            :modelValue="modelValue"
+            @update:modelValue="$emit('update:modelValue', $event)"
             type="number"
-            placeholder="0.1"
-            suffix="GAS"
+            :placeholder="t('donateAmountPlaceholder')"
+            :suffix="t('tokenGas')"
           />
         </div>
-        <NeoButton variant="primary" size="lg" block :loading="loading" @click="$emit('donate')">
+        <NeoButton variant="primary" size="lg" block type="button" :loading="loading" :aria-label="t('donateBtn')" @click="$emit('donate')">
           {{ loading ? t("donating") : t("donateBtn") }}
         </NeoButton>
       </div>
@@ -124,6 +126,8 @@ const presets = [0.1, 0.5, 1, 5];
   align-items: center;
   gap: 4px;
   backdrop-filter: blur(5px);
+  appearance: none;
+  font-family: inherit;
 
   &:hover {
     background: var(--gas-preset-hover-bg);

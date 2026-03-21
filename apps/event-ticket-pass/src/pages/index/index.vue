@@ -18,7 +18,7 @@
           <template #background>
             <div class="ticket-scene" aria-hidden="true">
               <div class="ticket-card">
-                <div class="ticket-header">EVENT PASS</div>
+                <div class="ticket-header">{{ t("eventPass") }}</div>
                 <div class="ticket-qr">▣</div>
                 <div class="ticket-perforation" />
               </div>
@@ -43,6 +43,7 @@
         v-if="!contractReady"
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
+        :t="t"
       />
       <EventList
         v-else
@@ -63,6 +64,7 @@
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
         compact
+        :t="t"
       />
       <EventCreateForm v-else v-model:form="contract.form" :is-creating="contract.isCreating" @create="contract.createEvent" />
     </template>
@@ -72,6 +74,7 @@
         v-if="!contractReady"
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
+        :t="t"
       />
       <TicketManagement
         v-else
@@ -90,6 +93,7 @@
         v-if="!contractReady"
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
+        :t="t"
       />
       <CheckinTab
         v-else
@@ -201,28 +205,36 @@ const resetAndReload = async () => {
 };
 
 onMounted(async () => {
-  if (!(await ensureContractReady())) return;
-  await connect();
-  if (address.value) {
-    await contract.refreshEvents();
-    await contract.refreshTickets();
+  try {
+    if (!(await ensureContractReady())) return;
+    await connect();
+    if (address.value) {
+      await contract.refreshEvents();
+      await contract.refreshTickets();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
   }
 });
 
 watch(address, async (newAddr) => {
-  if (!(await ensureContractReady())) {
-    contract.events.value = [];
-    contract.tickets.value = [];
-    contract.lookup.value = null;
-    return;
-  }
-  if (newAddr) {
-    await contract.refreshEvents();
-    await contract.refreshTickets();
-  } else {
-    contract.events.value = [];
-    contract.tickets.value = [];
-    contract.lookup.value = null;
+  try {
+    if (!(await ensureContractReady())) {
+      contract.events.value = [];
+      contract.tickets.value = [];
+      contract.lookup.value = null;
+      return;
+    }
+    if (newAddr) {
+      await contract.refreshEvents();
+      await contract.refreshTickets();
+    } else {
+      contract.events.value = [];
+      contract.tickets.value = [];
+      contract.lookup.value = null;
+    }
+  } catch (_e: unknown) {
+    /* non-critical: address change handler */
   }
 });
 </script>

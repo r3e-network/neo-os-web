@@ -1,6 +1,7 @@
 import { ripemd160 } from "@shared/shims/noble-hashes-ripemd160.js";
 import { sha256 } from "@shared/shims/noble-hashes-sha256.js";
-import { normalizeScriptHash } from "@shared/utils/neo";
+import { p256 } from "@shared/shims/noble-curves-p256.js";
+import { normalizeScriptHash } from "./neo";
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -15,4 +16,13 @@ export function deriveAAAccountIdHash(input: string): string {
   }
   const seed = new TextEncoder().encode(trimmed);
   return bytesToHex(ripemd160(sha256(seed)));
+}
+
+export function generateAASessionKeyPair(): { privateKey: string; publicKey: string } {
+  const privateKey = p256.utils.randomPrivateKey();
+  const publicKey = p256.getPublicKey(privateKey, true);
+  return {
+    privateKey: bytesToHex(privateKey),
+    publicKey: bytesToHex(publicKey),
+  };
 }

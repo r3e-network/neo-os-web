@@ -45,7 +45,7 @@ export function useDoomsdayGame() {
   const isClaiming = ref(false);
   const totalKeysInRound = ref(0n);
 
-  const lastBuyerLabel = computed(() => (lastBuyer.value ? formatAddress(lastBuyer.value) : "--"));
+  const lastBuyerLabel = computed(() => (lastBuyer.value ? formatAddress(lastBuyer.value) : t("notAvailable")));
 
   const lastBuyerHash = computed(() => normalizeScriptHash(String(lastBuyer.value || "")));
   const addressHash = computed(() => (address.value ? addressToScriptHash(address.value) : ""));
@@ -115,8 +115,8 @@ export function useDoomsdayGame() {
 
   const parseEventDate = (raw: unknown) => {
     const date = raw ? new Date(raw) : new Date();
-    if (Number.isNaN(date.getTime())) return new Date().toLocaleString();
-    return date.toLocaleString();
+    if (Number.isNaN(date.getTime())) return new Intl.DateTimeFormat("en").format(new Date());
+    return new Intl.DateTimeFormat("en").format(date);
   };
 
   const loadHistory = async () => {
@@ -137,7 +137,7 @@ export function useDoomsdayGame() {
         items.push({
           id: evt.id,
           title: t("keysPurchased"),
-          details: `${formatAddress(player)} • ${keys} keys • +${potContribution.toFixed(2)} GAS`,
+          details: `${formatAddress(player)} • ${keys} keys • +${potContribution.toFixed(2)} ${t("tokenGas")}`,
           date: parseEventDate(evt.created_at),
         });
       });
@@ -150,7 +150,7 @@ export function useDoomsdayGame() {
         items.push({
           id: evt.id,
           title: t("winnerDeclared"),
-          details: `${formatAddress(winner)} • ${prize.toFixed(2)} GAS • #${round}`,
+          details: `${formatAddress(winner)} • ${prize.toFixed(2)} ${t("tokenGas")} • #${round}`,
           date: parseEventDate(evt.created_at),
         });
       });
@@ -159,7 +159,7 @@ export function useDoomsdayGame() {
         const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const round = Number(values[0] || 0);
         const end = Number(values[1] || 0) * 1000;
-        const endText = end ? new Date(end).toLocaleString() : "--";
+        const endText = end ? new Intl.DateTimeFormat("en").format(new Date(end)) : t("notAvailable");
         items.push({
           id: evt.id,
           title: t("roundStarted"),

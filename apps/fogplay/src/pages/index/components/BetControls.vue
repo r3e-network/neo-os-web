@@ -22,8 +22,8 @@
       <div class="panel-header">
         <span class="label">{{ t("wager") }}</span>
         <div class="balance-pill">
-          <span class="val">0.1 - 100</span>
-          <span class="unit">GAS</span>
+          <span class="val">{{ t("wagerRange") }}</span>
+          <span class="unit">{{ t("tokenGas") }}</span>
         </div>
       </div>
 
@@ -35,7 +35,7 @@
           @click="$emit('update:betAmount', amount)"
         >
           <span class="amount-val">{{ amount }}</span>
-          <span class="amount-unit">GAS</span>
+          <span class="amount-unit">{{ t("tokenGas") }}</span>
         </div>
       </div>
 
@@ -76,7 +76,11 @@ defineProps<{
   canBet: boolean;
 }>();
 
-defineEmits(["update:choice", "update:betAmount", "flip"]);
+defineEmits<{
+  (e: "update:choice", side: "heads" | "tails"): void;
+  (e: "update:betAmount", amount: string): void;
+  (e: "flip"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

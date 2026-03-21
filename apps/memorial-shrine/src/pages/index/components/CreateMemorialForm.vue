@@ -1,66 +1,65 @@
 <template>
   <div class="create-form">
-    <span class="title">✨ {{ t("createTitle") }}</span>
+    <span class="title"><span aria-hidden="true">✨</span> {{ t("createTitle") }}</span>
     <span class="desc">{{ t("createDesc") }}</span>
 
     <div class="form-group">
       <span class="label">{{ t("labelName") }} *</span>
-      <input v-model="form.name" :placeholder="t('placeholderName')" class="input" />
+      <input v-model="form.name" :placeholder="t('placeholderName')" class="input" :aria-label="t('labelName')" />
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelPhoto") }}</span>
-      <div class="photo-upload" role="button" tabindex="0" :aria-label="t('uploadPhoto')" @click="uploadPhoto">
+      <button type="button" class="photo-upload" :aria-label="t('uploadPhoto')" @click="uploadPhoto">
         <div class="photo-preview" v-if="photoPreview">
           <img :src="photoPreview" mode="aspectFill" :alt="t('photoPreview')" />
         </div>
         <div class="photo-placeholder" v-else>
-          <span class="icon">📷</span>
+          <span class="icon" aria-hidden="true">📷</span>
           <span class="text">{{ t("uploadPhoto") }}</span>
         </div>
-      </div>
+      </button>
     </div>
 
     <div class="form-row">
       <div class="form-group half">
         <span class="label">{{ t("labelBirth") }}</span>
-        <input v-model.number="form.birthYear" type="number" placeholder="1940" class="input" />
+        <input v-model.number="form.birthYear" type="number" :placeholder="t('placeholderBirthYear')" class="input" :aria-label="t('labelBirth')" />
       </div>
       <div class="form-group half">
         <span class="label">{{ t("labelDeath") }}</span>
-        <input v-model.number="form.deathYear" type="number" placeholder="2024" class="input" />
+        <input v-model.number="form.deathYear" type="number" :placeholder="t('placeholderDeathYear')" class="input" :aria-label="t('labelDeath')" />
       </div>
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelRelation") }}</span>
-      <input v-model="form.relationship" :placeholder="t('placeholderRelation')" class="input" />
+      <input v-model="form.relationship" :placeholder="t('placeholderRelation')" class="input" :aria-label="t('labelRelation')" />
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelBio") }}</span>
-      <textarea v-model="form.biography" :placeholder="t('placeholderBio')" class="textarea" :maxlength="2000" />
+      <textarea v-model="form.biography" :placeholder="t('placeholderBio')" class="textarea" :maxlength="2000" :aria-label="t('labelBio')" />
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelObituary") }}</span>
-      <textarea v-model="form.obituary" :placeholder="t('placeholderObituary')" class="textarea" :maxlength="1000" />
+      <textarea v-model="form.obituary" :placeholder="t('placeholderObituary')" class="textarea" :maxlength="1000" :aria-label="t('labelObituary')" />
     </div>
 
     <div v-if="status" class="status-bar" :class="status.type">
       <span class="status-text">{{ status.msg }}</span>
     </div>
 
-    <div
+    <button
+      type="button"
       class="submit-btn"
-      role="button"
-      tabindex="0"
       :aria-label="isSubmitting ? t('creating') : t('createBtn')"
       @click="submit"
-      :class="{ disabled: isSubmitting }"
+      :disabled="isSubmitting"
     >
       <span>{{ isSubmitting ? t("creating") : t("createBtn") }}</span>
-    </div>
+    </button>
   </div>
 </template>
 
@@ -110,8 +109,9 @@ const uploadPhoto = async () => {
       // In production, upload to IPFS and get hash
       form.photoHash = "demo-" + Date.now();
     }
-  } catch {
-    // Ignore user cancellation.
+  } catch (_e: unknown) {
+    // User cancelled the image picker (e.g., closed the photo selection dialog).
+    // This is not an error — simply ignore and keep the current photoPreview state.
   }
 };
 
@@ -209,6 +209,10 @@ const submit = async () => {
   border: 2px dashed var(--shrine-gold-border-soft);
   border-radius: 50%;
   overflow: hidden;
+  appearance: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .photo-preview image {
@@ -240,6 +244,10 @@ const submit = async () => {
   border-radius: 10px;
   text-align: center;
   margin-top: 8px;
+  border: none;
+  appearance: none;
+  cursor: pointer;
+  width: 100%;
 
   text {
     font-size: 15px;
@@ -247,7 +255,8 @@ const submit = async () => {
     color: var(--shrine-button-text);
   }
 
-  &.disabled {
+  &.disabled,
+  &:disabled {
     opacity: 0.6;
   }
 }

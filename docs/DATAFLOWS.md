@@ -74,11 +74,9 @@ Neo N3 blocks
 
 ## Dataflow: MiniApp Payment + Game Logic
 
-This section contains older PaymentHub-centric examples. Current flagship apps
-use two production patterns:
+Current flagship apps use one production payment pattern:
 
 - direct prepaid transfer to the MiniApp contract
-- legacy PaymentHub receipt validation for the few contracts that still require it
 
 ```
 Direct prepaid flow
@@ -91,22 +89,11 @@ User (Wallet)
           ├─ Contract requests Oracle / VRF if needed
           └─ Contract emits settlement / payout events
 
-Legacy receipt flow
-User (Wallet)
-  └─ GAS.transfer ──▶ PaymentHub (OnNEP17Payment)
-      └─ PaymentReceived event + receiptId
-      └─ User invokes MiniApp action with receiptId
-          └─ Contract validates PaymentHub receipt before updating state
-```
-
-### Key Points
-
 - MiniApp contracts store app-specific state (bets, tickets, streams, keys)
 - Oracle / VRF callback flows may require prepaid callback fee credit on the
   Oracle contract in addition to the user-facing payment
 - Some hybrid flagship contracts still expose a `receiptId` ABI field, but the
   live flow passes `0` after direct prepaid GAS funding
-- PaymentHub is now a legacy / optional path, not the universal settlement path
 
 ## Dataflow: Edge-Gated Payments / Governance
 
@@ -114,7 +101,7 @@ User (Wallet)
 SDK ──▶ Edge Function (pay-gas / vote-bneo)
   ├─ validate permissions + limits + assets (GAS/bNEO only)
   └─ return contract invocation for wallet signing
-Wallet ──▶ Neo N3 chain (MiniApp contract / PaymentHub / Governance)
+Wallet ──▶ Neo N3 chain (MiniApp contract / Governance)
 ```
 
 ## Dataflow: Datafeed Updates (NeoFeeds)

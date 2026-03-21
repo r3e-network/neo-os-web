@@ -55,11 +55,14 @@ const appMessages = {
     zh: "这个小程序是桥接入口和指南，不是自定义桥实现。",
   },
   addWalletSuccess: { en: "Neo X network added or switched successfully", zh: "Neo X 网络已成功添加或切换" },
+  addWalletFailed: { en: "Add wallet failed", zh: "添加钱包失败" },
   addWalletMissing: { en: "MetaMask or a compatible EVM wallet is required", zh: "需要 MetaMask 或兼容的 EVM 钱包" },
   openMainnetBridge: { en: "Open mainnet bridge", zh: "打开主网桥" },
   openTestnetBridge: { en: "Open testnet bridge", zh: "打开测试网桥" },
   mainnetBridgeUrl: { en: "https://xbridge.neo.org/", zh: "https://xbridge.neo.org/" },
   testnetBridgeUrl: { en: "https://testnet.bridge.banelabs.org/", zh: "https://testnet.bridge.banelabs.org/" },
+  bridgeLeftLabel: { en: "N3", zh: "N3" },
+  bridgeRightLabel: { en: "X", zh: "X" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

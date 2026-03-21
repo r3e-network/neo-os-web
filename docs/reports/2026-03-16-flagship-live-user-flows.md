@@ -27,7 +27,6 @@ All actions below were executed with the shared testnet account:
 | SelfLoan | `0x2a19ae9c53a5373d064adaff5c6be1c545f00e2b` |
 | NeoPay | `0x89d2499928e3035247186f412934d6b0e0b665ef` |
 | Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
-| PaymentHub | `0x340cb33d770b38f26d066716dd1f9df5283d629e` |
 
 ## Mainnet Flagship Rollout
 
@@ -43,18 +42,11 @@ Mainnet contracts and miniapp subdomains currently deployed / updated:
 | SelfLoan | `0x942da575b31f39cbb59e64b5813b128739b44c25` | `selfloan.miniapp.neo` | updated in place |
 | NeoPay | `0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34` | `neopay.miniapp.neo` | newly deployed; first mainnet address |
 
-Related mainnet support contract:
-
-| Contract | Hash | Purpose |
-| --- | --- | --- |
-| PaymentHubV2 | `0x5c389477ce466224f02935dae61e0690846478b2` | compatibility receipt settlement for LastSurvivor |
-
 Mainnet dependency alignment completed:
 
 - all 7 flagship contracts now point `abstractAccount` to mainnet AA Core `0x9742b4ed62a84a886f404d36149da6147528ee33`
 - `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x017520f068fd602082fe5572596185e62a4ad991`
 - those callback consumer contracts are allowlisted on the mainnet Oracle and funded with callback fee credit
-- `LastSurvivor` points `paymentHub` to `PaymentHubV2` `0x5c389477ce466224f02935dae61e0690846478b2`
 
 ## Live Validation Summary
 
@@ -67,22 +59,14 @@ Mainnet dependency alignment completed:
 
 ### LastSurvivor
 
-This path required testnet dependency alignment before validation:
-
-- PaymentHub app configured for `miniapp-last-survivor`
-  - tx: `0xa004bd84f92e984578043e19afc84f1b41c89b347cc255201760f3a384fb44c8`
-- LastSurvivor contract `paymentHub` updated to testnet PaymentHub
-  - tx: `0xd6063741675742d07ddf8b4c272a6fb3344f36fdbbcf6138123dcf8c99832ff3`
-
 Validated user flow:
 
 - round start tx: `0x07b12014aad9a3699a9d7c1e5c2526fa4d5abf25e0393b4501506a743bc459ed`
 - payment tx: `0x2c7f06f2f3d11c4cd136c9ee71b27f171cdd7d3bfc328952aa92bb4c0aa9c350`
-- receipt id: `705`
 - buy tx: `0x5f34e37310ec071f10faa4989369ce61650149725f201d6ffb35e1c9675bae3c`
 - result:
   - `startNewRound` HALTed
-  - PaymentHub emitted `PaymentReceived`
+  - direct prepaid `GAS.transfer` into the MiniApp contract succeeded
   - `buyKeysWithCost` HALTed
   - `KeysPurchased` emitted
   - `TimeExtended` emitted

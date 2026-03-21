@@ -125,7 +125,7 @@ export function useGachaPublish() {
           let decimals = 8;
           try {
             decimals = numberFrom(await read("Decimals", [], assetHash));
-          } catch {
+          } catch (_e: unknown) {
             /* Token decimals read failed — default to 8 */
             decimals = 8;
           }

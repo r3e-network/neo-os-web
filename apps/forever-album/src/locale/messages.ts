@@ -71,6 +71,8 @@ const appMessages = {
   copyFailed: { en: "Copy failed", zh: "复制失败" },
   sidebarEncrypted: { en: "Encrypted", zh: "已加密" },
   sidebarPublic: { en: "Public", zh: "公开" },
+  sizeUnitByte: { en: "B", zh: "B" },
+  sizeUnitKbyte: { en: "KB", zh: "KB" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

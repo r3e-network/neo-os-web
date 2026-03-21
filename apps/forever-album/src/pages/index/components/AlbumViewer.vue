@@ -62,6 +62,21 @@ const emit = defineEmits<{
   border-radius: 12px;
 }
 
+@media (max-width: 480px) {
+  .viewer-img {
+    max-height: 300px;
+    border-radius: 8px;
+  }
+
+  .encrypted-notice {
+    padding: 20px;
+  }
+
+  .notice-text {
+    font-size: 12px;
+  }
+}
+
 .encrypted-notice {
   display: flex;
   flex-direction: column;

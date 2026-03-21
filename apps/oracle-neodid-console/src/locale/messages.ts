@@ -10,7 +10,9 @@ const appMessages = {
   feature3Name: { en: "Deployment View", zh: "部署视图" },
   feature3Desc: { en: "Shows the canonical public API and current network metadata.", zh: "显示标准公共 API 与当前网络元数据。" },
   did: { en: "DID", zh: "DID" },
+  didPlaceholder: { en: "did:morpheus:neo_n3:service:neodid", zh: "did:morpheus:neo_n3:service:neodid" },
   format: { en: "Format", zh: "格式" },
+  formatPlaceholder: { en: "resolution / document", zh: "resolution / document" },
   resolveDid: { en: "Resolve DID", zh: "解析 DID" },
   loadProviders: { en: "Load Providers", zh: "加载 Providers" },
   latestDocument: { en: "Latest Result", zh: "最新结果" },
@@ -18,6 +20,9 @@ const appMessages = {
   publicApi: { en: "Public API", zh: "公共 API" },
   neodidContract: { en: "NeoDID Contract", zh: "NeoDID 合约" },
   neodidDomain: { en: "NeoDID Domain", zh: "NeoDID 域名" },
+  network: { en: "Network", zh: "网络" },
+  externalResolver: { en: "external resolver", zh: "外部解析器" },
+  notPublished: { en: "not published", zh: "未发布" },
   resolution: { en: "Resolution", zh: "Resolution" },
   document: { en: "Document", zh: "Document" },
   examples: { en: "Examples", zh: "示例" },
@@ -25,6 +30,9 @@ const appMessages = {
   vaultDid: { en: "Vault DID", zh: "Vault DID" },
   aaDid: { en: "AA DID", zh: "AA DID" },
   resultLoaded: { en: "NeoDID response loaded", zh: "NeoDID 响应已加载" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  resolveFailed: { en: "Resolve failed", zh: "解析失败" },
+  loadProvidersFailed: { en: "Load providers failed", zh: "加载 providers 失败" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

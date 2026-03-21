@@ -20,19 +20,15 @@
   >
     <template #result>
       <NeoCard variant="erobo" class="mb-6">
-        <p class="summary">
-          Trade deterministic Neo Abstract Account addresses through a trustless GAS escrow market. Settlement
-          transfers only the AA shell. Existing verifier, hook, and backup-owner configuration must be reattached by
-          the buyer after purchase.
-        </p>
+        <p class="summary">{{ t("hubSummary") }}</p>
       </NeoCard>
 
       <div v-if="!marketHash.trim()" class="empty-state">
-        Enter an AA market contract hash in the operation panel to load listings.
+        {{ t("emptyStateEnterHash") }}
       </div>
 
       <div v-else-if="listings.length === 0 && !isLoading" class="empty-state">
-        No listings found for the current market hash.
+        {{ t("emptyStateNoListings") }}
       </div>
 
       <div class="listings">
@@ -53,23 +49,23 @@
               </div>
               <p class="listing-card__subtitle">{{ listing.title || t("untitledListing") }}</p>
             </div>
-            <NeoButton variant="secondary" @click="selectListing(listing)">
+            <NeoButton variant="secondary" type="button" @click="selectListing(listing)" :aria-label="listing.id === selectedListingId ? t('selected') : t('selectListing')">
               {{ listing.id === selectedListingId ? t("selected") : t("selectListing") }}
             </NeoButton>
           </div>
 
-          <div class="row"><span class="label">{{ t("priceLabel") }}</span><span class="value">{{ listing.priceGas }} GAS</span></div>
+          <div class="row"><span class="label">{{ t("priceLabel") }}</span><span class="value">{{ listing.priceGas }} {{ t("tokenGas") }}</span></div>
           <div class="row"><span class="label">{{ t("aaContractLabel") }}</span><span class="value">{{ listing.aaContractHash }}</span></div>
           <div class="row"><span class="label">{{ t("accountIdLabel") }}</span><span class="value">{{ listing.accountIdHash }}</span></div>
-          <div class="row"><span class="label">{{ t("sellerLabel") }}</span><span class="value">{{ listing.seller || "—" }}</span></div>
-          <div class="row"><span class="label">{{ t("buyerLabel") }}</span><span class="value">{{ listing.buyer || "—" }}</span></div>
+          <div class="row"><span class="label">{{ t("sellerLabel") }}</span><span class="value">{{ listing.seller || t("notAvailable") }}</span></div>
+          <div class="row"><span class="label">{{ t("buyerLabel") }}</span><span class="value">{{ listing.buyer || t("notAvailable") }}</span></div>
           <div v-if="listing.metadataUri" class="row">
             <span class="label">{{ t("metadataLabel") }}</span>
-            <a class="value value--link" :href="listing.metadataUri" target="_blank" rel="noreferrer">{{ listing.metadataUri }}</a>
+            <a class="value value--link" :href="listing.metadataUri" target="_blank" rel="noreferrer" :aria-label="t('viewMetadata')">{{ listing.metadataUri }}</a>
           </div>
           <div v-if="hasPendingPayment(listing)" class="row">
             <span class="label">{{ t("myPendingPayment") }}</span>
-            <span class="value">{{ formatGasFractions(listing.myPendingPayment) }} GAS</span>
+            <span class="value">{{ formatGasFractions(listing.myPendingPayment) }} {{ t("tokenGas") }}</span>
           </div>
         </NeoCard>
       </div>
@@ -78,11 +74,11 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('walletAndMarket')" class="operation-card">
         <div class="stack">
-          <NeoInput v-model="marketHash" :label="t('marketHash')" placeholder="0x..." />
-          <NeoButton variant="secondary" :loading="isWalletConnecting" @click="connectWallet">
+          <NeoInput v-model="marketHash" :label="t('marketHash')" :placeholder="t('marketHashPlaceholder')" />
+          <NeoButton variant="secondary" type="button" :loading="isWalletConnecting" @click="connectWallet" :aria-label="walletAddress ? t('walletConnected') : t('connectWallet')">
             {{ walletAddress ? t("walletConnected") : t("connectWallet") }}
           </NeoButton>
-          <NeoButton variant="primary" :loading="isLoading" @click="loadListings">{{ t("loadListings") }}</NeoButton>
+          <NeoButton variant="primary" type="button" :loading="isLoading" @click="loadListings" :aria-label="t('loadListings')">{{ t("loadListings") }}</NeoButton>
         </div>
       </NeoCard>
 
@@ -92,15 +88,15 @@
             v-model="aaContractHash"
             :label="t('aaContractInput')"
             :hint="t('aaContractHint')"
-            placeholder="0x..."
+            :placeholder="t('aaContractHashPlaceholder')"
           />
           <NeoInput
             v-model="accountIdHash"
             :label="t('accountIdInput')"
             :hint="t('accountIdHint')"
-            placeholder="0x..."
+            :placeholder="t('accountIdHashPlaceholder')"
           />
-          <NeoInput v-model="priceGas" :label="t('priceInput')" placeholder="1.5" />
+          <NeoInput v-model="priceGas" :label="t('priceInput')" :placeholder="t('pricePlaceholder')" />
           <NeoInput v-model="listingTitle" :label="t('titleInput')" :placeholder="t('titlePlaceholder')" />
           <NeoInput
             v-model="metadataUri"
@@ -108,7 +104,7 @@
             :label="t('metadataInput')"
             :placeholder="t('metadataPlaceholder')"
           />
-          <NeoButton variant="primary" :loading="isSubmitting" :disabled="!canCreateListing" @click="submitCreateListing">
+          <NeoButton variant="primary" type="button" :loading="isSubmitting" :disabled="!canCreateListing" @click="submitCreateListing" :aria-label="t('createListingCta')">
             {{ t("createListingCta") }}
           </NeoButton>
         </div>
@@ -120,7 +116,7 @@
             <div class="selection-summary__title">{{ selectedListing.title || t("untitledListing") }}</div>
             <div class="selection-summary__meta">
               <span>#{{ selectedListing.id }}</span>
-              <span>{{ selectedListing.priceGas }} GAS</span>
+              <span>{{ selectedListing.priceGas }} {{ t("tokenGas") }}</span>
               <span>{{ selectedListing.status }}</span>
             </div>
           </div>
@@ -129,16 +125,18 @@
             v-model="nextPriceGas"
             :label="t('newPriceInput')"
             :hint="t('newPriceHint')"
-            placeholder="2"
+            :placeholder="t('newPricePlaceholder')"
             :disabled="!canManageSelectedListing"
           />
 
           <NeoButton
             v-if="canManageSelectedListing"
             variant="primary"
+            type="button"
             :loading="isSubmitting"
             :disabled="!nextPriceGas.trim()"
             @click="submitUpdatePrice"
+            :aria-label="t('updatePriceCta')"
           >
             {{ t("updatePriceCta") }}
           </NeoButton>
@@ -146,8 +144,10 @@
           <NeoButton
             v-if="canManageSelectedListing"
             variant="secondary"
+            type="button"
             :loading="isSubmitting"
             @click="submitCancelSelected"
+            :aria-label="t('cancelListingCta')"
           >
             {{ t("cancelListingCta") }}
           </NeoButton>
@@ -157,14 +157,16 @@
             v-model="newBackupOwner"
             :label="t('newBackupOwnerInput')"
             :hint="t('newBackupOwnerHint')"
-            placeholder="Neo address or 0x..."
+            :placeholder="t('newBackupOwnerPlaceholder')"
           />
 
           <NeoButton
             v-if="canBuySelectedListing"
             variant="primary"
+            type="button"
             :loading="isSubmitting"
             @click="submitBuySelected"
+            :aria-label="t('buyListingCta')"
           >
             {{ t("buyListingCta") }}
           </NeoButton>
@@ -172,8 +174,10 @@
           <NeoButton
             v-if="selectedListingHasPendingRefund"
             variant="secondary"
+            type="button"
             :loading="isSubmitting"
             @click="submitRefundSelected"
+            :aria-label="t('refundPendingCta')"
           >
             {{ t("refundPendingCta") }}
           </NeoButton>
@@ -205,6 +209,7 @@ import {
 } from "../../utils/aa-market";
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 
 const MARKET_HASH_STORAGE_KEY = "aa-market-hub:market-hash";
@@ -232,8 +237,8 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   tab: { key: "market", labelKey: "totalListings", icon: "🏪" },
   sidebarItems: [
     { labelKey: "totalListings", value: () => listings.value.length },
-    { labelKey: "marketHash", value: () => marketHash.value || "—" },
-    { labelKey: "walletLabel", value: () => wallet.address.value || "—" },
+    { labelKey: "marketHash", value: () => marketHash.value || t("notAvailable") },
+    { labelKey: "walletLabel", value: () => wallet.address.value || t("notAvailable") },
   ],
 });
 
@@ -252,7 +257,7 @@ const canBuySelectedListing = computed(() =>
   Boolean(selectedListing.value && selectedListing.value.status === "active" && !selectedListing.value.isMine));
 
 function truncateMiddle(value: string, left = 10, right = 8) {
-  if (!value || value.length <= left + right + 3) return value || "—";
+  if (!value || value.length <= left + right + 3) return value || t("notAvailable");
   return `${value.slice(0, left)}...${value.slice(-right)}`;
 }
 
@@ -281,8 +286,8 @@ async function connectWallet() {
     if (marketHash.value.trim()) {
       await loadListings();
     }
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("connectFailed")), "error");
   } finally {
     isWalletConnecting.value = false;
   }
@@ -291,7 +296,7 @@ async function connectWallet() {
 async function loadListings() {
   try {
     if (!marketHash.value.trim()) {
-      throw new Error("Market hash is required.");
+      throw new Error(t("marketHashRequired"));
     }
     isLoading.value = true;
     listings.value = await listAddressListings(wallet, marketHash.value, walletAddress.value);
@@ -311,8 +316,8 @@ async function loadListings() {
 
     persistConfig();
     setStatus(t("marketLoaded"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("loadListingsFailed")), "error");
   } finally {
     isLoading.value = false;
   }
@@ -322,10 +327,10 @@ async function runWriteAction(action: () => Promise<{ txid: string }>, successMe
   try {
     isSubmitting.value = true;
     const result = await action();
-    setStatus(`${successMessage}: ${result.txid || "submitted"}`, "success");
+    setStatus(`${successMessage}${result.txid ? `: ${result.txid}` : ""}`, "success");
     await loadListings();
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("actionFailed")), "error");
   } finally {
     isSubmitting.value = false;
   }
@@ -399,9 +404,9 @@ const heroStats = computed<HeroStatsStripItem[]>(() => [
 ]);
 
 const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("marketHash"), value: truncateMiddle(marketHash.value || "unset"), variant: "accent" },
-  { label: t("walletLabel"), value: truncateMiddle(walletAddress.value || "not connected"), variant: "default" },
-  { label: t("selectedListingLabel"), value: selectedListing.value ? `#${selectedListing.value.id}` : "—", variant: "success" },
+  { label: t("marketHash"), value: truncateMiddle(marketHash.value || t("unset")), variant: "accent" },
+  { label: t("walletLabel"), value: truncateMiddle(walletAddress.value || t("notConnected")), variant: "default" },
+  { label: t("selectedListingLabel"), value: selectedListing.value ? `#${selectedListing.value.id}` : t("notAvailable"), variant: "success" },
 ]);
 
 const appState = computed(() => ({
@@ -416,7 +421,7 @@ const appState = computed(() => ({
 .summary {
   margin: 0;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-secondary);
 }
 
 .operation-card + .operation-card {
@@ -430,12 +435,12 @@ const appState = computed(() => ({
 }
 
 .empty-state {
-  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border: 1px dashed var(--border-color);
   border-radius: 22px;
   padding: 24px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.62);
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  background: var(--bg-card);
 }
 
 .listings {
@@ -473,7 +478,7 @@ const appState = computed(() => ({
 
 .listing-card__subtitle {
   margin: 8px 0 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
 }
 
 .row {
@@ -518,22 +523,22 @@ const appState = computed(() => ({
 
 .chip--sold {
   background: rgba(59, 130, 246, 0.16);
-  color: #8cc6ff;
+  color: var(--text-primary);
 }
 
 .chip--cancelled {
   background: rgba(248, 113, 113, 0.16);
-  color: #ffb1b1;
+  color: var(--text-primary);
 }
 
 .chip--mine {
   background: rgba(250, 204, 21, 0.16);
-  color: #f8df86;
+  color: var(--text-primary);
 }
 
 .chip--pending {
   background: rgba(244, 114, 182, 0.16);
-  color: #ffb8df;
+  color: var(--text-primary);
 }
 
 .selection-summary {
@@ -553,12 +558,12 @@ const appState = computed(() => ({
   gap: 10px;
   margin-top: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-secondary);
 }
 
 .hint-text {
   margin: 0;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 

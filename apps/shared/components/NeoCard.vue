@@ -3,7 +3,7 @@
     :class="['neo-card', `neo-card--${variant}`, { 'neo-card--hoverable': hoverable, 'neo-card--flat': flat }]"
     :role="hoverable ? 'button' : 'region'"
     :tabindex="hoverable ? 0 : undefined"
-    :aria-label="ariaLabel || title || undefined"
+    :aria-label="ariaLabel || title || null"
     @click="hoverable && $emit('click', $event)"
     @keydown.enter="hoverable && $emit('click', $event as unknown as MouseEvent)"
     @keydown.space.prevent="hoverable && $emit('click', $event as unknown as MouseEvent)"

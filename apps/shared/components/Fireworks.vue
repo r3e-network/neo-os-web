@@ -44,6 +44,10 @@ const getFireworkStyle = (index: number) => {
 watch(
   () => props.active,
   (newVal) => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (newVal) {
       timer = setTimeout(() => {
         emit("complete");
@@ -53,7 +57,10 @@ watch(
 );
 
 onUnmounted(() => {
-  if (timer) clearTimeout(timer);
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
 });
 </script>
 

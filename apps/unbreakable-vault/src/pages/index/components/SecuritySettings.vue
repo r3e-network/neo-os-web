@@ -9,7 +9,7 @@
         :variant="difficulty === level ? 'primary' : 'secondary'"
         @click="$emit('update:difficulty', level)"
       >
-        {{ t(`difficulty${["Easy", "Medium", "Hard"][level - 1]}`) }}
+        {{ t(["difficultyEasy", "difficultyMedium", "difficultyHard"][level - 1]) }}
       </NeoButton>
     </div>
   </div>

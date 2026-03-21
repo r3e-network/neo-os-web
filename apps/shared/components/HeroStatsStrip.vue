@@ -1,5 +1,5 @@
 <template>
-  <div class="hero-stats-strip" :class="compact ? 'hero-stats-strip--compact' : ''" role="list" :aria-label="ariaLabel">
+  <div class="hero-stats-strip" :class="compact ? 'hero-stats-strip--compact' : ''" role="list" :aria-label="ariaLabel || t('heroStatsAriaLabel')">
     <div
       v-for="item in items"
       :key="`${item.label}:${item.value}`"
@@ -15,26 +15,23 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "@shared/composables";
 export interface HeroStatsStripItem {
   label: string;
   value: string | number;
   icon?: string;
 }
 
-withDefaults(
-  defineProps<{
-    items: HeroStatsStripItem[];
-    compact?: boolean;
-    ariaLabel?: string;
-  }>(),
-  {
-    compact: false,
-    ariaLabel: "Hero statistics",
-  },
-);
+const { t } = useI18n();
+
+defineProps<{
+  items: HeroStatsStripItem[];
+  compact?: boolean;
+  ariaLabel?: string;
+}>();
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .hero-stats-strip {

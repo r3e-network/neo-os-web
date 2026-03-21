@@ -8,12 +8,13 @@
   >
     <span v-if="iconEmoji" class="icon-emoji" :aria-hidden="true">{{ iconEmoji }}</span>
     <span v-else-if="iconText" class="icon-text" :aria-hidden="true">{{ iconText }}</span>
-    <span v-else class="icon-fallback" :aria-label="`Icon: ${name}`">{{ name.charAt(0).toUpperCase() }}</span>
+    <span v-else class="icon-fallback" :aria-label="`${t('iconFallbackLabel')}: ${name}`">{{ name.charAt(0).toUpperCase() }}</span>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted } from "vue";
+import { useI18n } from "@shared/composables";
 
 /**
  * AppIcon Component
@@ -50,6 +51,8 @@ const props = withDefaults(
     decorative: true,
   }
 );
+
+const { t } = useI18n();
 
 /**
  * Complete registry of icon emoji mappings

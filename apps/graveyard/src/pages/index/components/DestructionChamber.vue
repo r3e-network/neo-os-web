@@ -8,7 +8,7 @@
 
     <div class="chamber-header-glass">
       <div class="icon-pulse">
-        <span class="chamber-icon-glass">🔥</span>
+        <span class="chamber-icon-glass" aria-hidden="true">🔥</span>
       </div>
     </div>
 
@@ -39,7 +39,7 @@
     <!-- Animated Warning -->
     <div class="warning-box-glass" :class="{ shake: showWarningShake }">
       <div class="warning-icon-container">
-        <span class="warning-icon">⚠️</span>
+        <span class="warning-icon" aria-hidden="true">⚠️</span>
       </div>
       <div class="warning-content">
         <span class="warning-title-glass">{{ t("warning") }}</span>
@@ -58,7 +58,7 @@
         :class="['destroy-btn-glass', { 'is-destroying': isDestroying }]"
       >
         <div class="btn-fire-effect" v-if="isDestroying"></div>
-        <span v-if="!isDestroying" class="btn-icon">💀</span>
+        <span v-if="!isDestroying" class="btn-icon" aria-hidden="true">💀</span>
         <span class="btn-text">{{ isDestroying ? t("destroying") : t("destroyForever") }}</span>
       </NeoButton>
     </div>
@@ -82,7 +82,11 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["update:assetHash", "update:memoryType", "initiate"]);
+defineEmits<{
+  (e: "update:assetHash", value: string): void;
+  (e: "update:memoryType", value: number): void;
+  (e: "initiate"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

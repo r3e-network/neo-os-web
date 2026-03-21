@@ -205,12 +205,10 @@ contracts** - they only pay via the SDK, and the platform handles the rest.
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  1. USER ACTION: SDK returns the right transfer target              │
-│     - direct prepaid flow  → GAS.transfer → MiniApp contract        │
-│     - legacy receipt flow → GAS.transfer → PaymentHub               │
+│     - direct prepaid flow → GAS.transfer → MiniApp contract         │
 ├──────────────────────────────────────────────────────────────────────┤
 │  2. USER ACTION: invoke the MiniApp contract                        │
-│     - direct prepaid flow consumes credited GAS / asset balance     │
-│     - legacy flow passes a real PaymentHub receiptId                │
+│     - contract consumes credited GAS / asset balance                │
 ├──────────────────────────────────────────────────────────────────────┤
 │  3. CONTRACT / ORACLE ACTION: resolve app state                     │
 │     Contract updates state, requests Oracle / VRF if needed         │
@@ -241,8 +239,8 @@ await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 
 1. **Security**: the SDK constrains transfer targets and methods by manifest policy.
 2. **Auditability**: payment transfers, Oracle requests, and final settlement all remain on-chain.
-3. **Flexibility**: newer flagship apps can use direct prepaid flows without forcing every product through PaymentHub.
-4. **Compatibility**: older receipt-based apps can continue using PaymentHub until migrated.
+3. **Flexibility**: the transfer payload can still carry app-specific routing memo data.
+4. **Simplicity**: there is no extra settlement hub between the user and the MiniApp contract.
 
 ## Security Notes
 

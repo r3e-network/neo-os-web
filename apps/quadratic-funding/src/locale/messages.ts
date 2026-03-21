@@ -19,6 +19,7 @@ const appMessages = {
   assetNeo: { en: "NEO", zh: "NEO" },
   assetGas: { en: "GAS", zh: "GAS" },
   matchingPool: { en: "Matching pool", zh: "匹配资金池" },
+  matchingPoolPlaceholder: { en: "50", zh: "50" },
   matchingPoolHint: {
     en: "Matching pool is locked at creation; you can top up later.",
     zh: "匹配池创建时锁定，可后续追加。",
@@ -124,6 +125,8 @@ const appMessages = {
   ariaProjects: { en: "Projects", zh: "项目" },
   ariaRounds: { en: "Rounds", zh: "轮次" },
   quickContribute: { en: "Quick Contribute", zh: "快捷捐助" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

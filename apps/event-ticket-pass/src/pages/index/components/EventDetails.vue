@@ -31,12 +31,13 @@
       <NeoButton
         size="sm"
         variant="primary"
+        type="button"
         :disabled="!event.active || event.minted >= event.maxSupply"
         @click="$emit('issue', event)"
       >
         {{ event.minted >= event.maxSupply ? t("soldOut") : t("issueTicket") }}
       </NeoButton>
-      <NeoButton size="sm" variant="secondary" :loading="togglingId === event.id" @click="$emit('toggle', event)">
+      <NeoButton size="sm" variant="secondary" type="button" :loading="togglingId === event.id" @click="$emit('toggle', event)">
         {{ event.active ? t("deactivate") : t("activate") }}
       </NeoButton>
     </div>
@@ -65,7 +66,7 @@ const formatSchedule = (startTime: number, endTime: number) => {
   if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
-  return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+  return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
 };
 </script>
 

@@ -35,7 +35,7 @@ const parseProposal = (data: Record<string, unknown>): Proposal => {
       const parsed = JSON.parse(policyByteString);
       policyMethod = parsed.method;
       policyValue = parsed.value;
-    } catch {
+    } catch (_e: unknown) {
       policyValue = policyByteString;
     }
   }
@@ -84,7 +84,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
         const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
         if (parentOrigin) return parentOrigin;
       }
-    } catch {
+    } catch (_e: unknown) {
       // Fallback
     }
     return "";
@@ -252,7 +252,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     try {
       const cached = uni.getStorageSync(CACHE_KEY);
       if (cached) proposals.value = JSON.parse(cached);
-    } catch {
+    } catch (_e: unknown) {
       /* non-critical */
     }
 
@@ -296,7 +296,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
         isCandidate.value = false;
         votingPower.value = 0;
       }
-    } catch {
+    } catch (_e: unknown) {
       isCandidate.value = false;
       votingPower.value = 0;
     } finally {

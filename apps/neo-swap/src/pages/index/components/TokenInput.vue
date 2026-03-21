@@ -5,25 +5,23 @@
       <span class="balance-text">{{ t("balance") }}: {{ formatAmount(balance) }}</span>
     </div>
     <div class="token-input-row">
-      <div
+      <button
+        type="button"
         class="token-select"
-        role="button"
         :aria-label="`${t('balance')}: ${symbol}`"
-        tabindex="0"
         @click="$emit('select-token')"
-        @keydown.enter="$emit('select-token')"
       >
         <AppIcon :name="symbol.toLowerCase()" :size="32" />
         <div class="token-info">
           <span class="token-symbol">{{ symbol }}</span>
           <AppIcon name="chevron-right" :size="16" rotate="90" class="chevron-icon" />
         </div>
-      </div>
+      </button>
       <NeoInput
         :modelValue="amount"
         @update:modelValue="$emit('update:amount', $event)"
         type="number"
-        placeholder="0.0"
+        :placeholder="t('enterAmount')"
         :disabled="disabled"
         class="amount-input-wrapper"
       />
@@ -46,7 +44,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["select-token", "update:amount"]);
+defineEmits<{
+  (e: "select-token"): void;
+  (e: "update:amount", value: string): void;
+}>();
 
 function formatAmount(amount: number): string {
   return amount.toFixed(4);
@@ -108,9 +109,10 @@ function formatAmount(amount: number): string {
   background: var(--swap-chip-bg);
   padding: 8px 14px 8px 10px;
   border-radius: 99px;
-  border: 1px solid var(--swap-chip-border);
+  border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  appearance: none;
 
   &:hover {
     background: var(--swap-chip-hover-bg);

@@ -18,13 +18,13 @@
   >
     <template #result>
       <div class="result-grid">
-        <div><span class="label">Request</span><span class="value">{{ lastRandom?.requestId || "—" }}</span></div>
-        <div><span class="label">Value</span><span class="value">{{ lastRandom?.value || "—" }}</span></div>
-        <div><span class="label">Proof</span><span class="value">{{ lastRandom?.proof || "—" }}</span></div>
+        <div><span class="label">{{ t("labelRequest") }}</span><span class="value">{{ lastRandom?.requestId || t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelValue") }}</span><span class="value">{{ lastRandom?.value || t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelProof") }}</span><span class="value">{{ lastRandom?.proof || t("notAvailable") }}</span></div>
       </div>
     </template>
     <template #operation>
-      <NeoButton variant="primary" :loading="oracle.isRequesting" @click="requestRandom">{{ t("requestRandom") }}</NeoButton>
+      <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="requestRandom" :aria-label="t('requestRandom')">{{ t("requestRandom") }}</NeoButton>
     </template>
   </ConsoleMiniApp>
 </template>
@@ -36,20 +36,21 @@ import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 const oracle = useOracle({ appId: "miniapp-oracle-vrf-console" });
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-vrf-console", messages,
   tab: { key: "vrf", labelKey: "latestResult", icon: "🎲" },
-  sidebarItems: [{ labelKey: "latestResult", value: () => oracle.lastRandom.value?.requestId || "—" }],
+  sidebarItems: [{ labelKey: "latestResult", value: () => oracle.lastRandom.value?.requestId || t("notAvailable") }],
 });
 const lastRandom = oracle.lastRandom;
-async function requestRandom() { try { await oracle.requestRandomness(); setStatus("randomness requested", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
+async function requestRandom() { try { await oracle.requestRandomness(); setStatus(t("randomnessRequested"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("requestFailed")), "error"); } }
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildOracleHeroStats({
     oracleHash: oracle.integration.contracts.morpheusOracle,
     network: oracle.network,
-    middleLabel: "VRF",
-    middleValue: "direct",
+    middleLabel: t("heroVrf"),
+    middleValue: t("heroDirect"),
   }),
 );
 const overviewStats = computed<StatsDisplayItem[]>(() =>

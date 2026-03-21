@@ -229,7 +229,7 @@ export async function waitForTransaction(
     try {
       const events = await getContractEvents(network, "", { tx_hash: txid, limit: 10 });
       if (events.length > 0) return events;
-    } catch {
+    } catch (_e: unknown) {
       // Not indexed yet
     }
     await new Promise((r) => setTimeout(r, 3000));

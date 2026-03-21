@@ -1,13 +1,15 @@
 <template>
-  <div class="token-selector" role="button" :aria-label="`Select ${token.symbol}`" tabindex="0" @click="$emit('click')" @keydown.enter="$emit('click')">
+  <button type="button" class="token-selector" :aria-label="t('selectTokenAria', { token: token.symbol || '' })" @click="$emit('click')">
     <img :src="getTokenIcon(token.symbol)" class="token-icon" mode="aspectFit" :alt="token.symbol" />
     <span class="token-symbol">{{ token.symbol }}</span>
     <div class="chevron" aria-hidden="true">›</div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
 import type { Token } from "@/types";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 const props = defineProps<{
   token: Token;
@@ -16,6 +18,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "click"): void;
 }>();
+
+const { t } = createUseI18n(messages)();
 
 function getTokenIcon(symbol: string): string {
   if (symbol === "NEO") return "/neo-token.png";
@@ -32,7 +36,8 @@ function getTokenIcon(symbol: string): string {
   background: var(--swap-chip-bg);
   padding: 10px 16px;
   border-radius: 16px;
-  border: 1px solid var(--swap-chip-border);
+  border: none;
+  appearance: none;
   cursor: pointer;
   transition: all 0.2s ease;
 

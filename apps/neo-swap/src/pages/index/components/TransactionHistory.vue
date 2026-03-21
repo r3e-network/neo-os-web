@@ -10,39 +10,34 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <span class="modal-title">{{ t("selectToken") }}</span>
-        <div
+        <button
+          type="button"
           class="modal-close"
-          role="button"
-          :aria-label="t('selectToken')"
-          tabindex="0"
+          :aria-label="t('close')"
           @click="$emit('close')"
-          @keydown.enter="$emit('close')"
-          >×</div
-    >
+        >×</button>
       </div>
       <div class="token-list" role="listbox" :aria-label="t('selectToken')">
-        <div
+        <li
           v-for="token in tokens"
           :key="token.symbol"
           :class="['token-item', { selected: isSelected(token) }]"
           role="option"
           :aria-selected="isSelected(token)"
           :aria-label="token.symbol"
-          tabindex="0"
           @click="$emit('select', token)"
-          @keydown.enter="$emit('select', token)"
         >
           <img
             :src="getTokenIcon(token.symbol)"
             class="token-list-icon"
             mode="aspectFit"
-            :alt="token.symbol || t('tokenIcon')"
+            :alt="token.symbol?.trim() || t('tokenIcon')"
           />
           <div class="token-item-info">
             <span class="token-item-symbol">{{ token.symbol }}</span>
             <span class="token-item-balance">{{ formatBalance(token.balance) }}</span>
           </div>
-        </div>
+        </li>
       </div>
     </div>
   </div>
@@ -124,6 +119,10 @@ function formatBalance(balance: number): string {
   color: var(--swap-modal-text-muted);
   cursor: pointer;
   line-height: 1;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
 
   &:hover {
     color: var(--swap-modal-text);
@@ -132,6 +131,9 @@ function formatBalance(balance: number): string {
 
 .token-list {
   padding: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .token-item {
@@ -142,6 +144,7 @@ function formatBalance(balance: number): string {
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
+  list-style: none;
 
   &:hover {
     background: var(--swap-chip-hover-bg);
@@ -157,6 +160,27 @@ function formatBalance(balance: number): string {
   width: 44px;
   height: 44px;
   border-radius: 50%;
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    width: 95%;
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .token-list-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .token-item-symbol {
+    font-size: 16px;
+  }
+
+  .token-item-balance {
+    font-size: 11px;
+  }
 }
 
 .token-item-info {

@@ -12,7 +12,7 @@
       <div class="address-list">
         <div v-for="address in treasuryAddresses" :key="address" class="address-row">
           <span class="address-text">{{ address }}</span>
-          <button class="icon-button" @click="emit('copy', address)">
+          <button type="button" class="icon-button" :aria-label="t('copyAlt')" @click="emit('copy', address)">
             <img class="icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('copyAlt')" />
           </button>
         </div>

@@ -43,7 +43,7 @@ export function useMultisigUI() {
 
   const formatDate = (ts: string) => {
     const date = new Date(ts);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleDateString("en") + " " + date.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" });
   };
 
   const tabs = computed(() => [

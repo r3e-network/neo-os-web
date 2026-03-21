@@ -24,23 +24,23 @@
           <div class="hero-conversion">
             <div class="hero-convert-token">
               <span class="convert-icon">Ⓝ</span>
-              <span class="convert-label">NEO</span>
+              <span class="convert-label">{{ t("tokenNeo") }}</span>
             </div>
             <span class="convert-arrow">→</span>
             <div class="hero-convert-token">
               <span class="convert-icon convert-icon--bneo">ⓑ</span>
-              <span class="convert-label">bNEO</span>
+              <span class="convert-label">{{ t("tokenBneo") }}</span>
             </div>
           </div>
           <div class="hero-stats-row">
             <div class="hero-stat">
               <span class="hero-stat-label">{{ t("sidebarNeoBalance") }}</span>
-              <span class="hero-stat-value">{{ neoBalance ?? "—" }}</span>
+              <span class="hero-stat-value">{{ neoBalance ?? t("notAvailable") }}</span>
             </div>
             <div class="hero-stat-divider" />
             <div class="hero-stat">
               <span class="hero-stat-label">{{ t("sidebarBneoBalance") }}</span>
-              <span class="hero-stat-value">{{ bNeoBalance ?? "—" }}</span>
+              <span class="hero-stat-value">{{ bNeoBalance ?? t("notAvailable") }}</span>
             </div>
           </div>
         </div>
@@ -138,8 +138,8 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
       docFeatureCount: 3,
     },
     sidebarItems: [
-      { labelKey: "sidebarNeoBalance", value: () => neoBalance.value ?? "—" },
-      { labelKey: "sidebarBneoBalance", value: () => bNeoBalance.value ?? "—" },
+      { labelKey: "sidebarNeoBalance", value: () => neoBalance.value ?? t("notAvailable") },
+      { labelKey: "sidebarBneoBalance", value: () => bNeoBalance.value ?? t("notAvailable") },
       { labelKey: "sidebarTotalStaked", value: () => totalStakedDisplay.value },
       { labelKey: "sidebarApr", value: () => aprDisplay.value },
     ],
@@ -162,28 +162,36 @@ function switchToJazz() {
 }
 
 async function handlePrimaryAction() {
-  if (walletConnected.value) {
-    loading.value = true;
-    await swap.executeSwap();
-    loading.value = false;
-  } else {
-    await loadBalances();
+  try {
+    if (walletConnected.value) {
+      loading.value = true;
+      await swap.executeSwap();
+      loading.value = false;
+    } else {
+      await loadBalances();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: primary action error */
   }
 }
 
 async function handleJazzAction() {
-  if (walletConnected.value) {
-    loading.value = true;
-    const success = await handleClaimRewards();
-    if (success) {
-      showStatus(t("claimSuccess"), "success");
-      await loadBalances();
+  try {
+    if (walletConnected.value) {
+      loading.value = true;
+      const success = await handleClaimRewards();
+      if (success) {
+        showStatus(t("claimSuccess"), "success");
+        await loadBalances();
+      } else {
+        showStatus(t("claimFailed"), "error");
+      }
+      loading.value = false;
     } else {
-      showStatus(t("claimFailed"), "error");
+      await loadBalances();
     }
-    loading.value = false;
-  } else {
-    await loadBalances();
+  } catch (_e: unknown) {
+    /* non-critical: jazz action error */
   }
 }
 
@@ -199,7 +207,7 @@ async function copyToClipboard(value: string) {
       throw new Error("clipboard");
     }
     showStatus(t("copySuccess"), "success");
-  } catch {
+  } catch (_e: unknown) {
     showStatus(t("copyFailed"), "error");
   }
 }
@@ -306,11 +314,11 @@ const resetAndReload = async () => {
   justify-content: center;
   font-size: 18px;
   font-weight: 700;
-  background: linear-gradient(135deg, #00e676, #00a651);
+  background: linear-gradient(135deg, var(--burger-accent), var(--burger-accent-deep));
   color: #fff;
 
   &--bneo {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background: linear-gradient(135deg, var(--burger-gold, #fbbf24), var(--burger-gold-dark, #f59e0b));
   }
 }
 

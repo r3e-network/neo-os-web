@@ -8,10 +8,10 @@
       <div class="form-group">
         <NeoInput v-model="localTokenId" :label="t('checkinTokenId')" :placeholder="t('checkinTokenIdPlaceholder')" />
         <div class="checkin-actions">
-          <NeoButton size="sm" variant="secondary" :loading="isLookingUp" @click="$emit('lookup')">
+          <NeoButton size="sm" variant="secondary" type="button" :loading="isLookingUp" @click="$emit('lookup')">
             {{ isLookingUp ? t("lookingUp") : t("lookup") }}
           </NeoButton>
-          <NeoButton size="sm" variant="primary" :loading="isCheckingIn" @click="$emit('checkin')">
+          <NeoButton size="sm" variant="primary" type="button" :loading="isCheckingIn" @click="$emit('checkin')">
             {{ isCheckingIn ? t("checkingIn") : t("checkIn") }}
           </NeoButton>
         </div>
@@ -75,10 +75,10 @@ watch(localTokenId, (newVal) => {
 });
 
 const formatSchedule = (startTime: number, endTime: number) => {
-  if (!startTime || !endTime) return "-";
+  if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
-  return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+  return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
 };
 </script>
 

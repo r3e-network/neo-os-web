@@ -44,7 +44,11 @@ defineProps<{
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["update:searchQuery", "update:selectedNetwork", "search"]);
+defineEmits<{
+  (e: "update:searchQuery", value: string): void;
+  (e: "update:selectedNetwork", value: "mainnet" | "testnet"): void;
+  (e: "search"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { readQueryParam } from "@shared/utils/url";
@@ -102,7 +102,7 @@ export function useMemorialActions() {
           text: `${t("tagline")} | ${target.name} (${target.birthYear}-${target.deathYear})`,
           url: shareUrl,
         })
-        .catch(() => {
+        .catch((_e: unknown) => {
           copyToClipboard(shareUrl);
         });
     } else {
@@ -155,6 +155,8 @@ export function useMemorialActions() {
       shareStatusTimer = null;
     }
   };
+
+  onUnmounted(() => cleanupTimers());
 
   return {
     // State

@@ -5,16 +5,14 @@
         <span class="label">{{ t("address") }}</span>
         <div class="value-row">
           <span class="value">{{ account.address }}</span>
-          <div
+          <button
+            type="button"
             class="copy-btn"
             @click="$emit('copy', account.address)"
-            role="button"
-            tabindex="0"
             :aria-label="t('copyAddress')"
-            @keydown.enter="$emit('copy', account.address)"
           >
             <span class="icon" aria-hidden="true">📋</span>
-          </div>
+          </button>
         </div>
       </div>
     </ScrollReveal>
@@ -24,16 +22,14 @@
         <span class="label">{{ t("pubKey") }}</span>
         <div class="value-row">
           <span class="value truncate">{{ account.publicKey }}</span>
-          <div
+          <button
+            type="button"
             class="copy-btn"
             @click="$emit('copy', account.publicKey)"
-            role="button"
-            tabindex="0"
             :aria-label="t('copyPublicKey')"
-            @keydown.enter="$emit('copy', account.publicKey)"
           >
             <span class="icon" aria-hidden="true">📋</span>
-          </div>
+          </button>
         </div>
       </div>
     </ScrollReveal>
@@ -46,26 +42,22 @@
         </div>
         <div class="value-row">
           <span class="value blur" :class="{ revealed: showSecrets }">{{ account.privateKey }}</span>
-          <div
+          <button
+            type="button"
             class="action-btn"
             @click="$emit('toggle-secrets')"
-            role="button"
-            tabindex="0"
             :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
-            @keydown.enter="$emit('toggle-secrets')"
           >
             <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
-          </div>
-          <div
+          </button>
+          <button
+            type="button"
             class="copy-btn"
             @click="$emit('copy', account.privateKey)"
-            role="button"
-            tabindex="0"
             :aria-label="t('copyPrivateKey')"
-            @keydown.enter="$emit('copy', account.privateKey)"
           >
             <span class="icon" aria-hidden="true">📋</span>
-          </div>
+          </button>
         </div>
       </div>
     </ScrollReveal>
@@ -78,16 +70,14 @@
         </div>
         <div class="value-row">
           <span class="value blur" :class="{ revealed: showSecrets }">{{ account.wif }}</span>
-          <div
+          <button
+            type="button"
             class="copy-btn"
             @click="$emit('copy', account.wif)"
-            role="button"
-            tabindex="0"
             :aria-label="t('copyWif')"
-            @keydown.enter="$emit('copy', account.wif)"
           >
             <span class="icon" aria-hidden="true">📋</span>
-          </div>
+          </button>
         </div>
       </div>
     </ScrollReveal>
@@ -112,7 +102,7 @@
     <ScrollReveal animation="fade-up" :delay="600">
       <div class="actions">
         <NeoButton variant="primary" @click="$emit('download-pdf')" class="download-btn">
-          <span class="btn-icon">📥</span> {{ t("downloadPdf") }}
+          <span class="btn-icon" aria-hidden="true">📥</span> {{ t("downloadPdf") }}
         </NeoButton>
       </div>
     </ScrollReveal>
@@ -244,6 +234,9 @@ defineEmits<{
   cursor: pointer;
   background: var(--convert-copy-bg);
   transition: all 0.2s;
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &:active {
     transform: scale(0.95);

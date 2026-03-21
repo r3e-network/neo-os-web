@@ -90,7 +90,9 @@ const props = defineProps<{
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["open"]);
+defineEmits<{
+  (e: "open", cap: Capsule): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

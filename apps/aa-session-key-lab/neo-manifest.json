@@ -4,12 +4,12 @@
   "name": "AA Session Key Lab",
   "name_zh": "AA Session Key 实验室",
   "version": "1.0.0",
-  "description": "Inspect AA session-key scope and sponsorship state from a focused miniapp.",
-  "description_zh": "用专用小程序检查 AA session-key 作用域与赞助状态。",
+  "description": "Configure SessionKeyVerifier on-chain and inspect AA sponsorship state from a focused miniapp.",
+  "description_zh": "用专用小程序在链上配置 SessionKeyVerifier 并检查 AA 赞助状态。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "session-key", "relay", "sponsor"],
+  "tags": ["aa", "session-key", "verifier", "sponsor"],
   "developer": {
     "name": "R3E Network",
     "email": "dev@r3e.network",
@@ -41,5 +41,5 @@
     "transactions": false
   },
   "createdAt": "2026-03-18T05:20:00Z",
-  "updatedAt": "2026-03-18T05:20:00Z"
+  "updatedAt": "2026-03-19T00:00:00Z"
 }

@@ -12,6 +12,9 @@ import { createSidebarItems } from "@shared/utils";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "@/types";
 
+// Blockchain confirm timing constant
+const WAIT_AFTER_TRANSFER_MS = 4000;
+
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 export function useNeoPay(t: (key: string) => string) {
   const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
@@ -193,7 +196,7 @@ export function useNeoPay(t: (key: string) => string) {
         ],
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
 
       await invokeContract({
         scriptHash: contract,

@@ -241,7 +241,7 @@ export async function readAddressListing(
   }
 
   const myPendingPayment = currentAddress
-    ? await getPendingPaymentOf(wallet, marketHash, decoded.id, currentAddress).catch(() => "0")
+    ? await getPendingPaymentOf(wallet, marketHash, decoded.id, currentAddress).catch((_e: unknown) => "0")
     : "0";
 
   return {
@@ -263,7 +263,7 @@ export async function listAddressListings(
   }
 
   const reads = Array.from({ length: count }, (_, index) =>
-    invokeMarketRead(wallet, marketHash, "getListing", [{ type: "Integer", value: String(index + 1) }]).catch(() => null));
+    invokeMarketRead(wallet, marketHash, "getListing", [{ type: "Integer", value: String(index + 1) }]).catch((_e: unknown) => null));
 
   const decoded = (await Promise.all(reads))
     .map((result) => (result ? decodeListing(result) : null))
@@ -276,7 +276,7 @@ export async function listAddressListings(
   }
 
   const pendingPayments = await Promise.all(
-    decoded.map((listing) => getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch(() => "0")),
+    decoded.map((listing) => getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch((_e: unknown) => "0")),
   );
 
   return decoded

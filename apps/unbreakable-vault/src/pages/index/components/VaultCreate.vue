@@ -3,7 +3,7 @@
     <div class="form-group">
       <div class="input-group">
         <span class="input-label">{{ t("bountyLabel") }}</span>
-        <NeoInput v-model="localBounty" type="number" :placeholder="t('bountyPlaceholder')" suffix="GAS" />
+        <NeoInput v-model="localBounty" type="number" :placeholder="t('bountyPlaceholder')" :suffix="t('tokenGas')" />
         <span class="helper-text">{{ t("minBountyNote") }}</span>
       </div>
 

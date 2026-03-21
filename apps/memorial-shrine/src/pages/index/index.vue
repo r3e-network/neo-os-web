@@ -28,12 +28,12 @@
           <template #stats>
             <div class="hero-stats">
               <div class="hero-stat">
-                <span class="hero-stat-icon">🕯️</span>
+                <span class="hero-stat-icon" aria-hidden="true">🕯️</span>
                 <span class="hero-stat-value">{{ memorials.length }}</span>
                 <span class="hero-stat-label">{{ t("memorials") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon">🙏</span>
+                <span class="hero-stat-icon" aria-hidden="true">🙏</span>
                 <span class="hero-stat-value">{{ visitedMemorials.length }}</span>
                 <span class="hero-stat-label">{{ t("myTributes") }}</span>
               </div>
@@ -51,18 +51,17 @@
       <div class="obituary-banner" v-if="recentObituaries.length">
         <span class="banner-title">{{ t("obituaries") }}</span>
         <scroll-view scroll-x class="banner-scroll">
-          <div
+          <button
             v-for="ob in recentObituaries"
             :key="ob.id"
+            type="button"
             class="obituary-item"
-            role="button"
-            tabindex="0"
             :aria-label="ob.name"
             @click="openMemorial(ob.id)"
           >
             <span class="name">{{ ob.name }}</span>
             <span class="text">{{ ob.text }}</span>
-          </div>
+          </button>
         </scroll-view>
       </div>
 
@@ -145,10 +144,12 @@ const {
 });
 
 const {
+  memorials,
   visitedMemorials,
   recentObituaries,
   selectedMemorial,
   shareStatus,
+  loadMemorials,
   loadVisitedMemorials,
   openMemorial,
   closeMemorial,
@@ -159,9 +160,29 @@ const {
   cleanupTimers,
 } = useMemorialActions();
 
+interface Offering {
+  type: number;
+  nameKey: string;
+  icon: string;
+  cost: number;
+}
+
+const offerings: Offering[] = [
+  { type: 1, nameKey: "incense", icon: "🕯️", cost: 1 },
+  { type: 2, nameKey: "candle", icon: "🕯", cost: 1 },
+  { type: 3, nameKey: "flower", icon: "🌸", cost: 2 },
+  { type: 4, nameKey: "fruit", icon: "🍎", cost: 3 },
+  { type: 5, nameKey: "wine", icon: "🍶", cost: 5 },
+  { type: 6, nameKey: "feast", icon: "🍱", cost: 10 },
+];
+
 const resetAndReload = async () => {
-  await checkUrlForMemorial();
-  await loadVisitedMemorials();
+  try {
+    await checkUrlForMemorial();
+    await loadVisitedMemorials();
+  } catch (_e: unknown) {
+    /* non-critical: reload memorial data */
+  }
 };
 
 const appState = computed(() => ({
@@ -171,8 +192,12 @@ const appState = computed(() => ({
 
 const activeTab = ref("memorials");
 const onMemorialCreated = async (data: Record<string, unknown>) => {
-  await handleMemorialCreated(data);
-  activeTab.value = "memorials";
+  try {
+    await handleMemorialCreated(data);
+    activeTab.value = "memorials";
+  } catch (_e: unknown) {
+    /* non-critical: memorial creation handler */
+  }
 };
 
 onUnmounted(() => {
@@ -180,8 +205,13 @@ onUnmounted(() => {
 });
 
 onMounted(async () => {
-  await checkUrlForMemorial();
-  await loadVisitedMemorials();
+  try {
+    await loadMemorials();
+    await checkUrlForMemorial();
+    await loadVisitedMemorials();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 </script>
 

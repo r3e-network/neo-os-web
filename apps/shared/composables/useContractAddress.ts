@@ -41,7 +41,7 @@ export function useContractAddress(t: (key: string) => string) {
     }
     const resolved = await resolveAddress();
     if (!resolved) {
-      throw new Error(options.contractUnavailableMessage || t("contractUnavailable") || "Contract address unavailable");
+      throw new Error(options.contractUnavailableMessage || t("contractUnavailable"));
     }
     return resolved;
   };

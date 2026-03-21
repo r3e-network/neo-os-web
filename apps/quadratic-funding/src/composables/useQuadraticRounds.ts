@@ -60,7 +60,7 @@ export function useQuadraticRounds() {
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch {
+    } catch (_e: unknown) {
       return 0n;
     }
   };
@@ -274,7 +274,7 @@ export function useQuadraticRounds() {
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? parsed : null;
-    } catch {
+    } catch (_e: unknown) {
       return null;
     }
   };
@@ -383,7 +383,7 @@ export function useQuadraticRounds() {
     if (!startTime || !endTime) return t("dateUnknown");
     const start = new Date(startTime * 1000);
     const end = new Date(endTime * 1000);
-    return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+    return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
   };
 
   const formatAmount = (assetSymbol: string, amount: bigint) => {
@@ -396,7 +396,13 @@ export function useQuadraticRounds() {
   };
 
   watch(address, async (newAddr) => {
-    if (newAddr) await refreshRounds();
+    if (newAddr) {
+      try {
+        await refreshRounds();
+      } catch (_e: unknown) {
+        /* non-critical: address change handler */
+      }
+    }
   });
 
   return {

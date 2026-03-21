@@ -5,10 +5,15 @@ const appMessages = {
   accountId: { en: "AccountId Hash", zh: "AccountId Hash" },
   accountIdPlaceholder: { en: "20-byte hash, pubkey, or seed text", zh: "20 字节哈希、公钥或 seed 文本" },
   verifier: { en: "Verifier Hash", zh: "Verifier Hash" },
+  verifierPlaceholder: { en: "0x...", zh: "0x..." },
   verifierParams: { en: "Verifier Params Hex", zh: "Verifier 参数 Hex" },
+  verifierParamsPlaceholder: { en: "hex payload", zh: "hex 负载" },
   hook: { en: "Hook Hash", zh: "Hook Hash" },
+  hookPlaceholder: { en: "0x... or empty", zh: "0x... 或空" },
   backupOwner: { en: "Backup Owner", zh: "Backup Owner" },
+  backupOwnerPlaceholder: { en: "N... or 0x...", zh: "N... 或 0x..." },
   timelock: { en: "Escape Timelock", zh: "逃生锁定期" },
+  timelockPlaceholder: { en: "2592000", zh: "2592000" },
   inspect: { en: "Inspect Account", zh: "查询账户" },
   register: { en: "Register Account", zh: "注册账户" },
   inspectorTitle: { en: "AA Core Inspector", zh: "AA Core 查询器" },
@@ -28,6 +33,12 @@ const appMessages = {
   feature2Desc: { en: "Read verifier, hook, and backup owner state.", zh: "读取 verifier、hook 和 backup owner 状态。" },
   feature3Name: { en: "Testnet First", zh: "测试网优先" },
   feature3Desc: { en: "Uses the canonical shared AA testnet anchors.", zh: "使用当前共享的 AA 测试网锚点。" },
+  network: { en: "Network", zh: "网络" },
+  testnet: { en: "Testnet", zh: "测试网" },
+  notConnected: { en: "not connected", zh: "未连接" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  defaultVerifier: { en: "Default Verifier", zh: "默认 Verifier" },
+  aaCore: { en: "AA Core", zh: "AA Core" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

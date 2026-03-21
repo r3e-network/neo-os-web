@@ -6,7 +6,7 @@
     </div>
 
     <div v-if="history.length === 0" class="empty-state">
-      <span class="empty-icon">🕊️</span>
+      <span class="empty-icon" aria-hidden="true">🕊️</span>
       <span class="empty-text">{{ t("noDestructions") }}</span>
     </div>
 
@@ -20,11 +20,11 @@
       >
         <div class="history-item-content">
           <div class="history-icon-container">
-            <span class="history-icon">{{ getDestructionIcon(index) }}</span>
+            <span class="history-icon" aria-hidden="true">{{ getDestructionIcon(index) }}</span>
           </div>
 
           <div class="history-info">
-            <span class="history-hash">{{ item.hash.slice(0, 10) }}...{{ item.hash.slice(-6) }}</span>
+            <span class="history-hash">{{ item.hash.slice(0, 10) }}{{ getHashEllipsis() }}{{ item.hash.slice(-6) }}</span>
             <span class="history-time">{{ item.time }}</span>
           </div>
 
@@ -60,12 +60,16 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["forget"]);
+defineEmits<{
+  (e: "forget", item: HistoryItem): void;
+}>();
 
 const getDestructionIcon = (index: number) => {
   const icons = ["💀", "⚰️", "🪦", "☠️", "🔥"];
   return icons[index % icons.length];
 };
+
+const getHashEllipsis = () => t("hashEllipsis");
 </script>
 
 <style lang="scss" scoped>

@@ -50,7 +50,7 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
             try {
               const bytes = Uint8Array.from(atob(tokenId), (c) => c.charCodeAt(0));
               name = new TextDecoder().decode(bytes);
-            } catch {
+            } catch (_e: unknown) {
               name = String(props.name || tokenId);
             }
 
@@ -61,13 +61,13 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
               target: props.target ? String(props.target) : undefined,
             });
           }
-        } catch {
+        } catch (_e: unknown) {
           /* Individual domain property fetch failure -- skip this domain */
         }
       }
 
       myDomains.value = domains.sort((a, b) => b.expiry - a.expiry);
-    } catch {
+    } catch (_e: unknown) {
       myDomains.value = [];
     }
   };

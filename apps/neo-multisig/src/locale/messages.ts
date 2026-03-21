@@ -47,6 +47,7 @@ const appMessages = {
     zh: "设置需要的签名数量。",
   },
   thresholdLabel: { en: "Signature Threshold", zh: "签名阈值" },
+  multisigThreshold: { en: "2 of 3", zh: "2/3" },
   step3Title: { en: "Step 3 · Transaction", zh: "步骤 3 · 交易" },
   step3Desc: {
     en: "Define the transfer from the multisig address.",
@@ -161,6 +162,7 @@ const appMessages = {
   sidebarNoActivity: { en: "No Activity Yet", zh: "暂无活动" },
   ariaSigners: { en: "Signers", zh: "签名人" },
   sidebarTotalTxsLabel: { en: "Total Txs", zh: "总交易数" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

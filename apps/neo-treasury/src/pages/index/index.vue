@@ -19,19 +19,19 @@
           <template #stats>
             <div class="hero-stats">
               <div class="hero-stat">
-                <span class="hero-stat-icon">💰</span>
-                <span class="hero-stat-value">{{ data?.totalUsd ? `$${data.totalUsd.toLocaleString()}` : "—" }}</span>
-                <span class="hero-stat-label">Total USD</span>
+                <span class="hero-stat-icon" aria-hidden="true">💰</span>
+                <span class="hero-stat-value">{{ data?.totalUsd ? `$${data.totalUsd.toLocaleString()}` : t("notAvailable") }}</span>
+                <span class="hero-stat-label">{{ t("sidebarTotalUsd") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon">🟢</span>
-                <span class="hero-stat-value">{{ data?.totalNeo?.toLocaleString() ?? "—" }}</span>
-                <span class="hero-stat-label">NEO</span>
+                <span class="hero-stat-icon" aria-hidden="true">🟢</span>
+                <span class="hero-stat-value">{{ data?.totalNeo?.toLocaleString() ?? t("notAvailable") }}</span>
+                <span class="hero-stat-label">{{ t("tokenNeo") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon">⛽</span>
-                <span class="hero-stat-value">{{ data?.totalGas?.toLocaleString() ?? "—" }}</span>
-                <span class="hero-stat-label">GAS</span>
+                <span class="hero-stat-icon" aria-hidden="true">⛽</span>
+                <span class="hero-stat-value">{{ data?.totalGas?.toLocaleString() ?? t("notAvailable") }}</span>
+                <span class="hero-stat-label">{{ t("tokenGas") }}</span>
               </div>
             </div>
           </template>
@@ -69,7 +69,7 @@
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="error-container" role="alert" aria-live="assertive">
+      <div v-else-if="error" class="error-container" role="alert">
         <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
         <span class="error-label">{{ error }}</span>
         <NeoButton variant="primary" class="mt-4" @click="loadData">
@@ -134,10 +134,10 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   sidebarItems: [
     {
       labelKey: "sidebarTotalUsd",
-      value: () => (data.value?.totalUsd ? `$${data.value.totalUsd.toLocaleString()}` : "—"),
+      value: () => (data.value?.totalUsd ? `${t("currencySymbol")}${data.value.totalUsd.toLocaleString()}` : t("notAvailable")),
     },
-    { labelKey: "sidebarTotalNeo", value: () => data.value?.totalNeo?.toLocaleString() ?? "—" },
-    { labelKey: "sidebarTotalGas", value: () => data.value?.totalGas?.toLocaleString() ?? "—" },
+    { labelKey: "sidebarTotalNeo", value: () => data.value?.totalNeo?.toLocaleString() ?? t("notAvailable") },
+    { labelKey: "sidebarTotalGas", value: () => data.value?.totalGas?.toLocaleString() ?? t("notAvailable") },
     { labelKey: "sidebarFounders", value: () => data.value?.categories?.length ?? 0 },
   ],
 });
@@ -165,7 +165,7 @@ async function loadData() {
       data.value = JSON.parse(cached);
       // If we have cache, we can stop "hard" loading but keep "soft" loading in background
     }
-  } catch {
+  } catch (_e: unknown) {
     /* Cache read failure is non-critical — proceed to fetch fresh data */
   }
 
@@ -178,6 +178,8 @@ async function loadData() {
     if (!data.value) {
       error.value = formatErrorMessage(e, t("loadFailed"));
     } else {
+      // Fresh fetch failed but cached data exists — silently keep stale data;
+      // user can manually retry via the refresh button if they suspect staleness
     }
   } finally {
     loading.value = false;

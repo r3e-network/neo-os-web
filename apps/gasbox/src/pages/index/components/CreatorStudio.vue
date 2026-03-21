@@ -29,7 +29,7 @@
 
     <div class="form-step">
       <span class="label">{{ t("pricePerPlayLabel") }}</span>
-      <NeoInput v-model="form.price" type="number" placeholder="1.0" />
+      <NeoInput v-model="form.price" type="number" :placeholder="t('pricePlaceholder')" />
     </div>
 
     <div class="form-step">
@@ -43,24 +43,22 @@
           {{ t("emptyInventory", { action: t("addItem") }) }}
         </div>
 
-        <div v-for="(item, idx) in form.items" :key="idx" class="inventory-item">
+        <div v-for="item in form.items" :key="item.id" class="inventory-item">
           <div class="item-header">
             <span class="item-idx">#{{ idx + 1 }}</span>
-            <span
+            <button
+              type="button"
               class="remove-btn"
-              role="button"
-              tabindex="0"
-              :aria-label="t('removeItem', { index: idx + 1 }) || `Remove item #${idx + 1}`"
+              :aria-label="t('removeItem', { index: idx + 1 })"
               @click="removeItem(idx)"
-              >✕</span
-          >
+            ><span aria-hidden="true">✕</span></button>
           </div>
 
           <div class="item-inputs">
             <NeoInput v-model="item.name" :placeholder="t('itemNamePlaceholder')" class="mb-2" />
             <div class="probability-row">
-              <NeoInput v-model="item.probability" type="number" suffix="%" :placeholder="t('probPlaceholder')" />
-              <div class="rarity-badge">{{ getRarity(item.probability) }}</div>
+              <NeoInput v-model="item.probability" type="number" :suffix="t('percentSuffix')" :placeholder="t('probPlaceholder')" />
+              <div class="rarity-badge">{{ t(getRarity(item.probability)) }}</div>
             </div>
 
             <div class="asset-row">
@@ -71,14 +69,14 @@
                   :variant="item.assetType === 'nep17' ? 'primary' : 'secondary'"
                   @click="item.assetType = 'nep17'"
                 >
-                  NEP-17
+                  {{ t("nep17Label") }}
                 </NeoButton>
                 <NeoButton
                   size="sm"
                   :variant="item.assetType === 'nep11' ? 'primary' : 'secondary'"
                   @click="item.assetType = 'nep11'"
                 >
-                  NEP-11
+                  {{ t("nep11Label") }}
                 </NeoButton>
               </div>
             </div>
@@ -115,6 +113,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
 interface FormItemData {
+  id: string;
   name: string;
   probability: string;
   icon: string;
@@ -128,7 +127,26 @@ const props = defineProps<{
   publishing?: boolean;
 }>();
 
-const emit = defineEmits(["publish"]);
+const emit = defineEmits<{
+  (e: "publish", data: {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    tags: string;
+    price: string;
+    items: {
+      name: string;
+      probability: number;
+      icon: string;
+      rarity: string;
+      assetType: string;
+      assetHash: string;
+      amount: string;
+      tokenId: string;
+    }[];
+  }): void;
+}>();
 
 const { t } = createUseI18n(messages)();
 
@@ -160,6 +178,7 @@ const isValidAssetHash = (value: string) => Boolean(normalizeAssetHash(value));
 
 const addItem = () => {
   form.value.items.push({
+    id: crypto.randomUUID(),
     name: "",
     probability: "10", // Default 10%
     icon: "📦",
@@ -204,10 +223,10 @@ const isValid = computed(() => {
 
 const getRarity = (prob: string | number) => {
   const p = toNumber(prob);
-  if (p <= 1) return "LEGENDARY";
-  if (p <= 5) return "EPIC";
-  if (p <= 20) return "RARE";
-  return "COMMON";
+  if (p <= 1) return "rarityLegendary";
+  if (p <= 5) return "rarityEpic";
+  if (p <= 20) return "rarityRare";
+  return "rarityCommon";
 };
 
 const publish = () => {
@@ -295,6 +314,12 @@ const publish = () => {
 .remove-btn {
   color: var(--gacha-danger-text);
   font-weight: bold;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
 }
 
 .probability-row {

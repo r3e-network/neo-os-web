@@ -4,21 +4,18 @@
       <div class="upload-grid">
         <div v-for="item in images" :key="item.id" class="upload-item">
           <img :src="item.dataUrl" mode="aspectFill" class="upload-img" :alt="t('uploadPreview')" />
-          <div class="remove-btn" role="button" :aria-label="t('cancel')" @click.stop="$emit('remove', item.id)"
-            >×</div
-    >
+          <button type="button" class="remove-btn" :aria-label="t('cancel')" @click.stop="$emit('remove', item.id)">×</button>
         </div>
-        <div
+        <button
           v-if="images.length < maxPhotos"
+          type="button"
           class="upload-item upload-placeholder"
-          role="button"
-          tabindex="0"
           :aria-label="t('selectMore')"
           @click="$emit('choose')"
         >
           <span class="upload-plus">+</span>
           <span class="upload-tip">{{ t("selectMore") }}</span>
-        </div>
+        </button>
       </div>
 
       <div class="upload-meta">
@@ -92,8 +89,8 @@ watch(localPassword, (newVal) => {
 });
 
 const formatBytes = (bytes: number) => {
-  if (bytes < 1024) return `${bytes}B`;
-  return `${(bytes / 1024).toFixed(1)}KB`;
+  if (bytes < 1024) return `${bytes}${t("sizeUnitByte")}`;
+  return `${(bytes / 1024).toFixed(1)}${t("sizeUnitKbyte")}`;
 };
 </script>
 
@@ -108,6 +105,21 @@ const formatBytes = (bytes: number) => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .upload-grid {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+  }
+
+  .upload-item {
+    border-radius: 10px;
+  }
+
+  .upload-plus {
+    font-size: 18px;
+  }
 }
 .upload-item {
   position: relative;
@@ -129,6 +141,9 @@ const formatBytes = (bytes: number) => {
   gap: 4px;
   border: 1px dashed var(--border-color);
   background: transparent;
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
 }
 .upload-plus {
   font-size: 22px;
@@ -151,6 +166,10 @@ const formatBytes = (bytes: number) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  appearance: none;
+  padding: 0;
+  border: none;
+  cursor: pointer;
 }
 .upload-meta {
   font-size: 11px;

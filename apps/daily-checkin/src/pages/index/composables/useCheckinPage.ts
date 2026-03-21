@@ -77,8 +77,12 @@ export function useCheckinPage(t: (key: string) => string) {
 
   // Lifecycle
   onMounted(async () => {
-    countdownTicker.start();
-    await loadAll();
+    try {
+      countdownTicker.start();
+      await loadAll();
+    } catch (_e: unknown) {
+      /* non-critical: initial data load */
+    }
   });
 
   return {

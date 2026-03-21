@@ -168,7 +168,7 @@
 
     <template #operation>
       <NeoCard variant="erobo" :title="t('quickContribute')">
-        <NeoButton size="sm" variant="primary" class="op-btn" @click="onTabChange('contribute')">
+        <NeoButton size="sm" variant="primary" class="op-btn" type="button" @click="onTabChange('contribute')">
           {{ t("tabContribute") }}
         </NeoButton>
         <StatsDisplay :items="opStats" layout="rows" />
@@ -201,10 +201,10 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
   sidebarItems: [
     { labelKey: "tabRounds", value: () => rounds.value.length },
     { labelKey: "tabProjects", value: () => projects.value.length },
-    { labelKey: "sidebarSelectedRound", value: () => selectedRoundId.value ?? "—" },
+    { labelKey: "sidebarSelectedRound", value: () => selectedRoundId.value ?? t("notAvailable") },
     {
       labelKey: "sidebarMatchingPool",
-      value: () => (selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—"),
+      value: () => (selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : t("notAvailable")),
     },
   ],
 });
@@ -264,7 +264,7 @@ const roundProgressPct = computed(() => {
 });
 const ringOffset = computed(() => ringCircumference - (roundProgressPct.value / 100) * ringCircumference);
 const matchingPoolDisplay = computed(() =>
-  selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
+  selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : t("notAvailable"),
 );
 </script>
 

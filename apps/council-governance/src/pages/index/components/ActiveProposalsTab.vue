@@ -43,7 +43,7 @@
     </div>
 
     <div class="action-bar-neo mb-6">
-      <NeoButton variant="primary" size="md" block @click="$emit('create')"> + {{ t("createProposal") }} </NeoButton>
+      <NeoButton variant="primary" size="md" block type="button" @click="$emit('create')"> + {{ t("createProposal") }} </NeoButton>
     </div>
 
     <div v-if="proposals.length === 0 && !loading" class="empty-state">
@@ -65,7 +65,7 @@
           </span>
         </div>
         <span class="proposal-countdown-neo">
-          {{ formatCountdown(p.expiryTime) }}
+          {{ formatCountdown(p.expiryTime) || t("notAvailable") }}
         </span>
       </div>
 

@@ -3,21 +3,20 @@
     <span class="section-title">{{ title }}</span>
     <ItemList :items="vaults" item-key="id" :empty-text="emptyText">
       <template #item="{ item: vault }">
-        <div
+        <button
+          type="button"
           class="vault-item"
-          role="button"
-          tabindex="0"
-          :aria-label="`Vault #${vault.id}`"
+          :aria-label="t('vaultLabel', { id: vault.id })"
           @click="$emit('select', vault.id)"
         >
           <div class="vault-meta">
             <span class="vault-id">#{{ vault.id }}</span>
-            <span class="vault-bounty">{{ formatGas(vault.bounty) }} GAS</span>
+            <span class="vault-bounty">{{ formatGas(vault.bounty) }} {{ t("tokenGas") }}</span>
           </div>
           <span class="vault-creator mono">{{
             vault.creator ? formatAddress(vault.creator) : formatDate(vault.created)
           }}</span>
-        </div>
+        </button>
       </template>
     </ItemList>
   </NeoCard>
@@ -26,6 +25,8 @@
 <script setup lang="ts">
 import { NeoCard, ItemList } from "@shared/components";
 import { formatAddress, formatGas } from "@shared/utils/format";
+import { createUseI18n } from "@shared/composables";
+import { messages } from "@/locale/messages";
 
 interface Vault {
   id: string;
@@ -44,9 +45,11 @@ defineEmits<{
   (e: "select", id: string): void;
 }>();
 
+const { t } = createUseI18n(messages)();
+
 const formatDate = (ts?: number): string => {
   if (!ts) return "";
-  return new Date(ts).toLocaleDateString();
+  return new Date(ts).toLocaleDateString("en");
 };
 </script>
 
@@ -72,6 +75,10 @@ const formatDate = (ts?: number): string => {
   background: var(--vault-bg);
   cursor: pointer;
   transition: transform 0.1s;
+  border: none;
+  appearance: none;
+  width: 100%;
+  text-align: left;
 }
 .vault-meta {
   display: flex;

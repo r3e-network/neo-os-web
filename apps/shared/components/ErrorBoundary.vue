@@ -1,15 +1,15 @@
 <template>
-  <div v-if="hasError" class="error-boundary" role="alert" aria-live="assertive">
+  <div v-if="hasError" class="error-boundary" role="alert">
     <div class="error-container">
-      <span class="error-icon">⚠️</span>
-      <span class="error-title">{{ t("errorTitle") || "Something went wrong" }}</span>
+      <span class="error-icon" aria-hidden="true">⚠️</span>
+      <span class="error-title">{{ i18nT("errorTitle") }}</span>
       <span class="error-message">{{ errorMessage }}</span>
       <div class="error-actions">
-        <NeoButton variant="primary" @click="handleRetry">
-          {{ t("retry") || "Try Again" }}
+        <NeoButton variant="primary" type="button" @click="handleRetry" :aria-label="i18nT('retry')">
+          {{ i18nT("retry") }}
         </NeoButton>
-        <NeoButton variant="secondary" @click="handleReset">
-          {{ t("reset") || "Reset" }}
+        <NeoButton variant="secondary" type="button" @click="handleReset" :aria-label="i18nT('reset')">
+          {{ i18nT("reset") }}
         </NeoButton>
       </div>
       <div v-if="showDetails" class="error-details">
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from "vue";
 import NeoButton from "./NeoButton.vue";
+import { useI18n } from "@shared/composables/useI18n";
 
 interface Props {
   showDetails?: boolean;
@@ -40,25 +41,17 @@ const emit = defineEmits<{
   error: [error: Error];
 }>();
 
+const { t: i18nT } = useI18n()();
+
 const hasError = ref(false);
 const error = ref<Error | null>(null);
 const errorMessage = ref("");
-
-// Simple i18n fallback
-const t = (key: string) => {
-  const messages: Record<string, string> = {
-    errorTitle: "Something went wrong",
-    retry: "Try Again",
-    reset: "Reset",
-  };
-  return messages[key] || key;
-};
 
 onErrorCaptured((err: unknown) => {
   const capturedError = err instanceof Error ? err : new Error(String(err));
 
   error.value = capturedError;
-  errorMessage.value = props.fallback || capturedError.message || "An unexpected error occurred";
+  errorMessage.value = props.fallback || capturedError.message || i18nT("unexpectedError");
   hasError.value = true;
 
   // Report to parent
@@ -99,8 +92,10 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
+@use "../styles/tokens.scss" as *;
+
 .error-boundary {
-  padding: 24px;
+  padding: $spacing-6;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -113,51 +108,51 @@ defineExpose({
   width: 100%;
   text-align: center;
   background: var(--surface-primary, white);
-  border-radius: 16px;
-  padding: 32px;
+  border-radius: $spacing-4;
+  padding: $spacing-8;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .error-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+  font-size: $spacing-12;
+  margin-bottom: $spacing-4;
   display: block;
 }
 
 .error-title {
-  font-size: 24px;
+  font-size: $spacing-6;
   font-weight: 600;
   color: var(--text-primary, #1a1a1a);
-  margin-bottom: 12px;
+  margin-bottom: $spacing-3;
   display: block;
 }
 
 .error-message {
-  font-size: 16px;
+  font-size: $spacing-4;
   color: var(--text-secondary, #666);
-  margin-bottom: 24px;
+  margin-bottom: $spacing-6;
   display: block;
   line-height: 1.5;
 }
 
 .error-actions {
   display: flex;
-  gap: 12px;
+  gap: $spacing-3;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: $spacing-4;
 }
 
 .error-details {
-  margin-top: 16px;
-  padding: 16px;
+  margin-top: $spacing-4;
+  padding: $spacing-4;
   background: var(--bg-secondary, #f0f0f0);
-  border-radius: 8px;
+  border-radius: $spacing-2;
   text-align: left;
 }
 
 .error-stack {
   font-family: monospace;
-  font-size: 12px;
+  font-size: $font-size-xs;
   color: var(--text-secondary, #666);
   white-space: pre-wrap;
   word-break: break-all;

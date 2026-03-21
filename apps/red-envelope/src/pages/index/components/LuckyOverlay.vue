@@ -1,15 +1,15 @@
 <template>
-  <div v-if="luckyMessage" class="lucky-overlay" aria-hidden="true" @click="$emit('close')">
+  <div v-if="luckyMessage" class="lucky-overlay" role="button" tabindex="0" :aria-label="t('close')" @click="$emit('close')" @keydown.enter="$emit('close')" @keydown.space="$emit('close')">
     <div class="lucky-card-glass" role="dialog" aria-modal="true" :aria-label="t('congratulations')" @click.stop>
       <div class="card-glow"></div>
 
       <div class="lucky-content">
-        <span class="lucky-header">🎉 {{ t("congratulations") }} 🎉</span>
+        <span class="lucky-header"><span aria-hidden="true">🎉</span> {{ t("congratulations") }} <span aria-hidden="true">🎉</span></span>
 
         <div class="amount-circle">
           <div class="amount-inner">
             <span class="lucky-amount">{{ luckyMessage.amount }}</span>
-            <span class="lucky-currency">GAS</span>
+            <span class="lucky-currency">{{ t("tokenGas") }}</span>
           </div>
         </div>
 
@@ -18,7 +18,7 @@
           <span class="from-address">{{ luckyMessage.from }}</span>
         </div>
 
-        <NeoButton variant="primary" size="lg" block class="confirm-btn" @click="$emit('close')">
+        <NeoButton variant="primary" size="lg" block type="button" class="confirm-btn" :aria-label="t('confirm')" @click="$emit('close')">
           <span>{{ t("confirm") }}</span>
         </NeoButton>
       </div>
@@ -48,7 +48,9 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["close"]);
+defineEmits<{
+  (e: "close"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

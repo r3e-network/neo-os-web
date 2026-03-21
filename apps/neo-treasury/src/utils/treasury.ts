@@ -116,7 +116,7 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
       });
       const data = await res.json();
       if (data.result) return data.result;
-    } catch {
+    } catch (_e: unknown) {
       /* RPC endpoint unreachable — try next */
     }
   }
@@ -180,14 +180,18 @@ async function fetchAddressBalances(
 // Fetch Da Hongfei treasury data
 export async function fetchDaHongfeiData(prices: PriceData): Promise<CategoryBalance> {
   const { wallets, totalNeo, totalGas } = await fetchAddressBalances(DA_HONGFEI_ADDRESSES, "Da");
-  const totalUsd = totalNeo * prices.neo.usd + totalGas * prices.gas.usd;
+  const neoUsd = prices.usd?.neo ?? prices.neo;
+  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
+  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
   return { name: "Da Hongfei", wallets, totalNeo, totalGas, totalUsd };
 }
 
 // Fetch Erik Zhang treasury data
 export async function fetchErikZhangData(prices: PriceData): Promise<CategoryBalance> {
   const { wallets, totalNeo, totalGas } = await fetchAddressBalances(ERIK_ZHANG_ADDRESSES, "Erik");
-  const totalUsd = totalNeo * prices.neo.usd + totalGas * prices.gas.usd;
+  const neoUsd = prices.usd?.neo ?? prices.neo;
+  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
+  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
   return { name: "Erik Zhang", wallets, totalNeo, totalGas, totalUsd };
 }
 
@@ -201,7 +205,9 @@ export async function fetchTreasuryData(): Promise<TreasuryData> {
   const categories = [daData, erikData];
   const totalNeo = daData.totalNeo + erikData.totalNeo;
   const totalGas = daData.totalGas + erikData.totalGas;
-  const totalUsd = totalNeo * prices.neo.usd + totalGas * prices.gas.usd;
+  const neoUsd = prices.usd?.neo ?? prices.neo;
+  const gasUsd = prices.usd?.gas ?? prices.gas ?? 0;
+  const totalUsd = totalNeo * neoUsd + totalGas * gasUsd;
 
   return { categories, totalNeo, totalGas, totalUsd, prices, lastUpdated: Date.now() };
 }

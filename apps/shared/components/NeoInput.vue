@@ -73,7 +73,7 @@ defineEmits<{
 }>();
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .neo-input {
@@ -142,31 +142,32 @@ defineEmits<{
   }
 
   &__hint {
-    font-size: 11px;
+    font-size: $font-size-xs;
     color: var(--text-muted, rgba(255, 255, 255, 0.4));
-    margin-left: 2px;
+    margin-left: $spacing-1;
   }
 
   &__error {
-    font-size: 11px;
-    color: #ef4444;
+    font-size: $font-size-xs;
+    --input-error-color: #ef4444;
+    color: var(--input-error-color);
     font-weight: 600;
-    margin-left: 2px;
+    margin-left: $spacing-1;
   }
 
   &--error {
     .neo-input__wrapper {
-      border-color: #ef4444;
+      border-color: var(--input-error-color);
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
 
       &:focus-within {
-        border-color: #ef4444;
+        border-color: var(--input-error-color);
         box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
       }
     }
 
     .neo-input__label {
-      color: #ef4444;
+      color: var(--input-error-color);
     }
   }
 

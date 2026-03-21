@@ -10,11 +10,11 @@
     </div>
     <div class="vault-detail-row">
       <span class="detail-label">{{ t("creator") }}</span>
-      <span class="detail-value mono">{{ formatAddress(details.creator) }}</span>
+      <span class="detail-value mono">{{ details.creator ? formatAddress(details.creator) : t("notAvailable") }}</span>
     </div>
     <div class="vault-detail-row">
       <span class="detail-label">{{ t("bountyLabel") }}</span>
-      <span class="detail-value">{{ formatGas(details.bounty) }} GAS</span>
+      <span class="detail-value">{{ formatGas(details.bounty) }} {{ t("tokenGas") }}</span>
     </div>
     <div class="vault-detail-row">
       <span class="detail-label">{{ t("expiryLabel") }}</span>
@@ -30,7 +30,7 @@
     </div>
     <div class="vault-detail-row" v-if="details.broken">
       <span class="detail-label">{{ t("winner") }}</span>
-      <span class="detail-value mono">{{ formatAddress(details.winner) }}</span>
+      <span class="detail-value mono">{{ details.winner ? formatAddress(details.winner) : t("notAvailable") }}</span>
     </div>
   </NeoCard>
 </template>
@@ -60,8 +60,8 @@ const props = defineProps<{
 const { t } = createUseI18n(messages)();
 
 const formatExpiryDate = (expiryTime: number): string => {
-  if (!expiryTime) return "-";
-  return new Date(expiryTime * 1000).toLocaleDateString();
+  if (!expiryTime) return t("notAvailable");
+  return new Date(expiryTime * 1000).toLocaleDateString("en");
 };
 
 const statusLabel = (status: string): string => {

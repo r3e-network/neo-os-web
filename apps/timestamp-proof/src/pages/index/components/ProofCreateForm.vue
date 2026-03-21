@@ -1,8 +1,8 @@
 <template>
   <div class="create-section">
     <span class="section-title">{{ t("createProof") }}</span>
-    <textarea v-model="content" class="content-input" :placeholder="t('contentPlaceholder')" maxlength="1000" />
-    <button class="create-button" :disabled="isCreating || !content.trim()" @click="$emit('create')">
+    <textarea v-model="content" class="content-input" :placeholder="t('contentPlaceholder')" maxlength="1000" :aria-label="t('contentPlaceholder')" />
+    <button type="button" class="create-button" :disabled="isCreating || !content.trim()" @click="$emit('create')">
       <span>{{ isCreating ? t("loading") : t("createProof") }}</span>
     </button>
   </div>

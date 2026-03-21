@@ -45,7 +45,7 @@ export const disassembleScript = (script: string): string[] => {
   if (!cleaned || !u.isHex(cleaned)) return [];
   try {
     return sc.OpToken.fromScript(cleaned).map((token) => token.prettyPrint());
-  } catch {
+  } catch (_e: unknown) {
     /* Invalid script bytes — return empty disassembly */
     return [];
   }

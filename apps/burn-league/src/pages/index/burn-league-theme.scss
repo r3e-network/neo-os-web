@@ -23,6 +23,7 @@
   --burn-flame-amber: #f59e0b;
   --burn-coral: #ff6b6b;
   --burn-gold-bright: #ffd93d;
+  --burn-green: #00e599;
 }
 
 @include theme-light("burn-league") {
@@ -48,4 +49,5 @@
   --burn-flame-amber: #d97706;
   --burn-coral: #e05252;
   --burn-gold-bright: #eab308;
+  --burn-green: #00b97f;
 }

@@ -23,7 +23,7 @@ const getApiBase = () => {
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
       if (parentOrigin) return `${parentOrigin}/api/explorer`;
     }
-  } catch {
+  } catch (_e: unknown) {
     // Fallback
   }
   return "/api/explorer";
@@ -90,7 +90,7 @@ const parseResponseData = (payload: unknown) => {
   if (typeof payload === "string") {
     try {
       return JSON.parse(payload);
-    } catch {
+    } catch (_e: unknown) {
       return null;
     }
   }
@@ -138,7 +138,7 @@ export function useExplorerData(t: (key: string) => string) {
     try {
       const cached = uni.getStorageSync(STATS_CACHE_KEY);
       if (cached) stats.value = JSON.parse(cached);
-    } catch {
+    } catch (_e: unknown) {
       /* Cache read failure is non-critical */
     }
 
@@ -157,7 +157,7 @@ export function useExplorerData(t: (key: string) => string) {
         if (res.statusCode === 200 && res.data) {
           freshStats = parseResponseData(res.data);
         }
-      } catch {
+      } catch (_e: unknown) {
         // Ignore and fall back to cached stats.
       }
     }
@@ -172,7 +172,7 @@ export function useExplorerData(t: (key: string) => string) {
     try {
       const cached = uni.getStorageSync(TXS_CACHE_KEY);
       if (cached) recentTxs.value = JSON.parse(cached);
-    } catch {
+    } catch (_e: unknown) {
       /* Cache read failure is non-critical */
     }
 
@@ -195,7 +195,7 @@ export function useExplorerData(t: (key: string) => string) {
           freshTxs = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
           hasFreshTxs = true;
         }
-      } catch {
+      } catch (_e: unknown) {
         // Ignore and fall back to cached txs.
       }
     }

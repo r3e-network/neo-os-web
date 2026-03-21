@@ -1,7 +1,7 @@
 <template>
-  <div class="item-list" role="list" :aria-label="ariaLabel || 'List'">
+  <div class="item-list" role="list" :aria-label="ariaLabel || t('listLabel')">
     <!-- Loading state -->
-    <div v-if="loading" class="item-list__loading" role="status" aria-label="Loading">
+    <div v-if="loading" class="item-list__loading" role="status" :aria-label="t('loading')">
       <div class="item-list__spinner" aria-hidden="true" />
       <span v-if="loadingText" class="item-list__loading-text">{{ loadingText }}</span>
     </div>
@@ -9,7 +9,7 @@
     <!-- Empty state -->
     <div v-else-if="!items || items.length === 0" class="item-list__empty" role="status">
       <slot name="empty">
-        <span class="item-list__empty-text">{{ emptyText }}</span>
+        <span class="item-list__empty-text">{{ emptyText ?? t("emptyText") }}</span>
       </slot>
     </div>
 
@@ -31,22 +31,21 @@
       </div>
 
       <!-- Load more -->
-      <div
+      <button
         v-if="hasMore"
+        type="button"
         class="item-list__load-more"
-        role="button"
-        tabindex="0"
         @click="$emit('load-more')"
-        @keydown.enter="$emit('load-more')"
       >
-        <span>{{ loadMoreText }}</span>
-      </div>
+        <span>{{ loadMoreText ?? t("loadMore") }}</span>
+      </button>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "@shared/composables/useI18n";
 
 const props = withDefaults(
   defineProps<{
@@ -71,13 +70,13 @@ const props = withDefaults(
   {
     loading: false,
     loadingText: undefined,
-    emptyText: "No items found",
+    emptyText: undefined,
     itemKey: undefined,
     scrollable: false,
     maxHeight: undefined,
     limit: 0,
     hasMore: false,
-    loadMoreText: "Load more",
+    loadMoreText: undefined,
     ariaLabel: undefined,
   }
 );
@@ -85,6 +84,8 @@ const props = withDefaults(
 defineEmits<{
   (e: "load-more"): void;
 }>();
+
+const { t } = useI18n();
 
 const displayedItems = computed(() => {
   if (props.limit > 0) {
@@ -94,7 +95,7 @@ const displayedItems = computed(() => {
 });
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .item-list {
@@ -167,6 +168,9 @@ const displayedItems = computed(() => {
     letter-spacing: 0.05em;
     cursor: pointer;
     border-radius: 8px;
+    border: none;
+    appearance: none;
+    background: transparent;
     transition:
       background 0.2s ease,
       color 0.2s ease;

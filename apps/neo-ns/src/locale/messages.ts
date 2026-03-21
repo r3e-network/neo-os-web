@@ -77,10 +77,12 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   currentOwner: { en: "Current Owner", zh: "当前所有者" },
   currentExpiry: { en: "Expiry Date", zh: "到期日期" },
   notSet: { en: "Not Set", zh: "未设置" },
-    sidebarWallet: { en: "Wallet", zh: "钱包" },
-    sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
-    connected: { en: "Connected", zh: "已连接" },
-    disconnected: { en: "Disconnected", zh: "未连接" },
+  sidebarWallet: { en: "Wallet", zh: "钱包" },
+  sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
+  connected: { en: "Connected", zh: "已连接" },
+  disconnected: { en: "Disconnected", zh: "未连接" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  domainSuffix: { en: ".neo", zh: ".neo" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

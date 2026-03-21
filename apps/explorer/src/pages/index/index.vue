@@ -90,7 +90,7 @@ const {
 
 const activeTab = ref("search");
 const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
-  { label: t("tabSearch"), value: mainnetStats.value?.[0]?.value ?? "—" },
+  { label: t("tabSearch"), value: mainnetStats.value?.[0]?.value ?? t("notAvailable") },
   { label: t("tabHistory"), value: recentTxs.value.length },
 ]);
 const appState = computed(() => ({

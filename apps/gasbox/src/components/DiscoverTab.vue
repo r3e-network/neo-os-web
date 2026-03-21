@@ -8,7 +8,7 @@
           :variant="selectedCategory === null ? 'primary' : 'secondary'"
           @click="selectedCategory = null"
         >
-          All
+          {{ t("filterAll") }}
         </NeoButton>
         <NeoButton
           v-for="category in categories"

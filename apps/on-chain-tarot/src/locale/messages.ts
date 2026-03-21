@@ -60,6 +60,13 @@ const appMessages = {
   allRevealed: { en: "All Revealed", zh: "全部揭示" },
   yes: { en: "Yes", zh: "是" },
   no: { en: "No", zh: "否" },
+  neoTarot: { en: "NEO TAROT", zh: "NEO 塔罗" },
+  blockLabel: { en: "Block:", zh: "区块:" },
+  tarotPage: { en: "Page", zh: "侍卫" },
+  tarotKnight: { en: "Knight", zh: "骑士" },
+  tarotQueen: { en: "Queen", zh: "女王" },
+  tarotKing: { en: "King", zh: "国王" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

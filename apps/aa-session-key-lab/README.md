@@ -1,10 +1,11 @@
 # AA Session Key Lab
 
-Inspect AA session-key scope and sponsorship state from a focused miniapp.
+Configure `SessionKeyVerifier` directly on-chain and inspect sponsorship state from a focused AA miniapp.
 
 ## What It Does
 
-- shows AA relay and session-key verifier context
+- derives the AA account id hash from an input seed or 20-byte hash
+- generates a local compressed P-256 session key when needed
+- submits `aaCore.callVerifier("setSessionKey", ...)` with real chain parameters
 - checks sponsorship state
 - requests sponsorship
-- prepares session-key scope input for AA flows

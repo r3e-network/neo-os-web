@@ -22,7 +22,7 @@
             <div class="dome-shine" />
             <div class="capsules-float">
               <span v-for="i in 7" :key="i" class="hero-capsule" :style="getCapsuleHeroStyle(i)">
-                {{ ["💊", "🔮", "💎", "🎁", "⭐", "🎲", "🌟"][i - 1] }}
+                <span aria-hidden="true">{{ ["💊", "🔮", "💎", "🎁", "⭐", "🎲", "🌟"][i - 1] }}</span>
               </span>
             </div>
           </div>
@@ -35,7 +35,7 @@
           <!-- Machine Base -->
           <div class="hero-machine-base">
             <div class="dispense-slot">
-              <div v-if="isPlaying" class="dispense-capsule">💊</div>
+              <div v-if="isPlaying" class="dispense-capsule"><span aria-hidden="true">💊</span></div>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@
             {{ selectedMachine?.name || t("title") }}
           </span>
           <span v-if="selectedMachine" class="hero-machine-price">
-            {{ selectedMachine.price }} GAS {{ t("playLabel") }}
+            {{ selectedMachine.price }} {{ t("tokenGas") }} {{ t("playLabel") }}
           </span>
           <span class="hero-machine-count"> {{ machines.length }} {{ t("machines") }} </span>
         </div>
@@ -218,47 +218,27 @@ const handleSelectFromDiscover = (machine: Machine) => {
 
 const handleUpdatePrice = async (machine: Machine) => {
   if (!(await requireAddress())) return;
-  try {
-    await updateMachinePrice(machine, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await updateMachinePrice(machine, loadMachines);
 };
 
 const handleToggleActive = async (machine: Machine) => {
   if (!(await requireAddress())) return;
-  try {
-    await toggleMachineActive(machine, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await toggleMachineActive(machine, loadMachines);
 };
 
 const handleToggleListed = async (machine: Machine) => {
   if (!(await requireAddress())) return;
-  try {
-    await toggleMachineListed(machine, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await toggleMachineListed(machine, loadMachines);
 };
 
 const handleListForSale = async (machine: Machine) => {
   if (!(await requireAddress())) return;
-  try {
-    await listMachineForSale(machine, "", loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await listMachineForSale(machine, "", loadMachines);
 };
 
 const handleCancelSale = async (machine: Machine) => {
   if (!(await requireAddress())) return;
-  try {
-    await cancelMachineSale(machine, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await cancelMachineSale(machine, loadMachines);
 };
 
 const handleDepositItem = async (op: {
@@ -269,11 +249,7 @@ const handleDepositItem = async (op: {
   tokenId: string;
 }) => {
   if (!(await requireAddress())) return;
-  try {
-    await depositItem(op.machine, op.item, op.index, op.amount, op.tokenId, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await depositItem(op.machine, op.item, op.index, op.amount, op.tokenId, loadMachines);
 };
 
 const handleWithdrawItem = async (op: {
@@ -284,11 +260,7 @@ const handleWithdrawItem = async (op: {
   tokenId: string;
 }) => {
   if (!(await requireAddress())) return;
-  try {
-    await withdrawItem(op.machine, op.item, op.index, op.amount, op.tokenId, loadMachines);
-  } catch {
-    /* error handled in composable */
-  }
+  await withdrawItem(op.machine, op.item, op.index, op.amount, op.tokenId, loadMachines);
 };
 
 const handlePublish = async (machineData: {
@@ -309,15 +281,11 @@ const handlePublish = async (machineData: {
   }[];
 }) => {
   if (!(await requireAddress())) return;
-  try {
-    await publishMachine(machineData, {
-      requireAddress,
-      setStatus,
-      onSuccess: loadMachines,
-    });
-  } catch {
-    /* error handled in composable */
-  }
+  await publishMachine(machineData, {
+    requireAddress,
+    setStatus,
+    onSuccess: loadMachines,
+  });
 };
 
 let fireworksTimer: ReturnType<typeof setTimeout> | null = null;
@@ -453,7 +421,7 @@ watch(
   transition: all 0.3s;
 
   &.active {
-    background: #34d399;
+    background: var(--gacha-accent-green);
     box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
     animation: slot-blink 2s ease-in-out infinite;
   }
@@ -510,7 +478,7 @@ watch(
 .hero-machine-price {
   font-size: 14px;
   font-weight: 700;
-  color: #fbbf24;
+  color: var(--gacha-accent-yellow);
   font-family: $font-mono;
 }
 

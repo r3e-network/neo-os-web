@@ -34,7 +34,7 @@
         <div class="hero-stats-row">
           <div class="hero-stat">
             <span class="hero-stat-label">{{ t("sidebarPoolBalance") }}</span>
-            <span class="hero-stat-value">{{ poolBalance ?? "—" }}</span>
+            <span class="hero-stat-value">{{ poolBalance ?? t("notAvailable") }}</span>
           </div>
           <div class="hero-stat-divider" />
           <div class="hero-stat">
@@ -81,7 +81,7 @@
         <div class="op-field">
           <NeoInput v-model="loanIdInput" :placeholder="t('loanIdPlaceholder')" size="sm" />
         </div>
-        <NeoButton size="sm" variant="primary" class="op-btn" :disabled="isLoading" @click="handleLookup">
+        <NeoButton size="sm" variant="primary" class="op-btn" :disabled="isLoading" type="button" @click="handleLookup" :aria-label="t('checkStatus')">
           {{ isLoading ? t("checking") : t("checkStatus") }}
         </NeoButton>
         <div v-if="loanDetails" class="op-result"></div>
@@ -94,13 +94,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, ErrorToast } from "@shared/components";
+import { MiniAppPage } from "@shared/components";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
+import { ErrorToast } from "@shared/components";
 import LoanRequest from "./components/LoanRequest.vue";
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, clearStatus } =
@@ -114,10 +115,10 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
       ],
     },
     sidebarItems: [
-      { labelKey: "sidebarPoolBalance", value: () => poolBalance.value ?? "—" },
+      { labelKey: "sidebarPoolBalance", value: () => poolBalance.value ?? t("notAvailable") },
       { labelKey: "sidebarRecentLoans", value: () => recentLoans.value.length },
       { labelKey: "sidebarTotalLoans", value: () => stats.value?.totalLoans ?? 0 },
-      { labelKey: "sidebarTotalVolume", value: () => stats.value?.totalVolume ?? "—" },
+      { labelKey: "sidebarTotalVolume", value: () => stats.value?.totalVolume ?? t("notAvailable") },
     ],
     fallbackMessageKey: "flashloanErrorFallback",
   });

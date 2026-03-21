@@ -77,7 +77,7 @@
         </div>
 
         <div class="inventory-grid">
-          <div v-for="(item, idx) in machine.items" :key="idx" class="inventory-item">
+          <div v-for="item in machine.items" :key="item.id" class="inventory-item">
             <div class="inventory-header">
               <span class="inventory-name">{{ item.name }}</span>
               <span class="inventory-stock" v-if="item.assetType === 1">

@@ -45,6 +45,9 @@ title: { en: "Council Governance", zh: "议会治理" },
   proposalTitle: { en: "Title", zh: "标题" },
   description: { en: "Description", zh: "描述" },
   duration: { en: "Duration", zh: "有效期" },
+  duration3Days: { en: "3 Days", zh: "3 天" },
+  duration7Days: { en: "7 Days", zh: "7 天" },
+  duration14Days: { en: "14 Days", zh: "14 天" },
   titlePlaceholder: { en: "Enter proposal title", zh: "输入提案标题" },
   descPlaceholder: { en: "Enter proposal description", zh: "输入提案描述" },
   fillAllFields: { en: "Please enter a title and description", zh: "请填写标题和描述" },
@@ -100,6 +103,8 @@ title: { en: "Council Governance", zh: "议会治理" },
     quickActions: { en: "Quick Actions", zh: "快捷操作" },
     totalProposals: { en: "Total Proposals", zh: "提案总数" },
     votingPower: { en: "Voting Power", zh: "投票权重" },
+  tokenNeo: { en: "NEO", zh: "NEO" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

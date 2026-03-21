@@ -4,9 +4,15 @@
 
 export interface PriceData {
   neo: number;
+  gas?: number;
   neoBurger: number;
   neoBurgerToNeo: number;
   updatedAt: number;
+  /** USD-converted prices for treasury calculations */
+  usd?: {
+    neo: number;
+    gas: number;
+  };
 }
 
 /**

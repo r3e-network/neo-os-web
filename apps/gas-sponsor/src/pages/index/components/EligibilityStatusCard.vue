@@ -2,15 +2,15 @@
   <NeoCard variant="default">
     <div class="eligibility-check">
       <div class="check-item">
-        <span class="check-icon">{{ parseFloat(gasBalance) < 0.1 ? "✓" : "✗" }}</span>
-        <span class="check-text">{{ t("balanceCheck") }} ({{ formatBalance(gasBalance) }} GAS)</span>
+        <span class="check-icon" aria-hidden="true">{{ parseFloat(gasBalance) < 0.1 ? "✓" : "✗" }}</span>
+        <span class="check-text">{{ t("balanceCheck") }} ({{ formatBalance(gasBalance) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
-        <span class="check-icon">{{ remainingQuota > 0 ? "✓" : "✗" }}</span>
-        <span class="check-text">{{ t("quotaCheck") }} ({{ formatBalance(remainingQuota) }} GAS)</span>
+        <span class="check-icon" aria-hidden="true">{{ remainingQuota > 0 ? "✓" : "✗" }}</span>
+        <span class="check-text">{{ t("quotaCheck") }} ({{ formatBalance(remainingQuota) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
-        <span class="check-icon">{{ userAddress ? "✓" : "✗" }}</span>
+        <span class="check-icon" aria-hidden="true">{{ userAddress ? "✓" : "✗" }}</span>
         <span class="check-text">{{ t("walletCheck") }}</span>
       </div>
     </div>

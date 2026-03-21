@@ -29,7 +29,7 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
     <div class="stats-detail">
       <div class="stat-row">
         <span class="stat-label">{{ t("totalStaked") }}</span>
-        <span class="stat-value">{{ formatNum(stats?.totalStaked ?? 0) }} NEO</span>
+        <span class="stat-value">{{ formatNum(stats?.totalStaked ?? 0) }} {{ t("tokenNeo") }}</span>
       </div>
       <div class="stat-row">
         <span class="stat-label">{{ t("rewardPerStake") }}</span>

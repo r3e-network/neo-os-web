@@ -1,7 +1,12 @@
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
+
+// Module-level state for event listeners
+let listenersRefCount = 0;
+let languageChangeHandler: ((event: Event) => void) | null = null;
+let messageHandler: ((event: MessageEvent) => void) | null = null;
 
 type InterpolationArgs = Record<string, string | number>;
 
@@ -42,40 +47,56 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     currentLocale.value = normalizeLocale(lang);
   };
 
-  // Automatically listen for language changes from the host app
+  // Register event listeners on first use
   if (typeof window !== "undefined") {
-    window.addEventListener("languageChange", (event: Event) => {
-      const newLang = (event as CustomEvent<{ language?: string }>).detail?.language;
-      if (newLang) {
-        setLocale(newLang);
-      }
-    });
-
-    const expectedOrigin = (() => {
-      try {
-        if (window.parent !== window && document.referrer) {
-          return new URL(document.referrer).origin;
+    if (listenersRefCount === 0) {
+      languageChangeHandler = (event: Event) => {
+        const newLang = (event as CustomEvent<{ language?: string }>).detail?.language;
+        if (newLang) {
+          setLocale(newLang);
         }
-      } catch {
-        // ignore parsing errors
+      };
+
+      const expectedOrigin = (() => {
+        try {
+          if (window.parent !== window && document.referrer) {
+            return new URL(document.referrer).origin;
+          }
+        } catch (_e: unknown) {
+          // ignore parsing errors
+        }
+        return window.location.origin;
+      })();
+
+      messageHandler = (event: MessageEvent) => {
+        const isParentMessage = event.source === window.parent;
+        const isAllowedOrigin =
+          event.origin === expectedOrigin ||
+          event.origin === window.location.origin ||
+          (isParentMessage && (event.origin === "null" || expectedOrigin === "null"));
+
+        if (!isAllowedOrigin) return;
+        const data = event.data as Record<string, unknown> | null;
+        if (!data || typeof data !== "object") return;
+        if (data.type !== "language-change") return;
+        const newLang = String(data.language || data.locale || data.lang || "").trim();
+        if (!newLang) return;
+        setLocale(newLang);
+      };
+
+      window.addEventListener("languageChange", languageChangeHandler);
+      window.addEventListener("message", messageHandler);
+    }
+    listenersRefCount++;
+
+    onUnmounted(() => {
+      listenersRefCount--;
+      if (listenersRefCount === 0 && languageChangeHandler && messageHandler) {
+        window.removeEventListener("languageChange", languageChangeHandler);
+        window.removeEventListener("message", messageHandler);
+        languageChangeHandler = null;
+        messageHandler = null;
       }
-      return window.location.origin;
-    })();
-
-    window.addEventListener("message", (event: MessageEvent) => {
-      const isParentMessage = event.source === window.parent;
-      const isAllowedOrigin =
-        event.origin === expectedOrigin ||
-        event.origin === window.location.origin ||
-        (isParentMessage && (event.origin === "null" || expectedOrigin === "null"));
-
-      if (!isAllowedOrigin) return;
-      const data = event.data as Record<string, unknown> | null;
-      if (!data || typeof data !== "object") return;
-      if (data.type !== "language-change") return;
-      const newLang = String(data.language || data.locale || data.lang || "").trim();
-      if (!newLang) return;
-      setLocale(newLang);
     });
   }
 
