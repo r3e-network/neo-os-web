@@ -8,7 +8,16 @@ const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = requ
 
 const root = path.resolve(__dirname, "..", "..");
 const siblingOracleEnvPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env");
+const siblingOracleEnvLocalPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env.local");
 const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
+const siblingOraclePhalaEnvPath = path.resolve(
+  root,
+  "..",
+  "neo-morpheus-oracle",
+  "deploy",
+  "phala",
+  TARGET_NETWORK === "mainnet" ? "morpheus.mainnet.env" : "morpheus.testnet.env"
+);
 const NETWORK_CONFIG = getNetworkConfig(TARGET_NETWORK);
 const RPC_URL = process.env.NEO_RPC_URL || NETWORK_CONFIG.rpcUrl;
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || NETWORK_CONFIG.networkMagic);
@@ -22,7 +31,6 @@ const WIF =
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHash).trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
-const PAYMENT_HUB_HASH = NETWORK_CONFIG.paymentHubHash;
 const LIVE_TARGET_FILTER = new Set(
   String(process.env.FLAGSHIP_LIVE_TARGETS || "")
     .split(",")
@@ -44,7 +52,14 @@ function loadOptionalEnvFile(filePath) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
       const idx = trimmed.indexOf("=");
-      env[trimmed.slice(0, idx)] = trimmed.slice(idx + 1);
+      let value = trimmed.slice(idx + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"'))
+        || (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      env[trimmed.slice(0, idx)] = value;
     }
     return env;
   } catch {
@@ -53,8 +68,54 @@ function loadOptionalEnvFile(filePath) {
 }
 
 const siblingOracleEnv = loadOptionalEnvFile(siblingOracleEnvPath);
-const PHALA_API_URL = String(process.env.PHALA_API_URL || siblingOracleEnv.PHALA_API_URL || NETWORK_CONFIG.morpheusPublicApiUrl || "").trim();
-const PHALA_API_TOKEN = String(process.env.PHALA_API_TOKEN || process.env.PHALA_SHARED_SECRET || siblingOracleEnv.PHALA_API_TOKEN || siblingOracleEnv.PHALA_SHARED_SECRET || "").trim();
+const siblingOracleEnvLocal = loadOptionalEnvFile(siblingOracleEnvLocalPath);
+const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+
+function resolvePhalaRuntimeUrl() {
+  const explicit = String(
+    process.env.MORPHEUS_RUNTIME_URL
+      || process.env.PHALA_API_URL
+      || ""
+  ).trim();
+  if (explicit) return explicit;
+
+  const networkScoped = String(
+    TARGET_NETWORK === "mainnet"
+      ? (process.env.MORPHEUS_MAINNET_RUNTIME_URL || process.env.MORPHEUS_MAINNET_PHALA_API_URL || "")
+      : (process.env.MORPHEUS_TESTNET_RUNTIME_URL || process.env.MORPHEUS_TESTNET_PHALA_API_URL || "")
+  ).trim();
+  if (networkScoped) return networkScoped;
+
+  const customDomain = String(
+    TARGET_NETWORK === "mainnet"
+      ? (siblingOracleEnvLocal.MORPHEUS_MAINNET_CUSTOM_DOMAIN || "")
+      : (siblingOracleEnvLocal.MORPHEUS_TESTNET_CUSTOM_DOMAIN || "")
+  ).trim();
+  if (customDomain) {
+    return /^https?:\/\//i.test(customDomain) ? customDomain : `https://${customDomain}`;
+  }
+
+  if (TARGET_NETWORK === "mainnet") return "https://morpheus-mainnet.meshmini.app";
+  return "https://morpheus-testnet.meshmini.app";
+}
+
+const PHALA_API_URL = resolvePhalaRuntimeUrl();
+const PHALA_API_TOKEN = String(
+  process.env.MORPHEUS_RUNTIME_TOKEN
+    || process.env.PHALA_API_TOKEN
+    || process.env.PHALA_SHARED_SECRET
+    || siblingOracleEnv.MORPHEUS_RUNTIME_TOKEN
+    || siblingOracleEnv.PHALA_API_TOKEN
+    || siblingOracleEnv.PHALA_SHARED_SECRET
+    || ""
+).trim();
+const ORACLE_UPDATER_WIF = String(
+  process.env.MORPHEUS_ORACLE_UPDATER_WIF
+    || process.env.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.PHALA_NEO_N3_WIF
+    || ""
+).trim();
 
 if (!WIF) {
   console.error("FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required");
@@ -62,6 +123,7 @@ if (!WIF) {
 }
 
 const account = new Neon.wallet.Account(WIF);
+const oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
 const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
 const gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
   rpcAddress: RPC_URL,
@@ -138,11 +200,11 @@ async function forceFulfillRngRequest(requestId, requestType = "vrf_random") {
     throw new Error(`unexpected vrf randomness length for request ${requestId}`);
   }
   const digestHex = buildRngFulfillmentDigestHex(requestId, requestType, true, resultBytes);
-  const verificationSignature = Neon.wallet.sign(digestHex, account.privateKey);
+  const verificationSignature = Neon.wallet.sign(digestHex, oracleUpdaterAccount.privateKey);
   const oracle = new Neon.experimental.SmartContract(ORACLE_HASH, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
-    account,
+    account: oracleUpdaterAccount,
   });
   const txid = await oracle.invoke("fulfillRequest", [
     Neon.sc.ContractParam.integer(String(requestId)),
