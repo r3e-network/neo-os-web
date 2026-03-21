@@ -97,6 +97,7 @@ import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { MiniAppPage, NeoCard, NeoButton, WalletPrompt, HeroSection } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { messages } from "@/locale/messages";
 import { useAlbumPhotos } from "@/composables/useAlbumPhotos";
 import { usePhotoUpload } from "@/composables/usePhotoUpload";
@@ -169,19 +170,16 @@ const appState = computed(() => ({
 }));
 
 const onTabChange = (tabId: string) => {
-  if (tabId === "docs") {
-    uni.navigateTo({ url: "/pages/docs/index" });
-  } else {
-    activeTab.value = tabId;
-  }
+  activeTab.value = tabId;
 };
 
 const handleConnect = async () => {
   try {
     await connect();
     showWalletPrompt.value = false;
-  } catch {
+  } catch (e: unknown) {
     showWalletPrompt.value = false;
+    setStatus(formatErrorMessage(e, t("connectFailed")), "error");
   }
 };
 </script>

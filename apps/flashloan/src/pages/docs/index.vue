@@ -26,7 +26,9 @@ const networkLabel = computed(() => {
 onMounted(async () => {
   try {
     contractAddress.value = await getContractAddress();
-  } catch (e: unknown) {
+  } catch (_e: unknown) {
+    // Contract address fetch failed — docs page works without it; contractAddress
+    // being null is handled by FlashloanDocs component showing "not available"
     contractAddress.value = null;
   }
 });

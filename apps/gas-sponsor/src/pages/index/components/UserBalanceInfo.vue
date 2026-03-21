@@ -10,7 +10,7 @@
       </div>
       <div class="info-row">
         <span class="info-label">{{ t("gasBalance") }}</span>
-        <span class="info-value highlight">{{ formatBalance(gasBalance) }} GAS</span>
+        <span class="info-value highlight">{{ formatBalance(gasBalance) }} {{ t("tokenGas") }}</span>
       </div>
       <div class="info-row">
         <span class="info-label">{{ t("eligibility") }}</span>

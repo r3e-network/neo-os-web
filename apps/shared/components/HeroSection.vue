@@ -1,9 +1,8 @@
 <template>
-  <div
+  <header
     class="hero-section"
     :class="[variant ? `hero-section--${variant}` : '', compact ? 'hero-section--compact' : '']"
-    role="banner"
-    :aria-label="title || ariaLabel || 'Hero'"
+    :aria-label="title || ariaLabel || t('heroSectionAriaLabel')"
   >
     <div v-if="$slots.background" class="hero-section__background" aria-hidden="true">
       <slot name="background" />
@@ -32,11 +31,14 @@
         <slot />
       </div>
     </div>
-  </div>
+  </header>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "@shared/composables";
 export type HeroVariant = "default" | "erobo" | "erobo-neo" | "erobo-bitcoin" | "accent" | "danger";
+
+const { t } = useI18n();
 
 withDefaults(
   defineProps<{
@@ -66,7 +68,7 @@ withDefaults(
 );
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .hero-section {

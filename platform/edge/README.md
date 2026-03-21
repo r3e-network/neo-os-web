@@ -33,7 +33,7 @@ See `platform/edge/functions/`:
 - `miniapp-notifications`: public notifications feed.
 - `miniapp-usage`: authenticated per-user daily usage.
 - `market-trending`: trending MiniApps based on rolling stats.
-- `pay-gas`: returns a GAS `transfer` invocation to the MiniApp contract when the manifest exposes `contract_hash`, otherwise falls back to `PaymentHub` for legacy receipt flows (GAS-only).
+- `pay-gas`: returns a GAS `transfer` invocation directly to the MiniApp contract when the manifest exposes `contract_hash` (GAS-only).
 - `vote-bneo`: returns a Governance `vote` invocation (bNEO-only).
 - `app-register`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `registerApp` invocation (developer wallet-signed).
 - `app-update-manifest`: validates a `manifest`, computes `manifest_hash`, and returns an AppRegistry `updateApp` invocation (developer wallet-signed).

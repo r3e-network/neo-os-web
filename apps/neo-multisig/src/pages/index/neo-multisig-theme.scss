@@ -46,6 +46,7 @@
   --text-primary: var(--multi-text);
   --text-secondary: var(--multi-text-muted);
   --border-color: var(--multi-card-border);
+  --bg-body: #0a0d14;
 }
 
 :global(.theme-light .theme-neo-multisig),
@@ -97,4 +98,5 @@
   --text-primary: var(--multi-text);
   --text-secondary: var(--multi-text-muted);
   --border-color: var(--multi-card-border);
+  --bg-body: #f5f7fb;
 }

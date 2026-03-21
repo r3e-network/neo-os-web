@@ -8,6 +8,11 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { waitForListedEventByTransaction } from "@shared/utils";
 
+// Blockchain confirm timing constants
+const WAIT_AFTER_TRANSFER_MS = 4000;
+const DEFAULT_TIMEOUT_MS = 30000;
+const POLL_INTERVAL_MS = 1500;
+
 /** Handles vault creation with password hashing and GAS deposit. */
 export function useVaultCreator(
   APP_ID: string,
@@ -50,7 +55,7 @@ export function useVaultCreator(
         })
         .filter(Boolean) as { id: string; bounty: number; created: number }[];
       myVaults.value = vaults.sort((a, b) => b.created - a.created);
-    } catch {
+    } catch (_e: unknown) {
       // My vaults load failure is non-critical
     }
   };
@@ -86,7 +91,7 @@ export function useVaultCreator(
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
 
       const res = await invokeDirectly(
         "createVault",
@@ -106,8 +111,8 @@ export function useVaultCreator(
           const events = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 20 });
           return events.events || [];
         },
-        timeoutMs: 30000,
-        pollIntervalMs: 1500,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
+        pollIntervalMs: POLL_INTERVAL_MS,
         errorMessage: t("vaultCreateFailed"),
       });
       const values = Array.isArray(createdEvt?.state) ? createdEvt.state.map(parseStackItem) : [];

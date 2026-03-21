@@ -167,6 +167,9 @@
   cursor: pointer;
   background: var(--convert-copy-bg);
   transition: all 0.2s;
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &:active {
     transform: scale(0.95);

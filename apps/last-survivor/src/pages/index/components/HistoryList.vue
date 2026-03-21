@@ -1,7 +1,12 @@
 <template>
   <NeoCard variant="erobo">
+    <!--
+      ItemList expects Record<string, unknown>[] but we have HistoryEvent[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from HistoryEvent[] to unknown first.
+    -->
     <ItemList
-      :items="history as unknown as Record<string, unknown>[]"
+      :items="(history as unknown) as Record<string, unknown>[]"
       item-key="id"
       :empty-text="t('noHistory')"
       :aria-label="t('ariaHistory')"

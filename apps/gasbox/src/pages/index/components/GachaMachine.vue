@@ -9,14 +9,14 @@
       <div class="machine-stats">
         <span>{{ t("categoryLabel") }}: {{ machine.category || t("general") }}</span>
         <span>{{ t("playsLabel") }}: {{ machine.plays ?? 0 }}</span>
-        <span>{{ t("revenueLabel") }}: {{ machine.revenue || "0" }} GAS</span>
+        <span>{{ t("revenueLabel") }}: {{ machine.revenue || "0" }} {{ t("tokenGas") }}</span>
       </div>
     </NeoCard>
 
     <NeoCard v-if="machine.forSale && !isOwner" variant="warning" class="sale-card">
       <div class="sale-row">
         <span class="sale-title">{{ t("machineForSale") }}</span>
-        <span class="sale-price">{{ machine.salePrice }} GAS</span>
+        <span class="sale-price">{{ machine.salePrice }} {{ t("tokenGas") }}</span>
       </div>
       <NeoButton variant="primary" size="sm" block @click="$emit('buy')">
         {{ t("buyMachine") }}
@@ -32,15 +32,15 @@
         <div class="glass-dome">
           <div class="capsules-pile">
             <!-- Simulated capsules inside -->
-            <div v-for="i in 5" :key="i" class="capsule-decoration" :style="getCapsuleStyle(i)">💊</div>
+            <div v-for="i in 5" :key="i" class="capsule-decoration" :style="getCapsuleStyle(i)"><span aria-hidden="true">💊</span></div>
           </div>
         </div>
         <div class="machine-body">
           <div class="coin-slot" :class="{ pulse: !isPlaying }">
-            <span class="slot-text">{{ t("playLabel") }} {{ machine.price }} GAS</span>
+            <span class="slot-text">{{ t("playLabel") }} {{ machine.price }} {{ t("tokenGas") }}</span>
           </div>
           <div class="dispenser-chute">
-            <div v-if="isPlaying" class="falling-capsule">💊</div>
+            <div v-if="isPlaying" class="falling-capsule"><span aria-hidden="true">💊</span></div>
           </div>
         </div>
       </div>
@@ -73,9 +73,9 @@
         {{ t("noPrizes") }}
       </div>
       <div v-else class="odds-list">
-        <div v-for="(item, idx) in items" :key="idx" class="odds-row">
+        <div v-for="item in items" :key="item.name" class="odds-row">
           <div class="item-info">
-            <span class="item-icon">{{ item.icon || "🎁" }}</span>
+            <span class="item-icon"><span aria-hidden="true">{{ item.icon || "🎁" }}</span></span>
             <div class="item-text">
               <span class="item-name">{{ item.name }}</span>
               <span class="item-meta">{{ formatMeta(item) }}</span>
@@ -89,7 +89,7 @@
 
     <ActionModal :visible="showResult" :title="t('congratulations')" @close="$emit('close-result')">
       <div class="result-content">
-        <div class="result-icon-lg">{{ resultItem?.icon || "🎁" }}</div>
+        <div class="result-icon-lg"><span aria-hidden="true">{{ resultItem?.icon || "🎁" }}</span></div>
         <span class="result-name">{{ resultItem?.name }}</span>
         <span class="result-rarity">{{ resultItem?.rarity || t("prizeLabel") }}</span>
         <NeoButton block variant="primary" @click="$emit('close-result')" class="mt-4">
@@ -115,7 +115,12 @@ const props = defineProps<{
   errorMessage?: string | null;
 }>();
 
-defineEmits(["back", "play", "close-result", "buy"]);
+defineEmits<{
+  (e: "back"): void;
+  (e: "play"): void;
+  (e: "close-result"): void;
+  (e: "buy"): void;
+}>();
 
 const { t } = createUseI18n(messages)();
 
@@ -134,7 +139,7 @@ const formatMeta = (item: Record<string, unknown>) => {
   const prizeLabel = t("prizeLabel");
   const rarity = item?.rarity ? String(item.rarity).toUpperCase() : prizeLabel.toUpperCase();
   const assetType = Number(item?.assetType || 0);
-  const assetLabel = assetType === 2 ? "NEP-11" : assetType === 1 ? "NEP-17" : prizeLabel.toUpperCase();
+  const assetLabel = assetType === 2 ? t("nep11Label") : assetType === 1 ? t("nep17Label") : prizeLabel.toUpperCase();
   const amount = assetType === 1 ? ` · ${item.amountDisplay || item.amountRaw || 0}` : "";
   return `${rarity} · ${assetLabel}${amount}`;
 };

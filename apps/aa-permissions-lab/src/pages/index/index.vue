@@ -19,8 +19,8 @@
   >
     <template #result>
       <div class="stack">
-        <NeoInput v-model="form.accountIdHash" :label="t('accountId')" placeholder="20-byte hash" />
-        <NeoButton variant="secondary" :loading="isRefreshing" @click="refreshState">{{ t("inspect") }}</NeoButton>
+        <NeoInput v-model="form.accountIdHash" :label="t('accountId')" :placeholder="t('accountIdHashPlaceholder')" />
+        <NeoButton variant="secondary" type="button" :loading="isRefreshing" @click="refreshState" :aria-label="t('inspect')">{{ t("inspect") }}</NeoButton>
       </div>
       <DetailCardGrid :items="detailItems" :columns="3" />
     </template>
@@ -28,15 +28,15 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('updateVerifier')" class="mb-4 px-1">
         <div class="stack">
-          <NeoInput v-model="form.verifierHash" :label="t('verifier')" placeholder="0x..." />
-          <NeoInput v-model="form.verifierParamsHex" :label="t('verifierParams')" placeholder="hex payload" />
-          <NeoButton variant="primary" :loading="isVerifierBusy" @click="submitVerifier">{{ t("updateVerifier") }}</NeoButton>
+          <NeoInput v-model="form.verifierHash" :label="t('verifier')" :placeholder="t('verifierHashPlaceholder')" />
+          <NeoInput v-model="form.verifierParamsHex" :label="t('verifierParams')" :placeholder="t('verifierParamsPlaceholder')" />
+          <NeoButton variant="primary" type="button" :loading="isVerifierBusy" @click="submitVerifier" :aria-label="t('updateVerifier')">{{ t("updateVerifier") }}</NeoButton>
         </div>
       </NeoCard>
       <NeoCard variant="erobo" :title="t('updateHook')" class="px-1">
         <div class="stack">
-          <NeoInput v-model="form.hookHash" :label="t('hook')" placeholder="0x..." />
-          <NeoButton variant="secondary" :loading="isHookBusy" @click="submitHook">{{ t("updateHook") }}</NeoButton>
+          <NeoInput v-model="form.hookHash" :label="t('hook')" :placeholder="t('hookHashPlaceholder')" />
+          <NeoButton variant="secondary" type="button" :loading="isHookBusy" @click="submitHook" :aria-label="t('updateHook')">{{ t("updateHook") }}</NeoButton>
         </div>
       </NeoCard>
     </template>
@@ -65,9 +65,9 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   messages,
   tab: { key: "permissions", labelKey: "updateVerifier", icon: "🧩" },
   sidebarItems: [
-    { labelKey: "currentVerifier", value: () => current.verifier || "—" },
-    { labelKey: "currentHook", value: () => current.hook || "—" },
-    { labelKey: "currentBackupOwner", value: () => current.backupOwner || "—" },
+    { labelKey: "currentVerifier", value: () => current.verifier || t("notAvailable") },
+    { labelKey: "currentHook", value: () => current.hook || t("notAvailable") },
+    { labelKey: "currentBackupOwner", value: () => current.backupOwner || t("notAvailable") },
   ],
 });
 
@@ -86,11 +86,11 @@ async function refreshState() {
       invokeRead({ scriptHash: aaCore, operation: "getHook", args: [{ type: "Hash160", value: `0x${accountId}` }] }),
       invokeRead({ scriptHash: aaCore, operation: "getBackupOwner", args: [{ type: "Hash160", value: `0x${accountId}` }] }),
     ]);
-    current.verifier = String(parseInvokeResult(verifier) || "—");
-    current.hook = String(parseInvokeResult(hook) || "—");
-    current.backupOwner = String(parseInvokeResult(backup) || "—");
-  } catch (error) {
-    setStatus(formatErrorMessage(error, "inspect failed"), "error");
+    current.verifier = String(parseInvokeResult(verifier) || t("notAvailable"));
+    current.hook = String(parseInvokeResult(hook) || t("notAvailable"));
+    current.backupOwner = String(parseInvokeResult(backup) || t("notAvailable"));
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("inspectFailed")), "error");
   } finally {
     isRefreshing.value = false;
   }
@@ -111,8 +111,8 @@ async function submitVerifier() {
     });
     setStatus(t("successVerifier"), "success");
     await refreshState();
-  } catch (error) {
-    setStatus(formatErrorMessage(error, "updateVerifier failed"), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("updateVerifierFailed")), "error");
   } finally {
     isVerifierBusy.value = false;
   }
@@ -132,8 +132,8 @@ async function submitHook() {
     });
     setStatus(t("successHook"), "success");
     await refreshState();
-  } catch (error) {
-    setStatus(formatErrorMessage(error, "updateHook failed"), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("updateHookFailed")), "error");
   } finally {
     isHookBusy.value = false;
   }
@@ -142,22 +142,22 @@ async function submitHook() {
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildAAHeroStats({
     aaCore,
-    middleLabel: "Verifier",
-    middleValue: current.verifier ? "set" : "unset",
-    trailingLabel: "Hook",
-    trailingValue: current.hook ? "set" : "unset",
+    middleLabel: t("verifier"),
+    middleValue: current.verifier ? t("configured") : t("notAvailable"),
+    trailingLabel: t("hook"),
+    trailingValue: current.hook ? t("configured") : t("notAvailable"),
   }),
 );
 const overviewStats = computed<StatsDisplayItem[]>(() =>
   buildAAOverviewStats({
     aaCore,
-    walletValue: address.value || "not connected",
+    walletValue: address.value || t("notConnected"),
   }),
 );
 const detailItems = computed(() => [
-  { label: t("currentVerifier"), value: current.verifier || "—" },
-  { label: t("currentHook"), value: current.hook || "—" },
-  { label: t("currentBackupOwner"), value: current.backupOwner || "—" },
+  { label: t("currentVerifier"), value: current.verifier || t("notAvailable") },
+  { label: t("currentHook"), value: current.hook || t("notAvailable") },
+  { label: t("currentBackupOwner"), value: current.backupOwner || t("notAvailable") },
 ]);
 const appState = computed(() => ({ address: address.value, accountId: form.accountIdHash }));
 </script>

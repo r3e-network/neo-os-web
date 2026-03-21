@@ -4,37 +4,41 @@
       <div class="input-section">
         <span class="input-label-glass">{{ t("selectDeveloper") }}</span>
         <div class="dev-selector">
-          <div
+          <button
+            type="button"
             v-for="dev in developers"
             :key="dev.id"
             :class="['dev-select-item-glass', { active: modelValue === dev.id }]"
+            :aria-label="dev.name + ' - ' + dev.role"
             @click="$emit('update:modelValue', dev.id)"
           >
             <span class="dev-select-name-glass">{{ dev.name }}</span>
             <span class="dev-select-role-glass">{{ dev.role }}</span>
-          </div>
+          </button>
         </div>
       </div>
 
       <div class="input-section">
         <span class="input-label-glass">{{ t("tipAmount") }}</span>
         <div class="preset-amounts">
-          <div
+          <button
+            type="button"
             v-for="preset in presetAmounts"
             :key="preset"
             :class="['preset-btn-glass', { active: amount === preset.toString() }]"
+            :aria-label="preset + ' ' + t('tokenGas')"
             @click="$emit('update:amount', preset.toString())"
           >
             <span class="preset-value-glass">{{ preset }}</span>
-            <span class="preset-unit-glass">GAS</span>
-          </div>
+            <span class="preset-unit-glass">{{ t("tokenGas") }}</span>
+          </button>
         </div>
         <NeoInput
           :modelValue="amount"
           @update:modelValue="$emit('update:amount', $event)"
           type="number"
           :placeholder="t('customAmount')"
-          suffix="GAS"
+          :suffix="t('tokenGas')"
         />
       </div>
 
@@ -60,17 +64,17 @@
       <div class="input-section">
         <span class="input-label-glass">{{ t("anonymousLabel") }}</span>
         <div class="toggle-row">
-          <NeoButton size="sm" :variant="anonymous ? 'primary' : 'secondary'" @click="$emit('update:anonymous', true)">
+          <NeoButton size="sm" type="button" :variant="anonymous ? 'primary' : 'secondary'" :aria-label="t('anonymousOn')" @click="$emit('update:anonymous', true)">
             {{ t("anonymousOn") }}
           </NeoButton>
-          <NeoButton size="sm" :variant="anonymous ? 'secondary' : 'primary'" @click="$emit('update:anonymous', false)">
+          <NeoButton size="sm" type="button" :variant="anonymous ? 'secondary' : 'primary'" :aria-label="t('anonymousOff')" @click="$emit('update:anonymous', false)">
             {{ t("anonymousOff") }}
           </NeoButton>
         </div>
       </div>
 
-      <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="!canSubmit" @click="$emit('submit')">
-        <span v-if="!isLoading">💚 {{ t("sendTipBtn") }}</span>
+      <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" :disabled="!canSubmit" :aria-label="t('sendTipBtn')" @click="$emit('submit')">
+        <span v-if="!isLoading"><span aria-hidden="true">💚</span> {{ t("sendTipBtn") }}</span>
         <span v-else>{{ t("sending") }}</span>
       </NeoButton>
     </div>
@@ -147,6 +151,22 @@ const canSubmit = computed(() => {
   overflow-y: auto;
 }
 
+@media (max-width: 480px) {
+  .dev-selector {
+    max-height: 150px;
+  }
+
+  .preset-amounts {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn-glass {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 60px;
+  }
+}
+
 .dev-select-item-glass {
   padding: 12px;
   background: var(--cafe-input-bg);
@@ -157,6 +177,10 @@ const canSubmit = computed(() => {
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  appearance: none;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
 
   &.active {
     border-color: var(--cafe-neon);
@@ -189,6 +213,9 @@ const canSubmit = computed(() => {
   border-radius: 8px;
   padding: 10px;
   text-align: center;
+  appearance: none;
+  font-family: inherit;
+  cursor: pointer;
 
   &.active {
     background: var(--cafe-neon);

@@ -1,8 +1,8 @@
 <template>
   <NeoCard variant="erobo" class="streak-card pt-6 pb-6 text-center">
     <div class="streak-flames">
-      <span v-for="i in Math.min(currentStreak, 7)" :key="i" class="flame">🔥</span>
-      <span v-if="currentStreak === 0" class="flame-empty">💤</span>
+      <span v-for="i in Math.min(currentStreak, 7)" :key="i" class="flame" aria-hidden="true">🔥</span>
+      <span v-if="currentStreak === 0" class="flame-empty" aria-hidden="true">💤</span>
     </div>
     <span class="streak-count">{{ currentStreak }} {{ t("dayStreak") }}</span>
     <span class="streak-best">{{ t("bestStreak") }}: {{ highestStreak }} {{ t("days") }}</span>

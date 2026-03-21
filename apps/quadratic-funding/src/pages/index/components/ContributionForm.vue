@@ -12,7 +12,7 @@
       type="number"
       :label="t('contributionAmount')"
       :placeholder="t('contributionAmountPlaceholder')"
-      :suffix="assetSymbol"
+      :suffix="assetLabel"
     />
     <NeoInput
       v-model="localForm.memo"
@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { reactive, ref, watch, computed } from "vue";
 import { NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -40,6 +40,8 @@ const emit = defineEmits<{
 
 const { t } = createUseI18n(messages)();
 const isLoading = ref(false);
+
+const assetLabel = computed(() => t("tokenGas"));
 
 const localForm = reactive({
   roundId: "",

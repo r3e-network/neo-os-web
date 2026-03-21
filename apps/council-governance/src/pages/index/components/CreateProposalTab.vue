@@ -83,7 +83,7 @@
         </div>
       </div>
 
-      <NeoButton variant="primary" size="lg" block @click="handleSubmit">
+      <NeoButton variant="primary" size="lg" block type="button" @click="handleSubmit">
         {{ t("submit") }}
       </NeoButton>
     </NeoCard>
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 
 const props = defineProps<{
@@ -122,20 +122,20 @@ const newProposal = ref({
   duration: 604800,
 });
 
-const durations = [
-  { label: "3 Days", value: 259200 },
-  { label: "7 Days", value: 604800 },
-  { label: "14 Days", value: 1209600 },
-];
+const durations = computed(() => [
+  { label: props.t("duration3Days"), value: 259200 },
+  { label: props.t("duration7Days"), value: 604800 },
+  { label: props.t("duration14Days"), value: 1209600 },
+]);
 
-const policyMethods = [
-  { value: "setFeePerByte", label: "Set Fee Per Byte" },
-  { value: "setExecFeeFactor", label: "Set Exec Fee Factor" },
-  { value: "setStoragePrice", label: "Set Storage Price" },
-  { value: "setMaxBlockSize", label: "Set Max Block Size" },
-  { value: "setMaxTransactionsPerBlock", label: "Set Max Tx/Block" },
-  { value: "setMaxSystemFee", label: "Set Max System Fee" },
-];
+const policyMethods = computed(() => [
+  { value: "setFeePerByte", label: props.t("methodFeePerByte") },
+  { value: "setExecFeeFactor", label: props.t("methodExecFeeFactor") },
+  { value: "setStoragePrice", label: props.t("methodStoragePrice") },
+  { value: "setMaxBlockSize", label: props.t("methodMaxBlockSize") },
+  { value: "setMaxTransactionsPerBlock", label: props.t("methodMaxTransactions") },
+  { value: "setMaxSystemFee", label: props.t("methodMaxSystemFee") },
+]);
 
 function handleSubmit() {
   emit("submit", { ...newProposal.value });

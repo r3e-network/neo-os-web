@@ -6,33 +6,35 @@
         <div class="input-section">
           <span class="input-label">{{ t("recipientAddress") }}</span>
           <NeoInput
-            :model-value="recipient"
-            @update:model-value="$emit('update:recipient', $event)"
+            :modelValue="recipient"
+            @update:modelValue="$emit('update:recipient', $event)"
             :placeholder="t('recipientPlaceholder')"
           />
         </div>
         <div class="input-section">
           <span class="input-label">{{ t("sendAmount") }}</span>
           <div class="preset-amounts">
-            <div
+            <button
+              type="button"
               v-for="amt in presets"
               :key="amt"
               :class="['preset-btn glass-btn', { active: amount === amt.toString() }]"
+              :aria-label="t('sendAmount') + ' ' + amt + ' ' + t('tokenGas')"
               @click="$emit('update:amount', amt.toString())"
             >
               <span class="preset-value">{{ amt }}</span>
-              <span class="preset-unit">GAS</span>
-            </div>
+              <span class="preset-unit">{{ t("tokenGas") }}</span>
+            </button>
           </div>
           <NeoInput
-            :model-value="amount"
-            @update:model-value="$emit('update:amount', $event)"
+            :modelValue="amount"
+            @update:modelValue="$emit('update:amount', $event)"
             type="number"
-            placeholder="0.1"
-            suffix="GAS"
+            :placeholder="t('sendAmountPlaceholder')"
+            :suffix="t('tokenGas')"
           />
         </div>
-        <NeoButton variant="primary" size="lg" block :loading="loading" @click="$emit('send')">
+        <NeoButton variant="primary" size="lg" block type="button" :loading="loading" :aria-label="t('sendBtn')" @click="$emit('send')">
           {{ loading ? t("sending") : t("sendBtn") }}
         </NeoButton>
       </div>
@@ -126,6 +128,8 @@ const presets = [0.05, 0.1, 0.2, 0.5];
   align-items: center;
   gap: 4px;
   backdrop-filter: blur(5px);
+  appearance: none;
+  border-style: solid;
 
   &:hover {
     background: var(--gas-preset-hover-bg);

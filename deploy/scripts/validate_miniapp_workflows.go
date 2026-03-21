@@ -4,11 +4,10 @@
 // Usage: go run -tags=scripts scripts/validate_miniapp_workflows.go
 //
 // This script validates:
-// 1. PaymentHub workflow (GAS transfer → event → balance update)
-// 2. RNG/VRF workflow (request → fulfill → callback)
-// 3. PriceFeed/DataFeed workflow (update → event → query)
-// 4. Automation workflow (register → trigger → execute)
-// 5. Governance workflow (stake → vote → unstake)
+// 1. RNG/VRF workflow (request → fulfill → callback)
+// 2. PriceFeed/DataFeed workflow (update → event → query)
+// 3. Automation workflow (register → trigger → execute)
+// 4. Governance workflow (stake → vote → unstake)
 package main
 
 import (
@@ -27,7 +26,6 @@ import (
 
 // Contract hashes from environment
 type ContractHashes struct {
-	PaymentHub       util.Uint160
 	Governance       util.Uint160
 	PriceFeed        util.Uint160
 	RandomnessLog    util.Uint160
@@ -56,7 +54,7 @@ type Validator struct {
 func main() {
 	ctx := context.Background()
 
-	workflowFlag := flag.String("workflow", "", "optional workflow filter: deployment,paymenthub,rng,pricefeed,governance,automation")
+	workflowFlag := flag.String("workflow", "", "optional workflow filter: deployment,rng,pricefeed,governance,automation")
 	flag.Parse()
 
 	selected := normalizeWorkflowFilter(*workflowFlag)
@@ -74,9 +72,6 @@ func main() {
 	// Run selected validations
 	if shouldRun(selected, "deployment") {
 		v.ValidateContractDeployment()
-	}
-	if shouldRun(selected, "paymenthub") {
-		v.ValidatePaymentHubWorkflow()
 	}
 	if shouldRun(selected, "rng") {
 		v.ValidateRNGWorkflow()
@@ -168,11 +163,6 @@ func loadContractHashes() (ContractHashes, error) {
 	var c ContractHashes
 	var err error
 
-	c.PaymentHub, err = parseHash(os.Getenv("CONTRACT_PAYMENTHUB_HASH"))
-	if err != nil {
-		return c, fmt.Errorf("PaymentHub: %w", err)
-	}
-
 	c.Governance, err = parseHash(os.Getenv("CONTRACT_GOVERNANCE_HASH"))
 	if err != nil {
 		return c, fmt.Errorf("Governance: %w", err)
@@ -246,7 +236,6 @@ func (v *Validator) ValidateContractDeployment() {
 		name string
 		hash util.Uint160
 	}{
-		{"PaymentHub", v.contracts.PaymentHub},
 		{"Governance", v.contracts.Governance},
 		{"PriceFeed", v.contracts.PriceFeed},
 		{"RandomnessLog", v.contracts.RandomnessLog},
@@ -290,64 +279,6 @@ func countMissing(m map[string]interface{}) int {
 		}
 	}
 	return count
-}
-
-// =============================================================================
-// PaymentHub Workflow Validation
-// =============================================================================
-
-func (v *Validator) ValidatePaymentHubWorkflow() {
-	fmt.Println("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Println("💰 Validating PaymentHub Workflow...")
-
-	// Test 1: Check if app is configured
-	appID := "miniapp-lottery"
-	result, err := v.rpc.InvokeFunction(v.contracts.PaymentHub, "getApp", []smartcontract.Parameter{
-		{Type: smartcontract.StringType, Value: appID},
-	}, nil)
-
-	if err != nil {
-		v.addResult(ValidationResult{
-			Workflow: "PaymentHub",
-			Status:   "FAIL",
-			Error:    fmt.Sprintf("Failed to query app config: %v", err),
-		})
-		return
-	}
-
-	if result.State != "HALT" {
-		v.addResult(ValidationResult{
-			Workflow: "PaymentHub",
-			Status:   "FAIL",
-			Error:    fmt.Sprintf("VM fault: %s", result.FaultException),
-		})
-		return
-	}
-
-	fmt.Printf("   ✅ GetApp(%s) returned successfully\n", appID)
-
-	// Test 2: Check app balance
-	balResult, err := v.rpc.InvokeFunction(v.contracts.PaymentHub, "getAppBalance", []smartcontract.Parameter{
-		{Type: smartcontract.StringType, Value: appID},
-	}, nil)
-
-	if err == nil && balResult.State == "HALT" {
-		fmt.Printf("   ✅ GetAppBalance(%s) returned successfully\n", appID)
-	}
-
-	// Test 3: Validate payment method exists
-	fmt.Printf("   ✅ ValidatePayment method available\n")
-	fmt.Printf("   ✅ OnNEP17Payment callback configured\n")
-
-	v.addResult(ValidationResult{
-		Workflow:    "PaymentHub",
-		Status:      "PASS",
-		Description: "Payment workflow validated (GAS transfer → OnNEP17Payment → PaymentReceived event)",
-		Details: map[string]interface{}{
-			"app_id":   appID,
-			"contract": "0x" + v.contracts.PaymentHub.StringLE(),
-		},
-	})
 }
 
 // =============================================================================

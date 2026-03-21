@@ -1,5 +1,5 @@
 <template>
-  <div class="countdown-timer" role="timer" :aria-label="ariaLabel || 'Countdown'">
+  <div class="countdown-timer" role="timer" :aria-label="ariaLabel || t('countdownDefault')">
     <div v-if="$slots.default" class="countdown-timer__custom">
       <slot :remaining="remaining" :display="display" :progress="progress" :is-complete="isComplete" />
     </div>
@@ -34,6 +34,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 const CIRCUMFERENCE = 2 * Math.PI * 99;
 
@@ -118,7 +122,7 @@ onMounted(start);
 onUnmounted(stop);
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
 
 .countdown-timer {

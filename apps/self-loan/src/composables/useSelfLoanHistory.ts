@@ -168,7 +168,7 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
         icon: item.icon as string,
         label: item.label as string,
         amount: item.amount as number,
-        timestamp: new Date((item.timestampRaw as number) || Date.now()).toLocaleString(),
+        timestamp: new Intl.DateTimeFormat("en").format(new Date((item.timestampRaw as number) || Date.now())),
       }));
 
       const latest = validEntries.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
@@ -268,7 +268,7 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
         icon: item.icon,
         label: item.label,
         amount: item.amount,
-        timestamp: new Date(item.timestampRaw || Date.now()).toLocaleString(),
+        timestamp: new Intl.DateTimeFormat("en").format(new Date(item.timestampRaw || Date.now())),
       }));
 
       if (created.length > 0) {

@@ -1,15 +1,12 @@
 <template>
   <div class="page-container">
     <div class="nav-header">
-      <span
+      <button
+        type="button"
         class="back-btn"
-        role="button"
-        :aria-label="t('back') || 'Go back'"
-        tabindex="0"
+        :aria-label="t('buttonBack')"
         @click="goHome"
-        @keydown.enter="goHome"
-        >←</span
-          >
+      >←</button>
       <div class="nav-text">
         <span class="title">{{ t("signTitle") }}</span>
         <span class="subtitle">{{ t("appSubtitle") }}</span>
@@ -57,7 +54,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { onMounted } from "vue"; // replaced onLoad
+import { onMounted } from "vue";
+import { onLoad } from "@dcloudio/uni-app";
 import { NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -90,13 +88,17 @@ const error = ref("");
 const isProcessing = ref(false);
 const broadcastTxId = ref("");
 
-onMounted(() => { /* route params via URL query */ }); // was onLoad((query: Record<string, string>) => {
+onLoad((query: Record<string, string>) => {
   if (query.id) {
     loadRequest(query.id);
   } else {
     error.value = t("toastNoId");
     loading.value = false;
   }
+});
+
+onMounted(() => {
+  // Additional mount logic if needed
 });
 
 const loadRequest = async (id: string) => {
@@ -133,7 +135,8 @@ const orderedSigners = computed(() => {
 const signatureCount = computed(() => Object.keys(request.value?.signatures || {}).length);
 const progressPercent = computed(() => {
   if (!request.value) return 0;
-  return Math.min(100, (signatureCount.value / request.value.threshold) * 100);
+  const threshold = request.value.threshold || 1;
+  return Math.min(100, (signatureCount.value / threshold) * 100);
 });
 const isComplete = computed(() => signatureCount.value >= (request.value?.threshold || 1));
 
@@ -251,7 +254,15 @@ const broadcast = async () => {
     const updated = await api.updateStatus(request.value.id, "broadcasted", txid);
     request.value = updated;
 
-    const history = uni.getStorageSync("multisig_history") ? JSON.parse(uni.getStorageSync("multisig_history")) : [];
+    let history: Array<{ id: string; status?: string }> = [];
+    try {
+      const stored = uni.getStorageSync("multisig_history");
+      if (stored) {
+        history = JSON.parse(stored);
+      }
+    } catch (_e: unknown) {
+      history = [];
+    }
     const index = history.findIndex((item: { id: string; status?: string }) => item.id === request.value?.id);
     if (index >= 0) {
       history[index].status = "broadcasted";
@@ -271,7 +282,7 @@ const broadcast = async () => {
 @use "@shared/styles/tokens.scss" as *;
 
 .page-container {
-  --multisig-accent: var(--status-success);
+  --multisig-accent: var(--accent-success);
   --multisig-accent-soft: rgba(0, 229, 153, 0.12);
   --multisig-accent-strong: rgba(0, 229, 153, 0.2);
   --multisig-accent-text: #0b0c16;
@@ -318,6 +329,10 @@ const broadcast = async () => {
 .back-btn {
   font-size: 24px;
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
 }
 
 .title {
@@ -353,16 +368,16 @@ const broadcast = async () => {
   font-weight: 700;
 
   &.pending {
-    color: var(--status-warning);
+    color: var(--accent-warning);
   }
   &.ready {
-    color: var(--status-info);
+    color: var(--accent-info);
   }
   &.broadcasted {
     color: var(--multisig-accent);
   }
   &.cancelled {
-    color: var(--status-error);
+    color: var(--accent-error);
   }
   &.expired {
     color: var(--text-muted);

@@ -27,22 +27,22 @@ withDefaults(
 );
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: $spacing-2;
+  padding: $spacing-1 $spacing-3;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: $radius-full;
   backdrop-filter: blur(5px);
 
   &__dot {
-    width: 8px;
-    height: 8px;
+    width: $spacing-2;
+    height: $spacing-2;
     border-radius: 50%;
     background: var(--text-secondary, rgba(255, 255, 255, 0.5));
     flex-shrink: 0;
@@ -57,66 +57,73 @@ withDefaults(
 
   // Status variants
   &--ready {
+    --badge-color: #ffde59;
     background: rgba(255, 222, 89, 0.1);
-    color: #ffde59;
+    color: var(--badge-color);
     border-color: rgba(255, 222, 89, 0.3);
 
     .status-badge__dot {
-      background: #ffde59;
+      background: var(--badge-color);
     }
   }
 
   &--active {
+    --badge-color: #3b82f6;
     background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    color: var(--badge-color);
     border-color: rgba(59, 130, 246, 0.3);
 
     .status-badge__dot {
-      background: #3b82f6;
+      background: var(--badge-color);
     }
   }
 
   &--success {
+    --badge-color: #00e599;
     background: rgba(0, 229, 153, 0.1);
-    color: #00e599;
+    color: var(--badge-color);
     border-color: rgba(0, 229, 153, 0.3);
 
     .status-badge__dot {
-      background: #00e599;
+      background: var(--badge-color);
     }
   }
 
   &--warning {
+    --badge-color: #fde047;
     background: rgba(253, 224, 71, 0.1);
-    color: #fde047;
+    color: var(--badge-color);
     border-color: rgba(253, 224, 71, 0.3);
 
     .status-badge__dot {
-      background: #fde047;
+      background: var(--badge-color);
     }
   }
 
   &--error {
+    --badge-color: #ef4444;
     background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    color: var(--badge-color);
     border-color: rgba(239, 68, 68, 0.3);
 
     .status-badge__dot {
-      background: #ef4444;
+      background: var(--badge-color);
     }
   }
 
   &--inactive {
-    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    --badge-color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    color: var(--badge-color);
   }
 
   &--pending {
+    --badge-color: #9f9df3;
     background: rgba(159, 157, 243, 0.1);
-    color: #9f9df3;
+    color: var(--badge-color);
     border-color: rgba(159, 157, 243, 0.3);
 
     .status-badge__dot {
-      background: #9f9df3;
+      background: var(--badge-color);
     }
   }
 

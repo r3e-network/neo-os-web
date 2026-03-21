@@ -40,7 +40,7 @@
         <!-- Stats Row -->
         <div class="hero-stream-stats">
           <div class="stream-stat">
-            <span class="stream-stat-icon">📤</span>
+            <span class="stream-stat-icon" aria-hidden="true">📤</span>
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ createdStreams.length }}</span>
               <span class="stream-stat-label">{{ t("myCreated") }}</span>
@@ -48,7 +48,7 @@
           </div>
           <div class="stream-stat-divider" />
           <div class="stream-stat">
-            <span class="stream-stat-icon">📥</span>
+            <span class="stream-stat-icon" aria-hidden="true">📥</span>
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ beneficiaryStreams.length }}</span>
               <span class="stream-stat-label">{{ t("beneficiaryVaults") }}</span>
@@ -59,7 +59,7 @@
         <!-- Active Status -->
         <div class="hero-active-badge" :class="{ live: activeCount > 0 }">
           <div class="active-dot" />
-          <span>{{ activeCount }} Active {{ activeCount === 1 ? "Stream" : "Streams" }}</span>
+          <span>{{ activeCount }} {{ t("statusActive") }} {{ activeCount === 1 ? t("streamSingular") : t("streamPlural") }}</span>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ const { t, templateConfig, sidebarTitle, fallbackMessage, handleBoundaryError } 
 const activeTab = ref("create");
 
 const allStreams = computed(() => [...createdStreams.value, ...beneficiaryStreams.value]);
-const activeCount = computed(() => allStreams.value.filter((s: any) => s.status === "active").length);
+const activeCount = computed(() => allStreams.value.filter((s) => s.status === "active").length);
 
 const {
   address,

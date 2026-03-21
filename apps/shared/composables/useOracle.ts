@@ -230,7 +230,7 @@ async function requestEdgeJSON<T>(
 
   try {
     return JSON.parse(text) as T;
-  } catch {
+  } catch (_e: unknown) {
     throw new Error(`invalid JSON response from ${path}`);
   }
 }
@@ -255,7 +255,7 @@ async function requestExternalJson<T>(url: string): Promise<T> {
 
   try {
     return JSON.parse(text) as T;
-  } catch {
+  } catch (_e: unknown) {
     throw new Error(`invalid JSON response from ${url}`);
   }
 }

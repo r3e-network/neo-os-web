@@ -54,7 +54,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
   const handleConnect = async () => {
     try {
       await ensureWallet();
-    } catch {
+    } catch (_e: unknown) {
       // handled by wallet UI
     }
   };
@@ -149,7 +149,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
 
       showOpeningModal.value = false;
       openingEnvelope.value = null;
-      deps.setStatus(t("openedFrom").replace("{0}", envelope.from), "success");
+      deps.setStatus(t("openedFrom", { sender: envelope.from }), "success");
       await deps.loadEnvelopes();
     } catch (error: unknown) {
       deps.setStatus(formatErrorMessage(error, t("error")), "error");

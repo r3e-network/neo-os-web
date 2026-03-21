@@ -7,10 +7,10 @@
       <!-- Card Front (Revealed) -->
       <div v-if="card.flipped" class="card-face card-front" :class="card.suit">
         <div class="card-border-decoration">
-          <span class="corner-star top-left">✦</span>
-          <span class="corner-star top-right">✦</span>
-          <span class="corner-star bottom-left">✦</span>
-          <span class="corner-star bottom-right">✦</span>
+          <span class="corner-star top-left" aria-hidden="true">✦</span>
+          <span class="corner-star top-right" aria-hidden="true">✦</span>
+          <span class="corner-star bottom-left" aria-hidden="true">✦</span>
+          <span class="corner-star bottom-right" aria-hidden="true">✦</span>
         </div>
         
         <div class="card-content">
@@ -26,7 +26,7 @@
            <div class="card-footer">
               <span class="card-name">{{ card.name }}</span>
               <div class="blockchain-hash">
-                 <span class="hash-text">Block: #{{ 1000 + card.id }}</span>
+                 <span class="hash-text">{{ t("blockLabel") }} #{{ 1000 + card.id }}</span>
               </div>
            </div>
         </div>
@@ -37,13 +37,13 @@
         <div class="card-back-pattern">
           <div class="neo-logo-container">
              <!-- Neo N3 Logo SVG — uses currentColor to inherit from .neo-logo-container -->
-             <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M168 356V156h52l124 152V156h52v200h-52L220 208v148z" fill="currentColor" />
              </svg>
           </div>
-          <span class="pattern-stars">✨</span>
-          <span class="pattern-text">NEO TAROT</span>
-          <span class="pattern-stars">✨</span>
+          <span class="pattern-stars" aria-hidden="true">✨</span>
+          <span class="pattern-text">{{ t("neoTarot") }}</span>
+          <span class="pattern-stars" aria-hidden="true">✨</span>
         </div>
         
         <!-- Circuit Lines Decoration -->
@@ -59,6 +59,10 @@
 
 <script setup lang="ts">
 import CardFace from './CardFace.vue';
+import { messages } from "@/locale/messages";
+import { createUseI18n } from "@shared/composables";
+
+const { t } = createUseI18n(messages)();
 
 export interface Card {
   id: number;
@@ -73,7 +77,9 @@ const props = defineProps<{
   card: Card;
 }>();
 
-defineEmits(["flip"]);
+defineEmits<{
+  (e: "flip"): void;
+}>();
 
 const toRoman = (num: number): string => {
    if (num === 0) return "0";

@@ -1,5 +1,5 @@
 <template>
-  <div class="form-card" role="form" :aria-label="title || 'Form'">
+  <div class="form-card" role="form" :aria-label="title || t('formLabel')">
     <div v-if="title || description" class="form-card__header">
       <div class="form-card__header-text">
         <span v-if="title" class="form-card__title">{{ title }}</span>
@@ -10,7 +10,7 @@
 
     <div class="form-card__body" :class="{ 'form-card__body--loading': loading }">
       <slot />
-      <div v-if="loading" class="form-card__overlay" role="status" aria-label="Loading">
+      <div v-if="loading" class="form-card__overlay" role="status" :aria-label="t('loading')">
         <div class="form-card__spinner" aria-hidden="true" />
       </div>
     </div>
@@ -22,24 +22,24 @@
 
     <div v-if="$slots.actions || submitLabel" class="form-card__actions">
       <slot name="actions">
-        <div
+        <button
+          type="button"
           class="form-card__submit"
           :class="{ 'form-card__submit--loading': submitLoading, 'form-card__submit--disabled': submitDisabled }"
-          role="button"
-          tabindex="0"
-          :aria-disabled="submitLoading || submitDisabled"
+          :disabled="submitLoading || submitDisabled"
           @click="!submitLoading && !submitDisabled && $emit('submit')"
-          @keydown.enter="!submitLoading && !submitDisabled && $emit('submit')"
         >
           <div v-if="submitLoading" class="form-card__submit-spinner" aria-hidden="true" />
           <span v-else>{{ submitLabel }}</span>
-        </div>
+        </button>
       </slot>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "@shared/composables/useI18n";
+
 withDefaults(
   defineProps<{
     title?: string;
@@ -69,9 +69,11 @@ withDefaults(
 defineEmits<{
   (e: "submit"): void;
 }>();
+
+const { t } = useI18n();
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .form-card {
@@ -153,7 +155,7 @@ defineEmits<{
   &__error-text {
     font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
-    color: #ef4444;
+    color: var(--accent-error, #ef4444);
   }
 
   &__actions {
@@ -168,8 +170,8 @@ defineEmits<{
     flex: 1;
     padding: 12px 20px;
     border-radius: 10px;
-    background: var(--color-primary, #00e599);
-    color: #000;
+    background: var(--accent-primary, #3b82f6);
+    color: #fff;
     font-size: $font-size-sm;
     font-weight: $font-weight-bold;
     text-transform: uppercase;

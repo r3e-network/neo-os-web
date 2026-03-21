@@ -38,14 +38,16 @@
 <script setup lang="ts">
 import { HeroSection, HeroStatsStrip, MiniAppPage, NeoCard, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
+import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import type { StatusMessage } from "@shared/composables/useStatusMessage";
 
 withDefaults(defineProps<{
   pageName: string;
-  templateConfig: object;
+  templateConfig: MiniAppTemplateConfig;
   appState: Record<string, unknown>;
   t: (key: string) => string;
-  status: unknown;
-  sidebarItems: unknown;
+  status: StatusMessage | null;
+  sidebarItems: Array<{ label: string; value: string | number | boolean | null | undefined }>;
   sidebarTitle: string;
   fallbackMessage: string;
   handleBoundaryError: (error: Error) => void;

@@ -24,7 +24,7 @@
       @remove="removeMilestone"
     />
 
-    <TotalDisplay :total="totalDisplay" :asset="localForm.asset" />
+    <TotalDisplay :total="totalDisplay" />
 
     <NeoInput v-model="localForm.notes" type="textarea" :label="t('notes')" :placeholder="t('notesPlaceholder')" />
   </FormCard>

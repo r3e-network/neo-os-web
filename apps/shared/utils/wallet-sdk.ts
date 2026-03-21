@@ -10,18 +10,26 @@
  * - Abstract Account (AA) via social login
  */
 import { ref, type Ref } from "vue";
-import { getMiniAppContractHash, getNetwork, getPaymentHubHash, getRpcUrl, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
+import { getMiniAppContractHash, getNetwork, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
 
 // Re-export types that were previously in @neo/types
 export interface WalletSDK {
   address: Ref<string | null>;
   chainType: Ref<string>;
+  /** Connected chain ID (e.g. "neo-n3-mainnet", "neo-n3-testnet") */
+  chainId?: Ref<string>;
+  /** App-specific chain ID override (e.g. for AA-based apps) */
+  appChainId?: Ref<string>;
   connect: () => Promise<void>;
   invokeContract: (params: InvokeParams) => Promise<InvokeResult>;
   invokeMultiple: (params: BatchInvokeParams) => Promise<InvokeResult>;
   invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
   getBalance: (asset: string) => Promise<string | number>;
   getContractAddress: () => Promise<string>;
+  /** Sign a message with the connected wallet */
+  signMessage?: (message: string) => Promise<{ publicKey?: string; data?: string } | null>;
+  /** Switch the wallet to a different chain/network */
+  switchToAppChain?: (chainId: string) => Promise<void>;
 }
 
 export interface InvokeParams {
@@ -234,7 +242,7 @@ async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
     }
     cachedManifest = (await response.json()) as MiniAppManifest;
     return cachedManifest;
-  } catch {
+  } catch (_e: unknown) {
     cachedManifest = null;
     return null;
   }
@@ -265,17 +273,24 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     // Wait for NeoLine to inject (up to 3 seconds)
     return new Promise((resolve, reject) => {
       let attempts = 0;
+      const timeoutId = setTimeout(() => {
+        clearInterval(check);
+        reject(new Error("NeoLine wallet not detected. Please install NeoLine extension."));
+      }, 3000);
       const check = setInterval(() => {
         if (window.neo3Dapi) {
           clearInterval(check);
+          clearTimeout(timeoutId);
           neoline = window.neo3Dapi;
           resolve(neoline);
         } else if (window.NEOLineN3) {
           clearInterval(check);
+          clearTimeout(timeoutId);
           neoline = new window.NEOLineN3.Init();
           resolve(neoline);
         } else if (++attempts > 30) {
           clearInterval(check);
+          clearTimeout(timeoutId);
           reject(new Error("NeoLine wallet not detected. Please install NeoLine extension."));
         }
       }, 100);
@@ -309,7 +324,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       throw new Error("Connected Neo wallet does not support invokeMultiple.");
     }
 
-    const result = await provider.call(nl, {
+    const result = await provider({
       invokeArgs: (params.invokeArgs ?? []).map((entry) => ({
         scriptHash: entry.scriptHash,
         operation: normalizeOperationName(entry.operation),
@@ -330,22 +345,26 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const getBalance = async (asset: string): Promise<string | number> => {
-    const nl = await ensureNeoLine();
-    if (!address.value) return "0";
+    try {
+      const nl = await ensureNeoLine();
+      if (!address.value) return "0";
 
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+      const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+      const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
-    const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
+      const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
-    const result = await nl.getBalance({
-      address: address.value,
-      contracts: [contractHash],
-    });
+      const result = await nl.getBalance({
+        address: address.value,
+        contracts: [contractHash],
+      });
 
-    const balances = Object.values(result).flat();
-    const match = balances.find((b) => b.contract === contractHash);
-    return match?.amount ?? "0";
+      const balances = Object.values(result).flat();
+      const match = balances.find((b) => b.contract === contractHash);
+      return match?.amount ?? "0";
+    } catch (_e: unknown) {
+      return "0";
+    }
   };
 
   const getContractAddress = async (): Promise<string> => {
@@ -361,7 +380,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const fallback = fallbackAppId ? getMiniAppContractHash(fallbackAppId, network) : "";
     if (fallback) return fallback;
 
-    throw new Error("Contract address unavailable");
+    throw new Error("Contract address not configured");
   };
 
   walletInstance = {
@@ -470,98 +489,45 @@ export interface PaymentResult {
 export function usePayments(appId?: string) {
   const wallet = useWallet();
 
-  const fetchApplicationLog = async (rpcUrl: string, txid: string) => {
-    const response = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "getapplicationlog",
-        params: [txid],
-        id: 1,
-      }),
-    });
-    const payload = await response.json();
-    if (!response.ok || payload.error) {
-      throw new Error(payload?.error?.message || "failed to fetch application log");
-    }
-    return payload.result;
-  };
-
-  const extractReceiptIdFromLog = (log: any, paymentHubHash: string): string => {
-    const executions = Array.isArray(log?.executions) ? log.executions : [];
-    for (const execution of executions) {
-      const notifications = Array.isArray(execution?.notifications) ? execution.notifications : [];
-      for (const notification of notifications) {
-        if (
-          String(notification?.contract || "").toLowerCase() === String(paymentHubHash || "").toLowerCase() &&
-          String(notification?.eventname || "") === "PaymentReceived"
-        ) {
-          const values = notification?.state?.value;
-          const receipt = Array.isArray(values) ? values[0] : null;
-          if (receipt?.type === "Integer") {
-            return String(receipt.value || "");
-          }
-        }
-      }
-    }
-    return "";
-  };
-
-  const waitForReceiptId = async (txid: string, paymentHubHash: string, timeoutMs = 30000): Promise<string> => {
-    const rpcUrl = getRpcUrl();
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      try {
-        const log = await fetchApplicationLog(rpcUrl, txid);
-        const receiptId = extractReceiptIdFromLog(log, paymentHubHash);
-        if (receiptId) return receiptId;
-      } catch {
-        // retry until timeout
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
-    throw new Error("Payment receipt not found");
-  };
-
   const payGAS = async (
     amount: string,
     memo: string,
-    paymentHubHash = getPaymentHubHash(),
+    targetContractHash = "",
     scopedAppId = appId || "miniapp",
   ): Promise<PaymentResult> => {
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const amountFixed8 = Math.round(parseFloat(amount) * 1e8).toString();
-    if (!paymentHubHash) {
-      throw new Error("PaymentHub address unavailable");
-    }
     if (!wallet.address.value) {
       await wallet.connect();
     }
+    const resolvedTargetHash = targetContractHash || await wallet.getContractAddress();
+    if (!resolvedTargetHash) {
+      throw new Error("MiniApp contract address unavailable");
+    }
+    const transferData = String(memo || scopedAppId || "miniapp");
 
     const result = await wallet.invokeContract({
       scriptHash: GAS_HASH,
       operation: "transfer",
       args: [
         { type: "Hash160", value: wallet.address.value },
-        { type: "Hash160", value: paymentHubHash },
+        { type: "Hash160", value: resolvedTargetHash },
         { type: "Integer", value: amountFixed8 },
-        { type: "String", value: scopedAppId },
+        { type: "String", value: transferData },
       ],
     });
 
     const txid = result.txid ?? "";
-    const receiptId = txid ? await waitForReceiptId(txid, paymentHubHash) : "";
 
     return {
       request_id: txid,
-      receipt_id: receiptId,
+      receipt_id: "",
       txid,
     };
   };
 
-  const processPayment = async (paymentHubHash: string, scopedAppId: string, amount: string, memo: string): Promise<PaymentResult> => {
-    return payGAS(amount, `${memo}`, paymentHubHash || getPaymentHubHash(getNetwork()), scopedAppId);
+  const processPayment = async (targetContractHash: string, scopedAppId: string, amount: string, memo: string): Promise<PaymentResult> => {
+    return payGAS(amount, `${memo}`, targetContractHash, scopedAppId);
   };
 
   return { payGAS, processPayment };
@@ -618,7 +584,7 @@ export function useEvents() {
             };
           }
         }
-      } catch {
+      } catch (_e: unknown) {
         // Fall through to platform API
       }
     }

@@ -8,6 +8,9 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useDoomsdayGame } from "@/composables/useDoomsdayGame";
 import { useDoomsdayTimer } from "@/composables/useDoomsdayTimer";
 
+// Blockchain confirm timing constant
+const WAIT_AFTER_TRANSFER_MS = 4000;
+
 export function useDoomsdayActions() {
   const { t } = createUseI18n(messages)();
   const { handleError, canRetry, clearError } = useErrorHandler();
@@ -97,7 +100,7 @@ export function useDoomsdayActions() {
 
       // The contract consumes direct prepaid GAS credit. Wait briefly so the
       // transfer is indexed before calling buyKeysWithCost.
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
 
       await game.invokeDirectly("buyKeysWithCost", [
         { type: "Hash160", value: game.address.value as string },

@@ -5,11 +5,17 @@
   --health-card-border: rgba(59, 130, 246, 0.28);
   --health-accent: #3b82f6;
   --health-accent-strong: #60a5fa;
+  --health-accent-soft: rgba(59, 130, 246, 0.15);
+  --health-accent-soft-strong: rgba(59, 130, 246, 0.25);
+  --health-accent-glow: rgba(59, 130, 246, 0.3);
+  --health-accent-glow-strong: rgba(59, 130, 246, 0.5);
   --health-text: #e2e8f0;
   --health-muted: rgba(226, 232, 240, 0.6);
   --health-success: #22c55e;
   --health-warning: #fbbf24;
   --health-danger: #f87171;
+  --bg-card-subtle: rgba(255, 255, 255, 0.04);
+  --border-subtle: rgba(255, 255, 255, 0.08);
 }
 
 :global(.theme-light .theme-wallet-health),
@@ -20,9 +26,15 @@
   --health-card-border: rgba(30, 64, 175, 0.18);
   --health-accent: #1d4ed8;
   --health-accent-strong: #2563eb;
+  --health-accent-soft: rgba(29, 78, 216, 0.12);
+  --health-accent-soft-strong: rgba(29, 78, 216, 0.2);
+  --health-accent-glow: rgba(29, 78, 216, 0.25);
+  --health-accent-glow-strong: rgba(29, 78, 216, 0.4);
   --health-text: #0f172a;
   --health-muted: rgba(15, 23, 42, 0.6);
   --health-success: #16a34a;
   --health-warning: #d97706;
   --health-danger: #dc2626;
+  --bg-card-subtle: rgba(15, 23, 42, 0.04);
+  --border-subtle: rgba(15, 23, 42, 0.08);
 }

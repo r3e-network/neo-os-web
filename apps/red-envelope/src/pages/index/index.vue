@@ -44,7 +44,7 @@
           </div>
           <!-- Sparkle decorations -->
           <div class="envelope-sparkles">
-            <span v-for="i in 5" :key="i" class="sparkle" :style="{ animationDelay: `${i * 0.3}s` }">✨</span>
+            <span v-for="i in 5" :key="i" class="sparkle" :style="{ animationDelay: `${i * 0.3}s` }" aria-hidden="true">✨</span>
           </div>
         </div>
 
@@ -204,34 +204,46 @@ const appState = computed(() => ({
 }));
 
 onMounted(async () => {
-  await loadEnvelopes();
+  try {
+    await loadEnvelopes();
 
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    if (id) {
-      const found = envelopes.value.find((e) => e.id === id);
-      if (found) {
-        openFromList(found);
-        activeTab.value = "myEnvelopes";
-      } else {
-        const contract = await ensureOpenContract();
-        const env = await loadEnvelopeDetails(contract, id);
-        if (env) {
-          openingEnvelope.value = env;
-          showOpeningModal.value = true;
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      if (id) {
+        const found = envelopes.value.find((e) => e.id === id);
+        if (found) {
+          openFromList(found);
           activeTab.value = "myEnvelopes";
+        } else {
+          const contract = await ensureOpenContract();
+          const env = await loadEnvelopeDetails(contract, id);
+          if (env) {
+            openingEnvelope.value = env;
+            showOpeningModal.value = true;
+            activeTab.value = "myEnvelopes";
+          }
         }
       }
     }
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
   }
 });
 
 watch(activeTab, async (tab) => {
   if (tab === "myEnvelopes") {
-    await loadEnvelopes();
+    try {
+      await loadEnvelopes();
+    } catch (_e: unknown) {
+      /* non-critical: envelopes load */
+    }
   } else if (tab === "claim") {
-    await loadEnvelopes();
+    try {
+      await loadEnvelopes();
+    } catch (_e: unknown) {
+      /* non-critical: envelopes load */
+    }
   }
 });
 </script>
@@ -477,6 +489,20 @@ watch(activeTab, async (tab) => {
   }
   .seal-character {
     font-size: 24px;
+  }
+  .hero-envelope-stats {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .hero-stat-value {
+    font-size: 18px;
+  }
+  .hero-stat-label {
+    font-size: 9px;
+  }
+  .hero-container {
+    min-height: 250px;
+    padding: 16px 12px;
   }
 }
 </style>

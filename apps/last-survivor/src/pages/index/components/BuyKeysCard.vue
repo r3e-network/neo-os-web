@@ -6,14 +6,14 @@
       @update:modelValue="$emit('update:keyCount', $event)"
       type="number"
       :placeholder="t('keyCountPlaceholder')"
-      suffix="Keys"
+      :suffix="t('keysSuffix')"
     />
     <div class="cost-row-glass">
       <span class="cost-label-glass">{{ t("estimatedCost") }}</span>
-      <span class="cost-value-glass">{{ estimatedCost }} GAS</span>
+      <span class="cost-value-glass">{{ estimatedCost }} {{ t("tokenGas") }}</span>
     </div>
     <span class="hint-text-glass">{{ t("keyPrice") }}</span>
-    <NeoButton variant="primary" size="lg" block @click="$emit('buy')" :disabled="isPaying">
+    <NeoButton variant="primary" size="lg" block type="button" @click="$emit('buy')" :disabled="isPaying" :aria-label="t('buyKeys')">
       {{ isPaying ? t("buying") : t("buyKeys") }}
     </NeoButton>
   </NeoCard>
@@ -21,15 +21,21 @@
 
 <script setup lang="ts">
 import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   keyCount: string;
   estimatedCost: string;
   isPaying: boolean;
-  t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["update:keyCount", "buy"]);
+defineEmits<{
+  (e: "update:keyCount", value: string): void;
+  (e: "buy"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

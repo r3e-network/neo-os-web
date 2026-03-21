@@ -32,14 +32,16 @@ const props = withDefaults(defineProps<Props>(), {
 const isVisible = ref(false);
 const instance = getCurrentInstance();
 let observer: ReturnType<typeof uni.createIntersectionObserver> | null = null;
+let outerTimer: ReturnType<typeof setTimeout> | undefined;
+let innerTimer: ReturnType<typeof setTimeout> | undefined;
 
 onMounted(() => {
   // Small delay to ensure DOM is ready
-  setTimeout(() => {
+  outerTimer = setTimeout(() => {
     if (!instance) return;
 
     // Failsafe: Ensure content shows up eventually if observer fails
-    setTimeout(() => {
+    innerTimer = setTimeout(() => {
       if (!isVisible.value) {
         isVisible.value = true;
       }
@@ -68,8 +70,17 @@ onMounted(() => {
 defineExpose({ isVisible });
 
 onUnmounted(() => {
+  if (outerTimer !== undefined) {
+    clearTimeout(outerTimer);
+    outerTimer = undefined;
+  }
+  if (innerTimer !== undefined) {
+    clearTimeout(innerTimer);
+    innerTimer = undefined;
+  }
   if (observer) {
     observer.disconnect();
+    observer = null;
   }
 });
 </script>

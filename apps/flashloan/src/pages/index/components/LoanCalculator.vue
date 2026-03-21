@@ -10,6 +10,7 @@
             v-model="amount"
             class="calculator-input"
             :placeholder="t('enterAmount')"
+            :aria-label="t('loanAmount')"
           />
         </div>
         <div class="input-group">
@@ -19,17 +20,18 @@
             v-model="duration"
             class="calculator-input"
             :placeholder="t('enterDuration')"
+            :aria-label="t('duration')"
           />
         </div>
       </div>
       <div class="calculator-results" v-if="calculatedFee > 0">
         <div class="result-item">
           <span class="result-label">{{ t('estimatedFee') }}</span>
-          <span class="result-value">{{ formatGas(calculatedFee) }} GAS</span>
+          <span class="result-value">{{ formatGas(calculatedFee) }} {{ t("tokenGas") }}</span>
         </div>
         <div class="result-item">
           <span class="result-label">{{ t('totalRepayment') }}</span>
-          <span class="result-value">{{ formatGas(calculatedTotal) }} GAS</span>
+          <span class="result-value">{{ formatGas(calculatedTotal) }} {{ t("tokenGas") }}</span>
         </div>
       </div>
     </NeoCard>

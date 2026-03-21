@@ -1,7 +1,7 @@
 <template>
   <div class="total-row">
     <span class="total-label">{{ t("totalAmount") }}</span>
-    <span class="total-value">{{ total }} {{ asset }}</span>
+    <span class="total-value">{{ total }} {{ t("tokenGas") }}</span>
     <span class="total-hint">{{ t("totalHint") }}</span>
   </div>
 </template>
@@ -12,8 +12,9 @@ import { messages } from "@/locale/messages";
 
 defineProps<{
   total: string;
-  asset: string;
 }>();
+
+// asset prop removed — token label always uses i18n
 
 const { t } = createUseI18n(messages)();
 </script>

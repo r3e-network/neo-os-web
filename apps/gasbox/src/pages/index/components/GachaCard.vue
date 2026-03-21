@@ -1,13 +1,13 @@
 <template>
-  <NeoCard variant="erobo" class="machine-card" @click="$emit('select', machine)">
+  <NeoCard variant="erobo" class="machine-card" hoverable @click="$emit('select', machine)">
     <div class="card-header">
       <div class="machine-icon-wrapper">
-        <span class="machine-icon">🎰</span>
+        <span class="machine-icon" aria-hidden="true">🎰</span>
       </div>
       <div class="machine-info">
         <span class="machine-name">{{ machine.name }}</span>
         <span v-if="machine.category" class="machine-category">{{ machine.category }}</span>
-        <span class="machine-creator">{{ t("byLabel") }} {{ formatAddress(machine.creator) }}</span>
+        <span class="machine-creator">{{ t("byLabel") }} {{ machine.creator ? formatAddress(machine.creator) : t("notAvailable") }}</span>
       </div>
     </div>
 
@@ -25,9 +25,9 @@
     <div class="card-footer">
       <div class="price-tag">
         <span class="price-amount">{{ machine.price }}</span>
-        <span class="price-unit">GAS</span>
+        <span class="price-unit">{{ t("tokenGas") }}</span>
       </div>
-      <span v-if="machine.forSale" class="sale-hint">{{ t("forSale") }} · {{ machine.salePrice }} GAS</span>
+      <span v-if="machine.forSale" class="sale-hint">{{ t("forSale") }} · {{ machine.salePrice }} {{ t("tokenGas") }}</span>
       <span v-else class="play-hint">{{ t("tapToPlay") }}</span>
     </div>
   </NeoCard>
@@ -56,7 +56,20 @@ defineProps<{
   };
 }>();
 
-defineEmits(["select"]);
+defineEmits<{
+  (e: "select", machine: {
+    id: string;
+    name: string;
+    category?: string;
+    creator: string;
+    topPrize?: string;
+    plays?: number;
+    price: string;
+    itemCount: number;
+    forSale?: boolean;
+    salePrice?: string;
+  }): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

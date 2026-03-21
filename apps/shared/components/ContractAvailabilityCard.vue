@@ -5,14 +5,23 @@ interface Props {
   title: string;
   description: string;
   compact?: boolean;
+  eyebrowKey?: string;
+  t?: (key: string) => string;
 }
 
-defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  eyebrowKey: "onChainStatus",
+});
 </script>
 
 <template>
-  <NeoCard variant="erobo" class="contract-availability-card" :class="{ 'contract-availability-card--compact': compact }">
-    <span class="contract-availability-card__eyebrow">ON-CHAIN STATUS</span>
+  <NeoCard
+    variant="erobo"
+    class="contract-availability-card"
+    :class="{ 'contract-availability-card--compact': compact }"
+    :aria-label="title"
+  >
+    <span class="contract-availability-card__eyebrow">{{ props.t ? props.t(props.eyebrowKey) : props.eyebrowKey }}</span>
     <h3 class="contract-availability-card__title">{{ title }}</h3>
     <p class="contract-availability-card__description">{{ description }}</p>
   </NeoCard>

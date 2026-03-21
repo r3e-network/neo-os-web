@@ -6,7 +6,7 @@
       class="milestone-item"
     >
       <div>
-        <span class="milestone-label">#{{ index + 1 }}</span>
+        <span class="milestone-label">{{ t("idPrefix") }}{{ index + 1 }}</span>
         <span class="milestone-amount">{{ formatAmountFunc(escrow.assetSymbol, amount) }} {{ escrow.assetSymbol }}</span>
       </div>
       <div class="milestone-actions">

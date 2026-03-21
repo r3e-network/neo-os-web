@@ -144,7 +144,7 @@ export function useBreakupContract(t: (key: string) => string) {
       }
       contracts.value = contractViews;
     } catch (e: unknown) {
-      setStatus(t("loadFailed"), "error");
+      setStatus(formatErrorMessage(e, t("loadFailed")), "error");
     }
   };
 

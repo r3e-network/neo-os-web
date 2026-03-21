@@ -28,15 +28,15 @@
           <!-- Left: Locked NEO -->
           <div class="hero-asset-card locked">
             <div class="asset-icon-ring">
-              <span class="asset-icon">🔒</span>
+              <span class="asset-icon" aria-hidden="true">🔒</span>
             </div>
             <span class="asset-amount">{{ fmt(core.loan.value?.collateralLocked ?? 0) }}</span>
-            <span class="asset-token">NEO</span>
+            <span class="asset-token">{{ t("tokenNeo") }}</span>
             <span class="asset-label">{{ t("locked") }}</span>
           </div>
 
           <!-- Center: Health Gauge -->
-          <div class="hero-health-gauge">
+          <div class="hero-health-gauge" aria-hidden="true">
             <svg viewBox="0 0 120 120" class="gauge-svg">
               <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" />
               <circle
@@ -53,7 +53,7 @@
               />
             </svg>
             <div class="gauge-center">
-              <span class="gauge-value">{{ core.healthFactor.value ?? "—" }}</span>
+              <span class="gauge-value">{{ core.healthFactor.value ?? t("notAvailable") }}</span>
               <span class="gauge-label">{{ t("healthFactor") }}</span>
             </div>
           </div>
@@ -64,7 +64,7 @@
               <span class="asset-icon">↗</span>
             </div>
             <span class="asset-amount">{{ fmt(core.loan.value?.borrowed ?? 0) }}</span>
-            <span class="asset-token">GAS</span>
+            <span class="asset-token">{{ t("tokenGas") }}</span>
             <span class="asset-label">{{ t("totalBorrowed") }}</span>
           </div>
         </div>
@@ -72,8 +72,8 @@
         <!-- LTV Bar -->
         <div class="hero-ltv-bar">
           <div class="ltv-header">
-            <span class="ltv-label">LTV</span>
-            <span class="ltv-value">{{ core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—" }}</span>
+            <span class="ltv-label">{{ t("ltvLabel") }}</span>
+            <span class="ltv-value">{{ core.currentLTV.value != null ? `${core.currentLTV.value}%` : t("notAvailable") }}</span>
           </div>
           <div class="ltv-track">
             <div class="ltv-fill" :style="{ width: `${Math.min(core.currentLTV.value ?? 0, 100)}%` }" />
@@ -116,8 +116,8 @@
       <StatsTab :row-items="statsRowItems" :rows-title="t('loanStatsTitle')">
         <div class="stats-card">
           <span class="stats-title">{{ t("loanHistory") }}</span>
-          <div v-for="(item, idx) in history.loanHistory.value" :key="idx" class="history-item">
-            <span>{{ item.icon }} {{ item.label }}: {{ fmt(item.amount as number) }} GAS - {{ item.timestamp }}</span>
+          <div v-for="item in history.loanHistory.value" :key="item.timestamp" class="history-item">
+            <span>{{ item.icon }} {{ item.label }}: {{ fmt(item.amount as number) }} {{ t("tokenGas") }} - {{ item.timestamp }}</span>
           </div>
           <span v-if="history.loanHistory.value.length === 0" class="empty-text">{{ t("noHistory") }}</span>
         </div>
@@ -185,9 +185,9 @@ const {
   },
   sidebarItems: [
     { labelKey: "sidebarHasLoan", value: () => (core.loan.value ? t("sidebarYes") : t("sidebarNo")) },
-    { labelKey: "sidebarNeoBalance", value: () => core.neoBalance.value ?? "—" },
-    { labelKey: "healthFactor", value: () => core.healthFactor.value ?? "—" },
-    { labelKey: "currentLTV", value: () => (core.currentLTV.value != null ? `${core.currentLTV.value}%` : "—") },
+    { labelKey: "sidebarNeoBalance", value: () => core.neoBalance.value ?? t("notAvailable") },
+    { labelKey: "healthFactor", value: () => core.healthFactor.value ?? t("notAvailable") },
+    { labelKey: "currentLTV", value: () => (core.currentLTV.value != null ? `${core.currentLTV.value}%` : t("notAvailable")) },
   ],
   fallbackMessageKey: "selfLoanErrorFallback",
   statusTimeoutMs: 5000,
@@ -202,8 +202,8 @@ const validationError = ref<string | null>(null);
 
 const statsRowItems = computed<StatsDisplayItem[]>(() => [
   { label: t("totalLoans"), value: history.stats.value.totalLoans },
-  { label: t("totalBorrowed"), value: `${fmt(history.stats.value.totalBorrowed)} GAS` },
-  { label: t("totalRepaid"), value: `${fmt(history.stats.value.totalRepaid)} GAS` },
+  { label: t("totalBorrowed"), value: `${fmt(history.stats.value.totalBorrowed)} ${t("tokenGas")}` },
+  { label: t("totalRepaid"), value: `${fmt(history.stats.value.totalRepaid)} ${t("tokenGas")}` },
 ]);
 
 const handleTakeLoan = async () => {

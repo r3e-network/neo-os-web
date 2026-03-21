@@ -4,7 +4,7 @@
 
     <NeoCard v-if="result.type === 'transaction'" variant="erobo" class="mb-6">
       <template #header-extra>
-        <span :class="['vm-state-neo', result.data.vmState]">{{ result.data.vmState }}</span>
+        <span :class="['vm-state-neo', result.data.vmState]">{{ getVmStateLabel(result.data.vmState) }}</span>
       </template>
 
       <div class="result-rows">
@@ -58,12 +58,30 @@
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
 
-defineProps<{
+const props = defineProps<{
   result: Record<string, unknown> | null;
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["viewTx"]);
+defineEmits<{
+  (e: "viewTx", hash: string): void;
+}>();
+
+const formatTime = (time: string) => {
+  const d = new Date(time);
+  return new Intl.DateTimeFormat("en").format(d);
+};
+
+const truncateHash = (hash: string) => {
+  if (!hash) return "";
+  return `${hash.slice(0, 10)}${props.t("hashEllipsis")}${hash.slice(-8)}`;
+};
+
+const getVmStateLabel = (vmState: string) => {
+  if (vmState === "HALT") return props.t("vmHalt");
+  if (vmState === "FAULT") return props.t("vmFault");
+  return vmState;
+};
 </script>
 
 <style lang="scss" scoped>

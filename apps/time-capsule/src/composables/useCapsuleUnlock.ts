@@ -55,7 +55,7 @@ export function useCapsuleUnlock() {
         }
       }
       return normalized;
-    } catch {
+    } catch (_e: unknown) {
       /* Local storage parse failure — start with empty content map */
       return {};
     }
@@ -138,7 +138,7 @@ export function useCapsuleUnlock() {
       if (match) {
         const values = Array.isArray(match?.state) ? match.state.map(parseStackItem) : [];
         const fishedId = String(values[1] || "");
-        onStatus?.(t("fishResult").replace("{id}", fishedId || "?"), "success");
+        onStatus?.(t("fishResult", { id: fishedId || "?" }), "success");
       } else {
         onStatus?.(t("fishNone"), "success");
       }
@@ -164,7 +164,7 @@ export function useCapsuleUnlock() {
     const isPublic = typeof data.isPublic === "boolean" ? data.isPublic : Boolean(data.isPublic ?? fallback?.isPublic);
     const revealed = Boolean(data.isRevealed);
     const title = String(data.title || "");
-    const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : "N/A";
+    const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : t("notAvailable");
     const content = contentHash ? localContent.value[contentHash] : "";
 
     return {
@@ -201,7 +201,7 @@ export function useCapsuleUnlock() {
               const data = parsed as Record<string, unknown>;
               return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
             }
-          } catch {
+          } catch (_e: unknown) {
             // fallback to event values
           }
 
@@ -229,7 +229,7 @@ export function useCapsuleUnlock() {
       }
 
       return resolvedCapsules.sort((a, b) => Number(b.id) - Number(a.id));
-    } catch {
+    } catch (_e: unknown) {
       return [];
     }
   };

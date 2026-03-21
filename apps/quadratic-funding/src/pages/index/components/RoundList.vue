@@ -2,13 +2,18 @@
   <NeoCard variant="erobo" class="round-list">
     <div class="rounds-header">
       <span class="section-title">{{ t("roundsTitle") }}</span>
-      <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="emitRefresh">
+      <NeoButton size="sm" variant="secondary" type="button" :loading="isRefreshing" @click="emitRefresh">
         {{ t("refresh") }}
       </NeoButton>
     </div>
 
+    <!--
+      ItemList expects Record<string, unknown>[] but we have RoundItem[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from RoundItem[] to unknown first.
+    -->
     <ItemList
-      :items="rounds as unknown as Record<string, unknown>[]"
+      :items="(rounds as unknown) as Record<string, unknown>[]"
       item-key="id"
       :empty-text="t('emptyRounds')"
       :aria-label="t('ariaRounds')"
@@ -26,7 +31,7 @@
                 (item as unknown as RoundItem).title || `#${(item as unknown as RoundItem).id}`
               }}</span>
               <span class="round-subtitle"
-                >#{{ (item as unknown as RoundItem).id }} · {{ (item as unknown as RoundItem).assetSymbol }}</span
+                >#{{ (item as unknown as RoundItem).id }} · {{ assetLabel }}</span
           >
             </div>
             <span :class="['status-pill', (item as unknown as RoundItem).status]">{{
@@ -34,7 +39,7 @@
             }}</span>
           </div>
 
-          <span class="round-desc">{{ (item as unknown as RoundItem).description || "--" }}</span>
+          <span class="round-desc">{{ (item as unknown as RoundItem).description || t("notAvailable") }}</span>
 
           <div class="round-metrics">
             <div>
@@ -43,7 +48,7 @@
                 >{{
                   formatAmount((item as unknown as RoundItem).assetSymbol, (item as unknown as RoundItem).matchingPool)
                 }}
-                {{ (item as unknown as RoundItem).assetSymbol }}</span
+                {{ assetLabel }}</span
           >
             </div>
             <div>
@@ -55,7 +60,7 @@
                     (item as unknown as RoundItem).matchingRemaining
                   )
                 }}
-                {{ (item as unknown as RoundItem).assetSymbol }}</span
+                {{ assetLabel }}</span
           >
             </div>
             <div>
@@ -67,7 +72,7 @@
                     (item as unknown as RoundItem).totalContributed
                   )
                 }}
-                {{ (item as unknown as RoundItem).assetSymbol }}</span
+                {{ assetLabel }}</span
           >
             </div>
             <div>
@@ -89,7 +94,7 @@
           </div>
 
           <div class="round-actions">
-            <NeoButton size="sm" variant="secondary" @click="emitSelect(item as unknown as RoundItem)">
+            <NeoButton size="sm" variant="secondary" type="button" @click="emitSelect(item as unknown as RoundItem)">
               {{ selectedRoundId === (item as unknown as RoundItem).id ? t("selectedRound") : t("selectRound") }}
             </NeoButton>
           </div>
@@ -100,6 +105,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { NeoCard, NeoButton, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -135,6 +141,9 @@ const emit = defineEmits<{
 }>();
 
 const { t } = createUseI18n(messages)();
+
+// Maps on-chain assetSymbol (always "GAS") to i18n token label
+const assetLabel = computed(() => t("tokenGas"));
 
 const emitRefresh = () => emit("refresh");
 </script>
@@ -242,27 +251,27 @@ const emitRefresh = () => emit("refresh");
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  background: rgba(20, 184, 166, 0.2);
+  background: var(--qf-accent-soft, rgba(20, 184, 166, 0.2));
   color: var(--qf-accent);
 }
 
 .status-pill.upcoming {
-  background: rgba(59, 130, 246, 0.2);
+  background: var(--qf-info-soft, rgba(59, 130, 246, 0.2));
   color: var(--qf-info);
 }
 
 .status-pill.ended {
-  background: rgba(251, 191, 36, 0.2);
+  background: var(--qf-warn-soft, rgba(251, 191, 36, 0.2));
   color: var(--qf-warn);
 }
 
 .status-pill.finalized {
-  background: rgba(34, 197, 94, 0.2);
+  background: var(--qf-success-soft, rgba(34, 197, 94, 0.2));
   color: var(--qf-success);
 }
 
 .status-pill.cancelled {
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--qf-danger-soft, rgba(239, 68, 68, 0.2));
   color: var(--qf-danger);
 }
 

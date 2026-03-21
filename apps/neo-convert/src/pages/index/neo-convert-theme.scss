@@ -1,4 +1,7 @@
 :global(.theme-neo-convert) {
+  --erobo-purple: #9f9df3;
+  --erobo-purple-dark: #7c7ce0;
+  --erobo-gradient: linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%);
   --convert-hero-gradient: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
   --convert-label: var(--erobo-purple);
   --convert-success: #00e599;

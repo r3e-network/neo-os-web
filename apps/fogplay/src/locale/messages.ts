@@ -12,6 +12,7 @@ const appMessages = {
   betAmountPlaceholder: { en: "0.05", zh: "0.05" },
   heads: { en: "Heads", zh: "正面" },
   tails: { en: "Tails", zh: "反面" },
+  vs: { en: "VS", zh: "VS" },
   flipping: { en: "Flipping...", zh: "抛掷中..." },
   flipCoin: { en: "Flip Coin", zh: "迷雾对决" },
   initiateBet: { en: "Place Bet", zh: "下注" },
@@ -50,10 +51,12 @@ const appMessages = {
   connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包开始游戏" },
   flipFailed: { en: "Flip failed", zh: "翻转失败" },
   invalidAmountNumber: { en: "Enter a valid number", zh: "请输入有效数字" },
-  minBetError: { en: "Minimum bet is {min} GAS", zh: "最低下注 {min} GAS" },
-  maxBetError: { en: "Maximum bet is {max} GAS", zh: "最高下注 {max} GAS" },
+  minBetError: { en: "Minimum bet is {min} {tokenGas}", zh: "最低下注 {min} {tokenGas}" },
+  maxBetError: { en: "Maximum bet is {max} {tokenGas}", zh: "最高下注 {max} {tokenGas}" },
   invalidAmountDecimals: { en: "Maximum 8 decimal places", zh: "最多8位小数" },
   gameErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  wagerRange: { en: "0.1 - 100", zh: "0.1 - 100" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

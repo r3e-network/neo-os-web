@@ -98,6 +98,7 @@ const appMessages = {
   sidebarEvents: { en: "Events", zh: "活动" },
   sidebarTickets: { en: "Tickets", zh: "门票" },
   sidebarActive: { en: "Active", zh: "进行中" },
+  eventPass: { en: "EVENT PASS", zh: "活动通行证" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

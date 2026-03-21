@@ -1,18 +1,18 @@
 <template>
   <ActionModal :visible="visible" :title="t('wpTitle')" variant="warning" :closeable="true" @close="$emit('close')">
-    <div class="wallet-prompt" role="alert" aria-live="polite">
+    <div class="wallet-prompt" role="status" aria-live="polite">
       <span class="wallet-prompt__desc">
         {{ message || t("wpDescription") }}
       </span>
 
-      <NeoButton variant="primary" size="lg" class="wallet-prompt__btn" :loading="loading" @click="handleConnect">
+      <NeoButton variant="primary" size="lg" type="button" class="wallet-prompt__btn" :loading="loading" @click="handleConnect" :aria-label="t('wpConnect')">
         <AppIcon name="wallet" :size="18" />
         {{ t("wpConnect") }}
       </NeoButton>
     </div>
 
     <template #actions>
-      <NeoButton variant="ghost" size="sm" @click="$emit('close')">
+      <NeoButton variant="ghost" size="sm" type="button" @click="$emit('close')" :aria-label="t('wpCancel')">
         {{ t("wpCancel") }}
       </NeoButton>
     </template>

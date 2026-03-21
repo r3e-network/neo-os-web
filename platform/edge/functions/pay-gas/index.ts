@@ -1,6 +1,6 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { normalizeUInt160 } from "../_shared/contracts.ts";
-import { mustGetEnv, getEnv } from "../_shared/env.ts";
+import { getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
@@ -24,10 +24,8 @@ const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 // - returns an invocation "intent" for the SDK/wallet to sign and submit
 //
 // Current scope:
-// - prefer direct prepaid GAS transfer to the MiniApp contract when the
-//   registered manifest exposes a contract hash
-// - fall back to the legacy PaymentHub path when a receipt-oriented app still
-//   lacks a direct contract target
+// - require direct prepaid GAS transfer to the MiniApp contract
+// - do not fall back to historical PaymentHub settlement
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -77,22 +75,21 @@ export async function handler(req: Request): Promise<Response> {
   if (usageErr) return usageErr;
 
   const gasContractHash = normalizeUInt160(getEnv("CONTRACT_GAS_HASH") ?? NEO_TESTNET_GAS_HASH);
-  const paymentHubHash = normalizeUInt160(mustGetEnv("CONTRACT_PAYMENTHUB_HASH"));
   const directTargetHash = normalizeUInt160(policy?.contractHash ?? "");
-  const targetHash = directTargetHash || paymentHubHash;
-  const paymentMode = directTargetHash ? "direct_prepaid" : "legacy_receipt";
+  if (!directTargetHash) {
+    return error(409, "app contract hash required for direct prepaid GAS", "CONTRACT_TARGET_REQUIRED", req);
+  }
+  const paymentMode = "direct_prepaid";
+  const transferData = String(body.memo ?? "").trim() || appId;
 
   const requestId = crypto.randomUUID();
 
   // GAS.Transfer flow:
   // The wallet will call GAS.Transfer(from, to, amount, data)
   // - from: user's wallet address (filled by wallet at signing time)
-  // - to: MiniApp contract for direct prepaid flows, otherwise PaymentHub
+  // - to: MiniApp contract
   // - amount: payment amount in GAS fractions (8 decimals)
-  // - data: appId string (used by OnNEP17Payment to identify the MiniApp)
-  //
-  // Note: memo is not passed through GAS.Transfer to keep the data simple
-  // and avoid Neo VM CONVERT errors. The appId is sufficient for routing.
+  // - data: app-specific memo or appId for OnNEP17Payment routing
   return json(
     {
       request_id: requestId,
@@ -108,12 +105,12 @@ export async function handler(req: Request): Promise<Response> {
         params: [
           // from: will be filled by wallet with user's address
           { type: "Hash160", value: "SENDER" },
-          // to: MiniApp contract for direct prepaid flows, otherwise PaymentHub
-          { type: "Hash160", value: targetHash },
+          // to: MiniApp contract
+          { type: "Hash160", value: directTargetHash },
           // amount: GAS amount in fractions (8 decimals)
           { type: "Integer", value: amount.toString() },
-          // data: appId for OnNEP17Payment callback
-          { type: "String", value: appId },
+          // data: app-specific payment routing string
+          { type: "String", value: transferData },
         ],
       },
     },

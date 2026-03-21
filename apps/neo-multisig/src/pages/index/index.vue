@@ -18,11 +18,11 @@
           <template #background>
             <div class="multisig-scene" aria-hidden="true">
               <div class="key-group">
-                <span class="key-icon key-icon--active">🔑</span>
-                <span class="key-icon key-icon--active">🔑</span>
-                <span class="key-icon key-icon--inactive">🔑</span>
+                <span class="key-icon key-icon--active" aria-hidden="true">🔑</span>
+                <span class="key-icon key-icon--active" aria-hidden="true">🔑</span>
+                <span class="key-icon key-icon--inactive" aria-hidden="true">🔑</span>
               </div>
-              <span class="key-label">2 of 3</span>
+              <span class="key-label">{{ t("multisigThreshold") }}</span>
             </div>
           </template>
           <template #stats>
@@ -117,11 +117,8 @@ const multisigStats = computed<StatsDisplayItem[]>(() => [
   { label: t("statPending"), value: pendingCount.value },
   { label: t("statCompleted"), value: completedCount.value },
 ]);
-const handleTabChange = (tabId: string) => {
-  if (tabId === "docs") {
-    uni.navigateTo({ url: "/pages/docs/index" });
-    return;
-  }
+const handleTabChange = (_tabId: string) => {
+  // no-op: docs tab removed, kept for future use
 };
 const openHistory = (id: string) => {
   uni.navigateTo({ url: `/pages/sign/index?id=${id}` });

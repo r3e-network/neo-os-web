@@ -2,8 +2,8 @@
 #
 # Platform-owned Neo N3 testnet verification.
 # Preferred direct Oracle / direct AA validation now lives in deploy/scripts/verify_cross_repo_testnet.sh.
-# This script checks only platform-native flows:
-# - PaymentHub GAS
+# This script checks only platform-native flows that still matter for the
+# current direct MiniApp architecture:
 # - Governance
 # - PriceFeed availability
 #
@@ -87,7 +87,6 @@ require_env() {
 }
 
 require_env "NEO_TESTNET_WIF"
-require_env "CONTRACT_PAYMENTHUB_HASH"
 require_env "CONTRACT_GOVERNANCE_HASH"
 require_env "CONTRACT_APPREGISTRY_HASH"
 
@@ -189,9 +188,6 @@ run_step "PriceFeed watchdog pre-flight" \
 
 run_step "Stats rollup pre-flight" \
   run_stats_rollup_check
-
-run_step "PaymentHub GAS flow" \
-  go run "$SCRIPT_DIR/send_paymenthub_gas.go"
 
 run_step "Governance (stake + vote)" \
   go run -tags=scripts "$SCRIPT_DIR/validate_miniapp_workflows.go" --workflow=governance

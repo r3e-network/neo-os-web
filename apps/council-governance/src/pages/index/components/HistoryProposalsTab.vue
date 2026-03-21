@@ -3,7 +3,7 @@
     <div v-if="proposals.length === 0" class="empty-state">
       {{ t("noHistory") }}
     </div>
-    <NeoCard v-for="p in proposals" :key="p.id" class="mb-6" variant="erobo" @click="$emit('select', p)">
+    <NeoCard v-for="p in proposals" :key="p.id" class="mb-6" variant="erobo" hoverable @click="$emit('select', p)">
       <div class="proposal-header-neo">
         <StatusBadge :status="getStatusBadgeStatus(p.status)" :label="getStatusText(p.status)" />
         <span class="proposal-id-neo">#{{ p.id }}</span>

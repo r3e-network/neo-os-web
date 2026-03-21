@@ -151,10 +151,14 @@ const appState = computed(() => ({
 }));
 
 const resetAndReload = async () => {
-  await connect();
-  if (address.value) {
-    await refreshTemplates();
-    await refreshCertificates();
+  try {
+    await connect();
+    if (address.value) {
+      await refreshTemplates();
+      await refreshCertificates();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: reload certificate data */
   }
 };
 
@@ -164,22 +168,34 @@ const openIssueModal = (template: { id: string }) => {
 };
 const onTabChange = async (tab: string) => {
   activeTab.value = tab;
-  if (tab === "templates") await refreshTemplates();
-  if (tab === "certificates") await refreshCertificates();
+  try {
+    if (tab === "templates") await refreshTemplates();
+    if (tab === "certificates") await refreshCertificates();
+  } catch (_e: unknown) {
+    /* non-critical: tab change handler */
+  }
 };
 
 onMounted(async () => {
-  await connect();
-  if (address.value) {
-    await refreshTemplates();
-    await refreshCertificates();
+  try {
+    await connect();
+    if (address.value) {
+      await refreshTemplates();
+      await refreshCertificates();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
   }
 });
 
 watch(address, async (newAddr) => {
   if (newAddr) {
-    await refreshTemplates();
-    await refreshCertificates();
+    try {
+      await refreshTemplates();
+      await refreshCertificates();
+    } catch (_e: unknown) {
+      /* non-critical: address change handler */
+    }
   } else {
     templates.value = [];
     certificates.value = [];
@@ -222,7 +238,7 @@ watch(address, async (newAddr) => {
 .cert-ribbon {
   width: 30px;
   height: 20px;
-  background: linear-gradient(135deg, #9f9df3, #f7aac7);
+  background: linear-gradient(135deg, var(--soul-accent, #9f9df3), var(--soul-accent-secondary, #f7aac7));
   clip-path: polygon(0 0, 100% 0, 80% 100%, 50% 70%, 20% 100%);
 }
 
@@ -236,7 +252,7 @@ watch(address, async (newAddr) => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #9f9df3;
+  color: var(--soul-accent, #9f9df3);
   margin-top: -8px;
 }
 

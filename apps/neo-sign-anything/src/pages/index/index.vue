@@ -16,8 +16,8 @@
         <HeroSection variant="erobo" compact>
           <template #background>
             <div class="sign-scene" aria-hidden="true">
-              <div class="pen-graphic">✒️</div>
-              <div class="checkmark-graphic">✓</div>
+              <div class="pen-graphic" aria-hidden="true">✒️</div>
+              <div class="checkmark-graphic" aria-hidden="true">✓</div>
             </div>
           </template>
         </HeroSection>
@@ -32,9 +32,9 @@
         <NeoCard variant="erobo-neo">
           <div class="result-header">
             <span class="result-title">{{ t("signatureResult") }}</span>
-            <div class="copy-btn" @click="copyToClipboard(signature)">
+            <button type="button" class="copy-btn" :aria-label="t('copySignature')" @click="copyToClipboard(signature)">
               <span class="copy-text">{{ t("copy") }}</span>
-            </div>
+            </button>
           </div>
           <span class="result-text">{{ signature }}</span>
         </NeoCard>
@@ -44,9 +44,9 @@
         <NeoCard variant="erobo-purple">
           <div class="result-header">
             <span class="result-title">{{ t("broadcastResult") }}</span>
-            <div class="copy-btn" @click="copyToClipboard(txHash)">
+            <button type="button" class="copy-btn" :aria-label="t('copyTxHash')" @click="copyToClipboard(txHash)">
               <span class="copy-text">{{ t("copy") }}</span>
-            </div>
+            </button>
           </div>
           <span class="result-text">{{ txHash }}</span>
           <span class="success-msg">{{ t("broadcastSuccess") }}</span>

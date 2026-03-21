@@ -88,9 +88,9 @@ Relationship commitment with GAS stakes
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x84a3864028b7b71e9f420056e1eae2e3e3113a0c` |
+| **Contract** | `0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8` |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x84a3864028b7b71e9f420056e1eae2e3e3113a0c) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8) |
 | **Network Magic** | `894710606` |
 
 ### Mainnet

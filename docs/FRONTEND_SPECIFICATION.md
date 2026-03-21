@@ -111,18 +111,11 @@ User flow:
 2. the contract records prepaid credit in `OnNEP17Payment`
 3. the frontend invokes the follow-up contract method
 
-### 2. Legacy receipt flow
+### 2. Historical receipt flow
 
-Still used by a smaller compatibility set and a few secondary resale/payment
-paths. It is no longer the default flagship path.
-
-User flow:
-
-1. wallet signs GAS transfer to `PaymentHub`
-2. frontend reads the emitted numeric `receiptId`
-3. frontend calls the miniapp contract with that `receiptId`
-
-The frontend must never treat a payment tx hash as a `receiptId`.
+Older documentation referenced a `PaymentHub` receipt path. That is no longer
+part of the current flagship payment architecture and should not be used for
+new MiniApps.
 
 ## Featured Catalog Policy
 
@@ -169,7 +162,7 @@ Current flagship payment matrix:
 
 - Direct prepaid GAS: FogPlay, Red Envelope, Daily Check-in, Self Loan, NeoPay
 - Direct prepaid GAS with `receiptId=0` ABI placeholder: LastSurvivor buy flow, GASBOX spin flow
-- Legacy receipt compatibility only: older apps and a few secondary flows such as GASBOX machine resale
+- Historical compatibility only: some older docs and dormant resale paths still mention receipt ids, but they are not part of the flagship flow set
 
 When there is any conflict between older screenshots, older docs, and runtime
 behavior, the manifest + host definitions + live validation report win.
@@ -189,7 +182,6 @@ The frontend currently does **not** promise:
 
 - full App Router migration
 - universal AA execution for every miniapp
-- universal PaymentHub settlement for every miniapp
 - dark-pattern-heavy gamification or speculative catalog counts
 - broad “future roadmap” features that are not already present in code
 

@@ -16,6 +16,6 @@ const props = defineProps<{
 const statsItems = computed<StatsDisplayItem[]>(() => [
   { label: props.t("totalGames"), value: props.readingsCount },
   { label: props.t("cardsDrawnCount"), value: props.readingsCount * 3 },
-  { label: props.t("totalSpent"), value: `${(props.readingsCount * 0.05).toFixed(2)} GAS` },
+  { label: props.t("totalSpent"), value: `${(props.readingsCount * 0.05).toFixed(2)} ${props.t("tokenGas")}` },
 ]);
 </script>

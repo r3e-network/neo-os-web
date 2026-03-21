@@ -123,6 +123,9 @@ const appMessages = {
     en: "TrustAnchor exists to make stake routing explicit. No hidden weight knobs, no per-candidate child contracts, and no fee skim. Every change in voting exposure should correspond to a real transfer between verification-script agent accounts.",
     zh: "TrustAnchor 的目标是把质押路由显式化。不使用隐藏权重开关，不使用每候选人一个子合约，也不抽手续费。每一次投票敞口变化都应该对应 verification-script agent 账户之间的一次真实转账。",
   },
+  invalidAmount: { en: "NEO is indivisible — enter a whole number", zh: "NEO 不可分割 — 请输入整数" },
+  tokenNeo: { en: "NEO", zh: "NEO" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

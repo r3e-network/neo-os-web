@@ -11,8 +11,8 @@
     :handle-boundary-error="handleBoundaryError"
     :reset-status="resetStatus"
     hero-mode="bridge"
-    bridge-left-label="N3"
-    bridge-right-label="X"
+    :bridge-left-label="t('bridgeLeftLabel')"
+    :bridge-right-label="t('bridgeRightLabel')"
     :hero-kicker="t('officialOnly')"
     :hero-title="t('title')"
     :hero-blurb="t('heroBlurb')"
@@ -30,6 +30,7 @@ import { computed, ref } from "vue";
 import { OfficialLauncherMiniApp } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { messages } from "@/locale/messages";
 
 type BridgeNetwork = {
@@ -187,7 +188,7 @@ async function addNetwork(network: BridgeNetwork) {
         method: "wallet_switchEthereumChain",
         params: [{ chainId: network.chainIdHex }],
       });
-    } catch {
+    } catch (_e: unknown) {
       await ethereum.request({
         method: "wallet_addEthereumChain",
         params: [params],
@@ -195,9 +196,8 @@ async function addNetwork(network: BridgeNetwork) {
     }
 
     setStatus(t("addWalletSuccess"), "success");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : t("error");
-    setStatus(message, "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("addWalletFailed")), "error");
   }
 }
 

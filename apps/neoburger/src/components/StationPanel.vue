@@ -1,10 +1,10 @@
 <template>
   <div class="station fade-up delay-1">
     <div class="station-tabs">
-      <button class="station-tab" :class="{ active: mode === 'burger' }" @click="setMode('burger')">
+      <button type="button" class="station-tab" :class="{ active: mode === 'burger' }" :aria-label="t('burgerStation')" @click="setMode('burger')">
         {{ t("burgerStation") }}
       </button>
-      <button class="station-tab" :class="{ active: mode === 'jazz' }" @click="setMode('jazz')">
+      <button type="button" class="station-tab" :class="{ active: mode === 'jazz' }" :aria-label="t('jazzUp')" @click="setMode('jazz')">
         {{ t("jazzUp") }}
       </button>
     </div>
@@ -12,10 +12,10 @@
     <div v-if="mode === 'burger'" class="station-card">
       <div class="station-header">
         <span class="station-title">{{ t("burgerStation") }}</span>
-        <div class="station-learn" role="button" tabindex="0" :aria-label="t('learnMore')" @click="emit('learnMore')">
+        <button type="button" class="station-learn" :aria-label="t('learnMore')" @click="emit('learnMore')">
           <img class="learn-icon" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('learnMore')" />
           <span>{{ t("learnMore") }}</span>
-        </div>
+        </button>
       </div>
 
       <slot name="swap-interface" />
@@ -24,10 +24,10 @@
 
       <div class="station-actions">
         <div class="quick-amounts">
-          <button class="chip" @click="emit('setAmount', 0.25)">{{ t("percent25") }}</button>
-          <button class="chip" @click="emit('setAmount', 0.5)">{{ t("percent50") }}</button>
-          <button class="chip" @click="emit('setAmount', 0.75)">{{ t("percent75") }}</button>
-          <button class="chip" @click="emit('setAmount', 1)">{{ t("max") }}</button>
+          <button type="button" class="chip" :aria-label="t('setAmountPercent25')" @click="emit('setAmount', 0.25)">{{ t("percent25") }}</button>
+          <button type="button" class="chip" :aria-label="t('setAmountPercent50')" @click="emit('setAmount', 0.5)">{{ t("percent50") }}</button>
+          <button type="button" class="chip" :aria-label="t('setAmountPercent75')" @click="emit('setAmount', 0.75)">{{ t("percent75") }}</button>
+          <button type="button" class="chip" :aria-label="t('setAmountMax')" @click="emit('setAmount', 1)">{{ t("max") }}</button>
         </div>
         <NeoButton
           variant="primary"
@@ -193,6 +193,10 @@ defineExpose({
   color: var(--burger-accent-deep);
   font-weight: 600;
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
 }
 
 .learn-icon {
