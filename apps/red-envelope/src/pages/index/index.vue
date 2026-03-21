@@ -287,7 +287,7 @@ watch(activeTab, async (tab) => {
   left: 0;
   right: 0;
   height: 70px;
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, var(--envelope-flap-start), var(--envelope-flap-end));
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   z-index: 2;
   transition: transform 0.5s ease;
@@ -306,7 +306,7 @@ watch(activeTab, async (tab) => {
   width: 30px;
   height: 15px;
   border-radius: 0 0 50% 50%;
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.1); /* Deliberate dark fold shadow */
 }
 
 .envelope-body {
@@ -315,12 +315,12 @@ watch(activeTab, async (tab) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, #ef4444, #dc2626 30%, #b91c1c);
+  background: var(--envelope-body-gradient);
   border-radius: 4px 4px 12px 12px;
   z-index: 1;
   box-shadow:
-    0 10px 40px rgba(185, 28, 28, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    0 10px 40px var(--envelope-shadow-red),
+    inset 0 1px 0 var(--envelope-shadow-white);
   overflow: hidden;
 }
 
@@ -332,20 +332,20 @@ watch(activeTab, async (tab) => {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fbbf24, #d97706);
+  background: var(--envelope-seal-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 0 20px rgba(251, 191, 36, 0.5),
-    0 0 40px rgba(251, 191, 36, 0.2);
+    0 0 20px var(--envelope-gold-glow),
+    0 0 40px rgba(var(--envelope-gold-rgb), 0.2);
   animation: seal-glow 2s ease-in-out infinite alternate;
 }
 
 .seal-character {
   font-size: 30px;
   font-weight: 900;
-  color: #b91c1c;
+  color: var(--envelope-premium-red-dark);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -355,7 +355,7 @@ watch(activeTab, async (tab) => {
   left: 8px;
   right: 8px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, var(--envelope-trim-gold), transparent);
 }
 
 .envelope-trim-bottom {
@@ -364,7 +364,7 @@ watch(activeTab, async (tab) => {
   left: 8px;
   right: 8px;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, var(--envelope-trim-gold), transparent);
 }
 
 .envelope-sparkles {
@@ -407,8 +407,8 @@ watch(activeTab, async (tab) => {
   align-items: center;
   gap: 16px;
   padding: 16px 24px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--envelope-stat-bg);
+  border: 1px solid var(--envelope-stat-border);
   border-radius: 12px;
   backdrop-filter: blur(8px);
 }
@@ -423,7 +423,7 @@ watch(activeTab, async (tab) => {
 .hero-stat-value {
   font-size: 22px;
   font-weight: 900;
-  color: #fbbf24;
+  color: var(--envelope-stat-value);
   font-family: $font-mono;
 }
 
@@ -432,13 +432,13 @@ watch(activeTab, async (tab) => {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--envelope-stat-label);
 }
 
 .hero-stat-divider {
   width: 1px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--envelope-divider);
 }
 
 @keyframes envelope-open {
@@ -456,13 +456,13 @@ watch(activeTab, async (tab) => {
 @keyframes seal-glow {
   0% {
     box-shadow:
-      0 0 15px rgba(251, 191, 36, 0.4),
-      0 0 30px rgba(251, 191, 36, 0.15);
+      0 0 15px var(--envelope-gold-glow),
+      0 0 30px rgba(var(--envelope-gold-rgb), 0.15);
   }
   100% {
     box-shadow:
-      0 0 25px rgba(251, 191, 36, 0.6),
-      0 0 50px rgba(251, 191, 36, 0.25);
+      0 0 25px rgba(var(--envelope-gold-rgb), 0.6),
+      0 0 50px rgba(var(--envelope-gold-rgb), 0.25);
   }
 }
 

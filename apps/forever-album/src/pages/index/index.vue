@@ -194,10 +194,6 @@ const handleConnect = async () => {
   background: var(--bg-primary);
 }
 
-.hero-container {
-  margin-bottom: 20px;
-}
-
 .photo-grid-scene {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -289,6 +285,7 @@ const handleConnect = async () => {
 /* ── Forever Album Hero Enhancements ── */
 
 .hero-container {
+  margin-bottom: 20px;
   background: radial-gradient(ellipse at center, rgba(180, 140, 255, 0.1) 0%, transparent 70%);
   transition: box-shadow 0.4s ease;
 }

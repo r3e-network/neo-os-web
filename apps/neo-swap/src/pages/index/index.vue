@@ -198,7 +198,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
   justify-content: center;
   font-size: 22px;
   font-weight: 800;
-  color: #fff;
+  color: var(--swap-text);
 
   &--from {
     background: linear-gradient(135deg, var(--swap-accent) 0%, var(--swap-accent-strong) 100%);
@@ -276,7 +276,7 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
 }
 
 .hero-container {
-  background: linear-gradient(135deg, rgba(0, 166, 81, 0.08), rgba(25, 118, 210, 0.06), rgba(0, 230, 118, 0.04));
+  background: linear-gradient(135deg, var(--swap-accent-glow-green-light), var(--swap-accent-glow-blue-light), var(--swap-accent-soft));
   background-size: 200% 200%;
   animation: flow-gradient 6s ease-in-out infinite;
 }
@@ -284,24 +284,24 @@ const currentRate = computed(() => popularPairs.find((p) => p.id === selectedPai
   animation: swap-rotate 4s ease-in-out infinite;
 }
 .hero-price-quote {
-  box-shadow: 0 4px 20px rgba(0, 166, 81, 0.12);
+  box-shadow: 0 4px 20px var(--swap-accent-glow-green-light);
   transition:
     box-shadow 0.3s ease,
     transform 0.3s ease;
   &:hover {
-    box-shadow: 0 6px 28px rgba(0, 166, 81, 0.28);
+    box-shadow: 0 6px 28px var(--swap-accent-glow-green);
     transform: translateY(-2px);
   }
 }
 .token-icon--from {
   box-shadow:
-    0 0 20px rgba(0, 166, 81, 0.35),
-    0 0 40px rgba(0, 166, 81, 0.1);
+    0 0 20px var(--swap-accent-glow-green),
+    0 0 40px var(--swap-accent-glow-green-light);
 }
 .token-icon--to {
   box-shadow:
-    0 0 20px rgba(25, 118, 210, 0.35),
-    0 0 40px rgba(25, 118, 210, 0.1);
+    0 0 20px var(--swap-accent-glow-blue),
+    0 0 40px var(--swap-accent-glow-blue-light);
 }
 .hero-swap-display {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);

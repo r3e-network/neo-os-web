@@ -11,9 +11,9 @@ export async function sha256Hex(value: string): Promise<string> {
 }
 
 export async function sha256HexFromHex(value: string): Promise<string> {
-  const data = new Uint8Array(
-    value.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
-  );
+  const hexBytes = value.match(/.{1,2}/g);
+  if (!hexBytes) return "";
+  const data = new Uint8Array(hexBytes.map((byte) => parseInt(byte, 16)));
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
   return toHex(digest);
 }

@@ -160,8 +160,8 @@ const getLTVColorClass = () => {
 .tier-card {
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--checkbook-tier-border, rgba(255, 255, 255, 0.12));
+  background: var(--checkbook-tier-card-bg, rgba(255, 255, 255, 0.02));
   text-align: center;
   transition: all 0.2s ease;
   appearance: none;
@@ -170,8 +170,8 @@ const getLTVColorClass = () => {
 
 .tier-card.active {
   border-color: var(--checkbook-info);
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
-  background: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 12px var(--checkbook-tier-active-shadow, rgba(59, 130, 246, 0.35));
+  background: var(--checkbook-tier-active-bg, rgba(59, 130, 246, 0.12));
 }
 
 .tier-title {
@@ -202,8 +202,8 @@ const getLTVColorClass = () => {
 .ltv-section-glass {
   margin-bottom: $spacing-6;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--checkbook-glass-bg, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--checkbook-glass-border, rgba(255, 255, 255, 0.1));
   border-radius: 12px;
 }
 
@@ -242,7 +242,7 @@ const getLTVColorClass = () => {
 
 .ltv-track {
   height: 8px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--checkbook-ltv-track-bg, rgba(0, 0, 0, 0.3));
   border-radius: 4px;
   position: relative;
   margin-bottom: 8px;
@@ -272,7 +272,7 @@ const getLTVColorClass = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, var(--checkbook-glimmer, rgba(255, 255, 255, 0.4)), transparent);
   transform: translateX(-100%);
   animation: glimmer 2s infinite;
 }
@@ -282,7 +282,7 @@ const getLTVColorClass = () => {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--checkbook-ltv-marker, rgba(255, 255, 255, 0.2));
   z-index: 1;
 
   &--half {
@@ -302,8 +302,8 @@ const getLTVColorClass = () => {
 }
 
 .calculator-receipt {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--checkbook-receipt-bg, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--checkbook-receipt-border, rgba(255, 255, 255, 0.1));
   border-radius: 12px;
   padding: 16px;
   margin-bottom: $spacing-6;
@@ -340,7 +340,7 @@ const getLTVColorClass = () => {
 
 .calc-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--checkbook-divider, rgba(255, 255, 255, 0.1));
   margin: 8px 0;
 }
 
