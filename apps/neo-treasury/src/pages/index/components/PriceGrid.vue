@@ -1,23 +1,23 @@
 <template>
   <div class="price-grid">
-    <NeoCard title="NEO" class="price-card" variant="erobo-neo">
+    <NeoCard :title="t('tokenNeo')" class="price-card" variant="erobo-neo">
       <div class="price-body">
-        <span class="price-val">${{ prices.neo.usd.toFixed(2) }}</span>
+        <span class="price-val">{{ t("currencySymbol") }}{{ prices.neo.usd.toFixed(2) }}</span>
         <div :class="['change-badge', prices.neo.usd_24h_change >= 0 ? 'up' : 'down']">
           <span
-            >{{ prices.neo.usd_24h_change >= 0 ? "▲" : "▼" }}
+            >{{ prices.neo.usd_24h_change >= 0 ? t("trendUp") : t("trendDown") }}
             {{ Math.abs(prices.neo.usd_24h_change).toFixed(2) }}%</span
           >
         </div>
       </div>
     </NeoCard>
 
-    <NeoCard title="GAS" class="price-card" variant="erobo-bitcoin">
+    <NeoCard :title="t('tokenGas')" class="price-card" variant="erobo-bitcoin">
       <div class="price-body">
-        <span class="price-val">${{ prices.gas.usd.toFixed(2) }}</span>
+        <span class="price-val">{{ t("currencySymbol") }}{{ prices.gas.usd.toFixed(2) }}</span>
         <div :class="['change-badge', prices.gas.usd_24h_change >= 0 ? 'up' : 'down']">
           <span
-            >{{ prices.gas.usd_24h_change >= 0 ? "▲" : "▼" }}
+            >{{ prices.gas.usd_24h_change >= 0 ? t("trendUp") : t("trendDown") }}
             {{ Math.abs(prices.gas.usd_24h_change).toFixed(2) }}%</span
           >
         </div>
@@ -28,6 +28,10 @@
 
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 export interface TokenPrice {
   usd: number;

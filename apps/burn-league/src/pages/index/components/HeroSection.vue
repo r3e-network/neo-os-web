@@ -1,5 +1,5 @@
 <template>
-  <HeroSectionShared variant="danger" :subtitle="t('totalBurned')" :title="formatNum(totalBurned)" suffix="GAS">
+  <HeroSectionShared variant="danger" :subtitle="t('totalBurned')" :title="formatNum(totalBurned)" :suffix="t('tokenGas')">
     <template #background>
       <div class="fire-container" aria-hidden="true">
         <div class="flame flame-1"></div>

@@ -11,8 +11,8 @@
     <slider :value="threshold" :min="1" :max="totalSigners" activeColor="var(--multisig-accent)" :aria-label="title" aria-valuemin="1" :aria-valuemax="totalSigners" :aria-valuenow="threshold" @change="onChange" />
 
     <div class="actions row">
-      <NeoButton variant="secondary" @click="$emit('back')">{{ backLabel }}</NeoButton>
-      <NeoButton variant="primary" @click="$emit('next')">{{ nextLabel }}</NeoButton>
+      <NeoButton variant="secondary" type="button" @click="$emit('back')" :aria-label="backLabel">{{ backLabel }}</NeoButton>
+      <NeoButton variant="primary" type="button" @click="$emit('next')" :aria-label="nextLabel">{{ nextLabel }}</NeoButton>
     </div>
   </NeoCard>
 </template>
@@ -29,7 +29,11 @@ const props = defineProps<{
   nextLabel: string;
 }>();
 
-const emit = defineEmits(["back", "next", "update:threshold"]);
+const emit = defineEmits<{
+  (e: "back"): void;
+  (e: "next"): void;
+  (e: "update:threshold", value: number): void;
+}>();
 
 const onChange = (e: { detail: { value: number } }) => {
   emit("update:threshold", e.detail.value);

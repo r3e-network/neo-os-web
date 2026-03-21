@@ -1,6 +1,6 @@
 <template>
   <div class="create-section">
-    <div class="create-btn" role="button" :aria-label="title" tabindex="0" @click="$emit('create')" @keydown.enter="$emit('create')">
+    <button type="button" class="create-btn" :aria-label="title" @click="$emit('create')">
       <div class="create-icon">
         <span class="plus-icon">+</span>
       </div>
@@ -8,8 +8,8 @@
         <span class="create-title">{{ title }}</span>
         <span class="create-desc">{{ description }}</span>
       </div>
-      <span class="create-arrow">→</span>
-    </div>
+      <span class="create-arrow" aria-hidden="true">→</span>
+    </button>
   </div>
 </template>
 
@@ -39,6 +39,10 @@ defineEmits<{
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: var(--multi-action-shadow);
+  border: none;
+  appearance: none;
+  width: 100%;
+  text-align: left;
 
   &:active {
     transform: scale(0.98);

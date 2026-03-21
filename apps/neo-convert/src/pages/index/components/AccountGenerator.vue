@@ -105,7 +105,7 @@ const generateNew = async () => {
         addressQr.value = await QRCode.toDataURL(account.value.address, { margin: 1 });
         wifQr.value = await QRCode.toDataURL(account.value.wif, { margin: 1 });
       } catch (_e: unknown) {
-        // QR generation error - silent fail
+        // QR generation error - silent fail (non-critical, account generation still succeeds)
       }
     }
     isGenerating.value = false;

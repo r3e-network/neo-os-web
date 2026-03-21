@@ -8,12 +8,12 @@
         <span class="th-glass th-status">{{ t("statusLabel") }}</span>
         <span class="th-glass th-time">{{ t("timestamp") }}</span>
       </div>
-      <div v-for="(loan, idx) in recentLoans" :key="idx" class="table-row-glass">
+      <div v-for="loan in recentLoans" :key="loan.id" class="table-row-glass">
         <div class="td-glass td-loan">
           <span class="loan-id">#{{ loan.id }}</span>
-          <span class="loan-amount">{{ formatNum(loan.amount) }} GAS</span>
+          <span class="loan-amount">{{ formatNum(loan.amount) }} {{ t("tokenGas") }}</span>
         </div>
-        <span class="td-glass td-fee">{{ formatNum(loan.fee, 4) }} GAS</span>
+        <span class="td-glass td-fee">{{ formatNum(loan.fee, 4) }} {{ t("tokenGas") }}</span>
         <span class="td-glass td-status" :class="loan.status">{{ statusText(loan.status) }}</span>
         <span class="td-glass td-time">{{ loan.timestamp }}</span>
       </div>

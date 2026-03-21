@@ -27,7 +27,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["sign", "break"]);
+defineEmits<{
+  (e: "sign", contract: RelationshipContractView): void;
+  (e: "break", contract: RelationshipContractView): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

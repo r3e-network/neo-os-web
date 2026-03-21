@@ -208,6 +208,15 @@ const appMessages = {
     sidebarMobile: { en: "Mobile", zh: "移动端" },
     sidebarDesktop: { en: "Desktop", zh: "桌面端" },
     quickTools: { en: "Quick Tools", zh: "快捷工具" },
+    loading: { en: "Loading...", zh: "加载中..." },
+    showSecrets: { en: "Show secrets", zh: "显示密钥" },
+    hideSecrets: { en: "Hide secrets", zh: "隐藏密钥" },
+    copyAddress: { en: "Copy address", zh: "复制地址" },
+    copyPublicKey: { en: "Copy public key", zh: "复制公钥" },
+    copyPrivateKey: { en: "Copy private key", zh: "复制私钥" },
+    copyWif: { en: "Copy WIF", zh: "复制 WIF" },
+    addressQrCode: { en: "Address QR Code", zh: "地址二维码" },
+    wifQrCode: { en: "WIF QR Code", zh: "WIF 二维码" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

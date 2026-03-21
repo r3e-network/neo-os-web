@@ -12,12 +12,12 @@
         <span class="marker">0</span>
         <span class="marker">{{ formatBalance(dailyLimit) }}</span>
       </div>
-      <span class="quota-text"> {{ formatBalance(usedQuota) }} / {{ formatBalance(dailyLimit) }} GAS </span>
+      <span class="quota-text"> {{ formatBalance(usedQuota) }} / {{ formatBalance(dailyLimit) }} {{ t("tokenGas") }} </span>
     </div>
 
     <div class="info-row">
       <span class="info-label">{{ t("remainingToday") }}</span>
-      <span class="info-value highlight">{{ formatBalance(remainingQuota) }} GAS</span>
+      <span class="info-value highlight">{{ formatBalance(remainingQuota) }} {{ t("tokenGas") }}</span>
     </div>
     <div class="info-row">
       <span class="info-label">{{ t("resetsIn") }}</span>

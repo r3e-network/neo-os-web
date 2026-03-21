@@ -3,6 +3,8 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "Flash Loan", zh: "闪电贷" },
+  appName: { en: "Flash Loan", zh: "闪电贷" },
+  connectWalletToUse: { en: "Connect wallet to use Flash Loan", zh: "连接钱包使用闪电贷" },
   instructionMode: { en: "INSTRUCTIONAL MODE", zh: "教学模式" },
   instructionNote: {
     en: "Flash loans remain a power-user flow. This miniapp helps you inspect pool state and submit callback-based executions.",
@@ -41,6 +43,9 @@ const appMessages = {
   loanStatusLoaded: { en: "Loan status loaded", zh: "贷款状态已加载" },
   loanNotFound: { en: "Loan not found", zh: "未找到该贷款" },
   invalidLoanId: { en: "Invalid loan ID", zh: "无效贷款 ID" },
+  invalidLoanAmount: { en: "Invalid loan amount", zh: "无效贷款金额" },
+  invalidCallbackContract: { en: "Invalid callback contract address", zh: "无效回调合约地址" },
+  invalidCallbackMethod: { en: "Invalid callback method name", zh: "无效回调方法名" },
   main: { en: "Status", zh: "状态" },
   stats: { en: "Activity", zh: "活动" },
   docs: { en: "Learn", zh: "学习" },
@@ -137,6 +142,8 @@ const appMessages = {
   sidebarTotalLoans: { en: "Total Loans", zh: "贷款总数" },
   sidebarTotalVolume: { en: "Total Volume", zh: "总交易量" },
   flashloanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
+  error: { en: "Error", zh: "错误" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

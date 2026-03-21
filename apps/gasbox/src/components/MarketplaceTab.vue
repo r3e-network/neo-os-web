@@ -21,7 +21,7 @@
           <span class="hero-title">{{ t("title") }}</span>
           <span class="hero-subtitle">{{ t("heroSubtitle") }}</span>
         </div>
-        <span class="hero-icon">💊</span>
+        <span class="hero-icon" aria-hidden="true">💊</span>
       </NeoCard>
 
       <div v-if="isLoading" class="loading-state">
@@ -61,7 +61,7 @@
             <div class="rank-list">
               <div v-for="machine in topByRevenue" :key="machine.id" class="rank-row">
                 <span class="rank-name">{{ machine.name }}</span>
-                <span class="rank-value">{{ formatGas(machine.revenueRaw + machine.salesVolumeRaw) }} GAS</span>
+                <span class="rank-value">{{ formatGas(machine.revenueRaw + machine.salesVolumeRaw) }} {{ t("tokenGas") }}</span>
               </div>
             </div>
           </NeoCard>

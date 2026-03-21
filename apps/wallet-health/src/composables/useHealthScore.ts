@@ -54,6 +54,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
   const totalChecklistCount = computed(() => checklistItems.value.length);
 
   const safetyScore = computed(() => {
+    if (totalChecklistCount.value === 0) return 0;
     const score = (completedChecklistCount.value / totalChecklistCount.value) * 100;
     return Math.round(score);
   });
@@ -95,7 +96,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
           });
         }
       }
-    } catch {
+    } catch (_e: unknown) {
       /* Local storage read is non-critical — checklist resets on failure */
     }
   };
@@ -103,7 +104,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
   const saveChecklist = () => {
     try {
       uni.setStorageSync(checklistStorageKey, JSON.stringify(checklistState));
-    } catch {
+    } catch (_e: unknown) {
       /* Local storage write is non-critical */
     }
   };

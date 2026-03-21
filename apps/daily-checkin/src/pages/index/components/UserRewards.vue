@@ -15,11 +15,12 @@
       variant="success"
       size="md"
       block
+      type="button"
       :loading="isClaiming"
       @click="$emit('claim')"
       class="mt-4"
     >
-      {{ t("claimRewards") }} ({{ formatGas(unclaimedRewards) }} GAS)
+      {{ t("claimRewards") }} ({{ formatGas(unclaimedRewards) }} {{ t("tokenGas") }})
     </NeoButton>
   </NeoCard>
 </template>
@@ -38,7 +39,9 @@ defineProps<{
   isClaiming: boolean;
 }>();
 
-defineEmits(["claim"]);
+defineEmits<{
+  (e: "claim"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

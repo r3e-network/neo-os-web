@@ -5,14 +5,14 @@
       @update:modelValue="$emit('update:burnAmount', $event)"
       type="number"
       :placeholder="t('amountPlaceholder')"
-      suffix="GAS"
+      :suffix="t('tokenGas')"
     />
     <div class="reward-info">
       <span class="reward-label">{{ t("estimatedRewards") }}</span>
       <span class="reward-value">+{{ formatNum(estimatedReward) }} {{ t("points") }}</span>
     </div>
     <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('burn')" class="burn-button">
-      <span class="burn-button-text">🔥 {{ t("burnNow") }}</span>
+      <span class="burn-button-text"><span aria-hidden="true">🔥</span> {{ t("burnNow") }}</span>
     </NeoButton>
   </NeoCard>
 </template>
@@ -31,7 +31,10 @@ defineProps<{
   isLoading: boolean;
 }>();
 
-defineEmits(["update:burnAmount", "burn"]);
+defineEmits<{
+  (e: "update:burnAmount", value: string): void;
+  (e: "burn"): void;
+}>();
 
 const formatNum = (n: number) => formatNumber(n, 2);
 </script>

@@ -3,15 +3,12 @@
     <span class="card-title">{{ t("detailsTitle") }}</span>
     <div class="detail-row">
       <span class="label">{{ t("detailId") }}</span>
-      <span
+      <button
+        type="button"
         class="value copy"
-        role="button"
         :aria-label="t('copy')"
-        tabindex="0"
         @click="$emit('copy', request.id)"
-        @keydown.enter="$emit('copy', request.id)"
-        >{{ request.id }} ({{ t("copy") }})</span
-          >
+      >{{ request.id }} ({{ t("copy") }})</button>
     </div>
     <div class="detail-row">
       <span class="label">{{ t("detailMemo") }}</span>
@@ -23,7 +20,7 @@
     </div>
     <div class="raw-data">
       <span class="label">{{ t("detailRawTx") }}</span>
-      <textarea class="raw-input" :value="request.transaction_hex" disabled />
+      <textarea class="raw-input" :value="request.transaction_hex" disabled :aria-label="t('detailRawTx')" />
     </div>
   </NeoCard>
 </template>
@@ -75,6 +72,17 @@ defineEmits<{
 .value {
   font-family: $font-mono;
   text-align: right;
+}
+
+.value.copy {
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+  color: var(--text-secondary);
 }
 
 .raw-data {

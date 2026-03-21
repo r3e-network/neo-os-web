@@ -30,9 +30,9 @@
             <span class="label">{{ t("address") }}</span>
             <div class="value-row">
               <span class="value">{{ result.address }}</span>
-              <div class="copy-btn" @click="copy(result.address)" role="button" tabindex="0" :aria-label="t('copyAddress')" @keydown.enter="copy(result.address)">
+              <button type="button" class="copy-btn" @click="copy(result.address)" :aria-label="t('copyAddress')">
                 <span class="icon" aria-hidden="true">📋</span>
-              </div>
+              </button>
             </div>
           </div>
         </ScrollReveal>
@@ -42,9 +42,9 @@
             <span class="label">{{ t("pubKey") }}</span>
             <div class="value-row">
               <span class="value truncate">{{ result.publicKey }}</span>
-              <div class="copy-btn" @click="copy(result.publicKey)" role="button" tabindex="0" :aria-label="t('copyPublicKey')" @keydown.enter="copy(result.publicKey)">
+              <button type="button" class="copy-btn" @click="copy(result.publicKey)" :aria-label="t('copyPublicKey')">
                 <span class="icon" aria-hidden="true">📋</span>
-              </div>
+              </button>
             </div>
           </div>
         </ScrollReveal>
@@ -57,19 +57,17 @@
             </div>
             <div class="value-row">
               <span class="value blur" :class="{ revealed: showSecrets }">{{ result.wif }}</span>
-              <div
+              <button
+                type="button"
                 class="action-btn"
                 @click="showSecrets = !showSecrets"
-                role="button"
-                tabindex="0"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
-                @keydown.enter="showSecrets = !showSecrets"
               >
                 <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
-              </div>
-              <div class="copy-btn" @click="copy(result.wif)" role="button" tabindex="0" :aria-label="t('copyWif')" @keydown.enter="copy(result.wif)">
+              </button>
+              <button type="button" class="copy-btn" @click="copy(result.wif)" :aria-label="t('copyWif')">
                 <span class="icon" aria-hidden="true">📋</span>
-              </div>
+              </button>
             </div>
           </div>
         </ScrollReveal>
@@ -82,19 +80,17 @@
             </div>
             <div class="value-row">
               <span class="value blur" :class="{ revealed: showSecrets }">{{ result.privateKey }}</span>
-              <div
+              <button
+                type="button"
                 class="action-btn"
                 @click="showSecrets = !showSecrets"
-                role="button"
-                tabindex="0"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
-                @keydown.enter="showSecrets = !showSecrets"
               >
                 <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
-              </div>
-              <div class="copy-btn" @click="copy(result.privateKey)" role="button" tabindex="0" :aria-label="t('copyPrivateKey')" @keydown.enter="copy(result.privateKey)">
+              </button>
+              <button type="button" class="copy-btn" @click="copy(result.privateKey)" :aria-label="t('copyPrivateKey')">
                 <span class="icon" aria-hidden="true">📋</span>
-              </div>
+              </button>
             </div>
           </div>
         </ScrollReveal>
@@ -104,7 +100,7 @@
         <div class="result-group">
           <span class="label">{{ t("disassembledOpcodes") }}</span>
           <div class="opcodes-container">
-            <span v-for="(op, idx) in result.opcodes" :key="idx" class="opcode-tag">{{ op }}</span>
+            <span v-for="(op, idx) in result.opcodes" :key="op + idx" class="opcode-tag">{{ op }}</span>
           </div>
         </div>
       </ScrollReveal>

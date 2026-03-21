@@ -58,7 +58,7 @@
 
     <template #operation>
       <NeoCard variant="erobo" :title="t('quickActions')">
-        <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'create'">
+        <NeoButton size="sm" variant="primary" class="op-btn" type="button" @click="activeTab = 'create'">
           {{ t("createProposal") }}
         </NeoButton>
         <StatsDisplay :items="opStats" layout="rows" />
@@ -168,12 +168,20 @@ const createProposal = async (proposalData: {
 };
 
 onMounted(async () => {
-  await init();
+  try {
+    await init();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 
 watch(address, async () => {
-  await refreshCandidateStatus();
-  await refreshHasVoted();
+  try {
+    await refreshCandidateStatus();
+    await refreshHasVoted();
+  } catch (_e: unknown) {
+    /* non-critical: status refresh */
+  }
 });
 </script>
 

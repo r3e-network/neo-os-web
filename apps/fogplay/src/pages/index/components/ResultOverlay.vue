@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="cinematic-overlay" @click="$emit('close')">
+  <button v-if="visible" type="button" class="cinematic-overlay" :aria-label="t('close')" @click="$emit('close')">
     <div class="overlay-backdrop" />
 
     <div class="overlay-content" :class="{ 'is-win': Number(winAmount) > 0 }" aria-live="polite" role="status">
@@ -17,7 +17,7 @@
         <div class="content">
           <span v-if="Number(winAmount) > 0" class="amount">+{{ winAmount }}</span>
           <span v-else class="amount">0</span>
-          <span class="unit">GAS</span>
+          <span class="unit">{{ t("tokenGas") }}</span>
         </div>
       </div>
 
@@ -30,7 +30,7 @@
     <div v-if="Number(winAmount) > 0" class="fx-layer">
       <div v-for="i in 20" :key="i" class="sparkle" />
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -44,7 +44,9 @@ defineProps<{
   winAmount: string;
 }>();
 
-defineEmits(["close"]);
+defineEmits<{
+  (e: "close"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -56,6 +58,10 @@ defineEmits(["close"]);
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  border: none;
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .overlay-backdrop {

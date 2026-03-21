@@ -12,31 +12,27 @@
       <span class="rate-label">{{ t("minReceived") }}</span>
       <span class="rate-value">{{ minReceived }} {{ toSymbol }}</span>
     </div>
-    <div
+    <button
+      type="button"
       class="refresh-btn"
-      role="button"
       :aria-label="t('refreshRate')"
-      tabindex="0"
       @click="$emit('refresh')"
-      @keydown.enter="$emit('refresh')"
     >
       <span class="refresh-icon" aria-hidden="true">↻</span>
       {{ t("refreshRate") }}
-    </div>
+    </button>
   </div>
   <div class="rate-card loading" v-else>
     <span class="rate-loading-text">{{ loading ? t("loadingRate") : t("rateUnavailable") }}</span>
-    <div
+    <button
+      type="button"
       class="refresh-btn"
-      role="button"
       :aria-label="t('refreshRate')"
-      tabindex="0"
       @click="$emit('refresh')"
-      @keydown.enter="$emit('refresh')"
     >
       <span class="refresh-icon" aria-hidden="true">↻</span>
       {{ t("refreshRate") }}
-    </div>
+    </button>
   </div>
 </template>
 
@@ -72,6 +68,19 @@ const emit = defineEmits<{
     display: flex;
     justify-content: space-between;
     align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .rate-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .refresh-btn {
+    margin-top: 8px;
+    padding: 6px 10px;
+    font-size: 9px;
   }
 }
 
@@ -120,6 +129,8 @@ const emit = defineEmits<{
   cursor: pointer;
   margin-top: 12px;
   transition: all 0.2s ease;
+  appearance: none;
+  background: transparent;
 
   &:hover {
     color: var(--swap-accent);

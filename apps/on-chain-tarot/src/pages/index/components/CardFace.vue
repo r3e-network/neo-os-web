@@ -11,7 +11,7 @@
     <div v-else-if="number && number <= 10" class="layout-pip">
       <div class="pip-grid" :data-count="number">
         <div v-for="n in number" :key="n" class="pip-wrapper">
-          <span class="pip-icon">{{ getSuitIcon(suit) }}</span>
+          <span class="pip-icon" aria-hidden="true">{{ getSuitIcon(suit) }}</span>
         </div>
       </div>
     </div>
@@ -21,13 +21,18 @@
     <div v-else class="layout-court">
       <div class="court-frame">
         <span class="court-rank">{{ getCourtLabel(number) }}</span>
-        <span class="court-icon">{{ getSuitIcon(suit) }}</span>
+        <span class="court-icon" aria-hidden="true">{{ getSuitIcon(suit) }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
+
 const props = defineProps<{
   suit?: string;
   number?: number;
@@ -47,10 +52,10 @@ const getSuitIcon = (suit?: string) => {
 const getCourtLabel = (num?: number) => {
   switch (num) {
     case 1: return "A";
-    case 11: return "Page";
-    case 12: return "Knight";
-    case 13: return "Queen";
-    case 14: return "King";
+    case 11: return t("tarotPage");
+    case 12: return t("tarotKnight");
+    case 13: return t("tarotQueen");
+    case 14: return t("tarotKing");
     default: return "";
   }
 };

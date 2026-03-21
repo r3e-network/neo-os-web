@@ -70,11 +70,11 @@ const {
     fireworks: true,
   },
   sidebarItems: [
-    { labelKey: "stats", value: () => `${league.totalBurned.value} GAS` },
-    { labelKey: "game", value: () => `${league.userBurned.value} GAS` },
-    { labelKey: "sidebarRank", value: () => league.rank.value || "-" },
+    { labelKey: "stats", value: () => `${league.totalBurned.value} ${t("tokenGas")}` },
+    { labelKey: "game", value: () => `${league.userBurned.value} ${t("tokenGas")}` },
+    { labelKey: "sidebarRank", value: () => league.rank.value ? league.rank.value : t("notAvailable") },
     { labelKey: "sidebarBurns", value: () => league.burnCount.value },
-    { labelKey: "sidebarRewardPool", value: () => `${league.rewardPool.value} GAS` },
+    { labelKey: "sidebarRewardPool", value: () => `${league.rewardPool.value} ${t("tokenGas")}` },
   ],
 });
 

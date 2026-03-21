@@ -20,8 +20,8 @@
       <div class="field-stack">
         <NeoInput v-model="inspectForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
         <div class="actions-row">
-          <NeoButton variant="primary" :loading="isInspecting" @click="inspectAccount">{{ t("inspect") }}</NeoButton>
-          <NeoButton variant="secondary" @click="connect">{{ t("connectWallet") }}</NeoButton>
+          <NeoButton variant="primary" type="button" :loading="isInspecting" @click="inspectAccount" :aria-label="t('inspect')">{{ t("inspect") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="connect" :aria-label="t('connectWallet')">{{ t("connectWallet") }}</NeoButton>
         </div>
       </div>
 
@@ -31,12 +31,12 @@
     <template #operation>
       <div class="field-stack">
         <NeoInput v-model="registerForm.accountIdInput" :label="t('accountId')" :placeholder="t('accountIdPlaceholder')" />
-        <NeoInput v-model="registerForm.verifierHash" :label="t('verifier')" placeholder="0x..." />
-        <NeoInput v-model="registerForm.verifierParamsHex" :label="t('verifierParams')" placeholder="hex payload" />
-        <NeoInput v-model="registerForm.hookHash" :label="t('hook')" placeholder="0x... or empty" />
-        <NeoInput v-model="registerForm.backupOwner" :label="t('backupOwner')" placeholder="N... or 0x..." />
-        <NeoInput v-model="registerForm.escapeTimelock" :label="t('timelock')" placeholder="2592000" />
-        <NeoButton variant="primary" :loading="isSubmitting" @click="submitRegister">{{ t("register") }}</NeoButton>
+        <NeoInput v-model="registerForm.verifierHash" :label="t('verifier')" :placeholder="t('verifierPlaceholder')" />
+        <NeoInput v-model="registerForm.verifierParamsHex" :label="t('verifierParams')" :placeholder="t('verifierParamsPlaceholder')" />
+        <NeoInput v-model="registerForm.hookHash" :label="t('hook')" :placeholder="t('hookPlaceholder')" />
+        <NeoInput v-model="registerForm.backupOwner" :label="t('backupOwner')" :placeholder="t('backupOwnerPlaceholder')" />
+        <NeoInput v-model="registerForm.escapeTimelock" :label="t('timelock')" :placeholder="t('timelockPlaceholder')" />
+        <NeoButton variant="primary" type="button" :loading="isSubmitting" @click="submitRegister" :aria-label="t('register')">{{ t("register") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
@@ -54,7 +54,7 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { getExternalIntegrationConfig } from "@shared/constants/rpc";
-import { deriveAAAccountIdHash } from "../../utils/aa";
+import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
 
 const wallet = useWallet() as WalletSDK;
 const { address, connect, invokeRead, invokeContract } = wallet;
@@ -76,9 +76,9 @@ const {
   messages,
   tab: { key: "register", labelKey: "register", icon: "🪪" },
   sidebarItems: [
-    { labelKey: "currentVerifier", value: () => inspected.verifier || "—" },
-    { labelKey: "currentHook", value: () => inspected.hook || "—" },
-    { labelKey: "currentBackupOwner", value: () => inspected.backupOwner || "—" },
+    { labelKey: "currentVerifier", value: () => inspected.verifier || t("notAvailable") },
+    { labelKey: "currentHook", value: () => inspected.hook || t("notAvailable") },
+    { labelKey: "currentBackupOwner", value: () => inspected.backupOwner || t("notAvailable") },
   ],
 });
 
@@ -105,7 +105,7 @@ const isSubmitting = ref(false);
 function deriveAccountIdHash(input: string): string {
   try {
     return deriveAAAccountIdHash(input);
-  } catch {
+  } catch (e: unknown) {
     throw new Error(t("invalidAccountId"));
   }
 }
@@ -135,11 +135,11 @@ async function inspectAccount() {
       invokeRead({ scriptHash: aaCore, operation: "getHook", args: [{ type: "Hash160", value: accountId }] }),
       invokeRead({ scriptHash: aaCore, operation: "getBackupOwner", args: [{ type: "Hash160", value: accountId }] }),
     ]);
-    inspected.verifier = String(parseInvokeResult(verifier) || "—");
-    inspected.hook = String(parseInvokeResult(hook) || "—");
-    inspected.backupOwner = String(parseInvokeResult(backupOwner) || "—");
+    inspected.verifier = String(parseInvokeResult(verifier) || t("notAvailable"));
+    inspected.hook = String(parseInvokeResult(hook) || t("notAvailable"));
+    inspected.backupOwner = String(parseInvokeResult(backupOwner) || t("notAvailable"));
     setStatus(t("inspectSuccess"), "success");
-  } catch (error) {
+  } catch (error: unknown) {
     setStatus(formatErrorMessage(error, t("invalidAccountId")), "error");
   } finally {
     isInspecting.value = false;
@@ -169,7 +169,7 @@ async function submitRegister() {
       ],
     });
     setStatus(t("registerSuccess"), "success");
-  } catch (error) {
+  } catch (error: unknown) {
     setStatus(formatErrorMessage(error, t("invalidAccountId")), "error");
   } finally {
     isSubmitting.value = false;
@@ -179,26 +179,26 @@ async function submitRegister() {
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildAAHeroStats({
     aaCore,
-    middleLabel: "Verifier",
+    middleLabel: t("verifier"),
     middleValue: `${defaultVerifier.slice(0, 10)}…`,
-    trailingLabel: "Network",
-    trailingValue: "Testnet",
+    trailingLabel: t("network"),
+    trailingValue: t("testnet"),
   }),
 );
 
 const overviewStats = computed<StatsDisplayItem[]>(() =>
   buildAAOverviewStats({
     aaCore,
-    walletValue: address.value || "not connected",
-    extra: { label: "Default Verifier", value: defaultVerifier, variant: "erobo" },
+    walletValue: address.value || t("notConnected"),
+    extra: { label: t("defaultVerifier"), value: defaultVerifier, variant: "erobo" },
   }),
 );
 
 const detailItems = computed(() => [
-  { label: t("currentVerifier"), value: inspected.verifier || "—" },
-  { label: t("currentHook"), value: inspected.hook || "—" },
-  { label: t("currentBackupOwner"), value: inspected.backupOwner || "—" },
-  { label: "AA Core", value: aaCore },
+  { label: t("currentVerifier"), value: inspected.verifier || t("notAvailable") },
+  { label: t("currentHook"), value: inspected.hook || t("notAvailable") },
+  { label: t("currentBackupOwner"), value: inspected.backupOwner || t("notAvailable") },
+  { label: t("aaCore"), value: aaCore },
 ]);
 
 const appState = computed(() => ({ address: address.value, accountId: inspected.accountIdHash }));

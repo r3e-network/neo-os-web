@@ -11,10 +11,10 @@
         }"
       >
         <div class="milestone-icon">
-          <span>{{ currentStreak >= milestone.day ? "✅" : "🎯" }}</span>
+          <span aria-hidden="true">{{ currentStreak >= milestone.day ? "✅" : "🎯" }}</span>
         </div>
         <span class="milestone-day">{{ t("day") }} {{ milestone.day }}</span>
-        <span class="milestone-reward">+{{ milestone.reward }} GAS</span>
+        <span class="milestone-reward">+{{ milestone.reward }} {{ t("tokenGas") }}</span>
         <span class="milestone-cumulative">({{ milestone.cumulative }} {{ t("total") }})</span>
       </div>
     </div>

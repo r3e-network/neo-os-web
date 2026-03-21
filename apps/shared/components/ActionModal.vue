@@ -5,7 +5,7 @@
     role="dialog"
     aria-modal="true"
     :aria-labelledby="title ? `${modalId}-title` : undefined"
-    :aria-label="title ? undefined : 'Dialog'"
+    :aria-label="title ? undefined : t('dialogAriaLabel')"
     @click.self="closeable && $emit('close')"
     @keydown.escape="closeable && $emit('close')"
   >
@@ -16,18 +16,15 @@
     >
       <div v-if="title || closeable" class="action-modal__header">
         <span v-if="title" :id="`${modalId}-title`" class="action-modal__title">{{ title }}</span>
-        <div
+        <button
           v-if="closeable"
+          type="button"
           class="action-modal__close"
-          role="button"
-          tabindex="0"
-          aria-label="Close dialog"
+          :aria-label="t('close')"
           @click="$emit('close')"
-          @keydown.enter="$emit('close')"
-          @keydown.space.prevent="$emit('close')"
         >
           <AppIcon name="x" :size="20" />
-        </div>
+        </button>
       </div>
 
       <div v-if="description" class="action-modal__description">
@@ -41,28 +38,24 @@
       <div v-if="$slots.actions || confirmLabel" class="action-modal__actions">
         <slot name="actions">
           <div class="action-modal__default-actions">
-            <div
+            <button
               v-if="cancelLabel"
+              type="button"
               class="action-modal__btn action-modal__btn--cancel"
-              role="button"
-              tabindex="0"
               @click="$emit('cancel')"
-              @keydown.enter="$emit('cancel')"
             >
               <span>{{ cancelLabel }}</span>
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               class="action-modal__btn action-modal__btn--confirm"
               :class="{ 'action-modal__btn--loading': confirmLoading }"
-              role="button"
-              tabindex="0"
-              :aria-disabled="confirmLoading"
+              :disabled="confirmLoading"
               @click="!confirmLoading && $emit('confirm')"
-              @keydown.enter="!confirmLoading && $emit('confirm')"
             >
               <div v-if="confirmLoading" class="action-modal__btn-spinner" aria-hidden="true" />
               <span v-else>{{ confirmLabel }}</span>
-            </div>
+            </button>
           </div>
         </slot>
       </div>
@@ -73,6 +66,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick, onUnmounted } from "vue";
 import AppIcon from "./AppIcon.vue";
+import { useI18n } from "@shared/composables/useI18n";
 
 export type ActionModalVariant = "default" | "success" | "warning" | "danger";
 export type ActionModalSize = "sm" | "md" | "lg";
@@ -111,6 +105,8 @@ defineEmits<{
   (e: "cancel"): void;
 }>();
 
+const { t } = useI18n();
+
 const contentRef = ref<HTMLElement | null>(null);
 let previouslyFocused: HTMLElement | null = null;
 
@@ -141,7 +137,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
 .action-modal {
@@ -180,16 +176,16 @@ onUnmounted(() => {
   }
 
   &--success {
-    border-color: var(--status-success);
-    box-shadow: 8px 8px 0 var(--status-success);
+    border-color: var(--accent-success);
+    box-shadow: 8px 8px 0 var(--accent-success);
   }
   &--warning {
-    border-color: var(--status-warning);
-    box-shadow: 8px 8px 0 var(--status-warning);
+    border-color: var(--accent-warning);
+    box-shadow: 8px 8px 0 var(--accent-warning);
   }
   &--danger {
-    border-color: var(--status-error);
-    box-shadow: 8px 8px 0 var(--status-error);
+    border-color: var(--accent-error);
+    box-shadow: 8px 8px 0 var(--accent-error);
   }
 
   &__header {
@@ -218,6 +214,10 @@ onUnmounted(() => {
     color: var(--text-secondary);
     cursor: pointer;
     transition: color $transition-fast;
+    border: none;
+    appearance: none;
+    padding: 0;
+    background: transparent;
 
     &:hover {
       color: var(--text-primary);
@@ -274,7 +274,7 @@ onUnmounted(() => {
     }
 
     &--confirm {
-      background: var(--color-primary, #00e599);
+      background: var(--accent-primary, #3b82f6);
       color: #000;
       border: 1px solid transparent;
 

@@ -43,9 +43,9 @@ export function useGovMercPool(t: (key: string) => string) {
   };
 
   const poolStats = computed<StatsDisplayItem[]>(() => [
-    { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} NEO`, variant: "success" },
+    { label: t("totalPool"), value: `${formatNum(totalPool.value, 0)} ${t("tokenNeo")}`, variant: "success" },
     { label: t("currentEpoch"), value: currentEpoch.value, variant: "default" },
-    { label: t("yourDeposits"), value: `${formatNum(userDeposits.value, 0)} NEO`, variant: "accent" },
+    { label: t("yourDeposits"), value: `${formatNum(userDeposits.value, 0)} ${t("tokenNeo")}`, variant: "accent" },
   ]);
 
   const loadPoolData = async () => {
@@ -90,7 +90,8 @@ export function useGovMercPool(t: (key: string) => string) {
       await loadPoolData();
       await loadUserDeposits();
       await loadBids();
-    } catch {
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("loadFailed")), "error");
     } finally {
       dataLoading.value = false;
     }

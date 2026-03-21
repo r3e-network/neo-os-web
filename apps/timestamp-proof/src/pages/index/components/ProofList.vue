@@ -1,18 +1,23 @@
 <template>
   <div class="proofs-list">
     <span class="section-title">{{ t("recentProofs") }}</span>
+    <!--
+      ItemList expects Record<string, unknown>[] but we have TimestampProof[].
+      The double-cast is needed because ItemList is not generically typed.
+      The inner cast 'as unknown' is necessary to go from TimestampProof[] to unknown first.
+    -->
     <ItemList
-      :items="proofs as unknown as Record<string, unknown>[]"
+      :items="(proofs as unknown) as Record<string, unknown>[]"
       item-key="id"
       :empty-text="t('noProofs')"
       :aria-label="t('ariaProofs')"
     >
       <template #item="{ item }">
-        <span class="proof-id">#{{ (item as unknown as TimestampProof).id }}</span>
+        <span class="proof-id">{{ t("idPrefix") }}{{ (item as unknown as TimestampProof).id }}</span>
         <span class="proof-timestamp">{{ formatTime((item as unknown as TimestampProof).timestamp) }}</span>
         <span class="proof-content">
           >{{ (item as unknown as TimestampProof).content.slice(0, 50)
-          }}{{ (item as unknown as TimestampProof).content.length > 50 ? "..." : "" }}</span
+          }}{{ (item as unknown as TimestampProof).content.length > 50 ? t("ellipsis") : "" }}</span
           >
       </template>
     </ItemList>
@@ -40,7 +45,7 @@ defineProps<{
 const { t } = createUseI18n(messages)();
 
 const formatTime = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleString();
+  return new Intl.DateTimeFormat("en").format(new Date(timestamp));
 };
 </script>
 

@@ -47,9 +47,9 @@
         <span class="section-title">{{ t("getGasRewardsTitle") }}</span>
         <span class="section-strong">
           {{ t("getGasRewardsStrong") }}
-          <span class="linkish" role="button" tabindex="0" :aria-label="t('jazzUp')" @click="emit('switchToJazz')">{{
+          <button type="button" class="linkish" :aria-label="t('jazzUp')" @click="emit('switchToJazz')">{{
             t("jazzUp")
-          }}</span>
+          }}</button>
         </span>
       </div>
       <div class="section-media">
@@ -61,14 +61,12 @@
       <img class="footer-logo" src="/static/neoburger-placeholder.svg" mode="widthFix" :alt="t('footerLogoAlt')" />
       <div class="footer-links">
         <template v-for="(link, index) in footerLinks" :key="link.label">
-          <span
+          <button
+            type="button"
             class="footer-link"
-            role="link"
-            tabindex="0"
             :aria-label="link.label"
             @click="emit('openLink', link.url)"
-            >{{ link.label }}</span
-          >
+          >{{ link.label }}</button>
           <span v-if="index < footerLinks.length - 1" class="footer-divider">|</span>
         </template>
       </div>
@@ -185,6 +183,11 @@ const footerLinks = computed(() => [
   font-weight: 700;
   text-decoration: underline;
   margin-left: 6px;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
 }
 
 .footer {
@@ -211,6 +214,11 @@ const footerLinks = computed(() => [
 .footer-link {
   font-weight: 700;
   cursor: pointer;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
 }
 
 .footer-divider {

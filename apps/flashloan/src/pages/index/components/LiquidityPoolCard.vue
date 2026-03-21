@@ -6,13 +6,13 @@
         <span class="live-text">{{ t("live") }}</span>
       </div>
       <span class="card-title">{{ t("poolBalance") }}</span>
-      <div class="lightning-badge lightning-badge--sm">⚡</div>
+      <div class="lightning-badge lightning-badge--sm" aria-hidden="true">⚡</div>
     </div>
 
     <div class="liquidity-item">
       <div class="item-header">
         <div class="token-badge gas">
-          <span class="token-symbol">GAS</span>
+          <span class="token-symbol">{{ t("tokenGas") }}</span>
         </div>
         <span class="token-amount">{{ formatNum(poolBalance) }}</span>
       </div>

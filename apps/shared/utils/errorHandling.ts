@@ -5,6 +5,8 @@
  * scattered try-catch blocks and inconsistent error reporting.
  */
 
+type Translator = (key: string) => string;
+
 /**
  * Base error class for miniapp errors
  */
@@ -14,9 +16,19 @@ export class MiniAppError extends Error {
     public code: string,
     public userMessage?: string,
     public details?: unknown,
+    public _translator?: Translator,
+    public _userMessageKey?: string,
   ) {
     super(message);
     this.name = "MiniAppError";
+  }
+
+  get translatedUserMessage(): string | undefined {
+    if (this.userMessage) return this.userMessage;
+    if (this._translator && this._userMessageKey) {
+      return this._translator(this._userMessageKey);
+    }
+    return undefined;
   }
 }
 
@@ -24,12 +36,15 @@ export class MiniAppError extends Error {
  * Wallet connection error
  */
 export class WalletConnectionError extends MiniAppError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: unknown, translator?: Translator) {
+    const userMessageKey = "walletConnectionError";
     super(
       message,
       "WALLET_CONNECTION",
-      "Please connect your wallet to continue.",
+      translator ? translator(userMessageKey) : "Please connect your wallet to continue.",
       details,
+      translator,
+      userMessageKey,
     );
     this.name = "WalletConnectionError";
   }
@@ -39,12 +54,15 @@ export class WalletConnectionError extends MiniAppError {
  * Contract interaction error
  */
 export class ContractError extends MiniAppError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: unknown, translator?: Translator) {
+    const userMessageKey = "contractError";
     super(
       message,
       "CONTRACT_ERROR",
-      "Contract operation failed. Please try again.",
+      translator ? translator(userMessageKey) : "Contract operation failed. Please try again.",
       details,
+      translator,
+      userMessageKey,
     );
     this.name = "ContractError";
   }
@@ -54,12 +72,15 @@ export class ContractError extends MiniAppError {
  * Transaction error
  */
 export class TransactionError extends MiniAppError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: unknown, translator?: Translator) {
+    const userMessageKey = "transactionError";
     super(
       message,
       "TRANSACTION_ERROR",
-      "Transaction failed. Please check your balance and try again.",
+      translator ? translator(userMessageKey) : "Transaction failed. Please check your balance and try again.",
       details,
+      translator,
+      userMessageKey,
     );
     this.name = "TransactionError";
   }
@@ -69,13 +90,17 @@ export class TransactionError extends MiniAppError {
  * Insufficient balance error
  */
 export class InsufficientBalanceError extends MiniAppError {
-  constructor(required: number, available: number, symbol: string = "GAS") {
+  constructor(required: number, available: number, symbol: string = "GAS", translator?: Translator) {
     const message = `Insufficient ${symbol} balance. Required: ${required}, Available: ${available}`;
-    super(message, "INSUFFICIENT_BALANCE", `Insufficient ${symbol} balance.`, {
-      required,
-      available,
-      symbol,
-    });
+    const userMessageKey = "insufficientBalanceError";
+    super(
+      message,
+      "INSUFFICIENT_BALANCE",
+      translator ? translator(userMessageKey) : `Insufficient ${symbol} balance.`,
+      { required, available, symbol },
+      translator,
+      userMessageKey,
+    );
     this.name = "InsufficientBalanceError";
   }
 }
@@ -84,12 +109,15 @@ export class InsufficientBalanceError extends MiniAppError {
  * Network error
  */
 export class NetworkError extends MiniAppError {
-  constructor(message: string, details?: unknown) {
+  constructor(message: string, details?: unknown, translator?: Translator) {
+    const userMessageKey = "networkError";
     super(
       message,
       "NETWORK_ERROR",
-      "Network error. Please check your connection and try again.",
+      translator ? translator(userMessageKey) : "Network error. Please check your connection and try again.",
       details,
+      translator,
+      userMessageKey,
     );
     this.name = "NetworkError";
   }
@@ -99,14 +127,17 @@ export class NetworkError extends MiniAppError {
  * Validation error
  */
 export class ValidationError extends MiniAppError {
-  constructor(message: string, field?: string, details?: unknown) {
+  constructor(message: string, field?: string, details?: unknown, translator?: Translator) {
     const detailsObj =
       typeof details === "object" && details !== null ? details : {};
+    const userMessageKey = "validationError";
     super(
       message,
       "VALIDATION_ERROR",
-      "Invalid input. Please check and try again.",
+      translator ? translator(userMessageKey) : "Invalid input. Please check and try again.",
       { field, ...detailsObj },
+      translator,
+      userMessageKey,
     );
     this.name = "ValidationError";
   }
@@ -151,7 +182,7 @@ export async function handleAsync<T>(
   try {
     const data = await operation();
     return { success: true, data };
-  } catch (error) {
+  } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
 
     // Add context to error message if provided
@@ -204,7 +235,7 @@ export async function handleContractOperation<T>(
   try {
     const result = await operation();
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     const userMessage = translator("error");
 
@@ -267,7 +298,7 @@ export function formatErrorMessage(
   defaultMessage: string = "An error occurred",
 ): string {
   if (isMiniAppError(error)) {
-    return error.userMessage || error.message;
+    return error.translatedUserMessage || error.userMessage || error.message;
   }
 
   if (error instanceof Error) {
@@ -340,7 +371,7 @@ export async function retryAsync<T>(
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation();
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt === maxAttempts) {
@@ -428,7 +459,7 @@ export async function safeAsync<T>(
 ): Promise<T> {
   try {
     return await operation();
-  } catch {
+  } catch (_e: unknown) {
     return defaultValue;
   }
 }

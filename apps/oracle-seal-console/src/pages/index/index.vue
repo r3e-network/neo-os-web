@@ -20,25 +20,25 @@
     <template #result>
       <NeoCard variant="erobo" :title="t('publicKeyTitle')" class="mb-6">
         <div class="details-grid">
-          <div><span class="label">{{ t("algorithm") }}</span><span class="value">{{ keyMeta?.algorithm || "—" }}</span></div>
+          <div><span class="label">{{ t("algorithm") }}</span><span class="value">{{ keyMeta?.algorithm || t("notAvailable") }}</span></div>
           <div><span class="label">{{ t("network") }}</span><span class="value">{{ keyMeta?.network || oracle.network }}</span></div>
-          <div><span class="label">{{ t("contract") }}</span><span class="value">{{ keyMeta?.contract || "—" }}</span></div>
-          <div><span class="label">{{ t("rpc") }}</span><span class="value">{{ keyMeta?.rpc_url || "—" }}</span></div>
-          <div><span class="label">{{ t("source") }}</span><span class="value">{{ keyMeta?.source || "—" }}</span></div>
-          <div><span class="label">Public Key</span><span class="value">{{ keyMeta?.public_key || "—" }}</span></div>
+          <div><span class="label">{{ t("contract") }}</span><span class="value">{{ keyMeta?.contract || t("notAvailable") }}</span></div>
+          <div><span class="label">{{ t("rpc") }}</span><span class="value">{{ keyMeta?.rpc_url || t("notAvailable") }}</span></div>
+          <div><span class="label">{{ t("source") }}</span><span class="value">{{ keyMeta?.source || t("notAvailable") }}</span></div>
+          <div><span class="label">{{ t("publicKeyLabel") }}</span><span class="value">{{ keyMeta?.public_key || t("notAvailable") }}</span></div>
         </div>
       </NeoCard>
 
       <NeoCard variant="erobo" :title="t('outputTitle')" class="mb-6">
         <div class="stack">
           <label class="label">{{ t("ciphertext") }}</label>
-          <textarea :value="ciphertext" class="json-box" rows="7" readonly />
+          <textarea :value="ciphertext" class="json-box" rows="7" readonly :aria-label="t('ciphertext')" />
           <NeoButton variant="secondary" :disabled="!ciphertext" @click="copyText(ciphertext, 'cipher')">
             {{ copiedKey === "cipher" ? t("copied") : t("copyCiphertext") }}
           </NeoButton>
 
           <label class="label">{{ t("wrapperJson") }}</label>
-          <textarea :value="wrapperJson" class="json-box" rows="7" readonly />
+          <textarea :value="wrapperJson" class="json-box" rows="7" readonly :aria-label="t('wrapperJson')" />
           <NeoButton variant="secondary" :disabled="!ciphertext" @click="copyText(wrapperJson, 'wrapper')">
             {{ copiedKey === "wrapper" ? t("copied") : t("copyWrapper") }}
           </NeoButton>
@@ -48,12 +48,12 @@
       <NeoCard variant="erobo" :title="t('refTitle')" class="mb-6">
         <div class="stack">
           <div class="details-grid">
-            <div><span class="label">{{ t("secretRef") }}</span><span class="value">{{ storedRef?.secret_ref || "—" }}</span></div>
-            <div><span class="label">{{ t("storageName") }}</span><span class="value">{{ storedRef?.name || storageName || "—" }}</span></div>
+            <div><span class="label">{{ t("secretRef") }}</span><span class="value">{{ storedRef?.secret_ref || t("notAvailable") }}</span></div>
+            <div><span class="label">{{ t("storageName") }}</span><span class="value">{{ storedRef?.name || storageName || t("notAvailable") }}</span></div>
           </div>
 
           <label class="label">{{ t("copyRefWrapper") }}</label>
-          <textarea :value="refWrapperJson" class="json-box" rows="5" readonly />
+          <textarea :value="refWrapperJson" class="json-box" rows="5" readonly :aria-label="t('copyRefWrapper')" />
           <NeoButton variant="secondary" :disabled="!storedRef?.secret_ref" @click="copyText(refWrapperJson, 'ref')">
             {{ copiedKey === "ref" ? t("copied") : t("copyRefWrapper") }}
           </NeoButton>
@@ -79,13 +79,13 @@
           type="textarea"
           :label="t('plaintextLabel')"
           :hint="t('helperNote')"
-          placeholder="{&#10;  &quot;mode&quot;: &quot;builtin&quot;,&#10;  &quot;function&quot;: &quot;math.modexp&quot;,&#10;  &quot;input&quot;: { &quot;base&quot;: &quot;2&quot;, &quot;exponent&quot;: &quot;10&quot;, &quot;modulus&quot;: &quot;17&quot; }&#10;}"
+          :placeholder="t('confidentialJsonPlaceholder')"
         />
 
-        <NeoInput v-model="storageName" :label="t('storageName')" placeholder="oracle-compute-demo" />
-        <NeoInput v-model="projectSlug" :label="t('projectSlug')" placeholder="optional" />
-        <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" placeholder="0x... optional" />
-        <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" placeholder="0x... optional" />
+        <NeoInput v-model="storageName" :label="t('storageName')" :placeholder="t('storageNamePlaceholder')" />
+        <NeoInput v-model="projectSlug" :label="t('projectSlug')" :placeholder="t('optional')" />
+        <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" :placeholder="t('hexOptional')" />
+        <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" :placeholder="t('hexOptional')" />
 
         <NeoButton variant="secondary" :loading="isLoadingKey" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
         <NeoButton variant="primary" :loading="isSealing" :disabled="!canSeal" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
@@ -96,13 +96,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { useOracle, type ConfidentialStoreResponse, type OraclePublicKeyResponse } from "@shared/composables/useOracle";
 import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "../../utils/encryption";
 import { messages } from "@/locale/messages";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const oracle = useOracle({ appId: "miniapp-oracle-seal-console" });
 const keyMeta = ref<OraclePublicKeyResponse | null>(null);
@@ -125,9 +126,9 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   messages,
   tab: { key: "seal", labelKey: "outputTitle", icon: "🔐" },
   sidebarItems: [
-    { labelKey: "modeLabel", value: () => inputMode.value },
-    { labelKey: "fieldTypeTitle", value: () => fieldName.value },
-    { labelKey: "algorithm", value: () => keyMeta.value?.algorithm || "—" },
+    { labelKey: "modeLabel", value: () => t(inputMode.value === "json" ? "jsonMode" : "textMode") },
+    { labelKey: "fieldTypeTitle", value: () => t(fieldName.value === "encrypted_payload" ? "encryptedPayload" : fieldName.value === "encrypted_params" ? "encryptedParams" : "encryptedToken") },
+    { labelKey: "algorithm", value: () => keyMeta.value?.algorithm || t("notAvailable") },
   ],
 });
 
@@ -144,8 +145,8 @@ async function loadKey() {
     isLoadingKey.value = true;
     keyMeta.value = await oracle.getOraclePublicKey();
     setStatus(t("loaded"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("loadKeyFailed")), "error");
   } finally {
     isLoadingKey.value = false;
   }
@@ -154,7 +155,7 @@ async function loadKey() {
 async function sealPayload() {
   try {
     if (!keyMeta.value?.public_key) {
-      throw new Error("Oracle public key is unavailable.");
+      throw new Error(t("oracleKeyUnavailable"));
     }
     isSealing.value = true;
     ciphertext.value = inputMode.value === "json"
@@ -162,8 +163,8 @@ async function sealPayload() {
       : await encryptTextWithOraclePublicKey(keyMeta.value.public_key, confidentialInput.value);
     storedRef.value = null;
     setStatus(t("sealed"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("sealFailed")), "error");
   } finally {
     isSealing.value = false;
   }
@@ -175,7 +176,7 @@ async function storeCiphertextRef() {
       throw new Error(t("refUnavailableForToken"));
     }
     if (!ciphertext.value) {
-      throw new Error("Ciphertext is required.");
+      throw new Error(t("ciphertextRequired"));
     }
     isStoring.value = true;
     storedRef.value = await oracle.storeConfidentialCiphertext({
@@ -190,36 +191,54 @@ async function storeCiphertextRef() {
       },
     });
     setStatus(t("stored"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("storeRefFailed")), "error");
   } finally {
     isStoring.value = false;
   }
 }
 
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
+
 async function copyText(value: string, key: "cipher" | "wrapper" | "ref") {
   if (!value) return;
-  await navigator.clipboard.writeText(value);
-  copiedKey.value = key;
-  window.setTimeout(() => {
-    if (copiedKey.value === key) copiedKey.value = null;
-  }, 1500);
+  try {
+    await navigator.clipboard.writeText(value);
+    if (copyTimer !== undefined) {
+      clearTimeout(copyTimer);
+      copyTimer = undefined;
+    }
+    copiedKey.value = key;
+    copyTimer = setTimeout(() => {
+      if (copiedKey.value === key) copiedKey.value = null;
+      copyTimer = undefined;
+    }, 1500);
+  } catch (_e: unknown) {
+    /* non-critical: clipboard copy failed */
+  }
 }
 
 onMounted(() => {
   void loadKey();
 });
 
+onUnmounted(() => {
+  if (copyTimer !== undefined) {
+    clearTimeout(copyTimer);
+    copyTimer = undefined;
+  }
+});
+
 const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Network", value: keyMeta.value?.network || oracle.network, icon: "🌐" },
-  { label: "Field", value: fieldName.value, icon: "🧩" },
-  { label: "Mode", value: inputMode.value, icon: "📦" },
+  { label: t("heroNetwork"), value: keyMeta.value?.network || oracle.network, icon: "🌐" },
+  { label: t("heroField"), value: t(fieldName.value === "encrypted_payload" ? "encryptedPayload" : fieldName.value === "encrypted_params" ? "encryptedParams" : "encryptedToken"), icon: "🧩" },
+  { label: t("heroMode"), value: t(inputMode.value === "json" ? "jsonMode" : "textMode"), icon: "📦" },
 ]);
 
 const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("algorithm"), value: keyMeta.value?.algorithm || "unloaded", variant: "accent" },
-  { label: t("contract"), value: keyMeta.value?.contract || "unloaded", variant: "default" },
-  { label: t("source"), value: keyMeta.value?.source || "unloaded", variant: "success" },
+  { label: t("algorithm"), value: keyMeta.value?.algorithm || t("notLoaded"), variant: "accent" },
+  { label: t("contract"), value: keyMeta.value?.contract || t("notLoaded"), variant: "default" },
+  { label: t("source"), value: keyMeta.value?.source || t("notLoaded"), variant: "success" },
 ]);
 
 const appState = computed(() => ({

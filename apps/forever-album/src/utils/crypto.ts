@@ -62,7 +62,12 @@ export async function encryptPayload(payload: string, password: string): Promise
 
 export async function decryptPayload(payload: string, password: string): Promise<string> {
   ensureCrypto();
-  const parsed = JSON.parse(payload);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch (_e: unknown) {
+    throw new Error("Invalid payload format: failed to parse JSON");
+  }
   if (!parsed || parsed.v !== 1 || parsed.alg !== "AES-GCM") {
     throw new Error("Invalid payload format");
   }

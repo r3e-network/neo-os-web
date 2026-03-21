@@ -93,7 +93,7 @@ const {
   sidebarItems: [
     { labelKey: "totalProofs", value: () => proof.proofs.value.length },
     { labelKey: "yourProofs", value: () => proof.myProofsCount.value },
-    { labelKey: "latestId", value: () => (proof.proofs.value.length > 0 ? `#${proof.proofs.value[0].id}` : "—") },
+    { labelKey: "latestId", value: () => (proof.proofs.value.length > 0 ? `#${proof.proofs.value[0].id}` : t("notAvailable")) },
   ],
   sidebarTitleKey: "proofStats",
   statusTimeoutMs: 5000,
@@ -123,7 +123,11 @@ const verifyProof = async () => {
 };
 
 onMounted(async () => {
-  await loadProofs();
+  try {
+    await loadProofs();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 
 const appState = computed(() => ({}));

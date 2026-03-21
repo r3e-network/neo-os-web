@@ -24,7 +24,7 @@
       </div>
 
       <!-- Results Indicator -->
-      <div v-if="result && !isFlipping" class="result-banner" :class="{ won: result.won }" aria-live="polite">
+      <div v-if="result && !isFlipping" class="result-banner" :class="{ won: result.won }" role="status" aria-live="polite" aria-atomic="true">
         <span class="result-text">{{ result.won ? t("youWon") : t("youLost") }}</span>
         <span class="outcome-tag">{{ t(result.outcome) }}</span>
       </div>

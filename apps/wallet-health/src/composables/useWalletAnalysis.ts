@@ -45,7 +45,7 @@ export function useWalletAnalysis() {
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch {
+    } catch (_e: unknown) {
       return 0n;
     }
   };
@@ -90,7 +90,11 @@ export function useWalletAnalysis() {
 
   watch(address, async (next) => {
     if (next) {
-      await refreshBalances();
+      try {
+        await refreshBalances();
+      } catch (_e: unknown) {
+        /* non-critical: balance refresh */
+      }
     } else {
       balances.neo = 0n;
       balances.gas = 0n;

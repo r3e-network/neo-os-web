@@ -28,7 +28,7 @@
 
     <!-- Success -->
     <div v-if="claimResult" class="claim-success">
-      <span class="success-icon">🎉</span>
+      <span class="success-icon" aria-hidden="true">🎉</span>
       <span class="success-text">{{ t("claimSuccess") }}</span>
     </div>
 
@@ -37,23 +37,23 @@
       <span class="pools-label">{{ t("availablePools") }}</span>
 
       <div v-if="pools.length === 0" class="empty-state">
-        <span class="empty-icon">🎯</span>
+        <span class="empty-icon" aria-hidden="true">🎯</span>
         <span class="empty-text">{{ t("noPools") }}</span>
       </div>
 
       <div v-else class="pool-grid">
         <div v-for="pool in pools" :key="pool.id" class="pool-card">
           <div class="pool-header">
-            <span class="pool-icon">🧧</span>
-            <span class="pool-id">Pool #{{ pool.id }}</span>
+            <span class="pool-icon" aria-hidden="true">🧧</span>
+            <span class="pool-id">{{ t("poolLabel", { poolId: String(pool.id) }) }}</span>
           </div>
 
-          <span class="pool-amount">💎 {{ pool.totalAmount }} GAS</span>
+          <span class="pool-amount"><span aria-hidden="true">💎</span> {{ pool.totalAmount }} {{ t("tokenGas") }}</span>
 
           <div class="pool-progress">
             <span class="progress-text">
-              🎫
-              {{ t("claimedCount").replace("{0}", String(pool.openedCount)).replace("{1}", String(pool.packetCount)) }}
+              <span aria-hidden="true">🎫</span>
+              {{ t("claimedCount", { claimed: String(pool.openedCount), total: String(pool.packetCount) }) }}
             </span>
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: progressPercent(pool) + '%' }" />
@@ -62,11 +62,11 @@
 
           <div v-if="pool.minNeoRequired > 0" class="pool-gate">
             <span class="gate-text">
-              🔒 {{ pool.minNeoRequired }} NEO, {{ Math.round(pool.minHoldSeconds / 86400) }}d hold
+              <span aria-hidden="true">🔒</span> {{ pool.minNeoRequired }} {{ t("tokenNeo") }}, {{ Math.round(pool.minHoldSeconds / 86400) }} {{ t("daysSuffix") }} {{ t("holdDuration") }}
             </span>
           </div>
 
-          <span v-if="pool.expiryTime" class="pool-expiry"> ⏰ {{ formatTimeLeft(pool.expiryTime) }} </span>
+          <span v-if="pool.expiryTime" class="pool-expiry"><span aria-hidden="true">⏰</span> {{ formatTimeLeft(pool.expiryTime) }} </span>
 
           <span v-if="pool.message" class="pool-message">"{{ pool.message }}"</span>
 
@@ -116,11 +116,11 @@ const progressPercent = (pool: EnvelopeItem) => {
 const formatTimeLeft = (expiryTime: number) => {
   const now = Date.now() / 1000;
   const diff = expiryTime - now;
-  if (diff <= 0) return "Expired";
+  if (diff <= 0) return t("expired");
   const days = Math.floor(diff / 86400);
   const hours = Math.floor((diff % 86400) / 3600);
-  if (days > 0) return `${days}d ${hours}h left`;
-  return `${hours}h left`;
+  if (days > 0) return t("timeLeftDays", { days: String(days), hours: String(hours) });
+  return t("timeLeftHours", { hours: String(hours) });
 };
 
 const handleClaim = (poolId: string) => {

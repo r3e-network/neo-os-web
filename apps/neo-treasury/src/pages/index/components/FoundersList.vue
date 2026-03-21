@@ -4,7 +4,7 @@
 
     <ItemList :items="categories" item-key="name">
       <template #item="{ item: cat }">
-        <div class="founder-item" role="button" tabindex="0" :aria-label="cat.name" @click="$emit('select', cat.name)">
+        <button type="button" class="founder-item" :aria-label="cat.name" @click="$emit('select', cat.name)">
           <div class="founder-main">
             <div class="founder-icon">
               <AppIcon name="user" :size="32" />
@@ -14,22 +14,22 @@
               <span class="founder-wallets">{{ cat.wallets.length }} {{ t("wallets") }}</span>
             </div>
             <div class="founder-total">
-              <span class="total-usd">${{ formatNum(cat.totalUsd) }}</span>
+              <span class="total-usd">{{ t("currencySymbol") }}{{ formatNum(cat.totalUsd) }}</span>
               <AppIcon name="chevron-right" :size="20" class="arrow" />
             </div>
           </div>
 
           <div class="founder-breakdown">
             <div class="breakdown-item">
-              <span class="b-label">NEO</span>
+              <span class="b-label">{{ t("tokenNeo") }}</span>
               <span class="b-val">{{ formatNum(cat.totalNeo) }}</span>
             </div>
             <div class="breakdown-item">
-              <span class="b-label">GAS</span>
+              <span class="b-label">{{ t("tokenGas") }}</span>
               <span class="b-val">{{ formatNum(cat.totalGas, 2) }}</span>
             </div>
           </div>
-        </div>
+        </button>
       </template>
     </ItemList>
   </div>
@@ -44,7 +44,9 @@ defineProps<{
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["select"]);
+defineEmits<{
+  (e: "select", name: string): void;
+}>();
 
 const formatNum = (n: number, decimals = 0): string => {
   return n.toLocaleString("en-US", {
@@ -77,6 +79,10 @@ const formatNum = (n: number, decimals = 0): string => {
   cursor: pointer;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  appearance: none;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 
   &:hover {
     transform: translateY(-4px);

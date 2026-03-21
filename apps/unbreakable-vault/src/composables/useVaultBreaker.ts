@@ -8,6 +8,11 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForListedEventByTransaction } from "@shared/utils";
 
+// Blockchain confirm timing constants
+const WAIT_AFTER_TRANSFER_MS = 4000;
+const DEFAULT_TIMEOUT_MS = 30000;
+const POLL_INTERVAL_MS = 1500;
+
 const ATTEMPT_FEE = 0.1;
 
 /** Handles vault break attempts, listing vaults, and claiming rewards. */
@@ -145,7 +150,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
 
       const result = await invokeDirectly("attemptBreak", [
         { type: "Integer", value: vaultIdInput.value },
@@ -158,8 +163,8 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
           const events = await listEvents({ app_id: APP_ID, event_name: "AttemptMade", limit: 20 });
           return events.events || [];
         },
-        timeoutMs: 30000,
-        pollIntervalMs: 1500,
+        timeoutMs: DEFAULT_TIMEOUT_MS,
+        pollIntervalMs: POLL_INTERVAL_MS,
         errorMessage: t("vaultAttemptFailed"),
       });
       const values = Array.isArray(attemptEvt?.state) ? attemptEvt.state.map(parseStackItem) : [];
@@ -173,9 +178,13 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     }
   };
 
-  const selectVault = (id: string) => {
+  const selectVault = async (id: string) => {
     vaultIdInput.value = id;
-    loadVault();
+    try {
+      await loadVault();
+    } catch (_e: unknown) {
+      /* non-critical: vault selection */
+    }
   };
 
   return {

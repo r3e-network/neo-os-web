@@ -5,7 +5,9 @@
       variant="primary"
       size="lg"
       block
+      type="button"
       :disabled="isProcessing"
+      :aria-label="isProcessing ? t('buttonSigning') : t('buttonSign')"
       @click="$emit('sign')"
     >
       {{ isProcessing ? t("buttonSigning") : t("buttonSign") }}
@@ -16,7 +18,9 @@
       variant="success"
       size="lg"
       block
+      type="button"
       :disabled="isProcessing"
+      :aria-label="isProcessing ? t('buttonBroadcasting') : t('buttonBroadcast')"
       @click="$emit('broadcast')"
     >
       {{ isProcessing ? t("buttonBroadcasting") : t("buttonBroadcast") }}
@@ -24,16 +28,14 @@
 
     <div v-if="broadcastTxId" class="broadcast-success">
       <span class="success-text">{{ t("broadcastedTitle") }}</span>
-      <span
+      <button
+        type="button"
         class="tx-id"
-        role="button"
         :aria-label="t('copy')"
-        tabindex="0"
         @click="$emit('copy', broadcastTxId)"
-        @keydown.enter="$emit('copy', broadcastTxId)"
       >
         {{ t("broadcastedTxid") }}: {{ broadcastTxId }}
-      </span>
+      </button>
     </div>
   </div>
 </template>
@@ -83,5 +85,11 @@ defineEmits<{
   text-decoration: underline;
   display: block;
   margin-top: 4px;
+  border: none;
+  appearance: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
 }
 </style>

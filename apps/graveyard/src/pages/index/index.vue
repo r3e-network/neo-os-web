@@ -28,7 +28,7 @@
         <template #stats>
           <div class="hero-stats">
             <div class="hero-stat">
-              <span class="hero-stat-icon">💀</span>
+              <span class="hero-stat-icon" aria-hidden="true">💀</span>
               <span class="hero-stat-value">{{ totalDestroyed }}</span>
               <span class="hero-stat-label">{{ t("itemsDestroyed") }}</span>
             </div>
@@ -94,13 +94,13 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
   name: "graveyard",
   messages,
   template: {
-    tabs: [{ key: "main", labelKey: "destroy", icon: "🗑️", default: true }],
+    tabs: [{ key: "main", labelKey: "destroy", icon: "🗑️", default: true, ariaHidden: true }],
     fireworks: true,
     docFeatureCount: 3,
   },
   sidebarItems: [
     { labelKey: "totalDestroyed", value: () => totalDestroyed.value },
-    { labelKey: "gasReclaimed", value: () => `${gasReclaimed.value} GAS` },
+    { labelKey: "gasReclaimed", value: () => `${gasReclaimed.value} ${t("tokenGas")}` },
     { labelKey: "history", value: () => history.value.length },
   ],
 });
@@ -122,13 +122,21 @@ onUnmounted(() => {
 });
 
 onMounted(async () => {
-  await loadStats();
-  await loadHistory();
+  try {
+    await loadStats();
+    await loadHistory();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 
 watch(activeTab, async (tab) => {
   if (tab === "history") {
-    await loadHistory();
+    try {
+      await loadHistory();
+    } catch (_e: unknown) {
+      /* non-critical: history load */
+    }
   }
 });
 </script>
@@ -305,8 +313,8 @@ watch(activeTab, async (tab) => {
 }
 .moon {
   box-shadow:
-    0 0 24px rgba(255, 222, 89, 0.5),
-    0 0 48px rgba(255, 222, 89, 0.2);
+    0 0 24px var(--grave-warning-glow, rgba(255, 222, 89, 0.5)),
+    0 0 48px var(--grave-warning-glow, rgba(255, 222, 89, 0.2));
 }
 .fog-1 {
   animation: mist-drift 8s ease-in-out infinite;

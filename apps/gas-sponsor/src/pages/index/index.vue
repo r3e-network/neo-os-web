@@ -208,7 +208,7 @@ onMounted(() => {
 @include page-background(
   var(--gas-bg, var(--bg-primary)),
   (
-    font-family: var(--gas-font, #{$font-family}),
+    font-family: $font-family,
   )
 );
 

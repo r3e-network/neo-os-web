@@ -43,11 +43,7 @@ export function useSignAnything(t: (key: string) => string) {
 
   // --- Actions ---
   const onTabChange = (tabId: string) => {
-    if (tabId === "docs") {
-      uni.navigateTo({ url: "/pages/docs/index" });
-    } else {
-      currentTab.value = tabId;
-    }
+    currentTab.value = tabId;
   };
 
   const signMessage = async () => {

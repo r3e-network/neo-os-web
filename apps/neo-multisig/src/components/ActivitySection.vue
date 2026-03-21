@@ -8,21 +8,19 @@
     </div>
 
     <div v-if="count === 0" class="empty-state">
-      <span class="empty-icon">📋</span>
+      <span class="empty-icon" aria-hidden="true">📋</span>
       <span class="empty-title">{{ emptyTitle }}</span>
       <span class="empty-desc">{{ emptyDescription }}</span>
     </div>
 
     <div v-else class="history-list">
-      <div
+      <button
+        type="button"
         v-for="item in items"
         :key="item.id"
         class="history-card"
-        role="button"
         :aria-label="shorten(item.scriptHash) + ' — ' + statusLabel(item.status)"
-        tabindex="0"
         @click="$emit('select', item.id)"
-        @keydown.enter="$emit('select', item.id)"
       >
         <div class="history-icon">
           <span class="icon-text">{{ getStatusIcon(item.status) }}</span>
@@ -34,7 +32,7 @@
         <div :class="['status-badge', item.status]">
           <span class="status-text">{{ statusLabel(item.status) }}</span>
         </div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
@@ -133,11 +131,14 @@ defineEmits<{
   align-items: center;
   gap: 14px;
   background: var(--multi-card-soft);
-  border: 1px solid var(--multi-border-soft);
   border-radius: 14px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
+  border: none;
+  appearance: none;
+  width: 100%;
+  text-align: left;
 
   &:active {
     background: var(--multi-accent-soft);

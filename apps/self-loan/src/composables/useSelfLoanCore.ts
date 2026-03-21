@@ -246,7 +246,7 @@ export function useSelfLoanCore() {
         ],
       });
 
-      setStatus(t("loanApproved").replace("{amount}", fmt(netBorrow, 2)), "success");
+      setStatus(t("loanApproved", { amount: fmt(netBorrow, 2), tokenGas: t("tokenGas") }), "success");
       collateralAmount.value = "";
       await onFetchData();
     } catch (e: unknown) {

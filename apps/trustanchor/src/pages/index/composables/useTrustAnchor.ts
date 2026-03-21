@@ -47,7 +47,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
   const getContractAddress = async (): Promise<string> => {
     const { getContractAddress: resolve } = useWallet() as WalletSDK;
     const addr = await resolve();
-    if (!addr) throw new Error(_t("contractUnavailable") || "Contract address unavailable");
+    if (!addr) throw new Error(_t("contractUnavailable"));
     return addr;
   };
 
@@ -159,11 +159,11 @@ export function useTrustAnchor(_t: (key: string) => string) {
    */
   const stake = async (amount: number) => {
     if (!address.value) {
-      setError(_t("connectWallet") || "Connect wallet first");
+      setError(_t("connectWallet"));
       return { success: false };
     }
     if (amount <= 0 || !Number.isInteger(amount)) {
-      setError(_t("invalidAmount") || "NEO is indivisible — enter a whole number");
+      setError(_t("invalidAmount"));
       return { success: false };
     }
 
@@ -198,11 +198,11 @@ export function useTrustAnchor(_t: (key: string) => string) {
 
   const unstake = async (amount: number) => {
     if (!address.value) {
-      setError(_t("connectWallet") || "Connect wallet first");
+      setError(_t("connectWallet"));
       return { success: false };
     }
     if (amount <= 0 || !Number.isInteger(amount)) {
-      setError(_t("invalidAmount") || "NEO is indivisible — enter a whole number");
+      setError(_t("invalidAmount"));
       return { success: false };
     }
 
@@ -231,7 +231,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
 
   const claimPendingWithdraw = async () => {
     if (!address.value) {
-      setError(_t("connectWallet") || "Connect wallet first");
+      setError(_t("connectWallet"));
       return { success: false };
     }
 
@@ -262,7 +262,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
   /** Call `claimReward(account)` to claim accrued GAS */
   const claimRewards = async () => {
     if (!address.value) {
-      setError(_t("connectWallet") || "Connect wallet first");
+      setError(_t("connectWallet"));
       return { success: false };
     }
 

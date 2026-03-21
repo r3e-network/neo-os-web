@@ -1,4 +1,9 @@
 :global(.theme-neoburger) {
+  --erobo-purple: #9f9df3;
+  --erobo-purple-dark: #7c7ce0;
+  --erobo-gradient: linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%);
+  --erobo-ink: #1b1b2f;
+  --erobo-ink-soft: rgba(27, 27, 47, 0.6);
   --burger-bg: #14110c;
   --burger-bg-glow-1: rgba(0, 229, 153, 0.12);
   --burger-bg-glow-2: rgba(255, 184, 76, 0.18);
@@ -25,6 +30,8 @@
   --burger-accent-soft: #9ff6d5;
   --burger-accent-text: #0b2f24;
   --burger-accent-deep: #0f7f5a;
+  --burger-gold: #fbbf24;
+  --burger-gold-dark: #f59e0b;
   --burger-primary-gradient: linear-gradient(135deg, #00e599 0%, #9ff6d5 100%);
   --burger-accent-shadow: 0 12px 25px rgba(0, 229, 153, 0.35);
   --burger-accent-shadow-soft: 0 10px 20px rgba(0, 229, 153, 0.3);
@@ -60,6 +67,11 @@
 
 :global(.theme-light .theme-neoburger),
 :global([data-theme="light"] .theme-neoburger) {
+  --erobo-purple: #5a58a3;
+  --erobo-purple-dark: #4a478f;
+  --erobo-gradient: linear-gradient(135deg, rgba(159, 157, 243, 0.12) 0%, rgba(247, 170, 199, 0.1) 100%);
+  --erobo-ink: #f0f0f5;
+  --erobo-ink-soft: rgba(200, 200, 220, 0.4);
   --burger-bg: #f7f2ea;
   --burger-bg-glow-1: rgba(0, 229, 153, 0.12);
   --burger-bg-glow-2: rgba(255, 184, 76, 0.18);
@@ -86,6 +98,8 @@
   --burger-accent-soft: #9ff6d5;
   --burger-accent-text: #0b2f24;
   --burger-accent-deep: #0f7f5a;
+  --burger-gold: #fbbf24;
+  --burger-gold-dark: #f59e0b;
   --burger-primary-gradient: linear-gradient(135deg, #00e599 0%, #9ff6d5 100%);
   --burger-accent-shadow: 0 12px 25px rgba(0, 229, 153, 0.35);
   --burger-accent-shadow-soft: 0 10px 20px rgba(0, 229, 153, 0.3);

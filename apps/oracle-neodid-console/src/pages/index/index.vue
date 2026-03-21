@@ -21,15 +21,15 @@
     </template>
     <template #operation>
       <div class="stack">
-        <NeoInput v-model="did" :label="t('did')" placeholder="did:morpheus:neo_n3:service:neodid" />
-        <NeoInput v-model="format" :label="t('format')" placeholder="resolution / document" />
+        <NeoInput v-model="did" :label="t('did')" :placeholder="t('didPlaceholder')" />
+        <NeoInput v-model="format" :label="t('format')" :placeholder="t('formatPlaceholder')" />
         <div class="button-row">
-          <NeoButton variant="secondary" @click="applyExample('service')">{{ t("serviceDid") }}</NeoButton>
-          <NeoButton variant="secondary" @click="applyExample('vault')">{{ t("vaultDid") }}</NeoButton>
-          <NeoButton variant="secondary" @click="applyExample('aa')">{{ t("aaDid") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="applyExample('service')" :aria-label="t('serviceDid')">{{ t("serviceDid") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="applyExample('vault')" :aria-label="t('vaultDid')">{{ t("vaultDid") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="applyExample('aa')" :aria-label="t('aaDid')">{{ t("aaDid") }}</NeoButton>
         </div>
-        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="resolveDid">{{ t("resolveDid") }}</NeoButton>
-        <NeoButton variant="secondary" :loading="oracle.isRequesting" @click="loadProviders">{{ t("loadProviders") }}</NeoButton>
+        <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="resolveDid" :aria-label="t('resolveDid')">{{ t("resolveDid") }}</NeoButton>
+        <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="loadProviders" :aria-label="t('loadProviders')">{{ t("loadProviders") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
@@ -42,6 +42,7 @@ import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const oracle = useOracle({ appId: "miniapp-oracle-neodid-console" });
 const did = ref("did:morpheus:neo_n3:service:neodid");
@@ -83,8 +84,8 @@ async function resolveDid() {
   try {
     latestPayload.value = await oracle.resolveNeoDid(did.value, normalizeFormat(format.value));
     setStatus(t("resultLoaded"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("resolveFailed")), "error");
   }
 }
 
@@ -93,8 +94,8 @@ async function loadProviders() {
     providersPayload.value = await oracle.getNeoDidProviders();
     latestPayload.value = providersPayload.value;
     setStatus(t("resultLoaded"), "success");
-  } catch (error) {
-    setStatus(String((error as Error)?.message || error), "error");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("loadProvidersFailed")), "error");
   }
 }
 
@@ -104,18 +105,18 @@ const providerCount = computed(() => {
   return 0;
 });
 
-const renderedPayload = computed(() => JSON.stringify(latestPayload.value ?? providersPayload.value ?? {}, null, 2) || "—");
+const renderedPayload = computed(() => JSON.stringify(latestPayload.value ?? providersPayload.value ?? {}, null, 2) || t("notAvailable"));
 
 const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Network", value: oracle.network, icon: "🌐" },
-  { label: "Format", value: normalizeFormat(format.value), icon: "📄" },
-  { label: "Providers", value: providerCount.value, icon: "🧷" },
+  { label: t("network"), value: oracle.network, icon: "🌐" },
+  { label: t("format"), value: normalizeFormat(format.value), icon: "📄" },
+  { label: t("providersLabel"), value: providerCount.value, icon: "🧷" },
 ]);
 
 const overviewStats = computed<StatsDisplayItem[]>(() => [
   { label: t("publicApi"), value: oracle.integration.morpheusPublicApiUrl, variant: "accent" },
-  { label: t("neodidContract"), value: oracle.integration.contracts.morpheusNeoDid || "external resolver", variant: "default" },
-  { label: t("neodidDomain"), value: oracle.integration.domains.neodid || "not published", variant: "success" },
+  { label: t("neodidContract"), value: oracle.integration.contracts.morpheusNeoDid || t("externalResolver"), variant: "default" },
+  { label: t("neodidDomain"), value: oracle.integration.domains.neodid || t("notPublished"), variant: "success" },
 ]);
 
 const appState = computed(() => ({

@@ -30,7 +30,7 @@ export function requireNeoChain(
     message =
       primary && primary !== "wrongChainMessage" ? primary : t("wrongChain");
   }
-  if (!message) message = "Wrong network";
+  if (!message) message = t("wrongChain");
 
   const ui = (
     globalThis as {

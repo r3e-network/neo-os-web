@@ -28,9 +28,9 @@
         {{ result.revoked ? t("certificateRevoked") : t("certificateValid") }}
       </span>
     </div>
-    <span class="detail-row">{{ t("recipientName") }}: {{ result.recipientName || "--" }}</span>
-    <span class="detail-row">{{ t("achievement") }}: {{ result.achievement || "--" }}</span>
-    <span class="detail-row">{{ t("tokenId") }}: {{ result.tokenId }}</span>
+    <span class="detail-row">{{ t("recipientName") }}{{ t("detailSeparator") }}{{ result.recipientName || t("notAvailable") }}</span>
+    <span class="detail-row">{{ t("achievement") }}{{ t("detailSeparator") }}{{ result.achievement || t("notAvailable") }}</span>
+    <span class="detail-row">{{ t("tokenId") }}{{ t("detailSeparator") }}{{ result.tokenId }}</span>
   </NeoCard>
 </template>
 
@@ -70,7 +70,7 @@ const handleRevoke = () => {
 
 const addressShort = (value: string) => {
   const trimmed = String(value || "");
-  if (!trimmed) return "--";
+  if (!trimmed) return t("notAvailable");
   if (trimmed.length <= 12) return trimmed;
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };

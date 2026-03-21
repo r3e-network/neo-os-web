@@ -1,3 +1,41 @@
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .hero-swap-display {
+    gap: 12px;
+  }
+
+  .token-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .hero-price-quote {
+    padding: 12px 20px;
+  }
+
+  .price-value {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .hero-swap-display {
+    gap: 8px;
+  }
+
+  .token-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .hero-arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 :global(.theme-neo-swap) {
   --swap-bg-start: #0a0f14;
   --swap-bg-mid: #0d1117;

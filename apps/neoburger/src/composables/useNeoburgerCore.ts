@@ -22,6 +22,7 @@ export function useNeoburgerCore() {
   const walletAddress = ref<string | null>(null);
   const BNEO_CONTRACT = ref<string | null>(null);
   const loading = ref(false);
+  const error = ref<string | null>(null);
   const statusMessage = ref("");
   const statusType = ref<"success" | "error">("success");
 
@@ -33,7 +34,8 @@ export function useNeoburgerCore() {
         contractUnavailableMessage: t("contractUnavailable"),
       });
     } catch (e: unknown) {
-      /* non-critical: bNEO contract resolution */
+      const msg = e instanceof Error ? e.message : t("contractUnavailable");
+      error.value = msg;
     }
     return BNEO_CONTRACT.value;
   }
@@ -54,7 +56,7 @@ export function useNeoburgerCore() {
       neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
       bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
     } catch (e: unknown) {
-      /* non-critical: wallet balance fetch */
+      error.value = e instanceof Error ? e.message : t("balanceLoadFailed");
     }
   }
 
@@ -77,7 +79,7 @@ export function useNeoburgerCore() {
       });
       return true;
     } catch (e: unknown) {
-      /* non-critical: stake operation failed */
+      error.value = e instanceof Error ? e.message : t("stakeFailed");
       return false;
     }
   }
@@ -102,7 +104,7 @@ export function useNeoburgerCore() {
       });
       return true;
     } catch (e: unknown) {
-      /* non-critical: unstake operation failed */
+      error.value = e instanceof Error ? e.message : t("unstakeFailed");
       return false;
     }
   }
@@ -117,7 +119,7 @@ export function useNeoburgerCore() {
       await sdk.invoke("invokeFunction", { contract: bneoContract, method: "claim", args: [] });
       return true;
     } catch (e: unknown) {
-      /* non-critical: claim rewards failed */
+      error.value = e instanceof Error ? e.message : t("claimFailed");
       return false;
     }
   }
@@ -130,6 +132,7 @@ export function useNeoburgerCore() {
     walletAddress,
     walletConnected,
     loading,
+    error,
     statusMessage,
     statusType,
     ensureBneoContract,

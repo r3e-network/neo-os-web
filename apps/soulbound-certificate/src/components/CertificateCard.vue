@@ -16,9 +16,9 @@
         <img :src="qrCode" class="certificate-qr__img" mode="aspectFit" :alt="t('certificateQrCode')" />
       </div>
       <div class="certificate-details">
-        <span class="detail-row">{{ t("recipientName") }}: {{ cert.recipientName || "--" }}</span>
-        <span class="detail-row">{{ t("achievement") }}: {{ cert.achievement || "--" }}</span>
-        <span class="detail-row">{{ t("tokenId") }}: {{ cert.tokenId }}</span>
+        <span class="detail-row">{{ t("recipientName") }}{{ t("detailSeparator") }}{{ cert.recipientName || t("notAvailable") }}</span>
+        <span class="detail-row">{{ t("achievement") }}{{ t("detailSeparator") }}{{ cert.achievement || t("notAvailable") }}</span>
+        <span class="detail-row">{{ t("tokenId") }}{{ t("detailSeparator") }}{{ cert.tokenId }}</span>
         <NeoButton size="sm" variant="secondary" class="copy-btn" @click="$emit('copy', cert.tokenId)">
           {{ t("copyTokenId") }}
         </NeoButton>
@@ -46,7 +46,7 @@ const { t } = createUseI18n(messages)();
 
 const addressShort = (value: string) => {
   const trimmed = String(value || "");
-  if (!trimmed) return "--";
+  if (!trimmed) return t("notAvailable");
   if (trimmed.length <= 12) return trimmed;
   return `${trimmed.slice(0, 6)}...${trimmed.slice(-4)}`;
 };

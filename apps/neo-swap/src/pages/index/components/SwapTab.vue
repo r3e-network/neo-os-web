@@ -21,16 +21,14 @@
 
       <!-- Swap Direction Button -->
       <div class="swap-direction">
-        <div
+        <button
+          type="button"
           :class="['swap-btn', { rotating: isSwapping }]"
-          role="button"
-          :aria-label="t('tabSwap')"
-          tabindex="0"
+          :aria-label="t('switchTokens')"
           @click="swapTokens"
-          @keydown.enter="swapTokens"
         >
           <span class="swap-icon" aria-hidden="true">&#x2193;&#x2191;</span>
-        </div>
+        </button>
       </div>
 
       <SwapForm
@@ -55,18 +53,17 @@
     />
 
     <!-- Swap Action Button -->
-    <div
+    <button
+      type="button"
       :class="['action-btn', { disabled: !canSwap || loading, loading: loading }]"
-      role="button"
       :aria-label="swapButtonText"
       :aria-disabled="!canSwap || loading"
-      tabindex="0"
+      :disabled="!canSwap || loading"
       @click="executeSwap"
-      @keydown.enter="executeSwap"
     >
       <div v-if="loading" class="btn-loader" aria-hidden="true"></div>
       <span class="btn-text">{{ swapButtonText }}</span>
-    </div>
+    </button>
 
     <!-- Status Message -->
     <div v-if="status" :class="['status-card', status.type]">
@@ -128,10 +125,16 @@ const {
 <style lang="scss" scoped>
 .swap-container {
   position: relative;
-  padding: 20px;
+  padding: 16px;
   min-height: 100vh;
   background: var(--swap-bg-gradient);
-  overflow: hidden;
+  overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .swap-container {
+    padding: 12px;
+  }
 }
 
 // Animated Background
@@ -195,11 +198,18 @@ const {
   background: var(--swap-card-bg);
   border: 1px solid var(--swap-card-border);
   border-radius: 24px;
-  padding: 24px;
+  padding: 20px;
   backdrop-filter: blur(20px);
   box-shadow:
     0 0 40px var(--swap-card-glow),
     inset 0 1px 0 var(--swap-card-inset);
+}
+
+@media (max-width: 480px) {
+  .swap-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
 }
 
 // Swap Direction Button
@@ -222,6 +232,9 @@ const {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   box-shadow: 0 4px 20px var(--swap-accent-glow);
+  border: none;
+  appearance: none;
+  padding: 0;
 
   &:hover {
     transform: scale(1.1) rotate(180deg);
@@ -230,6 +243,17 @@ const {
 
   &.rotating {
     transform: rotate(180deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .swap-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .swap-icon {
+    font-size: 16px;
   }
 }
 
@@ -251,6 +275,9 @@ const {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 20px var(--swap-accent-glow);
+  border: none;
+  appearance: none;
+  width: 100%;
 
   &:hover:not(.disabled) {
     transform: translateY(-2px);
@@ -269,6 +296,16 @@ const {
 
   &.loading {
     background: var(--swap-action-loading-bg);
+  }
+}
+
+@media (max-width: 480px) {
+  .action-btn {
+    padding: 16px;
+  }
+
+  .btn-text {
+    font-size: 14px;
   }
 }
 

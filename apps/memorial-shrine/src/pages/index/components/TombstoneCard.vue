@@ -1,23 +1,27 @@
 <template>
-  <div class="tombstone-card" role="button" tabindex="0" :aria-label="memorial.name + ' (' + memorial.birthYear + '-' + memorial.deathYear + ')'" @click="$emit('click')">
+  <button type="button" class="tombstone-card" :aria-label="memorial.name + ' (' + memorial.birthYear + t('yearSeparator') + memorial.deathYear + ')'" @click="$emit('click')">
     <div class="tombstone-top">
       <div class="photo-frame" v-if="memorial.photoHash">
-        <img :src="memorial.photoHash" mode="aspectFill" :alt="memorial.name || t('memorialPhoto')" />
+        <img :src="memorial.photoHash" mode="aspectFill" :alt="memorial.name?.trim() || t('memorialPhoto')" />
       </div>
       <div class="icon-frame" v-else>
-        <span class="candle-icon" :class="{ burning: memorial.hasRecentTribute }">🕯️</span>
+        <span class="candle-icon" :class="{ burning: memorial.hasRecentTribute }" aria-hidden="true">🕯️</span>
       </div>
     </div>
     <div class="tombstone-body">
       <span class="name">{{ memorial.name }}</span>
-      <span class="years">{{ memorial.birthYear }} - {{ memorial.deathYear }}</span>
-      <span class="candle" :class="{ burning: memorial.hasRecentTribute }">🕯️</span>
+      <span class="years">{{ memorial.birthYear }}{{ t("yearRangeSeparator") }}{{ memorial.deathYear }}</span>
+      <span class="candle" :class="{ burning: memorial.hasRecentTribute }" aria-hidden="true">🕯️</span>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
 import type { Memorial } from "@/types";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
+
+const { t } = createUseI18n(messages)();
 
 defineProps<{
   memorial: Memorial;
@@ -34,7 +38,12 @@ defineEmits<{
   width: 140px;
   cursor: pointer;
   transition: transform 0.3s;
-  
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
+
   &:active {
     transform: translateY(-4px);
   }

@@ -14,15 +14,15 @@
       <div class="health-legend">
         <div class="legend-item">
           <div class="legend-dot safe"></div>
-          <span class="legend-text">{{ t("safe") }} (>2.0)</span>
+          <span class="legend-text">{{ t("safe") }} {{ t("thresholdSafe", { value: "2.0" }) }}</span>
         </div>
         <div class="legend-item">
           <div class="legend-dot warning"></div>
-          <span class="legend-text">{{ t("warning") }} (1.5-2.0)</span>
+          <span class="legend-text">{{ t("warning") }} {{ t("thresholdWarning", { min: "1.5", max: "2.0" }) }}</span>
         </div>
         <div class="legend-item">
           <div class="legend-dot danger"></div>
-          <span class="legend-text">{{ t("danger") }} (<1.5)</span>
+          <span class="legend-text">{{ t("danger") }} {{ t("thresholdDanger", { value: "1.5" }) }}</span>
         </div>
       </div>
     </div>
@@ -31,12 +31,12 @@
       <div class="metric-card-glass">
         <span class="metric-label">{{ t("totalBorrowed") }}</span>
         <span class="metric-value borrowed">{{ fmt(loan.borrowed, 2) }}</span>
-        <span class="metric-unit">GAS</span>
+        <span class="metric-unit">{{ t("gasUnit") }}</span>
       </div>
       <div class="metric-card-glass">
         <span class="metric-label">{{ t("collateralLocked") }}</span>
         <span class="metric-value collateral">{{ fmt(loan.collateralLocked, 2) }}</span>
-        <span class="metric-unit">NEO</span>
+        <span class="metric-unit">{{ t("neoUnit") }}</span>
       </div>
       <div class="metric-card-glass">
         <span class="metric-label">{{ t("currentLTV") }}</span>

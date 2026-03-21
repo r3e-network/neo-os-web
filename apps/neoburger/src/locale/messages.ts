@@ -41,9 +41,12 @@ const appMessages = {
   bneoAlt: { en: "bNEO logo", zh: "bNEO 标志" },
   inputPlaceholder: { en: "0", zh: "0" },
   percent25: { en: "25%", zh: "25%" },
+  setAmountPercent25: { en: "Set amount to 25%", zh: "设置金额为25%" },
   percent50: { en: "50%", zh: "50%" },
+  setAmountPercent50: { en: "Set amount to 50%", zh: "设置金额为50%" },
   percent75: { en: "75%", zh: "75%" },
-  approxUsd: { en: "~ ${value}", zh: "~ ${value}" },
+  setAmountPercent75: { en: "Set amount to 75%", zh: "设置金额为75%" },
+  approxUsd: { en: "~ {value}", zh: "~ {value}" },
   approxUsdPlaceholder: { en: "~ $ -", zh: "~ $ -" },
 
   // Jazz Up
@@ -195,7 +198,9 @@ const appMessages = {
   bneoTotalSupplyTitle: { en: "bNEO Total Supply", zh: "bNEO 总供应量" },
   dailyGasRewardsPerNeo: { en: "Daily Gas Rewards per NEO", zh: "每 NEO 日均 GAS 奖励" },
   days7: { en: "7 days", zh: "7 天" },
+  days7Range: { en: "Show 7 day range", zh: "显示7天范围" },
   days30: { en: "30 days", zh: "30 天" },
+  days30Range: { en: "Show 30 day range", zh: "显示30天范围" },
   nobugContractAddressValue: { en: "NN4jzS1nSRGNdmraNBH4K8KtdD7YG8rxRG", zh: "NN4jzS1nSRGNdmraNBH4K8KtdD7YG8rxRG" },
   agentInfoTitle: { en: "Agent Info", zh: "代理信息" },
   candidatesWhitelist: { en: "Candidates Whitelist", zh: "候选白名单" },
@@ -234,6 +239,7 @@ const appMessages = {
   amountToUnstake: { en: "Amount to Unstake", zh: "解除质押数量" },
   balance: { en: "Balance", zh: "余额" },
   max: { en: "MAX", zh: "最大" },
+  setAmountMax: { en: "Set maximum amount", zh: "设置最大金额" },
   youWillReceive: { en: "You will receive", zh: "您将收到" },
   exchangeRate: { en: "Exchange Rate", zh: "兑换率" },
   stakeRate: { en: "1 NEO = 0.99 bNEO", zh: "1 NEO = 0.99 bNEO" },
@@ -295,6 +301,9 @@ const appMessages = {
   sidebarBneoBalance: { en: "bNEO Balance", zh: "bNEO 余额" },
   sidebarTotalStaked: { en: "Total Staked", zh: "总质押量" },
   sidebarApr: { en: "APR", zh: "年化" },
+  stepsLabel: { en: "Steps", zh: "步骤" },
+  featuresLabel: { en: "Features", zh: "功能" },
+  notAvailable: { en: "N/A", zh: "不可用" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

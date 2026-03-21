@@ -7,14 +7,15 @@
         type="number"
         :label="t('collateralAmount')"
         :placeholder="t('amountToLock')"
-        suffix="NEO"
+        :suffix="t('tokenNeo')"
       />
     </div>
 
     <div v-if="ltvOptions.length" class="tier-section">
       <span class="tier-label">{{ t("ltvTier") }}</span>
       <div class="tier-grid">
-        <div
+        <button
+          type="button"
           v-for="option in ltvOptions"
           :key="option.tier"
           :class="['tier-card', { active: option.tier === selectedTier }]"
@@ -23,7 +24,7 @@
           <span class="tier-title">{{ option.label }}</span>
           <span class="tier-percent">{{ option.percent }}%</span>
           <span v-if="option.desc" class="tier-desc">{{ option.desc }}</span>
-        </div>
+        </button>
       </div>
     </div>
 
@@ -40,20 +41,20 @@
         <div class="ltv-marker ltv-marker--two-thirds"></div>
       </div>
       <div class="ltv-labels">
-        <span class="ltv-min">0%</span>
-        <span class="ltv-mid">50%</span>
-        <span class="ltv-max">100%</span>
+        <span class="ltv-min">{{ t("ltvMin") }}</span>
+        <span class="ltv-mid">{{ t("ltvMid") }}</span>
+        <span class="ltv-max">{{ t("ltvMax") }}</span>
       </div>
     </div>
 
     <div class="calculator-receipt">
       <div class="calc-row">
         <span class="calc-label">{{ estimatedLabel }}</span>
-        <span class="calc-value mono collateral-req">{{ fmt(estimatedBorrowNet, 2) }} GAS</span>
+        <span class="calc-value mono collateral-req">{{ fmt(estimatedBorrowNet, 2) }} {{ t("tokenGas") }}</span>
       </div>
       <div v-if="platformFeeBps > 0" class="calc-row">
         <span class="calc-label">{{ feeLabel }}</span>
-        <span class="calc-value mono fee">{{ fmt(feeAmount, 2) }} GAS</span>
+        <span class="calc-value mono fee">{{ fmt(feeAmount, 2) }} {{ t("tokenGas") }}</span>
       </div>
       <div class="calc-row">
         <span class="calc-label">{{ t("collateralRatio") }}</span>
@@ -88,7 +89,11 @@ const props = defineProps<{
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-const emit = defineEmits(["update:modelValue", "update:selectedTier", "takeLoan"]);
+const emit = defineEmits<{
+  (e: "update:modelValue", value: string): void;
+  (e: "update:selectedTier", tier: number): void;
+  (e: "takeLoan"): void;
+}>();
 
 const fmt = (n: number, d = 2) => formatNumber(n, d);
 
@@ -101,7 +106,7 @@ const feeAmount = computed(() => (estimatedBorrow.value * platformFeeBps.value) 
 const estimatedBorrowNet = computed(() => Math.max(estimatedBorrow.value - feeAmount.value, 0));
 const collateralRatio = computed(() => (ltvPercent.value > 0 ? 100 / ltvPercent.value : 0));
 const feePercent = computed(() => (platformFeeBps.value / 100).toFixed(2).replace(/\.00$/, ""));
-const feeLabel = computed(() => props.t("originationFee").replace("{percent}", feePercent.value));
+const feeLabel = computed(() => props.t("originationFee", { percent: feePercent.value }));
 const estimatedLabel = computed(() => props.t("estimatedBorrowNet"));
 
 const calculatedLTV = computed(() => {
@@ -159,6 +164,8 @@ const getLTVColorClass = () => {
   background: rgba(255, 255, 255, 0.02);
   text-align: center;
   transition: all 0.2s ease;
+  appearance: none;
+  cursor: pointer;
 }
 
 .tier-card.active {

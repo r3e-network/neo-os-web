@@ -1,10 +1,10 @@
 <template>
   <NeoCard variant="erobo-bitcoin" class="reading-card-container">
     <div class="fortune-container-glass">
-      <span class="fortune-icon">🔮</span>
+      <span class="fortune-icon" aria-hidden="true">🔮</span>
       <span class="reading-text-glass">{{ reading }}</span>
       <div class="mystical-divider-glass">
-        <span>✦ ✦ ✦</span>
+        <span aria-hidden="true">✦ ✦ ✦</span>
       </div>
     </div>
   </NeoCard>

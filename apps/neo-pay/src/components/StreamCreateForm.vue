@@ -33,7 +33,7 @@
           v-model="localForm.total"
           type="number"
           :label="t('totalAmount')"
-          placeholder="20"
+          :placeholder="t('totalAmountPlaceholder')"
           :suffix="localForm.asset"
           :hint="t('totalAmountHint')"
         />
@@ -42,7 +42,7 @@
           v-model="localForm.rate"
           type="number"
           :label="t('rateAmount')"
-          placeholder="1.5"
+          :placeholder="t('rateAmountPlaceholder')"
           :suffix="localForm.asset"
         />
 
@@ -50,7 +50,7 @@
           v-model="localForm.intervalDays"
           type="number"
           :label="t('intervalDays')"
-          placeholder="30"
+          :placeholder="t('intervalDaysPlaceholder')"
           :hint="t('intervalHint')"
         />
 

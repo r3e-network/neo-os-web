@@ -55,7 +55,8 @@ const appMessages = {
   certificateValid: { en: "Valid", zh: "有效" },
   tokenId: { en: "Token ID", zh: "Token ID" },
   copyTokenId: { en: "Copy Token ID", zh: "复制 Token ID" },
-
+  idPrefix: { en: "#", zh: "#" },
+  detailSeparator: { en: ": ", zh: "：" },
   verifyTokenId: { en: "Token ID", zh: "Token ID" },
   verifyTokenIdPlaceholder: { en: "Enter token ID", zh: "输入 Token ID" },
   lookup: { en: "Lookup", zh: "查询" },

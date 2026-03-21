@@ -45,6 +45,7 @@
         v-if="!contractReady"
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
+        :t="t"
       />
       <template v-else>
         <div class="escrows-header">
@@ -86,6 +87,7 @@
         :title="t('deploymentPendingTitle')"
         :description="t('deploymentPendingDesc')"
         compact
+        :t="t"
       />
       <EscrowForm v-else @create="onCreateEscrow" ref="escrowFormRef" />
     </template>
@@ -168,16 +170,24 @@ const ensureContractReady = async () => {
 };
 
 const resetAndReload = async () => {
-  if (!(await ensureContractReady())) return;
-  if (address.value) {
-    await refreshEscrows();
+  try {
+    if (!(await ensureContractReady())) return;
+    if (address.value) {
+      await refreshEscrows();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: reload milestone data */
   }
 };
 
 onMounted(async () => {
-  if (!(await ensureContractReady())) return;
-  if (address.value) {
-    await refreshEscrows();
+  try {
+    if (!(await ensureContractReady())) return;
+    if (address.value) {
+      await refreshEscrows();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
   }
 });
 

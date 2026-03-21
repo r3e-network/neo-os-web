@@ -2,18 +2,18 @@
   <NeoCard class="summary-card" variant="erobo">
     <div class="summary-container">
       <div class="usd-value-row">
-        <span class="usd-sign">$</span>
+        <span class="usd-sign">{{ t("currencySymbol") }}</span>
         <span class="usd-amount">{{ formatNum(totalUsd) }}</span>
       </div>
 
       <div class="token-split">
         <div class="token-item">
-          <span class="token-label">NEO</span>
+          <span class="token-label">{{ t("tokenNeo") }}</span>
           <span class="token-value">{{ formatNum(totalNeo) }}</span>
         </div>
         <div class="divider"></div>
         <div class="token-item">
-          <span class="token-label">GAS</span>
+          <span class="token-label">{{ t("tokenGas") }}</span>
           <span class="token-value">{{ formatNum(totalGas, 2) }}</span>
         </div>
       </div>
@@ -44,7 +44,7 @@ const formatNum = (n: number, decimals = 0): string => {
 };
 
 const formatTime = (ts: number): string => {
-  return new Date(ts).toLocaleTimeString();
+  return new Date(ts).toLocaleTimeString("en");
 };
 </script>
 

@@ -4,8 +4,16 @@ const appMessages = {
   url: { en: "URL", zh: "URL" },
   method: { en: "Method", zh: "方法" },
   body: { en: "Body", zh: "Body" },
+  labelStatus: { en: "Status", zh: "状态" },
+  labelHeaders: { en: "Headers", zh: "Headers" },
+  labelBody: { en: "Body", zh: "Body" },
   secretName: { en: "Secret Name", zh: "Secret Name" },
   secretAsKey: { en: "Secret As Key", zh: "Secret As Key" },
+  optional: { en: "optional", zh: "可选" },
+  secretAsKeyPlaceholder: { en: "Authorization / X-API-Key", zh: "Authorization / X-API-Key" },
+  urlPlaceholder: { en: "https://api.binance.com/api/v3/ticker/price?symbol=NEOUSDT", zh: "https://api.binance.com/api/v3/ticker/price?symbol=NEOUSDT" },
+  methodPlaceholder: { en: "GET", zh: "GET" },
+  heroMode: { en: "Mode", zh: "模式" },
   runQuery: { en: "Run Oracle Query", zh: "执行预言机查询" },
   latestResponse: { en: "Latest Response", zh: "最近响应" },
   docsSubtitle: { en: "Query allowlisted HTTP sources through Morpheus Oracle", zh: "通过 Morpheus Oracle 查询 allowlisted HTTP 数据源" },
@@ -14,6 +22,9 @@ const appMessages = {
   feature2Name: { en: "Secrets", zh: "Secrets" },
   feature2Desc: { en: "Supports optional secret injection by name.", zh: "支持按名称注入可选 secret。" },
   feature3Name: { en: "Operator Console", zh: "运维控制台" },
-  feature3Desc: { en: "Fast inspection tool for Oracle responses.", zh: "面向预言机响应的快速检查工具。" }
+  feature3Desc: { en: "Fast inspection tool for Oracle responses.", zh: "面向预言机响应的快速检查工具。" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  queryFailed: { en: "Query failed", zh: "查询失败" },
+  queryCompleted: { en: "Query completed", zh: "查询完成" },
 } as const;
 export const messages = mergeMessages(appMessages);

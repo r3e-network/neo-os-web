@@ -3,6 +3,9 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   // App translations
   title: { en: "LastSurvivor", zh: "最后生还者" },
+  connectWalletToPlay: { en: "Connect wallet to play", zh: "连接钱包开始游戏" },
+  connectWallet: { en: "Connect Wallet", zh: "连接钱包" },
+  history: { en: "History", zh: "历史" },
   subtitle: { en: "Last buyer wins the entire prize pool", zh: "最后一个按按钮的人赢得全部奖池" },
   timeUntilEvent: { en: "Time Until Event", zh: "距离事件" },
   totalPot: { en: "Total Pot", zh: "奖池总额" },
@@ -69,6 +72,8 @@ const appMessages = {
   safe: { en: "SAFE", zh: "安全" },
   critical: { en: "CRITICAL", zh: "危急" },
   nextEvent: { en: "NEXT EVENT", zh: "下一事件" },
+  invalidKeyCount: { en: "Invalid key count", zh: "无效钥匙数量" },
+  maxKeyCountExceeded: { en: "Maximum 1000 keys per transaction", zh: "单次交易最多1000把钥匙" },
   dangerLow: { en: "LOW RISK", zh: "低风险" },
   dangerMedium: { en: "ELEVATED", zh: "警戒" },
   dangerHigh: { en: "HIGH ALERT", zh: "高度警戒" },
@@ -82,6 +87,9 @@ const appMessages = {
   sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
   sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
   sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
+  notAvailable: { en: "N/A", zh: "不可用" },
+  keysSuffix: { en: "Keys", zh: "把钥匙" },
+  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

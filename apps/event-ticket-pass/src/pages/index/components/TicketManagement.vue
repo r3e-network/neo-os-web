@@ -1,7 +1,7 @@
 <template>
   <div class="tickets-header">
     <span class="section-title">{{ t("ticketsTab") }}</span>
-    <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="$emit('refresh')">
+    <NeoButton size="sm" variant="secondary" type="button" :loading="isRefreshing" @click="$emit('refresh')">
       {{ t("refresh") }}
     </NeoButton>
   </div>
@@ -9,7 +9,7 @@
   <div v-if="!address" class="empty-state">
     <NeoCard variant="erobo" class="p-6 text-center">
       <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
-      <NeoButton size="sm" variant="primary" @click="$emit('connect')">
+      <NeoButton size="sm" variant="primary" type="button" @click="$emit('connect')">
         {{ t("connectWallet") }}
       </NeoButton>
     </NeoCard>
@@ -46,7 +46,7 @@
         <div class="ticket-details">
           <span class="detail-row">{{ t("ticketSeat") }}: {{ ticket.seat || t("seatFallback") }}</span>
           <span class="detail-row">{{ t("ticketTokenId") }}: {{ ticket.tokenId }}</span>
-          <NeoButton size="sm" variant="secondary" class="copy-btn" @click="$emit('copy', ticket.tokenId)">
+          <NeoButton size="sm" variant="secondary" type="button" class="copy-btn" @click="$emit('copy', ticket.tokenId)">
             {{ t("copyTokenId") }}
           </NeoButton>
         </div>
@@ -80,7 +80,7 @@ const formatSchedule = (startTime: number, endTime: number) => {
   if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
-  return `${start.toLocaleString()} - ${end.toLocaleString()}`;
+  return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
 };
 </script>
 

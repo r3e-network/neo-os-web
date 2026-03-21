@@ -3,7 +3,7 @@
     <div class="doc-header">
       <ScrollReveal animation="fade-down" :duration="1000">
         <div class="title-row">
-          <div class="doc-badge" aria-hidden="true">{{ t("docBadge") }}</div>
+          <div class="doc-badge">{{ t("docBadge") }}</div>
         </div>
         <span class="doc-title" role="heading" aria-level="2">{{ title }}</span>
         <span class="doc-subtitle">{{ subtitle }}</span>
@@ -22,8 +22,8 @@
         <ScrollReveal animation="fade-up" :delay="300">
           <span class="section-label" role="heading" aria-level="3">{{ t("docHowToUse") }}</span>
         </ScrollReveal>
-        <div class="steps-list" role="list" aria-label="Steps">
-          <ScrollReveal v-for="(step, index) in steps" :key="index" :delay="400 + index * 100" animation="slide-left">
+        <div class="steps-list" role="list" :aria-label="t('stepsLabel')">
+          <ScrollReveal v-for="(step, index) in steps" :key="step" :delay="400 + index * 100" animation="slide-left">
             <div class="step-item" role="listitem">
               <div class="step-number" aria-hidden="true">{{ index + 1 }}</div>
               <span class="step-text">{{ step }}</span>
@@ -36,7 +36,7 @@
         <ScrollReveal animation="fade-up" :delay="400">
           <span class="section-label" role="heading" aria-level="3">{{ t("docOnChainFeatures") }}</span>
         </ScrollReveal>
-        <div class="features-grid" role="list" aria-label="Features">
+        <div class="features-grid" role="list" :aria-label="t('featuresLabel')">
           <ScrollReveal
             v-for="(feature, index) in features"
             :key="feature.name"

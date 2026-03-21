@@ -98,6 +98,7 @@
   --text-muted: var(--gas-text-muted);
   --border-color: var(--gas-card-border);
   --shadow-color: rgba(0, 0, 0, 0.35);
+  --neo-green: var(--gas-highlight);
 }
 
 :global(.theme-light .theme-gas-sponsor),
@@ -192,4 +193,5 @@
   --gas-badge-ineligible-border: rgba(239, 68, 68, 0.35);
   --gas-badge-ineligible-text: #b91c1c;
   --shadow-color: rgba(42, 10, 61, 0.12);
+  --neo-green: var(--gas-highlight);
 }

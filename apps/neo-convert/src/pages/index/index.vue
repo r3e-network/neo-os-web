@@ -26,7 +26,7 @@
 
       <div class="hero">
         <ScrollReveal animation="fade-down" :duration="800">
-          <span class="hero-icon">🛠️</span>
+          <span class="hero-icon" aria-hidden="true">🛠️</span>
           <span class="hero-title">{{ t("heroTitle") }}</span>
           <span class="hero-subtitle">{{ t("heroSubtitle") }}</span>
         </ScrollReveal>
@@ -40,7 +40,7 @@
     <template #tab-convert>
       <div class="hero">
         <ScrollReveal animation="fade-down" :duration="800">
-          <span class="hero-icon">🛠️</span>
+          <span class="hero-icon" aria-hidden="true">🛠️</span>
           <span class="hero-title">{{ t("heroTitle") }}</span>
           <span class="hero-subtitle">{{ t("heroSubtitle") }}</span>
         </ScrollReveal>

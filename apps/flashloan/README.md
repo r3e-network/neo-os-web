@@ -38,5 +38,5 @@ Self-contained atomic GAS flash loans on Neo N3.
 ## Notes
 
 - This miniapp is for advanced users and contract developers.
-- The live flow is self-contained on-chain; it no longer depends on PaymentHub for pool funding.
+- The live flow is self-contained on-chain; pool funding goes straight into the flash-loan contract.
 - AA can still be used as the caller path, but the flash-loan core is now self-sufficient.

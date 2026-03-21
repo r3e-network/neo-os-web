@@ -48,7 +48,9 @@ const appMessages = {
   labelName: { en: "Name of Deceased", zh: "逝者姓名" },
   labelPhoto: { en: "Photo", zh: "逝者照片" },
   labelBirth: { en: "Birth Year", zh: "生年" },
+  placeholderBirthYear: { en: "1940", zh: "1940" },
   labelDeath: { en: "Death Year", zh: "卒年" },
+  placeholderDeathYear: { en: "2024", zh: "2024" },
   labelRelation: { en: "Your Relationship", zh: "与您的关系" },
   labelBio: { en: "Biography", zh: "生平简介" },
   labelObituary: { en: "Obituary", zh: "讣告" },
@@ -70,6 +72,9 @@ const appMessages = {
   linkCopied: { en: "Link copied! Share to let others pay tribute 🙏", zh: "链接已复制！分享给亲友一同祭拜 🙏" },
   shareMemorial: { en: "Share Memorial", zh: "分享灵位" },
   sidebarObituaries: { en: "Obituaries", zh: "讣告" },
+  tokenGas: { en: "GAS", zh: "GAS" },
+  yearRangeSeparator: { en: " - ", zh: " - " },
+  yearSeparator: { en: "-", zh: "-" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

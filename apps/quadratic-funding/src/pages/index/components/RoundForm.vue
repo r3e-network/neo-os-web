@@ -26,8 +26,8 @@
       v-model="localForm.matchingPool"
       type="number"
       :label="t('matchingPool')"
-      placeholder="50"
-      :suffix="localForm.asset"
+      :placeholder="t('matchingPoolPlaceholder')"
+      :suffix="t('tokenGas')"
       :hint="t('matchingPoolHint')"
     />
 

@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { parseInvokeResult } from "@shared/utils/neo";
@@ -59,7 +59,7 @@ export function useDomainRegister(nnsContract: string, t: (key: string) => strin
               });
               const owner = String(parseInvokeResult(ownerResult) || "");
               return { available: false as const, owner };
-            } catch {
+            } catch (_e: unknown) {
               return { available: false as const, owner: t("unknownOwner") };
             }
           },
@@ -106,6 +106,13 @@ export function useDomainRegister(nnsContract: string, t: (key: string) => strin
       loading.value = false;
     }
   };
+
+  onUnmounted(() => {
+    if (searchDebounce.value) {
+      clearTimeout(searchDebounce.value);
+      searchDebounce.value = null;
+    }
+  });
 
   return {
     searchQuery,

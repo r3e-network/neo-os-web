@@ -157,8 +157,9 @@ const loadData = async () => {
   isLoadingData.value = true;
   try {
     capsules.value = await loadCapsules();
-  } catch {
-    /* non-critical: capsule data fetch */
+  } catch (_e: unknown) {
+    // non-critical: capsule data fetch — capsules remain at last known state (or empty initial)
+    capsules.value = capsules.value;
   } finally {
     isLoadingData.value = false;
   }

@@ -19,7 +19,7 @@
         </div>
         <div class="connection-line" :class="contract.status">
           <div class="heart-node">
-            <span class="heart-icon">{{ contract.status === "broken" ? "💔" : "❤️" }}</span>
+            <span class="heart-icon" aria-hidden="true">{{ contract.status === "broken" ? "💔" : "❤️" }}</span>
           </div>
         </div>
         <div class="avatar partner">
@@ -32,7 +32,7 @@
       <div class="info-grid-glass">
         <div class="info-item">
           <span class="info-label">{{ t("stake") }}</span>
-          <span class="info-value stake">{{ contract.stake }} GAS</span>
+          <span class="info-value stake">{{ contract.stake }} {{ t("tokenGas") }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">{{ t("duration") }}</span>
@@ -105,7 +105,10 @@ const props = defineProps<{
   address: string | null;
 }>();
 
-defineEmits(["sign", "break"]);
+defineEmits<{
+  (e: "sign", contract: RelationshipContractView): void;
+  (e: "break", contract: RelationshipContractView): void;
+}>();
 
 const { t } = createUseI18n(messages)();
 </script>

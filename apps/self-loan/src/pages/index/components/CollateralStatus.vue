@@ -11,11 +11,11 @@
       <div class="info-grid-glass">
         <div class="info-box-glass">
           <span class="info-label">{{ t("locked") }}</span>
-          <span class="info-value locked">{{ fmt(loan.collateralLocked, 2) }} NEO</span>
+          <span class="info-value locked">{{ fmt(loan.collateralLocked, 2) }} {{ t("tokenNeo") }}</span>
         </div>
         <div class="info-box-glass">
           <span class="info-label">{{ t("available") }}</span>
-          <span class="info-value available">{{ fmt(availableCollateral, 2) }} NEO</span>
+          <span class="info-value available">{{ fmt(availableCollateral, 2) }} {{ t("tokenNeo") }}</span>
         </div>
       </div>
     </div>

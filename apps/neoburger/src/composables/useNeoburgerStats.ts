@@ -77,7 +77,7 @@ export function useNeoburgerStats() {
         const response = await fetch(endpoint);
         if (!response.ok) continue;
         return await response.json();
-      } catch {
+      } catch (_e: unknown) {
         /* endpoint unreachable -- try next */
       }
     }
@@ -93,7 +93,7 @@ export function useNeoburgerStats() {
         (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
       const value = Number(raw);
       return Number.isFinite(value) && value >= 0 ? value : null;
-    } catch {
+    } catch (_e: unknown) {
       return null;
     }
   };
@@ -107,7 +107,7 @@ export function useNeoburgerStats() {
       } else if (typeof localStorage !== "undefined") {
         localStorage.setItem(APY_CACHE_KEY, String(value));
       }
-    } catch {
+    } catch (_e: unknown) {
       /* APY cache write is non-critical */
     }
   };
@@ -129,8 +129,8 @@ export function useNeoburgerStats() {
         const formatted = data.total_staked_formatted ?? data.totalStakedFormatted;
         if (typeof formatted === "string") totalStakedFormatted.value = formatted;
       }
-    } catch (e: unknown) {
-      /* non-critical: APY data fetch */
+    } catch (_e: unknown) {
+      // non-critical: APY data fetch
     } finally {
       loadingApy.value = false;
       animateApy();
@@ -140,8 +140,8 @@ export function useNeoburgerStats() {
   async function loadPrices() {
     try {
       priceData.value = await getPrices();
-    } catch (e: unknown) {
-      /* non-critical: price data fetch */
+    } catch (_e: unknown) {
+      // non-critical: price data fetch
     }
   }
 

@@ -30,7 +30,7 @@
       <span class="swap-usd">{{ swapUsdText }}</span>
     </div>
 
-    <button class="swap-toggle" @click="emit('toggleMode')">
+    <button type="button" class="swap-toggle" @click="emit('toggleMode')">
       <img
         class="swap-toggle-icon"
         src="/static/neoburger-placeholder.svg"

@@ -14,11 +14,11 @@
 
     <!-- Content -->
     <div v-else-if="transactions.length">
-      <NeoCard v-for="tx in transactions" :key="tx.hash" variant="erobo" class="mb-3" @click="$emit('viewTx', tx.hash)">
+      <NeoCard v-for="tx in transactions" :key="tx.hash" variant="erobo" class="mb-3" hoverable @click="$emit('viewTx', tx.hash)">
         <div class="tx-item-content-neo">
           <div class="tx-info">
             <span class="tx-hash-neo">{{ truncateHash(tx.hash) }}</span>
-            <span :class="['vm-state-small-neo', tx.vmState]">{{ tx.vmState }}</span>
+            <span :class="['vm-state-small-neo', tx.vmState]">{{ getVmStateLabel(tx.vmState) }}</span>
           </div>
           <span class="tx-time">{{ formatTime(tx.blockTime) }}</span>
         </div>
@@ -28,24 +28,32 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { computed, NeoCard } from "@shared/components";
 
-defineProps<{
+const props = defineProps<{
   transactions: { hash: string; vmState: string; blockIndex: number; blockTime: string; sender: string }[];
   loading?: boolean;
   t: (key: string, ...args: unknown[]) => string;
 }>();
 
-defineEmits(["viewTx"]);
+defineEmits<{
+  (e: "viewTx", hash: string): void;
+}>();
 
 const formatTime = (time: string) => {
   const d = new Date(time);
-  return d.toLocaleString();
+  return new Intl.DateTimeFormat("en").format(d);
 };
 
 const truncateHash = (hash: string) => {
   if (!hash) return "";
-  return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+  return `${hash.slice(0, 10)}${props.t("hashEllipsis")}${hash.slice(-8)}`;
+};
+
+const getVmStateLabel = (vmState: string) => {
+  if (vmState === "HALT") return props.t("vmHalt");
+  if (vmState === "FAULT") return props.t("vmFault");
+  return vmState;
 };
 </script>
 

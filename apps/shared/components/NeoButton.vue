@@ -1,5 +1,6 @@
 <template>
   <button
+    type="button"
     :class="[
       'neo-btn',
       `neo-btn--${variant}`,
@@ -150,7 +151,7 @@ defineEmits<{
 
   &--danger {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
+    color: var(--button-on-danger, white);
     box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
     border: none;
 
@@ -162,7 +163,7 @@ defineEmits<{
 
   &--success {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
+    color: var(--button-on-success, white);
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
     border: none;
 

@@ -67,7 +67,7 @@ export function useCapsuleCreation() {
       const store = existing ? JSON.parse(existing) : {};
       store[hash] = content;
       uni.setStorageSync(CONTENT_STORE_KEY, JSON.stringify(store));
-    } catch {
+    } catch (_e: unknown) {
       /* Local storage write is non-critical */
     }
   };

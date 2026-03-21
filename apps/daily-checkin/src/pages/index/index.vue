@@ -29,8 +29,8 @@
               },
             ]"
           >
-            <span class="day-icon">{{ day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? "✅" : "⬜" }}</span>
-            <span class="day-label">D{{ day }}</span>
+            <span class="day-icon" aria-hidden="true">{{ day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? "✅" : "⬜" }}</span>
+            <span class="day-label">{{ t("dayPrefix") }}{{ day }}</span>
           </div>
         </div>
 
@@ -46,9 +46,9 @@
         <!-- Countdown to Next -->
         <div class="hero-next-checkin">
           <div class="utc-clock-hero" role="timer" aria-live="polite">
-            <span class="clock-icon">🕐</span>
+            <span class="clock-icon" aria-hidden="true">🕐</span>
             <span class="clock-display">{{ utcTimeDisplay }}</span>
-            <span class="clock-utc-label">UTC</span>
+            <span class="clock-utc-label">{{ t("utcLabel") }}</span>
           </div>
           <CountdownTimer :target-time="nextUtcMidnight" :total-duration="MS_PER_DAY" :label="t('nextCheckin')" />
         </div>
@@ -68,13 +68,14 @@
           variant="primary"
           size="lg"
           block
+          type="button"
           :disabled="!canCheckIn || isLoading"
           :loading="isLoading"
           @click="doCheckIn(canCheckIn)"
           class="checkin-btn"
         >
           <div class="btn-content">
-            <span class="btn-icon">{{ canCheckIn ? "✨" : "⏳" }}</span>
+            <span class="btn-icon" aria-hidden="true">{{ canCheckIn ? "✨" : "⏳" }}</span>
             <span>{{ canCheckIn ? t("checkInNow") : t("waitForNext") }}</span>
           </div>
         </NeoButton>
@@ -102,13 +103,13 @@
             <span>{{ t("noCheckins") }}</span>
           </div>
           <div v-else class="history-list">
-            <div v-for="(item, idx) in checkinHistory" :key="idx" class="history-item">
-              <div class="history-icon">🔥</div>
+            <div v-for="item in checkinHistory" :key="item.time" class="history-item">
+              <div class="history-icon" aria-hidden="true">🔥</div>
               <div class="history-info">
                 <span class="history-day">{{ t("day") }} {{ item.streak }}</span>
                 <span class="history-time">{{ item.time }}</span>
               </div>
-              <span v-if="item.reward > 0" class="history-reward">+{{ formatGas(item.reward) }} GAS</span>
+              <span v-if="item.reward > 0" class="history-reward">+{{ formatGas(item.reward) }} {{ t("tokenGas") }}</span>
             </div>
           </div>
         </NeoCard>

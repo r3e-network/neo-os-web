@@ -2,6 +2,7 @@
   <NeoCard variant="erobo-neo">
     <div class="type-selector">
       <button
+        type="button"
         class="type-btn"
         :class="{ active: envelopeType === 'spreading' }"
         @click="$emit('update:envelopeType', 'spreading')"
@@ -9,6 +10,7 @@
         {{ t("typeSpreading") }}
       </button>
       <button
+        type="button"
         class="type-btn"
         :class="{ active: envelopeType === 'lucky' }"
         @click="$emit('update:envelopeType', 'lucky')"
@@ -42,7 +44,7 @@
         @update:modelValue="$emit('update:amount', $event)"
         type="number"
         :placeholder="t('totalGasPlaceholder')"
-        suffix="GAS"
+        :suffix="t('tokenGas')"
       />
       <NeoInput
         :modelValue="count"
@@ -55,7 +57,7 @@
         @update:modelValue="$emit('update:expiryHours', $event)"
         type="number"
         :placeholder="t('expiryPlaceholder')"
-        suffix="h"
+        :suffix="t('hoursSuffix')"
       />
       <div class="neo-gate-section">
         <span class="section-label">{{ t("neoRequirement") }}</span>
@@ -64,14 +66,14 @@
           @update:modelValue="$emit('update:minNeoRequired', $event)"
           type="number"
           :placeholder="t('minNeoPlaceholder')"
-          suffix="NEO"
+          :suffix="t('tokenNeo')"
         />
         <NeoInput
           :modelValue="minHoldDays"
           @update:modelValue="$emit('update:minHoldDays', $event)"
           type="number"
           :placeholder="t('minHoldDaysPlaceholder')"
-          suffix="days"
+          :suffix="t('daysSuffix')"
         />
       </div>
     </div>
@@ -105,17 +107,17 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits([
-  "update:envelopeType",
-  "update:name",
-  "update:description",
-  "update:amount",
-  "update:count",
-  "update:expiryHours",
-  "update:minNeoRequired",
-  "update:minHoldDays",
-  "create",
-]);
+defineEmits<{
+  (e: "update:envelopeType", value: "spreading" | "lucky"): void;
+  (e: "update:name", value: string): void;
+  (e: "update:description", value: string): void;
+  (e: "update:amount", value: string): void;
+  (e: "update:count", value: string): void;
+  (e: "update:expiryHours", value: string): void;
+  (e: "update:minNeoRequired", value: string): void;
+  (e: "update:minHoldDays", value: string): void;
+  (e: "create"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -177,6 +179,36 @@ defineEmits([
   flex-direction: column;
   gap: 20px;
   margin-bottom: 32px;
+}
+
+@media (max-width: 480px) {
+  .input-group {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .type-selector {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .type-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .flow-banner {
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+
+  .neo-gate-section {
+    padding: 12px;
+  }
+
+  .button-text {
+    font-size: 14px;
+  }
 }
 
 .neo-gate-section {

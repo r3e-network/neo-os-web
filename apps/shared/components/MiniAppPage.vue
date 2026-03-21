@@ -20,26 +20,28 @@
     <!-- ═══ THREE-COLUMN LAYOUT ═══ -->
     <div class="page-grid">
       <!-- ═══ LEFT SIDEBAR ═══ -->
-      <aside class="sidebar-left">
+      <aside class="sidebar-left" :aria-label="t('navigationSidebar')">
         <div class="sidebar-brand">
-          <div class="brand-mark">{{ brandIcon }}</div>
+          <div class="brand-mark" aria-hidden="true">{{ brandIcon }}</div>
           <div class="brand-text">
             <span class="brand-name">{{ t("title") }}</span>
-            <span class="brand-tag">Neo N3</span>
+            <span class="brand-tag">{{ t("neoN3") }}</span>
           </div>
         </div>
 
         <nav class="sidebar-nav" role="tablist" aria-orientation="vertical">
           <button
+            type="button"
             v-for="(tab, idx) in allTabs"
             :key="tab.key"
             :class="['nav-item', { active: activeTab === tab.key }]"
             :style="{ '--delay': `${idx * 40}ms` }"
             role="tab"
             :aria-selected="activeTab === tab.key"
+            :aria-label="t(tab.labelKey)"
             @click="setActiveTab(tab.key)"
           >
-            <span class="nav-icon">{{ tab.icon }}</span>
+            <span class="nav-icon" aria-hidden="true">{{ tab.icon }}</span>
             <span class="nav-label">{{ t(tab.labelKey) }}</span>
             <span v-if="activeTab === tab.key" class="nav-indicator" />
           </button>
@@ -47,9 +49,9 @@
 
         <div v-if="sidebarItems?.length" class="sidebar-stats">
           <div class="stats-divider" />
-          <div v-for="(item, i) in sidebarItems" :key="i" class="stat-row" :style="{ '--i': i }">
+          <div v-for="(item, i) in sidebarItems" :key="`stat-${i}`" class="stat-row" :style="{ '--i': i }">
             <span class="stat-label">{{ item.label }}</span>
-            <span class="stat-value">{{ item.value ?? "—" }}</span>
+            <span class="stat-value">{{ item.value ?? t("notAvailable") }}</span>
           </div>
         </div>
       </aside>
@@ -57,7 +59,7 @@
       <!-- ═══ MIDDLE — Main Content ═══ -->
       <main class="content-main" role="main">
         <section class="section-hero">
-          <ErrorBoundary :fallback="fallbackMessage" :on-error="onBoundaryError" @retry="onBoundaryRetry?.()">
+          <ErrorBoundary :fallback="fallbackMessage || t('errorFallback')" :on-error="onBoundaryError" @retry="onBoundaryRetry?.()">
             <slot name="content">
               <slot name="hero" />
             </slot>
@@ -67,6 +69,7 @@
         <section v-if="hasInfoContent" class="section-info">
           <div v-if="infoTabs.length > 1" class="info-tabs">
             <button
+              type="button"
               v-for="tab in infoTabs"
               :key="tab.key"
               :class="['info-tab', { active: activeInfoTab === tab.key }]"
@@ -79,8 +82,8 @@
             <div v-if="activeInfoTab === 'stats'">
               <slot name="tab-stats">
                 <div v-if="sidebarItems?.length" class="auto-stats-grid">
-                  <div v-for="(item, i) in sidebarItems" :key="i" class="auto-stat-card" :style="{ '--i': i }">
-                    <span class="auto-stat-value">{{ item.value ?? "—" }}</span>
+                  <div v-for="(item, i) in sidebarItems" :key="`auto-stat-${i}`" class="auto-stat-card" :style="{ '--i': i }">
+                    <span class="auto-stat-value">{{ item.value ?? t("notAvailable") }}</span>
                     <span class="auto-stat-label">{{ item.label }}</span>
                   </div>
                 </div>
@@ -96,22 +99,23 @@
         <section class="section-comments">
           <slot name="comments">
             <div class="comments-header">
-              <h3 class="comments-title">{{ t("commentsTitle") || "Discussion" }}</h3>
+              <h3 class="comments-title">{{ t("commentsTitle") }}</h3>
               <span class="comments-count">{{ comments.length }}</span>
             </div>
             <div class="comments-input">
               <input
                 v-model="newComment"
                 class="comment-input"
-                :placeholder="t('commentPlaceholder') || 'Share your thoughts...'"
+                :placeholder="t('commentPlaceholder')"
+                :aria-label="t('commentPlaceholder')"
                 @keyup.enter="submitComment"
               />
-              <button class="comment-submit" :disabled="!newComment.trim()" @click="submitComment">
-                {{ t("post") || "Post" }}
+              <button type="button" class="comment-submit" :disabled="!newComment.trim()" :aria-label="t('postComment')" @click="submitComment">
+                {{ t("post") }}
               </button>
             </div>
             <div v-if="comments.length === 0" class="comments-empty">
-              <span>{{ t("noComments") || "No comments yet. Be the first!" }}</span>
+              <span>{{ t("noComments") }}</span>
             </div>
             <div v-else class="comments-list">
               <div v-for="comment in comments" :key="comment.id" class="comment-item">
@@ -123,7 +127,7 @@
                   </div>
                   <p class="comment-text">{{ comment.text }}</p>
                   <div class="comment-actions">
-                    <button class="comment-action" @click="$emit('like-comment', comment.id)">
+                    <button type="button" class="comment-action" :aria-label="t('likeComment')" @click="$emit('like-comment', comment.id)">
                       ♡ {{ comment.likes || 0 }}
                     </button>
                   </div>
@@ -136,18 +140,18 @@
         <section class="section-docs">
           <slot name="docs">
             <details class="docs-accordion">
-              <summary class="docs-title">{{ t("docSubtitle") || t("subtitle") || "About" }}</summary>
+              <summary class="docs-title">{{ t("docSubtitle") || t("subtitle") }}</summary>
               <div class="docs-content">
                 <p class="docs-description">{{ t("docDescription") || "" }}</p>
                 <div v-if="docSteps.length" class="docs-steps">
-                  <h4>{{ t("howToPlay") || "How to Play" }}</h4>
+                  <h4>{{ t("howToPlay") }}</h4>
                   <ol>
-                    <li v-for="(step, i) in docSteps" :key="i">{{ step }}</li>
+                    <li v-for="(step, i) in docSteps" :key="step + i">{{ step }}</li>
                   </ol>
                 </div>
                 <div v-if="docFeatures.length" class="docs-features">
-                  <h4>{{ t("keyFeatures") || "Key Features" }}</h4>
-                  <div v-for="(feat, i) in docFeatures" :key="i" class="docs-feature">
+                  <h4>{{ t("keyFeatures") }}</h4>
+                  <div v-for="(feat, i) in docFeatures" :key="feat.name + i" class="docs-feature">
                     <strong>{{ feat.name }}</strong>
                     <span>{{ feat.desc }}</span>
                   </div>
@@ -159,7 +163,7 @@
       </main>
 
       <!-- ═══ RIGHT SIDEBAR ═══ -->
-      <aside class="sidebar-right">
+      <aside class="sidebar-right" :aria-label="t('operationsPanel')">
         <div class="operation-panel">
           <slot name="operation" />
         </div>
@@ -171,8 +175,15 @@
 <script setup lang="ts">
 import { ref, computed, useSlots } from "vue";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
+import { useI18n } from "@shared/composables";
+import { type StatusMessage } from "@shared/composables/useStatusMessage";
 import ErrorBoundary from "./ErrorBoundary.vue";
 import Fireworks from "./Fireworks.vue";
+
+const DEFAULT_BRAND_ICON = "📱";
+const DEFAULT_DOCS_ICON = "📄";
+
+const { t } = useI18n();
 
 export interface Comment {
   id: string;
@@ -188,7 +199,7 @@ const props = withDefaults(
     config: MiniAppTemplateConfig;
     state: Record<string, unknown>;
     t: (key: string) => string;
-    statusMessage?: { msg: string; type: "success" | "error" } | null;
+    statusMessage?: StatusMessage | null;
     fireworksActive?: boolean;
     sidebarTitle?: string;
     sidebarItems?: Array<{ label: string; value: string | number | boolean | null | undefined }>;
@@ -202,7 +213,7 @@ const props = withDefaults(
     fireworksActive: false,
     sidebarTitle: "",
     sidebarItems: () => [],
-    fallbackMessage: "Something went wrong",
+    fallbackMessage: undefined,
     comments: () => [],
   },
 );
@@ -214,14 +225,14 @@ const emit = defineEmits<{
 }>();
 
 const slots = useSlots();
-const brandIcon = computed(() => props.config.tabs[0]?.icon ?? "📱");
+const brandIcon = computed(() => props.config.tabs[0]?.icon ?? DEFAULT_BRAND_ICON);
 const defaultTabKey = computed(() => props.config.tabs.find((t) => t.default)?.key ?? props.config.tabs[0]?.key ?? "");
 const activeTab = ref(defaultTabKey.value);
 
 const allTabs = computed(() => {
   const tabs = [...props.config.tabs];
   if (!tabs.some((t) => t.key === "docs")) {
-    tabs.push({ key: "docs", labelKey: "docs", icon: "📄" });
+    tabs.push({ key: "docs", labelKey: "docs", icon: DEFAULT_DOCS_ICON });
   }
   return tabs;
 });
@@ -1093,6 +1104,38 @@ $radius-lg: 16px;
     .toast-dot {
       background: #f87171;
       box-shadow: 0 0 8px #f87171;
+    }
+  }
+  &.warning {
+    background: rgba(217, 119, 6, 0.9);
+    color: #fff;
+    .toast-dot {
+      background: #fbbf24;
+      box-shadow: 0 0 8px #fbbf24;
+    }
+  }
+  &.info {
+    background: rgba(37, 99, 235, 0.9);
+    color: #fff;
+    .toast-dot {
+      background: #60a5fa;
+      box-shadow: 0 0 8px #60a5fa;
+    }
+  }
+  &.danger {
+    background: rgba(220, 38, 38, 0.9);
+    color: #fff;
+    .toast-dot {
+      background: #f87171;
+      box-shadow: 0 0 8px #f87171;
+    }
+  }
+  &.loading {
+    background: rgba(75, 85, 99, 0.9);
+    color: #fff;
+    .toast-dot {
+      background: #9ca3af;
+      box-shadow: 0 0 8px #9ca3af;
     }
   }
 }

@@ -17,7 +17,7 @@
             <div class="hero-stats">
               <div class="hero-stat">
                 <span class="hero-stat-value">{{ formatNum(totalPool, 0) }}</span>
-                <span class="hero-stat-label">{{ t("totalPool") }} NEO</span>
+                <span class="hero-stat-label">{{ t("totalPool") }} {{ t("tokenNeo") }}</span>
               </div>
               <div class="hero-stat">
                 <span class="hero-stat-value">{{ bids.length }}</span>
@@ -34,7 +34,7 @@
 
       <NeoCard class="mb-6" variant="erobo">
         <div class="form-group-neo">
-          <NeoInput v-model="depositAmount" type="number" placeholder="0" suffix="NEO" :label="t('depositAmount')" />
+          <NeoInput v-model="depositAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('depositAmount')" />
           <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
             {{ t("depositNeo") }}
           </NeoButton>
@@ -43,7 +43,7 @@
 
       <NeoCard class="mb-6" variant="erobo">
         <div class="form-group-neo">
-          <NeoInput v-model="withdrawAmount" type="number" placeholder="0" suffix="NEO" :label="t('withdrawAmount')" />
+          <NeoInput v-model="withdrawAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('withdrawAmount')" />
           <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
             {{ t("withdrawNeo") }}
           </NeoButton>
@@ -54,7 +54,7 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('placeBid')" class="mb-6">
         <div class="form-group-neo">
-          <NeoInput v-model="bidAmount" type="number" placeholder="0" suffix="GAS" :label="t('bidAmount')" />
+          <NeoInput v-model="bidAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenGas')" :label="t('bidAmount')" />
           <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
             {{ t("placeBid") }}
           </NeoButton>
@@ -67,7 +67,7 @@
         </div>
         <div v-for="bid in bids" :key="bid.address" class="bid-row">
           <div class="bid-address">{{ bid.address }}</div>
-          <div class="bid-amount">{{ formatNum(bid.amount, 2) }} GAS</div>
+          <div class="bid-amount">{{ formatNum(bid.amount, 2) }} {{ t("tokenGas") }}</div>
         </div>
       </NeoCard>
     </template>
@@ -95,9 +95,9 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBo
     ],
   },
   sidebarItems: [
-    { labelKey: "totalPool", value: () => `${formatNum(totalPool.value, 0)} NEO` },
+    { labelKey: "totalPool", value: () => `${formatNum(totalPool.value, 0)} ${t("tokenNeo")}` },
     { labelKey: "currentEpoch", value: () => currentEpoch.value },
-    { labelKey: "yourDeposits", value: () => `${formatNum(userDeposits.value, 0)} NEO` },
+    { labelKey: "yourDeposits", value: () => `${formatNum(userDeposits.value, 0)} ${t("tokenNeo")}` },
     { labelKey: "activeBids", value: () => bids.value.length },
   ],
 });

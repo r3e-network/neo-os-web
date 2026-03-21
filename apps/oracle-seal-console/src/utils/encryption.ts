@@ -99,6 +99,7 @@ export async function encryptTextWithOraclePublicKey(publicKeyBase64: string, pl
       new TextEncoder().encode(plaintext),
     ),
   );
+  // AES-GCM appends the tag to the ciphertext; split them apart
   const ciphertext = encryptedBytes.slice(0, encryptedBytes.length - AES_GCM_TAG_LENGTH_BYTES);
   const tag = encryptedBytes.slice(encryptedBytes.length - AES_GCM_TAG_LENGTH_BYTES);
 
@@ -115,7 +116,12 @@ export async function encryptTextWithOraclePublicKey(publicKeyBase64: string, pl
 }
 
 export async function encryptJsonWithOraclePublicKey(publicKeyBase64: string, jsonText: string) {
-  const parsed = JSON.parse(jsonText);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (_e: unknown) {
+    throw new Error("Invalid JSON provided for encryption.");
+  }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Confidential payload must be a JSON object.");
   }

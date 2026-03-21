@@ -25,7 +25,7 @@ export function useMultisigHistory() {
     if (saved) {
       try {
         history.value = JSON.parse(saved);
-      } catch {
+      } catch (_e: unknown) {
         history.value = [];
       }
     }

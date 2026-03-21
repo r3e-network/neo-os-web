@@ -25,7 +25,7 @@
     <template #operation>
       <div class="stack">
         <NeoInput v-model="asset" :label="t('asset')" :placeholder="t('assetPlaceholder')" />
-        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="fetchPrice">{{ t("fetchPrice") }}</NeoButton>
+        <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="fetchPrice" :aria-label="t('fetchPrice')">{{ t("fetchPrice") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
@@ -38,6 +38,7 @@ import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 const oracle = useOracle({ appId: "miniapp-oracle-price-console" });
 const asset = ref("NEO");
 const latestPrice = ref<number | null>(null);
@@ -46,13 +47,13 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   tab: { key: "price", labelKey: "latestPrice", icon: "📈" },
   sidebarItems: [{ labelKey: "asset", value: () => asset.value }, { labelKey: "latestPrice", value: () => priceDisplay.value }],
 });
-async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus("price loaded", "success"); } catch (e) { setStatus(String((e as Error)?.message || e), "error"); } }
-const priceDisplay = computed(() => latestPrice.value == null ? "—" : `$${latestPrice.value.toFixed(4)}`);
+async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus(t("priceLoaded"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("fetchFailed")), "error"); } }
+const priceDisplay = computed(() => latestPrice.value == null ? t("notAvailable") : `$${latestPrice.value.toFixed(4)}`);
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildOracleHeroStats({
     oracleHash: oracle.integration.contracts.morpheusOracle,
     network: oracle.network,
-    middleLabel: "Feed",
+    middleLabel: t("heroFeed"),
     middleValue: `${oracle.integration.contracts.morpheusDatafeed.slice(0, 10)}…`,
   }),
 );
@@ -60,7 +61,7 @@ const overviewStats = computed<StatsDisplayItem[]>(() =>
   buildOracleOverviewStats({
     oracleHash: oracle.integration.contracts.morpheusOracle,
     publicApiUrl: oracle.integration.morpheusPublicApiUrl,
-    extra: { label: "DataFeed", value: oracle.integration.contracts.morpheusDatafeed, variant: "erobo" },
+    extra: { label: t("overviewDataFeed"), value: oracle.integration.contracts.morpheusDatafeed, variant: "erobo" },
   }),
 );
 const appState = computed(() => ({ asset: asset.value, latestPrice: latestPrice.value }));

@@ -18,17 +18,17 @@
   >
     <template #result>
       <div class="result-grid">
-        <div><span class="label">Status</span><span class="value">{{ latestJob?.status || "—" }}</span></div>
-        <div><span class="label">Job</span><span class="value">{{ latestJob?.job_id || "—" }}</span></div>
-        <div><span class="label">Attestation</span><span class="value">{{ latestJob?.attestation || "—" }}</span></div>
-        <div><span class="label">Output</span><span class="value">{{ latestOutput }}</span></div>
+        <div><span class="label">{{ t("labelStatus") }}</span><span class="value">{{ latestJob?.status || t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelJob") }}</span><span class="value">{{ latestJob?.job_id || t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelAttestation") }}</span><span class="value">{{ latestJob?.attestation || t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelOutput") }}</span><span class="value">{{ latestOutput }}</span></div>
       </div>
     </template>
     <template #operation>
       <div class="stack">
         <NeoInput v-model="scriptName" :label="t('scriptName')" :placeholder="t('scriptNamePlaceholder')" />
         <label class="textarea-label">{{ t("inputJson") }}</label>
-        <textarea v-model="inputJson" class="json-box" rows="8"></textarea>
+        <textarea v-model="inputJson" class="json-box" rows="8" :aria-label="t('inputJson')"></textarea>
         <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
       </div>
     </template>
@@ -41,6 +41,7 @@ import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 const oracle = useOracle({ appId: "miniapp-oracle-compute-lab" });
 const scriptName = ref("health_check");
 const inputJson = ref("{\n  \"message\": \"hello from miniapp\"\n}");
@@ -48,25 +49,25 @@ const latestJob = oracle.lastComputeResult;
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-compute-lab", messages,
   tab: { key: "compute", labelKey: "latestJob", icon: "🧠" },
-  sidebarItems: [{ labelKey: "latestJob", value: () => latestJob.value?.status || "—" }, { labelKey: "scriptName", value: () => scriptName.value }],
+  sidebarItems: [{ labelKey: "latestJob", value: () => latestJob.value?.status || t("notAvailable") }, { labelKey: "scriptName", value: () => scriptName.value }],
 });
 async function runJob() {
   try {
     await oracle.executeRegisteredScript({ scriptName: scriptName.value, input: JSON.parse(inputJson.value) });
-    setStatus("compute job submitted", "success");
-  } catch (e) {
-    setStatus(String((e as Error)?.message || e), "error");
+    setStatus(t("computeSubmitted"), "success");
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("executeFailed")), "error");
   }
 }
 const latestOutput = computed(() => JSON.stringify(latestJob.value?.output ?? latestJob.value?.result ?? {}, null, 2));
 const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: "Compute", value: "registered" },
-  { label: "Network", value: oracle.network },
-  { label: "Status", value: latestJob.value?.status || "idle" },
+  { label: t("heroCompute"), value: t("heroRegistered") },
+  { label: t("network"), value: oracle.network },
+  { label: t("labelStatus"), value: latestJob.value?.status || t("heroIdle") },
 ]);
 const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: "Compute URL", value: oracle.edgeBaseUrl, variant: "erobo" },
-  { label: "Oracle", value: oracle.integration.contracts.morpheusOracle, variant: "accent" },
+  { label: t("overviewComputeUrl"), value: oracle.edgeBaseUrl, variant: "erobo" },
+  { label: t("overviewOracle"), value: oracle.integration.contracts.morpheusOracle, variant: "accent" },
 ]);
 const appState = computed(() => ({ scriptName: scriptName.value, status: latestJob.value?.status || "" }));
 </script>

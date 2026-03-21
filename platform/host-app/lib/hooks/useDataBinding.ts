@@ -149,7 +149,6 @@ async function fetchApiData(source: DataSource, key: string): Promise<unknown> {
 async function fetchContractData(source: DataSource, key: string): Promise<unknown> {
   // Contract data fetching for on-chain sources is not implemented in this hook yet.
   // This hook currently supports API/WebSocket data sources.
-  console.log("Fetching contract data:", source.endpoint);
   return null;
 }
 

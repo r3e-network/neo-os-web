@@ -37,7 +37,7 @@ function readStoredProofs(): TimestampProof[] {
       .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
       .sort((a, b) => b.id - a.id)
       .slice(0, MAX_PROOFS);
-  } catch {
+  } catch (_e: unknown) {
     return [];
   }
 }
@@ -140,7 +140,7 @@ export function useTimestampProofContract(t: (key: string) => string) {
 
       proofs.value = readStoredProofs();
       verifiedProof.value = matched;
-    } catch {
+    } catch (_e: unknown) {
       verifyError.value = true;
     } finally {
       isVerifying.value = false;

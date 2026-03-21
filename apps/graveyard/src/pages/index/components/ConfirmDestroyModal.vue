@@ -10,7 +10,7 @@
     @close="$emit('cancel')"
   >
     <div class="confirm-body">
-      <div class="confirm-skull">💀</div>
+      <div class="confirm-skull" aria-hidden="true">💀</div>
       <span class="confirm-text">{{ t("confirmText") }}</span>
       <div class="confirm-hash">{{ assetHash }}</div>
     </div>
@@ -29,7 +29,10 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["cancel", "confirm"]);
+defineEmits<{
+  (e: "cancel"): void;
+  (e: "confirm"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>

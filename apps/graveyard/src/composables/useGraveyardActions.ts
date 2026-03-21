@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -104,7 +104,7 @@ export function useGraveyardActions() {
       history.value.unshift({
         id: memoryId || String(Date.now()),
         hash: contentHash,
-        time: new Date(evt.created_at || Date.now()).toLocaleString(),
+        time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
         forgotten: false,
       });
 
@@ -141,8 +141,8 @@ export function useGraveyardActions() {
       const totalResult = await read("totalMemories");
       totalDestroyed.value = Number(totalResult || 0);
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
-    } catch (e: unknown) {
-      /* non-critical: graveyard stats fetch */
+    } catch (_e: unknown) {
+      // non-critical: graveyard stats fetch
     }
   };
 
@@ -167,21 +167,21 @@ export function useGraveyardActions() {
                   contentHash = String(detail.contentHash);
                 }
               }
-            } catch {
+            } catch (_e: unknown) {
               /* Individual memory detail fetch failure -- skip enrichment */
             }
           }
           return {
             id: memoryId,
             hash: contentHash,
-            time: new Date(evt.created_at || Date.now()).toLocaleString(),
+            time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
             forgotten,
           };
         })
       );
       history.value = entries;
-    } catch (e: unknown) {
-      /* non-critical: graveyard history fetch */
+    } catch (_e: unknown) {
+      // non-critical: graveyard history fetch
     }
   };
 
@@ -250,6 +250,8 @@ export function useGraveyardActions() {
       shakeTimer = null;
     }
   };
+
+  onUnmounted(() => cleanupTimers());
 
   return {
     // State

@@ -73,7 +73,7 @@ export function useBurnLeague(t: (key: string) => string) {
   const refreshData = async (setStatus?: (msg: string, type: string) => void) => {
     try {
       await Promise.all([loadStats(), loadLeaderboard()]);
-    } catch {
+    } catch (_e: unknown) {
       setStatus?.(t("loadFailed"), "error");
     }
   };
@@ -87,7 +87,7 @@ export function useBurnLeague(t: (key: string) => string) {
     const amount = parseFloat(burnAmount);
     const MIN_BURN = 1;
     if (!Number.isFinite(amount) || amount < MIN_BURN) {
-      setStatus(t("minBurn", { amount: MIN_BURN }), "error");
+      setStatus(t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") }), "error");
       return;
     }
     try {
@@ -124,7 +124,7 @@ export function useBurnLeague(t: (key: string) => string) {
         errorMessage: t("loadFailed"),
       });
 
-      setStatus(`${t("burned")} ${amount} GAS ${t("success")}`, "success");
+      setStatus(`${t("burned")} ${amount} ${t("tokenGas")} ${t("success")}`, "success");
       onSuccess();
       await refreshData();
     } catch (e: unknown) {

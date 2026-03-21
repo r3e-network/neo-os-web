@@ -1,26 +1,22 @@
 /**
- * Abstract Account integration composable for Neo N3 MiniApps.
+ * Thin Abstract Account integration client for MiniApps.
  *
- * This composable does not try to replace `neo-abstract-account`.
- * It gives the MiniApp platform a thin, accurate integration layer for:
- * - canonical AA contract / verifier / domain discovery
- * - GAS sponsorship checks via the platform gateway
- * - relay submission into an external AA relay
- * - session metadata hydration for UX state
+ * This shared layer now only keeps the capabilities that are genuinely
+ * reused across miniapps today:
+ * - GAS sponsorship checks/requests
+ * - relay submission for AA user operations
  *
- * The actual Web3Auth login, `executeUserOp` construction, verifier updates,
- * and on-chain AA lifecycle continue to live in the dedicated AA project.
+ * Session-key configuration stays in the AA miniapp itself because it is an
+ * on-chain verifier-plugin mutation, not a generic host SDK concern.
  */
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import {
   getExternalIntegrationConfig,
   getNetwork,
   type NeoNetwork,
 } from "../constants/rpc";
 
-type MaybePromise<T> = T | Promise<T>;
-
-type TokenResolver = () => MaybePromise<string | undefined>;
+type TokenResolver = () => string | Promise<string | undefined> | undefined;
 
 type GasSponsorClientLike = {
   check: () => Promise<GasSponsorCheckResponse>;
@@ -40,27 +36,6 @@ export interface AAConfig {
   sdk?: MiniAppSDKLike;
   getAuthToken?: TokenResolver;
   getAPIKey?: TokenResolver;
-  resolveAAAddress?: (provider: "google" | "twitter" | "github") => MaybePromise<string>;
-  registerSessionKey?: (params: RegisterSessionKeyParams) => MaybePromise<SessionKey>;
-}
-
-export interface RegisterSessionKeyParams {
-  aaAddress: string;
-  sessionKeyVerifierHash?: string;
-  scope: {
-    contractHash: string;
-    allowedMethods: string[];
-  };
-  maxInvocations: number;
-  expiresAt: number;
-}
-
-export interface SessionKey {
-  address: string;
-  publicKey?: string;
-  expiresAt: number;
-  remainingInvocations: number;
-  isValid: boolean;
 }
 
 export interface GasSponsorCheckResponse {
@@ -156,7 +131,7 @@ async function requestJson<T>(
 
   try {
     return JSON.parse(text) as T;
-  } catch {
+  } catch (_e: unknown) {
     throw new Error(`invalid JSON response from ${url}`);
   }
 }
@@ -169,86 +144,14 @@ export function useAbstractAccount(config: AAConfig = {}) {
   const sdk = config.sdk ?? getWindowMiniAppSDK();
 
   const aaAddress = ref<string | null>(String(config.aaAddress ?? "").trim() || null);
-  const sessionKey = ref<SessionKey | null>(null);
-  const isInitializing = ref(false);
   const isCheckingSponsorship = ref(false);
   const isRelaying = ref(false);
   const lastRelayResponse = ref<AARelayResponse | null>(null);
   const error = ref<string | null>(null);
 
-  const isAAEnabled = computed(() => Boolean(aaAddress.value));
-  const hasActiveSession = computed(
-    () => Boolean(
-      sessionKey.value
-      && sessionKey.value.isValid
-      && sessionKey.value.remainingInvocations > 0
-      && sessionKey.value.expiresAt > Math.floor(Date.now() / 1000),
-    ),
-  );
-  const canUseGasSponsoring = computed(() => Boolean(config.paymasterDappId));
-
   const setAAAddress = (address: string | null | undefined) => {
     const next = String(address ?? "").trim();
     aaAddress.value = next || null;
-  };
-
-  const hydrateSessionKey = (value: SessionKey | null) => {
-    sessionKey.value = value;
-  };
-
-  const initWithSocialLogin = async (provider: "google" | "twitter" | "github") => {
-    isInitializing.value = true;
-    error.value = null;
-    try {
-      if (config.resolveAAAddress) {
-        const address = await config.resolveAAAddress(provider);
-        setAAAddress(address);
-        return address;
-      }
-
-      if (aaAddress.value) {
-        return aaAddress.value;
-      }
-
-      throw new Error(
-        "AA address resolver is not configured. Wire this MiniApp to neo-abstract-account or the host Web3Auth flow.",
-      );
-    } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "AA initialization failed";
-      throw e;
-    } finally {
-      isInitializing.value = false;
-    }
-  };
-
-  const createSessionKey = async (
-    scope: { contractHash: string; allowedMethods: string[] },
-    maxInvocations = 100,
-  ): Promise<SessionKey> => {
-    if (!aaAddress.value) {
-      throw new Error("AA address not initialized");
-    }
-    if (!config.registerSessionKey) {
-      throw new Error(
-        "Session key registration is not configured. Use neo-abstract-account to produce the on-chain session key and hydrate it here.",
-      );
-    }
-
-    try {
-      const expiresAt = Math.floor(Date.now() / 1000) + 3600;
-      const created = await config.registerSessionKey({
-        aaAddress: aaAddress.value,
-        sessionKeyVerifierHash: integration.contracts.aaSessionKeyVerifier,
-        scope,
-        maxInvocations,
-        expiresAt,
-      });
-      sessionKey.value = created;
-      return created;
-    } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Session key creation failed";
-      throw e;
-    }
   };
 
   const checkGasSponsorship = async (): Promise<GasSponsorCheckResponse> => {
@@ -316,10 +219,6 @@ export function useAbstractAccount(config: AAConfig = {}) {
       });
 
       lastRelayResponse.value = response;
-      if (sessionKey.value) {
-        sessionKey.value.remainingInvocations = Math.max(0, sessionKey.value.remainingInvocations - 1);
-        sessionKey.value.isValid = sessionKey.value.remainingInvocations > 0;
-      }
       return response;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : "AA relay submission failed";
@@ -329,48 +228,26 @@ export function useAbstractAccount(config: AAConfig = {}) {
     }
   };
 
-  // Backwards-compatible alias for existing examples.
-  const executeWithSession = submitRelayTransaction;
-
-  const revokeSession = async () => {
-    sessionKey.value = null;
-  };
-
   return {
     integration,
     network,
     edgeBaseUrl,
     relayUrl,
 
-    // Canonical external deployment metadata.
     AA_MASTER_CONTRACT_MAINNET: getExternalIntegrationConfig("mainnet").contracts.aaCore,
     AA_MASTER_CONTRACT_TESTNET: getExternalIntegrationConfig("testnet").contracts.aaCore,
     RELAY_ENDPOINT: relayUrl,
 
-    // State
-    isAAEnabled,
     aaAddress,
-    sessionKey,
-    isInitializing,
     isCheckingSponsorship,
     isRelaying,
     lastRelayResponse,
     error,
 
-    // Computed
-    hasActiveSession,
-    canUseGasSponsoring,
-
-    // Actions
     setAAAddress,
-    hydrateSessionKey,
-    initWithSocialLogin,
-    createSessionKey,
     checkGasSponsorship,
     requestGasSponsorship,
     buildPaymasterConfig,
     submitRelayTransaction,
-    executeWithSession,
-    revokeSession,
   };
 }

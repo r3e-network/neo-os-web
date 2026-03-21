@@ -12,19 +12,17 @@
         :placeholder="placeholder"
         class="amount-input"
         :disabled="disabled"
+        :aria-label="label"
         @input="onInput"
       />
     </div>
-    <div
+    <button
       v-if="showMax"
+      type="button"
       class="max-btn"
-      role="button"
       :aria-label="t('max')"
-      tabindex="0"
       @click="$emit('max')"
-      @keydown.enter="$emit('max')"
-      >{{ t("max") }}</div
-    >
+    >{{ t("max") }}</button>
   </div>
 </template>
 
@@ -65,13 +63,29 @@ function onInput(e: Record<string, unknown>) {
   background: var(--swap-panel-bg);
   border: 1px solid var(--swap-panel-border);
   border-radius: 20px;
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 8px;
   transition: all 0.3s ease;
 
   &:focus-within {
     border-color: var(--swap-panel-focus-border);
     box-shadow: 0 0 20px var(--swap-panel-focus-glow);
+  }
+}
+
+@media (max-width: 480px) {
+  .token-section {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .amount-input {
+    font-size: 24px;
+  }
+
+  .max-btn {
+    top: 12px;
+    right: 12px;
   }
 }
 
@@ -98,7 +112,13 @@ function onInput(e: Record<string, unknown>) {
 .token-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .token-row {
+    gap: 8px;
+  }
 }
 
 .amount-input {
@@ -132,6 +152,8 @@ function onInput(e: Record<string, unknown>) {
   border-radius: 6px;
   cursor: pointer;
   letter-spacing: 0.1em;
+  border: none;
+  appearance: none;
 
   &:hover {
     background: var(--swap-accent-soft-strong);

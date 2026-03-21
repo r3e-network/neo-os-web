@@ -14,6 +14,9 @@ const TOKENS: Token[] = [
   { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 },
 ];
 
+/** Swap transaction deadline in seconds (10 minutes). */
+const SWAP_DEADLINE_SECONDS = 600;
+
 /** Manages token swap operations, balance tracking, and price estimation. */
 export function useSwapEngine(t: Ref<(key: string) => string>) {
   const { getAddress, invokeContract, balances, chainType } = useWallet() as WalletSDK;
@@ -68,7 +71,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     if (rateLoading.value) return t.value("loadingRate");
     if (!hasRate.value) return t.value("rateUnavailable");
     if (parseFloat(fromAmount.value) > fromToken.value.balance) return t.value("insufficientBalance");
-    return `${t.value("tabSwap")} ${fromToken.value.symbol} → ${toToken.value.symbol}`;
+    return `${t.value("tabSwap")} ${fromToken.value.symbol} ${t.value("swapArrow")} ${toToken.value.symbol}`;
   });
   const slippage = computed(() => "0.5%");
   const minReceived = computed(() => {
@@ -99,7 +102,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
           }
         }
       }
-    } catch {
+    } catch (_e: unknown) {
       /* non-critical: exchange rate load */
     } finally {
       rateLoading.value = false;
@@ -182,7 +185,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
           contractUnavailableMessage: t.value("swapRouterUnavailable"),
         }));
       const sender = await getAddress();
-      const deadline = Math.floor(Date.now() / 1000) + 600;
+      const deadline = Math.floor(Date.now() / 1000) + SWAP_DEADLINE_SECONDS;
       const path = [
         { type: "Hash160", value: fromToken.value.hash },
         { type: "Hash160", value: toToken.value.hash },

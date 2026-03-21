@@ -2,16 +2,16 @@
   <NeoCard variant="erobo">
     <ItemList :items="developers" item-key="id">
       <template #item="{ item: dev }">
-        <div class="dev-card-glass" @click="$emit('select', dev)">
+        <button type="button" class="dev-card-glass" :aria-label="dev.name" @click="$emit('select', dev)">
           <div class="dev-card-header">
             <div class="dev-avatar-glass">
-              <span class="avatar-emoji">👨‍💻</span>
+              <span class="avatar-emoji" aria-hidden="true">👨‍💻</span>
               <div class="avatar-badge-glass">{{ dev.rank }}</div>
             </div>
             <div class="dev-info">
               <span class="dev-name-glass">{{ dev.name }}</span>
               <span class="dev-projects-glass">
-                <span class="project-icon">🧩</span>
+                <span class="project-icon" aria-hidden="true">🧩</span>
                 {{ dev.role }}
               </span>
               <span class="dev-contributions-glass">{{ dev.tipCount }} {{ t("tipsCount") }}</span>
@@ -20,13 +20,13 @@
           <div class="dev-card-footer-glass">
             <div class="tip-stats">
               <span class="tip-label-glass">{{ t("totalTips") }}</span>
-              <span class="tip-amount-glass">{{ formatNum(dev.totalTips) }} GAS</span>
+              <span class="tip-amount-glass">{{ formatNum(dev.totalTips) }} {{ t("tokenGas") }}</span>
             </div>
             <div class="tip-action">
-              <span class="tip-icon text-glass">💚</span>
+              <span class="tip-icon text-glass" aria-hidden="true">💚</span>
             </div>
           </div>
-        </div>
+        </button>
       </template>
     </ItemList>
   </NeoCard>
@@ -63,9 +63,33 @@ defineEmits<{
   margin-bottom: 16px;
   cursor: pointer;
   transition: all 0.2s;
+  appearance: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  display: block;
 
   &:active {
     background: var(--cafe-panel-hover);
+  }
+}
+
+@media (max-width: 480px) {
+  .dev-card-glass {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .dev-avatar-glass {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  .avatar-badge-glass {
+    font-size: 8px;
+    padding: 2px 4px;
   }
 }
 

@@ -91,32 +91,52 @@ function cancelManage() {
 }
 
 async function handleRenew(domain: Domain) {
-  await ns.handleRenew(domain, showStatus);
+  try {
+    await ns.handleRenew(domain, showStatus);
+  } catch (_e: unknown) {
+    /* non-critical: renew handled by ns */
+  }
 }
 
 async function handleSetTarget(targetAddress: string) {
   if (!managingDomain.value) return;
-  await ns.handleSetTarget(managingDomain.value, targetAddress, showStatus);
+  try {
+    await ns.handleSetTarget(managingDomain.value, targetAddress, showStatus);
+  } catch (_e: unknown) {
+    /* non-critical: setTarget handled by ns */
+  }
 }
 
 async function handleTransfer(transferAddress: string) {
   if (!managingDomain.value) return;
-  const transferred = await ns.handleTransfer(managingDomain.value, transferAddress, showStatus);
-  if (transferred) {
-    managingDomain.value = null;
+  try {
+    const transferred = await ns.handleTransfer(managingDomain.value, transferAddress, showStatus);
+    if (transferred) {
+      managingDomain.value = null;
+    }
+  } catch (_e: unknown) {
+    /* non-critical: transfer handled by ns */
   }
 }
 
 onMounted(async () => {
-  await connect();
-  if (address.value) {
-    await loadMyDomains();
+  try {
+    await connect();
+    if (address.value) {
+      await loadMyDomains();
+    }
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
   }
 });
 
 watch(address, async (newAddr) => {
   if (newAddr) {
-    await loadMyDomains();
+    try {
+      await loadMyDomains();
+    } catch (_e: unknown) {
+      /* non-critical: domains load */
+    }
   } else {
     myDomains.value = [];
   }

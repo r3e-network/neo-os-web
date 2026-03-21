@@ -5,18 +5,18 @@
     <NeoCard variant="erobo" class="balance-card">
       <div class="section-header">
         <span class="section-title">{{ t("sectionBalances") }}</span>
-        <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="$emit('refresh')">
+        <NeoButton size="sm" variant="secondary" type="button" :loading="isRefreshing" @click="$emit('refresh')" :aria-label="t('refresh')">
           {{ t("refresh") }}
         </NeoButton>
       </div>
 
       <div class="balance-grid">
         <div class="balance-item">
-          <span class="balance-label">NEO</span>
+          <span class="balance-label">{{ t("tokenNeo") }}</span>
           <span class="balance-value">{{ neoDisplay }}</span>
         </div>
         <div class="balance-item">
-          <span class="balance-label">GAS</span>
+          <span class="balance-label">{{ t("tokenGas") }}</span>
           <span class="balance-value">{{ gasDisplay }}</span>
         </div>
       </div>
@@ -39,7 +39,9 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits(["refresh"]);
+defineEmits<{
+  (e: "refresh"): void;
+}>();
 </script>
 
 <style lang="scss" scoped>
@@ -72,8 +74,8 @@ defineEmits(["refresh"]);
 }
 
 .balance-item {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card-subtle, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 16px;
   padding: 12px;
 }
@@ -101,6 +103,21 @@ defineEmits(["refresh"]);
   }
   .balance-value {
     font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .balance-item {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .balance-value {
+    font-size: 14px;
+  }
+
+  .balance-label {
+    font-size: 10px;
   }
 }
 </style>

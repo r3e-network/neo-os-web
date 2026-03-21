@@ -67,10 +67,10 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const opStats = computed<StatsDisplayItem[]>(() => [
     { label: t("tabRounds"), value: rounds.value.length },
     { label: t("tabProjects"), value: projects.value.length },
-    { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? "—" },
+    { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? t("notAvailable") },
     {
       label: t("sidebarMatchingPool"),
-      value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : "—",
+      value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : t("notAvailable"),
     },
   ]);
 
@@ -119,13 +119,21 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
 
   // Lifecycle
   onMounted(async () => {
-    await refreshRounds();
+    try {
+      await refreshRounds();
+    } catch (_e: unknown) {
+      /* non-critical: initial data load */
+    }
   });
 
   watch(selectedRoundId, async (roundId) => {
     if (!roundId) return;
-    contributeForm.roundId = roundId;
-    await refreshProjects();
+    try {
+      contributeForm.roundId = roundId;
+      await refreshProjects();
+    } catch (_e: unknown) {
+      /* non-critical: round change handler */
+    }
   });
 
   return {

@@ -18,20 +18,20 @@
   >
     <template #result>
       <div class="response-grid">
-        <div><span class="label">Status</span><span class="value">{{ response?.status_code ?? "—" }}</span></div>
-        <div><span class="label">Headers</span><span class="value">{{ responseHeaders }}</span></div>
-        <div><span class="label">Body</span><span class="value">{{ responseBody }}</span></div>
+        <div><span class="label">{{ t("labelStatus") }}</span><span class="value">{{ response?.status_code ?? t("notAvailable") }}</span></div>
+        <div><span class="label">{{ t("labelHeaders") }}</span><span class="value">{{ responseHeaders }}</span></div>
+        <div><span class="label">{{ t("labelBody") }}</span><span class="value">{{ responseBody }}</span></div>
       </div>
     </template>
     <template #operation>
       <div class="stack">
-        <NeoInput v-model="form.url" :label="t('url')" placeholder="https://api.binance.com/api/v3/ticker/price?symbol=NEOUSDT" />
-        <NeoInput v-model="form.method" :label="t('method')" placeholder="GET" />
-        <NeoInput v-model="form.secretName" :label="t('secretName')" placeholder="optional" />
-        <NeoInput v-model="form.secretAsKey" :label="t('secretAsKey')" placeholder="Authorization / X-API-Key" />
+        <NeoInput v-model="form.url" :label="t('url')" :placeholder="t('urlPlaceholder')" />
+        <NeoInput v-model="form.method" :label="t('method')" :placeholder="t('methodPlaceholder')" />
+        <NeoInput v-model="form.secretName" :label="t('secretName')" :placeholder="t('optional')" />
+        <NeoInput v-model="form.secretAsKey" :label="t('secretAsKey')" :placeholder="t('secretAsKeyPlaceholder')" />
         <label class="textarea-label">{{ t("body") }}</label>
-        <textarea v-model="form.body" class="json-box" rows="6"></textarea>
-        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runQuery">{{ t("runQuery") }}</NeoButton>
+        <textarea v-model="form.body" class="json-box" rows="6" :aria-label="t('body')"></textarea>
+        <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="runQuery" :aria-label="t('runQuery')">{{ t("runQuery") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
@@ -44,13 +44,15 @@ import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useOracle } from "@shared/composables/useOracle";
+import type { OracleQueryResponse } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 const oracle = useOracle({ appId: "miniapp-oracle-http-console" });
 const form = reactive({ url: "", method: "GET", secretName: "", secretAsKey: "", body: "" });
-const response = ref<any>(null);
+const response = ref<OracleQueryResponse | null>(null);
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "oracle-http-console", messages,
   tab: { key: "oracle", labelKey: "latestResponse", icon: "🌐" },
-  sidebarItems: [{ labelKey: "method", value: () => form.method }, { labelKey: "latestResponse", value: () => String(response.value?.status_code ?? "—") }],
+  sidebarItems: [{ labelKey: "method", value: () => form.method }, { labelKey: "latestResponse", value: () => String(response.value?.status_code ?? t("notAvailable")) }],
 });
 async function runQuery() {
   try {
@@ -61,17 +63,17 @@ async function runQuery() {
       secret_as_key: form.secretAsKey || undefined,
       body: form.body || undefined,
     });
-    setStatus("oracle query completed", "success");
-  } catch (e) {
-    setStatus(String((e as Error)?.message || e), "error");
+    setStatus(t("queryCompleted"), "success");
+  } catch (e: unknown) {
+    setStatus(formatErrorMessage(e, t("queryFailed")), "error");
   }
 }
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildOracleHeroStats({
     oracleHash: oracle.integration.contracts.morpheusOracle,
     network: oracle.network,
-    middleLabel: "Mode",
-    middleValue: form.method || "GET",
+    middleLabel: t("heroMode"),
+    middleValue: form.method || t("methodPlaceholder"),
   }),
 );
 const overviewStats = computed<StatsDisplayItem[]>(() =>
@@ -81,7 +83,7 @@ const overviewStats = computed<StatsDisplayItem[]>(() =>
   }),
 );
 const responseHeaders = computed(() => JSON.stringify(response.value?.headers ?? {}, null, 2));
-const responseBody = computed(() => String(response.value?.body ?? "—"));
+const responseBody = computed(() => String(response.value?.body ?? t("notAvailable")));
 const appState = computed(() => ({ url: form.url, status: response.value?.status_code ?? null }));
 </script>
 <style scoped lang="scss">

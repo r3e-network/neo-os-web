@@ -48,8 +48,8 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
   const validateBetAmount = (amount: string): string | null => {
     const num = parseFloat(amount);
     if (isNaN(num)) return t("invalidAmountNumber");
-    if (num < MIN_BET) return t("minBetError").replace("{min}", String(MIN_BET));
-    if (num > MAX_BET) return t("maxBetError").replace("{max}", String(MAX_BET));
+    if (num < MIN_BET) return t("minBetError", { min: String(MIN_BET), tokenGas: t("tokenGas") });
+    if (num > MAX_BET) return t("maxBetError", { max: String(MAX_BET), tokenGas: t("tokenGas") });
     if (!/^\d+(\.\d{1,8})?$/.test(amount)) return t("invalidAmountDecimals");
     return null;
   };

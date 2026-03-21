@@ -1,16 +1,16 @@
 <template>
   <div class="verify-section">
     <span class="section-title">{{ t("verifyProof") }}</span>
-    <input v-model="proofId" class="id-input" :placeholder="t('enterProofId')" type="number" />
-    <button class="verify-button" :disabled="isVerifying || !proofId" @click="$emit('verify')">
+    <input v-model="proofId" class="id-input" :placeholder="t('enterProofId')" type="number" :aria-label="t('enterProofId')" />
+    <button type="button" class="verify-button" :disabled="isVerifying || !proofId" @click="$emit('verify')">
       <span>{{ isVerifying ? t("loading") : t("verifyProof") }}</span>
     </button>
 
     <div v-if="verifiedProof" class="verified-proof">
       <span class="proof-status valid">{{ t("validProof") }}</span>
-      <span class="proof-label">{{ t("verifiedContent") }}:</span>
+      <span class="proof-label">{{ t("verifiedContent") }}{{ t("labelSeparator") }}</span>
       <span class="proof-content-full">{{ verifiedProof.content }}</span>
-      <span class="proof-meta">{{ t("timestamp") }}: {{ formatTime(verifiedProof.timestamp) }}</span>
+      <span class="proof-meta">{{ t("timestamp") }}{{ t("labelSeparator") }}{{ formatTime(verifiedProof.timestamp) }}</span>
     </div>
 
     <div v-if="verifyError" class="verify-error">
@@ -47,7 +47,7 @@ defineEmits<{
 const proofId = defineModel<string>("proofId", { required: true });
 
 const formatTime = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleString();
+  return new Intl.DateTimeFormat("en").format(new Date(timestamp));
 };
 </script>
 

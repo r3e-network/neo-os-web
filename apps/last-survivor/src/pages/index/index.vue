@@ -16,7 +16,7 @@
       <div v-if="!game.address" class="wallet-prompt">
         <NeoCard variant="warning" class="text-center">
           <span class="mb-2 block font-bold">{{ t("connectWalletToPlay") }}</span>
-          <NeoButton variant="primary" size="sm" @click="connectWallet">{{ t("connectWallet") }}</NeoButton>
+          <NeoButton variant="primary" size="sm" type="button" @click="connectWallet" :aria-label="t('connectWallet')">{{ t("connectWallet") }}</NeoButton>
         </NeoCard>
       </div>
 
@@ -35,14 +35,14 @@
 
         <!-- Prize Pool -->
         <div class="hero-prize-pool">
-          <span class="prize-label">PRIZE POOL</span>
-          <span class="prize-amount">{{ formatNumber(game.totalPot, 2) }} GAS</span>
+          <span class="prize-label">{{ t("totalPot") }}</span>
+          <span class="prize-amount">{{ formatNumber(game.totalPot, 2) }} {{ t("tokenGas") }}</span>
         </div>
 
         <!-- Claim Banner -->
-        <div v-if="game.canClaim" class="hero-claim-banner" role="alert" aria-live="assertive">
+        <div v-if="game.canClaim" class="hero-claim-banner" role="alert">
           <span class="claim-text">{{ t("youWon") }}</span>
-          <NeoButton variant="primary" size="lg" block :loading="game.isClaiming" @click="handleClaimPrize">
+          <NeoButton variant="primary" size="lg" block type="button" :loading="game.isClaiming" @click="handleClaimPrize" :aria-label="t('claimPrize')">
             {{ t("claimPrize") }}
           </NeoButton>
         </div>
@@ -71,7 +71,6 @@
         :estimated-cost="game.estimatedCost"
         :is-paying="game.isPaying"
         :validation-error="game.keyValidationError"
-        :t="t"
         @buy="handleBuyKeys"
       />
     </template>
@@ -94,7 +93,7 @@ import { computed, onMounted, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, NeoCard, NeoButton, ErrorToast, StatsDisplay } from "@shared/components";
+import { MiniAppPage, NeoCard, NeoButton, StatsDisplay, ErrorToast } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import BuyKeysCard from "./components/BuyKeysCard.vue";
@@ -129,7 +128,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage } = creat
   },
   sidebarItems: [
     { labelKey: "tabStats", value: () => `#${game.roundId.value}` },
-    { labelKey: "sidebarTotalPot", value: () => `${formatNumber(game.totalPot.value, 2)} GAS` },
+    { labelKey: "sidebarTotalPot", value: () => `${formatNumber(game.totalPot.value, 2)} ${t("tokenGas")}` },
     { labelKey: "sidebarYourKeys", value: () => game.userKeys.value },
     { labelKey: "sidebarTimeLeft", value: () => timer.countdown.value },
   ],
@@ -144,7 +143,7 @@ const appState = computed(() => ({
 
 const gameStatsGrid = computed<StatsDisplayItem[]>(() => [
   { label: t("round"), value: `#${game.roundId.value}`, icon: "🔄" },
-  { label: t("totalPot"), value: `${formatNumber(game.totalPot.value, 2)} GAS`, icon: "💰" },
+  { label: t("totalPot"), value: `${formatNumber(game.totalPot.value, 2)} ${t("tokenGas")}`, icon: "💰" },
   { label: t("yourKeys"), value: game.userKeys.value, icon: "🔑" },
 ]);
 
@@ -160,11 +159,21 @@ const gameStatsRows = computed<StatsDisplayItem[]>(() => [
 const timerTicker = useTicker(() => timer.updateNow(), 1000);
 
 onMounted(async () => {
-  await refreshData();
-  timerTicker.start();
+  try {
+    await refreshData();
+    timerTicker.start();
+  } catch (_e: unknown) {
+    /* non-critical: initial data load */
+  }
 });
 
-watch(game.address, async () => await game.loadUserKeys());
+watch(game.address, async () => {
+  try {
+    await game.loadUserKeys();
+  } catch (_e: unknown) {
+    /* non-critical: user keys load */
+  }
+});
 </script>
 
 <style lang="scss" scoped>
