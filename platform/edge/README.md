@@ -72,14 +72,21 @@ Daily cap enforcement uses the `miniapp_usage` table and the
 Set `MINIAPP_USAGE_MODE=check` to use `miniapp_usage_check(...)` for cap-only
 validation (no usage recording; see `migrations/032_miniapp_usage_check.sql`).
 
-TEE routing env vars (required by functions that proxy to internal services):
+Morpheus routing env vars (required by functions that proxy to runtime services):
 
-- `NEOFEEDS_URL`
-- `NEOCOMPUTE_URL`
-- `NEOVRF_URL`
-- `NEOORACLE_URL`
-- `NEOFLOW_URL`
-- `TXPROXY_URL`
+- preferred unified routing:
+  - `MORPHEUS_RUNTIME_URL`
+  - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  - `MORPHEUS_PUBLIC_API_URL`
+  - `MORPHEUS_EDGE_URL`
+  - `MORPHEUS_CONTROL_PLANE_URL`
+- legacy compatibility:
+  - `NEOFEEDS_URL`
+  - `NEOCOMPUTE_URL`
+  - `NEOVRF_URL`
+  - `NEOORACLE_URL`
+  - `NEOFLOW_URL`
+  - `TXPROXY_URL`
 
 Most endpoints accept either:
 
@@ -155,11 +162,15 @@ When running the simulation stack (`make docker-up`), the nitros expose their
 ports on `127.0.0.1` (e.g. `neofeeds` on `8083`). For the local dev server,
 set:
 
-- `NEOFEEDS_URL=http://localhost:8083`
-- `NEOCOMPUTE_URL=http://localhost:8086`
-- `NEOORACLE_URL=http://localhost:8088`
-- `NEOFLOW_URL=http://localhost:8084`
-- `TXPROXY_URL=http://localhost:8090`
+- preferred:
+  - `MORPHEUS_RUNTIME_URL=https://morpheus-testnet.meshmini.app`
+  - `PHALA_API_TOKEN=<token>`
+- or legacy local mesh:
+  - `NEOFEEDS_URL=http://localhost:8083`
+  - `NEOCOMPUTE_URL=http://localhost:8086`
+  - `NEOORACLE_URL=http://localhost:8088`
+  - `NEOFLOW_URL=http://localhost:8084`
+  - `TXPROXY_URL=http://localhost:8090`
 
 ## k3s Gateway (Local Supabase)
 

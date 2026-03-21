@@ -30,11 +30,12 @@ Out-of-scope for this repo:
 
 - Supabase project with required migrations applied
 - Neo N3 RPC endpoint
-- external Morpheus service URLs:
-  - `NEOFEEDS_URL`
-  - `NEOORACLE_URL`
-  - `NEOVRF_URL`
-  - `NEOCOMPUTE_URL`
+- external Morpheus runtime/public URLs:
+  - `MORPHEUS_RUNTIME_URL` preferred
+  - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  - `MORPHEUS_PUBLIC_API_URL`
+  - `MORPHEUS_EDGE_URL`
+  - `MORPHEUS_CONTROL_PLANE_URL`
   - `TXPROXY_URL`
 - optional external AA / paymaster URLs:
   - `AA_RELAY_URL`
@@ -65,10 +66,16 @@ Out-of-scope for this repo:
 
 ### External Service Wiring
 
-- `NEOFEEDS_URL`
-- `NEOORACLE_URL`
-- `NEOVRF_URL`
-- `NEOCOMPUTE_URL`
+- `MORPHEUS_RUNTIME_URL` preferred
+- `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+- `MORPHEUS_PUBLIC_API_URL`
+- `MORPHEUS_EDGE_URL`
+- `MORPHEUS_CONTROL_PLANE_URL`
+- legacy compatibility only:
+  - `NEOFEEDS_URL`
+  - `NEOORACLE_URL`
+  - `NEOVRF_URL`
+  - `NEOCOMPUTE_URL`
 - `TXPROXY_URL`
 - `GLOBALSIGNER_SERVICE_URL` when health checks should include signer availability
 - `AA_RELAY_URL` when host `/api/aa/relay` should be enabled
