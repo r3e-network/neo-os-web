@@ -68,8 +68,8 @@ const formatNum = (n: number, decimals = 0): string => {
 }
 
 .founder-item {
-  background: linear-gradient(135deg, rgba(159, 157, 243, 0.05) 0%, rgba(123, 121, 209, 0.03) 100%);
-  border: 1px solid rgba(159, 157, 243, 0.2);
+  background: var(--treasury-founder-bg, linear-gradient(135deg, rgba(159, 157, 243, 0.05) 0%, rgba(123, 121, 209, 0.03) 100%));
+  border: 1px solid var(--treasury-founder-border, rgba(159, 157, 243, 0.2));
   border-radius: 20px;
   margin-bottom: 24px;
   display: flex;
@@ -78,7 +78,7 @@ const formatNum = (n: number, decimals = 0): string => {
   backdrop-filter: blur(20px);
   cursor: pointer;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px var(--treasury-founder-shadow, rgba(0, 0, 0, 0.1));
   appearance: none;
   padding: 0;
   text-align: left;
@@ -86,9 +86,9 @@ const formatNum = (n: number, decimals = 0): string => {
 
   &:hover {
     transform: translateY(-4px);
-    border-color: rgba(159, 157, 243, 0.4);
-    background: linear-gradient(135deg, rgba(159, 157, 243, 0.1) 0%, rgba(123, 121, 209, 0.06) 100%);
-    box-shadow: 0 12px 40px rgba(159, 157, 243, 0.2);
+    border-color: var(--treasury-founder-border-hover, rgba(159, 157, 243, 0.4));
+    background: var(--treasury-founder-bg-hover, linear-gradient(135deg, rgba(159, 157, 243, 0.1) 0%, rgba(123, 121, 209, 0.06) 100%));
+    box-shadow: 0 12px 40px var(--treasury-founder-shadow-hover, rgba(159, 157, 243, 0.2));
   }
 
   &:active {

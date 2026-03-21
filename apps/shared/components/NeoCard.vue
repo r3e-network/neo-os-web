@@ -5,8 +5,8 @@
     :tabindex="hoverable ? 0 : undefined"
     :aria-label="ariaLabel || title || null"
     @click="hoverable && $emit('click', $event)"
-    @keydown.enter="hoverable && $emit('click', $event as unknown as MouseEvent)"
-    @keydown.space.prevent="hoverable && $emit('click', $event as unknown as MouseEvent)"
+    @keydown.enter="hoverable && $emit('click', createClickEvent($event))"
+    @keydown.space.prevent="hoverable && $emit('click', createClickEvent($event))"
   >
     <div v-if="title || $slots.header" class="neo-card__header">
       <span v-if="title" class="neo-card__title">{{ title }}</span>
@@ -53,6 +53,14 @@ withDefaults(
 defineEmits<{
   (e: "click", event: MouseEvent): void;
 }>();
+
+function createClickEvent(keyboardEvent: KeyboardEvent): MouseEvent {
+  return new MouseEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    view: keyboardEvent.view || window,
+  });
+}
 </script>
 
 <style lang="scss" scoped>

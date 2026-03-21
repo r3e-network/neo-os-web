@@ -312,10 +312,10 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   color: rgba(255, 255, 255, 0.7);
 
   .win & {
-    color: #34d399;
+    color: var(--coin-win);
   }
   .loss & {
-    color: #f87171;
+    color: var(--coin-loss);
   }
   .total & {
     color: rgba(255, 255, 255, 0.5);

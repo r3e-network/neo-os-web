@@ -35,6 +35,8 @@
         v-if="hasMore"
         type="button"
         class="item-list__load-more"
+        :disabled="loading"
+        :aria-disabled="loading"
         @click="$emit('load-more')"
       >
         <span>{{ loadMoreText ?? t("loadMore") }}</span>

@@ -18,7 +18,12 @@ export function formatNumber(value: number | string, decimals = 2): string {
  * Handles bigint, number, or string input
  */
 export function formatGas(amount: bigint | number | string, decimals = 4): string {
-  const value = typeof amount === "bigint" ? amount : BigInt(amount || 0);
+  let value: bigint;
+  try {
+    value = typeof amount === "bigint" ? amount : BigInt(amount || 0);
+  } catch (_e: unknown) {
+    value = 0n;
+  }
   const divisor = BigInt(100000000);
   const whole = value / divisor;
   const fraction = value % divisor;
