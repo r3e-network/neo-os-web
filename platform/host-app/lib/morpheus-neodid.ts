@@ -1,6 +1,10 @@
 import { createHash, ECDH } from "node:crypto";
 import type { NextApiRequest } from "next";
 import { getExternalIntegrationConfig, resolveNeoNetwork, type NeoNetwork } from "../../../apps/shared/constants/rpc";
+import {
+  resolveMorpheusRuntimeCandidates,
+  resolveMorpheusRuntimeToken,
+} from "./morpheus-endpoints";
 
 const DID_DOCUMENT_CONTENT_TYPE = "application/did+ld+json";
 const DID_RESOLUTION_CONTENT_TYPE = 'application/ld+json;profile="https://w3id.org/did-resolution"';
@@ -57,23 +61,30 @@ function parseNetwork(value: unknown): NeoNetwork {
   return resolveNeoNetwork(String(value ?? "").trim().toLowerCase() === "testnet" ? "testnet" : "mainnet");
 }
 
-function resolveRuntimeProxyConfig(network: NeoNetwork) {
-  const config = getExternalIntegrationConfig(network);
-  const upper = network.toUpperCase();
-  const runtimeUrl =
-    String(process.env[`MORPHEUS_${upper}_PHALA_API_URL`] || "").trim()
-    || String(process.env.PHALA_API_URL || "").trim()
-    || config.morpheusRuntimeUrl;
-  const runtimeToken =
-    String(process.env[`MORPHEUS_${upper}_PHALA_API_TOKEN`] || "").trim()
-    || String(process.env.PHALA_API_TOKEN || "").trim()
-    || String(process.env.PHALA_SHARED_SECRET || "").trim();
-  return { runtimeUrl: runtimeUrl.replace(/\/$/, ""), runtimeToken };
+function isRetryableStatus(status: number) {
+  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
 }
 
-async function fetchNeoDidRuntimeSnapshot(network: NeoNetwork): Promise<NeoDidRuntimeSnapshot | null> {
-  const { runtimeUrl, runtimeToken } = resolveRuntimeProxyConfig(network);
-  if (!runtimeUrl) return null;
+function shouldFailOpen(status: number, text: string, contentType: string) {
+  const normalizedText = text.toLowerCase();
+  const normalizedType = contentType.toLowerCase();
+  if (status === 429 && normalizedText.includes("error code: 1027")) return true;
+  if (status === 429 && normalizedText.includes("temporarily rate limited")) return true;
+  if (status >= 500 && normalizedType.includes("text/html") && normalizedText.includes("cloudflare"))
+    return true;
+  return false;
+}
+
+function resolveRuntimeProxyConfig(network: NeoNetwork) {
+  return {
+    runtimeUrls: resolveMorpheusRuntimeCandidates(network),
+    runtimeToken: resolveMorpheusRuntimeToken(network),
+  };
+}
+
+async function fetchRuntimeJson(path: string, network: NeoNetwork): Promise<Record<string, unknown> | null> {
+  const { runtimeUrls, runtimeToken } = resolveRuntimeProxyConfig(network);
+  if (runtimeUrls.length === 0) return null;
 
   const headers = new Headers({ accept: "application/json" });
   if (runtimeToken) {
@@ -81,42 +92,46 @@ async function fetchNeoDidRuntimeSnapshot(network: NeoNetwork): Promise<NeoDidRu
     headers.set("x-phala-token", runtimeToken);
   }
 
-  try {
-    const response = await fetch(`${runtimeUrl}/neodid/runtime`, {
-      method: "GET",
-      headers,
-      cache: "no-store",
-    });
-    if (!response.ok) return null;
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchNeoDidProviders(network: NeoNetwork): Promise<Record<string, unknown>> {
-  const { runtimeUrl, runtimeToken } = resolveRuntimeProxyConfig(network);
-  const config = getExternalIntegrationConfig(network);
-
-  if (runtimeUrl) {
-    const headers = new Headers({ accept: "application/json" });
-    if (runtimeToken) {
-      headers.set("authorization", `Bearer ${runtimeToken}`);
-      headers.set("x-phala-token", runtimeToken);
-    }
-
+  let lastNonRetryableText = "";
+  for (const runtimeUrl of runtimeUrls) {
     try {
-      const response = await fetch(`${runtimeUrl}/neodid/providers`, {
+      const response = await fetch(`${runtimeUrl}${path}`, {
         method: "GET",
         headers,
         cache: "no-store",
       });
+      const text = await response.text();
+      const contentType = response.headers.get("content-type") || "application/json";
+
       if (response.ok) {
-        return await response.json();
+        return text ? JSON.parse(text) as Record<string, unknown> : {};
+      }
+
+      if (!isRetryableStatus(response.status) && !shouldFailOpen(response.status, text, contentType)) {
+        lastNonRetryableText = text;
+        break;
       }
     } catch {
-      // fall through to static fallback
+      // fall through to next candidate
     }
+  }
+
+  if (lastNonRetryableText) {
+    return null;
+  }
+  return null;
+}
+
+async function fetchNeoDidRuntimeSnapshot(network: NeoNetwork): Promise<NeoDidRuntimeSnapshot | null> {
+  const payload = await fetchRuntimeJson("/neodid/runtime", network);
+  return payload as NeoDidRuntimeSnapshot | null;
+}
+
+export async function fetchNeoDidProviders(network: NeoNetwork): Promise<Record<string, unknown>> {
+  const config = getExternalIntegrationConfig(network);
+  const runtimeProviders = await fetchRuntimeJson("/neodid/providers", network);
+  if (runtimeProviders) {
+    return runtimeProviders;
   }
 
   return {
@@ -139,6 +154,9 @@ export async function fetchNeoDidProviders(network: NeoNetwork): Promise<Record<
     runtime: {
       public_api_url: config.morpheusPublicApiUrl,
       runtime_url: config.morpheusRuntimeUrl,
+      runtime_urls: config.morpheusRuntimeUrls,
+      edge_url: config.morpheusEdgeUrl,
+      control_plane_url: config.morpheusControlPlaneUrl,
     },
   };
 }

@@ -9,6 +9,7 @@ describe("/api/morpheus/confidential/store", () => {
     jest.clearAllMocks();
     mockFetch.mockReset();
     global.fetch = mockFetch;
+    delete process.env.MORPHEUS_TESTNET_PUBLIC_API_URL;
     delete process.env.MORPHEUS_PUBLIC_API_URL;
     delete process.env.NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL;
   });
@@ -44,7 +45,7 @@ describe("/api/morpheus/confidential/store", () => {
   });
 
   it("forwards the request body to Morpheus confidential store", async () => {
-    process.env.MORPHEUS_PUBLIC_API_URL = "https://oracle.example";
+    process.env.MORPHEUS_TESTNET_PUBLIC_API_URL = "https://oracle.example";
     mockFetch.mockResolvedValue({
       status: 200,
       headers: new Headers({ "content-type": "application/json" }),

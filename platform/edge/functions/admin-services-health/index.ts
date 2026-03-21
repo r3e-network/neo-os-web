@@ -10,6 +10,10 @@ const HEALTH_CHECK_TIMEOUT_MS = 5000;
 
 function buildPlatformServices(): ServiceEntry[] {
   const entries: Array<ServiceEntry | null> = [
+    { name: "morpheus-runtime", url: getEnv("MORPHEUS_RUNTIME_URL") || getEnv("PHALA_API_URL") || "" },
+    { name: "morpheus-public-api", url: getEnv("MORPHEUS_PUBLIC_API_URL") || getEnv("NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL") || "" },
+    { name: "morpheus-control-plane", url: getEnv("MORPHEUS_CONTROL_PLANE_URL") || "" },
+    { name: "morpheus-edge", url: getEnv("MORPHEUS_EDGE_URL") || "" },
     { name: "morpheus-datafeed", url: getEnv("NEOFEEDS_URL") || getEnv("NEOFEEDS_SERVICE_URL") || "" },
     { name: "morpheus-automation", url: getEnv("NEOFLOW_URL") || getEnv("NEOFLOW_SERVICE_URL") || "" },
     { name: "morpheus-compute", url: getEnv("NEOCOMPUTE_URL") || getEnv("NEOCOMPUTE_SERVICE_URL") || "" },

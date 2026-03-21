@@ -1,14 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
+import { resolveMorpheusPublicApiCandidates } from "@/lib/morpheus-endpoints";
 
 function resolveMorpheusPublicApiUrl(networkInput?: string | null) {
-  const network = String(networkInput || "").trim().toLowerCase() === "testnet" ? "testnet" : "mainnet";
-  const explicit = String(process.env.MORPHEUS_PUBLIC_API_URL || process.env.NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL || "").trim();
   // Confidential store still lives behind the web gateway `/api/confidential/store`.
-  // The new Phala runtime domains are used for direct runtime calls, not this web-only route.
-  const fallback = "https://neo-morpheus-oracle-web.vercel.app";
-  return (explicit || fallback || "").replace(/\/$/, "");
+  const candidates = resolveMorpheusPublicApiCandidates(networkInput);
+  return (candidates[0] || "").replace(/\/$/, "");
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
