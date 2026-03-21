@@ -440,4 +440,11 @@ const formatMeta = (item: Record<string, unknown>) => {
     box-shadow: none;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .gacha-slot.pulse,
+  .result-icon-lg {
+    animation: none;
+  }
+}
 </style>

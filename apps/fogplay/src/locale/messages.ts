@@ -30,6 +30,7 @@ const appMessages = {
   scriptHashMissing: { en: "Verification script unavailable", zh: "验证脚本不可用" },
   game: { en: "Play", zh: "游戏" },
   totalWon: { en: "Total Earnings", zh: "总收益" },
+  totalGames: { en: "Total Games", zh: "总局数" },
   docSubtitle: { en: "Oracle-backed coin toss with on-chain escrow", zh: "预言机驱动的链上抛硬币" },
   docDescription: {
     en: "FogPlay locks your wager in the smart contract, requests randomness through the Morpheus Oracle flow, and records the final outcome on-chain for auditability. Winners receive the emitted payout result once settlement completes.",

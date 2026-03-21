@@ -61,7 +61,7 @@
           <div class="row"><span class="label">{{ t("buyerLabel") }}</span><span class="value">{{ listing.buyer || t("notAvailable") }}</span></div>
           <div v-if="listing.metadataUri" class="row">
             <span class="label">{{ t("metadataLabel") }}</span>
-            <a class="value value--link" :href="listing.metadataUri" target="_blank" rel="noreferrer" :aria-label="t('viewMetadata')">{{ listing.metadataUri }}</a>
+            <a class="value value--link" :href="listing.metadataUri" target="_blank" rel="noopener noreferrer" :aria-label="t('viewMetadata')">{{ listing.metadataUri }}</a>
           </div>
           <div v-if="hasPendingPayment(listing)" class="row">
             <span class="label">{{ t("myPendingPayment") }}</span>

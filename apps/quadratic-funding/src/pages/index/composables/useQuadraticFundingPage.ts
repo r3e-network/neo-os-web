@@ -132,7 +132,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
       contributeForm.roundId = roundId;
       await refreshProjects();
     } catch (_e: unknown) {
-      /* non-critical: round change handler */
+      setStatus(t("projectLoadFailed") || "Failed to load projects", "error");
     }
   });
 

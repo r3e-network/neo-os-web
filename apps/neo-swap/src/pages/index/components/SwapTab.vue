@@ -355,4 +355,11 @@ const {
   font-weight: 600;
   color: var(--swap-text);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-orb,
+  .swap-loader-spinner {
+    animation: none;
+  }
+}
 </style>
