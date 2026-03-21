@@ -23,14 +23,21 @@ Usage tracking:
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
 - `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
 
-TEE routing env vars (required by functions that proxy to internal services):
+Morpheus routing env vars:
 
-- `NEOFEEDS_URL`
-- `NEOCOMPUTE_URL`
-- `NEOVRF_URL`
-- `NEOORACLE_URL`
-- `NEOFLOW_URL`
-- `TXPROXY_URL`
+- preferred unified routing:
+  - `MORPHEUS_RUNTIME_URL`
+  - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
+  - `MORPHEUS_PUBLIC_API_URL`
+  - `MORPHEUS_EDGE_URL`
+  - `MORPHEUS_CONTROL_PLANE_URL`
+- legacy compatibility:
+  - `NEOFEEDS_URL`
+  - `NEOCOMPUTE_URL`
+  - `NEOVRF_URL`
+  - `NEOORACLE_URL`
+  - `NEOFLOW_URL`
+  - `TXPROXY_URL`
 
 Notes:
 
@@ -89,8 +96,8 @@ Catalog + stats:
 
 TEE-routed:
 
-- `rng-request`: executes RNG via `neovrf` and can optionally anchor to `RandomnessLog` through `txproxy`.
-- `datafeed-price`: read proxy to `neofeeds` (future: cache/SSE/WebSocket).
-- `oracle-query`: allowlisted HTTP fetch via `neooracle` (optional secret injection).
-- `compute-execute`, `compute-jobs`, `compute-job`: host-gated proxy for `neocompute` script execution and job inspection.
+- `rng-request`: executes RNG through the Morpheus runtime (`/vrf/random`) or the legacy `neovrf` service and can optionally anchor to `RandomnessLog` through `txproxy`.
+- `datafeed-price`: reads through the Morpheus runtime (`/feeds/price/:symbol`) or the legacy `neofeeds` service.
+- `oracle-query`: forwards allowlisted HTTP fetch requests through the Morpheus runtime (`/oracle/query`) or the legacy `neooracle` service.
+- `compute-execute`, `compute-jobs`, `compute-job`: host-gated proxy for Morpheus compute (`/compute/*`) or the legacy `neocompute` service.
 - `automation-*`: trigger CRUD/lifecycle/execution inspection via `neoflow` (host-gated; webhook execution is configured in the service).
