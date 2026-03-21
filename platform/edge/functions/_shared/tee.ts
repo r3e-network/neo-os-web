@@ -11,6 +11,40 @@ function logMTLSStatus(message: string) {
   mtlsStatusLogged = true;
 }
 
+function isPublicRuntimeHost(hostname: string) {
+  const host = String(hostname || "").trim().toLowerCase();
+  return [
+    "morpheus-mainnet.meshmini.app",
+    "morpheus-testnet.meshmini.app",
+    "edge.meshmini.app",
+    "control.meshmini.app",
+    "neo-morpheus-oracle-web.vercel.app",
+  ].includes(host) || host.endsWith(".workers.dev");
+}
+
+function canUsePublicRuntimeWithoutMTLS(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && isPublicRuntimeHost(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function maybeAttachRuntimeAuth(headers: Headers, url: string) {
+  if (!canUsePublicRuntimeWithoutMTLS(url)) return;
+  if (headers.get("authorization")) return;
+
+  const token =
+    getEnv("MORPHEUS_RUNTIME_TOKEN")
+    ?? getEnv("PHALA_API_TOKEN")
+    ?? getEnv("PHALA_SHARED_SECRET");
+  if (!token) return;
+
+  headers.set("authorization", `Bearer ${token}`);
+  headers.set("x-phala-token", token);
+}
+
 function getMTLSClient(): Deno.HttpClient | undefined {
   if (mtlsClient !== undefined) return mtlsClient ?? undefined;
 
@@ -67,6 +101,7 @@ export async function requestJSON(
   if (!headers.get("X-Service-ID")) {
     headers.set("X-Service-ID", getEnv("EDGE_SERVICE_ID") ?? "gateway");
   }
+  maybeAttachRuntimeAuth(headers, url);
   let body: string | undefined = undefined;
 
   if (init.body !== undefined) {
@@ -84,7 +119,7 @@ export async function requestJSON(
   const client = getMTLSClient();
   if (client) {
     requestInit.client = client;
-  } else if (isProductionEnv()) {
+  } else if (isProductionEnv() && !canUsePublicRuntimeWithoutMTLS(url)) {
     return error(503, "mTLS is required for TEE service calls in production", "MTLS_REQUIRED", req);
   }
 

@@ -1,8 +1,8 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
-import { mustGetEnv } from "../_shared/env.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
 import { getJSON } from "../_shared/tee.ts";
+import { resolveDatafeedPriceUpstream } from "../_shared/morpheus.ts";
 
 // Public read proxy to the TEE datafeed service (or a cache you add later).
 export async function handler(req: Request): Promise<Response> {
@@ -19,8 +19,15 @@ export async function handler(req: Request): Promise<Response> {
   const rl = await requireRateLimit(req, "datafeed-price");
   if (rl) return rl;
 
-  const neofeedsURL = mustGetEnv("NEOFEEDS_URL").replace(/\/$/, "");
-  const result = await getJSON(`${neofeedsURL}/price/${encodeURIComponent(symbol)}`, {}, req);
+  const upstream = resolveDatafeedPriceUpstream(symbol);
+  const result = await getJSON(
+    upstream.url,
+    {
+      ...(upstream.authToken ? { Authorization: `Bearer ${upstream.authToken}` } : {}),
+      ...(upstream.authToken ? { "x-phala-token": upstream.authToken } : {}),
+    },
+    req,
+  );
   if (result instanceof Response) return result;
   return json(result, {}, req);
 }
