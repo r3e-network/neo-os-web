@@ -320,7 +320,8 @@ workflow on Neo N3 testnet.
 
 If the direct runtime result does not arrive, verify:
 
-- `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` / AA relay endpoints are reachable.
+- `MORPHEUS_RUNTIME_URL` or the legacy `NEOVRF_URL` / `NEOORACLE_URL` / `NEOCOMPUTE_URL` endpoints are reachable.
+- `MORPHEUS_PUBLIC_API_URL`, `MORPHEUS_EDGE_URL`, and `AA_RELAY_URL` are reachable.
 - `AA_RELAY_URL` points at the intended external relay.
 - paymaster policy allowlists the current AA core and target account when sponsorship is enabled.
 
