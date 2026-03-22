@@ -96,7 +96,7 @@ export async function sendPublishReminders(params: {
     });
 
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
+      const text = await response.text().catch((e: unknown) => { console.warn("[publish-reminder] failed to read webhook response text:", e instanceof Error ? e.message : String(e)); return ""; });
       logger.warn("publish reminder webhook returned non-200:", `${response.status} ${text}`);
       return {
         success: false,

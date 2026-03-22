@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onUnmounted, computed } from "vue";
+import { ref, watch, nextTick, onUnmounted, computed, useId } from "vue";
 import AppIcon from "./AppIcon.vue";
 import { useI18n } from "@shared/composables/useI18n";
 
@@ -115,7 +115,7 @@ const modalId = `action-modal-${useId()}`;
 
 const sizeClass = computed(() => `action-modal--size-${props.size}`);
 
-watch(
+const stopVisibleWatch = watch(
   () => props.visible,
   async (isVisible) => {
     if (isVisible) {
@@ -133,6 +133,7 @@ watch(
 );
 
 onUnmounted(() => {
+  stopVisibleWatch();
   previouslyFocused = null;
 });
 </script>
@@ -218,9 +219,16 @@ onUnmounted(() => {
     appearance: none;
     padding: 0;
     background: transparent;
+    border-radius: 6px;
 
     &:hover {
       color: var(--text-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     }
   }
 
@@ -275,7 +283,7 @@ onUnmounted(() => {
 
     &--confirm {
       background: var(--accent-primary, #3b82f6);
-      color: #000;
+      color: var(--btn-on-primary, #000);
       border: 1px solid transparent;
 
       &:hover {
@@ -292,8 +300,8 @@ onUnmounted(() => {
   &__btn-spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(0, 0, 0, 0.2);
-    border-top-color: #000;
+    border: 2px solid var(--spinner-border, rgba(0, 0, 0, 0.2));
+    border-top-color: var(--spinner-top, #000);
     border-radius: 50%;
     animation: actionModalBtnSpin 0.6s linear infinite;
   }

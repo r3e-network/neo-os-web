@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
   let dryRun = false;
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch((e: unknown) => { console.warn("[publish-requests/remind] failed to parse request body JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
     if (body && typeof body === "object") {
       dryRun = parseDryRun((body as Record<string, unknown>).dry_run);
     }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => ({ success: true, reminders: [] }));
+    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests/remind] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true, reminders: [] }; });
     return NextResponse.json(payload);
   } catch {
     return jsonError("Failed to reach host-app publish reminder endpoint", 502);

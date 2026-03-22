@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 
@@ -15,12 +15,18 @@ export function StakingCard({ onStake }: StakingCardProps) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<StakingStats>({ apy: "8.5", total_staked_formatted: "12.5M" });
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetch("/api/neoburger-stats", { signal: AbortSignal.timeout(30000) })
+    const controller = new AbortController();
+    mountedRef.current = true;
+    setStatsError(null);
+    fetch("/api/neoburger-stats", { signal: controller.signal })
       .then((res) => res.json())
-      .then((data) => setStats(data))
-      .catch((err) => { logger.warn("Failed to fetch staking stats:", err); });
+      .then((data) => { if (mountedRef.current) setStats(data); })
+      .catch((err) => { if (err.name !== "AbortError") { logger.warn("Failed to fetch staking stats:", err); if (mountedRef.current) setStatsError("Failed to load staking stats"); } });
+    return () => { mountedRef.current = false; controller.abort(); };
   }, []);
 
   const userBalance = "100";
@@ -54,6 +60,12 @@ export function StakingCard({ onStake }: StakingCardProps) {
           <div className="text-sm text-green-100">Total Staked</div>
         </div>
       </div>
+
+      {statsError && (
+        <div className="mb-4 rounded-lg bg-red-500/20 border border-red-400/30 px-3 py-2 text-sm text-white">
+          {statsError}
+        </div>
+      )}
 
       <div className="mb-4">
         <label htmlFor="stake-amount" className="mb-2 block text-sm text-green-100">Amount to Stake (NEO)</label>

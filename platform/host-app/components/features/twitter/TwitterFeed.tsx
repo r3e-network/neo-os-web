@@ -18,6 +18,7 @@ type TwitterFeedResponse = {
 export function TwitterFeed() {
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -27,7 +28,7 @@ export function TwitterFeed() {
         if (!active) return;
         setTweets(data.tweets || []);
       } catch (err) {
-        if (active) logger.warn("Failed to fetch tweets:", err);
+        if (active) { logger.warn("Failed to fetch tweets:", err); setError("Failed to load tweets"); }
       } finally {
         if (active) setLoading(false);
       }
@@ -60,9 +61,12 @@ export function TwitterFeed() {
 
   if (tweets.length === 0) {
     return (
-      <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-        <Twitter className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
-        <p>No tweets available</p>
+      <div className="py-8 text-center">
+        {error ? (
+          <p className="text-red-500 dark:text-red-400">{error}</p>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400">No tweets available</p>
+        )}
       </div>
     );
   }

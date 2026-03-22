@@ -78,7 +78,7 @@ const onClaim = (escrow: EscrowItem, index: number) => emit("claim", escrow, ind
 .count-badge {
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.2);
+  background: var(--escrow-badge-bg);
   color: var(--escrow-accent);
   font-size: 11px;
   font-weight: 700;

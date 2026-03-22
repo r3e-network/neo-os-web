@@ -35,14 +35,14 @@
     <div v-else class="result-body taken-body">
       <div class="owner-info">
         <span class="owner-label">{{ t("owner") }}</span>
-        <span class="owner-value">{{ formatAddress(searchResult.owner!) }}</span>
+        <span class="owner-value">{{ formatAddress(searchResult.owner ?? "") }}</span>
       </div>
     </div>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -65,15 +65,20 @@ const emit = defineEmits<{
 
 const localQuery = ref(props.searchQuery);
 
-watch(
+const stopPropsSearchWatch = watch(
   () => props.searchQuery,
   (newVal) => {
     localQuery.value = newVal;
   }
 );
 
-watch(localQuery, (newVal) => {
+const stopLocalQueryWatch = watch(localQuery, (newVal) => {
   emit("update:searchQuery", newVal);
+});
+
+onUnmounted(() => {
+  stopPropsSearchWatch();
+  stopLocalQueryWatch();
 });
 
 const onSearch = () => {
@@ -154,6 +159,12 @@ const onSearch = () => {
 @keyframes blink {
   50% {
     opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-status {
+    animation: none;
   }
 }
 

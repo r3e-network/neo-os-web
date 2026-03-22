@@ -41,7 +41,13 @@ export function buildEdgeUrl(fn: string, query: NextApiRequest["query"]): URL | 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) return null;
 
-  const url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  let url: URL;
+  try {
+    url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  } catch (_e: unknown) {
+    console.warn("[edge] URL construction failed:", _e instanceof Error ? _e.message : String(_e));
+    return null;
+  }
   for (const [key, value] of Object.entries(query)) {
     if (Array.isArray(value)) {
       for (const v of value) url.searchParams.append(key, String(v));

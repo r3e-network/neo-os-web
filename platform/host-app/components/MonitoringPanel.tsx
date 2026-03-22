@@ -47,7 +47,9 @@ export function MonitoringPanel({
   useEffect(() => {
     if (!isOpen) return;
 
+    let active = true;
     const updateData = () => {
+      if (!active) return;
       setSession(getSession());
       setErrorCount(getErrorCount());
       setErrors(getTrackedErrors());
@@ -57,7 +59,10 @@ export function MonitoringPanel({
 
     updateData();
     const interval = setInterval(updateData, 2000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [isOpen]);
 
   return (
@@ -66,7 +71,7 @@ export function MonitoringPanel({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 dark:bg-[#0A0B10]/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 hover:border-neo/50 text-gray-900 dark:text-white rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white dark:hover:bg-white/5`}
-        title="Monitoring Dashboard"
+        aria-label={isOpen ? "Close monitoring dashboard" : "Open monitoring dashboard"}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

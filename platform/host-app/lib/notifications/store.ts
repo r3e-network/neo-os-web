@@ -111,7 +111,8 @@ export const useNotificationStore = create<NotificationStore>()(
           });
           set({ preferences: { ...preferences, emailVerified: true } });
           return true;
-        } catch {
+        } catch (e: unknown) {
+          console.warn("[notifications] verifyEmailCode failed:", e instanceof Error ? e.message : String(e));
           return false;
         }
       },
@@ -124,8 +125,8 @@ export const useNotificationStore = create<NotificationStore>()(
             `/api/notifications/events?wallet=${encodeURIComponent(preferences.walletAddress)}`,
           );
           set({ events: data.events || [] });
-        } catch {
-          // Silent fail for events
+        } catch (e: unknown) {
+          console.warn("[notifications] loadEvents failed:", e instanceof Error ? e.message : String(e));
         }
       },
 

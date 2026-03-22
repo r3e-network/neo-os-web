@@ -307,6 +307,7 @@ export const Sheet: React.FC<SheetProps> = ({
                 if (!isControlled) {
                   setInternalOpen(true);
                 }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- child.props is React.RenderedElement, onClick optional
                 (child.props as any).onClick?.();
               },
             })

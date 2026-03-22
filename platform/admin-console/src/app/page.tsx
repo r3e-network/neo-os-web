@@ -83,9 +83,9 @@ export default function DashboardPage() {
           <CardContent>
             {servicesLoading ? (
               <div className="flex justify-center p-8"><Spinner /></div>
-            ) : (
+            ) : services && services.length > 0 ? (
               <ul className="space-y-3">
-                {services?.map((service) => (
+                {services.map((service) => (
                   <li
                     key={service.name}
                     className="flex items-center justify-between rounded-xl border border-gray-200/50 dark:border-white/5 bg-black/20 backdrop-blur-md p-4 transition-all hover:bg-white/5"
@@ -104,6 +104,8 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="text-center text-gray-500 dark:text-gray-400 py-6">No services registered</p>
             )}
           </CardContent>
         </Card>
@@ -116,9 +118,9 @@ export default function DashboardPage() {
           <CardContent>
             {miniappsLoading ? (
               <div className="flex justify-center p-8"><Spinner /></div>
-            ) : (
+            ) : miniapps && miniapps.length > 0 ? (
               <ul className="space-y-3">
-                {miniapps?.slice(0, 5).map((app) => (
+                {miniapps.slice(0, 5).map((app) => (
                   <li key={app.app_id} className="flex items-center justify-between rounded-xl border border-gray-200/50 dark:border-white/5 bg-black/20 backdrop-blur-md p-4 transition-all hover:bg-white/5">
                     <div className="min-w-0 pr-4">
                       <div className="font-semibold text-gray-900 dark:text-white truncate" title={app.app_id}>{app.app_id}</div>
@@ -132,6 +134,8 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
+            ) : (
+              <p className="text-center text-gray-500 dark:text-gray-400 py-6">No miniapps registered</p>
             )}
           </CardContent>
         </Card>

@@ -90,13 +90,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       linkedAt: new Date().toISOString(),
     });
   } catch (err) {
+    console.error("[oauth/google] callback error:", err instanceof Error ? err.message : String(err));
     return sendError(res, "OAuth failed");
   }
 }
 
 /** Escape JSON for safe embedding inside <script> tags (prevents XSS via </script> injection). */
 function safeJSON(obj: unknown): string {
-  return JSON.stringify(obj).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+  let str: string;
+  try {
+    str = JSON.stringify(obj);
+  } catch {
+    str = "{}";
+  }
+  return str.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
 }
 
 function sendSuccess(res: NextApiResponse, account: object) {

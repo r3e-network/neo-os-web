@@ -2,7 +2,7 @@
   <div class="create-section">
     <span class="section-title">{{ t("createProof") }}</span>
     <textarea v-model="content" class="content-input" :placeholder="t('contentPlaceholder')" maxlength="1000" :aria-label="t('contentPlaceholder')" />
-    <button type="button" class="create-button" :disabled="isCreating || !content.trim()" @click="$emit('create')">
+    <button type="button" class="create-button" :disabled="isCreating || !content.trim()" :aria-label="t('createProof')" @click="$emit('create')">
       <span>{{ isCreating ? t("loading") : t("createProof") }}</span>
     </button>
   </div>
@@ -59,9 +59,14 @@ const content = defineModel<string>("content", { required: true });
   transition: all var(--transition-normal);
 
   &:focus {
-    outline: none;
     border-color: var(--proof-input-focus);
     box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
   &::placeholder {

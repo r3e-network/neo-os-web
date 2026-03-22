@@ -291,4 +291,10 @@ defineExpose({
     transform: translateY(0);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+  }
+}
 </style>

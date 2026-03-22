@@ -3,7 +3,8 @@
 # Installation script for Nitro-oriented local development tooling.
 # Target: apt- and dnf-based Linux hosts
 #
-set -e
+
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -170,7 +171,10 @@ deploy_nitrorun() {
 install_k3s() {
     log_info "Installing k3s (lightweight Kubernetes)..."
 
-    curl -sfL https://get.k3s.io | sh -
+    K3S_INSTALLER=$(mktemp)
+    curl -sfL https://get.k3s.io -o "$K3S_INSTALLER"
+    sh "$K3S_INSTALLER"
+    rm -f "$K3S_INSTALLER"
 
     log_info "Waiting for k3s to be ready..."
     sleep 10
@@ -194,7 +198,10 @@ install_k3s() {
 install_helm() {
     log_info "Installing Helm..."
 
-    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    HELM_SCRIPT=$(mktemp)
+    curl --fail -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o "$HELM_SCRIPT"
+    bash "$HELM_SCRIPT"
+    rm -f "$HELM_SCRIPT"
 
     if command -v helm &> /dev/null; then
         log_info "Helm installed: $(helm version --short)"

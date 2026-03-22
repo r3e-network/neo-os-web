@@ -173,7 +173,7 @@ withDefaults(
     box-shadow: 0 0 30px rgba(159, 157, 243, 0.15);
 
     .hero-section__title {
-      background: linear-gradient(135deg, #9f9df3 0%, #f7aac7 100%);
+      background: linear-gradient(135deg, var(--hero-erobo-start, #9f9df3) 0%, var(--hero-erobo-end, #f7aac7) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -187,7 +187,7 @@ withDefaults(
     box-shadow: 0 0 30px rgba(0, 229, 153, 0.15);
 
     .hero-section__title {
-      color: #00e599;
+      color: var(--hero-erobo-neo, #00e599);
       text-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
     }
   }
@@ -198,7 +198,7 @@ withDefaults(
     box-shadow: 0 0 30px rgba(255, 228, 195, 0.15);
 
     .hero-section__title {
-      color: #ffde59;
+      color: var(--hero-erobo-bitcoin, #ffde59);
       text-shadow: 0 0 20px rgba(255, 222, 89, 0.4);
     }
   }
@@ -215,7 +215,7 @@ withDefaults(
     box-shadow: 0 0 30px rgba(255, 107, 107, 0.1);
 
     .hero-section__title {
-      background: linear-gradient(135deg, #ff6b6b 0%, #ffd700 100%);
+      background: linear-gradient(135deg, var(--hero-danger-start, #ff6b6b) 0%, var(--hero-danger-end, #ffd700) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;

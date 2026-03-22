@@ -45,7 +45,7 @@
                 "
                 class="best-luck"
               >
-                <span class="best-luck-icon" aria-hidden="true">🎉</span>
+                <AppIcon name="party" :size="12" class="best-luck-icon" />
                 <span class="best-luck-text"
                   >{{ t("bestLuck") }}: {{ formatAddress((item as unknown as EnvelopeItem).bestLuckAddress!) }} ({{
                     ((item as unknown as EnvelopeItem).bestLuckAmount! / 1e8).toFixed(4)
@@ -73,7 +73,7 @@
                 }}
               </span>
               <button type="button" class="share-btn" :aria-label="t('ariaShare')" @click.stop="$emit('share', item)">
-                <span aria-hidden="true">🔗</span>
+                <AppIcon name="link" :size="14" />
               </button>
             </div>
           </div>
@@ -84,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, ItemList } from "@shared/components";
+import { AppIcon, NeoCard, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { formatAddress } from "@shared/utils/format";
 import { messages } from "@/locale/messages";
@@ -256,9 +256,9 @@ defineEmits<{
   }
 
   &.status-expired {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--badge-expired-bg, rgba(255, 255, 255, 0.1));
+    color: var(--text-disabled, rgba(255, 255, 255, 0.6));
+    border: 1px solid var(--badge-expired-border, rgba(255, 255, 255, 0.2));
   }
 }
 
@@ -268,9 +268,9 @@ defineEmits<{
   font-weight: 500;
   font-family: $font-family;
   color: var(--text-secondary);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1px dashed var(--border-dashed, rgba(255, 255, 255, 0.1));
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-empty, rgba(255, 255, 255, 0.02));
 }
 
 .share-btn {
@@ -290,6 +290,12 @@ defineEmits<{
   &:hover {
     background: rgba(255, 255, 255, 0.3);
     transform: scale(1.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--envelope-gold);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255, 222, 89, 0.15);
   }
 
   text {

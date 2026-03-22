@@ -32,7 +32,7 @@ import { useContractAddress } from "./useContractAddress";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
 import { extractTxid, pollForTxEvent } from "../utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
-import { ref, onUnmounted } from "vue";
+import { ref, shallowRef, onUnmounted } from "vue";
 
 type InvokeArg = {
   type: string;
@@ -58,15 +58,18 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const { list: listEvents } = useEvents();
 
   const isProcessing = ref(false);
-  const paymentError = ref<Error | null>(null);
+  const paymentError = shallowRef<Error | null>(null);
   const paymentSuccess = ref(false);
   let successTimer: ReturnType<typeof setTimeout> | null = null;
+  let waitTimers: ReturnType<typeof setTimeout>[] = [];
 
   onUnmounted(() => {
     if (successTimer !== null) {
       clearTimeout(successTimer);
       successTimer = null;
     }
+    waitTimers.forEach(clearTimeout);
+    waitTimers = [];
   });
 
   /**
@@ -131,7 +134,10 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
       const payment = await payGAS(paymentAmount, paymentMemo, contract, appId);
       const receiptId = payment.receipt_id || "";
-      await new Promise((resolve) => setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4));
+      await new Promise((resolve) => {
+        const t = setTimeout(resolve, TIME_CONSTANTS.SECOND_MS * 4);
+        waitTimers.push(t);
+      });
 
       const tx = (await invokeContract({
         scriptHash: contract,
@@ -170,10 +176,12 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
       return { txid, receiptId, waitForEvent, triggerSuccess, tx };
     } catch (error: unknown) {
-      paymentError.value = error instanceof Error ? error : new Error(String(error));
-      throw error;
+      const sanitized = error instanceof Error ? error.message : "Payment operation failed";
+      paymentError.value = error instanceof Error ? error : new Error(sanitized);
+      throw new Error(sanitized);
     } finally {
       isProcessing.value = false;
+      paymentError.value = null;
     }
   };
 
@@ -219,6 +227,7 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     signers?: WalletSigner[],
   ) => {
     await ensureWallet();
+    if (!address.value) throw new Error("Wallet address not set after connection");
     const contract = scriptHash ?? (await ensureContractAddress());
 
     await invokeContract({
@@ -232,7 +241,10 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       ],
     });
 
-    await new Promise((resolve) => setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4));
+    await new Promise((resolve) => {
+      const t = setTimeout(resolve, waitMs || TIME_CONSTANTS.SECOND_MS * 4);
+      waitTimers.push(t);
+    });
 
     return invokeDirectly(operation, args, contract, signers);
   };

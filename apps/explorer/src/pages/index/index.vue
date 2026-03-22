@@ -241,4 +241,13 @@ onUnmounted(() => {
   animation: explorer-hash-shimmer 5s linear infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .loading,
+  .hero-container::before,
+  .hero-stat,
+  .hero-stat-value {
+    animation: none;
+  }
+}
+
 </style>

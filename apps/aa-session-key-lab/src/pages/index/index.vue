@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="checkSponsor"
-    hero-icon="🔑"
+    hero-icon="key"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('latestState')"
@@ -41,11 +41,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { ConsoleMiniApp, DetailCardGrid, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
 import { messages } from "@/locale/messages";
 import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
+import type { GasSponsorCheckResponse } from "@shared/composables/useAbstractAccount";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
@@ -79,7 +81,7 @@ const form = reactive({
   expiresAt: String(Math.floor(Date.now() / 1000) + 3600),
 });
 
-const sponsorState = ref<unknown>(null);
+const sponsorState = ref<GasSponsorCheckResponse | null>(null);
 const generatedPrivateKey = ref("");
 const lastConfigured = ref<SessionConfiguration | null>(null);
 const isSubmitting = ref(false);
@@ -87,7 +89,7 @@ const isSubmitting = ref(false);
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-session-key-lab",
   messages,
-  tab: { key: "session", labelKey: "latestState", icon: "🔑" },
+  tab: { key: "session", labelKey: "latestState", icon: "key" },
   sidebarItems: [
     { labelKey: "accountIdHash", value: () => derivedAccountIdHash.value || t("notAvailable") },
     { labelKey: "targetContract", value: () => normalizedTargetContract.value || t("notAvailable") },
@@ -99,6 +101,7 @@ const derivedAccountIdHash = computed(() => {
   try {
     return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
   } catch (_e: unknown) {
+    console.warn("[aa-session-key-lab] deriveAAAccountIdHash failed:", _e instanceof Error ? _e.message : String(_e));
     return "";
   }
 });
@@ -109,6 +112,7 @@ const normalizedTargetContract = computed(() => {
   try {
     return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
   } catch (_e: unknown) {
+    console.warn("[aa-session-key-lab] normalizeHashOrAddress failed:", _e instanceof Error ? _e.message : String(_e));
     return "";
   }
 });

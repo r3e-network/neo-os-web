@@ -37,6 +37,12 @@ const props = withDefaults(defineProps<Props>(), {
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 55%),
     rgba(10, 14, 24, 0.68);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(159, 157, 243, 0.35);
+    box-shadow: 0 0 20px rgba(159, 157, 243, 0.1);
+  }
 }
 
 .contract-availability-card--compact {

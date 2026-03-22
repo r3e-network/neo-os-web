@@ -12,7 +12,9 @@
     "./utils/*": "./utils/*",
     "./styles/*": "./styles/*"
   },
-  "dependencies": {},
+  "dependencies": {
+    "lucide-vue-next": "^0.363.0"
+  },
   "peerDependencies": {
     "vue": "^3.0.0"
   }

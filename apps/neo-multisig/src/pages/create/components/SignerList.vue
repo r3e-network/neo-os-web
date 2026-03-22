@@ -5,6 +5,7 @@
         <div class="signer-row">
           <span class="index">{{ index + 1 }}</span>
           <input
+            :id="`signer-input-${index}`"
             class="input"
             :value="item.value"
             @input="$emit('update', { index, value: $event.target.value })"

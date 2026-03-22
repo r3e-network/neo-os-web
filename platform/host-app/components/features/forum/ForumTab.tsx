@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { MessageSquare, Plus, Pin, Lock, Bug, Lightbulb, HelpCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useForum } from "./useForum";
@@ -116,7 +116,7 @@ export function ForumTab({ appId }: ForumTabProps) {
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
             <p>No discussions yet</p>
           </div>
-        ) : (
+        ) : threads && threads.length > 0 ? (
           <ul className="space-y-2">
             {threads.map((thread) => (
               <li key={thread.id}>
@@ -124,7 +124,7 @@ export function ForumTab({ appId }: ForumTabProps) {
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -137,6 +137,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
     <button
       type="button"
       onClick={onClick}
+      aria-label={`Thread: ${thread.title} by ${thread.author_name}, ${thread.reply_count} replies`}
       className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
     >
       <div className="flex items-start gap-3">
@@ -172,12 +173,19 @@ function NewThreadForm({
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("general");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) return;
     setSubmitting(true);
-    await onSubmit(title, content, category);
-    setSubmitting(false);
+    setSubmitError(null);
+    try {
+      await onSubmit(title, content, category);
+    } catch (err) {
+      setSubmitError("Failed to create thread. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -200,6 +208,11 @@ function NewThreadForm({
         rows={4}
         maxLength={5000}
       />
+      {submitError && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+          {submitError}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <select
           value={category}
@@ -245,20 +258,31 @@ function ThreadDetail({
   const [replies, setReplies] = useState<import("./types").ForumReply[]>([]);
   const [replyContent, setReplyContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetchReplies(thread.id).then(setReplies);
+    mountedRef.current = true;
+    fetchReplies(thread.id).then((r: import("./types").ForumReply[]) => { if (mountedRef.current) setReplies(r); });
+    return () => { mountedRef.current = false; };
   }, [fetchReplies, thread.id]);
 
   const handleReply = async () => {
     if (!replyContent.trim()) return;
     setSubmitting(true);
-    const reply = await createReply(thread.id, replyContent);
-    if (reply) {
-      setReplies((prev) => [...prev, reply]);
-      setReplyContent("");
+    setReplyError(null);
+    try {
+      const reply = await createReply(thread.id, replyContent);
+      if (reply) {
+        setReplies((prev) => [...prev, reply]);
+        setReplyContent("");
+      }
+    } catch (_e: unknown) {
+      console.warn("[ForumTab] failed to post reply:", _e instanceof Error ? _e.message : String(_e));
+      setReplyError("Failed to post reply. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   return (
@@ -305,25 +329,32 @@ function ThreadDetail({
       </div>
 
       {walletAddress && !thread.is_locked && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={replyContent}
-            onChange={(e) => setReplyContent(e.target.value)}
-            placeholder="Write a reply..."
-            aria-label="Reply"
-            className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-            maxLength={2000}
-          />
-          <button
-            type="button"
-            onClick={handleReply}
-            disabled={submitting || !replyContent.trim()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-          >
-            Reply
-          </button>
-        </div>
+        <>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={replyContent}
+              onChange={(e) => { setReplyContent(e.target.value); setReplyError(null); }}
+              placeholder="Write a reply..."
+              aria-label="Reply"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              maxLength={2000}
+            />
+            <button
+              type="button"
+              onClick={handleReply}
+              disabled={submitting || !replyContent.trim()}
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            >
+              Reply
+            </button>
+          </div>
+          {replyError && (
+            <div className="mt-2 px-1 text-xs text-red-500 dark:text-red-400">
+              {replyError}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

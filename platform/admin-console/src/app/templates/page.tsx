@@ -94,7 +94,7 @@ function parseJSONObject(text: string, field: string): Record<string, unknown> {
 function parseTemplateId(input: string): string {
   const value = String(input || "").trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9._-]*$/.test(value)) {
-    throw new Error("template_id format: lowercase letters/numbers with . _ -");
+    throw new Error(`parseTemplateId: invalid template_id="${value}" — must be lowercase letters/numbers with . _ -`);
   }
   return value;
 }
@@ -399,7 +399,12 @@ export default function TemplateStudioPage() {
   const installTemplateToMiniAppBuilder = (item: TemplateCatalogItem) => {
     try {
       const draft = buildMiniAppInstallDraft(item);
-      window.localStorage.setItem(MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY, JSON.stringify(draft));
+      try {
+        window.localStorage.setItem(MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY, JSON.stringify(draft));
+      } catch {
+        setFormError("Failed to save template draft to local storage");
+        return;
+      }
       setFormInfo(`Template ${item.template_id}@${item.version} installed into MiniApp Builder draft.`);
       router.push("/miniapps?installed_template=1");
     } catch (error) {
@@ -422,24 +427,24 @@ export default function TemplateStudioPage() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
             <Input label="Search" placeholder="template id/name/tag" value={search} onChange={(e) => setSearch(e.target.value)} />
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={kind} onChange={(e) => setKind(e.target.value as TemplateKind | "all")}> 
+              <label htmlFor="template-kind" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
+              <select id="template-kind" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={kind} onChange={(e) => setKind(e.target.value as TemplateKind | "all")}>
                 <option value="all">all</option>
                 <option value="frontend">frontend</option>
                 <option value="contract">contract</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <label htmlFor="template-category" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+              <select id="template-category" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {CATEGORIES.map((item) => (
                   <option key={item} value={item}>{item}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={source} onChange={(e) => setSource(e.target.value as TemplateSourceType | "all")}> 
+              <label htmlFor="template-source" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
+              <select id="template-source" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={source} onChange={(e) => setSource(e.target.value as TemplateSourceType | "all")}>
                 <option value="all">all</option>
                 <option value="miniapp">miniapp</option>
                 <option value="community">community</option>
@@ -447,16 +452,16 @@ export default function TemplateStudioPage() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Active</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={active} onChange={(e) => setActive(e.target.value as "all" | "true" | "false")}> 
+              <label htmlFor="template-active" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Active</label>
+              <select id="template-active" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={active} onChange={(e) => setActive(e.target.value as "all" | "true" | "false")}>
                 <option value="all">all</option>
                 <option value="true">true</option>
                 <option value="false">false</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Verified</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={verified} onChange={(e) => setVerified(e.target.value as "all" | "true" | "false")}> 
+              <label htmlFor="template-verified" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Verified</label>
+              <select id="template-verified" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={verified} onChange={(e) => setVerified(e.target.value as "all" | "true" | "false")}>
                 <option value="all">all</option>
                 <option value="true">true</option>
                 <option value="false">false</option>
@@ -543,8 +548,8 @@ export default function TemplateStudioPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 dark:text-gray-300">Status</label>
-            <select className="rounded-md border border-gray-300 p-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value as "all" | "pending" | "approved" | "rejected" | "cancelled")}> 
+            <label htmlFor="request-status" className="text-sm text-gray-600 dark:text-gray-300">Status</label>
+            <select id="request-status" className="rounded-md border border-gray-300 p-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value as "all" | "pending" | "approved" | "rejected" | "cancelled")}>
               <option value="pending">pending</option>
               <option value="all">all</option>
               <option value="approved">approved</option>
@@ -602,8 +607,9 @@ export default function TemplateStudioPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Import Template File</label>
+            <label htmlFor="import-template-file" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Import Template File</label>
             <input
+              id="import-template-file"
               type="file"
               accept=".json,.yaml,.yml"
               onChange={onUploadTemplateFile}
@@ -613,8 +619,8 @@ export default function TemplateStudioPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as TemplateKind })}>
+              <label htmlFor="template-kind" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
+              <select id="template-kind" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as TemplateKind })}>
                 <option value="frontend">frontend</option>
                 <option value="contract">contract</option>
               </select>
@@ -622,8 +628,8 @@ export default function TemplateStudioPage() {
             <Input label="Template ID" value={form.template_id} onChange={(e) => setForm({ ...form, template_id: e.target.value })} placeholder="prediction.market.modern" />
             <Input label="Version" value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} placeholder="1.0.0" />
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
+              <label htmlFor="template-source" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
+              <select id="template-source" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
                 <option value="community">community</option>
                 <option value="miniapp">miniapp</option>
                 <option value="verified">verified</option>
@@ -640,14 +646,15 @@ export default function TemplateStudioPage() {
           <Input label="Tags" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="prediction, market, no-code" />
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <textarea className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What this template is for and what is customizable." />
+            <label htmlFor="template-description" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+            <textarea id="template-description" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What this template is for and what is customizable." />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Param Schema (JSON)</label>
+              <label htmlFor="param-schema" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Param Schema (JSON)</label>
               <textarea
+                id="param-schema"
                 className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={8}
                 value={form.schema_text}
@@ -659,8 +666,9 @@ export default function TemplateStudioPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">UI Schema (JSON)</label>
+              <label htmlFor="ui-schema" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">UI Schema (JSON)</label>
               <textarea
+                id="ui-schema"
                 className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={8}
                 value={form.ui_schema_text}
@@ -674,15 +682,15 @@ export default function TemplateStudioPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Manifest Format</label>
-              <select className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.manifest_format} onChange={(e) => setForm({ ...form, manifest_format: e.target.value as TemplateManifestFormat })}>
+              <label htmlFor="manifest-format" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Manifest Format</label>
+              <select id="manifest-format" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.manifest_format} onChange={(e) => setForm({ ...form, manifest_format: e.target.value as TemplateManifestFormat })}>
                 <option value="json">json</option>
                 <option value="yaml">yaml</option>
               </select>
             </div>
             <div className="md:col-span-3">
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Template Manifest</label>
-              <textarea className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={12} value={form.manifest_text} onChange={(e) => setForm({ ...form, manifest_text: e.target.value })} placeholder={form.manifest_format === "json" ? "{\n  \"key\": \"value\"\n}" : "template:\n  key: value"} />
+              <label htmlFor="template-manifest" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Template Manifest</label>
+              <textarea id="template-manifest" className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={12} value={form.manifest_text} onChange={(e) => setForm({ ...form, manifest_text: e.target.value })} placeholder={form.manifest_format === "json" ? "{\n  \"key\": \"value\"\n}" : "template:\n  key: value"} />
             </div>
           </div>
 

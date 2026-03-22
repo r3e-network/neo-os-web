@@ -66,14 +66,14 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error("TxProxy request timed out after 30s");
     }
-    throw err;
+    throw new Error(`TxProxy request failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
     clearTimeout(timeoutId);
   }
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`TxProxy error: ${res.status} - ${text}`);
+    throw new Error(`TxProxy request failed (${res.status})`);
   }
 
   try {

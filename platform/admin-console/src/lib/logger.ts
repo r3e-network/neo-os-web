@@ -16,6 +16,10 @@ export const logger = {
     console.warn(`[WARN] ${message}`, ...args);
   },
   error: (message: string, error?: unknown) => {
-    console.error(`[ERROR] ${message}`, error);
+    if (error instanceof Error) {
+      console.error(`[ERROR] ${message}`, error.message);
+    } else {
+      console.error(`[ERROR] ${message}`, error);
+    }
   },
 };

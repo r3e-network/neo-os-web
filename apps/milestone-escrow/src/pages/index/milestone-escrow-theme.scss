@@ -9,6 +9,17 @@
   --escrow-muted: rgba(254, 243, 199, 0.65);
   --escrow-completed: #22c55e;
   --escrow-cancelled: #f87171;
+  --escrow-indigo: #818cf8;
+  --escrow-purple: #6366f1;
+  --escrow-badge-bg: rgba(245, 158, 11, 0.2);
+  --escrow-total-bg: rgba(251, 191, 36, 0.12);
+  --escrow-milestone-bg: rgba(15, 23, 42, 0.2);
+  --escrow-overlay-light: rgba(255, 255, 255, 0.04);
+  --escrow-overlay-light-hover: rgba(255, 255, 255, 0.08);
+  --escrow-border-light: rgba(255, 255, 255, 0.1);
+  --escrow-border-light-mid: rgba(255, 255, 255, 0.15);
+  --escrow-hero-stat-gradient: linear-gradient(180deg, rgba(129, 140, 248, 0.08), transparent);
+  --escrow-hero-label-glow: rgba(99, 102, 241, 0.1);
 }
 
 :global(.theme-light .theme-milestone-escrow),
@@ -23,4 +34,15 @@
   --escrow-muted: rgba(28, 25, 23, 0.6);
   --escrow-completed: #16a34a;
   --escrow-cancelled: #dc2626;
+  --escrow-indigo: #6366f1;
+  --escrow-purple: #4f46e5;
+  --escrow-badge-bg: rgba(217, 119, 6, 0.15);
+  --escrow-total-bg: rgba(217, 119, 6, 0.1);
+  --escrow-milestone-bg: rgba(15, 23, 42, 0.08);
+  --escrow-overlay-light: rgba(0, 0, 0, 0.02);
+  --escrow-overlay-light-hover: rgba(0, 0, 0, 0.04);
+  --escrow-border-light: rgba(0, 0, 0, 0.06);
+  --escrow-border-light-mid: rgba(0, 0, 0, 0.1);
+  --escrow-hero-stat-gradient: linear-gradient(180deg, rgba(99, 102, 241, 0.06), transparent);
+  --escrow-hero-label-glow: rgba(99, 102, 241, 0.08);
 }

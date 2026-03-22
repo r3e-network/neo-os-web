@@ -69,7 +69,7 @@ export class AdminSDK {
         if (!response.ok) {
             throw new Error(`Failed to update MiniApp status: ${response.statusText}`);
         }
-        const payload = await response.json().catch(() => null);
+        const payload = await response.json().catch((e) => { console.warn("[admin-sdk] failed to parse status update response:", e instanceof Error ? e.message : String(e)); return null; });
         if (payload?.requires_onchain_confirmation) {
             console.warn(`On-chain confirmation required for status change. Submit invocation:\n${JSON.stringify(payload.invocation ?? {}, null, 2)}`);
         }

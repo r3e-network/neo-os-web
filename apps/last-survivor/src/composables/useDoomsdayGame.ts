@@ -7,6 +7,8 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
+import type { ContractEvent } from "@shared/utils/wallet-sdk";
 import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
 
 const APP_ID = "miniapp-last-survivor";
@@ -86,13 +88,13 @@ export function useDoomsdayGame() {
         totalPot.value = parseGas(statusMap.pot);
         isRoundActive.value = Boolean(statusMap.active);
         lastBuyer.value = String(statusMap.lastBuyer || "");
-        totalKeysInRound.value = BigInt(statusMap.totalKeys || 0);
+        totalKeysInRound.value = BigInt(Number(statusMap.totalKeys) || 0);
         return Number(statusMap.remainingTime || 0);
       }
       return 0;
     } catch (e: unknown) {
       handleError(e, { operation: "loadRoundData" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     }
   };
 
@@ -114,9 +116,9 @@ export function useDoomsdayGame() {
   };
 
   const parseEventDate = (raw: unknown) => {
-    const date = raw ? new Date(raw) : new Date();
-    if (Number.isNaN(date.getTime())) return new Intl.DateTimeFormat("en").format(new Date());
-    return new Intl.DateTimeFormat("en").format(date);
+    const date = raw ? new Date(raw as string | number | Date) : new Date();
+    if (Number.isNaN(date.getTime())) return new Intl.DateTimeFormat(undefined).format(new Date());
+    return new Intl.DateTimeFormat(undefined).format(date);
   };
 
   const loadHistory = async () => {
@@ -129,7 +131,7 @@ export function useDoomsdayGame() {
 
       const items: HistoryEvent[] = [];
 
-      keysRes.events.forEach((evt) => {
+      keysRes.events.forEach((evt: ContractEvent) => {
         const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const player = String(values[0] || "");
         const keys = Number(values[1] || 0);
@@ -142,7 +144,7 @@ export function useDoomsdayGame() {
         });
       });
 
-      winnerRes.events.forEach((evt) => {
+      winnerRes.events.forEach((evt: ContractEvent) => {
         const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const winner = String(values[0] || "");
         const prize = parseGas(values[1]);
@@ -155,11 +157,11 @@ export function useDoomsdayGame() {
         });
       });
 
-      roundRes.events.forEach((evt) => {
+      roundRes.events.forEach((evt: ContractEvent) => {
         const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
         const round = Number(values[0] || 0);
         const end = Number(values[1] || 0) * 1000;
-        const endText = end ? new Intl.DateTimeFormat("en").format(new Date(end)) : t("notAvailable");
+        const endText = end ? new Intl.DateTimeFormat(undefined).format(new Date(end)) : t("notAvailable");
         items.push({
           id: evt.id,
           title: t("roundStarted"),

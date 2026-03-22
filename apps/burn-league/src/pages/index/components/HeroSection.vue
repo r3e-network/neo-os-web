@@ -77,4 +77,10 @@ const formatNum = (n: number) => formatNumber(n, 2);
     opacity: 0.8;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .flame {
+    animation: none;
+  }
+}
 </style>

@@ -62,7 +62,8 @@ async function loadAppScript(
       script: await scriptRes.text(),
       entryPoint: scriptInfo.entry_point,
     };
-  } catch {
+  } catch (err) {
+    console.error("[compute-app-execute] fetchScript error:", err instanceof Error ? err.message : String(err));
     return null;
   }
 }

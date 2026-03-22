@@ -32,12 +32,14 @@
       <NeoButton
         size="sm"
         variant="primary"
+        type="button"
         :disabled="!template.active || template.issued >= template.maxSupply"
+        :aria-label="template.issued >= template.maxSupply ? t('soldOut') : t('issueCertificate')"
         @click="$emit('issue', template)"
       >
         {{ template.issued >= template.maxSupply ? t("soldOut") : t("issueCertificate") }}
       </NeoButton>
-      <NeoButton size="sm" variant="secondary" :loading="togglingId === template.id" @click="$emit('toggle', template)">
+      <NeoButton size="sm" variant="secondary" type="button" :loading="togglingId === template.id" :aria-label="template.active ? t('deactivate') : t('activate')" @click="$emit('toggle', template)">
         {{ template.active ? t("deactivate") : t("activate") }}
       </NeoButton>
     </div>

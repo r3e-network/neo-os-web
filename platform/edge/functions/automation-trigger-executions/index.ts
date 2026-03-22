@@ -22,7 +22,12 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const triggerId = (url.searchParams.get("id") ?? "").trim();
   if (!triggerId) return error(400, "id required", "ID_REQUIRED", req);
 
@@ -30,7 +35,12 @@ export async function handler(req: Request): Promise<Response> {
   const limit = limitRaw ? Number(limitRaw) : undefined;
 
   const neoflowURL = mustGetEnv("NEOFLOW_URL").replace(/\/$/, "");
-  const upstream = new URL(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/executions`);
+  let upstream: URL;
+  try {
+    upstream = new URL(`${neoflowURL}/triggers/${encodeURIComponent(triggerId)}/executions`);
+  } catch {
+    return error(400, "invalid upstream url", "INVALID_URL", req);
+  }
   if (Number.isFinite(limit) && limit && limit > 0) upstream.searchParams.set("limit", String(Math.min(limit, 100)));
 
   const result = await getJSON(upstream.toString(), { "X-User-ID": auth.userId }, req);

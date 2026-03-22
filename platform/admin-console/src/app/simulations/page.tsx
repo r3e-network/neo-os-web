@@ -52,14 +52,15 @@ export default function SimulationsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {error && <div className="text-danger-600 mb-4">Error loading simulation status: {(error as Error).message}</div>}
+          {error && <div className="text-danger-600 mb-4">Error loading simulation status: {error instanceof Error ? error.message : String(error)}</div>}
           
           <div className="flex flex-col space-y-4 mb-8">
             {!status?.running && (
               <div className="flex space-x-4 items-center">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Min Interval (ms)</label>
+                  <label htmlFor="min_interval_ms" className="block text-sm font-medium mb-1">Min Interval (ms)</label>
                   <input
+                    id="min_interval_ms"
                     type="number"
                     value={config.min_interval_ms}
                     onChange={(e) => setConfig({ ...config, min_interval_ms: parseInt(e.target.value) })}
@@ -67,8 +68,9 @@ export default function SimulationsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Max Interval (ms)</label>
+                  <label htmlFor="max_interval_ms" className="block text-sm font-medium mb-1">Max Interval (ms)</label>
                   <input
+                    id="max_interval_ms"
                     type="number"
                     value={config.max_interval_ms}
                     onChange={(e) => setConfig({ ...config, max_interval_ms: parseInt(e.target.value) })}
@@ -76,8 +78,9 @@ export default function SimulationsPage() {
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium mb-1">Target MiniApps (comma separated, empty for all)</label>
+                  <label htmlFor="mini_apps" className="block text-sm font-medium mb-1">Target MiniApps (comma separated, empty for all)</label>
                   <input
+                    id="mini_apps"
                     type="text"
                     value={config.mini_apps}
                     onChange={(e) => setConfig({ ...config, mini_apps: e.target.value })}

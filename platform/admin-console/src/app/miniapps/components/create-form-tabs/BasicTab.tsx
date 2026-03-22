@@ -2,17 +2,18 @@
 
 import { Input } from "@/components/ui/Input";
 import { ContractInitSchemaAutoForm } from "../ContractInitSchemaAutoForm";
+import type { ContractInitSchemaField } from "../../lib/contract-init-schema";
 
 type Props = {
-  form: any;
+  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional string/boolean fields
   mode: "create" | "edit";
   update: (key: string, value: string | boolean) => void;
   contractInitSchemaState: {
-    fields: any[];
+    fields: ContractInitSchemaField[];
     error: string;
   };
   contractInitParamValues: Record<string, unknown>;
-  updateContractInitParamField: (field: any, value: string | boolean) => void;
+  updateContractInitParamField: (field: ContractInitSchemaField, value: string | boolean) => void;
   applyContractSchemaDefaults: () => void;
 };
 
@@ -60,6 +61,7 @@ export function BasicTab({
             value={form.frontend_template_params_json}
             onChange={e => update("frontend_template_params_json", e.target.value)}
             placeholder={`{\n  "show_disclaimer": true\n}`}
+            aria-label="Frontend params JSON"
           />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -97,6 +99,7 @@ export function BasicTab({
               value={form.contract_template_init_params_json}
               onChange={e => update("contract_template_init_params_json", e.target.value)}
               placeholder={`{\n  "oracle": "0x...",\n  "fee_bps": 100\n}`}
+              aria-label="Contract init params JSON"
             />
           </div>
           <div>
@@ -107,6 +110,7 @@ export function BasicTab({
               value={form.contract_template_init_schema_json}
               onChange={e => update("contract_template_init_schema_json", e.target.value)}
               placeholder={`{\n  "type": "object",\n  "required": ["oracle"]\n}`}
+              aria-label="Contract init schema JSON"
             />
           </div>
         </div>
@@ -126,6 +130,7 @@ export function BasicTab({
               value={form.contract_template_method_schema_json}
               onChange={e => update("contract_template_method_schema_json", e.target.value)}
               placeholder={`{\n  "buyYes": { "params": ["amount"] }\n}`}
+              aria-label="Contract method schema JSON"
             />
           </div>
           <div>
@@ -136,6 +141,7 @@ export function BasicTab({
               value={form.contract_template_security_profile_json}
               onChange={e => update("contract_template_security_profile_json", e.target.value)}
               placeholder={`{\n  "upgradeable": false,\n  "audited": true\n}`}
+              aria-label="Security profile JSON"
             />
           </div>
         </div>

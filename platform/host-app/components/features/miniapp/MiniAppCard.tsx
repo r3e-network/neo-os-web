@@ -84,7 +84,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
               {app.category}
             </Badge>
             {showSourceBadge && (
-              <Badge className={cn(sourceColors[app.source!], "px-2.5 py-0.5 tracking-wide text-[10px] font-bold backdrop-blur-md")} variant="outline">
+              <Badge className={cn(sourceColors[app.source ?? "community"], "px-2.5 py-0.5 tracking-wide text-[10px] font-bold backdrop-blur-md")} variant="outline">
                 {app.source === "community" ? "Community" : "Verified"}
               </Badge>
             )}

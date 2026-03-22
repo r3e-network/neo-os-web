@@ -41,6 +41,7 @@ export function parsePostgrestErrorResponse(body: string): PostgrestErrorShape |
     }
     return parsed as PostgrestErrorShape;
   } catch {
+    // Malformed error JSON — return null (caller handles gracefully)
     return null;
   }
 }

@@ -5,19 +5,24 @@
         <img :src="memorial.photoHash" mode="aspectFill" :alt="memorial.name?.trim() || t('memorialPhoto')" />
       </div>
       <div class="icon-frame" v-else>
-        <span class="candle-icon" :class="{ burning: memorial.hasRecentTribute }" aria-hidden="true">🕯️</span>
+        <span class="candle-icon" :class="{ burning: memorial.hasRecentTribute }">
+          <AppIcon name="candle" :size="24" :aria-label="t('candleIcon')" />
+        </span>
       </div>
     </div>
     <div class="tombstone-body">
       <span class="name">{{ memorial.name }}</span>
       <span class="years">{{ memorial.birthYear }}{{ t("yearRangeSeparator") }}{{ memorial.deathYear }}</span>
-      <span class="candle" :class="{ burning: memorial.hasRecentTribute }" aria-hidden="true">🕯️</span>
+      <span class="candle" :class="{ burning: memorial.hasRecentTribute }">
+        <AppIcon name="candle" :size="20" :aria-label="t('candleIcon')" />
+      </span>
     </div>
   </button>
 </template>
 
 <script setup lang="ts">
 import type { Memorial } from "@/types";
+import { AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -129,6 +134,13 @@ defineEmits<{
   50% {
     filter: drop-shadow(0 0 12px var(--shrine-incense));
     opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candle-icon.burning,
+  .candle.burning {
+    animation: none;
   }
 }
 </style>

@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const data = await response.json().catch(() => ({ success: true }));
+    const data = await response.json().catch((e: unknown) => { console.warn("[update-status] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
     return Response.json(data);
   } catch {
     return jsonError("Failed to reach host-app admin endpoint", 502);

@@ -6,33 +6,49 @@ import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
 export default function SettingsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     fetch("/api/settings")
       .then((res) => res.json())
-      .then((data) => {
-        setConfig(data);
-        setLoading(false);
-      });
+      .then((data) => { if (active) { setConfig(data); setLoading(false); } })
+      .catch((e: unknown) => { console.warn("[settings] failed to load config:", e instanceof Error ? e.message : String(e)); if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(config),
-    });
-    setSaving(false);
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (!res.ok) throw new Error("Failed to save settings");
+      alert("Settings saved successfully.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSaveError(msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) return <div className="flex justify-center p-12"><Spinner /></div>;
 
   return (
     <div className="space-y-6">
+      {saveError && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <p className="text-sm text-red-400">Failed to save: {saveError}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Platform Settings</h1>
@@ -54,9 +70,10 @@ export default function SettingsPage() {
                 <div className="font-semibold text-white">Maintenance Mode</div>
                 <div className="text-sm text-gray-400">Suspend all non-admin traffic</div>
               </div>
-              <input 
-                type="checkbox" 
-                checked={config.maintenanceMode} 
+              <input
+                type="checkbox"
+                aria-label="Maintenance Mode"
+                checked={config.maintenanceMode}
                 onChange={(e) => setConfig({...config, maintenanceMode: e.target.checked})}
                 className="w-5 h-5 accent-neo"
               />
@@ -66,9 +83,10 @@ export default function SettingsPage() {
                 <div className="font-semibold text-white">MiniApp Approval Gate</div>
                 <div className="text-sm text-gray-400">Require manual review for production publish</div>
               </div>
-              <input 
-                type="checkbox" 
-                checked={config.approvalGateRequired} 
+              <input
+                type="checkbox"
+                aria-label="MiniApp Approval Gate"
+                checked={config.approvalGateRequired}
                 onChange={(e) => setConfig({...config, approvalGateRequired: e.target.checked})}
                 className="w-5 h-5 accent-neo"
               />
@@ -82,26 +100,29 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Max MiniApp Bundle Size (MB)</label>
-              <input 
-                type="number" 
+              <label htmlFor="max-bundle-size" className="block text-sm font-medium text-gray-300 mb-1">Max MiniApp Bundle Size (MB)</label>
+              <input
+                id="max-bundle-size"
+                type="number"
                 value={config.maxMiniappSizeMb}
                 onChange={(e) => setConfig({...config, maxMiniappSizeMb: parseInt(e.target.value)})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">PriceFeed Refresh Interval (ms)</label>
-              <input 
-                type="number" 
+              <label htmlFor="pricefeed-interval" className="block text-sm font-medium text-gray-300 mb-1">PriceFeed Refresh Interval (ms)</label>
+              <input
+                id="pricefeed-interval"
+                type="number"
                 value={config.pricefeedIntervalMs}
                 onChange={(e) => setConfig({...config, pricefeedIntervalMs: parseInt(e.target.value)})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Log Level</label>
-              <select 
+              <label htmlFor="log-level" className="block text-sm font-medium text-gray-300 mb-1">Log Level</label>
+              <select
+                id="log-level"
                 value={config.logLevel}
                 onChange={(e) => setConfig({...config, logLevel: e.target.value})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"

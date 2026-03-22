@@ -97,9 +97,15 @@ export const edgeClient = {
   },
 
   async post<T>(path: string, body: unknown): Promise<T> {
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(body);
+    } catch (_e: unknown) {
+      serialized = String(body);
+    }
     return fetchJSON<T>(`${getAPIBaseURL()}${path}`, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: serialized,
     });
   },
 };

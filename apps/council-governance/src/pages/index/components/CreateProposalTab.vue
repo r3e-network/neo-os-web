@@ -18,6 +18,7 @@
             @click="newProposal.type = 0"
             class="flex-1"
             size="sm"
+            type="button"
           >
             {{ t("textType") }}
           </NeoButton>
@@ -26,6 +27,7 @@
             @click="newProposal.type = 1"
             class="flex-1"
             size="sm"
+            type="button"
           >
             {{ t("policyType") }}
           </NeoButton>
@@ -54,6 +56,7 @@
             :variant="newProposal.policyMethod === method.value ? 'primary' : 'secondary'"
             size="sm"
             class="method-btn"
+            type="button"
             @click="newProposal.policyMethod = method.value"
           >
             {{ method.label }}
@@ -76,6 +79,7 @@
             :variant="newProposal.duration === d.value ? 'primary' : 'secondary'"
             size="sm"
             class="flex-1"
+            type="button"
             @click="newProposal.duration = d.value"
           >
             {{ d.label }}

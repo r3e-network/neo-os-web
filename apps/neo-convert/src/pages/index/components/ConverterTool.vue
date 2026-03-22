@@ -31,7 +31,7 @@
             <div class="value-row">
               <span class="value">{{ result.address }}</span>
               <button type="button" class="copy-btn" @click="copy(result.address)" :aria-label="t('copyAddress')">
-                <span class="icon" aria-hidden="true">📋</span>
+                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
               </button>
             </div>
           </div>
@@ -43,7 +43,7 @@
             <div class="value-row">
               <span class="value truncate">{{ result.publicKey }}</span>
               <button type="button" class="copy-btn" @click="copy(result.publicKey)" :aria-label="t('copyPublicKey')">
-                <span class="icon" aria-hidden="true">📋</span>
+                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
               </button>
             </div>
           </div>
@@ -63,10 +63,10 @@
                 @click="showSecrets = !showSecrets"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
               >
-                <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
+                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')" />
               </button>
               <button type="button" class="copy-btn" @click="copy(result.wif)" :aria-label="t('copyWif')">
-                <span class="icon" aria-hidden="true">📋</span>
+                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
               </button>
             </div>
           </div>
@@ -86,10 +86,10 @@
                 @click="showSecrets = !showSecrets"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
               >
-                <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
+                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')" />
               </button>
               <button type="button" class="copy-btn" @click="copy(result.privateKey)" :aria-label="t('copyPrivateKey')">
-                <span class="icon" aria-hidden="true">📋</span>
+                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
               </button>
             </div>
           </div>
@@ -109,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";

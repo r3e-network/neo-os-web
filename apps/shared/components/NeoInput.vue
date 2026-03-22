@@ -30,6 +30,8 @@
         :aria-describedby="error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined"
         :aria-invalid="!!error || undefined"
         :aria-required="required || undefined"
+        :min="min"
+        :max="max"
         class="neo-input__field"
         @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         @focus="$emit('focus', $event)"
@@ -51,20 +53,37 @@ import { useId } from "vue";
 
 const inputId = useId();
 
-defineProps<{
-  modelValue?: string | number;
-  type?: "text" | "number" | "password" | "textarea";
-  label?: string;
-  placeholder?: string;
-  suffix?: string;
-  suffixIcon?: string;
-  hint?: string;
-  error?: string;
-  disabled?: boolean;
-  required?: boolean;
-  /** Accessibility label for screen readers - use when no visible label is provided */
-  ariaLabel?: string;
-}>();
+withDefaults(
+  defineProps<{
+    modelValue?: string | number;
+    type?: "text" | "number" | "password" | "textarea";
+    label?: string;
+    placeholder?: string;
+    suffix?: string;
+    suffixIcon?: string;
+    hint?: string;
+    error?: string;
+    disabled?: boolean;
+    required?: boolean;
+    min?: number;
+    max?: number;
+    /** Accessibility label for screen readers - use when no visible label is provided */
+    ariaLabel?: string;
+  }>(),
+  {
+    modelValue: "",
+    type: "text",
+    placeholder: "",
+    suffix: "",
+    suffixIcon: "",
+    hint: "",
+    error: "",
+    disabled: false,
+    required: false,
+    min: undefined,
+    max: undefined,
+  }
+);
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: string | number): void;

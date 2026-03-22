@@ -28,6 +28,7 @@ function parseFederatedOrigins(): string[] {
     try {
       origins.add(new URL(url).origin);
     } catch {
+      // Skip malformed URL entries in ALLOWED_ORIGINS
       continue;
     }
   }

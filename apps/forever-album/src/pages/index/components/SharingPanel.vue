@@ -16,6 +16,8 @@
             :aria-checked="shareMethod === 'link'"
             :aria-label="t('shareViaLink')"
             @click="shareMethod = 'link'"
+            @keydown.enter="shareMethod = 'link'"
+            @keydown.space.prevent="shareMethod = 'link'"
           >
             <div :class="['option-radio', { active: shareMethod === 'link' }]" aria-hidden="true"></div>
             <span class="option-label">{{ t("shareViaLink") }}</span>
@@ -27,6 +29,8 @@
             :aria-checked="shareMethod === 'address'"
             :aria-label="t('shareToAddress')"
             @click="shareMethod = 'address'"
+            @keydown.enter="shareMethod = 'address'"
+            @keydown.space.prevent="shareMethod = 'address'"
           >
             <div :class="['option-radio', { active: shareMethod === 'address' }]" aria-hidden="true"></div>
             <span class="option-label">{{ t("shareToAddress") }}</span>
@@ -44,10 +48,10 @@
     </div>
 
     <template #actions>
-      <NeoButton size="sm" variant="ghost" @click="$emit('close')">
+      <NeoButton size="sm" variant="ghost" type="button" @click="$emit('close')">
         {{ t("cancel") }}
       </NeoButton>
-      <NeoButton size="sm" variant="primary" :loading="sharing" @click="handleShare">
+      <NeoButton size="sm" variant="primary" type="button" :loading="sharing" @click="handleShare">
         {{ sharing ? t("sharing") : t("confirmShare") }}
       </NeoButton>
     </template>

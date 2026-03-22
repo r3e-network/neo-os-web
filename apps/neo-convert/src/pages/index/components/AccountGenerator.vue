@@ -11,12 +11,12 @@
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            <path d="M4 4H28V28H4V4Z" fill="#00E599" />
+            <path d="M4 4H28V28H4V4Z" fill="var(--convert-success, currentColor)" />
             <path
               d="M22.5 10L16.5 10L16.5 13.5L13.5 13.5L13.5 10L9.5 10L9.5 22L13.5 22L13.5 18.5L16.5 18.5L16.5 22L22.5 22L22.5 10Z"
-              fill="white"
+              fill="var(--text-primary)"
             />
-            <path d="M13.5 13.5L16.5 13.5L16.5 18.5L13.5 18.5L13.5 13.5Z" fill="#00E599" />
+            <path d="M13.5 13.5L16.5 13.5L16.5 18.5L13.5 18.5L13.5 13.5Z" fill="var(--convert-success, currentColor)" />
           </svg>
           <span class="title">{{ t("genTitle") }}</span>
         </div>
@@ -54,15 +54,15 @@
           >
             <path
               d="M16 32C24.8366 32 32 24.8366 32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32Z"
-              fill="#00E599"
+              fill="var(--convert-success, currentColor)"
               fill-opacity="0.1"
             />
-            <path d="M9 9H23V23H9V9Z" fill="#00E599" />
+            <path d="M9 9H23V23H9V9Z" fill="var(--convert-success, currentColor)" />
             <path
               d="M19.5 13L15.5 13L15.5 15.3333L13.5 15.3333L13.5 13L10.8333 13L10.8333 21L13.5 21L13.5 18.6667L15.5 18.6667L15.5 21L19.5 21L19.5 13Z"
-              fill="white"
+              fill="var(--text-primary)"
             />
-            <path d="M13.5 15.3333L15.5 15.3333L15.5 18.6667L13.5 18.6667L13.5 15.3333Z" fill="#00E599" />
+            <path d="M13.5 15.3333L15.5 15.3333L15.5 18.6667L13.5 18.6667L13.5 15.3333Z" fill="var(--convert-success, currentColor)" />
           </svg>
           <span class="empty-text">{{ t("genEmptyState") }}</span>
           <span class="empty-sub">{{ t("genEmptySub") }}</span>
@@ -105,7 +105,7 @@ const generateNew = async () => {
         addressQr.value = await QRCode.toDataURL(account.value.address, { margin: 1 });
         wifQr.value = await QRCode.toDataURL(account.value.wif, { margin: 1 });
       } catch (_e: unknown) {
-        // QR generation error - silent fail (non-critical, account generation still succeeds)
+        console.warn("[neo-convert] QR code generation failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }
     isGenerating.value = false;

@@ -22,12 +22,19 @@ type EnsureSafeOptions = {
 export function useContractAddress(t: (key: string) => string) {
   const { chainType, getContractAddress } = useWallet() as WalletSDK;
   const contractAddress = ref<string | null>(null);
+  let resolvePromise: Promise<string> | null = null;
 
-  const resolveAddress = async () => {
-    if (!contractAddress.value) {
-      contractAddress.value = await getContractAddress();
+  const resolveAddress = async (mounted?: { current: boolean }) => {
+    if (contractAddress.value) {
+      return contractAddress.value;
     }
-    return contractAddress.value;
+    if (resolvePromise) {
+      return resolvePromise;
+    }
+    const addr = await getContractAddress();
+    if (mounted && !mounted.current) return addr;
+    contractAddress.value = addr;
+    return addr;
   };
 
   /**
@@ -36,8 +43,9 @@ export function useContractAddress(t: (key: string) => string) {
    */
   const ensure = async (options: EnsureOptions = {}): Promise<string> => {
     const silentChainCheck = options.silentChainCheck ?? false;
-    if (!requireNeoChain(chainType, silentChainCheck ? undefined : t, undefined, { silent: silentChainCheck })) {
-      throw new Error(t("wrongChain"));
+    const translator = typeof t === "function" ? t : undefined;
+    if (!requireNeoChain(chainType, silentChainCheck ? undefined : translator, undefined, { silent: silentChainCheck })) {
+      throw new Error(typeof t === "function" ? t("wrongChain") : "Wrong network. Please switch to Neo N3.");
     }
     const resolved = await resolveAddress();
     if (!resolved) {

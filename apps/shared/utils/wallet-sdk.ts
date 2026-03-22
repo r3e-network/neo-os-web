@@ -11,6 +11,17 @@
  */
 import { ref, type Ref } from "vue";
 import { getMiniAppContractHash, getNetwork, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
+import { MiniAppError } from "./errorHandling";
+
+// Error codes for i18n-compatible error handling
+const ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED = "WALLET_INVOKE_MULTIPLE_UNSUPPORTED";
+const ERROR_CODE_CONTRACT_NOT_CONFIGURED = "WALLET_CONTRACT_NOT_CONFIGURED";
+const ERROR_CODE_ELIGIBILITY_CHECK_FAILED = "WALLET_ELIGIBILITY_CHECK_FAILED";
+const ERROR_CODE_PLATFORM_API_NOT_CONFIGURED = "WALLET_PLATFORM_API_NOT_CONFIGURED";
+const ERROR_CODE_WALLET_NOT_CONNECTED = "WALLET_NOT_CONNECTED";
+const ERROR_CODE_SPONSORSHIP_REQUEST_FAILED = "WALLET_SPONSORSHIP_REQUEST_FAILED";
+const ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE = "WALLET_MINIAPP_CONTRACT_UNAVAILABLE";
+const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
 
 // Re-export types that were previously in @neo/types
 export interface WalletSDK {
@@ -153,6 +164,7 @@ interface NeoLineN3 {
 }
 
 type MiniAppManifest = {
+  id?: string;
   contracts?: Record<string, string>;
   default_network?: string;
 };
@@ -231,20 +243,33 @@ function mapSigners(signers?: WalletSigner[]) {
 }
 
 let cachedManifest: MiniAppManifest | null | undefined;
+let cachedManifestTimestamp = 0;
+const CACHED_MANIFEST_TTL_MS = 30000; // 30 seconds
+
+export function invalidateManifestCache(): void {
+  cachedManifest = undefined;
+  cachedManifestTimestamp = 0;
+}
 
 async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
-  if (cachedManifest !== undefined) return cachedManifest;
+  const now = Date.now();
+  if (cachedManifest !== undefined && now - cachedManifestTimestamp < CACHED_MANIFEST_TTL_MS) {
+    return cachedManifest;
+  }
   try {
     const response = await fetch("/neo-manifest.json", { cache: "no-store" });
     if (!response.ok) {
       cachedManifest = null;
+      cachedManifestTimestamp = now;
       return null;
     }
     const text = await response.text();
     cachedManifest = JSON.parse(text) as MiniAppManifest;
+    cachedManifestTimestamp = now;
     return cachedManifest;
   } catch (_e: unknown) {
     cachedManifest = null;
+    cachedManifestTimestamp = now;
     return null;
   }
 }
@@ -322,7 +347,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
     const provider = nl.invokeMultiple || nl.invokeMulti;
     if (!provider) {
-      throw new Error("Connected Neo wallet does not support invokeMultiple.");
+      throw new MiniAppError("Connected Neo wallet does not support invokeMultiple.", ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED, undefined, undefined, undefined, ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED);
     }
 
     const result = await provider({
@@ -346,26 +371,22 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const getBalance = async (asset: string): Promise<string | number> => {
-    try {
-      const nl = await ensureNeoLine();
-      if (!address.value) return "0";
+    const nl = await ensureNeoLine();
+    if (!address.value) return "0";
 
-      const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-      const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
-      const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
+    const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
-      const result = await nl.getBalance({
-        address: address.value,
-        contracts: [contractHash],
-      });
+    const result = await nl.getBalance({
+      address: address.value,
+      contracts: [contractHash],
+    });
 
-      const balances = Object.values(result).flat();
-      const match = balances.find((b) => b.contract === contractHash);
-      return match?.amount ?? "0";
-    } catch (_e: unknown) {
-      return "0";
-    }
+    const balances = Object.values(result).flat();
+    const match = balances.find((b) => b.contract === contractHash);
+    return match?.amount ?? "0";
   };
 
   const getContractAddress = async (): Promise<string> => {
@@ -381,7 +402,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const fallback = fallbackAppId ? getMiniAppContractHash(fallbackAppId, network) : "";
     if (fallback) return fallback;
 
-    throw new Error("Contract address not configured");
+    throw new MiniAppError("Contract address not configured", ERROR_CODE_CONTRACT_NOT_CONFIGURED, undefined, undefined, undefined, ERROR_CODE_CONTRACT_NOT_CONFIGURED);
   };
 
   walletInstance = {
@@ -432,7 +453,7 @@ export function useGasSponsor() {
         return { gas_balance: "0", used_today: "0", daily_limit: "0.1", resets_at: "" };
       }
       const res = await fetch(`${PLATFORM_API}/api/gas-sponsor/eligibility?address=${addr}`);
-      if (!res.ok) throw new Error("Failed to check eligibility");
+      if (!res.ok) throw new MiniAppError("Failed to check eligibility", ERROR_CODE_ELIGIBILITY_CHECK_FAILED, undefined, undefined, undefined, ERROR_CODE_ELIGIBILITY_CHECK_FAILED);
       return res.json();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
@@ -447,16 +468,16 @@ export function useGasSponsor() {
     isRequestingSponsorship.value = true;
     sponsorshipError.value = null;
     try {
-      if (!PLATFORM_API) throw new Error("Platform API not configured");
+      if (!PLATFORM_API) throw new MiniAppError("Platform API not configured", ERROR_CODE_PLATFORM_API_NOT_CONFIGURED, undefined, undefined, undefined, ERROR_CODE_PLATFORM_API_NOT_CONFIGURED);
       const wallet = useWallet();
       const addr = wallet.address.value;
-      if (!addr) throw new Error("Wallet not connected");
+      if (!addr) throw new MiniAppError("Wallet not connected", ERROR_CODE_WALLET_NOT_CONNECTED, undefined, undefined, undefined, ERROR_CODE_WALLET_NOT_CONNECTED);
       const res = await fetch(`${PLATFORM_API}/api/gas-sponsor/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ address: addr, amount }),
       });
-      if (!res.ok) throw new Error("Sponsorship request failed");
+      if (!res.ok) throw new MiniAppError("Sponsorship request failed", ERROR_CODE_SPONSORSHIP_REQUEST_FAILED, undefined, undefined, undefined, ERROR_CODE_SPONSORSHIP_REQUEST_FAILED);
       return res.json();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
@@ -497,13 +518,17 @@ export function usePayments(appId?: string) {
     scopedAppId = appId || "miniapp",
   ): Promise<PaymentResult> => {
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    const amountFixed8 = Math.round(parseFloat(amount) * 1e8).toString();
+    const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount)) {
+      throw new MiniAppError("Invalid amount", ERROR_CODE_PAYMENT_INVALID_AMOUNT, undefined, undefined, undefined, ERROR_CODE_PAYMENT_INVALID_AMOUNT);
+    }
+    const amountFixed8 = Math.round(parsedAmount * 1e8).toString();
     if (!wallet.address.value) {
       await wallet.connect();
     }
     const resolvedTargetHash = targetContractHash || await wallet.getContractAddress();
     if (!resolvedTargetHash) {
-      throw new Error("MiniApp contract address unavailable");
+      throw new MiniAppError("MiniApp contract address unavailable", ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE, undefined, undefined, undefined, ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE);
     }
     const transferData = String(memo || scopedAppId || "miniapp");
 
@@ -585,8 +610,8 @@ export function useEvents() {
             };
           }
         }
-      } catch (_e: unknown) {
-        // Fall through to platform API
+      } catch (e: unknown) {
+        console.warn("[useEvents] N3Index fetch failed, falling back to platform API:", e);
       }
     }
 
@@ -603,9 +628,11 @@ export function useEvents() {
     eventName: string,
     appId: string,
     timeoutMs = 60000,
+    signal?: AbortSignal,
   ): Promise<ContractEvent | null> => {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
+      if (signal?.aborted) return null;
       const result = await list({
         app_id: appId,
         event_name: eventName,
@@ -613,7 +640,19 @@ export function useEvents() {
         limit: 1,
       });
       if (result.events.length > 0) return result.events[0];
-      await new Promise((r) => setTimeout(r, 2500));
+      // Wait 2500ms or until signal fires, whichever comes first
+      let aborted = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const onAbort = () => { aborted = true; };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      await new Promise((r) => {
+        timer = setTimeout(r, 2500);
+        const onAbortResolve = () => { aborted = true; r(null); };
+        signal?.addEventListener("abort", onAbortResolve, { once: true });
+      });
+      if (timer !== undefined) clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      if (aborted) return null;
     }
     return null;
   };

@@ -1,13 +1,13 @@
 <template>
   <NeoCard class="request-card">
     <div v-if="!isEligible" class="not-eligible-msg">
-      <div class="warning-icon" aria-hidden="true">⚠️</div>
+      <AppIcon name="warning" :size="40" class="warning-icon" />
       <span class="warning-title">{{ t("notEligibleTitle") }}</span>
       <span class="warning-desc">{{ t("balanceExceeds") }}</span>
       <span class="warning-desc">{{ t("newUsersOnly") }}</span>
     </div>
     <div v-else-if="remainingQuota <= 0" class="not-eligible-msg">
-      <div class="warning-icon" aria-hidden="true">🚫</div>
+      <AppIcon name="deny" :size="40" class="warning-icon" />
       <span class="warning-title">{{ t("quotaExhausted") }}</span>
       <span class="warning-desc">{{ t("tryTomorrow") }}</span>
     </div>

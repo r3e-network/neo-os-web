@@ -4,6 +4,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-gasbox";
@@ -47,7 +48,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "updateMachinePrice" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -68,7 +69,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "toggleMachineActive" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -89,7 +90,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "toggleMachineListed" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -111,7 +112,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "listMachineForSale" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -131,7 +132,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "cancelMachineSale" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -190,7 +191,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "depositItem" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }
@@ -232,7 +233,7 @@ export function useGachaManagement() {
       if (onSuccess) await onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "withdrawItem" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       setActionLoading(key, false);
     }

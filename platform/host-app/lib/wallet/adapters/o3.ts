@@ -62,7 +62,7 @@ export class O3Adapter implements WalletAdapter {
         label: account.label,
       };
     } catch (error) {
-      throw new WalletConnectionError(`Failed to connect to O3: ${error}`);
+      throw new WalletConnectionError(`Failed to connect to O3: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -83,7 +83,8 @@ export class O3Adapter implements WalletAdapter {
         neo: result[NEO_CONTRACT]?.amount || "0",
         gas: result[GAS_CONTRACT]?.amount || "0",
       };
-    } catch {
+    } catch (e: unknown) {
+      console.warn("[o3] getBalance failed:", e instanceof Error ? e.message : String(e));
       return { neo: "0", gas: "0" };
     }
   }
@@ -92,13 +93,17 @@ export class O3Adapter implements WalletAdapter {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
-    return this.getWindow().neo3Dapi!.signMessage({ message });
+    const api = this.getWindow().neo3Dapi;
+    if (!api) throw new Error("O3 neo3Dapi is not available");
+    return api.signMessage({ message });
   }
 
   async invoke(params: InvokeParams): Promise<TransactionResult> {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
-    return this.getWindow().neo3Dapi!.invoke(params);
+    const api = this.getWindow().neo3Dapi;
+    if (!api) throw new Error("O3 neo3Dapi is not available");
+    return api.invoke(params);
   }
 }

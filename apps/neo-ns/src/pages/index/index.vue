@@ -13,11 +13,15 @@
   >
     <template #content>
       <div class="hero-container">
-        <HeroSection variant="erobo-neo" icon="🌐" compact>
+        <HeroSection variant="erobo-neo" icon="globe" compact>
           <template #stats>
             <HeroStatsStrip :items="heroStatsItems" />
           </template>
         </HeroSection>
+      </div>
+
+      <div v-if="error" class="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+        {{ error }}
       </div>
 
       <ManageDomain
@@ -39,9 +43,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection, HeroStatsStrip } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { HeroStatsStripItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useNeoNS } from "@/composables/useNeoNS";
@@ -57,7 +62,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
     name: "neo-ns",
     messages,
     template: {
-      tabs: [{ key: "register", labelKey: "tabRegister", icon: "➕", default: true }],
+      tabs: [{ key: "register", labelKey: "tabRegister", icon: "plus", default: true }],
     },
     sidebarItems: [
       { labelKey: "tabDomains", value: () => myDomains.value.length },
@@ -70,7 +75,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   });
 
 const ns = useNeoNS(NNS_CONTRACT, t);
-const { address, connect, loading, myDomains, loadMyDomains } = ns;
+const { address, connect, loading, error, myDomains, loadMyDomains } = ns;
 
 const showStatus = setStatus;
 
@@ -94,7 +99,7 @@ async function handleRenew(domain: Domain) {
   try {
     await ns.handleRenew(domain, showStatus);
   } catch (_e: unknown) {
-    /* non-critical: renew handled by ns */
+    console.warn("[neo-ns] renew failed:", _e instanceof Error ? _e.message : String(_e));
   }
 }
 
@@ -103,7 +108,7 @@ async function handleSetTarget(targetAddress: string) {
   try {
     await ns.handleSetTarget(managingDomain.value, targetAddress, showStatus);
   } catch (_e: unknown) {
-    /* non-critical: setTarget handled by ns */
+    console.warn("[neo-ns] setTarget failed:", _e instanceof Error ? _e.message : String(_e));
   }
 }
 
@@ -115,31 +120,39 @@ async function handleTransfer(transferAddress: string) {
       managingDomain.value = null;
     }
   } catch (_e: unknown) {
-    /* non-critical: transfer handled by ns */
+    console.warn("[neo-ns] transfer failed:", _e instanceof Error ? _e.message : String(_e));
   }
 }
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await connect();
     if (address.value) {
       await loadMyDomains();
     }
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[neo-ns] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
-
-watch(address, async (newAddr) => {
+const stopAddressWatch = watch(address, async (newAddr) => {
+  if (!isMounted.value) return;
   if (newAddr) {
     try {
       await loadMyDomains();
     } catch (_e: unknown) {
-      /* non-critical: domains load */
+      console.warn("[neo-ns] domains load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else {
     myDomains.value = [];
   }
+});
+
+onUnmounted(() => {
+  stopAddressWatch();
+  isMounted.value = false;
 });
 
 const resetAndReload = async () => {
@@ -199,6 +212,16 @@ const resetAndReload = async () => {
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container,
+  .hero-container::after {
+    animation: none;
+  }
+  :deep(.hero-stats-strip__item) {
+    animation: none;
   }
 }
 

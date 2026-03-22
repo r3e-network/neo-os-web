@@ -29,7 +29,7 @@
               },
             ]"
           >
-            <span class="day-icon" aria-hidden="true">{{ day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? "✅" : "⬜" }}</span>
+            <span class="day-icon" :aria-label="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? t('dayCompleted') : t('dayPending')"><AppIcon :name="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? 'check-circle' : 'circle'" :size="16" /></span>
             <span class="day-label">{{ t("dayPrefix") }}{{ day }}</span>
           </div>
         </div>
@@ -46,7 +46,7 @@
         <!-- Countdown to Next -->
         <div class="hero-next-checkin">
           <div class="utc-clock-hero" role="timer" aria-live="polite">
-            <span class="clock-icon" aria-hidden="true">🕐</span>
+            <AppIcon name="clock" :size="18" class="clock-icon" />
             <span class="clock-display">{{ utcTimeDisplay }}</span>
             <span class="clock-utc-label">{{ t("utcLabel") }}</span>
           </div>
@@ -75,7 +75,7 @@
           class="checkin-btn"
         >
           <div class="btn-content">
-            <span class="btn-icon" aria-hidden="true">{{ canCheckIn ? "✨" : "⏳" }}</span>
+            <AppIcon :name="canCheckIn ? 'star' : 'clock'" :size="16" />
             <span>{{ canCheckIn ? t("checkInNow") : t("waitForNext") }}</span>
           </div>
         </NeoButton>
@@ -104,7 +104,7 @@
           </div>
           <div v-else class="history-list">
             <div v-for="item in checkinHistory" :key="item.time" class="history-item">
-              <div class="history-icon" aria-hidden="true">🔥</div>
+              <AppIcon name="flame" :size="20" class="history-icon" />
               <div class="history-info">
                 <span class="history-day">{{ t("day") }} {{ item.streak }}</span>
                 <span class="history-time">{{ item.time }}</span>
@@ -274,7 +274,7 @@ const {
   font-size: 28px;
   font-weight: 900;
   font-family: $font-mono;
-  background: linear-gradient(180deg, #fbbf24, #f97316);
+  background: linear-gradient(180deg, var(--sunrise-streak-start, #fbbf24), var(--sunrise-streak-end, #f97316));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -350,7 +350,7 @@ const {
   &.ready {
     background: rgba(255, 222, 89, 0.08);
     border-color: rgba(255, 222, 89, 0.25);
-    color: #fde047;
+    color: var(--accent-warning, #fde047);
     box-shadow: 0 0 15px rgba(255, 222, 89, 0.15);
   }
 }

@@ -79,7 +79,7 @@ async function getReplies(appId: string, threadId: string, req: NextApiRequest, 
     .limit(200);
 
   if (error) {
-    logger.error("Failed to fetch forum replies:", error.message);
+    logger.error("Failed to fetch forum replies:", error instanceof Error ? error.message : String(error));
     return apiError.internal(res, "Failed to fetch replies");
   }
 
@@ -92,7 +92,13 @@ async function createReply(appId: string, threadId: string, req: NextApiRequest,
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for forum writes");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
 
   const { wallet, content } = req.body;
@@ -149,7 +155,7 @@ async function createReply(appId: string, threadId: string, req: NextApiRequest,
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create forum reply:", error?.message || "unknown error");
+    logger.error("Failed to create forum reply:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to create reply");
   }
 

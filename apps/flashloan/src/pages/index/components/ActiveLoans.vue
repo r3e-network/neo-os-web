@@ -28,7 +28,7 @@ const formatNum = (n: number) => formatNumber(n, 2);
 const props = defineProps<{
   poolBalance: number;
   stats: { totalLoans: number; totalVolume: number; totalFees: number };
-  recentLoans: Array<{ id: number; amount: number; fee: number; status: string; timestamp: string }>;
+  recentLoans: Array<{ id: number; amount: number; fee: number; status: "success" | "failed"; timestamp: string }>;
   t: (key: string, params?: Record<string, string | number>) => string;
 }>();
 

@@ -2,7 +2,7 @@
   <div class="tab-content scrollable">
     <NeoCard v-if="!address" variant="erobo" class="section-card">
       <span class="status-text">{{ t("connectWallet") }}</span>
-      <NeoButton size="sm" variant="secondary" @click="$emit('connect-wallet')">
+      <NeoButton size="sm" variant="secondary" type="button" :aria-label="t('wpConnect')" @click="$emit('connect-wallet')">
         {{ t("wpConnect") }}
       </NeoButton>
     </NeoCard>
@@ -32,7 +32,9 @@
           <NeoButton
             size="sm"
             variant="primary"
+            type="button"
             :loading="actionLoading[`price:${machine.id}`]"
+            :aria-label="t('updatePrice')"
             @click="$emit('update-price', machine)"
           >
             {{ t("updatePrice") }}
@@ -40,7 +42,9 @@
           <NeoButton
             size="sm"
             variant="secondary"
+            type="button"
             :loading="actionLoading[`active:${machine.id}`]"
+            :aria-label="t('toggleActive')"
             @click="$emit('toggle-active', machine)"
           >
             {{ t("toggleActive") }}
@@ -48,7 +52,9 @@
           <NeoButton
             size="sm"
             variant="secondary"
+            type="button"
             :loading="actionLoading[`listed:${machine.id}`]"
+            :aria-label="t('toggleListed')"
             @click="$emit('toggle-listed', machine)"
           >
             {{ t("toggleListed") }}
@@ -60,7 +66,9 @@
           <NeoButton
             size="sm"
             variant="primary"
+            type="button"
             :loading="actionLoading[`sale:${machine.id}`]"
+            :aria-label="t('listForSale')"
             @click="$emit('list-for-sale', machine)"
           >
             {{ t("listForSale") }}
@@ -69,7 +77,9 @@
             v-if="machine.forSale"
             size="sm"
             variant="secondary"
+            type="button"
             :loading="actionLoading[`cancelSale:${machine.id}`]"
+            :aria-label="t('cancelSale')"
             @click="$emit('cancel-sale', machine)"
           >
             {{ t("cancelSale") }}
@@ -106,7 +116,9 @@
           <NeoButton
             size="sm"
             variant="primary"
+            type="button"
             :loading="actionLoading[`deposit:${machine.id}:${idx + 1}`]"
+            :aria-label="t('deposit')"
             @click="$emit('deposit-item', { machine, item, index: idx + 1, amount: getInventoryInput(machine.id, idx + 1).deposit, tokenId: getInventoryInput(machine.id, idx + 1).tokenId })"
           >
             {{ t("deposit") }}
@@ -127,7 +139,9 @@
           <NeoButton
             size="sm"
             variant="secondary"
+            type="button"
             :loading="actionLoading[`withdraw:${machine.id}:${idx + 1}`]"
+            :aria-label="t('withdraw')"
             @click="$emit('withdraw-item', { machine, item, index: idx + 1, amount: getInventoryInput(machine.id, idx + 1).withdraw, tokenId: getInventoryInput(machine.id, idx + 1).tokenId })"
           >
             {{ t("withdraw") }}

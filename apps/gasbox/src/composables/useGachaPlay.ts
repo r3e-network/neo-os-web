@@ -206,6 +206,7 @@ export function useGachaPlay() {
       playError.value = formatErrorMessage(e, t("error"));
     } finally {
       isPlaying.value = false;
+      playError.value = null;
     }
   };
 
@@ -255,7 +256,7 @@ export function useGachaPlay() {
       if (options.onSuccess) await options.onSuccess();
     } catch (e: unknown) {
       handleError(e, { operation: "buyMachine" });
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       options.setLoading(key, false);
     }

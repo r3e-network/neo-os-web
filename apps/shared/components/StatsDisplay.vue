@@ -85,7 +85,7 @@ const props = withDefaults(
     compact: false,
     loading: false,
     ariaLabel: undefined,
-  },
+  }
 );
 
 /** Number of skeleton items to show while loading */
@@ -149,22 +149,22 @@ const { t } = useI18n();
 
     // Variant colors
     &--success .stats-display__value {
-      --stat-color: #00e599;
+      --stat-color: var(--accent-success, #10b981);
       color: var(--stat-color);
       text-shadow: 0 0 10px rgba(0, 229, 153, 0.2);
     }
     &--danger .stats-display__value {
-      --stat-color: #ef4444;
+      --stat-color: var(--accent-error, #ef4444);
       color: var(--stat-color);
       text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
     }
     &--warning .stats-display__value {
-      --stat-color: #fde047;
+      --stat-color: var(--accent-warning, #f59e0b);
       color: var(--stat-color);
       text-shadow: 0 0 10px rgba(253, 224, 71, 0.2);
     }
     &--accent .stats-display__value {
-      --stat-color: #00e599;
+      --stat-color: var(--accent-success, #10b981);
       color: var(--stat-color);
       text-shadow: 0 0 10px rgba(0, 229, 153, 0.3);
     }
@@ -174,7 +174,7 @@ const { t } = useI18n();
       text-shadow: 0 0 15px rgba(159, 157, 243, 0.4);
     }
     &--erobo-neo .stats-display__value {
-      --stat-color: #00e599;
+      --stat-color: var(--accent-success, #10b981);
       color: var(--stat-color);
       text-shadow: 0 0 15px rgba(0, 229, 153, 0.4);
     }
@@ -224,12 +224,12 @@ const { t } = useI18n();
 
     &--up::before {
       content: "\25B2";
-      --trend-color: #00e599;
+      --trend-color: var(--accent-success, #10b981);
       color: var(--trend-color);
     }
     &--down::before {
       content: "\25BC";
-      --trend-color: #ef4444;
+      --trend-color: var(--accent-error, #ef4444);
       color: var(--trend-color);
     }
     &--neutral::before {

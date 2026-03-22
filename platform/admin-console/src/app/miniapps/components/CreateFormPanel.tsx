@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { type ContractInitSchemaField, extractContractInitSchemaFields } from "../lib/contract-init-schema";
-import type { MiniAppMediaAssetKind, MiniAppMediaUploadVariant } from "@/lib/hooks/useMiniApps";
+import type { MiniAppMediaAssetKind, MiniAppMediaUploadVariant, MediaUploadOptions } from "@/lib/hooks/useMiniApps";
 import { BasicTab } from "./create-form-tabs/BasicTab";
 import { ContentTab } from "./create-form-tabs/ContentTab";
 import { LayoutTab } from "./create-form-tabs/LayoutTab";
@@ -14,11 +14,6 @@ import { PermissionsTab } from "./create-form-tabs/PermissionsTab";
 import { JsonTab } from "./create-form-tabs/JsonTab";
 
 type MiniAppFormState = Record<string, any>;
-
-type MediaUploadOptions = {
-  variant?: MiniAppMediaUploadVariant;
-  applyAsPrimary?: boolean;
-};
 
 type AssetVariantSettings = {
   theme: "" | "light" | "dark" | "any";
@@ -78,7 +73,7 @@ type BlueprintItem = {
 
 type CreateFormPanelProps = {
   form: MiniAppFormState;
-  setForm: any;
+  setForm: (form: MiniAppFormState) => void;
   formError: string;
   loading: boolean;
   onSubmit: () => void;
@@ -99,7 +94,7 @@ type CreateFormPanelProps = {
   blueprints: Record<string, BlueprintItem>;
   blueprintTemplates: Record<string, DetailTemplate>;
   emptyForm: MiniAppFormState;
-  toConfig: (form: any) => Record<string, unknown>;
+  toConfig: (form: MiniAppFormState) => Record<string, unknown>;
   parseJSONObjectText: (input: string, fieldName: string) => Record<string, unknown>;
 };
 
@@ -146,7 +141,8 @@ export function CreateFormPanel({
   const contractInitParamValues = useMemo(() => {
     try {
       return parseJSONObjectText(form.contract_template_init_params_json, "contract_template_init_params_json");
-    } catch {
+    } catch (_e: unknown) {
+      console.warn("[CreateFormPanel] init params JSON parse failed:", _e instanceof Error ? _e.message : String(_e));
       return {} as Record<string, unknown>;
     }
   }, [form.contract_template_init_params_json]);

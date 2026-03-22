@@ -1,8 +1,12 @@
 <template>
   <NeoCard variant="erobo" class="streak-card pt-6 pb-6 text-center">
     <div class="streak-flames">
-      <span v-for="i in Math.min(currentStreak, 7)" :key="i" class="flame" aria-hidden="true">🔥</span>
-      <span v-if="currentStreak === 0" class="flame-empty" aria-hidden="true">💤</span>
+      <span v-for="i in Math.min(currentStreak, 7)" :key="i" class="flame">
+        <AppIcon name="flame" :size="32" :aria-label="t('flameIcon')" />
+      </span>
+      <span v-if="currentStreak === 0" class="flame-empty">
+        <AppIcon name="sleeping" :size="32" :aria-label="t('sleepingIcon')" />
+      </span>
     </div>
     <span class="streak-count">{{ currentStreak }} {{ t("dayStreak") }}</span>
     <span class="streak-best">{{ t("bestStreak") }}: {{ highestStreak }} {{ t("days") }}</span>
@@ -10,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

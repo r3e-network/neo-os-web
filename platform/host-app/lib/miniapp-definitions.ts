@@ -70,6 +70,7 @@ function normalizeMediaVariants(raw: unknown): Array<{
       const themeRaw = getStr(item.theme).toLowerCase();
       const densityRaw = getStr(item.density).toLowerCase();
       const locale = getStr(item.locale);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing variant record with flexible keys
       const res: any = { url };
       if (themeRaw === "light" || themeRaw === "dark" || themeRaw === "any") res.theme = themeRaw;
       if (densityRaw === "1x" || densityRaw === "2x" || densityRaw === "3x") res.density = densityRaw;
@@ -82,7 +83,7 @@ function normalizeMediaVariants(raw: unknown): Array<{
 export function parseMiniAppDefinitionContent(content: string): unknown {
   const input = String(content || "").trim();
   if (!input) {
-    throw new Error("definition file is empty");
+    throw new Error("parseMiniAppDefinitionContent: definition file is empty");
   }
 
   try {
@@ -94,12 +95,12 @@ export function parseMiniAppDefinitionContent(content: string): unknown {
   try {
     const parsed = yaml.load(input);
     if (parsed === undefined || parsed === null) {
-      throw new Error("definition content resolved to empty value");
+      throw new Error("parseMiniAppDefinitionContent: YAML definition resolved to empty value");
     }
     return parsed as unknown;
   } catch (error) {
     const message = error instanceof Error && error.message ? error.message : "unknown parse error";
-    throw new Error(`invalid JSON/YAML definition: ${message}`);
+    throw new Error(`parseMiniAppDefinitionContent: invalid JSON/YAML definition — ${message}`);
   }
 }
 
@@ -290,7 +291,8 @@ async function loadBundledManifest(slug: string): Promise<Dict | null> {
     const content = await fs.readFile(manifestPath, "utf-8");
     const parsed = JSON.parse(content);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Dict) : null;
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[miniapp-definitions] failed to read manifest for", slug, ":", _e instanceof Error ? _e.message : String(_e));
     return null;
   }
 }
@@ -322,7 +324,8 @@ async function listBundledManifestSlugs(): Promise<string[]> {
       slugs.push(slug);
     }
     return slugs.sort();
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[miniapp-definitions] failed to scan apps directory:", _e instanceof Error ? _e.message : String(_e));
     return [];
   }
 }
@@ -424,6 +427,7 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
 
     return { definitionsDir, definitions, errors };
   } catch {
+    // Best-effort load: return what we have so far, individual parse errors are already recorded
     return { definitionsDir, definitions: [], errors: [] };
   }
 }

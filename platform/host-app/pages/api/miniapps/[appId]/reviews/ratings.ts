@@ -68,7 +68,7 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
 
   const { data, error } = await supabase.from("social_ratings").select("app_id,rating_value,review_text").eq("app_id", appId).limit(1000);
   if (error) {
-    logger.error("Failed to fetch ratings:", error.message);
+    logger.error("Failed to fetch ratings:", error instanceof Error ? error.message : String(error));
     return apiError.internal(res, "Failed to fetch ratings");
   }
 
@@ -127,7 +127,13 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for rating writes");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
 
   const { wallet, value, review } = req.body;
@@ -167,7 +173,7 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
   );
 
   if (error) {
-    logger.error("Failed to submit rating:", error.message);
+    logger.error("Failed to submit rating:", error instanceof Error ? error.message : String(error));
     return apiError.internal(res, "Failed to submit rating");
   }
 

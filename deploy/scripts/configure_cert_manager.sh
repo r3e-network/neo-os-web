@@ -3,7 +3,8 @@
 # cert-manager ClusterIssuer Configuration Helper
 # Validates and updates email addresses for Let's Encrypt ACME registration
 #
-set -e
+
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

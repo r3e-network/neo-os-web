@@ -9,8 +9,12 @@ function resolveChainType(chainType: unknown): string {
 }
 
 export function isEvmChain(chainType: unknown): boolean {
-  void chainType;
-  return false;
+  if (typeof chainType !== "string") {
+    const value = (chainType as { value?: unknown } | null)?.value;
+    if (typeof value !== "string") return false;
+    chainType = value;
+  }
+  return (chainType as string).startsWith("evm-") || chainType === "eth" || chainType === "ethereum";
 }
 
 export function requireNeoChain(
@@ -28,9 +32,9 @@ export function requireNeoChain(
   if (!message && typeof t === "function") {
     const primary = t("wrongChainMessage");
     message =
-      primary && primary !== "wrongChainMessage" ? primary : t("wrongChain");
+      primary && primary !== "wrongChainMessage" ? primary : t("wrongChain") || "Wrong network. Please switch to Neo N3.";
   }
-  if (!message) message = t("wrongChain");
+  if (!message) message = "Wrong network. Please switch to Neo N3.";
 
   const ui = (
     globalThis as {

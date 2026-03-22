@@ -194,7 +194,7 @@ async function main() {
       process.exitCode = 2;
     }
   } catch (error) {
-    console.error("verify-publish-audit-chain failed:", error.message || String(error));
+    console.error("verify-publish-audit-chain failed:", error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   } finally {
     await client.end();

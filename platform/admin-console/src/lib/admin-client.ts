@@ -5,6 +5,7 @@ function readRuntimeAdminKey(): string {
     const fromMeta = document.querySelector('meta[name="admin-api-key"]')?.getAttribute("content") || "";
     return fromMeta.trim();
   } catch {
+    // SSR or restricted environment — return empty key (getAdminAuthHeaders handles absence)
     return "";
   }
 }

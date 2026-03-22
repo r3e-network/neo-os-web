@@ -38,6 +38,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [notifError, setNotifError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -83,23 +84,27 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
   }, [walletAddress]);
 
   const markAsRead = async (id: string) => {
+    setNotifError(null);
     try {
       await fetchOK(`/api/notifications/events/${id}/read`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
       logger.warn("Failed to mark notification as read:", err);
+      setNotifError("Failed to mark as read");
     }
   };
 
   const markAllAsRead = async () => {
     if (!walletAddress) return;
+    setNotifError(null);
     try {
       await fetchOK(`/api/notifications/events/read-all?wallet=${encodeURIComponent(walletAddress)}`, { method: "POST" });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
     } catch (err) {
       logger.warn("Failed to mark all notifications as read:", err);
+      setNotifError("Failed to mark all as read");
     }
   };
 
@@ -156,6 +161,11 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               </button>
             )}
           </div>
+          {notifError && (
+            <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs">
+              {notifError}
+            </div>
+          )}
 
           {/* Notification List */}
           <div className="overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 flex-1 custom-scrollbar" tabIndex={0}>

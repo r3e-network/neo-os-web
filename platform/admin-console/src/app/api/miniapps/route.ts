@@ -48,7 +48,7 @@ export async function GET(req: Request) {
       return jsonError("Failed to fetch miniapps", response.status);
     }
 
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
     const apps = Array.isArray(data?.apps) ? data.apps : [];
     return NextResponse.json(apps);
   } catch {

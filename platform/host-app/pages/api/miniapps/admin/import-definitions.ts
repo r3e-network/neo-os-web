@@ -179,7 +179,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         .maybeSingle();
 
       if (error) {
-        logger.error("miniapp import existing fetch error:", error.message);
+        logger.error("miniapp import existing fetch error:", error instanceof Error ? error.message : String(error));
         results.push({
           file: definition.fileName,
           app_id: rawAppId,

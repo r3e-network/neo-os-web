@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch((e: unknown) => { console.warn("[import-batch/rollback] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
     return NextResponse.json(data, { status: response.status });
   } catch {
     return jsonError("Failed to reach host-app batch rollback endpoint", 502);

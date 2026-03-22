@@ -37,8 +37,8 @@
             />
             <defs>
               <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stop-color="#34d399" />
-                <stop offset="100%" stop-color="#10b981" />
+                <stop offset="0%" stop-color="var(--trustanchor-emerald-light, #34d399)" />
+                <stop offset="100%" stop-color="var(--trustanchor-emerald, #10b981)" />
               </linearGradient>
             </defs>
           </svg>
@@ -80,8 +80,8 @@
         <div v-if="address" class="stake-form">
           <div class="input-group mb-4">
             <div class="input-row">
-              <NeoInput type="number" v-model="stakeAmount" :label="t('stake')" :placeholder="t('amount')" required />
-              <NeoButton variant="primary" :loading="isStaking" @click="handleStake">
+              <NeoInput type="number" v-model="stakeAmount" :label="t('stake')" :placeholder="t('amount')" required :min="0" />
+              <NeoButton variant="primary" type="button" :loading="isStaking" :aria-label="t('stake')" @click="handleStake">
                 {{ t("stake") }}
               </NeoButton>
             </div>
@@ -89,8 +89,8 @@
 
           <div class="input-group mb-4">
             <div class="input-row">
-              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" required />
-              <NeoButton variant="secondary" :loading="isUnstaking" @click="handleUnstake">
+              <NeoInput type="number" v-model="unstakeAmount" :label="t('unstake')" :placeholder="t('amount')" required :min="0" />
+              <NeoButton variant="secondary" type="button" :loading="isUnstaking" :aria-label="t('unstake')" @click="handleUnstake">
                 {{ t("unstake") }}
               </NeoButton>
             </div>
@@ -101,7 +101,7 @@
               <span class="claim-panel__label">{{ t("pendingRewards") }}</span>
               <span class="claim-panel__value">{{ formatNum(pendingRewards) }} {{ t("tokenGas") }}</span>
             </div>
-            <NeoButton variant="primary" :loading="isClaiming" :disabled="pendingRewards <= 0" @click="handleClaim">
+            <NeoButton variant="primary" type="button" :loading="isClaiming" :disabled="pendingRewards <= 0" :aria-label="t('claim')" @click="handleClaim">
               {{ t("claim") }}
             </NeoButton>
           </div>
@@ -112,14 +112,14 @@
               <span class="claim-panel__value">{{ formatNum(pendingWithdraw) }} {{ t("tokenNeo") }}</span>
               <span class="claim-panel__hint">{{ t("withdrawQueueDesc") }}</span>
             </div>
-            <NeoButton variant="secondary" :disabled="pendingWithdraw <= 0" @click="handleClaimPendingWithdraw">
+            <NeoButton variant="secondary" type="button" :disabled="pendingWithdraw <= 0" :aria-label="t('claimPendingWithdraw')" @click="handleClaimPendingWithdraw">
               {{ t("claimPendingWithdraw") }}
             </NeoButton>
           </div>
         </div>
 
         <div v-else class="connect-prompt">
-          <NeoButton variant="primary" @click="connect">
+          <NeoButton variant="primary" type="button" :aria-label="t('connectWallet')" @click="connect">
             {{ t("connectWallet") }}
           </NeoButton>
         </div>
@@ -278,8 +278,8 @@ const handleClaimPendingWithdraw = async () => {
   if (pendingWithdraw.value <= 0) return;
   try {
     await claimPendingWithdraw();
-  } catch (_e: unknown) {
-    /* non-critical: claim pending withdraw */
+  } catch (e: unknown) {
+    console.error("[trustanchor] handleClaimPendingWithdraw error:", e instanceof Error ? e.message : String(e));
   }
 };
 
@@ -287,17 +287,20 @@ const resetAndReload = async () => {
   try {
     if (!(await ensureContractReady())) return;
     await loadAll();
-  } catch (_e: unknown) {
-    /* non-critical: reload trustanchor data */
+  } catch (e: unknown) {
+    console.error("[trustanchor] resetAndReload error:", e instanceof Error ? e.message : String(e));
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
-  try {
-    await resetAndReload();
-  } catch (_e: unknown) {
-    /* non-critical: initial data load */
-  }
+  if (!isMounted.value) return;
+  await resetAndReload();
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
 });
 </script>
 
@@ -502,7 +505,7 @@ onMounted(async () => {
   font-weight: 700;
 
   &--accent {
-    color: #34d399;
+    color: var(--trust-accent-green, #34d399);
   }
 }
 
@@ -563,6 +566,15 @@ onMounted(async () => {
   }
   50% {
     filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.5));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container,
+  .hero-gauge,
+  .gauge-svg,
+  .gauge-value {
+    animation: none;
   }
 }
 

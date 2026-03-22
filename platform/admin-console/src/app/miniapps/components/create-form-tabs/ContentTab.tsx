@@ -3,7 +3,7 @@
 import type { ChangeEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import type { MiniAppMediaAssetKind } from "@/lib/hooks/useMiniApps";
+import type { MiniAppMediaAssetKind, MediaUploadOptions } from "@/lib/hooks/useMiniApps";
 
 type AssetVariantSettings = {
   theme: "" | "light" | "dark" | "any";
@@ -13,14 +13,14 @@ type AssetVariantSettings = {
 };
 
 type Props = {
-  form: any;
+  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
   categories: string[];
   update: (key: string, value: string | boolean) => void;
   assetFiles: Partial<Record<MiniAppMediaAssetKind, File>>;
   assetVariantSettings: Record<"logo" | "banner", AssetVariantSettings>;
   updateAssetVariantSettings: (kind: "logo" | "banner", next: Partial<AssetVariantSettings>) => void;
   handleAssetFileSelect: (assetType: MiniAppMediaAssetKind, event: ChangeEvent<HTMLInputElement>) => void;
-  onUploadMediaAsset: (assetType: MiniAppMediaAssetKind, file: File, options?: any) => Promise<void>;
+  onUploadMediaAsset: (assetType: MiniAppMediaAssetKind, file: File, options?: MediaUploadOptions) => Promise<void>;
   mediaUploadPending: boolean;
   mediaUploadError: string;
   mediaUploadInfo: string;
@@ -68,6 +68,7 @@ export function ContentTab({
             value={form.content_logo_variants_json}
             onChange={e => update("content_logo_variants_json", e.target.value)}
             placeholder={`[\n  { "url": "https://cdn/logo-dark.png", "theme": "dark" },\n  { "url": "https://cdn/logo-light.png", "theme": "light" }\n]`}
+            aria-label="Logo variants JSON"
           />
         </div>
         <div>
@@ -78,6 +79,7 @@ export function ContentTab({
             value={form.content_banner_variants_json}
             onChange={e => update("content_banner_variants_json", e.target.value)}
             placeholder={`[\n  { "url": "https://cdn/banner-dark.png", "theme": "dark" },\n  { "url": "https://cdn/banner-light.png", "theme": "light" }\n]`}
+            aria-label="Banner variants JSON"
           />
         </div>
       </div>

@@ -9,6 +9,7 @@ import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getContractStats, FLAGSHIP_APPS } from "../../../lib/chain";
 import { apiError } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 
 const DEPLOYED_APPS = Object.entries(FLAGSHIP_APPS).map(([appId, meta]) => ({
   appId,
@@ -54,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       results.push({ appId: app.appId, success: true });
     } catch (error) {
+      logger.warn(`rollup failed for ${app.appId}:`, error instanceof Error ? error.message : "unknown error");
       results.push({
         appId: app.appId,
         success: false,
@@ -64,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const successCount = results.filter((r) => r.success).length;
 
-  res.status(200).json({
+  return res.status(200).json({
     message: `Rollup complete: ${successCount}/${DEPLOYED_APPS.length} apps updated`,
     results,
     timestamp: new Date().toISOString(),

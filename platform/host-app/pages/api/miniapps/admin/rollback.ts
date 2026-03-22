@@ -73,7 +73,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       .single();
 
     if (upsertError || !upserted) {
-      logger.error("miniapp rollback upsert failed:", upsertError?.message || "unknown error");
+      logger.error("miniapp rollback upsert failed:", upsertError instanceof Error ? upsertError.message : "unknown error");
       return apiError.internal(res, "Rollback snapshot applied but failed to update miniapp row");
     }
 

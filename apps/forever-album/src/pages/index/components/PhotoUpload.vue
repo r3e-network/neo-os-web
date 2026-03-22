@@ -37,12 +37,13 @@
     </div>
 
     <template #actions>
-      <NeoButton variant="ghost" size="sm" @click="$emit('close')">
+      <NeoButton variant="ghost" size="sm" type="button" @click="$emit('close')">
         {{ t("cancel") }}
       </NeoButton>
       <NeoButton
         variant="primary"
         size="sm"
+        type="button"
         :disabled="images.length === 0 || uploading"
         :loading="uploading"
         @click="$emit('confirm')"
@@ -54,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { ActionModal, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -84,8 +85,12 @@ const emit = defineEmits<{
 
 const localPassword = ref(props.password);
 
-watch(localPassword, (newVal) => {
+const stopLocalPasswordWatch = watch(localPassword, (newVal) => {
   emit("update:password", newVal);
+});
+
+onUnmounted(() => {
+  stopLocalPasswordWatch();
 });
 
 const formatBytes = (bytes: number) => {

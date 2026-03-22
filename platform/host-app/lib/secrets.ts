@@ -67,7 +67,7 @@ export const useSecretsStore = create<SecretsState>((set) => ({
 
     if (!trimmedName || !trimmedValue) {
       set({ error: "Name and secret value are required" });
-      throw new Error("invalid secret token input");
+      throw new Error("createToken failed: name and secret value are required");
     }
 
     const existing = readTokensFromStorage();

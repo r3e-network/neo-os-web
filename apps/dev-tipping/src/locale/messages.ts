@@ -4,6 +4,7 @@ const appMessages = {
   // App translations
   title: { en: "Dev Tipping", zh: "开发者打赏" },
   subtitle: { en: "Support developers", zh: "支持开发者" },
+  stats: { en: "Stats", zh: "统计" },
   developers: { en: "Developers", zh: "开发者" },
   topDevelopers: { en: "Top Developers", zh: "顶级开发者" },
   tipsCount: { en: "tips", zh: "打赏次数" },

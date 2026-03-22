@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const result = await response.json().catch(() => null);
+    const result = await response.json().catch((e: unknown) => { console.warn("[miniapps/rollback] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
     return NextResponse.json(result || { success: true });
   } catch {
     return jsonError("Failed to reach host-app rollback endpoint", 502);

@@ -28,11 +28,11 @@ export function createProxyHeaders(req: Request): Record<string, string> {
 export async function parseHostErrorPayload(response: Response, fallback: string): Promise<string> {
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    const text = await response.text().catch(() => "");
+    const text = await response.text().catch((e: unknown) => { console.warn("[host-admin-proxy] failed to read response text:", e instanceof Error ? e.message : String(e)); return ""; });
     return text || fallback;
   }
 
-  const payload = await response.json().catch(() => null) as {
+  const payload = await response.json().catch((e: unknown) => { console.warn("[host-admin-proxy] failed to parse error JSON:", e instanceof Error ? e.message : String(e)); return null; }) as {
     error?: { message?: string } | string;
     message?: string;
   } | null;

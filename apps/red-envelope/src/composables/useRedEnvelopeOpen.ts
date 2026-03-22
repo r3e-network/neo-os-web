@@ -150,7 +150,7 @@ export function useRedEnvelopeOpen() {
           const envelopeId = String(values[0] ?? "");
           if (!envelopeId || seen.has(envelopeId)) return null;
           seen.add(envelopeId);
-          return mapEnvelope(contractAddress.value!, envelopeId);
+          return mapEnvelope(contractAddress.value ?? "", envelopeId);
         })
       );
 

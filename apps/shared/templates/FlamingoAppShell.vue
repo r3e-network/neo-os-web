@@ -9,8 +9,8 @@
 
 body {
   min-height: 100vh;
-  background: #0b0d12;
-  color: #fff;
+  background: var(--bg-primary, #0b0d12);
+  color: var(--text-primary, #fff);
 }
 
 .app-root {

@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -115,7 +115,7 @@ const { address, appChainId } = useWallet() as WalletSDK;
 
 const currentChainId = ref<"neo-n3-mainnet" | "neo-n3-testnet">("neo-n3-testnet");
 
-watch(
+const stopAppChainIdWatch = watch(
   () => appChainId.value,
   (value) => {
     if (value === "neo-n3-mainnet" || value === "neo-n3-testnet") {
@@ -167,21 +167,30 @@ const createProposal = async (proposalData: {
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await init();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[council-governance] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
-
-watch(address, async () => {
+const stopAddressWatch = watch(address, async () => {
+  if (!isMounted.value) return;
   try {
     await refreshCandidateStatus();
     await refreshHasVoted();
   } catch (_e: unknown) {
-    /* non-critical: status refresh */
+    console.warn("[council-governance] status refresh failed:", _e instanceof Error ? _e.message : String(_e));
   }
+});
+
+onUnmounted(() => {
+  stopAppChainIdWatch();
+  stopAddressWatch();
+  isMounted.value = false;
 });
 </script>
 
@@ -276,6 +285,15 @@ watch(address, async () => {
     box-shadow:
       0 0 20px rgba(100, 80, 220, 0.25),
       0 0 40px rgba(100, 80, 220, 0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat {
+    animation: none;
+  }
+  :deep(.hero-icon) {
+    animation: none;
   }
 }
 

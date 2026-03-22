@@ -42,7 +42,7 @@ defineEmits<{
 
 const formatTime = (time: string) => {
   const d = new Date(time);
-  return new Intl.DateTimeFormat("en").format(d);
+  return new Intl.DateTimeFormat(undefined).format(d);
 };
 
 const truncateHash = (hash: string) => {
@@ -151,6 +151,12 @@ const getVmStateLabel = (vmState: string) => {
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-line::after {
+    animation: none;
   }
 }
 

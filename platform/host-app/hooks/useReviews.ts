@@ -17,22 +17,24 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 
-  const fetchRating = useCallback(async () => {
+  const fetchRating = useCallback(async (signal?: AbortSignal) => {
     try {
       const url = `/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings${walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ""}`;
-      const data = await fetchJSON<{ rating?: SocialRating }>(url);
+      const data = await fetchJSON<{ rating?: SocialRating }>(url, { signal });
       setRating(data.rating ?? null);
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       logger.warn("Failed to fetch rating:", err);
     }
   }, [appId, walletAddress]);
 
   const fetchComments = useCallback(
-    async (offset = 0) => {
+    async (offset = 0, signal?: AbortSignal) => {
       setLoading(true);
       try {
         const data = await fetchJSON<{ comments?: SocialComment[]; hasMore?: boolean }>(
           `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}`,
+          { signal },
         );
         if (offset === 0) {
           setComments(data.comments || []);
@@ -41,6 +43,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         }
         setHasMore(Boolean(data.hasMore));
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(toApiError(err).message);
       } finally {
         setLoading(false);
@@ -97,7 +100,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
           body: JSON.stringify({ wallet: walletAddress, vote_type: voteType }),
         });
         return true;
-      } catch {
+      } catch (err) {
+        logger.warn("Vote failed:", err);
         return false;
       }
     },
@@ -114,7 +118,8 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
           body: JSON.stringify({ wallet: walletAddress, content, parent_id: parentId }),
         });
         return true;
-      } catch {
+      } catch (err) {
+        logger.warn("Reply failed:", err);
         return false;
       }
     },

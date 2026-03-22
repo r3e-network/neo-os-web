@@ -12,6 +12,7 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
 
   const loading = ref(false);
   const myDomains = ref<Domain[]>([]);
+  const error = ref<string | null>(null);
 
   const loadMyDomains = async () => {
     if (!requireNeoChain(chainType, t)) {
@@ -63,12 +64,13 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
             });
           }
         } catch (_e: unknown) {
-          /* Individual domain property fetch failure -- skip this domain */
+          console.warn("[useNeoNS] individual domain property fetch failed:", _e instanceof Error ? _e.message : String(_e));
         }
       }
 
       myDomains.value = domains.sort((a, b) => b.expiry - a.expiry);
-    } catch (_e: unknown) {
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : "Failed to load domains";
       myDomains.value = [];
     } finally {
       loading.value = false;
@@ -168,6 +170,7 @@ export function useNeoNS(nnsContract: string, t: (key: string) => string) {
     address,
     connect,
     loading,
+    error,
     myDomains,
     loadMyDomains,
     handleRenew,

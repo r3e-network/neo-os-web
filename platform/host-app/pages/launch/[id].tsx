@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
@@ -41,28 +41,41 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
   const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
   const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
+  const mountedRef = useRef(true);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, []);
 
   // Network latency monitoring
   useEffect(() => {
+    let active = true;
     const measureLatency = async () => {
+      if (!active) return;
       try {
         const start = performance.now();
-        // Ping a lightweight endpoint (using /api/health or Supabase REST endpoint)
         await fetch("/api/health", { method: "HEAD", signal: AbortSignal.timeout(5000) });
         const end = performance.now();
+        if (!active) return;
         setNetworkLatency(Math.round(end - start));
       } catch (e) {
-        setNetworkLatency(null); // Network error
+        if (!active) return;
+        console.warn("[launch] network latency check failed:", e instanceof Error ? e.message : String(e));
+        setNetworkLatency(null);
       }
     };
 
-    // Measure immediately on mount
     measureLatency();
 
-    // Then measure every 5 seconds
     const interval = setInterval(measureLatency, 5000);
-
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Wallet connection (same logic as index.tsx)
@@ -73,10 +86,11 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         if (g?.NEOLineN3) {
           const inst = new g.NEOLineN3.Init();
           const acc = await inst.getAccount();
+          if (!mountedRef.current) return;
           setWallet({ connected: true, address: acc.address, provider: "neoline" });
         }
       } catch (e) {
-        // Silent fail - user can connect manually from dock
+        console.warn("[launch] NEOLineN3 auto-connect failed:", e instanceof Error ? e.message : String(e));
       }
     };
 
@@ -106,7 +120,8 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       .writeText(url)
       .then(() => {
         setToastMessage("Link copied!");
-        setTimeout(() => setToastMessage(null), 2000);
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        toastTimeoutRef.current = setTimeout(() => { if (mountedRef.current) setToastMessage(null); }, 2000);
         logger.debug("Link copied:", url);
       })
       .catch((e) => {
@@ -237,7 +252,7 @@ export const getServerSideProps: GetServerSideProps<LaunchPageProps> = async (co
   try {
     const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
     const catalogRes = await fetch(`${baseUrl}/api/miniapps/catalog?app_id=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(10000) });
-    const catalogPayload = await catalogRes.json().catch(() => null);
+    const catalogPayload = await catalogRes.json().catch((e: unknown) => { console.warn("[launch] failed to parse catalog response:", e instanceof Error ? e.message : String(e)); return null; });
     const raw = catalogPayload?.app || null;
     const app = coerceMiniAppInfo(raw, fallback ?? undefined) ?? fallback ?? null;
     if (!app) {

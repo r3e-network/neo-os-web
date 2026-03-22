@@ -12,13 +12,13 @@
       <span class="reward-value">+{{ formatNum(estimatedReward) }} {{ t("points") }}</span>
     </div>
     <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('burn')" class="burn-button">
-      <span class="burn-button-text"><span aria-hidden="true">🔥</span> {{ t("burnNow") }}</span>
+      <span class="burn-button-text"><AppIcon name="flame" :size="14" /> {{ t("burnNow") }}</span>
     </NeoButton>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
 import { formatNumber } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -45,16 +45,16 @@ const formatNum = (n: number) => formatNumber(n, 2);
 @use "@shared/styles/mixins.scss" as *;
 
 .reward-info {
-  background: rgba(249, 115, 22, 0.1);
+  background: var(--burn-reward-bg);
   backdrop-filter: blur(10px);
   padding: 16px;
-  border: 1px solid rgba(249, 115, 22, 0.2);
+  border: 1px solid var(--burn-reward-border);
   border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 20px 0;
-  box-shadow: 0 0 20px rgba(249, 115, 22, 0.1);
+  box-shadow: 0 0 20px var(--burn-reward-border);
 }
 
 .reward-label {

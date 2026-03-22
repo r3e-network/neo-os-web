@@ -5,6 +5,7 @@ const appMessages = {
   tagline: { en: "Eternal Presence, Eternal Memory", zh: "永恒存在，永恒记忆" },
   subtitle: { en: "Inscribe memories on the blockchain forever", zh: "将逝者的记忆永久铭刻于区块链之上" },
   memorials: { en: "Memorials", zh: "灵位堂" },
+  noMemorials: { en: "No memorials yet. Create the first one above.", zh: "暂无灵位，点击上方创建" },
   myTributes: { en: "My Tributes", zh: "我的祭拜" },
   myTributesDesc: { en: "Click to pay tribute again", zh: "点击可快速再次祭拜" },
   create: { en: "Create", zh: "立灵位" },
@@ -75,6 +76,9 @@ const appMessages = {
   tokenGas: { en: "GAS", zh: "GAS" },
   yearRangeSeparator: { en: " - ", zh: " - " },
   yearSeparator: { en: "-", zh: "-" },
+  candleIcon: { en: "Memorial candle", zh: "纪念蜡烛" },
+  createTitleIcon: { en: "Create memorial", zh: "创建灵位" },
+  photoUploadIcon: { en: "Upload photo", zh: "上传照片" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

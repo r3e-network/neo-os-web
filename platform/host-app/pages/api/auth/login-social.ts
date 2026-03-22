@@ -18,5 +18,5 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!connection) {
     return apiError.badRequest(res, "invalid provider");
   }
-  res.redirect(`/api/auth/login?connection=${connection}`);
+  return res.redirect(`/api/auth/login?connection=${connection}`);
 }

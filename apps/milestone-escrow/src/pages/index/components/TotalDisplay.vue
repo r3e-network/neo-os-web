@@ -21,7 +21,7 @@ const { t } = createUseI18n(messages)();
 
 <style lang="scss" scoped>
 .total-row {
-  background: rgba(251, 191, 36, 0.12);
+  background: var(--escrow-total-bg);
   border-radius: 16px;
   padding: 12px 16px;
 }

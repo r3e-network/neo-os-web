@@ -107,7 +107,7 @@ function onInput(e: Record<string, unknown>) {
   font-size: 11px;
   font-weight: 600;
   color: var(--swap-text-subtle);
-  font-family: "JetBrains Mono", monospace;
+  font-family: $font-mono;
 }
 
 .token-row {
@@ -130,7 +130,7 @@ function onInput(e: Record<string, unknown>) {
   font-weight: 700;
   color: var(--swap-text);
   text-align: right;
-  font-family: "Inter", sans-serif;
+  font-family: $font-family;
 
   &::placeholder {
     color: var(--swap-text-dim);
@@ -158,6 +158,12 @@ function onInput(e: Record<string, unknown>) {
 
   &:hover {
     background: var(--swap-accent-soft-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--swap-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(159, 157, 243, 0.15);
   }
 }
 </style>

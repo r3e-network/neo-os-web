@@ -42,8 +42,11 @@ async function testEmail() {
     console.log("✅ Email sent successfully!");
   } catch (error: unknown) {
     console.error("❌ Failed to send email:");
-    const err = error as { response?: { body?: unknown }; message?: string };
-    console.error(err.response?.body || err.message);
+    if (error instanceof Error) {
+      console.error(error.message);
+    } else {
+      console.error(String(error));
+    }
   }
 }
 

@@ -23,8 +23,9 @@ export default handleAuth({
               }),
               signal: AbortSignal.timeout(10000),
             });
-          } catch {
+          } catch (e) {
             // Best-effort sync - don't block login on failure
+            console.warn("[auth0] social sync failed:", e instanceof Error ? e.message : String(e));
           }
         }
       }

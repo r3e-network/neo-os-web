@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
+
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
 
@@ -26,7 +29,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     `access_type=offline&` +
     `prompt=consent`;
 
-  res.redirect(authUrl);
+  return res.redirect(authUrl);
 }
 
 function generateState(): string {

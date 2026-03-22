@@ -32,7 +32,11 @@ export function useMultisigHistory() {
   };
 
   const saveHistory = () => {
-    uni.setStorageSync(STORAGE_KEY, JSON.stringify(history.value));
+    try {
+      uni.setStorageSync(STORAGE_KEY, JSON.stringify(history.value));
+    } catch (err) {
+      console.warn("[useMultisigHistory] saveHistory failed:", err instanceof Error ? err.message : String(err));
+    }
   };
 
   const addToHistory = (item: HistoryItem) => {

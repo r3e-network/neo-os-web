@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (!response.ok) {
       return jsonError("Failed to fetch", response.status);
     }
-    const data = await response.json().catch(() => ({}));
+    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps/id GET] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
     if (!data || !data.app || typeof data.app !== "object") {
       return jsonError("Not found", 404);
     }
@@ -68,7 +68,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       const message = await parseHostErrorPayload(response, "Failed to disable miniapp");
       return jsonError(message, response.status);
     }
-    await response.json().catch(() => null);
+    await response.json().catch((e: unknown) => { console.warn("[miniapps/id DELETE] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); });
     return NextResponse.json({ success: true });
   } catch {
     return jsonError("Failed to reach host-app admin endpoint", 502);
@@ -122,7 +122,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const message = await parseHostErrorPayload(response, "Failed to update miniapp");
       return jsonError(message, response.status);
     }
-    await response.json().catch(() => null);
+    await response.json().catch((e: unknown) => { console.warn("[miniapps/id PATCH] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); });
     return NextResponse.json({ success: true });
   } catch {
     return jsonError("Failed to reach host-app admin endpoint", 502);

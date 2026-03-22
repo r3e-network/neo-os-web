@@ -92,7 +92,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => ({ requests: [] })) as {
+    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests/export] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { requests: [] }; }) as {
       requests?: Array<Record<string, unknown>>;
     };
     const requests = Array.isArray(payload.requests) ? payload.requests : [];

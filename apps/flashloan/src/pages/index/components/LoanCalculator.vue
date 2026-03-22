@@ -4,8 +4,9 @@
       <span class="calculator-title">{{ t('loanCalculator') }}</span>
       <div class="calculator-inputs">
         <div class="input-group">
-          <span class="input-label">{{ t('loanAmount') }}</span>
+          <label for="loan-amount-input" class="input-label">{{ t('loanAmount') }}</label>
           <input
+            id="loan-amount-input"
             type="number"
             v-model="amount"
             class="calculator-input"
@@ -14,8 +15,9 @@
           />
         </div>
         <div class="input-group">
-          <span class="input-label">{{ t('duration') }} ({{ t('days') }})</span>
+          <label for="duration-input" class="input-label">{{ t('duration') }} ({{ t('days') }})</label>
           <input
+            id="duration-input"
             type="number"
             v-model="duration"
             class="calculator-input"

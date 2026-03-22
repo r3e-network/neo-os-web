@@ -196,11 +196,13 @@ function ParamInput({
       parsedOptions = options;
     }
 
+    const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
     return (
       <div className="flex flex-col space-y-1.5">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
+        <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
         <div className="relative">
           <select
+            id={selectId}
             className="w-full appearance-none bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all"
             value={value}
             onChange={(e) => onChange(e.target.value)}
@@ -221,10 +223,12 @@ function ParamInput({
     );
   }
 
+  const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="flex flex-col space-y-1.5">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
+      <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
       <input
+        id={inputId}
         type={param.type === "amount" || param.type === "integer" ? "number" : "text"}
         step={param.type === "amount" ? "any" : "1"}
         className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"

@@ -47,7 +47,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.badRequest(res, "Wallet address required");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
   if (wallet !== authedWallet) {
     return apiError.forbidden(res, "Wallet mismatch");

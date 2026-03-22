@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
+
   const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
   const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
 
@@ -21,7 +24,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     `scope=user:email&` +
     `state=${state}`;
 
-  res.redirect(authUrl);
+  return res.redirect(authUrl);
 }
 
 function generateState(): string {

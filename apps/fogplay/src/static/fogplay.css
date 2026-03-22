@@ -236,6 +236,24 @@
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .premium-arena::before {
+        animation: none;
+    }
+
+    .status-dot.flipping {
+        animation: none;
+    }
+
+    .stream-line {
+        animation: none;
+    }
+
+    .hex-decoration {
+        animation: none;
+    }
+}
+
 /* Vignette Overlay */
 .vignette-overlay {
     position: fixed;

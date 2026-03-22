@@ -549,12 +549,12 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
     const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
     // Parallel fetch with shorter timeout (2s) for faster page load
     const [catalogRes, notifRes] = await Promise.all([
-      fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch(() => null),
-      fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch(() => null),
+      fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch((e: unknown) => { console.warn("[miniapps/id] catalog fetch failed:", e instanceof Error ? e.message : String(e)); return null; }),
+      fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch((e: unknown) => { console.warn("[miniapps/id] news fetch failed:", e instanceof Error ? e.message : String(e)); return null; }),
     ]);
 
-    const catalogData = catalogRes?.ok ? await catalogRes.json().catch(() => ({})) : {};
-    const notifData = notifRes?.ok ? await notifRes.json().catch(() => ({ notifications: [] })) : { notifications: [] };
+    const catalogData = catalogRes?.ok ? await catalogRes.json().catch((e: unknown) => { console.warn("[miniapps/id] failed to parse catalog JSON:", e instanceof Error ? e.message : String(e)); return ({}); }) : {};
+    const notifData = notifRes?.ok ? await notifRes.json().catch((e: unknown) => { console.warn("[miniapps/id] failed to parse notifications JSON:", e instanceof Error ? e.message : String(e)); return { notifications: [] }; }) : { notifications: [] };
     const catalogApp = catalogData?.app ?? null;
     const app = coerceMiniAppInfo(catalogApp, fallback ?? undefined);
 

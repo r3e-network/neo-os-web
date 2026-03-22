@@ -3,8 +3,9 @@
     <span class="load-label" :id="`load-label-${uid}`">{{ label }}</span>
     <div class="load-input-row">
       <div class="input-wrapper">
-        <span class="input-icon" aria-hidden="true">🔗</span>
+        <AppIcon name="link" :size="16" class="input-icon" />
         <input
+          :id="`load-input-${uid}`"
           type="text"
           class="load-input"
           :placeholder="placeholder"
@@ -27,6 +28,8 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from "@shared/components/AppIcon.vue";
+
 const uid = `load-${Math.random().toString(36).slice(2, 9)}`;
 
 defineProps<{
@@ -101,6 +104,11 @@ defineEmits<{
   font-family: "JetBrains Mono", monospace;
   outline: none !important;
   min-height: 48px;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+  }
   width: 100%;
   -webkit-appearance: none;
   appearance: none;

@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -63,22 +63,27 @@ const emit = defineEmits<{
 
 const localTokenId = ref(props.tokenId);
 
-watch(
+const stopPropTokenIdWatch = watch(
   () => props.tokenId,
   (newVal) => {
     localTokenId.value = newVal;
   }
 );
 
-watch(localTokenId, (newVal) => {
+const stopLocalTokenIdWatch = watch(localTokenId, (newVal) => {
   emit("update:tokenId", newVal);
+});
+
+onUnmounted(() => {
+  stopPropTokenIdWatch();
+  stopLocalTokenIdWatch();
 });
 
 const formatSchedule = (startTime: number, endTime: number) => {
   if (!startTime || !endTime) return t("dateUnknown");
   const start = new Date(startTime * 1000);
   const end = new Date(endTime * 1000);
-  return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
+  return `${new Intl.DateTimeFormat(undefined).format(start)} - ${new Intl.DateTimeFormat(undefined).format(end)}`;
 };
 </script>
 

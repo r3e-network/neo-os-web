@@ -36,10 +36,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function getStats(wallet: string, res: NextApiResponse) {
-  const emptyStats: UserStats = {
-    wallet,
-    xp: 0,
-    level: 1,
+  try {
+    const emptyStats: UserStats = {
+      wallet,
+      xp: 0,
+      level: 1,
     badges: [],
     rank: 1,
     streak: 0,
@@ -142,4 +143,8 @@ async function getStats(wallet: string, res: NextApiResponse) {
   };
 
   return res.status(200).json({ stats });
+  } catch (err) {
+    logger.error("gamification stats error:", err instanceof Error ? err.message : String(err));
+    return res.status(500).json({ stats: { wallet, xp: 0, level: 1, badges: [], rank: 1, streak: 0, totalTx: 0, totalVotes: 0, appsUsed: 0 } });
+  }
 }

@@ -11,7 +11,11 @@
         }"
       >
         <div class="milestone-icon">
-          <span aria-hidden="true">{{ currentStreak >= milestone.day ? "✅" : "🎯" }}</span>
+          <AppIcon
+            :name="currentStreak >= milestone.day ? 'check' : 'milestone'"
+            :size="24"
+            :aria-label="currentStreak >= milestone.day ? t('milestoneReached') : t('milestonePending')"
+          />
         </div>
         <span class="milestone-day">{{ t("day") }} {{ milestone.day }}</span>
         <span class="milestone-reward">+{{ milestone.reward }} {{ t("tokenGas") }}</span>
@@ -22,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

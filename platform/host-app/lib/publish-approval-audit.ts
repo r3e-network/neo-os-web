@@ -28,7 +28,13 @@ type AuditRow = {
 
 function stableStringify(value: unknown): string {
   if (value === null || value === undefined) return "null";
-  if (typeof value !== "object") return JSON.stringify(value);
+  if (typeof value !== "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
   if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
   const obj = value as Dict;
   const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));

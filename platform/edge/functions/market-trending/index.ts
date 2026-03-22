@@ -87,7 +87,12 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
   if (rateLimited) return rateLimited;
 
   // Parse and validate query parameters
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const { limit, period } = parseQueryParams(url);
   const days = periodToDays(period);
 
@@ -206,7 +211,7 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       .in("app_id", topAppIds);
 
     if (appsErr) {
-      console.warn("market-trending: failed to fetch app metadata", appsErr.message ?? "unknown error");
+      console.warn("market-trending: failed to fetch app metadata", appsErr instanceof Error ? appsErr.message : (appsErr?.message ?? "unknown error"));
     }
 
     // Fetch total stats
@@ -277,7 +282,8 @@ export async function handler(req: Request, supabaseFactory?: () => any): Promis
       {},
       req,
     );
-  } catch {
+  } catch (err) {
+    console.error("[market-trending] handler error:", err instanceof Error ? err.message : String(err));
     return error(500, "internal server error", "INTERNAL_ERROR", req);
   }
 }

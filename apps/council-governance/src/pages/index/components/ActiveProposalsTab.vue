@@ -257,6 +257,15 @@ const getQuorumPercent = (p: { yesVotes: number; noVotes: number }) => {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .spinner-small {
+    animation: none;
+  }
+  .skeleton-line::after {
+    animation: none;
+  }
+}
+
 .warning-banner-neo {
   background: rgba(253, 224, 71, 0.1);
   color: var(--senate-warning);

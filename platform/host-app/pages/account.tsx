@@ -61,7 +61,7 @@ export default function AccountPage() {
                       size="sm"
                       className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                       disabled={!address}
-                      onClick={() => address && navigator.clipboard.writeText(address)}
+                      onClick={() => { if (address) { navigator.clipboard.writeText(address).catch((e: unknown) => { console.warn("[account] clipboard write failed:", e instanceof Error ? e.message : String(e)); }); } }}
                     >
                       Copy
                     </Button>

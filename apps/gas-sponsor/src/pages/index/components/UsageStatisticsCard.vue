@@ -7,17 +7,17 @@
         <span class="stat-label">{{ t("usedToday") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <span class="stat-icon" aria-hidden="true">🎯</span>
+        <AppIcon name="target" :size="24" class="stat-icon" />
         <span class="stat-value">{{ formatBalance(remainingQuota) }}</span>
         <span class="stat-label">{{ t("available") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <span class="stat-icon" aria-hidden="true">📊</span>
+        <AppIcon name="chart" :size="24" class="stat-icon" />
         <span class="stat-value">{{ formatBalance(dailyLimit) }}</span>
         <span class="stat-label">{{ t("dailyLimit") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <span class="stat-icon" aria-hidden="true">⏰</span>
+        <AppIcon name="clock" :size="24" class="stat-icon" />
         <span class="stat-value">{{ resetTime }}</span>
         <span class="stat-label">{{ t("nextReset") }}</span>
       </NeoCard>

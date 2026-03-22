@@ -37,71 +37,82 @@ export function AnalyticsProvider({
   autoTrackErrors = true,
 }: AnalyticsProviderProps) {
   const isInitialized = useRef(false);
-  
+
   useEffect(() => {
     if (isInitialized.current) return;
     isInitialized.current = true;
-    
+
     // Initialize all monitoring systems
     initPerformanceMonitoring();
     initErrorTracking();
     initAnalytics();
-    
+
     // Track initial page view
     if (autoTrackPageViews) {
       trackPageView();
     }
-    
+
     // Set up click tracking
+    let cleanupClickTracking: (() => void) | undefined;
     if (autoTrackClicks) {
-      setupClickTracking();
+      cleanupClickTracking = setupClickTracking();
     }
+
+    return () => {
+      if (cleanupClickTracking) {
+        cleanupClickTracking();
+      }
+    };
   }, [autoTrackPageViews, autoTrackClicks, autoTrackErrors]);
-  
+
   return <>{children}</>;
 }
 
 /**
  * Set up automatic click tracking via event delegation
+ * Returns a cleanup function to remove the event listener
  */
-function setupClickTracking(): void {
-  if (typeof window === "undefined") return;
-  
-  document.addEventListener(
-    "click",
-    (event) => {
-      const target = event.target as HTMLElement;
-      
-      // Find closest clickable element
-      const element = target.closest("[data-track-click], [data-analytics], [data-event]");
-      
-      if (element) {
-        const dataset = (element as HTMLElement).dataset;
-        
-        // Use data attributes for tracking
-        const eventName = dataset.trackClick || dataset.analytics || dataset.event;
-        
-        if (eventName) {
-          trackClick(element as HTMLElement, {
-            category: dataset.analyticsCategory || "interaction",
-            label: dataset.analyticsLabel || eventName,
-            metadata: {
-              // Parse additional metadata from data attributes
-              ...Object.fromEntries(
-                Object.entries(dataset)
-                  .filter(([key]) => key.startsWith("analytics"))
-                  .map(([key, value]) => [
-                    key.replace("analytics", "").toLowerCase(),
-                    value,
-                  ])
-              ),
-            },
-          });
-        }
+function setupClickTracking(): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const handler = (event: Event) => {
+    const target = event.target as HTMLElement;
+
+    // Find closest clickable element
+    const element = target.closest("[data-track-click], [data-analytics], [data-event]");
+
+    if (element) {
+      const dataset = (element as HTMLElement).dataset;
+
+      // Use data attributes for tracking
+      const eventName = dataset.trackClick || dataset.analytics || dataset.event;
+
+      if (eventName) {
+        trackClick(element as HTMLElement, {
+          category: dataset.analyticsCategory || "interaction",
+          label: dataset.analyticsLabel || eventName,
+          metadata: {
+            // Parse additional metadata from data attributes
+            ...Object.fromEntries(
+              Object.entries(dataset)
+                .filter(([key]) => key.startsWith("analytics"))
+                .map(([key, value]) => [
+                  key.replace("analytics", "").toLowerCase(),
+                  value,
+                ])
+            ),
+          },
+        });
       }
-    },
-    { capture: true }
-  );
+    }
+  };
+
+  document.addEventListener("click", handler, { capture: true });
+
+  // Return cleanup function
+  return () => {
+    document.removeEventListener("click", handler, { capture: true });
+  };
 }
 
 /**
@@ -250,6 +261,7 @@ export function AnalyticsVisible({
     );
     
     const current = React.Children.only(children) as React.ReactElement;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React internal ref access on typed children
     if ((current as any)?.ref) {
       // Handle ref
       observer.observe(current as unknown as Element);

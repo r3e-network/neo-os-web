@@ -29,8 +29,8 @@
         <NeoInput v-model="form.method" :label="t('method')" :placeholder="t('methodPlaceholder')" />
         <NeoInput v-model="form.secretName" :label="t('secretName')" :placeholder="t('optional')" />
         <NeoInput v-model="form.secretAsKey" :label="t('secretAsKey')" :placeholder="t('secretAsKeyPlaceholder')" />
-        <label class="textarea-label">{{ t("body") }}</label>
-        <textarea v-model="form.body" class="json-box" rows="6" :aria-label="t('body')"></textarea>
+        <label for="request-body" class="textarea-label">{{ t("body") }}</label>
+        <textarea id="request-body" v-model="form.body" class="json-box" rows="6" :aria-label="t('body')"></textarea>
         <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="runQuery" :aria-label="t('runQuery')">{{ t("runQuery") }}</NeoButton>
       </div>
     </template>

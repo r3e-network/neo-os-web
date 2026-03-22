@@ -109,7 +109,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const payload = (await response.json().catch((e: unknown) => { console.warn("[template-market] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); })) as Record<string, unknown>;
 
     if (mode === "templates") {
       const templates = Array.isArray(payload.templates) ? payload.templates : [];
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const data = await response.json().catch(() => ({ success: true }));
+    const data = await response.json().catch((e: unknown) => { console.warn("[template-market POST] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
     return NextResponse.json(data, { status: response.status });
   } catch {
     return jsonError("Failed to reach host-app template market endpoint", 502);

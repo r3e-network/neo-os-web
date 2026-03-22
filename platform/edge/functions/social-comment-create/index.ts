@@ -101,8 +101,10 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "failed to create comment", "DB_ERROR", req);
   }
 
-  // Log spam action for rate limiting
-  await logSpamAction(supabaseService, userId, "comment", app_id);
+  // Log spam action for rate limiting (non-critical, best-effort)
+  await logSpamAction(supabaseService, userId, "comment", app_id).catch((e) => {
+    console.warn("[social-comment-create] logSpamAction failed:", e instanceof Error ? e.message : String(e));
+  });
 
   return json(comment, { status: 201 }, req);
 }
