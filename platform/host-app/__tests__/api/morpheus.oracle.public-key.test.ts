@@ -85,7 +85,7 @@ describe("/api/morpheus/oracle/public-key", () => {
 
     expect(res._getStatusCode()).toBe(502);
     expect(JSON.parse(res._getData())).toEqual(
-      expect.objectContaining({ error: "rpc failed" }),
+      expect.objectContaining({ error: "Failed to load oracle public key" }),
     );
   });
 });
