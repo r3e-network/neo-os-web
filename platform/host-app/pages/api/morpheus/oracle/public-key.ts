@@ -14,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const payload = await fetchOraclePublicKey(String(req.query.network || "").trim() || null);
     res.status(200).json(payload);
   } catch (error) {
-    res.status(502).json({ error: error instanceof Error ? error.message : "Failed to load oracle public key" });
+    console.error("Failed to load oracle public key", error);
+    res.status(502).json({ error: "Failed to load oracle public key" });
   }
 }
