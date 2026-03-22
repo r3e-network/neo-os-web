@@ -119,7 +119,16 @@ function FederatedLoader({ remote, appId, view }: Props) {
 }
 
 export function FederatedMiniApp(props: Props) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!hasFederatedRemotes()) return <NotConfiguredMessage />;
+  if (!mounted) {
+    return <p className="text-sm text-gray-500 dark:text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
+  }
   return (
     <RemoteErrorBoundary>
       <FederatedLoader {...props} />
