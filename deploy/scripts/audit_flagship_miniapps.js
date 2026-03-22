@@ -44,8 +44,9 @@ function readManifestMethods(contractDir) {
   return Array.isArray(manifest?.abi?.methods) ? manifest.abi.methods.map((m) => String(m.name || "")) : [];
 }
 
-const registrySource = safeRead("platform/host-app/lib/miniapp-registry.ts");
-const homeSource = safeRead("platform/host-app/pages/home.tsx");
+const builtinsSource = safeRead("platform/host-app/lib/miniapp-builtins.ts");
+const showcaseSource = safeRead("platform/host-app/lib/miniapp-showcase.ts");
+const homeSource = safeRead("platform/host-app/pages/index.tsx");
 
 let hasFailures = false;
 const rows = [];
@@ -61,8 +62,11 @@ for (const app of FLAGSHIP_APPS) {
 
   const activeNetwork = manifest.default_network || "neo-n3-testnet";
   const contractActive = manifest.contracts?.[activeNetwork] || "";
-  const registryLinked = registrySource.includes(manifest.id);
-  const homeLinked = homeSource.includes(manifest.id);
+  const registryLinked = builtinsSource.includes(manifest.id);
+  const homeLinked =
+    builtinsSource.includes(manifest.id) ||
+    showcaseSource.includes(manifest.id) ||
+    homeSource.includes(manifest.id);
   const contractExists = contractPath ? exists(contractPath) : false;
   const contractAppId = readContractAppId(app.contractDir);
   const abiMethods = readManifestMethods(app.contractDir);
