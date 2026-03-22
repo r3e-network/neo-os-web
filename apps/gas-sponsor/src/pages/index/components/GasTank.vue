@@ -30,7 +30,7 @@
       </div>
       <div class="tank-status">
         <div :class="['status-indicator', isEligible ? 'eligible' : 'full']">
-          <span class="status-icon"><span aria-hidden="true">{{ isEligible ? "⚡" : "✓" }}</span></span>
+          <AppIcon :name="isEligible ? 'fuel' : 'check'" :size="16" :aria-label="isEligible ? t('iconFuel') : t('statusPass')" />
           <span class="status-text">{{ isEligible ? t("needsFuel") : t("tankFull") }}</span>
         </div>
       </div>
@@ -39,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
@@ -207,6 +207,12 @@ const formatBalance = (val: string | number) => parseFloat(String(val)).toFixed(
   100% {
     transform: translateY(-100px);
     opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fuel-bubble {
+    animation: none;
   }
 }
 

@@ -65,13 +65,13 @@
         <div class="signature-pad-glass">
           <div class="sign-line"></div>
           <span class="signature-text mono" :class="{ signed: !!address }">
-            <span aria-hidden="true">✍️</span> {{ address ? address : t("connectWallet") }}
+            <span aria-hidden="true">{{ t("signatureEmoji") }}</span> {{ address ? address : t("connectWallet") }}
           </span>
           <div class="biometric-scan" v-if="address"></div>
         </div>
       </div>
 
-      <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('create')" class="create-btn">
+      <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" @click="$emit('create')" class="create-btn">
         <span class="btn-text">{{ isLoading ? t("creating") : t("createBtn") }}</span>
       </NeoButton>
     </div>
@@ -315,6 +315,13 @@ defineEmits<{
   }
   to {
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal-ring,
+  .biometric-scan {
+    animation: none;
   }
 }
 </style>

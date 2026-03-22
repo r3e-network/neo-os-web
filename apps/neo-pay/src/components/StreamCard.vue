@@ -38,10 +38,31 @@ import { messages } from "@/locale/messages";
 import { formatGas, formatAddress } from "@shared/utils/format";
 import type { StreamItem, StreamStatus } from "@/types";
 
-const props = defineProps<{
-  stream: StreamItem;
-  isCreator?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    stream: StreamItem;
+    isCreator?: boolean;
+  }>(),
+  {
+    stream: () => ({
+      id: "",
+      creator: "",
+      beneficiary: "",
+      asset: "",
+      assetSymbol: "GAS" as const,
+      totalAmount: 0n,
+      releasedAmount: 0n,
+      remainingAmount: 0n,
+      rateAmount: 0n,
+      intervalSeconds: 0n,
+      intervalDays: 0,
+      status: "active" as const,
+      claimable: 0n,
+      title: "",
+      notes: "",
+    }),
+  }
+);
 
 const { t } = createUseI18n(messages)();
 

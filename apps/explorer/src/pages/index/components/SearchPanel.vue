@@ -8,7 +8,7 @@
         @confirm="$emit('search')"
         class="mb-2 flex-1"
       />
-      <NeoButton variant="primary" block @click="$emit('search')" :loading="isLoading">
+      <NeoButton type="button" variant="primary" block @click="$emit('search')" :loading="isLoading">
         {{ t("search") }}
       </NeoButton>
     </div>

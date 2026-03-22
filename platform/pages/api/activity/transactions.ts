@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const data = await response.json();
     return res.status(200).json(data);
   } catch (error) {
-    console.error("Transactions API error:", error);
+    console.error("Transactions API error:", error instanceof Error ? error.message : String(error));
     return res.status(200).json({ transactions: [] });
   }
 }

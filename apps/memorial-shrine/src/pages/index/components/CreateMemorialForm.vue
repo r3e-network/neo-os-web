@@ -1,6 +1,6 @@
 <template>
   <div class="create-form">
-    <span class="title"><span aria-hidden="true">✨</span> {{ t("createTitle") }}</span>
+    <span class="title"><AppIcon name="sparkle" :size="20" :aria-label="t('createTitleIcon')" /> {{ t("createTitle") }}</span>
     <span class="desc">{{ t("createDesc") }}</span>
 
     <div class="form-group">
@@ -15,7 +15,7 @@
           <img :src="photoPreview" mode="aspectFill" :alt="t('photoPreview')" />
         </div>
         <div class="photo-placeholder" v-else>
-          <span class="icon" aria-hidden="true">📷</span>
+          <AppIcon name="camera" :size="24" :aria-label="t('photoUploadIcon')" />
           <span class="text">{{ t("uploadPhoto") }}</span>
         </div>
       </button>
@@ -65,16 +65,13 @@
 
 <script setup lang="ts">
 import { ref, reactive } from "vue";
+import { AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useMemorialContract } from "@/composables/useMemorialContract";
 
 const { t } = createUseI18n(messages)();
-
-const props = defineProps<{
-  // t removed
-}>();
 
 const emit = defineEmits<{
   created: [data: Record<string, unknown>];
@@ -110,8 +107,7 @@ const uploadPhoto = async () => {
       form.photoHash = "demo-" + Date.now();
     }
   } catch (_e: unknown) {
-    // User cancelled the image picker (e.g., closed the photo selection dialog).
-    // This is not an error — simply ignore and keep the current photoPreview state.
+    console.warn("[memorial-shrine] image picker failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 

@@ -119,7 +119,7 @@
   />
 </template>
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
@@ -183,28 +183,39 @@ const ensureContractReady = async () => {
 const onTabChange = async (tab: string) => {
   activeTab.value = tab;
   if (!contractReady.value) return;
-  if (tab === "tickets") {
-    await contract.refreshTickets();
-  }
-  if (tab === "create") {
-    await contract.refreshEvents();
+  try {
+    if (tab === "tickets") {
+      await contract.refreshTickets();
+    }
+    if (tab === "create") {
+      await contract.refreshEvents();
+    }
+  } catch (_e: unknown) {
+    console.warn("[event-ticket-pass] tab change handler failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
 const resetAndReload = async () => {
-  if (!(await ensureContractReady())) {
-    contract.events.value = [];
-    contract.tickets.value = [];
-    contract.lookup.value = null;
-    return;
-  }
-  if (address.value) {
-    await contract.refreshEvents();
-    await contract.refreshTickets();
+  try {
+    if (!(await ensureContractReady())) {
+      contract.events.value = [];
+      contract.tickets.value = [];
+      contract.lookup.value = null;
+      return;
+    }
+    if (address.value) {
+      await contract.refreshEvents();
+      await contract.refreshTickets();
+    }
+  } catch (_e: unknown) {
+    console.warn("[event-ticket-pass] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     if (!(await ensureContractReady())) return;
     await connect();
@@ -213,11 +224,11 @@ onMounted(async () => {
       await contract.refreshTickets();
     }
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[event-ticket-pass] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
-
-watch(address, async (newAddr) => {
+const stopAddressWatch = watch(address, async (newAddr) => {
+  if (!isMounted.value) return;
   try {
     if (!(await ensureContractReady())) {
       contract.events.value = [];
@@ -234,8 +245,13 @@ watch(address, async (newAddr) => {
       contract.lookup.value = null;
     }
   } catch (_e: unknown) {
-    /* non-critical: address change handler */
+    console.warn("[event-ticket-pass] address change handler failed:", _e instanceof Error ? _e.message : String(_e));
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopAddressWatch();
 });
 </script>
 <style lang="scss" scoped>
@@ -364,6 +380,16 @@ watch(address, async (newAddr) => {
       0 0 15px rgba(130, 80, 255, 0.5),
       0 0 30px rgba(130, 80, 255, 0.2);
     transform: scale(1.05);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-card,
+  .ticket-card::after {
+    animation: none;
+  }
+  .ticket-qr {
+    animation: none;
   }
 }
 

@@ -41,7 +41,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   const isSwapping = ref(false);
   let swapAnimTimer: ReturnType<typeof setTimeout> | null = null;
 
-  watch(
+  const stopBalancesWatch = watch(
     balances,
     (newVal) => {
       const neo = newVal["NEO"] || 0;
@@ -103,7 +103,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
         }
       }
     } catch (_e: unknown) {
-      /* non-critical: exchange rate load */
+      console.warn("[useSwapEngine] exchange rate load failed:", _e instanceof Error ? _e.message : String(_e));
     } finally {
       rateLoading.value = false;
     }
@@ -212,12 +212,13 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   }
 
   onMounted(() => {
-    loadRouter();
-    loadExchangeRate();
+    loadRouter().catch((e: unknown) => { console.warn("[useSwapEngine] loadRouter failed:", e instanceof Error ? e.message : String(e)); });
+    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed:", e instanceof Error ? e.message : String(e)); });
   });
 
   onUnmounted(() => {
     if (swapAnimTimer) clearTimeout(swapAnimTimer);
+    stopBalancesWatch();
   });
 
   return {

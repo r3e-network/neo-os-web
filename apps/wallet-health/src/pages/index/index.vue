@@ -67,6 +67,9 @@
       </NeoCard>
 
       <NeoCard variant="erobo" class="checklist-card">
+        <div v-if="checklistItems.length === 0" class="checklist-empty">
+          <span>{{ t("noChecklistItems") }}</span>
+        </div>
         <div v-for="item in checklistItems" :key="item.id" class="checklist-item">
           <div class="checklist-content">
             <span class="checklist-title">{{ item.title }}</span>
@@ -178,7 +181,7 @@ const onTabChange = async (tabId: string) => {
     try {
       await refreshBalances();
     } catch (_e: unknown) {
-      /* non-critical: tab change handler */
+      console.warn("[wallet-health] tab change handler failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }
 };
@@ -288,6 +291,16 @@ const resetAndReload = async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.checklist-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 14px;
+  text-align: center;
 }
 
 .checklist-item {
@@ -429,5 +442,12 @@ const resetAndReload = async () => {
 }
 .checklist-item {
   background: linear-gradient(180deg, var(--bg-card-subtle), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-ring,
+  .progress-fill {
+    animation: none;
+  }
 }
 </style>

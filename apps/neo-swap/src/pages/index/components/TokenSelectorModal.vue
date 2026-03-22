@@ -76,6 +76,12 @@ function formatAmount(amount: number): string {
   &:hover {
     background: var(--bg-card, rgba(255, 255, 255, 0.05));
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--swap-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(159, 157, 243, 0.15);
+  }
 }
 
 .token-info {

@@ -6,7 +6,7 @@
     </div>
 
     <div v-if="history.length === 0" class="empty-state">
-      <span class="empty-icon" aria-hidden="true">🕊️</span>
+      <AppIcon name="dove" :size="32" class="empty-icon" />
       <span class="empty-text">{{ t("noDestructions") }}</span>
     </div>
 
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoButton, NeoCard } from "@shared/components";
+import { NeoButton, NeoCard, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { HistoryItem } from "@/types";

@@ -65,6 +65,10 @@ let pageViewBuffer: PageView[] = [];
 let lastPageView: PageView | null = null;
 let isInitialized = false;
 
+// Listener references for cleanup
+let popStateListener: (() => void) | null = null;
+let pageHideListener: (() => void) | null = null;
+
 /**
  * Initialize analytics tracking
  */
@@ -86,13 +90,15 @@ export function initAnalytics(): void {
       originalPushState.apply(this, args);
       trackPageView();
     };
-    
-    window.addEventListener("popstate", () => trackPageView());
+
+    popStateListener = () => trackPageView();
+    window.addEventListener("popstate", popStateListener);
   }
-  
+
   // Track page unload
-  window.addEventListener("pagehide", flushEvents);
-  
+  pageHideListener = flushEvents;
+  window.addEventListener("pagehide", pageHideListener);
+
   logger.info("Analytics initialized", { sessionId: currentSession?.id });
 }
 
@@ -467,7 +473,7 @@ export function flushEvents(): void {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }).catch(() => {});
+        }).catch((e: unknown) => { console.warn("[analytics] failed to send page views:", e instanceof Error ? e.message : String(e)); });
     }
   }
   
@@ -489,7 +495,7 @@ function sendEventToService(event: AnalyticsEvent): void {
       type: "event",
       data: event,
     }),
-  }).catch(() => {});
+  }).catch((e: unknown) => { console.warn("[analytics] failed to send event:", e instanceof Error ? e.message : String(e)); });
 }
 
 /**
@@ -533,4 +539,19 @@ export function setUserId(userId: string): void {
  */
 export function getSessionId(): string {
   return currentSession?.id || "";
+}
+
+/**
+ * Destroy analytics and remove event listeners
+ */
+export function destroyAnalytics(): void {
+  if (popStateListener) {
+    window.removeEventListener("popstate", popStateListener);
+    popStateListener = null;
+  }
+  if (pageHideListener) {
+    window.removeEventListener("pagehide", pageHideListener);
+    pageHideListener = null;
+  }
+  isInitialized = false;
 }

@@ -1,18 +1,18 @@
 <template>
   <div class="my-envelopes">
     <div class="section-header">
-      <span class="section-title"><span aria-hidden="true">🧧</span> {{ t("sectionPools") }}</span>
+      <span class="section-title"><AppIcon name="envelope_red" :size="20" /> {{ t("sectionPools") }}</span>
     </div>
 
     <div v-if="createdEnvelopes.length === 0" class="empty-state">
-      <span class="empty-icon" aria-hidden="true">🧧</span>
+      <AppIcon name="envelope_red" :size="40" class="empty-icon" />
       <span class="empty-text">{{ t("noEnvelopesHeld") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="envelope in createdEnvelopes" :key="envelope.id" class="envelope-card">
         <div class="card-header">
-          <span class="envelope-icon" aria-hidden="true">🧧</span>
+          <AppIcon name="envelope_red" :size="20" class="envelope-icon" />
           <div class="status-badge" :class="statusClass(envelope)">
             <span class="status-text">{{ statusLabel(envelope) }}</span>
           </div>
@@ -29,18 +29,18 @@
     </div>
 
     <div class="section-header">
-      <span class="section-title"><span aria-hidden="true">🎁</span> {{ t("sectionClaims") }}</span>
+      <span class="section-title"><AppIcon name="generous" :size="20" /> {{ t("sectionClaims") }}</span>
     </div>
 
     <div v-if="claims.length === 0" class="empty-state">
-      <span class="empty-icon" aria-hidden="true">🎁</span>
+      <AppIcon name="generous" :size="40" class="empty-icon" />
       <span class="empty-text">{{ t("noClaims") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="claim in claims" :key="claim.id" class="envelope-card claim-card">
         <div class="card-header">
-          <span class="envelope-icon" aria-hidden="true">✅</span>
+          <AppIcon name="success" :size="20" class="envelope-icon" />
           <span class="claim-origin">{{ t("fromPool", { poolId: claim.poolId }) }}</span>
         </div>
         <span class="envelope-amount">{{ t("claimedGas", { amount: claim.amount.toFixed(4), tokenGas: t("tokenGas") }) }}</span>
@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { createUseI18n } from "@shared/composables";
+import AppIcon from "@shared/components/AppIcon.vue";
 import { messages } from "@/locale/messages";
 import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";
 
@@ -113,7 +114,7 @@ const statusLabel = (env: EnvelopeItem) => {
 }
 
 .empty-text {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
   font-size: 14px;
 }
 

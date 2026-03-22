@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, onUnmounted, watch } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -101,7 +101,7 @@ const localForm = reactive({
   notes: "",
 });
 
-watch(
+const stopLoadingWatch = watch(
   () => props.loading,
   (newVal) => {
     if (!newVal) {
@@ -114,6 +114,10 @@ watch(
     }
   }
 );
+
+onUnmounted(() => {
+  stopLoadingWatch();
+});
 
 const handleCreate = () => {
   emit("create", { ...localForm });

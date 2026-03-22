@@ -107,6 +107,9 @@ title: { en: "Gas Sponsor", zh: "Gas 赞助" },
     sidebarRemainingQuota: { en: "Remaining Quota", zh: "剩余配额" },
     sidebarEligible: { en: "Eligible", zh: "资格" },
   tokenGas: { en: "GAS", zh: "GAS" },
+  statusPass: { en: "Check passed", zh: "检查通过" },
+  statusFail: { en: "Check failed", zh: "检查未通过" },
+  iconFuel: { en: "Needs fuel", zh: "需要加油" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -35,6 +35,7 @@
         :modelValue="name"
         @update:modelValue="$emit('update:name', $event)"
         :placeholder="t('namePlaceholder')"
+        :error="errors.name"
         required
         :aria-label="t('namePlaceholder')"
       />
@@ -50,6 +51,7 @@
         type="number"
         :placeholder="t('totalGasPlaceholder')"
         :suffix="t('tokenGas')"
+        :error="errors.amount"
         required
         :aria-label="t('totalGasPlaceholder')"
       />
@@ -58,6 +60,7 @@
         @update:modelValue="$emit('update:count', $event)"
         type="number"
         :placeholder="t('packetsPlaceholder')"
+        :error="errors.count"
         required
         :aria-label="t('packetsPlaceholder')"
       />
@@ -67,6 +70,7 @@
         type="number"
         :placeholder="t('expiryPlaceholder')"
         :suffix="t('hoursSuffix')"
+        :error="errors.expiryHours"
         required
         :aria-label="t('expiryPlaceholder')"
       />
@@ -90,7 +94,7 @@
         />
       </div>
     </div>
-    <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('create')" class="send-button">
+    <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" :disabled="!isValid || isLoading" @click="handleCreate" class="send-button">
       <div class="btn-content">
         <AppIcon name="envelope" :size="24" />
         <span class="button-text">{{ t("sendRedEnvelope") }}</span>
@@ -100,13 +104,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
-defineProps<{
+const props = defineProps<{
   name: string;
   description: string;
   amount: string;
@@ -120,7 +125,44 @@ defineProps<{
 
 const { t } = createUseI18n(messages)();
 
-defineEmits<{
+const errors = computed(() => {
+  const errs: Record<string, string> = {};
+
+  if (!props.name.trim()) {
+    errs.name = t("nameRequired");
+  }
+
+  const amountNum = Number(props.amount);
+  if (!props.amount || isNaN(amountNum) || amountNum <= 0) {
+    errs.amount = t("amountRequired");
+  }
+
+  const countNum = Number(props.count);
+  if (!props.count || isNaN(countNum) || countNum <= 0) {
+    errs.count = t("countRequired");
+  } else if (countNum > 100) {
+    errs.count = t("countExceeded");
+  }
+
+  const expiryNum = Number(props.expiryHours);
+  if (!props.expiryHours || isNaN(expiryNum) || expiryNum <= 0) {
+    errs.expiryHours = t("expiryRequired");
+  }
+
+  return errs;
+});
+
+const isValid = computed(() => {
+  return (
+    props.name.trim().length > 0 &&
+    Number(props.amount) > 0 &&
+    Number(props.count) > 0 &&
+    Number(props.count) <= 100 &&
+    Number(props.expiryHours) > 0
+  );
+});
+
+const emit = defineEmits<{
   (e: "update:envelopeType", value: "spreading" | "lucky"): void;
   (e: "update:name", value: string): void;
   (e: "update:description", value: string): void;
@@ -131,6 +173,14 @@ defineEmits<{
   (e: "update:minHoldDays", value: string): void;
   (e: "create"): void;
 }>();
+
+const handleCreate = () => {
+  // Trigger validation display by accessing errors
+  if (!isValid.value) {
+    return;
+  }
+  emit("create");
+};
 </script>
 
 <style lang="scss" scoped>
@@ -145,7 +195,8 @@ defineEmits<{
 
 .type-btn {
   flex: 1;
-  padding: 10px 12px;
+  height: 44px;
+  padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--red-envelope-gold-border);
   background: rgba(255, 255, 255, 0.05);
@@ -154,6 +205,12 @@ defineEmits<{
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+
+  &:focus-visible {
+    outline: 2px solid var(--envelope-gold);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255, 222, 89, 0.15);
+  }
 
   &.active {
     background: linear-gradient(135deg, var(--envelope-gold) 0%, var(--envelope-gold-dark) 100%);
@@ -250,6 +307,12 @@ defineEmits<{
   &:focus-within {
     border-color: var(--envelope-gold) !important;
     box-shadow: 0 0 0 2px var(--red-envelope-gold-border) !important;
+  }
+
+  // Error state should show red border even when focused
+  &.neo-input--error:focus-within {
+    border-color: var(--input-error-color) !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
   }
 }
 

@@ -11,7 +11,7 @@
     <div class="input-group">
       <span class="input-label">{{ t("assetType") }}</span>
       <div class="asset-toggle">
-        <NeoButton size="sm" variant="primary" disabled>
+        <NeoButton size="sm" variant="primary" type="button" disabled :aria-label="t('assetGas')">
           {{ t("assetGas") }}
         </NeoButton>
       </div>
@@ -55,7 +55,11 @@ const localForm = reactive({
   notes: "",
 });
 
-const localMilestones = ref<Array<{ amount: string }>>([{ amount: "1" }, { amount: "1" }, { amount: "1" }]);
+const localMilestones = ref<Array<{ id: string; amount: string }>>([
+  { id: "1", amount: "1" },
+  { id: "2", amount: "1" },
+  { id: "3", amount: "1" },
+]);
 
 const totalDisplay = computed(() => {
   let total = 0;
@@ -69,12 +73,14 @@ const totalDisplay = computed(() => {
 
 const addMilestone = () => {
   if (localMilestones.value.length >= 12) return;
-  localMilestones.value.push({ amount: localForm.asset === "NEO" ? "1" : "1" });
+  const newId = String(Date.now());
+  localMilestones.value.push({ id: newId, amount: localForm.asset === "NEO" ? "1" : "1" });
 };
 
-const removeMilestone = (index: number) => {
+const removeMilestone = (id: string) => {
   if (localMilestones.value.length <= 1) return;
-  localMilestones.value.splice(index, 1);
+  const idx = localMilestones.value.findIndex((m) => m.id === id);
+  if (idx !== -1) localMilestones.value.splice(idx, 1);
 };
 
 const createEscrow = () => {
@@ -83,7 +89,7 @@ const createEscrow = () => {
     beneficiary: localForm.beneficiary,
     asset: localForm.asset,
     notes: localForm.notes,
-    milestones: localMilestones.value,
+    milestones: localMilestones.value.map(({ amount }) => ({ amount })),
   });
 };
 
@@ -95,7 +101,11 @@ defineExpose({
     localForm.name = "";
     localForm.beneficiary = "";
     localForm.notes = "";
-    localMilestones.value = [{ amount: "1" }, { amount: "1" }, { amount: "1" }];
+    localMilestones.value = [
+      { id: "1", amount: "1" },
+      { id: "2", amount: "1" },
+      { id: "3", amount: "1" },
+    ];
   },
 });
 </script>

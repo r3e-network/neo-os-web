@@ -5,13 +5,9 @@ import type {
   MiniAppMediaAssetKind,
   MiniAppMediaUploadUrlResult,
   MiniAppMediaUploadVariant,
+  MediaUploadOptions,
 } from "@/lib/hooks/useMiniApps";
 import { normalizeMediaUploadVariant, upsertVariantJSON } from "./media-utils";
-
-type MediaUploadOptions = {
-  variant?: MiniAppMediaUploadVariant;
-  applyAsPrimary?: boolean;
-};
 
 type CreateMutationLike = {
   mutateAsync: (payload: Record<string, unknown>) => Promise<Record<string, unknown> | null>;

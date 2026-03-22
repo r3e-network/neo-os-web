@@ -22,7 +22,7 @@
       >
         <div
           v-for="(item, index) in displayedItems"
-          :key="itemKey ? item[itemKey] : index"
+          :key="itemKey ? item[itemKey] : (item.id ?? index)"
           class="item-list__item"
           role="listitem"
         >
@@ -180,6 +180,12 @@ const displayedItems = computed(() => {
     &:hover {
       background: rgba(255, 255, 255, 0.05);
       color: var(--text-primary, #ffffff);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     }
   }
 }

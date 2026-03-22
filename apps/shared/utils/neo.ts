@@ -28,10 +28,10 @@ export function parseStackItem(item: unknown): unknown {
       case "Integer":
         // Convert Integer to number
         if (typeof typed.value === "string") {
-          // Handle hex strings
+          // Handle hex strings (BigInt doesn't support 0x prefix, need to parse differently)
           if (typed.value.startsWith("0x")) {
             try {
-              return BigInt(typed.value).toString();
+              return BigInt(parseInt(typed.value.slice(2), 16)).toString();
             } catch (_e: unknown) {
               return "0";
             }
@@ -39,7 +39,11 @@ export function parseStackItem(item: unknown): unknown {
           const parsed = parseInt(typed.value, 10);
           return Number.isFinite(parsed) ? parsed : 0;
         }
-        return Number(typed.value);
+        // Handle number or other types
+        if (typeof typed.value === "number") {
+          return Number.isFinite(typed.value) ? typed.value : 0;
+        }
+        return 0;
 
       case "Array":
       case "Struct":
@@ -147,7 +151,16 @@ export function parseInvokeResult(result: unknown): unknown {
  * @returns Script hash in 0x-prefixed little-endian hex, or "" on error
  */
 export function addressToScriptHash(address: string): string {
-  if (!address || address.startsWith("0x")) return address;
+  if (!address) return "";
+  // If already a 0x-prefixed script hash, reverse it to match other conversions
+  if (address.startsWith("0x")) {
+    const hex = address.slice(2);
+    if (hex.length === 40) {
+      const reversed = hex.match(/.{2}/g)?.reverse().join("") ?? "";
+      return `0x${reversed}`;
+    }
+    return address;
+  }
   try {
     // Neo N3 address format: Base58Check(0x35 + 20-byte-script-hash)
     // Decode Base58 to a big integer, then extract the script hash bytes.
@@ -206,6 +219,10 @@ export function ownerMatchesAddress(owner: unknown, address: string | null | und
   if (value === address) return true;
 
   const normalized = normalizeScriptHash(value);
+  if (!normalized) return false;
+
   const addressHash = addressToScriptHash(address);
-  return Boolean(normalized && addressHash && normalized === addressHash);
+  if (!addressHash) return false;
+
+  return normalized === addressHash;
 }

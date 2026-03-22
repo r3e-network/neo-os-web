@@ -14,14 +14,14 @@
   >
     <template #content>
       <div class="hero-container">
-        <HeroSection variant="danger" icon="💔" compact>
+        <HeroSection variant="danger" icon="broken_heart" compact>
           <template #background>
             <div class="contract-scene" aria-hidden="true">
               <div class="contract-doc">
                 <div class="contract-line" v-for="i in 4" :key="i" />
                 <div class="contract-signatures">
-                  <span class="signature signature--left" aria-hidden="true">✍️</span>
-                  <span class="signature signature--right" aria-hidden="true">✍️</span>
+                  <AppIcon name="signature" :size="24" class="signature signature--left" />
+                  <AppIcon name="signature" :size="24" class="signature signature--right" />
                 </div>
               </div>
             </div>
@@ -67,7 +67,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, AppIcon } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import ContractList from "./components/ContractList.vue";
 import { useBreakupContract } from "./composables/useBreakupContract";
@@ -288,5 +288,14 @@ onMounted(() => {
 
 .hero-stat-value {
   text-shadow: 0 0 8px rgba(255, 107, 107, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contract-doc {
+    animation: none;
+  }
+  .contract-signatures {
+    animation: none;
+  }
 }
 </style>

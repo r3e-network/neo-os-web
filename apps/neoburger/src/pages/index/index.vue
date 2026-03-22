@@ -23,12 +23,12 @@
           />
           <div class="hero-conversion">
             <div class="hero-convert-token">
-              <span class="convert-icon">Ⓝ</span>
+              <span class="convert-icon" aria-hidden="true">Ⓝ</span>
               <span class="convert-label">{{ t("tokenNeo") }}</span>
             </div>
             <span class="convert-arrow">→</span>
             <div class="hero-convert-token">
-              <span class="convert-icon convert-icon--bneo">ⓑ</span>
+              <span class="convert-icon convert-icon--bneo" aria-hidden="true">ⓑ</span>
               <span class="convert-label">{{ t("tokenBneo") }}</span>
             </div>
           </div>
@@ -102,9 +102,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
@@ -129,10 +130,10 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
     messages,
     template: {
       tabs: [
-        { key: "home", labelKey: "tabHome", icon: "🏠", default: true },
-        { key: "airdrop", labelKey: "tabAirdrop", icon: "🚀" },
-        { key: "treasury", labelKey: "tabTreasury", icon: "🏦" },
-        { key: "dashboard", labelKey: "tabDashboard", icon: "📊" },
+        { key: "home", labelKey: "tabHome", icon: "home", default: true },
+        { key: "airdrop", labelKey: "tabAirdrop", icon: "rocket" },
+        { key: "treasury", labelKey: "tabTreasury", icon: "bank" },
+        { key: "dashboard", labelKey: "tabDashboard", icon: "chart" },
       ],
       fireworks: true,
       docFeatureCount: 3,
@@ -148,7 +149,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 const showStatus = setStatus;
 const loading = ref(false);
 
-const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices } = useNeoburgerStats();
+const { apy, priceData, aprDisplay, totalStakedDisplay, totalStakedUsdText, loadApy, loadPrices, cleanup } = useNeoburgerStats();
 const swap = useNeoburgerSwap(neoBalance, bNeoBalance, BNEO_CONTRACT, priceData, showStatus, loadBalances);
 
 const appState = computed(() => ({
@@ -166,7 +167,6 @@ async function handlePrimaryAction() {
     if (walletConnected.value) {
       loading.value = true;
       const success = await swap.executeSwap();
-      loading.value = false;
       if (!success) {
         showStatus(t("actionFailed"), "error");
       }
@@ -174,8 +174,9 @@ async function handlePrimaryAction() {
       await loadBalances();
     }
   } catch (_e: unknown) {
-    loading.value = false;
     showStatus(t("actionFailed"), "error");
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -190,13 +191,13 @@ async function handleJazzAction() {
       } else {
         showStatus(t("claimFailed"), "error");
       }
-      loading.value = false;
     } else {
       await loadBalances();
     }
   } catch (_e: unknown) {
-    loading.value = false;
     showStatus(t("claimFailed"), "error");
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -209,7 +210,8 @@ async function copyToClipboard(value: string) {
     } else if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(value);
     } else {
-      throw new Error("clipboard");
+      showStatus(t("copyFailed"), "error");
+      return;
     }
     showStatus(t("copySuccess"), "success");
   } catch (_e: unknown) {
@@ -238,9 +240,13 @@ function openExternal(url: string) {
 }
 
 onMounted(() => {
-  loadBalances();
-  loadApy();
-  loadPrices();
+  loadBalances().catch((e: unknown) => { console.warn("[neoburger] loadBalances failed:", e instanceof Error ? e.message : String(e)); });
+  loadApy().catch((e: unknown) => { console.warn("[neoburger] loadApy failed:", e instanceof Error ? e.message : String(e)); });
+  loadPrices().catch((e: unknown) => { console.warn("[neoburger] loadPrices failed:", e instanceof Error ? e.message : String(e)); });
+});
+
+onUnmounted(() => {
+  cleanup();
 });
 
 const resetAndReload = async () => {
@@ -320,7 +326,7 @@ const resetAndReload = async () => {
   font-size: 18px;
   font-weight: 700;
   background: linear-gradient(135deg, var(--burger-accent), var(--burger-accent-deep));
-  color: #fff;
+  color: var(--burger-hero-text);
 
   &--bneo {
     background: linear-gradient(135deg, var(--burger-gold, #fbbf24), var(--burger-gold-dark, #f59e0b));
@@ -417,6 +423,18 @@ const resetAndReload = async () => {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hero-container {
+    animation: none;
+  }
+  .hero-conversion {
+    animation: none;
+  }
+  .hero-stats-row {
+    animation: none;
+  }
+}
+
 .hero-container {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(180, 83, 9, 0.06), rgba(251, 191, 36, 0.08));
   background-size: 200% 200%;
@@ -443,6 +461,32 @@ const resetAndReload = async () => {
 
   &--bneo {
     box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-conversion {
+    gap: 12px;
+    padding: 10px 16px;
+  }
+
+  .hero-stats-row {
+    gap: 14px;
+    padding: 12px 16px;
+  }
+
+  .hero-stat-value {
+    font-size: 16px;
+  }
+
+  .convert-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .convert-arrow {
+    font-size: 16px;
   }
 }
 </style>

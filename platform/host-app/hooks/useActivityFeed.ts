@@ -42,7 +42,8 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
         const fetchMaybe = async <T,>(url: string): Promise<T | null> => {
           try {
             return await fetchJSON<T>(url);
-          } catch {
+          } catch (_e: unknown) {
+            console.warn("[useActivityFeed] fetch failed:", _e instanceof Error ? _e.message : String(_e));
             return null;
           }
         };
@@ -120,11 +121,16 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
   useEffect(() => {
     if (!enabled || pollInterval <= 0) return;
 
+    let active = true;
     const interval = setInterval(() => {
+      if (!active) return;
       fetchActivities(false);
     }, pollInterval);
 
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [enabled, pollInterval, fetchActivities]);
 
   return { activities, loading, error, isConnected };

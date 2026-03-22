@@ -58,6 +58,11 @@ const appMessages = {
   amountPlaceholder: { en: "Enter amount in GAS", zh: "输入 GAS 金额" },
   callbackContractPlaceholder: { en: "Enter callback contract address", zh: "输入回调合约地址" },
   callbackMethodPlaceholder: { en: "Enter callback method name", zh: "输入回调方法名" },
+  duration: { en: "Duration", zh: "持续时间" },
+  enterDuration: { en: "Enter duration in days", zh: "输入持续时间（天）" },
+  loanCalculator: { en: "Loan Calculator", zh: "贷款计算器" },
+  estimatedFee: { en: "Estimated Fee", zh: "预估手续费" },
+  totalRepayment: { en: "Total Repayment", zh: "总还款额" },
   flashloanInfo: {
     en: "The callback contract receives the principal, executes your logic, and must return principal + fee before the transaction finishes.",
     zh: "回调合约会先收到本金、执行你的逻辑，并且必须在交易结束前归还本金和手续费。",

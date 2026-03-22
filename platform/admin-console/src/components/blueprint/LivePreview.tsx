@@ -158,7 +158,7 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
               <div className="space-y-1">
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded" />
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded" />
-                <button className="w-full h-6 bg-neo text-black text-[8px] font-medium rounded">
+                <button className="w-full h-6 bg-neo text-black text-[8px] font-medium rounded" aria-hidden="true" tabIndex={-1}>
                   {opPanel.cta_label || "Submit"}
                 </button>
               </div>

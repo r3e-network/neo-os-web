@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/Input";
 import { OperationParamsEditor } from "../CreateFormSubEditors";
 
 type Props = {
-  form: any;
+  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
   update: (key: string, value: string | boolean) => void;
-  setForm: any;
+  setForm: (form: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
   addContract: () => void;
   removeContract: (i: number) => void;
   updateContract: (i: number, field: "name" | "hash", val: string) => void;
@@ -45,8 +45,8 @@ export function ContractsTab({
         </div>
         {form.contracts.map((c: { name: string; hash: string }, i: number) => (
           <div key={i} className="flex gap-2 mb-2">
-            <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} />
-            <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} />
+            <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} aria-label="Contract name" />
+            <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} aria-label="Contract hash" />
             <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
           </div>
         ))}
@@ -60,10 +60,10 @@ export function ContractsTab({
         {form.operations.map((o: any, i: number) => (
           <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
             <div className="flex gap-2">
-              <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} />
-              <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} />
-              <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} />
-              <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} />
+              <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} aria-label="Operation name" />
+              <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} aria-label="Operation method" />
+              <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} aria-label="Operation description" />
+              <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} aria-label="Gas cost" />
               <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
             </div>
             <div className="flex gap-2">
@@ -76,7 +76,7 @@ export function ContractsTab({
                   <option value="success">Success</option>
                 </select>
               </div>
-              <Input placeholder="Confirm message (optional)" value={o.confirm_message} onChange={e => updateOperation(i, "confirm_message", e.target.value)} />
+              <Input placeholder="Confirm message (optional)" value={o.confirm_message} onChange={e => updateOperation(i, "confirm_message", e.target.value)} aria-label="Confirm message" />
             </div>
             <OperationParamsEditor params={o.params} onChange={params => { const next = [...form.operations]; next[i] = { ...next[i], params }; setForm({ ...form, operations: next }); }} />
           </div>
@@ -90,9 +90,9 @@ export function ContractsTab({
         </div>
         {form.components.map((c: any, i: number) => (
           <div key={i} className="flex gap-2 mb-2">
-            <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} />
-            <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} />
-            <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} />
+            <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} aria-label="Component type" />
+            <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} aria-label="Component display" />
+            <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} aria-label="Component props" />
             <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
           </div>
         ))}

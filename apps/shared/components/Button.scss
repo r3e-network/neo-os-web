@@ -5,9 +5,18 @@
   cursor: pointer;
   transition: all 0.2s ease;
 
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #00d9ff);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   &-primary {
-    background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
-    color: #fff;
+    background: linear-gradient(135deg, var(--accent-primary, #00d9ff) 0%, var(--accent-secondary, #00a8cc) 100%);
+    color: var(--text-primary, #fff);
     &:hover:not(:disabled) {
       opacity: 0.9;
     }
@@ -15,7 +24,7 @@
 
   &-secondary {
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--text-primary, #fff);
     border: 1px solid rgba(255, 255, 255, 0.2);
     &:hover:not(:disabled) {
       background: rgba(255, 255, 255, 0.15);
@@ -23,8 +32,8 @@
   }
 
   &-danger {
-    background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
-    color: #fff;
+    background: linear-gradient(135deg, var(--danger-primary, #ff4757) 0%, var(--danger-secondary, #ff3838) 100%);
+    color: var(--text-primary, #fff);
   }
 
   &-small {

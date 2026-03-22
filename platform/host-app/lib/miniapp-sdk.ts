@@ -48,7 +48,8 @@ function readStorageValue(key: string): string | undefined {
   try {
     const value = window.localStorage.getItem(key);
     return value ? value : undefined;
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[miniapp-sdk] localStorage read failed:", _e instanceof Error ? _e.message : String(_e));
     return undefined;
   }
 }

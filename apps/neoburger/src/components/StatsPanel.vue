@@ -260,6 +260,12 @@ const footerLinks = computed(() => [
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   .section {
     grid-template-columns: repeat(2, minmax(0, 1fr));

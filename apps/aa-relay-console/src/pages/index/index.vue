@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="checkSponsor"
-    hero-icon="📡"
+    hero-icon="signal"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('latestRelay')"
@@ -28,8 +28,8 @@
       <div class="stack">
         <NeoInput v-model="aaAddress" :label="t('aaAddress')" :placeholder="t('aaAddressPlaceholder')" />
         <NeoInput v-model="dappId" :label="t('dappId')" :placeholder="t('dappIdPlaceholder')" />
-        <label class="textarea-label">{{ t("payloadJson") }}</label>
-        <textarea v-model="payloadJson" class="json-box" rows="10" :aria-label="t('payloadJson')"></textarea>
+        <label for="payload-json" class="textarea-label">{{ t("payloadJson") }}</label>
+        <textarea id="payload-json" v-model="payloadJson" class="json-box" rows="10" :aria-label="t('payloadJson')"></textarea>
         <div class="actions-row">
           <NeoButton variant="secondary" type="button" :loading="aa.isCheckingSponsorship.value" @click="checkSponsor" :aria-label="t('sponsorCheck')">{{ t("sponsorCheck") }}</NeoButton>
           <NeoButton variant="secondary" type="button" :loading="aa.isCheckingSponsorship.value" @click="requestSponsor" :aria-label="t('sponsorRequest')">{{ t("sponsorRequest") }}</NeoButton>
@@ -40,8 +40,9 @@
   </ConsoleMiniApp>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
@@ -56,11 +57,12 @@ type SponsorResult = GasSponsorCheckResponse | GasSponsorRequestResponse | AARel
 const sponsorResult = ref<SponsorResult>(null);
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-relay-console", messages,
-  tab: { key: "relay", labelKey: "latestRelay", icon: "📡" },
+  tab: { key: "relay", labelKey: "latestRelay", icon: "signal" },
   sidebarItems: [{ labelKey: "aaAddress", value: () => aaAddress.value || t("notAvailable") }, { labelKey: "latestRelay", value: () => relayResponse.value }],
 });
 const aa = useAbstractAccount({ network: "testnet", aaAddress: aaAddress.value, paymasterDappId: dappId.value || undefined });
-watch(aaAddress, (next) => aa.setAAAddress(next));
+const stopAddressWatch = watch(aaAddress, (next) => aa.setAAAddress(next));
+onUnmounted(() => stopAddressWatch());
 async function checkSponsor() { try { sponsorResult.value = await aa.checkGasSponsorship(); setStatus(t("sponsorCheckComplete"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("sponsorCheckError")), "error"); } }
 async function requestSponsor() { try { sponsorResult.value = await aa.requestGasSponsorship("0.1"); setStatus(t("sponsorRequestComplete"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("sponsorRequestError")), "error"); } }
 async function submitRelay() { try { const payload = JSON.parse(payloadJson.value); const response = await aa.submitRelayTransaction(payload); sponsorResult.value = response; setStatus(t("relaySubmitted"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("relayError")), "error"); } }

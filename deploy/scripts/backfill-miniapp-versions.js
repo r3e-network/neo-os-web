@@ -219,7 +219,7 @@ async function main() {
     }, null, 2));
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("backfill failed:", error.message || String(error));
+    console.error("backfill failed:", error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   } finally {
     await client.end();

@@ -10,7 +10,12 @@ export async function handler(req: Request): Promise<Response> {
   if (preflight) return preflight;
   if (req.method !== "GET") return error(405, "method not allowed", "METHOD_NOT_ALLOWED", req);
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const rawSymbol = (url.searchParams.get("symbol") ?? "").trim();
   if (!rawSymbol) return error(400, "symbol required", "SYMBOL_REQUIRED", req);
   const normalizedSymbol = rawSymbol.toUpperCase();

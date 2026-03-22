@@ -19,17 +19,17 @@
           <template #stats>
             <div class="hero-stats">
               <div class="hero-stat">
-                <span class="hero-stat-icon" aria-hidden="true">💰</span>
+                <AppIcon name="money" :size="18" class="hero-stat-icon" aria-hidden="true" />
                 <span class="hero-stat-value">{{ data?.totalUsd ? `$${data.totalUsd.toLocaleString()}` : t("notAvailable") }}</span>
                 <span class="hero-stat-label">{{ t("sidebarTotalUsd") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon" aria-hidden="true">🟢</span>
+                <AppIcon name="green_circle" :size="18" class="hero-stat-icon" aria-hidden="true" />
                 <span class="hero-stat-value">{{ data?.totalNeo?.toLocaleString() ?? t("notAvailable") }}</span>
                 <span class="hero-stat-label">{{ t("tokenNeo") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon" aria-hidden="true">⛽</span>
+                <AppIcon name="fuel" :size="18" class="hero-stat-icon" aria-hidden="true" />
                 <span class="hero-stat-value">{{ data?.totalGas?.toLocaleString() ?? t("notAvailable") }}</span>
                 <span class="hero-stat-label">{{ t("tokenGas") }}</span>
               </div>
@@ -72,7 +72,7 @@
       <div v-else-if="error" class="error-container" role="alert">
         <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
         <span class="error-label">{{ error }}</span>
-        <NeoButton variant="primary" class="mt-4" @click="loadData">
+        <NeoButton type="button" variant="primary" class="mt-4" @click="loadData">
           {{ t("retry") }}
         </NeoButton>
       </div>
@@ -94,7 +94,7 @@
 
     <template #operation>
       <NeoCard variant="erobo" :title="t('treasuryInfo')">
-        <NeoButton size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
+        <NeoButton type="button" size="sm" variant="primary" class="op-btn" :disabled="loading" @click="loadData">
           {{ loading ? t("refreshing") : t("refreshData") }}
         </NeoButton>
         <StatsDisplay :items="opStats" layout="rows" />
@@ -166,7 +166,7 @@ async function loadData() {
       // If we have cache, we can stop "hard" loading but keep "soft" loading in background
     }
   } catch (_e: unknown) {
-    /* Cache read failure is non-critical — proceed to fetch fresh data */
+    console.warn("[neo-treasury] cache read failed:", _e instanceof Error ? _e.message : String(_e));
   }
 
   try {
@@ -178,8 +178,8 @@ async function loadData() {
     if (!data.value) {
       error.value = formatErrorMessage(e, t("loadFailed"));
     } else {
-      // Fresh fetch failed but cached data exists — silently keep stale data;
-      // user can manually retry via the refresh button if they suspect staleness
+      // Fresh fetch failed but cached data exists — keep stale data; user can manually retry
+      console.warn("[neo-treasury] using cached data (fresh fetch failed):", e instanceof Error ? e.message : String(e));
     }
   } finally {
     loading.value = false;
@@ -364,7 +364,7 @@ onMounted(() => {
   background: radial-gradient(ellipse at 50% 40%, rgba(255, 222, 89, 0.08) 0%, transparent 55%);
 }
 .hero-stat-value {
-  background: linear-gradient(90deg, var(--treasury-gold, #ffd700), #fff8dc, var(--treasury-gold, #ffd700));
+  background: linear-gradient(90deg, var(--treasury-gold), var(--treasury-light-gold, #fff8dc), var(--treasury-gold));
   background-size: 200% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -390,5 +390,14 @@ onMounted(() => {
 }
 .soft-loading {
   box-shadow: 0 0 16px rgba(255, 222, 89, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-card,
+  .animate-spin,
+  .hero-stat-value,
+  .hero-stat-icon {
+    animation: none;
+  }
 }
 </style>

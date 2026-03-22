@@ -44,7 +44,7 @@
           </div>
           <!-- Sparkle decorations -->
           <div class="envelope-sparkles">
-            <span v-for="i in 5" :key="i" class="sparkle" :style="{ animationDelay: `${i * 0.3}s` }" aria-hidden="true">✨</span>
+            <span v-for="i in 5" :key="i" class="sparkle" :style="{ animationDelay: `${i * 0.3}s` }"><AppIcon name="sparkle" :size="14" aria-hidden="true" /></span>
           </div>
         </div>
 
@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { useRedEnvelopeCreation } from "@/composables/useRedEnvelopeCreation";
 import { useRedEnvelopeOpen } from "@/composables/useRedEnvelopeOpen";
@@ -122,6 +122,7 @@ import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import LuckyOverlay from "./components/LuckyOverlay.vue";
 import OpeningModal from "./components/OpeningModal.vue";
+import AppIcon from "@shared/components/AppIcon.vue";
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, handleBoundaryError } = createMiniApp({
   name: "red-envelope",
@@ -203,7 +204,10 @@ const appState = computed(() => ({
   hasLucky: !!luckyMessage.value,
 }));
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await loadEnvelopes();
 
@@ -227,24 +231,29 @@ onMounted(async () => {
       }
     }
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[red-envelope] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
-
-watch(activeTab, async (tab) => {
+const stopActiveTabWatch = watch(activeTab, async (tab) => {
+  if (!isMounted.value) return;
   if (tab === "myEnvelopes") {
     try {
       await loadEnvelopes();
     } catch (_e: unknown) {
-      /* non-critical: envelopes load */
+      console.warn("[red-envelope] envelopes load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else if (tab === "claim") {
     try {
       await loadEnvelopes();
     } catch (_e: unknown) {
-      /* non-critical: envelopes load */
+      console.warn("[red-envelope] envelopes load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }
+});
+
+onUnmounted(() => {
+  stopActiveTabWatch();
+  isMounted.value = false;
 });
 </script>
 

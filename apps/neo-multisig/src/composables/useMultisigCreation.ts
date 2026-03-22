@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -64,7 +64,7 @@ export function useMultisigCreation() {
     validUntilBlock: 0,
   });
 
-  watch(
+  const stopSignersWatch = watch(
     () => form.value.signers,
     (next) => {
       if (form.value.threshold > next.length) {
@@ -73,6 +73,8 @@ export function useMultisigCreation() {
     },
     { deep: true }
   );
+
+  onUnmounted(() => stopSignersWatch());
 
   const trimmedSigners = computed(() => form.value.signers.map((s) => s.trim()));
   const isValidSigners = computed(() => {
@@ -183,7 +185,10 @@ export function useMultisigCreation() {
         status: result.status || "pending",
         createdAt: result.created_at || new Date().toISOString(),
       });
-      uni.setStorageSync("multisig_history", JSON.stringify(history.slice(0, 10)));
+      uni.setStorageSync("multisig_history", (() => {
+        try { return JSON.stringify(history.slice(0, 10)); }
+        catch { return "[]"; }
+      })());
 
       onSuccess?.(result.id);
     } catch (e: unknown) {

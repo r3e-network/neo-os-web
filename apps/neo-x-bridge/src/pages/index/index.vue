@@ -189,6 +189,7 @@ async function addNetwork(network: BridgeNetwork) {
         params: [{ chainId: network.chainIdHex }],
       });
     } catch (_e: unknown) {
+      console.warn("[neo-x-bridge] wallet_switchEthereumChain failed, attempting wallet_addEthereumChain:", _e instanceof Error ? _e.message : String(_e));
       await ethereum.request({
         method: "wallet_addEthereumChain",
         params: [params],

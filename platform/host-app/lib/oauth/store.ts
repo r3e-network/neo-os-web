@@ -103,8 +103,9 @@ export const useOAuthStore = create<OAuthStore>()(
             linkedAt: row.linked_at,
           }));
           set({ accounts });
-        } catch {
-          // silently fail
+        } catch (e: unknown) {
+          console.error("[oauth] fetchLinkedAccounts failed:", e instanceof Error ? e.message : String(e));
+          // silently fail - linked accounts load failure is non-critical
         }
       },
 
@@ -126,7 +127,12 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
 
     const handleMessage = (event: MessageEvent) => {
       const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL;
-      if (!allowedOrigin || event.origin !== allowedOrigin) return;
+      if (!allowedOrigin) {
+        cleanup();
+        reject(new Error("OAuth callback origin not configured"));
+        return;
+      }
+      if (event.origin !== allowedOrigin) return;
 
       if (event.data?.type === "oauth-success" && event.data?.provider === provider) {
         cleanup();

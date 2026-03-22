@@ -74,8 +74,7 @@ export class AdminSDK {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
     const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers, signal: AbortSignal.timeout(30000) });
     if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      throw new Error(`Failed to fetch services health: ${response.status} ${response.statusText} - ${errBody}`);
+      throw new Error(`Failed to fetch services health (${response.status})`);
     }
     return response.json();
   }
@@ -87,8 +86,7 @@ export class AdminSDK {
     const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
     const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers, signal: AbortSignal.timeout(30000) });
     if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      throw new Error(`Failed to fetch analytics: ${response.status} ${response.statusText} - ${errBody}`);
+      throw new Error(`Failed to fetch analytics (${response.status})`);
     }
     return response.json();
   }
@@ -98,7 +96,7 @@ export class AdminSDK {
    */
   async getMiniApps(): Promise<MiniAppListResponse[]> {
     if (!this.config.serviceRoleKey) {
-      throw new Error("serviceRoleKey is required for admin operations");
+      throw new Error("getMiniApps: serviceRoleKey is required for admin operations");
     }
     const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
       headers: {
@@ -108,8 +106,7 @@ export class AdminSDK {
       signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      throw new Error(`Failed to fetch MiniApps: ${response.status} ${response.statusText} - ${errBody}`);
+      throw new Error(`Failed to fetch MiniApps (${response.status})`);
     }
     return response.json();
   }
@@ -119,7 +116,7 @@ export class AdminSDK {
    */
   async getUsers(): Promise<UserListResponse[]> {
     if (!this.config.serviceRoleKey) {
-      throw new Error("serviceRoleKey is required for admin operations");
+      throw new Error("getUsers: serviceRoleKey is required for admin operations");
     }
     const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
       headers: {
@@ -129,8 +126,7 @@ export class AdminSDK {
       signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      throw new Error(`Failed to fetch users: ${response.status} ${response.statusText} - ${errBody}`);
+      throw new Error(`Failed to fetch users (${response.status})`);
     }
     return response.json();
   }
@@ -150,11 +146,10 @@ export class AdminSDK {
       signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) {
-      const errBody = await response.text().catch(() => "");
-      throw new Error(`Failed to update MiniApp status: ${response.status} ${response.statusText} - ${errBody}`);
+      throw new Error(`Failed to update MiniApp status (${response.status})`);
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch((e: unknown) => { console.warn("[admin-sdk] failed to parse status update response JSON:", e instanceof Error ? e.message : String(e)); return null; });
     if (payload?.requires_onchain_confirmation) {
       const serialized = JSON.stringify(payload.invocation ?? {}, null, 2);
       console.warn(`On-chain confirmation required for status change. Submit invocation:\n${serialized}`);

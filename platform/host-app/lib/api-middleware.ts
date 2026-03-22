@@ -105,7 +105,7 @@ function validateCsrf(
         url: req.url,
       },
     });
-    res.status(403).json({ error: { code: "CSRF_INVALID", message: "Invalid CSRF token" } });
+    apiError.forbidden(res, "Invalid CSRF token");
     return false;
   }
   
@@ -234,6 +234,7 @@ export function withAuth<
       const { getPermissionsForWallet } = await import("@/lib/security/permissions");
       const permissions = getPermissionsForWallet(wallet);
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- permission is a string from middleware options
       if (!permissions.includes(options.permission as any)) {
         apiError.forbidden(res, "Insufficient permissions");
         return;

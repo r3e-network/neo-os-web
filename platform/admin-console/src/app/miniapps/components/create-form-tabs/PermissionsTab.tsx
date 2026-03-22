@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/Input";
 
 type Props = {
-  form: any;
+  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
   permissionKeys: string[];
   togglePerm: (key: string) => void;
   update: (key: string, value: string | boolean) => void;

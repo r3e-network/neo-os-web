@@ -34,8 +34,8 @@
 
       <NeoCard class="mb-6" variant="erobo">
         <div class="form-group-neo">
-          <NeoInput v-model="depositAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('depositAmount')" />
-          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
+          <NeoInput v-model="depositAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('depositAmount')" :min="0" />
+          <NeoButton type="button" variant="primary" size="lg" block :loading="isBusy" @click="depositNeo">
             {{ t("depositNeo") }}
           </NeoButton>
         </div>
@@ -43,8 +43,8 @@
 
       <NeoCard class="mb-6" variant="erobo">
         <div class="form-group-neo">
-          <NeoInput v-model="withdrawAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('withdrawAmount')" />
-          <NeoButton variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
+          <NeoInput v-model="withdrawAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenNeo')" :label="t('withdrawAmount')" :min="0" />
+          <NeoButton type="button" variant="secondary" size="lg" block :loading="isBusy" @click="withdrawNeo">
             {{ t("withdrawNeo") }}
           </NeoButton>
         </div>
@@ -54,8 +54,8 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('placeBid')" class="mb-6">
         <div class="form-group-neo">
-          <NeoInput v-model="bidAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenGas')" :label="t('bidAmount')" />
-          <NeoButton variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
+          <NeoInput v-model="bidAmount" type="number" :placeholder="t('enterAmount')" :suffix="t('tokenGas')" :label="t('bidAmount')" :min="0" />
+          <NeoButton type="button" variant="primary" size="lg" block :loading="isBusy" @click="placeBid">
             {{ t("placeBid") }}
           </NeoButton>
         </div>
@@ -271,6 +271,15 @@ const appState = computed(() => ({
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat {
+    animation: none;
+  }
+  :deep(.hero-icon) {
+    animation: none;
   }
 }
 

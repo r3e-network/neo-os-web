@@ -3,7 +3,7 @@
     <!-- Major Arcana Layout -->
     <div v-if="suit === 'major'" class="layout-major">
       <div class="major-frame">
-        <span class="major-icon">{{ icon }}</span>
+        <span class="major-icon" aria-hidden="true">{{ icon }}</span>
       </div>
     </div>
 
@@ -92,6 +92,12 @@ const getCourtLabel = (num?: number) => {
   font-size: 48px;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
   animation: float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .major-icon {
+    animation: none;
+  }
 }
 
 /* Pips (Number Cards) */

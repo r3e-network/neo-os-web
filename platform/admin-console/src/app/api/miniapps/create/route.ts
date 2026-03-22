@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const data = await response.json().catch(() => null);
+    const data = await response.json().catch((e: unknown) => { console.warn("[miniapps/create] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
     return NextResponse.json(data || { success: true }, { status: response.status });
   } catch {
     return jsonError("Failed to reach host-app admin endpoint", 502);

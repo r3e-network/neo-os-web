@@ -32,18 +32,22 @@ export default function MiniAppsPage() {
   const [fetchError, setFetchError] = useState(false);
   const [loading, setLoading] = useState(true);
   const sortRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     Promise.all([
-      fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
-      fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch(() => null),
+      fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch((e: unknown) => { console.warn("[miniapps] failed to parse catalog response:", e instanceof Error ? e.message : String(e)); return null; }),
+      fetch("/api/miniapps/community", { signal: AbortSignal.timeout(30000) }).then((r) => r.json()).catch((e: unknown) => { console.warn("[miniapps] failed to parse community response:", e instanceof Error ? e.message : String(e)); return null; }),
     ]).then(([catalogData, communityData]) => {
+      if (!mountedRef.current) return;
       if (!catalogData && !communityData) setFetchError(true);
       const list = Array.isArray(catalogData?.apps) ? sortMiniApps(catalogData.apps as MiniAppInfo[], "featured") : [];
       setApps(list);
       const communityList = Array.isArray(communityData?.apps) ? communityData.apps : [];
       setCommunityApps(communityList);
-    }).finally(() => setLoading(false));
+    }).finally(() => { if (mountedRef.current) setLoading(false); });
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {

@@ -119,7 +119,7 @@ const { t } = createUseI18n(messages)();
 }
 
 .slot-badge {
-  color: #10b981;
+  color: var(--trustanchor-emerald);
 }
 
 .slot-main {

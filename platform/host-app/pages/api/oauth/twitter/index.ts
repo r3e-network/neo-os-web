@@ -1,8 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
 import { apiError } from "@/lib/api-response";
+import { standardLimit } from "@/lib/rate-limit";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (standardLimit(req, res)) return;
+
   const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
   const NEXTAUTH_URL = process.env.NEXTAUTH_URL;
 
@@ -35,7 +38,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     `code_challenge=${codeChallenge}&` +
     `code_challenge_method=S256`;
 
-  res.redirect(authUrl);
+  return res.redirect(authUrl);
 }
 
 function generateState(): string {

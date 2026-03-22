@@ -12,6 +12,8 @@
   --qf-success: #22c55e;
   --qf-danger: #f87171;
   --qf-success-alt: #10b981;
+  --qf-ring-start: #f472b6;
+  --qf-ring-end: #ec4899;
 }
 
 :global(.theme-light .theme-quadratic-funding),
@@ -29,4 +31,6 @@
   --qf-success: #16a34a;
   --qf-danger: #ef4444;
   --qf-success-alt: #059669;
+  --qf-ring-start: #db2777;
+  --qf-ring-end: #be185d;
 }

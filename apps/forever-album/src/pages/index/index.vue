@@ -14,7 +14,7 @@
   >
     <template #content>
       <div class="hero-container">
-        <HeroSection variant="erobo" icon="📸" compact>
+        <HeroSection variant="erobo" icon="camera" compact>
           <template #background>
             <div class="photo-grid-scene" aria-hidden="true">
               <div class="photo-thumb" v-for="i in 6" :key="i" :class="`thumb-${i}`" />
@@ -44,7 +44,7 @@
         <div class="connect-card__content">
           <span class="connect-card__title">{{ t("connectPromptTitle") }}</span>
           <span class="connect-card__desc">{{ t("connectPromptDesc") }}</span>
-          <NeoButton size="sm" variant="primary" @click="openWalletPrompt">
+          <NeoButton size="sm" variant="primary" type="button" @click="openWalletPrompt">
             {{ t("connectWallet") }}
           </NeoButton>
         </div>
@@ -95,7 +95,7 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { MiniAppPage, NeoCard, NeoButton, WalletPrompt, HeroSection } from "@shared/components";
+import { MiniAppPage, NeoCard, NeoButton, WalletPrompt, HeroSection, AppIcon } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { messages } from "@/locale/messages";
@@ -380,5 +380,12 @@ const handleConnect = async () => {
 
 .hero-stat-value {
   text-shadow: 0 0 8px rgba(180, 140, 255, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-thumb,
+  .hero-stat {
+    animation: none;
+  }
 }
 </style>

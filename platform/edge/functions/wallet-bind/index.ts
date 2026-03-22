@@ -95,6 +95,7 @@ export async function handler(req: Request): Promise<Response> {
     const { error: addrErr } = await supabase.from("users").update({ address }).eq("id", auth.userId);
     if (addrErr) {
       // Do not fail wallet binding on a derived/legacy field update.
+      console.warn("[wallet-bind] users.address mirror failed:", addrErr instanceof Error ? addrErr.message : String(addrErr));
     }
   }
 

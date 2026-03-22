@@ -34,6 +34,12 @@
 
   /* Card Background Colors - Dark Mode */
   --bg-card-hover: rgba(255, 255, 255, 0.04);
+  --bg-elevated: rgba(255, 255, 255, 0.05);
+
+  /* Card-specific tokens */
+  --card-shadow: var(--shadow-md);
+  --card-border: var(--border-color);
+  --card-bg: var(--bg-primary);
 
   /* Accent Colors */
   --accent-primary: #3b82f6;
@@ -74,6 +80,16 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
+
+  /* Z-Index Scale */
+  --z-index-dropdown: 100;
+  --z-index-sticky: 200;
+  --z-index-fixed: 300;
+  --z-index-modal-backdrop: 400;
+  --z-index-modal: 500;
+  --z-index-popover: 600;
+  --z-index-tooltip: 700;
+  --z-index-toast: 1050;
 }
 
 /**
@@ -106,6 +122,7 @@
 
   /* Card Background Colors - Light Mode */
   --bg-card-hover: rgba(15, 23, 42, 0.04);
+  --bg-elevated: rgba(15, 23, 42, 0.08);
 
   /* Shadows - Light Mode */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);

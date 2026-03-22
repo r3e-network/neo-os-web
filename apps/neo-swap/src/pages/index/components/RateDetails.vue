@@ -144,11 +144,20 @@ const priceImpactClass = computed(() => {
   background: transparent;
   border: none;
   padding: 4px;
+  border-radius: 4px;
   opacity: 0.7;
   transition: opacity 0.2s;
+
   &:hover {
     opacity: 1;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--swap-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(159, 157, 243, 0.15);
+  }
+
   &:active {
     opacity: 0.5;
   }

@@ -41,21 +41,38 @@ import { formatAddress, formatGas } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
-const props = defineProps<{
-  details: {
-    id: string;
-    creator: string;
-    bounty: number;
-    attempts: number;
-    broken: boolean;
-    expired: boolean;
-    status: string;
-    winner: string;
-    difficultyName: string;
-    expiryTime: number;
-    remainingDays: number;
-  };
-}>();
+const props = withDefaults(
+  defineProps<{
+    details: {
+      id: string;
+      creator: string;
+      bounty: number;
+      attempts: number;
+      broken: boolean;
+      expired: boolean;
+      status: string;
+      winner: string;
+      difficultyName: string;
+      expiryTime: number;
+      remainingDays: number;
+    };
+  }>(),
+  {
+    details: () => ({
+      id: "",
+      creator: "",
+      bounty: 0,
+      attempts: 0,
+      broken: false,
+      expired: false,
+      status: "",
+      winner: "",
+      difficultyName: "",
+      expiryTime: 0,
+      remainingDays: 0,
+    }),
+  }
+);
 
 const { t } = createUseI18n(messages)();
 

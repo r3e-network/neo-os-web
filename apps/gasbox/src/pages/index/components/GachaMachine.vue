@@ -18,7 +18,7 @@
         <span class="sale-title">{{ t("machineForSale") }}</span>
         <span class="sale-price">{{ machine.salePrice }} {{ t("tokenGas") }}</span>
       </div>
-      <NeoButton variant="primary" size="sm" block @click="$emit('buy')">
+      <NeoButton variant="primary" size="sm" block type="button" :aria-label="t('buyMachine')" @click="$emit('buy')">
         {{ t("buyMachine") }}
       </NeoButton>
     </NeoCard>
@@ -32,7 +32,7 @@
         <div class="glass-dome">
           <div class="capsules-pile">
             <!-- Simulated capsules inside -->
-            <div v-for="i in 5" :key="i" class="capsule-decoration" :style="getCapsuleStyle(i)"><span aria-hidden="true">💊</span></div>
+            <div v-for="i in 5" :key="i" class="capsule-decoration" :style="getCapsuleStyle(i)"><AppIcon name="pill" :size="24" aria-hidden="true" /></div>
           </div>
         </div>
         <div class="machine-body">
@@ -40,7 +40,7 @@
             <span class="slot-text">{{ t("playLabel") }} {{ machine.price }} {{ t("tokenGas") }}</span>
           </div>
           <div class="dispenser-chute">
-            <div v-if="isPlaying" class="falling-capsule"><span aria-hidden="true">💊</span></div>
+            <div v-if="isPlaying" class="falling-capsule"><AppIcon name="pill" :size="32" aria-hidden="true" /></div>
           </div>
         </div>
       </div>
@@ -57,7 +57,7 @@
         >
           {{ isPlaying ? t("rolling") : t("playNow") }}
         </NeoButton>
-        <NeoButton variant="secondary" size="sm" block @click="$emit('back')" class="back-btn">
+        <NeoButton variant="secondary" size="sm" block type="button" :aria-label="t('backToMarket')" @click="$emit('back')" class="back-btn">
           {{ t("backToMarket") }}
         </NeoButton>
       </div>
@@ -92,7 +92,7 @@
         <div class="result-icon-lg"><span aria-hidden="true">{{ resultItem?.icon || "🎁" }}</span></div>
         <span class="result-name">{{ resultItem?.name }}</span>
         <span class="result-rarity">{{ resultItem?.rarity || t("prizeLabel") }}</span>
-        <NeoButton block variant="primary" @click="$emit('close-result')" class="mt-4">
+        <NeoButton block variant="primary" type="button" :aria-label="t('collect')" @click="$emit('close-result')" class="mt-4">
           {{ t("collect") }}
         </NeoButton>
       </div>
@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoButton, ActionModal } from "@shared/components";
+import { NeoCard, NeoButton, ActionModal, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -443,7 +443,8 @@ const formatMeta = (item: Record<string, unknown>) => {
 
 @media (prefers-reduced-motion: reduce) {
   .gacha-slot.pulse,
-  .result-icon-lg {
+  .result-icon-lg,
+  .falling-capsule {
     animation: none;
   }
 }

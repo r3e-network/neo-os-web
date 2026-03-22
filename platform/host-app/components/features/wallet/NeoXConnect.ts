@@ -15,10 +15,12 @@ export const NEO_X_TESTNET = {
 };
 
 export async function connectNeoX(isTestnet = false) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API not in DOM types
   if (typeof window === 'undefined' || !(window as any).ethereum) {
     throw new Error('MetaMask or compatible Web3 wallet is not installed.');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API
   const eth = (window as any).ethereum;
   const network = isTestnet ? NEO_X_TESTNET : NEO_X_MAINNET;
 
@@ -29,8 +31,8 @@ export async function connectNeoX(isTestnet = false) {
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: network.chainId }],
       });
-    } catch (switchError: any) {
-      if (switchError.code === 4902) {
+    } catch (switchError: unknown) {
+      if (typeof switchError === "object" && switchError !== null && (switchError as { code?: number }).code === 4902) {
         await eth.request({
           method: 'wallet_addEthereumChain',
           params: [network],
@@ -41,7 +43,8 @@ export async function connectNeoX(isTestnet = false) {
     }
     const accounts = await eth.request({ method: 'eth_accounts' });
     return accounts[0];
-  } catch (error: any) {
-    throw new Error(error.message || 'Failed to connect to Neo X.');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : typeof error === "string" ? error : "Failed to connect to Neo X.";
+    throw new Error(message);
   }
 }

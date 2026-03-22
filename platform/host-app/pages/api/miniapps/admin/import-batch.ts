@@ -263,6 +263,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         },
       });
     } catch (error) {
+      logger.error(`import-batch: failed to import ${fileName}:`, error instanceof Error ? error.message : "unknown error");
       const message = error instanceof Error ? error.message : "Unknown error";
       results.push({
         index,

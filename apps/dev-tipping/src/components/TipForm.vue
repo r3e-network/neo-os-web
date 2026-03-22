@@ -74,7 +74,7 @@
       </div>
 
       <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" :disabled="!canSubmit" :aria-label="t('sendTipBtn')" @click="$emit('submit')">
-        <span v-if="!isLoading"><span aria-hidden="true">💚</span> {{ t("sendTipBtn") }}</span>
+        <span v-if="!isLoading"><AppIcon name="heart" :size="20" /> {{ t("sendTipBtn") }}</span>
         <span v-else>{{ t("sending") }}</span>
       </NeoButton>
     </div>
@@ -83,6 +83,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import AppIcon from "@shared/components/AppIcon.vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";

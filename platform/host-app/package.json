@@ -29,18 +29,20 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "ethers": "^6.16.0",
+    "fast-xml-parser": "^5.5.8",
     "framer-motion": "^12.23.26",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
-    "next": "^15.5.12",
+    "next": "^15.5.14",
     "postcss": "^8.5.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.6.0",
     "resend": "^6.9.3",
+    "socket.io-parser": "4.2.6",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
-    "webpack": "^5.105.3",
+    "webpack": "^5.105.4",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
@@ -62,7 +64,7 @@
   },
   "overrides": {
     "@aws-sdk/xml-builder": "3.972.11",
-    "fast-xml-parser": "5.5.6",
+    "fast-xml-parser": "$fast-xml-parser",
     "glob": "^11.0.0",
     "minimatch": "^10.2.1"
   }

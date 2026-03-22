@@ -34,8 +34,8 @@
             />
             <defs>
               <linearGradient id="qfRingGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#f472b6" />
-                <stop offset="100%" stop-color="#ec4899" />
+                <stop offset="0%" stop-color="var(--qf-ring-start, #f472b6)" />
+                <stop offset="100%" stop-color="var(--qf-ring-end, #ec4899)" />
               </linearGradient>
             </defs>
           </svg>
@@ -149,6 +149,8 @@
               v-for="project in projects"
               :key="`chip-${project.id}`"
               size="sm"
+              type="button"
+              :aria-label="project.name || `#${project.id}`"
               :variant="contributeForm.projectId === project.id ? 'primary' : 'secondary'"
               @click="selectProject(project)"
             >
@@ -436,6 +438,21 @@ const matchingPoolDisplay = computed(() =>
   }
   50% {
     filter: drop-shadow(0 0 16px rgba(236, 72, 153, 0.4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container {
+    animation: none;
+  }
+  .hero-label {
+    animation: none;
+  }
+  .hero-progress-ring {
+    animation: none;
+  }
+  .ring-svg {
+    animation: none;
   }
 }
 

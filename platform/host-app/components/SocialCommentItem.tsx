@@ -19,9 +19,14 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const handleLoadReplies = async () => {
     if (!onLoadReplies || loadingReplies) return;
     setLoadingReplies(true);
-    const data = await onLoadReplies(comment.id);
-    setReplies(data);
-    setLoadingReplies(false);
+    try {
+      const data = await onLoadReplies(comment.id);
+      setReplies(data);
+    } catch (_e: unknown) {
+      console.warn("[SocialCommentItem] failed to load replies:", _e instanceof Error ? _e.message : String(_e));
+    } finally {
+      setLoadingReplies(false);
+    }
   };
 
   const handleSubmitReply = async () => {
@@ -126,7 +131,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
       )}
 
       {/* Nested Replies */}
-      {replies.map((reply) => (
+      {replies.length > 0 && replies.map((reply) => (
         <CommentItem
           key={reply.id}
           comment={reply}

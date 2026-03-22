@@ -36,6 +36,8 @@ export function useNeoburgerCore() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("contractUnavailable");
       error.value = msg;
+    } finally {
+      error.value = null;
     }
     return BNEO_CONTRACT.value;
   }
@@ -57,6 +59,8 @@ export function useNeoburgerCore() {
       bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : t("balanceLoadFailed");
+    } finally {
+      error.value = null;
     }
   }
 
@@ -81,6 +85,8 @@ export function useNeoburgerCore() {
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : t("stakeFailed");
       return false;
+    } finally {
+      error.value = null;
     }
   }
 
@@ -106,6 +112,8 @@ export function useNeoburgerCore() {
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : t("unstakeFailed");
       return false;
+    } finally {
+      error.value = null;
     }
   }
 
@@ -125,6 +133,8 @@ export function useNeoburgerCore() {
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : t("claimFailed");
       return false;
+    } finally {
+      error.value = null;
     }
   }
 

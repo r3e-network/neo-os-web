@@ -1,11 +1,17 @@
 import { encodeBase64Url } from "jsr:@std/encoding/base64url";
 
-export async function signJwt(payload: object, secret: string): Promise<string> {
+export async function signJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
     const encoder = new TextEncoder();
     const header = { alg: "HS256", typ: "JWT" };
-    
-    const encodedHeader = encodeBase64Url(encoder.encode(JSON.stringify(header)));
-    const encodedPayload = encodeBase64Url(encoder.encode(JSON.stringify(payload)));
+
+    let encodedHeader: string;
+    let encodedPayload: string;
+    try {
+        encodedHeader = encodeBase64Url(encoder.encode(JSON.stringify(header)));
+        encodedPayload = encodeBase64Url(encoder.encode(JSON.stringify(payload)));
+    } catch (_e: unknown) {
+        throw new Error("JWT serialization failed: payload contains non-serializable values");
+    }
     const data = `${encodedHeader}.${encodedPayload}`;
 
     const key = await crypto.subtle.importKey(

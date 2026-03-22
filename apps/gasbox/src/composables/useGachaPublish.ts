@@ -152,7 +152,7 @@ export function useGachaPublish() {
       if (options.onSuccess) await options.onSuccess();
     } catch (e: unknown) {
       options.setStatus(formatErrorMessage(e, t("error")), "danger");
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       isPublishing.value = false;
     }

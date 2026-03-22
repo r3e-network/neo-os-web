@@ -144,7 +144,7 @@ const handler = createApiHandler(
         return handlePost(req, res);
       
       default:
-        apiError.methodNotAllowed(res);
+        return apiError.methodNotAllowed(res);
     }
   },
   {

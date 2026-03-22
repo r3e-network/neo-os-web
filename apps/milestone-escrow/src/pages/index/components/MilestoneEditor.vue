@@ -2,25 +2,27 @@
   <div class="milestone-section">
     <div class="milestone-header">
       <span class="section-title">{{ t("milestones") }}</span>
-      <NeoButton size="sm" variant="secondary" :disabled="milestones.length >= 12" @click="emitAdd">
+      <NeoButton size="sm" variant="secondary" type="button" :disabled="milestones.length >= 12" :aria-label="t('addMilestone')" @click="emitAdd">
         {{ t("addMilestone") }}
       </NeoButton>
     </div>
 
-    <div v-for="(milestone, index) in milestones" :key="milestone.amount + index" class="milestone-row">
+    <div v-for="milestone in milestones" :key="milestone.id" class="milestone-row">
       <NeoInput
         v-model="milestone.amount"
         type="number"
-        :label="`${t('milestoneAmount')} ${t('idPrefix')}${index + 1}`"
+        :label="`${t('milestoneAmount')} ${t('idPrefix')}${milestone.id}`"
         :suffix="asset"
         :placeholder="t('milestoneAmountPlaceholder')"
       />
       <NeoButton
         size="sm"
         variant="secondary"
+        type="button"
         class="milestone-remove"
         :disabled="milestones.length <= 1"
-        @click="emitRemove(index)"
+        :aria-label="t('remove')"
+        @click="emitRemove(milestone.id)"
       >
         {{ t("remove") }}
       </NeoButton>
@@ -34,6 +36,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
 interface Milestone {
+  id: string;
   amount: string;
 }
 
@@ -44,13 +47,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "add"): void;
-  (e: "remove", index: number): void;
+  (e: "remove", id: string): void;
 }>();
 
 const { t } = createUseI18n(messages)();
 
 const emitAdd = () => emit("add");
-const emitRemove = (index: number) => emit("remove", index);
+const emitRemove = (id: string) => emit("remove", id);
 </script>
 
 <style lang="scss" scoped>

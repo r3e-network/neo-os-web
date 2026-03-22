@@ -28,10 +28,15 @@ import { useI18n } from "@shared/composables/useI18n";
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  visible: boolean;
-  message?: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    visible: boolean;
+    message?: string | null;
+  }>(),
+  {
+    message: null,
+  }
+);
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -42,7 +47,11 @@ const loading = ref(false);
 
 const handleConnect = async () => {
   loading.value = true;
-  emit("connect");
+  try {
+    emit("connect");
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

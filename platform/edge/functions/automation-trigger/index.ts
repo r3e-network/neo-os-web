@@ -22,7 +22,12 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const triggerId = (url.searchParams.get("id") ?? "").trim();
   if (!triggerId) return error(400, "id required", "ID_REQUIRED", req);
 

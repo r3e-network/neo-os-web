@@ -18,9 +18,9 @@
           <template #background>
             <div class="multisig-scene" aria-hidden="true">
               <div class="key-group">
-                <span class="key-icon key-icon--active" aria-hidden="true">🔑</span>
-                <span class="key-icon key-icon--active" aria-hidden="true">🔑</span>
-                <span class="key-icon key-icon--inactive" aria-hidden="true">🔑</span>
+                <AppIcon name="key" :size="24" class="key-icon key-icon--active" />
+                <AppIcon name="key" :size="24" class="key-icon key-icon--active" />
+                <AppIcon name="key" :size="24" class="key-icon key-icon--inactive" />
               </div>
               <span class="key-label">{{ t("multisigThreshold") }}</span>
             </div>
@@ -80,6 +80,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { MiniAppPage, StatsDisplay, HeroSection } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useMultisigHistory } from "@/composables/useMultisigHistory";
@@ -254,6 +255,18 @@ const openHistory = (id: string) => {
       0 0 22px rgba(0, 229, 153, 0.25),
       0 0 44px rgba(0, 229, 153, 0.1);
     border-color: rgba(0, 229, 153, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-icon--active {
+    animation: none;
+  }
+  .key-group {
+    animation: none;
+  }
+  .hero-stat {
+    animation: none;
   }
 }
 

@@ -30,10 +30,15 @@ export function PerformanceReportPanel({
   const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
   const [errorCount, setErrorCount] = useState(0);
   const [report, setReport] = useState<PerformanceReport | null>(null);
-  
-  // Skip in production unless explicitly allowed
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Skip in production unless explicitly allowed — defer to after mount to avoid hydration mismatch
   const isDev = process.env.NODE_ENV === "development";
-  if (devOnly && !isDev && typeof window !== "undefined") {
+  if (devOnly && !isDev && mounted) {
     return null;
   }
   
@@ -45,15 +50,20 @@ export function PerformanceReportPanel({
   };
   
   useEffect(() => {
+    let active = true;
     const updateMetrics = () => {
+      if (!active) return;
       setMetrics(getPerformanceMetrics());
       setErrorCount(getErrorCount());
       setReport(generatePerformanceReport());
     };
-    
+
     updateMetrics();
     const interval = setInterval(updateMetrics, refreshInterval);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [refreshInterval]);
   
   // Group metrics by name
@@ -78,6 +88,7 @@ export function PerformanceReportPanel({
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle performance monitor"
         className={`fixed ${positionClasses[position]} z-50 p-2 bg-gray-800 dark:bg-gray-700 text-white rounded-full shadow-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors ${
           errorCount > 0 ? "animate-pulse" : ""
         }`}
@@ -103,6 +114,7 @@ export function PerformanceReportPanel({
             </h3>
             <button
               onClick={() => setIsOpen(false)}
+              aria-label="Close performance monitor"
               className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,13 +284,13 @@ export function useRenderPerformance(componentName: string) {
   
   useEffect(() => {
     const start = performance.now();
-    
+
     return () => {
       const duration = performance.now() - start;
       setRenderCount((c) => c + 1);
       setLastRenderTime(duration);
     };
-  });
+  }, []);
   
   return { renderCount, lastRenderTime };
 }

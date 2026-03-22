@@ -260,6 +260,7 @@ export function parseFederatedEntryUrl(entryUrl: string, fallbackAppId: string):
     const view = url.searchParams.get("view")?.trim() || undefined;
     return { remote, appId, view };
   } catch {
+    // Fall back to default when URL parsing fails (e.g., raw app-id string passed)
     if (!fallbackAppId) return null;
     return { remote: "miniapp", appId: fallbackAppId };
   }

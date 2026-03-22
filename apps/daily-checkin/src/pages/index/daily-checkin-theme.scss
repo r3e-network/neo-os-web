@@ -3,6 +3,8 @@
 @include theme-dark("daily-checkin") {
   --sunrise-bg: #1b140f;
   --sunrise-text: #fcd9b5;
+  --bg-primary: var(--sunrise-bg);
+  --text-primary: var(--sunrise-text);
   --sunrise-blue: #38bdf8;
   --sunrise-font: "Fredoka", "Quicksand", sans-serif;
   --sunrise-gradient-start: #2a1b13;
@@ -29,11 +31,15 @@
   --sunrise-ready: #ffde59;
   --sunrise-success: #00e599;
   --sunrise-reward: #00e599;
+  --sunrise-streak-start: #fbbf24;
+  --sunrise-streak-end: #f97316;
 }
 
 @include theme-light("daily-checkin") {
   --sunrise-bg: #fffbf0;
   --sunrise-text: #78350f;
+  --bg-primary: var(--sunrise-bg);
+  --text-primary: var(--sunrise-text);
   --sunrise-blue: #0ea5e9;
   --sunrise-font: "Fredoka", "Quicksand", sans-serif;
   --sunrise-gradient-start: #fff7ed;
@@ -60,4 +66,6 @@
   --sunrise-ready: #d4a017;
   --sunrise-success: #16a34a;
   --sunrise-reward: #16a34a;
+  --sunrise-streak-start: #f59e0b;
+  --sunrise-streak-end: #ea580c;
 }

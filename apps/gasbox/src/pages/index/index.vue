@@ -22,7 +22,7 @@
             <div class="dome-shine" />
             <div class="capsules-float">
               <span v-for="i in 7" :key="i" class="hero-capsule" :style="getCapsuleHeroStyle(i)">
-                <span aria-hidden="true">{{ ["💊", "🔮", "💎", "🎁", "⭐", "🎲", "🌟"][i - 1] }}</span>
+                <AppIcon :name="['pill', 'crystal_ball', 'neo', 'generous', 'star', 'dice', 'sparkle'][i - 1]" :size="20" />
               </span>
             </div>
           </div>
@@ -35,7 +35,7 @@
           <!-- Machine Base -->
           <div class="hero-machine-base">
             <div class="dispense-slot">
-              <div v-if="isPlaying" class="dispense-capsule"><span aria-hidden="true">💊</span></div>
+              <div v-if="isPlaying" class="dispense-capsule"><AppIcon name="pill" :size="24" /></div>
             </div>
           </div>
         </div>
@@ -110,7 +110,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { MiniAppPage } from "@shared/components";
+import { MiniAppPage, AppIcon } from "@shared/components";
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGachaMachines } from "@/composables/useGachaMachines";
@@ -155,10 +155,10 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
     messages,
     template: {
       tabs: [
-        { key: "market", labelKey: "market", icon: "🎰", default: true },
-        { key: "discover", labelKey: "discover", icon: "🧭" },
-        { key: "create", labelKey: "create", icon: "✏️" },
-        { key: "manage", labelKey: "manage", icon: "⚙️" },
+        { key: "market", labelKey: "market", icon: "slot", default: true },
+        { key: "discover", labelKey: "discover", icon: "compass" },
+        { key: "create", labelKey: "create", icon: "edit" },
+        { key: "manage", labelKey: "manage", icon: "settings" },
       ],
       fireworks: true,
       docFeatureCount: 3,
@@ -290,7 +290,11 @@ const handlePublish = async (machineData: {
 
 let fireworksTimer: ReturnType<typeof setTimeout> | null = null;
 
-watch(showFireworks, (val) => {
+const stopFireworksWatch = watch(showFireworks, (val) => {
+  if (fireworksTimer) {
+    clearTimeout(fireworksTimer);
+    fireworksTimer = null;
+  }
   if (val) {
     fireworksTimer = setTimeout(() => {
       fireworksTimer = null;
@@ -300,13 +304,15 @@ watch(showFireworks, (val) => {
 });
 
 onUnmounted(() => {
+  stopFireworksWatch();
+  stopAddressWatch();
   if (fireworksTimer) {
     clearTimeout(fireworksTimer);
     fireworksTimer = null;
   }
 });
 
-watch(
+const stopAddressWatch = watch(
   address,
   () => {
     loadMachines();
@@ -469,7 +475,7 @@ watch(
   font-size: 18px;
   font-weight: 800;
   color: var(--text-primary);
-  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  background: linear-gradient(135deg, var(--gacha-hero-gradient-start, #a78bfa), var(--gacha-hero-gradient-end, #818cf8));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -558,9 +564,10 @@ watch(
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero-machine,
+  .gacha-hero-machine.shaking,
   .hero-capsule,
-  .slot-indicator.active {
+  .slot-indicator.active,
+  .dispense-capsule {
     animation: none;
   }
 }

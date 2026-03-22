@@ -21,8 +21,10 @@
         variant="primary"
         size="lg"
         block
+        type="button"
         :loading="loading"
         :disabled="loading"
+        :aria-label="t('createTemplate')"
         @click="handleCreate"
       >
         {{ loading ? t("creating") : t("createTemplate") }}

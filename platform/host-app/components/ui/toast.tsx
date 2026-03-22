@@ -10,6 +10,7 @@ import React, {
   useCallback,
   useEffect,
   useId,
+  useRef,
 } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -216,7 +217,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, position }) => 
   return createPortal(
     <div
       className={cn(
-        "fixed z-[1700] flex flex-col gap-2 pointer-events-none",
+        "fixed z-50 flex flex-col gap-2 pointer-events-none",
         positionStyles[position]
       )}
       role="region"
@@ -241,6 +242,13 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
   const { removeToast } = useToast();
   const [isExiting, setIsExiting] = useState(false);
+  const removeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Auto dismiss
   useEffect(() => {
@@ -248,15 +256,22 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast }) => {
 
     const timer = setTimeout(() => {
       setIsExiting(true);
-      setTimeout(() => removeToast(toast.id), 200);
+      if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+      removeTimerRef.current = setTimeout(() => removeToast(toast.id), 200);
     }, toast.duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+    };
   }, [toast.duration, toast.id, removeToast]);
 
   const handleDismiss = () => {
     setIsExiting(true);
-    setTimeout(() => removeToast(toast.id), 200);
+    if (removeTimerRef.current) clearTimeout(removeTimerRef.current);
+    removeTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current) removeToast(toast.id);
+    }, 200);
   };
 
   return (

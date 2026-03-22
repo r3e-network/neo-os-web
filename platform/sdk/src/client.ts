@@ -80,7 +80,9 @@ async function getInjectedWalletAddress(): Promise<string> {
     try {
       const accounts = await g.ethereum.request({ method: "eth_accounts" });
       if (accounts && accounts.length > 0) return accounts[0];
-    } catch { }
+    } catch {
+      // User denied request or wallet unavailable — try next wallet option
+    }
   }
 
   const neoline = g.NEOLineN3;
@@ -204,7 +206,7 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
 
   const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
   const text = await resp.text();
-  if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
+  if (!resp.ok) throw new Error(`request failed (${resp.status})`);
   try {
     const parsed: unknown = JSON.parse(text);
     if (typeof parsed !== "object" || parsed === null) {
@@ -213,7 +215,7 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
     return parsed as T;
   } catch (err) {
     if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
-    throw err;
+    throw new Error(`requestJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -232,7 +234,7 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
 
   const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
   const text = await resp.text();
-  if (!resp.ok) throw new Error(text || `request failed (${resp.status})`);
+  if (!resp.ok) throw new Error(`request failed (${resp.status})`);
   try {
     const parsed: unknown = JSON.parse(text);
     if (typeof parsed !== "object" || parsed === null) {
@@ -241,7 +243,7 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
     return parsed as T;
   } catch (err) {
     if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
-    throw err;
+    throw new Error(`requestHostJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 

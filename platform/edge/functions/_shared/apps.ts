@@ -119,7 +119,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
   });
 
   if (bumpErr) {
-    const message = bumpErr.message ?? "usage cap enforcement failed";
+    const message = bumpErr instanceof Error ? bumpErr.message : (bumpErr?.message ?? "usage cap enforcement failed");
     if (message.toLowerCase().includes("cap_exceeded")) {
       return error(403, "usage cap exceeded", "LIMIT_EXCEEDED", input.req);
     }
@@ -232,7 +232,6 @@ export async function fetchMiniAppPolicy(appId: string, req?: Request): Promise<
     enforceMiniAppAssetPolicy(row.manifest ?? {});
     canonical = canonicalizeMiniAppManifest(row.manifest ?? {});
   } catch (e) {
-    const detail = (e as Error).message;
     return error(500, "stored manifest invalid", "APP_MANIFEST_INVALID", req);
   }
 

@@ -44,6 +44,7 @@ const appMessages = {
   checklistHardwareDesc: { en: "Move significant assets to a hardware wallet.", zh: "重要资产建议使用硬件钱包保管。" },
   checklist2fa: { en: "Enable 2FA where possible", zh: "启用双重验证" },
   checklist2faDesc: { en: "Add 2FA for exchange accounts tied to this wallet.", zh: "关联交易所账户建议开启双重验证。" },
+  noChecklistItems: { en: "No checklist items available", zh: "暂无检查项" },
 
   recommendationGasLow: { en: "Top up GAS to avoid failed transactions.", zh: "补充 GAS 以避免交易失败。" },
   recommendationBackup: { en: "Backup your seed phrase immediately.", zh: "请立即备份助记词。" },

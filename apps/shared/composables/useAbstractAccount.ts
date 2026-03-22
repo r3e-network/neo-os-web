@@ -15,6 +15,12 @@ import {
   getNetwork,
   type NeoNetwork,
 } from "../constants/rpc";
+import { MiniAppError } from "../utils/errorHandling";
+
+// Error codes for i18n-compatible error handling
+const ERROR_CODE_GAS_SPONSORSHIP_CHECK = "AA_GAS_SPONSORSHIP_CHECK_FAILED";
+const ERROR_CODE_GAS_SPONSORSHIP_REQUEST = "AA_GAS_SPONSORSHIP_REQUEST_FAILED";
+const ERROR_CODE_RELAY_SUBMISSION = "AA_RELAY_SUBMISSION_FAILED";
 
 type TokenResolver = () => string | Promise<string | undefined> | undefined;
 
@@ -117,7 +123,7 @@ async function requestJson<T>(
     method: options.method,
     headers,
     credentials: "include",
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    ...(options.body ? { body: (() => { try { return JSON.stringify(options.body); } catch { return String(options.body); } })() } : {}),
   });
 
   const text = await response.text();
@@ -166,10 +172,12 @@ export function useAbstractAccount(config: AAConfig = {}) {
         getAuthToken: config.getAuthToken,
       });
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Gas sponsorship check failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Gas sponsorship check failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_CHECK, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_CHECK);
     } finally {
       isCheckingSponsorship.value = false;
+      error.value = null;
     }
   };
 
@@ -186,10 +194,12 @@ export function useAbstractAccount(config: AAConfig = {}) {
         getAuthToken: config.getAuthToken,
       });
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Gas sponsorship request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Gas sponsorship request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_REQUEST, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_REQUEST);
     } finally {
       isCheckingSponsorship.value = false;
+      error.value = null;
     }
   };
 
@@ -221,10 +231,12 @@ export function useAbstractAccount(config: AAConfig = {}) {
       lastRelayResponse.value = response;
       return response;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "AA relay submission failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "AA relay submission failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_RELAY_SUBMISSION, undefined, undefined, undefined, ERROR_CODE_RELAY_SUBMISSION);
     } finally {
       isRelaying.value = false;
+      error.value = null;
     }
   };
 

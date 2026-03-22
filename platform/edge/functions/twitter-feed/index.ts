@@ -40,7 +40,13 @@ export async function handler(req: Request): Promise<Response> {
       return json({ tweets: [] }, {}, req);
     }
 
-    const data = await res.json();
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      console.error("[twitter-feed] invalid JSON response from Twitter API");
+      return json({ tweets: [] }, {}, req);
+    }
     const tweets: Tweet[] = (data.data || []).map((t: Record<string, unknown>) => ({
       id: t.id,
       text: t.text,
@@ -50,7 +56,8 @@ export async function handler(req: Request): Promise<Response> {
     }));
 
     return json({ tweets }, {}, req);
-  } catch {
+  } catch (err) {
+    console.error("[twitter-feed] fetch error:", err instanceof Error ? err.message : String(err));
     return json({ tweets: [] }, {}, req);
   }
 }

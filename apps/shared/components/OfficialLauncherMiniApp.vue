@@ -126,31 +126,45 @@ type LauncherToggle = {
   }>;
 };
 
-defineProps<{
-  pageName: string;
-  templateConfig: MiniAppTemplateConfig;
-  appState: Record<string, unknown>;
-  t: (key: string) => string;
-  status: StatusMessage | null;
-  sidebarItems: Array<{ label: string; value: string | number | boolean | null | undefined }>;
-  sidebarTitle: string;
-  fallbackMessage: string;
-  handleBoundaryError: (error: Error) => void;
-  resetStatus: () => void;
-  heroMode?: "flamingo" | "bridge";
-  heroMark?: string;
-  bridgeLeftLabel?: string;
-  bridgeRightLabel?: string;
-  heroKicker: string;
-  heroTitle: string;
-  heroBlurb: string;
-  overviewStats: StatsDisplayItem[];
-  mainCards: LauncherCard[];
-  detailCards: LauncherCard[];
-  operationTitle: string;
-  operationActions: LauncherAction[];
-  operationToggle?: LauncherToggle | null;
-}>();
+withDefaults(
+  defineProps<{
+    pageName: string;
+    templateConfig: MiniAppTemplateConfig;
+    appState: Record<string, unknown>;
+    t: (key: string) => string;
+    status: StatusMessage | null;
+    sidebarItems: Array<{ label: string; value: string | number | boolean | null | undefined }>;
+    sidebarTitle: string;
+    fallbackMessage: string;
+    handleBoundaryError: (error: Error) => void;
+    resetStatus: () => void;
+    heroMode?: "flamingo" | "bridge";
+    heroMark?: string;
+    bridgeLeftLabel?: string;
+    bridgeRightLabel?: string;
+    heroKicker: string;
+    heroTitle: string;
+    heroBlurb: string;
+    overviewStats: StatsDisplayItem[];
+    mainCards: LauncherCard[];
+    detailCards: LauncherCard[];
+    operationTitle: string;
+    operationActions: LauncherAction[];
+    operationToggle?: LauncherToggle | null;
+  }>(),
+  {
+    heroMode: "flamingo",
+    heroMark: undefined,
+    bridgeLeftLabel: undefined,
+    bridgeRightLabel: undefined,
+    operationToggle: null,
+    sidebarItems: () => [],
+    overviewStats: () => [],
+    mainCards: () => [],
+    detailCards: () => [],
+    operationActions: () => [],
+  }
+);
 </script>
 
 <style lang="scss" scoped>
@@ -171,7 +185,7 @@ defineProps<{
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #fb7185;
+  color: var(--hero-kicker-color, #fb7185);
 }
 
 .hero-title {
@@ -215,9 +229,9 @@ defineProps<{
   justify-content: center;
   font-size: 28px;
   font-weight: 900;
-  color: #0f172a;
-  background: linear-gradient(180deg, #f97316 0%, #fb7185 100%);
-  box-shadow: 0 16px 46px rgba(249, 115, 22, 0.24);
+  color: var(--flamingo-mark-color, #0f172a);
+  background: linear-gradient(180deg, var(--flamingo-mark-start, #f97316) 0%, var(--flamingo-mark-end, #fb7185) 100%);
+  box-shadow: 0 16px 46px var(--flamingo-mark-shadow, rgba(249, 115, 22, 0.24));
 }
 
 .flamingo-trail {

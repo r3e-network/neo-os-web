@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -15,6 +15,7 @@ import FlashloanDocs from "../index/components/FlashloanDocs.vue";
 const { t } = createUseI18n(messages)();
 const { chainId, appChainId, getContractAddress } = useWallet() as WalletSDK;
 const contractAddress = ref<string | null>(null);
+const isMounted = ref(true);
 
 const networkLabel = computed(() => {
   const id = String(appChainId?.value || chainId?.value || "");
@@ -24,13 +25,19 @@ const networkLabel = computed(() => {
 });
 
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     contractAddress.value = await getContractAddress();
-  } catch (_e: unknown) {
+  } catch (e: unknown) {
     // Contract address fetch failed — docs page works without it; contractAddress
     // being null is handled by FlashloanDocs component showing "not available"
+    console.warn("[flashloan-docs] contract address fetch failed:", e instanceof Error ? e.message : String(e));
     contractAddress.value = null;
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
 });
 </script>
 

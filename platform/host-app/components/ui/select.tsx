@@ -278,6 +278,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             type="button"
             id={selectId}
             ref={(node) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DOM ref assignment from React Ref type mismatch
               if (typeof ref === "function") {
                 ref(node as any);
               } else if (ref) {

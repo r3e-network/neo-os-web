@@ -4,7 +4,8 @@
 # Supports multiple environments: dev, test, staging, prod (Nitro-only)
 # Features: Docker build, registry push, rolling updates, health checks
 #
-set -e
+
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"

@@ -2,15 +2,21 @@
   <NeoCard variant="default">
     <div class="eligibility-check">
       <div class="check-item">
-        <span class="check-icon" aria-hidden="true">{{ parseFloat(gasBalance) < 0.1 ? "✓" : "✗" }}</span>
+        <span class="check-icon">
+          <AppIcon :name="parseFloat(gasBalance) < 0.1 ? 'check' : 'fail'" :size="16" :aria-label="parseFloat(gasBalance) < 0.1 ? t('statusPass') : t('statusFail')" />
+        </span>
         <span class="check-text">{{ t("balanceCheck") }} ({{ formatBalance(gasBalance) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
-        <span class="check-icon" aria-hidden="true">{{ remainingQuota > 0 ? "✓" : "✗" }}</span>
+        <span class="check-icon">
+          <AppIcon :name="remainingQuota > 0 ? 'check' : 'fail'" :size="16" :aria-label="remainingQuota > 0 ? t('statusPass') : t('statusFail')" />
+        </span>
         <span class="check-text">{{ t("quotaCheck") }} ({{ formatBalance(remainingQuota) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
-        <span class="check-icon" aria-hidden="true">{{ userAddress ? "✓" : "✗" }}</span>
+        <span class="check-icon">
+          <AppIcon :name="userAddress ? 'check' : 'fail'" :size="16" :aria-label="userAddress ? t('statusPass') : t('statusFail')" />
+        </span>
         <span class="check-text">{{ t("walletCheck") }}</span>
       </div>
     </div>
@@ -18,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 

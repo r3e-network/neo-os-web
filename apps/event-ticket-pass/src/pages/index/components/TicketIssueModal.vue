@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { ActionModal, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -46,28 +46,37 @@ const localRecipient = ref(props.recipient);
 const localSeat = ref(props.seat);
 const localMemo = ref(props.memo);
 
-watch(
+const stopPropRecipientWatch = watch(
   () => props.recipient,
   (newVal) => {
     localRecipient.value = newVal;
   }
 );
-watch(
+const stopPropSeatWatch = watch(
   () => props.seat,
   (newVal) => {
     localSeat.value = newVal;
   }
 );
-watch(
+const stopPropMemoWatch = watch(
   () => props.memo,
   (newVal) => {
     localMemo.value = newVal;
   }
 );
 
-watch(localRecipient, (newVal) => emit("update:recipient", newVal));
-watch(localSeat, (newVal) => emit("update:seat", newVal));
-watch(localMemo, (newVal) => emit("update:memo", newVal));
+const stopLocalRecipientWatch = watch(localRecipient, (newVal) => emit("update:recipient", newVal));
+const stopLocalSeatWatch = watch(localSeat, (newVal) => emit("update:seat", newVal));
+const stopLocalMemoWatch = watch(localMemo, (newVal) => emit("update:memo", newVal));
+
+onUnmounted(() => {
+  stopPropRecipientWatch();
+  stopPropSeatWatch();
+  stopPropMemoWatch();
+  stopLocalRecipientWatch();
+  stopLocalSeatWatch();
+  stopLocalMemoWatch();
+});
 </script>
 
 <style lang="scss" scoped>

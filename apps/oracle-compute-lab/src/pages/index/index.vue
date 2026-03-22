@@ -27,16 +27,16 @@
     <template #operation>
       <div class="stack">
         <NeoInput v-model="scriptName" :label="t('scriptName')" :placeholder="t('scriptNamePlaceholder')" />
-        <label class="textarea-label">{{ t("inputJson") }}</label>
-        <textarea v-model="inputJson" class="json-box" rows="8" :aria-label="t('inputJson')"></textarea>
-        <NeoButton variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
+        <label for="input-json" class="textarea-label">{{ t("inputJson") }}</label>
+        <textarea id="input-json" v-model="inputJson" class="json-box" rows="8" :aria-label="t('inputJson')"></textarea>
+        <NeoButton type="button" variant="primary" :loading="oracle.isRequesting" @click="runJob">{{ t("execute") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
 </template>
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoInput, AppIcon } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { messages } from "@/locale/messages";

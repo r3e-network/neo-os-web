@@ -9,7 +9,7 @@
           <span class="router-value mono">{{ routerAddress }}</span>
         </div>
 
-        <NeoButton variant="primary" block @click="openDex">
+        <NeoButton variant="primary" block type="button" @click="openDex">
           {{ t("openDex") }}
         </NeoButton>
       </div>
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { NeoCard, StatsDisplay, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
@@ -34,6 +34,7 @@ const { getContractAddress } = useWallet() as WalletSDK;
 
 const priceData = ref<{ neo: number; neoBurger: number } | null>(null);
 const routerAddress = ref<string>("");
+const isMounted = ref(true);
 
 const poolStats = computed<StatsDisplayItem[]>(() => [
   { label: `${t("tokenNeo")}/USD`, value: priceData.value ? priceData.value.neo.toFixed(2) : t("notAvailable") },
@@ -52,7 +53,7 @@ const loadPrices = async () => {
     const prices = await getPrices();
     priceData.value = { neo: prices.neo, neoBurger: prices.neoBurger };
   } catch (e: unknown) {
-    /* non-critical: pool price load */
+    console.warn("[neo-swap] pool price load failed:", e instanceof Error ? e.message : String(e));
   }
 };
 
@@ -84,12 +85,17 @@ const openDex = () => {
 };
 
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     routerAddress.value = (await getContractAddress()) || "";
     await loadPrices();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[neo-swap] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
 });
 </script>
 

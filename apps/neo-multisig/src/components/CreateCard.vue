@@ -2,7 +2,7 @@
   <div class="create-section">
     <button type="button" class="create-btn" :aria-label="title" @click="$emit('create')">
       <div class="create-icon">
-        <span class="plus-icon">+</span>
+        <span class="plus-icon" aria-hidden="true">+</span>
       </div>
       <div class="create-content">
         <span class="create-title">{{ title }}</span>

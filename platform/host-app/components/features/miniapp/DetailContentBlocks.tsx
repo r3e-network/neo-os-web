@@ -30,9 +30,9 @@ export function DetailContentBlocks({ blocks }: DetailContentBlocksProps) {
             <section key={`${block.type}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/70 p-4">
               {block.title && <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{block.title}</h4>}
               <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                {block.items.map((item, itemIndex) => (
+                {block.items && block.items.length > 0 ? block.items.map((item, itemIndex) => (
                   <li key={itemIndex} className="break-words">{item}</li>
-                ))}
+                )) : null}
               </ul>
             </section>
           );
@@ -43,12 +43,12 @@ export function DetailContentBlocks({ blocks }: DetailContentBlocksProps) {
             <section key={`${block.type}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/70 p-4">
               {block.title && <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{block.title}</h4>}
               <dl className="space-y-1.5">
-                {block.items.map((item, itemIndex) => (
+                {block.items && block.items.length > 0 ? block.items.map((item, itemIndex) => (
                   <div key={itemIndex} className="flex items-start justify-between gap-4 border-b border-gray-200/70 dark:border-gray-700/70 pb-1.5 last:border-b-0 last:pb-0">
                     <dt className="text-sm text-gray-500 dark:text-gray-400">{item.key}</dt>
                     <dd className="text-sm text-gray-900 dark:text-white text-right break-words">{item.value}</dd>
                   </div>
-                ))}
+                )) : null}
               </dl>
             </section>
           );
@@ -59,7 +59,7 @@ export function DetailContentBlocks({ blocks }: DetailContentBlocksProps) {
             <section key={`${block.type}-${index}`} className="rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/70 p-4">
               {block.title && <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">{block.title}</h4>}
               <ul className="space-y-2">
-                {block.items.map((item, itemIndex) => (
+                {block.items && block.items.length > 0 ? block.items.map((item, itemIndex) => (
                   <li key={itemIndex}>
                     <a
                       href={item.href}
@@ -70,7 +70,7 @@ export function DetailContentBlocks({ blocks }: DetailContentBlocksProps) {
                       {item.label}
                     </a>
                   </li>
-                ))}
+                )) : null}
               </ul>
             </section>
           );

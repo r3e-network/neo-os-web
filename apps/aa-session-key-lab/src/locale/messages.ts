@@ -32,6 +32,7 @@ const appMessages = {
   invalidSessionPublicKey: { en: "Session public key must be a 33-byte compressed hex key.", zh: "Session 公钥必须是 33 字节压缩十六进制公钥。" },
   invalidExpiry: { en: "Expiry must be a future Unix timestamp.", zh: "过期时间必须是未来的 Unix 时间戳。" },
   sessionKeyGenerated: { en: "Session key generated locally.", zh: "已在本地生成 Session key。" },
+  sessionKeyGenerateFailed: { en: "Failed to generate session key.", zh: "Session key 生成失败。" },
   sessionConfigured: { en: "Session key configuration submitted.", zh: "Session key 配置已提交。" },
   sessionConfigureFailed: { en: "Session key configuration failed.", zh: "Session key 配置失败。" },
   sponsorCheckComplete: { en: "Sponsor check complete.", zh: "赞助检查完成。" },

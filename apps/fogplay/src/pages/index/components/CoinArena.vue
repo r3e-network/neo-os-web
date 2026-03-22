@@ -101,12 +101,12 @@ const statusText = computed(() => {
   left: 50%;
   width: 150px;
   height: 150px;
-  background: radial-gradient(circle, rgba(0, 229, 153, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   transition: all 0.5s ease;
 
   &.flipping {
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, transparent 80%);
+    background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 80%);
     width: 200px;
     height: 200px;
   }
@@ -123,7 +123,7 @@ const statusText = computed(() => {
   background: var(--coin-loss);
   padding: 8px 60px;
   transform: rotate(45deg);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px var(--coin-result-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -153,6 +153,12 @@ const statusText = computed(() => {
   }
   to {
     transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-orbit {
+    animation: none;
   }
 }
 </style>

@@ -84,7 +84,7 @@ export async function handler(req: Request): Promise<Response> {
     p_daily_limit: DAILY_LIMIT,
   });
   if (bumpErr) {
-    const msg = bumpErr.message || "";
+    const msg = bumpErr instanceof Error ? bumpErr.message : (bumpErr?.message || "");
     if (msg.includes("quota") || msg.includes("limit") || msg.includes("exceeded")) {
       return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
     }
@@ -112,14 +112,17 @@ export async function handler(req: Request): Promise<Response> {
 
     // Update request status (best-effort; transfer already succeeded)
     const { error: updErr } = await supabase.from("gas_sponsor_requests").update({ status: "completed", tx_hash: txHash }).eq("id", requestId);
-    if (updErr) console.error("gas-sponsor status update failed:", updErr.message);
+    if (updErr) {
+      // Transfer succeeded but status update failed — request will show "processing" indefinitely
+      console.error("[gas-sponsor] status update failed after transfer succeeded:", { requestId, txHash, error: updErr instanceof Error ? updErr.message : String(updErr) });
+    }
   } catch (e) {
     // Update request as failed (best-effort)
     const { error: failErr } = await supabase
       .from("gas_sponsor_requests")
       .update({ status: "failed", error_message: "transfer failed" })
       .eq("id", requestId);
-    if (failErr) console.error("gas-sponsor failure status update failed:", failErr.message);
+    if (failErr) console.error("gas-sponsor failure status update failed:", failErr instanceof Error ? failErr.message : String(failErr));
 
     return error(500, "transfer failed", "TRANSFER_ERROR", req);
   }

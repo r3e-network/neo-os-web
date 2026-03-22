@@ -93,7 +93,7 @@ async function waitForTransaction(rpcClient: any, txid: string, maxAttempts = 60
         throw new Error(execution.exception || "transaction fault");
       }
     } catch (error) {
-      const message = String((error as Error)?.message || error || "");
+      const message = error instanceof Error ? error.message : String(error);
       if (!message.includes("Unknown transaction")) throw error;
     }
     await new Promise((resolve) => setTimeout(resolve, 3000));

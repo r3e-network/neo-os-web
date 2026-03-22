@@ -55,7 +55,7 @@ export class OneGateAdapter implements WalletAdapter {
         publicKey: account.publicKey,
       };
     } catch (error) {
-      throw new WalletConnectionError(`Failed to connect to OneGate: ${error}`);
+      throw new WalletConnectionError(`Failed to connect to OneGate: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -68,7 +68,8 @@ export class OneGateAdapter implements WalletAdapter {
 
     try {
       return await this.getWindow().OneGate!.getBalance({ address });
-    } catch {
+    } catch (e: unknown) {
+      console.warn("[OneGate] getBalance failed:", e instanceof Error ? e.message : String(e));
       return { neo: "0", gas: "0" };
     }
   }
@@ -77,13 +78,17 @@ export class OneGateAdapter implements WalletAdapter {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
-    return this.getWindow().OneGate!.signMessage({ message });
+    const api = this.getWindow().OneGate;
+    if (!api) throw new Error("OneGate API is not available");
+    return api.signMessage({ message });
   }
 
   async invoke(params: InvokeParams): Promise<TransactionResult> {
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
-    return this.getWindow().OneGate!.invoke(params);
+    const api = this.getWindow().OneGate;
+    if (!api) throw new Error("OneGate API is not available");
+    return api.invoke(params);
   }
 }

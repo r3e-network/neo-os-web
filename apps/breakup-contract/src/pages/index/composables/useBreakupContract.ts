@@ -259,7 +259,7 @@ export function useBreakupContract(t: (key: string) => string) {
         { type: "Integer", value: contract.id },
         { type: "Hash160", value: address.value },
       ]);
-      setStatus(t("contractBroken"), "error");
+      setStatus(t("contractBroken"), "warning");
       await loadContracts();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");

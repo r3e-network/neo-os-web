@@ -85,6 +85,7 @@ export function getSupabaseServiceEnv(options: { strict?: boolean } = {}): Supab
     try {
       new URL(url);
     } catch {
+      // Invalid URL format — record validation issue
       issues.push("Resolved Supabase URL must be a valid URL");
     }
   }

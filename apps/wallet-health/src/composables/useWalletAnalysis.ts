@@ -1,4 +1,4 @@
-import { computed, reactive, ref, unref, watch } from "vue";
+import { computed, reactive, ref, unref, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -88,18 +88,24 @@ export function useWalletAnalysis() {
     }
   };
 
-  watch(address, async (next) => {
+  const mountedRef = ref(true);
+  const stopAddressWatch = watch(address, async (next) => {
+    if (!mountedRef.value) return;
     if (next) {
       try {
         await refreshBalances();
+        if (!mountedRef.value) return;
       } catch (_e: unknown) {
         /* non-critical: balance refresh */
       }
     } else {
+      if (!mountedRef.value) return;
       balances.neo = 0n;
       balances.gas = 0n;
     }
   });
+
+  onUnmounted(() => { mountedRef.value = false; stopAddressWatch(); });
 
   return {
     address,

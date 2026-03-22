@@ -156,8 +156,8 @@ export function createMiniAppSDK(cfg) {
                 try {
                     pendingInvocations.set(res.request_id, res.invocation);
                 }
-                catch {
-                    // ignore
+                catch (e) {
+                    console.warn("[sdk] pendingInvocations.set failed:", e instanceof Error ? e.message : String(e));
                 }
                 return res;
             },
@@ -181,8 +181,8 @@ export function createMiniAppSDK(cfg) {
                 try {
                     pendingInvocations.set(res.request_id, res.invocation);
                 }
-                catch {
-                    // ignore
+                catch (e) {
+                    console.warn("[sdk] pendingInvocations.set failed:", e instanceof Error ? e.message : String(e));
                 }
                 return res;
             },

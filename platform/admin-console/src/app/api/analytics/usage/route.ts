@@ -6,7 +6,8 @@ import { getSupabaseServiceEnv } from "@/lib/env";
 function getConfiguredSupabase() {
   try {
     return getSupabaseServiceEnv({ strict: true });
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[analytics/usage] getSupabaseServiceEnv failed:", _e instanceof Error ? _e.message : String(_e));
     return null;
   }
 }

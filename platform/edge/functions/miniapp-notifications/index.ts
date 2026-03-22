@@ -12,7 +12,12 @@ export async function handler(req: Request): Promise<Response> {
   const rateLimited = await requireRateLimit(req, "miniapp-notifications");
   if (rateLimited) return rateLimited;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const appId = url.searchParams.get("app_id")?.trim();
   const limitRaw = url.searchParams.get("limit");
   let limit = 20;

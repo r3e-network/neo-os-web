@@ -123,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return apiError.internal(res, "Edge functions not configured");
     }
     res.setHeader("Cache-Control", "no-store, private");
-    res.status(200).json(data);
+    return res.status(200).json(data);
   } catch (err) {
     logger.error("Failed to fetch events:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch events");

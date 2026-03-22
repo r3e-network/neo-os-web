@@ -75,7 +75,7 @@ async function getWalletAddress(sdk: MiniAppSDK): Promise<string> {
     console.log("User wallet address:", address);
     return address;
   } catch (error) {
-    console.error("Failed to get wallet address:", error);
+    console.error("Failed to get wallet address:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -103,7 +103,7 @@ async function payWithGAS(sdk: MiniAppSDK, appId: string, amount: string, memo?:
 
     return response;
   } catch (error) {
-    console.error("Payment failed:", error);
+    console.error("Payment failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -132,7 +132,7 @@ async function voteWithNEO(
 
     return response;
   } catch (error) {
-    console.error("Vote failed:", error);
+    console.error("Vote failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -157,7 +157,7 @@ async function requestRandomNumber(sdk: MiniAppSDK, appId: string): Promise<RNGR
 
     return response;
   } catch (error) {
-    console.error("RNG request failed:", error);
+    console.error("RNG request failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -183,7 +183,7 @@ async function getPriceData(sdk: MiniAppSDK, symbol: string): Promise<PriceRespo
 
     return response;
   } catch (error) {
-    console.error("Price fetch failed:", error);
+    console.error("Price fetch failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -197,7 +197,7 @@ async function getUsageStats(sdk: MiniAppSDK, appId: string): Promise<void> {
     const usage = await sdk.stats.getMyUsage(appId);
     console.log("Daily usage (base units):", usage);
   } catch (error) {
-    console.error("Usage fetch failed:", error);
+    console.error("Usage fetch failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -229,7 +229,7 @@ async function gasBankOperations(hostSdk: HostSDK): Promise<void> {
     const transactionsResponse = await hostSdk.gasbank.listTransactions();
     console.log(`Found ${transactionsResponse.transactions.length} transactions`);
   } catch (error) {
-    console.error("GasBank operation failed:", error);
+    console.error("GasBank operation failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -267,7 +267,7 @@ async function secretsManagement(hostSdk: HostSDK): Promise<void> {
     await hostSdk.secrets.setPermissions(SECRET_NAME, ["neofeeds", "neooracle"]);
     console.log("Permissions updated");
   } catch (error) {
-    console.error("Secrets operation failed:", error);
+    console.error("Secrets operation failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }
@@ -303,7 +303,7 @@ async function automationTriggers(hostSdk: HostSDK): Promise<void> {
     const executions = await hostSdk.automation.listExecutions(trigger.id, 10);
     console.log(`Found ${executions.length} executions`);
   } catch (error) {
-    console.error("Automation operation failed:", error);
+    console.error("Automation operation failed:", error instanceof Error ? error : String(error));
     throw error;
   }
 }

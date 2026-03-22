@@ -35,7 +35,7 @@
     <div class="form-step">
       <div class="label-row">
         <span class="label">{{ t("inventoryAndOdds") }}</span>
-        <NeoButton size="sm" variant="secondary" @click="addItem">+ {{ t("addItem") }}</NeoButton>
+        <NeoButton type="button" size="sm" variant="secondary" @click="addItem">+ {{ t("addItem") }}</NeoButton>
       </div>
 
       <div class="inventory-list">
@@ -65,6 +65,7 @@
               <span class="asset-label">{{ t("assetTypeLabel") }}</span>
               <div class="asset-buttons">
                 <NeoButton
+                  type="button"
                   size="sm"
                   :variant="item.assetType === 'nep17' ? 'primary' : 'secondary'"
                   @click="item.assetType = 'nep17'"
@@ -72,6 +73,7 @@
                   {{ t("nep17Label") }}
                 </NeoButton>
                 <NeoButton
+                  type="button"
                   size="sm"
                   :variant="item.assetType === 'nep11' ? 'primary' : 'secondary'"
                   @click="item.assetType = 'nep11'"

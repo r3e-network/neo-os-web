@@ -49,6 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await collectAppStats(app.app_id, app.contract_hash, network);
         results.push({ appId: app.app_id, success: true });
       } catch (error) {
+        logger.warn(`collectAppStats failed for ${app.app_id}:`, error instanceof Error ? error.message : "unknown error");
         results.push({
           appId: app.app_id,
           success: false,
@@ -57,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: `Processed ${results.length} apps`,
       success: results.filter((r) => r.success).length,
       failed: results.filter((r) => !r.success).length,

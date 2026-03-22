@@ -106,7 +106,11 @@ export async function requestJSON(
 
   if (init.body !== undefined) {
     headers.set("Content-Type", "application/json");
-    body = JSON.stringify(init.body);
+    try {
+      body = JSON.stringify(init.body);
+    } catch (_e: unknown) {
+      body = String(init.body);
+    }
   }
 
   const requestInit: RequestInit & { client?: Deno.HttpClient } = {
@@ -123,18 +127,22 @@ export async function requestJSON(
     return error(503, "mTLS is required for TEE service calls in production", "MTLS_REQUIRED", req);
   }
 
-  const resp = await fetch(url, requestInit);
-
-  const text = await resp.text();
-  if (!resp.ok) {
-    return error(resp.status, "upstream request failed", "UPSTREAM_ERROR", req);
-  }
-
-  if (!text) return {};
   try {
-    return JSON.parse(text);
-  } catch {
-    return error(502, "invalid upstream JSON", "UPSTREAM_INVALID_JSON", req);
+    const resp = await fetch(url, requestInit);
+
+    const text = await resp.text();
+    if (!resp.ok) {
+      return error(resp.status, "upstream request failed", "UPSTREAM_ERROR", req);
+    }
+
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return error(502, "invalid upstream JSON", "UPSTREAM_INVALID_JSON", req);
+    }
+  } catch (err) {
+    return error(502, "upstream request failed", "UPSTREAM_ERROR", req);
   }
 }
 

@@ -165,6 +165,13 @@
   }
 }
 
+// ── Reduce Motion ──
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat {
+    animation: none;
+  }
+}
+
 // ── Responsive ──
 @media (max-width: 480px) {
   .hero-container {

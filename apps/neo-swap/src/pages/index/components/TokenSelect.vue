@@ -45,6 +45,12 @@ function getTokenIcon(symbol: string): string {
     background: var(--swap-chip-hover-bg);
     border-color: var(--swap-chip-hover-border);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--swap-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(159, 157, 243, 0.15);
+  }
 }
 
 .token-icon {

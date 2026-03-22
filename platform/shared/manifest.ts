@@ -14,5 +14,10 @@ function stableSort(value: unknown): unknown {
 }
 
 export function stableStringify(value: unknown): string {
-  return JSON.stringify(stableSort(value));
+  try {
+    return JSON.stringify(stableSort(value));
+  } catch (err) {
+    console.warn("[stableStringify] serialization failed:", err instanceof Error ? err.message : String(err));
+    return String(value);
+  }
 }

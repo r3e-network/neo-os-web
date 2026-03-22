@@ -10,7 +10,7 @@
     @close="$emit('cancel')"
   >
     <div class="confirm-body">
-      <div class="confirm-skull" aria-hidden="true">💀</div>
+      <AppIcon name="skull" :size="80" class="confirm-skull" />
       <span class="confirm-text">{{ t("confirmText") }}</span>
       <div class="confirm-hash">{{ assetHash }}</div>
     </div>
@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ActionModal } from "@shared/components";
+import { ActionModal, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

@@ -211,6 +211,12 @@ $card-height: 170px;
    animation: float 4s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .symbol-text {
+    animation: none;
+  }
+}
+
 .card-footer {
    display: flex;
    flex-direction: column;

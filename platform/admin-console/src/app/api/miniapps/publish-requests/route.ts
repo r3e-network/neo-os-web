@@ -52,7 +52,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => ({ requests: [] }));
+    const payload = await response.json().catch((e: unknown) => { console.warn("[publish-requests] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { requests: [] }; });
     return NextResponse.json(payload);
   } catch {
     return jsonError("Failed to reach host-app publish request endpoint", 502);
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const data = await response.json().catch(() => ({ success: true }));
+    const data = await response.json().catch((e: unknown) => { console.warn("[publish-requests POST] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { success: true }; });
     return NextResponse.json(data);
   } catch {
     return jsonError("Failed to reach host-app publish request endpoint", 502);

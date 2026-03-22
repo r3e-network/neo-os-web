@@ -18,8 +18,8 @@
         <div class="hero-progress-track">
           <div class="hero-progress-fill" :style="{ width: progressPercent + '%' }" />
           <div
-            v-for="(cp, i) in milestoneCheckpoints"
-            :key="i"
+            v-for="cp in milestoneCheckpoints"
+            :key="cp.label"
             class="hero-checkpoint"
             :class="{ 'hero-checkpoint--done': cp.done }"
             :style="{ left: cp.position + '%' }"
@@ -50,7 +50,7 @@
       <template v-else>
         <div class="escrows-header">
           <span class="section-title">{{ t("escrowsTab") }}</span>
-          <NeoButton size="sm" variant="secondary" :loading="isRefreshing" @click="refreshEscrows">
+          <NeoButton size="sm" variant="secondary" type="button" :loading="isRefreshing" :aria-label="t('refresh')" @click="refreshEscrows">
             {{ t("refresh") }}
           </NeoButton>
         </div>
@@ -58,7 +58,7 @@
         <div v-if="!address" class="empty-state">
           <NeoCard variant="erobo" class="p-6 text-center">
             <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
-            <NeoButton size="sm" variant="primary" @click="connectWallet">
+            <NeoButton size="sm" variant="primary" type="button" :aria-label="t('connectWallet')" @click="connectWallet">
               {{ t("connectWallet") }}
             </NeoButton>
           </NeoCard>
@@ -95,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, NeoCard, NeoButton, ContractAvailabilityCard } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
@@ -175,26 +175,34 @@ const resetAndReload = async () => {
     if (address.value) {
       await refreshEscrows();
     }
-  } catch (_e: unknown) {
-    /* non-critical: reload milestone data */
+  } catch (e: unknown) {
+    console.error("[milestone-escrow] resetAndReload unexpected error:", e instanceof Error ? e.message : String(e));
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     if (!(await ensureContractReady())) return;
     if (address.value) {
       await refreshEscrows();
     }
-  } catch (_e: unknown) {
-    /* non-critical: initial data load */
+  } catch (e: unknown) {
+    console.error("[milestone-escrow] onMounted unexpected error:", e instanceof Error ? e.message : String(e));
   }
 });
 
-watch(activeTab, (next) => {
+const stopActiveTabWatch = watch(activeTab, (next) => {
   if (next === "escrows" && address.value && contractReady.value) {
     refreshEscrows();
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopActiveTabWatch();
 });
 </script>
 
@@ -236,7 +244,7 @@ watch(activeTab, (next) => {
   text-align: center;
   gap: 16px;
   padding: 32px 20px;
-  background: linear-gradient(180deg, var(--escrow-bg-start, rgba(99, 102, 241, 0.06)) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--escrow-bg-start) 0%, transparent 100%);
   border-radius: 20px;
   margin-bottom: 20px;
 }
@@ -252,7 +260,7 @@ watch(activeTab, (next) => {
   width: 100%;
   max-width: 400px;
   height: 6px;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--escrow-border-light);
   border-radius: 3px;
   margin: 24px 0 32px;
 }
@@ -262,7 +270,7 @@ watch(activeTab, (next) => {
   left: 0;
   top: 0;
   height: 100%;
-  background: linear-gradient(90deg, #818cf8, #6366f1);
+  background: linear-gradient(90deg, var(--escrow-indigo), var(--escrow-purple));
   border-radius: 3px;
   transition: width 0.6s ease;
 }
@@ -281,15 +289,15 @@ watch(activeTab, (next) => {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.15));
-  border: 2px solid var(--border-subtle, rgba(255, 255, 255, 0.2));
+  background: var(--escrow-border-light-mid);
+  border: 2px solid var(--escrow-border-light);
   transition: all 0.3s ease;
 }
 
 .hero-checkpoint--done .checkpoint-dot {
-  background: #6366f1;
-  border-color: #818cf8;
-  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  background: var(--escrow-purple);
+  border-color: var(--escrow-indigo);
+  box-shadow: 0 0 8px rgb(from var(--escrow-purple) r g b / 0.4);
 }
 
 .checkpoint-label {
@@ -308,8 +316,8 @@ watch(activeTab, (next) => {
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--escrow-overlay-light);
+  border: 1px solid var(--escrow-overlay-light-hover);
   border-radius: 16px;
   padding: 16px 24px;
 }
@@ -335,20 +343,20 @@ watch(activeTab, (next) => {
 .hero-stat-divider {
   width: 1px;
   height: 36px;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--escrow-border-light);
 }
 
 /* ── Milestone Escrow Hero Enhancements: Progress Tracking ── */
 @keyframes checkpoint-pulse {
   0%,
   100% {
-    box-shadow: 0 0 6px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 0 6px rgb(from var(--escrow-indigo) r g b / 0.3);
     transform: translate(-50%, -50%) scale(1);
   }
   50% {
     box-shadow:
-      0 0 18px rgba(99, 102, 241, 0.6),
-      0 0 36px rgba(99, 102, 241, 0.15);
+      0 0 18px rgb(from var(--escrow-indigo) r g b / 0.6),
+      0 0 36px rgb(from var(--escrow-indigo) r g b / 0.15);
     transform: translate(-50%, -50%) scale(1.15);
   }
 }
@@ -361,11 +369,18 @@ watch(activeTab, (next) => {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .hero-progress-fill,
+  .hero-checkpoint--done .checkpoint-dot {
+    animation: none;
+  }
+}
+
 .hero-container {
-  background: radial-gradient(ellipse at 50% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 50% 30%, rgb(from var(--escrow-indigo) r g b / 0.1) 0%, transparent 55%);
 }
 .hero-progress-fill {
-  background: linear-gradient(90deg, #818cf8, #6366f1, #818cf8, #6366f1);
+  background: linear-gradient(90deg, var(--escrow-indigo), var(--escrow-purple), var(--escrow-indigo), var(--escrow-purple));
   background-size: 200% 100%;
   animation: progress-shimmer 3s linear infinite;
 }
@@ -373,20 +388,20 @@ watch(activeTab, (next) => {
   animation: checkpoint-pulse 2.5s ease-in-out infinite;
 }
 .hero-stats-row {
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.12);
+  box-shadow: 0 4px 20px rgb(from var(--escrow-indigo) r g b / 0.12);
   transition:
     box-shadow 0.3s ease,
     transform 0.3s ease;
   &:hover {
-    box-shadow: 0 6px 28px rgba(99, 102, 241, 0.25);
+    box-shadow: 0 6px 28px rgb(from var(--escrow-indigo) r g b / 0.25);
     transform: translateY(-2px);
   }
 }
 .hero-stat-value {
   box-shadow: none;
-  background: linear-gradient(180deg, rgba(129, 140, 248, 0.08), transparent);
+  background: var(--escrow-hero-stat-gradient);
 }
 .hero-label {
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 16px var(--escrow-hero-label-glow);
 }
 </style>

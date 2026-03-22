@@ -104,7 +104,7 @@ const emit = defineEmits<{
   font-size: 12px;
   font-weight: 600;
   color: var(--swap-text);
-  font-family: "JetBrains Mono", monospace;
+  font-family: $font-mono;
 
   &.slippage {
     color: var(--swap-accent);
@@ -135,6 +135,12 @@ const emit = defineEmits<{
   &:hover {
     color: var(--swap-accent);
     border-color: var(--swap-chip-hover-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--swap-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(159, 157, 243, 0.15);
   }
 }
 

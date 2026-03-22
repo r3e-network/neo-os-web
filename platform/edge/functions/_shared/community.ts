@@ -89,7 +89,7 @@ export async function verifyProofOfInteraction(
     user_id: userId,
     tx_hash: txEvents[0].tx_hash,
     verified_at: txEvents[0].created_at,
-  }, { onConflict: "app_id,user_id" }).then(() => {/* best-effort cache */});
+  }, { onConflict: "app_id,user_id" }).catch((e) => { console.warn("[community] social_proof_of_interaction upsert failed:", e instanceof Error ? e.message : String(e)); });
 
   return {
     verified: true,

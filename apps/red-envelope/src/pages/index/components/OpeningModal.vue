@@ -40,13 +40,14 @@
       </div>
 
       <div class="action-area">
-        <NeoButton v-if="!isConnected" variant="primary" size="lg" class="action-btn" @click="handleConnect">
+        <NeoButton v-if="!isConnected" variant="primary" size="lg" type="button" class="action-btn" @click="handleConnect">
           {{ t("connectAndOpen") }}
         </NeoButton>
         <NeoButton
           v-else
           variant="secondary"
           size="lg"
+          type="button"
           class="action-btn"
           :loading="isOpening"
           :disabled="eligibility && !eligibility.isEligible"

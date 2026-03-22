@@ -4,7 +4,7 @@
     <div v-if="!isConnected" class="wallet-prompt mb-4">
       <NeoCard variant="warning" class="text-center">
         <span class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</span>
-        <NeoButton variant="primary" size="sm" @click="$emit('connect')">
+        <NeoButton variant="primary" size="sm" type="button" :aria-label="t('connectWallet')" @click="$emit('connect')">
           {{ t("connectWallet") }}
         </NeoButton>
       </NeoCard>

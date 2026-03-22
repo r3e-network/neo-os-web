@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, onUnmounted, isRef } from "vue";
 import type { StatsDisplayItem } from "@shared/components";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
@@ -10,6 +10,7 @@ import type ContributionForm from "../components/ContributionForm.vue";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = ref("rounds");
+  const mountedRef = ref(true);
 
   const {
     rounds,
@@ -86,30 +87,38 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   // Form handlers
   const handleCreateRound = async (data: Parameters<typeof createRound>[0]) => {
     roundFormRef.value?.setLoading(true);
-    await createRound(data);
-    roundFormRef.value?.setLoading(false);
-    if (roundsStatus.value?.type === "success") roundFormRef.value?.reset();
+    try {
+      await createRound(data);
+      if (roundsStatus.value?.type === "success") roundFormRef.value?.reset();
+    } finally {
+      roundFormRef.value?.setLoading(false);
+    }
   };
 
   const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]) => {
     projectFormRef.value?.setLoading(true);
-    await registerProject(data);
-    projectFormRef.value?.setLoading(false);
-    if (!roundsStatus.value || roundsStatus.value.type === "success") projectFormRef.value?.reset();
+    try {
+      await registerProject(data);
+      if (!roundsStatus.value || roundsStatus.value.type === "success") projectFormRef.value?.reset();
+    } finally {
+      projectFormRef.value?.setLoading(false);
+    }
   };
 
   const handleContribute = async (data: Parameters<typeof contribute>[0]) => {
     contributeFormRef.value?.setLoading(true);
-    await contribute(data);
-    contributeFormRef.value?.setLoading(false);
-    if (!roundsStatus.value || roundsStatus.value.type === "success") contributeFormRef.value?.reset();
+    try {
+      await contribute(data);
+      if (!roundsStatus.value || roundsStatus.value.type === "success") contributeFormRef.value?.reset();
+    } finally {
+      contributeFormRef.value?.setLoading(false);
+    }
   };
 
-  const handleAddMatching = async (amount: string) => await addMatching(amount);
-  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) =>
-    await finalizeRound(projectIdsRaw, matchedRaw);
-  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => await claimProject(project);
-  const handleClaimUnused = async () => await claimUnused();
+  const handleAddMatching = async (amount: string) => { await addMatching(amount).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleFinalize = async (projectIdsRaw: string, matchedRaw: string) => { await finalizeRound(projectIdsRaw, matchedRaw).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleClaimProject = async (project: Parameters<typeof claimProject>[0]) => { await claimProject(project).catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
+  const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
 
   const onTabChange = async (tabId: string) => {
     activeTab.value = tabId;
@@ -119,6 +128,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
 
   // Lifecycle
   onMounted(async () => {
+    if (!mountedRef.value) return;
     try {
       await refreshRounds();
     } catch (_e: unknown) {
@@ -126,15 +136,19 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     }
   });
 
-  watch(selectedRoundId, async (roundId) => {
+  const stopRoundWatch = watch(selectedRoundId, async (roundId) => {
     if (!roundId) return;
+    if (!mountedRef.value) return;
     try {
       contributeForm.roundId = roundId;
       await refreshProjects();
+      if (!mountedRef.value) return;
     } catch (_e: unknown) {
-      setStatus(t("projectLoadFailed") || "Failed to load projects", "error");
+      if (mountedRef.value) setStatus(t("projectLoadFailed") || "Failed to load projects", "error");
     }
   });
+
+  onUnmounted(() => { mountedRef.value = false; stopRoundWatch(); });
 
   return {
     // Rounds

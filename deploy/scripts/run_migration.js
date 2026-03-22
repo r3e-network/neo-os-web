@@ -55,7 +55,7 @@ async function runMigration() {
     console.log("\nCreated tables:");
     result.rows.forEach((row) => console.log(`  - ${row.table_name}`));
   } catch (error) {
-    console.error("Migration failed:", error.message);
+    console.error("Migration failed:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   } finally {
     await client.end();

@@ -2,7 +2,7 @@
   <div class="milestone-list">
     <div
       v-for="(amount, index) in escrow.milestoneAmounts"
-      :key="`milestone-${escrow.id}-${index}`"
+      :key="`${escrow.id}-${index}`"
       class="milestone-item"
     >
       <div>
@@ -15,8 +15,10 @@
           v-if="showApprove"
           size="sm"
           variant="secondary"
+          type="button"
           :loading="approvingId === `${escrow.id}-${index + 1}`"
           :disabled="!escrow.active || escrow.milestoneApproved[index] || escrow.milestoneClaimed[index]"
+          :aria-label="approvingId === `${escrow.id}-${index + 1}` ? t('approving') : t('approve')"
           @click="onApprove(index)"
         >
           {{ approvingId === `${escrow.id}-${index + 1}` ? t("approving") : t("approve") }}
@@ -25,8 +27,10 @@
           v-if="showClaim"
           size="sm"
           variant="primary"
+          type="button"
           :loading="claimingId === `${escrow.id}-${index + 1}`"
           :disabled="!escrow.active || !escrow.milestoneApproved[index] || escrow.milestoneClaimed[index]"
+          :aria-label="claimingId === `${escrow.id}-${index + 1}` ? t('claiming') : t('claim')"
           @click="onClaim(index)"
         >
           {{ claimingId === `${escrow.id}-${index + 1}` ? t("claiming") : t("claim") }}
@@ -87,7 +91,7 @@ const onClaim = (index: number) => emit("claim", index);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(15, 23, 42, 0.2);
+  background: var(--escrow-milestone-bg);
   border-radius: 12px;
   padding: 10px 12px;
 }

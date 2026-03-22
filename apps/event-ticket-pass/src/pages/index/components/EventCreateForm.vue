@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from "vue";
+import { reactive, onUnmounted, watch } from "vue";
 import { NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -46,7 +46,7 @@ const emit = defineEmits<{
 
 const localForm = reactive({ ...props.form });
 
-watch(
+const stopPropsFormWatch = watch(
   () => props.form,
   (newForm) => {
     Object.assign(localForm, newForm);
@@ -54,13 +54,18 @@ watch(
   { deep: true }
 );
 
-watch(
+const stopLocalFormWatch = watch(
   localForm,
   (newForm) => {
     emit("update:form", { ...newForm });
   },
   { deep: true }
 );
+
+onUnmounted(() => {
+  stopPropsFormWatch();
+  stopLocalFormWatch();
+});
 
 const handleCreate = () => {
   emit("create");

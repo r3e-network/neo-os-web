@@ -24,6 +24,18 @@ import {
   getNetwork,
   type NeoNetwork,
 } from "../constants/rpc";
+import { MiniAppError } from "../utils/errorHandling";
+
+// Error codes for i18n-compatible error handling
+const ERROR_CODE_RNG_FAILED = "ORACLE_RNG_FAILED";
+const ERROR_CODE_DATA_FEED_FAILED = "ORACLE_DATA_FEED_FAILED";
+const ERROR_CODE_ORACLE_QUERY_FAILED = "ORACLE_QUERY_FAILED";
+const ERROR_CODE_COMPUTE_EXECUTION_FAILED = "ORACLE_COMPUTE_EXECUTION_FAILED";
+const ERROR_CODE_REGISTERED_COMPUTE_FAILED = "ORACLE_REGISTERED_COMPUTE_FAILED";
+const ERROR_CODE_NEODID_RESOLUTION_FAILED = "ORACLE_NEODID_RESOLUTION_FAILED";
+const ERROR_CODE_NEODID_PROVIDERS_FAILED = "ORACLE_NEODID_PROVIDERS_FAILED";
+const ERROR_CODE_ORACLE_PUBLIC_KEY_FAILED = "ORACLE_PUBLIC_KEY_FAILED";
+const ERROR_CODE_CONFIDENTIAL_STORE_FAILED = "ORACLE_CONFIDENTIAL_STORE_FAILED";
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -216,7 +228,7 @@ async function requestEdgeJSON<T>(
     method: options.method,
     headers,
     credentials: "include",
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    ...(options.body ? { body: (() => { try { return JSON.stringify(options.body); } catch { return String(options.body); } })() } : {}),
   });
 
   const text = await response.text();
@@ -247,6 +259,49 @@ async function requestExternalJson<T>(url: string): Promise<T> {
   const text = await response.text();
   if (!response.ok) {
     throw new Error(text || `GET ${url} failed (${response.status})`);
+  }
+
+  if (!text) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch (_e: unknown) {
+    throw new Error(`invalid JSON response from ${url}`);
+  }
+}
+
+async function requestJson<T>(
+  url: string,
+  options: {
+    method: "GET" | "POST";
+    body?: Record<string, unknown>;
+    getAuthToken?: TokenResolver;
+    getAPIKey?: TokenResolver;
+  },
+): Promise<T> {
+  const headers = new Headers();
+  if (options.method !== "GET") {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const authToken = await resolveToken(options.getAuthToken);
+  if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+
+  const apiKey = await resolveToken(options.getAPIKey);
+  if (apiKey) headers.set("X-API-Key", apiKey);
+
+  const response = await fetch(url, {
+    method: options.method,
+    headers,
+    credentials: "include",
+    ...(options.body ? { body: (() => { try { return JSON.stringify(options.body); } catch { return String(options.body); } })() } : {}),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(text || `${options.method} ${url} failed (${response.status})`);
   }
 
   if (!text) {
@@ -304,10 +359,12 @@ export function useOracle(config: OracleConfig = {}) {
       lastRandom.value = result;
       return result;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "RNG request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "RNG request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_RNG_FAILED, undefined, undefined, undefined, ERROR_CODE_RNG_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -328,8 +385,11 @@ export function useOracle(config: OracleConfig = {}) {
       }
       return price;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "DataFeed request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "DataFeed request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_DATA_FEED_FAILED, undefined, undefined, undefined, ERROR_CODE_DATA_FEED_FAILED);
+    } finally {
+      error.value = null;
     }
   };
 
@@ -354,10 +414,12 @@ export function useOracle(config: OracleConfig = {}) {
         getAPIKey: config.getAPIKey,
       });
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Oracle query failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Oracle query failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_ORACLE_QUERY_FAILED, undefined, undefined, undefined, ERROR_CODE_ORACLE_QUERY_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -388,8 +450,9 @@ export function useOracle(config: OracleConfig = {}) {
         raw: response,
       };
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Compute execution failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Compute execution failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_COMPUTE_EXECUTION_FAILED, undefined, undefined, undefined, ERROR_CODE_COMPUTE_EXECUTION_FAILED);
     } finally {
       isRequesting.value = false;
     }
@@ -425,10 +488,12 @@ export function useOracle(config: OracleConfig = {}) {
         raw: response,
       };
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Registered compute execution failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Registered compute execution failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_REGISTERED_COMPUTE_FAILED, undefined, undefined, undefined, ERROR_CODE_REGISTERED_COMPUTE_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -447,10 +512,12 @@ export function useOracle(config: OracleConfig = {}) {
       if (format === "document") params.set("format", "document");
       return await requestExternalJson<NeoDidResolveResponse>(`/api/morpheus/neodid/resolve?${params.toString()}`);
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "NeoDID resolution failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "NeoDID resolution failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_NEODID_RESOLUTION_FAILED, undefined, undefined, undefined, ERROR_CODE_NEODID_RESOLUTION_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -460,22 +527,29 @@ export function useOracle(config: OracleConfig = {}) {
     try {
       return await requestExternalJson<NeoDidProvidersResponse>(`/api/morpheus/neodid/providers?network=${encodeURIComponent(network)}`);
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "NeoDID providers request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "NeoDID providers request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_NEODID_PROVIDERS_FAILED, undefined, undefined, undefined, ERROR_CODE_NEODID_PROVIDERS_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
   const getOraclePublicKey = async (): Promise<OraclePublicKeyResponse> => {
+    isRequesting.value = true;
     error.value = null;
     try {
       return await requestExternalJson<OraclePublicKeyResponse>(
         `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
       );
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Oracle public key request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Oracle public key request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_ORACLE_PUBLIC_KEY_FAILED, undefined, undefined, undefined, ERROR_CODE_ORACLE_PUBLIC_KEY_FAILED);
+    } finally {
+      isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -499,10 +573,12 @@ export function useOracle(config: OracleConfig = {}) {
         getAPIKey: config.getAPIKey,
       });
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : "Confidential store request failed";
-      throw e;
+      const msg = e instanceof Error ? e.message : "Confidential store request failed";
+      error.value = msg;
+      throw new MiniAppError(msg, ERROR_CODE_CONFIDENTIAL_STORE_FAILED, undefined, undefined, undefined, ERROR_CODE_CONFIDENTIAL_STORE_FAILED);
     } finally {
       isRequesting.value = false;
+      error.value = null;
     }
   };
 
@@ -511,7 +587,7 @@ export function useOracle(config: OracleConfig = {}) {
     network,
     edgeBaseUrl,
 
-    // Canonical external deployment metadata.
+    // Canonical external deployment metadata - computed once at creation.
     ORACLE_CONTRACT_MAINNET: getExternalIntegrationConfig("mainnet").contracts.morpheusOracle,
     ORACLE_CONTRACT_TESTNET: getExternalIntegrationConfig("testnet").contracts.morpheusOracle,
     DATA_FEED_CONTRACT_MAINNET: getExternalIntegrationConfig("mainnet").contracts.morpheusDatafeed,
