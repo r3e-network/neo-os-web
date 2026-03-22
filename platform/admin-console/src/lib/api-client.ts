@@ -22,43 +22,44 @@ function getSupabaseURL(required: boolean) {
  * Base fetch wrapper with error handling
  */
 async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: options?.signal ?? AbortSignal.timeout(15000),
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-    });
+  const response = await fetch(url, {
+    ...options,
+    signal: options?.signal ?? AbortSignal.timeout(15000),
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  });
 
-    if (!response.ok) {
-      const error: APIError = {
-        message: `HTTP ${response.status}: ${response.statusText}`,
-        code: String(response.status),
-      };
+  if (!response.ok) {
+    let details: unknown = null;
+    let message = `HTTP ${response.status}: ${response.statusText}`;
 
-      try {
-        const errorData = await response.json();
-        error.message = errorData.message || error.message;
-        error.details = errorData;
-      } catch {
-        // Response body is not JSON
+    try {
+      const payload = await response.json();
+      details = payload;
+      if (payload && typeof payload === "object") {
+        const maybeMessage =
+          typeof (payload as { message?: unknown }).message === "string"
+            ? String((payload as { message?: unknown }).message)
+            : typeof (payload as { error?: { message?: unknown } }).error?.message === "string"
+              ? String((payload as { error?: { message?: unknown } }).error?.message)
+              : "";
+        if (maybeMessage) message = maybeMessage;
       }
-
-      throw error;
+    } catch {
+      // response is not JSON; keep default message
     }
 
-    return await response.json();
-  } catch (error) {
-    if ((error as APIError).message) {
-      throw error;
-    }
-    throw {
-      message: error instanceof Error ? error.message : "Network error",
-      code: "NETWORK_ERROR",
-    } as APIError;
+    const error = Object.assign(new Error(message), {
+      code: String(response.status),
+      details,
+    }) as Error & APIError;
+
+    throw error;
   }
+
+  return await response.json();
 }
 
 /**
