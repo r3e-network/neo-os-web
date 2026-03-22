@@ -121,16 +121,16 @@ $ease-out: cubic-bezier(0, 0, 0.2, 1);
 $ease-in-out: cubic-bezier(0.4, 0, 0.6, 1);
 
 // ============================================================================
-// Z-Index Scale
+// Z-Index Scale (aligned with tokens.scss)
 // ============================================================================
 
-$z-dropdown: 1000;
-$z-sticky: 1020;
-$z-fixed: 1030;
-$z-modal-backdrop: 1040;
-$z-modal: 1050;
-$z-popover: 1060;
-$z-tooltip: 1070;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-fixed: 300;
+$z-modal-backdrop: 400;
+$z-modal: 500;
+$z-popover: 600;
+$z-tooltip: 700;
 
 // ============================================================================
 // Component-specific variables

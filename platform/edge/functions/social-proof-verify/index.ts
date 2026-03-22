@@ -106,7 +106,12 @@ export async function handler(req: Request): Promise<Response> {
     interaction_type: "transaction",
   }));
 
-  await supabase.from("social_proof_of_interaction").upsert(proofRecords, { onConflict: "app_id,user_id,tx_hash" });
+  try {
+    await supabase.from("social_proof_of_interaction").upsert(proofRecords, { onConflict: "app_id,user_id,tx_hash" });
+  } catch (e) {
+    console.error("[social-proof-verify] upsert failed:", e instanceof Error ? e.message : String(e));
+    // Non-fatal: proof is still verified, cache write failure should not block response
+  }
 
   return json(
     {

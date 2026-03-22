@@ -16,7 +16,7 @@
     <div class="input-group">
       <span class="input-label">{{ t("assetType") }}</span>
       <div class="asset-toggle">
-        <NeoButton size="sm" variant="primary" disabled>
+        <NeoButton size="sm" variant="primary" type="button" disabled>
           {{ t("assetGas") }}
         </NeoButton>
       </div>

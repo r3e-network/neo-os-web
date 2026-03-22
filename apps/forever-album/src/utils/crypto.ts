@@ -68,12 +68,19 @@ export async function decryptPayload(payload: string, password: string): Promise
   } catch (_e: unknown) {
     throw new Error("Invalid payload format: failed to parse JSON");
   }
-  if (!parsed || parsed.v !== 1 || parsed.alg !== "AES-GCM") {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Invalid payload format");
   }
-  const salt = base64ToBytes(parsed.salt || "");
-  const iv = base64ToBytes(parsed.iv || "");
-  const data = base64ToBytes(parsed.data || "");
+  const typed = parsed as { v?: unknown; alg?: unknown; salt?: unknown; iv?: unknown; data?: unknown };
+  if (typed.v !== 1 || typed.alg !== "AES-GCM") {
+    throw new Error("Invalid payload format");
+  }
+  if (typeof typed.salt !== "string" || typeof typed.iv !== "string" || typeof typed.data !== "string") {
+    throw new Error("Invalid payload format: missing required fields");
+  }
+  const salt = base64ToBytes(typed.salt);
+  const iv = base64ToBytes(typed.iv);
+  const data = base64ToBytes(typed.data);
   const key = await deriveKey(password, salt);
   const plain = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
   const decoder = new TextDecoder();

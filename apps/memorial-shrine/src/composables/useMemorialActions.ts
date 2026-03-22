@@ -102,9 +102,7 @@ export function useMemorialActions() {
           text: `${t("tagline")} | ${target.name} (${target.birthYear}-${target.deathYear})`,
           url: shareUrl,
         })
-        .catch((_e: unknown) => {
-          copyToClipboard(shareUrl);
-        });
+        .catch((e: unknown) => { console.warn("[memorial-shrine] share failed, falling back to clipboard:", e instanceof Error ? e.message : String(e)); copyToClipboard(shareUrl); });
     } else {
       copyToClipboard(shareUrl);
     }

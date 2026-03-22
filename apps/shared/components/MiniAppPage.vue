@@ -22,7 +22,7 @@
       <!-- ═══ LEFT SIDEBAR ═══ -->
       <aside class="sidebar-left" :aria-label="t('navigationSidebar')">
         <div class="sidebar-brand">
-          <div class="brand-mark" aria-hidden="true">{{ brandIcon }}</div>
+          <div class="brand-mark"><AppIcon :name="brandIcon" :size="18" /></div>
           <div class="brand-text">
             <span class="brand-name">{{ t("title") }}</span>
             <span class="brand-tag">{{ t("neoN3") }}</span>
@@ -41,7 +41,7 @@
             :aria-label="t(tab.labelKey)"
             @click="setActiveTab(tab.key)"
           >
-            <span class="nav-icon" aria-hidden="true">{{ tab.icon }}</span>
+            <AppIcon :name="tab.icon" :size="15" class="nav-icon" />
             <span class="nav-label">{{ t(tab.labelKey) }}</span>
             <span v-if="activeTab === tab.key" class="nav-indicator" />
           </button>
@@ -73,13 +73,17 @@
               v-for="tab in infoTabs"
               :key="tab.key"
               :class="['info-tab', { active: activeInfoTab === tab.key }]"
+              role="tab"
+              :aria-selected="activeInfoTab === tab.key"
+              :aria-controls="`tab-panel-${tab.key}`"
+              :aria-label="t(tab.labelKey)"
               @click="activeInfoTab = tab.key"
             >
               {{ t(tab.labelKey) }}
             </button>
           </div>
           <div class="info-content">
-            <div v-if="activeInfoTab === 'stats'">
+            <div v-if="activeInfoTab === 'stats'" id="tab-panel-stats" role="tabpanel" :aria-labelledby="`tab-stats`">
               <slot name="tab-stats">
                 <div v-if="sidebarItems?.length" class="auto-stats-grid">
                   <div v-for="(item, i) in sidebarItems" :key="`auto-stat-${i}`" class="auto-stat-card" :style="{ '--i': i }">
@@ -89,9 +93,9 @@
                 </div>
               </slot>
             </div>
-            <div v-if="activeInfoTab === 'history'"><slot name="tab-history" /></div>
+            <div v-if="activeInfoTab === 'history'" id="tab-panel-history" role="tabpanel" :aria-labelledby="`tab-history`"><slot name="tab-history" /></div>
             <template v-for="tab in customInfoTabs" :key="tab.key">
-              <div v-if="activeInfoTab === tab.key"><slot :name="`tab-${tab.key}`" /></div>
+              <div v-if="activeInfoTab === tab.key" :id="`tab-panel-${tab.key}`" role="tabpanel" :aria-labelledby="`tab-${tab.key}`"><slot :name="`tab-${tab.key}`" /></div>
             </template>
           </div>
         </section>
@@ -103,11 +107,12 @@
               <span class="comments-count">{{ comments.length }}</span>
             </div>
             <div class="comments-input">
+              <label :for="'comment-input'" class="sr-only">{{ t('commentPlaceholder') }}</label>
               <input
+                id="comment-input"
                 v-model="newComment"
                 class="comment-input"
                 :placeholder="t('commentPlaceholder')"
-                :aria-label="t('commentPlaceholder')"
                 @keyup.enter="submitComment"
               />
               <button type="button" class="comment-submit" :disabled="!newComment.trim()" :aria-label="t('postComment')" @click="submitComment">
@@ -146,12 +151,12 @@
                 <div v-if="docSteps.length" class="docs-steps">
                   <h4>{{ t("howToPlay") }}</h4>
                   <ol>
-                    <li v-for="(step, i) in docSteps" :key="step + i">{{ step }}</li>
+                    <li v-for="(step, i) in docSteps" :key="`${step}-${i}`">{{ step }}</li>
                   </ol>
                 </div>
                 <div v-if="docFeatures.length" class="docs-features">
                   <h4>{{ t("keyFeatures") }}</h4>
-                  <div v-for="(feat, i) in docFeatures" :key="feat.name + i" class="docs-feature">
+                  <div v-for="feat in docFeatures" :key="feat.name" class="docs-feature">
                     <strong>{{ feat.name }}</strong>
                     <span>{{ feat.desc }}</span>
                   </div>
@@ -179,6 +184,7 @@ import { useI18n } from "@shared/composables";
 import { type StatusMessage } from "@shared/composables/useStatusMessage";
 import ErrorBoundary from "./ErrorBoundary.vue";
 import Fireworks from "./Fireworks.vue";
+import AppIcon from "./AppIcon.vue";
 
 const DEFAULT_BRAND_ICON = "📱";
 const DEFAULT_DOCS_ICON = "📄";
@@ -295,6 +301,19 @@ const docFeatures = computed(() => {
    Typography: Satoshi (display) + JetBrains Mono (data)
    Aesthetic: Deep obsidian, glass morphism, ambient glow
    ═══════════════════════════════════════════════════════════ */
+
+// Screen reader only utility
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 // ── Fonts ──
 @import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap");
@@ -808,13 +827,18 @@ $radius-lg: 16px;
   color: $text-1;
   font-family: $font-display;
   font-size: 13px;
-  outline: none;
   transition: all 0.2s;
 
   &:focus {
     border-color: rgba(0, 229, 153, 0.4);
     box-shadow: 0 0 0 3px $accent-glow;
     background: $surface-2;
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
   }
   &::placeholder {
     color: $text-3;
@@ -823,7 +847,7 @@ $radius-lg: 16px;
 
 .comment-submit {
   padding: 11px 22px;
-  background: linear-gradient(135deg, $accent, #00c07f);
+  background: linear-gradient(135deg, $accent, var(--comment-submit-end, #00c07f));
   color: $obsidian;
   border: none;
   border-radius: 24px;
@@ -1075,7 +1099,7 @@ $radius-lg: 16px;
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-index-modal, 500);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1092,50 +1116,50 @@ $radius-lg: 16px;
 
   &.success {
     background: rgba(5, 150, 105, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #34d399;
-      box-shadow: 0 0 8px #34d399;
+      background: var(--accent-success, #10b981);
+      box-shadow: 0 0 8px var(--accent-success, #10b981);
     }
   }
   &.error {
     background: rgba(185, 28, 28, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #f87171;
-      box-shadow: 0 0 8px #f87171;
+      background: var(--accent-error, #ef4444);
+      box-shadow: 0 0 8px var(--accent-error, #ef4444);
     }
   }
   &.warning {
     background: rgba(217, 119, 6, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #fbbf24;
-      box-shadow: 0 0 8px #fbbf24;
+      background: var(--accent-warning, #f59e0b);
+      box-shadow: 0 0 8px var(--accent-warning, #f59e0b);
     }
   }
   &.info {
     background: rgba(37, 99, 235, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #60a5fa;
-      box-shadow: 0 0 8px #60a5fa;
+      background: var(--accent-info, #3b82f6);
+      box-shadow: 0 0 8px var(--accent-info, #3b82f6);
     }
   }
   &.danger {
     background: rgba(220, 38, 38, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #f87171;
-      box-shadow: 0 0 8px #f87171;
+      background: var(--accent-error, #ef4444);
+      box-shadow: 0 0 8px var(--accent-error, #ef4444);
     }
   }
   &.loading {
     background: rgba(75, 85, 99, 0.9);
-    color: #fff;
+    color: var(--text-primary, #fff);
     .toast-dot {
-      background: #9ca3af;
-      box-shadow: 0 0 8px #9ca3af;
+      background: var(--text-secondary, #9ca3af);
+      box-shadow: 0 0 8px var(--text-secondary, #9ca3af);
     }
   }
 }

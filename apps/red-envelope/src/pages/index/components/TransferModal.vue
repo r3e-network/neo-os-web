@@ -1,15 +1,15 @@
 <template>
   <ActionModal :visible="visible" :title="t('transferEnvelope')" :closeable="true" @close="$emit('close')">
     <div class="envelope-info">
-      <span class="info-label"><span aria-hidden="true">🧧</span> #{{ envelope?.id }}</span>
+      <span class="info-label"><AppIcon name="envelope_red" :size="20" /> #{{ envelope?.id }}</span>
       <span class="info-amount">{{ envelope?.totalAmount }} {{ t("tokenGas") }}</span>
     </div>
 
     <div class="input-section">
-      <NeoInput :modelValue="recipient" @update:modelValue="recipient = $event" :placeholder="t('recipientAddress')" />
+      <NeoInput :modelValue="recipient" @update:modelValue="recipient = $event" :placeholder="t('recipientAddress')" :aria-label="t('recipientAddress')" :error="errorMsg" />
     </div>
 
-    <div v-if="errorMsg" class="error-msg">
+    <div v-if="errorMsg" class="error-msg" role="alert">
       <span>{{ errorMsg }}</span>
     </div>
 
@@ -18,6 +18,7 @@
         variant="primary"
         size="lg"
         block
+        type="button"
         :loading="transferring"
         :disabled="!recipient.trim()"
         @click="handleTransfer"
@@ -30,7 +31,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { ActionModal, NeoButton, NeoInput } from "@shared/components";
+import { ActionModal, AppIcon, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 

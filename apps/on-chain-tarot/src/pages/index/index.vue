@@ -57,10 +57,10 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('drawYourCards')">
         <div class="action-buttons">
-          <NeoButton variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
+          <NeoButton type="button" variant="primary" size="lg" block :loading="isLoading" :disabled="hasDrawn" @click="draw">
             {{ t("drawingCards") }}
           </NeoButton>
-          <NeoButton v-if="hasDrawn" variant="secondary" size="lg" block @click="reset">
+          <NeoButton type="button" v-if="hasDrawn" variant="secondary" size="lg" block @click="reset">
             {{ t("reset") }}
           </NeoButton>
         </div>
@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useWallet, useEvents } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
@@ -260,17 +260,24 @@ const loadReadingCount = async () => {
     const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 50 });
     readingsCount.value = res.events.length;
   } catch (_e: unknown) {
-    // non-critical: reading count is cosmetic
+    console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
     readingsCount.value = Math.max(readingsCount.value, 0);
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await loadReadingCount();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[on-chain-tarot] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
 });
 </script>
 
@@ -299,7 +306,7 @@ onMounted(async () => {
   width: 55px;
   height: 80px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #2a1f5e, #4a2f8e);
+  background: linear-gradient(135deg, var(--tarot-card-back-backdrop, #2a1f5e), var(--tarot-card-back-backdrop-end, #4a2f8e));
   border: 2px solid rgba(159, 157, 243, 0.3);
   display: flex;
   align-items: center;
@@ -419,5 +426,12 @@ onMounted(async () => {
 }
 .tarot-scene {
   background: linear-gradient(180deg, rgba(42, 31, 94, 0.3), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarot-card-back,
+  .tarot-symbol {
+    animation: none;
+  }
 }
 </style>

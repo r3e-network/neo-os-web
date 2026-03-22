@@ -1,7 +1,7 @@
 <template>
   <div class="hero-section">
     <div class="hero-badge">
-      <span class="badge-icon" aria-hidden="true">🔐</span>
+      <AppIcon name="locked" :size="16" class="badge-icon" />
       <span class="badge-text">{{ title }}</span>
     </div>
     <span class="hero-title">{{ headline }}</span>
@@ -10,6 +10,8 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from "@shared/components/AppIcon.vue";
+
 defineProps<{
   title: string;
   headline: string;

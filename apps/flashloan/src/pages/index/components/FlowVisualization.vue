@@ -4,7 +4,7 @@
       <!-- Step 1: Borrow -->
       <div class="flow-step">
         <div class="step-icon-container">
-          <span class="step-icon" aria-hidden="true">💰</span>
+          <AppIcon name="money" :size="24" class="step-icon" />
           <div class="step-ring"></div>
         </div>
         <span class="step-label">{{ t("borrow") }}</span>
@@ -21,7 +21,7 @@
       <!-- Step 2: Execute -->
       <div class="flow-step">
         <div class="step-icon-container active">
-          <span class="step-icon" aria-hidden="true">🔄</span>
+          <AppIcon name="refresh" :size="24" class="step-icon" />
           <div class="step-ring pulse"></div>
         </div>
         <span class="step-label highlight">{{ t("execute") }}</span>
@@ -38,7 +38,7 @@
       <!-- Step 3: Repay -->
       <div class="flow-step">
         <div class="step-icon-container">
-          <span class="step-icon" aria-hidden="true">✓</span>
+          <AppIcon name="success" :size="24" class="step-icon" />
           <div class="step-ring"></div>
         </div>
         <span class="step-label">{{ t("repay") }}</span>
@@ -46,14 +46,14 @@
     </div>
 
     <div class="flow-note-glass">
-      <div class="note-icon" aria-hidden="true">ℹ️</div>
+      <AppIcon name="info" :size="14" class="note-icon" />
       <span class="note-text">{{ t("flowNote") }}</span>
     </div>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
@@ -220,6 +220,13 @@ const { t } = createUseI18n(messages)();
   }
   100% {
     transform: translateX(200%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-ring.pulse,
+  .connector-pulse {
+    animation: none;
   }
 }
 </style>

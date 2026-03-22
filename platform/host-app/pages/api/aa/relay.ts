@@ -70,14 +70,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
     res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/json");
-    res.send(text);
+    return res.send(text);
   } catch (error) {
     logger.error("AA relay proxy error:", error instanceof Error ? error.message : "unknown error");
     if (controller.signal.aborted) {
       apiError.gatewayError(res, "AA relay timed out");
       return;
     }
-    apiError.gatewayError(res, "AA relay request failed");
+    return apiError.gatewayError(res, "AA relay request failed");
   } finally {
     clearTimeout(timeoutId);
   }

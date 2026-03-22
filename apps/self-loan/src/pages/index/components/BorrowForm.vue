@@ -19,6 +19,7 @@
           v-for="option in ltvOptions"
           :key="option.tier"
           :class="['tier-card', { active: option.tier === selectedTier }]"
+          :aria-label="`${option.label} ${option.percent}%`"
           @click="emit('update:selectedTier', option.tier)"
         >
           <span class="tier-title">{{ option.label }}</span>
@@ -362,6 +363,12 @@ const getLTVColorClass = () => {
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ltv-glimmer {
+    animation: none;
   }
 }
 </style>

@@ -3,6 +3,7 @@ import { CHAIN_NAMESPACES, WEB3AUTH_NETWORK, IProvider } from "@web3auth/base";
 import { EthereumPrivateKeyProvider } from "@web3auth/ethereum-provider";
 import { WalletAdapter, WalletAccount, WalletBalance, SignedMessage, InvokeParams, TransactionResult, WalletConnectionError } from "./base";
 import { ethers } from "ethers";
+import { logger } from "@/lib/logger";
 
 export class Web3AuthAdapter implements WalletAdapter {
   readonly name = "Web3Auth";
@@ -42,14 +43,15 @@ export class Web3AuthAdapter implements WalletAdapter {
 
       this.web3auth = new Web3Auth({
         clientId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web3Auth SDK expects a typed network string, env var is string
         web3AuthNetwork: networkString as any,
         privateKeyProvider,
       });
 
       await this.web3auth.initModal();
     } catch (error) {
-      console.error("Failed to initialize Web3Auth:", error);
-      throw new WalletConnectionError(`Failed to initialize Web3Auth: ${error}`);
+      logger.error("Failed to initialize Web3Auth:", error);
+      throw new WalletConnectionError("Failed to initialize Web3Auth");
     }
   }
 
@@ -74,8 +76,8 @@ export class Web3AuthAdapter implements WalletAdapter {
         label: "Web3Auth Account",
       };
     } catch (error) {
-      console.error("Web3Auth connection error:", error);
-      throw new WalletConnectionError(`Failed to connect to Web3Auth: ${error}`);
+      logger.error("Web3Auth connection error:", error);
+      throw new WalletConnectionError("Failed to connect to Web3Auth");
     }
   }
 
@@ -100,7 +102,7 @@ export class Web3AuthAdapter implements WalletAdapter {
         gas: formattedBalance,
       };
     } catch (error) {
-      console.error("Failed to get Web3Auth balance:", error);
+      logger.error("Failed to get Web3Auth balance:", error);
       return { neo: "0", gas: "0" };
     }
   }
@@ -121,7 +123,8 @@ export class Web3AuthAdapter implements WalletAdapter {
         message,
       };
     } catch (error) {
-      throw new WalletConnectionError(`Failed to sign message with Web3Auth: ${error}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new WalletConnectionError(`Failed to sign message with Web3Auth: ${msg}`);
     }
   }
 
@@ -131,7 +134,8 @@ export class Web3AuthAdapter implements WalletAdapter {
     try {
       throw new Error("Generic smart contract invocation via Web3Auth/NeoX requires EVM ABI definitions which are not provided in this payload.");
     } catch (error) {
-      throw new WalletConnectionError(`Web3Auth invocation failed: ${error}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new WalletConnectionError(`Web3Auth invocation failed: ${msg}`);
     }
   }
 }

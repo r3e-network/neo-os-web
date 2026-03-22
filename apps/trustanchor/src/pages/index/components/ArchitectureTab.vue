@@ -152,8 +152,8 @@ const formatNum = (n: number | string) => formatNumber(n, 2);
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.18);
-  color: #10b981;
+  background: var(--trustanchor-step-bg);
+  color: var(--trustanchor-emerald);
   font-size: 12px;
   font-weight: 800;
 }

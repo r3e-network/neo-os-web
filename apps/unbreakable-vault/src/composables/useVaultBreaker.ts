@@ -94,8 +94,9 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
         })
         .filter(Boolean) as { id: string; creator: string; bounty: number }[];
       recentVaults.value = vaults;
-    } catch (_e: unknown) {
-      // Recent vaults load failure is non-critical
+    } catch (e: unknown) {
+      // Non-critical: recent vault list unavailable, can retry
+      console.error("[unbreakable-vault] loadRecentVaults error:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -180,11 +181,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
 
   const selectVault = async (id: string) => {
     vaultIdInput.value = id;
-    try {
-      await loadVault();
-    } catch (_e: unknown) {
-      /* non-critical: vault selection */
-    }
+    await loadVault();
   };
 
   return {

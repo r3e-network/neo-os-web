@@ -32,17 +32,22 @@ export async function handler(req: Request): Promise<Response> {
 
   // Query on-chain balances
   const rpcUrl = getNeoRpcUrl();
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(10000),
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getnep17balances",
-      params: [walletCheck.address],
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getnep17balances",
+        params: [walletCheck.address],
+      }),
+    });
+  } catch (e) {
+    return error(500, "RPC request failed", "RPC_ERROR", req);
+  }
 
   if (!res.ok) {
     return error(500, "RPC request failed", "RPC_ERROR", req);

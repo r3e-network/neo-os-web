@@ -78,7 +78,7 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
     .range(offset, offset + limit - 1);
 
   if (error) {
-    logger.error("Failed to fetch comments:", error.message);
+    logger.error("Failed to fetch comments:", error instanceof Error ? error.message : String(error));
     return apiError.internal(res, "Failed to fetch comments");
   }
 
@@ -146,7 +146,13 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for comment writes");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
 
   const { wallet, content, parent_id } = req.body;
@@ -216,7 +222,7 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create comment:", error?.message || "unknown error");
+    logger.error("Failed to create comment:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to create comment");
   }
 

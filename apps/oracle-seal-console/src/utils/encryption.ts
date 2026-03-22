@@ -5,7 +5,7 @@ const AES_GCM_TAG_LENGTH_BYTES = 16;
 
 function assertBrowserCrypto() {
   if (typeof window === "undefined" || !window.crypto?.subtle) {
-    throw new Error("WebCrypto is unavailable in this environment.");
+    throw new Error("assertBrowserCrypto: WebCrypto is unavailable in this environment.");
   }
 }
 
@@ -120,10 +120,10 @@ export async function encryptJsonWithOraclePublicKey(publicKeyBase64: string, js
   try {
     parsed = JSON.parse(jsonText);
   } catch (_e: unknown) {
-    throw new Error("Invalid JSON provided for encryption.");
+    throw new Error(`encryptJsonWithOraclePublicKey: invalid JSON provided for encryption — ${jsonText.slice(0, 50)}...`);
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Confidential payload must be a JSON object.");
+    throw new Error("encryptJsonWithOraclePublicKey: confidential payload must be a JSON object.");
   }
   return encryptTextWithOraclePublicKey(publicKeyBase64, JSON.stringify(parsed));
 }

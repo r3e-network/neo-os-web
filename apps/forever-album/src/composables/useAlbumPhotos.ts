@@ -1,4 +1,4 @@
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { parseInvokeResult } from "@shared/utils/neo";
@@ -136,7 +136,9 @@ export function useAlbumPhotos(t: (key: string) => string) {
     if (address.value) loadPhotos();
   });
 
-  watch(address, () => loadPhotos());
+  const stopAddressWatch = watch(address, () => loadPhotos());
+
+  onUnmounted(() => stopAddressWatch());
 
   return {
     status,

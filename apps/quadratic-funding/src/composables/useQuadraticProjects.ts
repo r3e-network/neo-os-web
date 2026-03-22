@@ -1,5 +1,5 @@
 import type { Ref } from "vue";
-import { ref, watch } from "vue";
+import { ref, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -189,9 +189,12 @@ export function useQuadraticProjects(
     return project.active ? "active" : "inactive";
   };
 
-  watch(
+  const isMounted = ref(true);
+
+  const stopRoundWatch = watch(
     () => selectedRound.value?.id,
     async (roundId) => {
+      if (!isMounted.value) return;
       if (roundId) {
         try {
           await refreshProjects();
@@ -202,7 +205,8 @@ export function useQuadraticProjects(
     }
   );
 
-  watch(address, async (newAddr) => {
+  const stopAddressWatch = watch(address, async (newAddr) => {
+    if (!isMounted.value) return;
     if (!newAddr) {
       try {
         claimingProjectId.value = null;
@@ -210,6 +214,12 @@ export function useQuadraticProjects(
         /* non-critical: address change handler */
       }
     }
+  });
+
+  onUnmounted(() => {
+    isMounted.value = false;
+    stopRoundWatch();
+    stopAddressWatch();
   });
 
   return {

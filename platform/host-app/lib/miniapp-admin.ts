@@ -176,7 +176,8 @@ function normalizeOptionalUrl(value: unknown): string | null {
       return null;
     }
     return parsed.toString();
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[miniapp-admin] URL parse failed:", _e instanceof Error ? _e.message : String(_e));
     return null;
   }
 }
@@ -271,7 +272,12 @@ function normalizeStatsDisplay(value: unknown, fallback?: unknown): string[] | n
 }
 
 function deepClone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+  try {
+    return JSON.parse(JSON.stringify(value)) as T;
+  } catch (err) {
+    console.warn("[deepClone] JSON serialization failed, returning original value:", err instanceof Error ? err.message : String(err));
+    return value;
+  }
 }
 
 const BLUEPRINT_DEFINITIONS: MiniAppBlueprintDefinition[] = [

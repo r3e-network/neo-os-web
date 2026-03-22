@@ -8,10 +8,10 @@
         :placeholder="t('verifyTokenIdPlaceholder')"
       />
       <div class="verify-actions">
-        <NeoButton size="sm" variant="secondary" :loading="lookingUp" @click="handleLookup">
+        <NeoButton size="sm" variant="secondary" type="button" :loading="lookingUp" :aria-label="t('lookup')" @click="handleLookup">
           {{ lookingUp ? t("lookingUp") : t("lookup") }}
         </NeoButton>
-        <NeoButton size="sm" variant="primary" :loading="revoking" @click="handleRevoke">
+        <NeoButton size="sm" variant="primary" type="button" :loading="revoking" :aria-label="t('revoke')" @click="handleRevoke">
           {{ revoking ? t("revoking") : t("revoke") }}
         </NeoButton>
       </div>

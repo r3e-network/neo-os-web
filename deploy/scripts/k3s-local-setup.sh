@@ -117,10 +117,13 @@ install_k3s() {
 
     # Install k3s with Traefik enabled (default ingress controller)
     # Disable servicelb (use ClusterIP for local dev)
-    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$K3S_VERSION" sh -s - \
+    K3S_INSTALLER=$(mktemp)
+    curl -sfL https://get.k3s.io -o "$K3S_INSTALLER"
+    INSTALL_K3S_VERSION="$K3S_VERSION" sh "$K3S_INSTALLER" -s - \
         --write-kubeconfig-mode 644 \
         --disable servicelb \
-        || error "k3s installation failed"
+        || { rm -f "$K3S_INSTALLER"; error "k3s installation failed"; }
+    rm -f "$K3S_INSTALLER"
 
     save_state "k3s_installed"
     log "✓ k3s installed successfully"

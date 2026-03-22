@@ -8,7 +8,7 @@
 
     <div class="chamber-header-glass">
       <div class="icon-pulse">
-        <span class="chamber-icon-glass" aria-hidden="true">🔥</span>
+        <AppIcon name="flame" :size="24" class="chamber-icon-glass" />
       </div>
     </div>
 
@@ -39,7 +39,7 @@
     <!-- Animated Warning -->
     <div class="warning-box-glass" :class="{ shake: showWarningShake }">
       <div class="warning-icon-container">
-        <span class="warning-icon" aria-hidden="true">⚠️</span>
+        <AppIcon name="warning" :size="24" class="warning-icon" />
       </div>
       <div class="warning-content">
         <span class="warning-title-glass">{{ t("warning") }}</span>
@@ -53,12 +53,14 @@
         variant="primary"
         size="lg"
         block
+        type="button"
+        :aria-label="isDestroying ? t('destroying') : t('destroyForever')"
         @click="$emit('initiate')"
         :loading="isDestroying"
         :class="['destroy-btn-glass', { 'is-destroying': isDestroying }]"
       >
         <div class="btn-fire-effect" v-if="isDestroying"></div>
-        <span v-if="!isDestroying" class="btn-icon" aria-hidden="true">💀</span>
+        <AppIcon v-if="!isDestroying" name="skull" :size="16" class="btn-icon" />
         <span class="btn-text">{{ isDestroying ? t("destroying") : t("destroyForever") }}</span>
       </NeoButton>
     </div>
@@ -68,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, NeoInput, NeoButton } from "@shared/components";
+import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -298,6 +300,13 @@ defineEmits<{
   100% {
     opacity: 0.4;
     height: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-pulse,
+  .btn-fire-effect {
+    animation: none;
   }
 }
 </style>

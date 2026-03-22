@@ -238,6 +238,7 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
       <div className="relative">
         <input
           type="text"
+          aria-label="Search templates"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

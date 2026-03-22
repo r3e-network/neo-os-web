@@ -55,7 +55,9 @@ async function waitForTx(txid, maxMs = 120000) {
           return null;
         }
       }
-    } catch {}
+    } catch (err) {
+      // Transient RPC error — retry polling silently
+    }
     await sleep(3000);
     process.stdout.write(".");
   }
@@ -167,7 +169,7 @@ async function main() {
         results[contract.appDir] = hash;
       }
     } catch (err) {
-      console.error(`  ❌ Error: ${err.message}`);
+      console.error(`  ❌ Error: ${err instanceof Error ? err.message : String(err)}`);
     }
     await sleep(5000);
   }
@@ -192,6 +194,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error(err instanceof Error ? err.message : String(err));
   process.exit(1);
 });

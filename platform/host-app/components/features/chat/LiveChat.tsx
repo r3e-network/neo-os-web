@@ -38,6 +38,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
   const [inputValue, setInputValue] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -88,8 +89,9 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
   const sendMessage = async () => {
     if (!inputValue.trim() || !walletAddress) return;
 
+    const tempId = `temp-${Date.now()}`;
     const newMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       userId: walletAddress,
       userName: userName || truncateAddress(walletAddress),
       content: inputValue.trim(),
@@ -111,6 +113,11 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       });
     } catch (err) {
       logger.warn("Failed to send chat message:", err);
+      setSendError("Failed to send message");
+      // Rollback optimistic update on failure
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      setInputValue(newMessage.content);
+      setSendError(null);
     }
   };
 
@@ -129,7 +136,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "fixed bottom-6 right-6 z-50 flex items-center justify-center",
-          "w-14 h-14 rounded-full shadow-lg transition-all duration-300",
+          "w-12 h-12 rounded-full shadow-lg transition-all duration-300",
           "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
           isOpen && "rotate-90",
         )}
@@ -191,7 +198,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   ref={inputRef}
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={(e) => { setInputValue(e.target.value); setSendError(null); }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
                   aria-label="Type a message"
@@ -210,6 +217,11 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
               </div>
             ) : (
               <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">Connect wallet to chat</div>
+            )}
+            {sendError && (
+              <div className="px-1 pt-1 text-xs text-red-500 dark:text-red-400">
+                {sendError}
+              </div>
             )}
           </div>
         </div>

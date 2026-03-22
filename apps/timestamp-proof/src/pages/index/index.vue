@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, StatsDisplay, HeroSection } from "@shared/components";
+import { MiniAppPage, StatsDisplay, HeroSection, AppIcon } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useTimestampProofContract } from "@/composables/useTimestampProof";
@@ -122,11 +122,14 @@ const verifyProof = async () => {
   setErrorStatus(t("validProof"), "success");
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await loadProofs();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[timestamp-proof] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
 
@@ -135,6 +138,10 @@ const appState = computed(() => ({}));
 const resetAndReload = async () => {
   await loadProofs();
 };
+
+onUnmounted(() => {
+  isMounted.value = false;
+});
 </script>
 
 <style lang="scss" scoped>

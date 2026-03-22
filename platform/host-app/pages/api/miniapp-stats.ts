@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         warnOnce("miniapp-stats-rpc-missing", "miniapp_stats_aggregate RPC not available; returning empty miniapp stats.");
         return res.status(200).json({ stats: [] });
       }
-      logger.error("miniapp_stats_aggregate RPC failed:", error.message);
+      logger.error("miniapp_stats_aggregate RPC failed:", error instanceof Error ? error.message : String(error));
       return apiError.internal(res, "Failed to fetch stats");
     }
 
@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    res.status(200).json({ stats });
+    return res.status(200).json({ stats });
   } catch (error) {
     logger.error("MiniApp stats error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");

@@ -109,6 +109,7 @@ const loadRequest = async (id: string) => {
     error.value = formatErrorMessage(e, t("toastLoadFailed"));
   } finally {
     loading.value = false;
+    error.value = null;
   }
 };
 
@@ -127,7 +128,7 @@ const orderedSigners = computed(() => {
       address: getPublicKeyAddress(key),
     }));
   } catch (e: unknown) {
-    /* non-critical: verification script parse */
+    console.warn("[neo-multisig] verification script parse failed:", e instanceof Error ? e.message : String(e));
     return [];
   }
 });
@@ -261,6 +262,7 @@ const broadcast = async () => {
         history = JSON.parse(stored);
       }
     } catch (_e: unknown) {
+      console.warn("[neo-multisig] history load failed:", _e instanceof Error ? _e.message : String(_e));
       history = [];
     }
     const index = history.findIndex((item: { id: string; status?: string }) => item.id === request.value?.id);

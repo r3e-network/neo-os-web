@@ -20,22 +20,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.methodNotAllowed(res);
   }
 
-  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 100));
-  const offset = Math.max(0, Math.min(parseInt(req.query.offset as string) || 0, 10000));
+  try {
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 100));
+    const offset = Math.max(0, Math.min(parseInt(req.query.offset as string) || 0, 10000));
 
-  if (!hasServiceRoleSupabase()) {
-    return res.status(200).json({ entries: [], total: 0, hasMore: false });
-  }
+    if (!hasServiceRoleSupabase()) {
+      return res.status(200).json({ entries: [], total: 0, hasMore: false });
+    }
 
-  const supabase = getServerSupabaseClient({ requireServiceRole: true });
-  if (!supabase) {
-    return res.status(200).json({ entries: [], total: 0, hasMore: false });
-  }
+    const supabase = getServerSupabaseClient({ requireServiceRole: true });
+    if (!supabase) {
+      return res.status(200).json({ entries: [], total: 0, hasMore: false });
+    }
 
-  const { data, error } = await supabase.rpc("get_gamification_leaderboard", {
-    p_limit: limit,
-    p_offset: offset,
-  });
+    const { data, error } = await supabase.rpc("get_gamification_leaderboard", {
+      p_limit: limit,
+      p_offset: offset,
+    });
 
   if (!error && Array.isArray(data)) {
     const entries: LeaderboardEntry[] = (data as LeaderboardRow[]).map((row) => ({
@@ -132,9 +133,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const entries: LeaderboardEntry[] = ranked.slice(offset, offset + limit);
 
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-  return res.status(200).json({
-    entries,
-    total: ranked.length,
-    hasMore: offset + limit < ranked.length,
-  });
+    return res.status(200).json({
+      entries,
+      total: ranked.length,
+      hasMore: offset + limit < ranked.length,
+    });
+  } catch (err) {
+    logger.error("leaderboard error:", err instanceof Error ? err.message : String(err));
+    return res.status(500).json({ entries: [], total: 0, hasMore: false });
+  }
 }

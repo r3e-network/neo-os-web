@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="requestRandom"
-    hero-icon="🎲"
+    hero-icon="dice"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('latestResult')"
@@ -30,7 +30,7 @@
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
-import { ConsoleMiniApp, HeroStatsStrip, NeoButton } from "@shared/components";
+import { ConsoleMiniApp, HeroStatsStrip, NeoButton, AppIcon } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";

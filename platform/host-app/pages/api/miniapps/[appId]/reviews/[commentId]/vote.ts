@@ -30,7 +30,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for voting");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
 
   const { wallet, vote_type } = req.body;
@@ -82,7 +88,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Toggle off — second concurrent delete is a benign no-op
     const { error } = await supabase.from("social_comment_votes").delete().eq("id", existingVote.id);
     if (error) {
-      logger.error("Vote delete failed:", error.message);
+      logger.error("Vote delete failed:", error instanceof Error ? error.message : String(error));
       return apiError.internal(res, "Failed to submit vote");
     }
   } else {
@@ -92,7 +98,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       { onConflict: "comment_id,voter_user_id" },
     );
     if (error) {
-      logger.error("Vote upsert failed:", error.message);
+      logger.error("Vote upsert failed:", error instanceof Error ? error.message : String(error));
       return apiError.internal(res, "Failed to submit vote");
     }
   }

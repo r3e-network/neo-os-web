@@ -128,9 +128,9 @@ export default function AnalyticsPage() {
         <CardContent>
           {analyticsLoading ? (
             <div className="flex justify-center py-8"><Spinner /></div>
-          ) : (
+          ) : analytics?.usageByApp && analytics.usageByApp.length > 0 ? (
             <ul className="space-y-3">
-              {analytics?.usageByApp?.slice(0, 10).map((app) => (
+              {analytics.usageByApp.slice(0, 10).map((app) => (
                 <li key={app.app_id} className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
                   <div className="min-w-0">
                     <div className="font-medium text-gray-900 dark:text-white truncate" title={app.app_id}>{app.app_id}</div>
@@ -143,6 +143,8 @@ export default function AnalyticsPage() {
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-6">No usage data available</p>
           )}
         </CardContent>
       </Card>

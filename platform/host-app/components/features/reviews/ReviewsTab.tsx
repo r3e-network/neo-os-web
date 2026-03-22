@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SocialRatingWidget } from "@/components/SocialRatingWidget";
 import { SocialCommentThread } from "@/components/SocialCommentThread";
 import { useReviews } from "@/hooks/useReviews";
@@ -30,8 +30,10 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
   } = useReviews({ appId, walletAddress });
 
   useEffect(() => {
-    fetchRating();
-    fetchComments(0);
+    const controller = new AbortController();
+    fetchRating(controller.signal);
+    fetchComments(0, controller.signal);
+    return () => controller.abort();
   }, [fetchRating, fetchComments]);
 
   const canInteract = Boolean(walletAddress);

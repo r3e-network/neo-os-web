@@ -84,7 +84,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  let url: URL;
+  try {
+    url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  } catch {
+    apiError.internal(res, "Invalid EDGE_BASE_URL configuration");
+    return;
+  }
+
   for (const [key, value] of Object.entries(req.query)) {
     if (key === "fn") continue;
     if (Array.isArray(value)) {
@@ -122,7 +129,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (buf.length > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
-    res.send(buf);
+    return res.send(buf);
   } catch (err) {
     logger.error("RPC relay error:", err instanceof Error ? err.message : "unknown error");
     if (controller.signal.aborted) {

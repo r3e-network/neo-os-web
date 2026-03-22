@@ -41,7 +41,7 @@ const getFireworkStyle = (index: number) => {
   };
 };
 
-watch(
+const stopActiveWatch = watch(
   () => props.active,
   (newVal) => {
     if (timer) {
@@ -57,6 +57,7 @@ watch(
 );
 
 onUnmounted(() => {
+  stopActiveWatch();
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -69,7 +70,7 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-index-toast, 1050);
   overflow: hidden;
 }
 

@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => ({}));
+    const payload = await response.json().catch((e: unknown) => { console.warn("[admin/template-catalog] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return ({}); });
     return NextResponse.json(payload, { status: response.status });
   } catch {
     return jsonError("Failed to reach host-app template catalog endpoint", 502);

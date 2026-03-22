@@ -148,7 +148,7 @@ async function main() {
         row.problems.push(`remote contract name mismatch: ${row.remoteContractName || "missing"}`);
       }
     } catch (error) {
-      row.problems.push(`getcontractstate failed: ${String(error.message || error)}`);
+      row.problems.push(`getcontractstate failed: ${error instanceof Error ? error.message : String(error)}`);
       rows.push(row);
       failed = true;
       continue;
@@ -178,7 +178,7 @@ async function main() {
           vmstate: "ERROR",
           stackType: "error",
         });
-        row.problems.push(`${check.method} failed: ${String(error.message || error)}`);
+        row.problems.push(`${check.method} failed: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -195,6 +195,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

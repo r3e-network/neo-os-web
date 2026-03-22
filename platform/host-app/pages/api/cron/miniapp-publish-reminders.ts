@@ -20,7 +20,7 @@ async function callPublishReminderEndpoint(baseUrl: string, cronSecret: string):
     signal: AbortSignal.timeout(15000),
   });
 
-  const payload = await response.json().catch(() => null);
+  const payload = await response.json().catch((e: unknown) => { console.warn("[miniapp-publish-reminders] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
   return {
     ok: response.ok,
     status: response.status,

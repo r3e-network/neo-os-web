@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useTicker } from "@shared/composables/useTicker";
 import type { StatsDisplayItem } from "@shared/components";
 import { formatGas } from "@shared/utils/format";
@@ -7,6 +7,8 @@ import { useCheckinContract } from "@/composables/useCheckinContract";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function useCheckinPage(t: (key: string) => string) {
+  const isMounted = ref(true);
+
   const {
     currentStreak,
     highestStreak,
@@ -77,12 +79,18 @@ export function useCheckinPage(t: (key: string) => string) {
 
   // Lifecycle
   onMounted(async () => {
+    if (!isMounted.value) return;
     try {
       countdownTicker.start();
       await loadAll();
     } catch (_e: unknown) {
       /* non-critical: initial data load */
     }
+  });
+
+  onUnmounted(() => {
+    isMounted.value = false;
+    countdownTicker.stop();
   });
 
   return {

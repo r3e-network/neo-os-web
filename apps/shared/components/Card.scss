@@ -6,8 +6,12 @@
   margin-bottom: 20px;
   backdrop-filter: blur(10px);
 
+  @media (prefers-reduced-motion: reduce) {
+    backdrop-filter: none;
+  }
+
   &-title {
-    color: #00d9ff;
+    color: var(--accent-primary, #00d9ff);
     font-size: 1.3em;
     font-weight: bold;
     margin-bottom: 20px;

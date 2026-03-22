@@ -27,10 +27,10 @@
     </div>
 
     <div class="action-buttons">
-      <NeoButton v-if="!hasDrawn" variant="primary" size="lg" block :loading="isLoading" @click="$emit('draw')">
+      <NeoButton type="button" v-if="!hasDrawn" variant="primary" size="lg" block :loading="isLoading" @click="$emit('draw')">
         {{ t("drawCards") }}
       </NeoButton>
-      <NeoButton v-else variant="secondary" size="lg" block @click="$emit('reset')">
+      <NeoButton type="button" v-else variant="secondary" size="lg" block @click="$emit('reset')">
         {{ t("drawAgain") }}
       </NeoButton>
     </div>

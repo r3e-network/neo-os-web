@@ -27,6 +27,9 @@
 }
 
 :global(.theme-forever-album) {
+  --album-bg: #0f172a;
+  --album-text: #f8fafc;
+  --album-text-muted: rgba(248, 250, 252, 0.6);
   --album-error: #ff6b6b;
   --album-accent: #00e599;
   --album-locked-gradient: linear-gradient(135deg, rgba(13, 15, 30, 0.9), rgba(30, 40, 60, 0.85));
@@ -34,10 +37,19 @@
   --album-lock-text: #ffffff;
   --album-remove-bg: rgba(0, 0, 0, 0.65);
   --album-remove-text: #ffffff;
+
+  --bg-primary: var(--album-bg);
+  --text-primary: var(--album-text);
+  --text-secondary: var(--album-text-muted);
+  --text-muted: var(--album-text-muted);
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
 :global(.theme-light .theme-forever-album),
 :global([data-theme="light"] .theme-forever-album) {
+  --album-bg: #f8fafc;
+  --album-text: #0f172a;
+  --album-text-muted: rgba(15, 23, 42, 0.6);
   --album-error: #dc2626;
   --album-accent: #059669;
   --album-locked-gradient: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.78));
@@ -45,4 +57,10 @@
   --album-lock-text: #ffffff;
   --album-remove-bg: rgba(15, 23, 42, 0.6);
   --album-remove-text: #ffffff;
+
+  --bg-primary: var(--album-bg);
+  --text-primary: var(--album-text);
+  --text-secondary: var(--album-text-muted);
+  --text-muted: var(--album-text-muted);
+  --border-color: rgba(15, 23, 42, 0.1);
 }

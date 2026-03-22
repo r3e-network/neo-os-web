@@ -134,34 +134,34 @@ defineEmits<{
   }
 
   &.heads.heads {
-    background: linear-gradient(135deg, rgba(0, 229, 153, 0.2) 0%, rgba(0, 229, 153, 0.05) 100%);
+    background: linear-gradient(135deg, var(--coin-green-active-bg) 0%, var(--coin-green-active-bg-light) 100%);
     border-color: var(--coin-success);
-    box-shadow: 0 10px 30px rgba(0, 229, 153, 0.2);
+    box-shadow: 0 10px 30px var(--coin-side-active-bg);
     transform: scale(1.05);
     .symbol-ring {
       border-color: var(--coin-success);
       color: var(--coin-success);
-      box-shadow: 0 0 15px rgba(0, 229, 153, 0.3);
+      box-shadow: 0 0 15px var(--coin-side-active-bg);
     }
     .choice-name {
       color: var(--coin-success);
-      text-shadow: 0 0 10px rgba(0, 229, 153, 0.5);
+      text-shadow: 0 0 10px var(--coin-side-glow);
     }
   }
 
   &.tails.tails {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);
+    background: linear-gradient(135deg, var(--coin-blue-active-bg) 0%, var(--coin-blue-active-bg-light) 100%);
     border-color: var(--coin-blue);
-    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 10px 30px var(--coin-blue-active-bg);
     transform: scale(1.05);
     .symbol-ring {
       border-color: var(--coin-blue);
       color: var(--coin-blue);
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+      box-shadow: 0 0 15px var(--coin-blue-active-glow);
     }
     .choice-name {
       color: var(--coin-blue);
-      text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      text-shadow: 0 0 10px var(--coin-blue-text-glow);
     }
   }
 
@@ -205,13 +205,13 @@ defineEmits<{
 }
 
 .balance-pill {
-  background: rgba(0, 229, 153, 0.1);
+  background: var(--coin-balance-pill-bg);
   padding: 4px 12px;
   border-radius: 99px;
   font-size: 11px;
   font-weight: 700;
   color: var(--coin-success);
-  border: 1px solid rgba(0, 229, 153, 0.2);
+  border: 1px solid var(--coin-balance-pill-border);
   .unit {
     opacity: 0.7;
     margin-left: 4px;
@@ -247,7 +247,7 @@ defineEmits<{
   &.selected {
     background: var(--coin-success);
     border-color: var(--coin-success);
-    box-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
+    box-shadow: 0 0 20px var(--coin-green-active-glow);
     .amount-val,
     .amount-unit {
       color: var(--coin-black);
@@ -266,7 +266,7 @@ defineEmits<{
     letter-spacing: 2px;
     border-radius: 16px;
     background: var(--flip-cta-gradient);
-    box-shadow: 0 10px 30px rgba(0, 229, 153, 0.3);
+    box-shadow: 0 10px 30px var(--coin-hover-glow);
     border: none;
     z-index: 2;
   }
@@ -284,7 +284,7 @@ defineEmits<{
 
   &:active .premium-flip-btn {
     transform: translateY(4px);
-    box-shadow: 0 4px 15px rgba(0, 229, 153, 0.2);
+    box-shadow: 0 4px 15px var(--coin-glow-pulse);
   }
 }
 </style>

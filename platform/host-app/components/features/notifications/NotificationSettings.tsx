@@ -6,7 +6,7 @@ import { useNotificationStore } from "@/lib/notifications/store";
 import type { DigestFrequency } from "@/lib/notifications/types";
 
 export function NotificationSettings() {
-  const { preferences, updatePreferences, bindEmail, verifyEmail, loading } = useNotificationStore();
+  const { preferences, updatePreferences, bindEmail, verifyEmail, loading, error, clearError } = useNotificationStore();
   const [emailInput, setEmailInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [showVerify, setShowVerify] = useState(false);
@@ -17,11 +17,17 @@ export function NotificationSettings() {
 
   const handleBindEmail = async () => {
     if (!emailInput) return;
-    await bindEmail(emailInput);
-    setShowVerify(true);
+    clearError();
+    try {
+      await bindEmail(emailInput);
+      setShowVerify(true);
+    } catch {
+      // error captured in store
+    }
   };
 
   const handleVerify = async () => {
+    clearError();
     const success = await verifyEmail(codeInput);
     if (success) {
       setShowVerify(false);
@@ -31,6 +37,11 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+        </div>
+      )}
       {/* Email Section */}
       <SettingsSection title="Email Notifications" icon={<Mail size={18} aria-hidden="true" />}>
         {preferences.email && preferences.emailVerified ? (

@@ -71,6 +71,7 @@ export function ContractInitSchemaAutoForm({
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                   value={displayValue}
                   onChange={(event) => onChange(field, event.target.value)}
+                  aria-label={field.label}
                 >
                   <option value="">(unset)</option>
                   {field.enumValues.map((enumValue) => (
@@ -87,6 +88,7 @@ export function ContractInitSchemaAutoForm({
                   onChange={(event) => onChange(field, event.target.value)}
                   placeholder={field.defaultValue !== undefined ? String(field.defaultValue) : ""}
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
+                  aria-label={field.label}
                 />
               )}
               {field.description ? (

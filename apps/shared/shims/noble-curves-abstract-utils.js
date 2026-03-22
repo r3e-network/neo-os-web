@@ -105,7 +105,8 @@ export function ensureBytes(title, hex, expectedLength) {
             res = hexToBytes(hex);
         }
         catch (e) {
-            throw new Error(`${title} must be valid hex string, got "${hex}". Cause: ${e}`);
+            const cause = e instanceof Error ? e.message : String(e);
+            throw new Error(`${title} must be valid hex string, got "${hex}". Cause: ${cause}`);
         }
     }
     else if (isBytes(hex)) {

@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
 import { useWallet, useEvents } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { WalletSDK, ContractEvent } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useContractAddress } from "@shared/composables/useContractAddress";
@@ -70,7 +70,7 @@ export function useFlashloanCore() {
   const formatTimestamp = (value: unknown) => {
     const ts = toNumber(value);
     if (!ts) return t("notAvailable");
-    return new Intl.DateTimeFormat("en").format(new Date(ts * 1000));
+    return new Intl.DateTimeFormat(undefined).format(new Date(ts * 1000));
   };
 
   const toGas = (value: unknown): number => {
@@ -129,6 +129,7 @@ export function useFlashloanCore() {
   };
 
   const loadPoolBalance = async () => {
+    isLoading.value = true;
     try {
       const contract = await ensureContractAddress();
       const res = await invokeRead({ scriptHash: contract, operation: "getPoolBalance" });
@@ -136,14 +137,17 @@ export function useFlashloanCore() {
     } catch (e: unknown) {
       handleError(e, { operation: "loadPoolBalance" });
       poolBalance.value = 0;
+    } finally {
+      isLoading.value = false;
     }
   };
 
   const loadLoanStats = async () => {
+    isLoading.value = true;
     try {
       const executedEvents = await listAllEvents("LoanExecuted");
       const loans: ExecutedLoan[] = executedEvents
-        .map((evt) => {
+        .map((evt: ContractEvent) => {
           const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
           const id = Number(values[0] || 0);
           const amount = toGas(values[2]);
@@ -182,6 +186,8 @@ export function useFlashloanCore() {
       handleError(e, { operation: "loadLoanStats" });
       stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
       recentLoans.value = [];
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -232,7 +238,7 @@ export function useFlashloanCore() {
         setStatus(t("loanStatusLoaded"), "success");
       } catch (e: unknown) {
         handleError(e, { operation: "lookupLoan", metadata: { loanId } });
-        throw e;
+        throw new Error(formatErrorMessage(e, t("error")));
       }
     } catch (e: unknown) {
       const userMsg = formatErrorMessage(e, t("error"));

@@ -48,7 +48,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch((e: unknown) => { console.warn("[miniapps/versions] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return null; });
     return NextResponse.json(payload || { app_id: appId, versions: [] });
   } catch {
     return jsonError("Failed to reach host-app versions endpoint", 502);

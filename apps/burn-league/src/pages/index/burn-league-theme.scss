@@ -5,6 +5,8 @@
   --burn-orange: #ff4500;
   --burn-yellow: #ffd700;
   --burn-text: #fff0f0;
+  --bg-primary: var(--burn-bg);
+  --text-primary: var(--burn-text);
   --burn-font: "Russo One", sans-serif;
   --burn-gradient-start: #300000;
   --burn-gradient-end: #000000;
@@ -24,6 +26,8 @@
   --burn-coral: #ff6b6b;
   --burn-gold-bright: #ffd93d;
   --burn-green: #00e599;
+  --burn-reward-bg: rgba(249, 115, 22, 0.1);
+  --burn-reward-border: rgba(249, 115, 22, 0.2);
 }
 
 @include theme-light("burn-league") {
@@ -31,6 +35,8 @@
   --burn-orange: #e43d0f;
   --burn-yellow: #f5b700;
   --burn-text: #5a1a14;
+  --bg-primary: var(--burn-bg);
+  --text-primary: var(--burn-text);
   --burn-font: "Russo One", sans-serif;
   --burn-gradient-start: #ffd6cc;
   --burn-gradient-end: #fff5f2;
@@ -50,4 +56,6 @@
   --burn-coral: #e05252;
   --burn-gold-bright: #eab308;
   --burn-green: #00b97f;
+  --burn-reward-bg: rgba(228, 61, 15, 0.08);
+  --burn-reward-border: rgba(228, 61, 15, 0.15);
 }

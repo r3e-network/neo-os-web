@@ -102,13 +102,13 @@ async function apiFetch<T>(path: string, params?: Record<string, string | number
   }
   const res = await fetch(url.toString());
   if (!res.ok) {
-    throw new Error(`N3Index API error: ${res.status} ${res.statusText} — ${path}`);
+    throw new Error("Indexer request failed. Please try again later.");
   }
   try {
     const text = await res.text();
     return JSON.parse(text) as T;
   } catch (_e: unknown) {
-    throw new Error(`N3Index API error: failed to parse response from ${path}`);
+    throw new Error("Failed to parse indexer response.");
   }
 }
 
@@ -234,8 +234,8 @@ export async function waitForTransaction(
     try {
       const events = await getContractEvents(network, "", { tx_hash: txid, limit: 10 });
       if (events.length > 0) return events;
-    } catch (_e: unknown) {
-      // Not indexed yet
+    } catch (e: unknown) {
+      console.warn("[n3index] waitForTransaction poll failed:", e);
     }
     await new Promise((r) => setTimeout(r, 3000));
   }

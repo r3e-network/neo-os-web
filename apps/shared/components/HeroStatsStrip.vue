@@ -24,11 +24,16 @@ export interface HeroStatsStripItem {
 
 const { t } = useI18n();
 
-defineProps<{
-  items: HeroStatsStripItem[];
-  compact?: boolean;
-  ariaLabel?: string;
-}>();
+withDefaults(
+  defineProps<{
+    items: HeroStatsStripItem[];
+    compact?: boolean;
+    ariaLabel?: string;
+  }>(),
+  {
+    compact: false,
+  }
+);
 </script>
 
 <style lang="scss" scoped>

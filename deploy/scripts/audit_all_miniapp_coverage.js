@@ -62,7 +62,7 @@ async function contractExists(rpcUrl, hash) {
     }
     return { exists: true, name: data.result?.manifest?.name || null, error: null };
   } catch (error) {
-    return { exists: false, name: null, error: String(error.message || error) };
+    return { exists: false, name: null, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -140,6 +140,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

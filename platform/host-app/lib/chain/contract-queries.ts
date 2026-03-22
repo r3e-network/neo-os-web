@@ -124,6 +124,9 @@ export async function getStreamVaultState(
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalStreams", [], network);
+  if (!res.stack || res.stack.length === 0) {
+    return { totalStreams: 0n };
+  }
   return { totalStreams: parseInteger(res.stack[0]) };
 }
 
@@ -134,10 +137,10 @@ export async function getCoinFlipState(
   const res = await invokeRead(contractHash, "getBetLimits", [], network);
   const values = Array.isArray(res.stack?.[0]?.value) ? (res.stack[0].value as StackItem[]) : [];
   return {
-    maxBet: parseInteger(values[0]),
-    dailyLimit: parseInteger(values[1]),
-    cooldownSeconds: parseInteger(values[2]),
-    maxConsecutive: parseInteger(values[3]),
+    maxBet: parseInteger(values[0]) || 0n,
+    dailyLimit: parseInteger(values[1]) || 0n,
+    cooldownSeconds: parseInteger(values[2]) || 0n,
+    maxConsecutive: parseInteger(values[3]) || 0n,
   };
 }
 
@@ -146,6 +149,9 @@ export async function getNeoGachaState(
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalMachines", [], network);
+  if (!res.stack || res.stack.length === 0) {
+    return { totalMachines: 0n };
+  }
   return { totalMachines: parseInteger(res.stack[0]) };
 }
 

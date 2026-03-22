@@ -28,12 +28,12 @@
           <template #stats>
             <div class="hero-stats">
               <div class="hero-stat">
-                <span class="hero-stat-icon" aria-hidden="true">🕯️</span>
+                <AppIcon name="candle" :size="28" class="hero-stat-icon" />
                 <span class="hero-stat-value">{{ memorials.length }}</span>
                 <span class="hero-stat-label">{{ t("memorials") }}</span>
               </div>
               <div class="hero-stat">
-                <span class="hero-stat-icon" aria-hidden="true">🙏</span>
+                <AppIcon name="pray" :size="28" class="hero-stat-icon" />
                 <span class="hero-stat-value">{{ visitedMemorials.length }}</span>
                 <span class="hero-stat-label">{{ t("myTributes") }}</span>
               </div>
@@ -65,13 +65,17 @@
         </scroll-view>
       </div>
 
-      <div class="memorials-grid">
+      <div v-if="memorials.length" class="memorials-grid">
         <TombstoneCard
           v-for="memorial in memorials"
           :key="memorial.id"
           :memorial="memorial"
           @click="openMemorial(memorial.id)"
         />
+      </div>
+      <div v-else class="empty-memorials">
+        <AppIcon name="tombstone" :size="48" class="empty-icon" />
+        <p>{{ t("noMemorials") }}</p>
       </div>
     </template>
 
@@ -112,7 +116,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, AppIcon } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import TombstoneCard from "./components/TombstoneCard.vue";
 import { useMemorialActions } from "@/composables/useMemorialActions";
@@ -181,7 +185,7 @@ const resetAndReload = async () => {
     await checkUrlForMemorial();
     await loadVisitedMemorials();
   } catch (_e: unknown) {
-    /* non-critical: reload memorial data */
+    console.warn("[memorial-shrine] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
@@ -196,21 +200,25 @@ const onMemorialCreated = async (data: Record<string, unknown>) => {
     await handleMemorialCreated(data);
     activeTab.value = "memorials";
   } catch (_e: unknown) {
-    /* non-critical: memorial creation handler */
+    console.warn("[memorial-shrine] memorial creation failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
+const isMounted = ref(true);
+
 onUnmounted(() => {
+  isMounted.value = false;
   cleanupTimers();
 });
 
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await loadMemorials();
     await checkUrlForMemorial();
     await loadVisitedMemorials();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[memorial-shrine] initial load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
 </script>

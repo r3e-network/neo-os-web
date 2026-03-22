@@ -69,7 +69,10 @@ export async function handler(req: Request): Promise<Response> {
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
   };
 
-  const jwtSecret = getEnv("SUPABASE_JWT_SECRET") || getEnv("NEXTAUTH_SECRET") || "fallback-secret-for-development-only-do-not-use-in-prod";
+  const jwtSecret = getEnv("SUPABASE_JWT_SECRET") || getEnv("NEXTAUTH_SECRET");
+  if (!jwtSecret) {
+    return error(500, "JWT signing not configured", "CONFIG_ERROR", req);
+  }
   const token = await signJwt(payload, jwtSecret);
 
   return json({

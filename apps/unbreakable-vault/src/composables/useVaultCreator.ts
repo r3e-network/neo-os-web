@@ -55,8 +55,9 @@ export function useVaultCreator(
         })
         .filter(Boolean) as { id: string; bounty: number; created: number }[];
       myVaults.value = vaults.sort((a, b) => b.created - a.created);
-    } catch (_e: unknown) {
-      // My vaults load failure is non-critical
+    } catch (e: unknown) {
+      // Non-critical: user sees empty vault list, can retry
+      console.error("[unbreakable-vault] loadMyVaults error:", e instanceof Error ? e.message : String(e));
     }
   };
 

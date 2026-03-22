@@ -301,6 +301,12 @@ const rewardsRange = ref<"7" | "30">("7");
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+  }
+}
+
 @media (min-width: 768px) {
   .chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

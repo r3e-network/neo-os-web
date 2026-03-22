@@ -54,10 +54,10 @@
     <template #operation>
       <NeoCard variant="erobo" :title="t('quickTools')">
         <div class="op-tools">
-          <NeoButton size="sm" variant="primary" class="op-btn" @click="activeTab = 'generate'">
+          <NeoButton size="sm" variant="primary" class="op-btn" type="button" @click="activeTab = 'generate'">
             {{ t("tabGenerate") }}
           </NeoButton>
-          <NeoButton size="sm" variant="secondary" class="op-btn" @click="activeTab = 'convert'">
+          <NeoButton size="sm" variant="secondary" class="op-btn" type="button" @click="activeTab = 'convert'">
             {{ t("tabConvert") }}
           </NeoButton>
         </div>
@@ -258,6 +258,13 @@ const appState = computed(() => ({
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .convert-arrow,
+  .hero-icon {
+    animation: none;
+  }
+}
+
 .hero {
   background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.08) 0%, transparent 60%);
 }
@@ -268,7 +275,7 @@ const appState = computed(() => ({
 }
 
 .hero-title {
-  background: linear-gradient(135deg, #fff, rgba(0, 229, 153, 0.8));
+  background: var(--convert-hero-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

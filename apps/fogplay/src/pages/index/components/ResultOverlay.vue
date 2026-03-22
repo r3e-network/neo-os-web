@@ -53,7 +53,7 @@ defineEmits<{
 .cinematic-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2000;
+  z-index: var(--z-index-toast, 1050);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,7 +67,7 @@ defineEmits<{
 .overlay-backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(2, 6, 23, 0.95) 0%, rgba(10, 10, 15, 1) 100%);
+  background: radial-gradient(circle at center, var(--coin-overlay-bg) 0%, var(--coin-overlay-bg-end) 100%);
   backdrop-filter: blur(10px);
 }
 
@@ -86,13 +86,13 @@ defineEmits<{
   font-weight: 900;
   letter-spacing: 6px;
   color: var(--coin-gold);
-  text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+  text-shadow: 0 0 20px var(--coin-congrats-glow);
 }
 
 .winner-title-img {
   width: 280px;
   height: 80px;
-  filter: drop-shadow(0 0 15px rgba(0, 255, 157, 0.6));
+  filter: drop-shadow(0 0 15px var(--coin-success-glow));
   animation: title-float 3s ease-in-out infinite;
 }
 
@@ -118,8 +118,8 @@ defineEmits<{
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    border: 2px solid var(--coin-ring-border);
+    background: radial-gradient(circle, var(--coin-ring-bg) 0%, transparent 70%);
     animation: rotate-ring 4s linear infinite;
 
     &::before {
@@ -149,7 +149,7 @@ defineEmits<{
     .unit {
       font-size: 16px;
       font-weight: 700;
-      color: rgba(255, 255, 255, 0.6);
+      color: var(--coin-text-muted);
       letter-spacing: 2px;
     }
   }
@@ -166,7 +166,7 @@ defineEmits<{
   margin-top: 40px;
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--coin-text-faint);
   letter-spacing: 2px;
   animation: fade-blink 1.5s infinite;
 }
@@ -247,6 +247,28 @@ defineEmits<{
   100% {
     transform: translate(var(--tx), var(--ty)) scale(0);
     opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay-content {
+    animation: none;
+  }
+
+  .winner-title-img {
+    animation: none;
+  }
+
+  .glow-ring {
+    animation: none;
+  }
+
+  .tap-hint {
+    animation: none;
+  }
+
+  .sparkle {
+    animation: none;
   }
 }
 </style>

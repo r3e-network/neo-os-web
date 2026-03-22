@@ -57,7 +57,7 @@ withDefaults(
 
   // Status variants
   &--ready {
-    --badge-color: #ffde59;
+    --badge-color: var(--accent-warning, #ffde59);
     background: rgba(255, 222, 89, 0.1);
     color: var(--badge-color);
     border-color: rgba(255, 222, 89, 0.3);
@@ -68,7 +68,7 @@ withDefaults(
   }
 
   &--active {
-    --badge-color: #3b82f6;
+    --badge-color: var(--accent-primary, #3b82f6);
     background: rgba(59, 130, 246, 0.1);
     color: var(--badge-color);
     border-color: rgba(59, 130, 246, 0.3);
@@ -79,7 +79,7 @@ withDefaults(
   }
 
   &--success {
-    --badge-color: #00e599;
+    --badge-color: var(--accent-success, #00e599);
     background: rgba(0, 229, 153, 0.1);
     color: var(--badge-color);
     border-color: rgba(0, 229, 153, 0.3);
@@ -90,7 +90,7 @@ withDefaults(
   }
 
   &--warning {
-    --badge-color: #fde047;
+    --badge-color: var(--accent-warning, #fde047);
     background: rgba(253, 224, 71, 0.1);
     color: var(--badge-color);
     border-color: rgba(253, 224, 71, 0.3);
@@ -101,7 +101,7 @@ withDefaults(
   }
 
   &--error {
-    --badge-color: #ef4444;
+    --badge-color: var(--accent-error, #ef4444);
     background: rgba(239, 68, 68, 0.1);
     color: var(--badge-color);
     border-color: rgba(239, 68, 68, 0.3);
@@ -117,7 +117,7 @@ withDefaults(
   }
 
   &--pending {
-    --badge-color: #9f9df3;
+    --badge-color: var(--accent-secondary, #9f9df3);
     background: rgba(159, 157, 243, 0.1);
     color: var(--badge-color);
     border-color: rgba(159, 157, 243, 0.3);

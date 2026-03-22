@@ -11,7 +11,7 @@
   <NeoCard v-if="recentTips.length > 0" variant="erobo-neo">
     <div class="recent-tips-glass">
       <div v-for="tip in recentTips" :key="tip.id" class="recent-tip-item-glass">
-        <span class="recent-tip-emoji" aria-hidden="true">✨</span>
+        <AppIcon name="sparkle" :size="24" class="recent-tip-emoji" />
         <div class="recent-tip-info">
           <span class="recent-tip-to-glass">{{ tip.to }}</span>
           <span class="recent-tip-time-glass">{{ tip.time }}</span>
@@ -23,6 +23,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from "@shared/components/AppIcon.vue";
 import { NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";

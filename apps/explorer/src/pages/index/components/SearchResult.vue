@@ -58,29 +58,38 @@
 <script setup lang="ts">
 import { NeoCard } from "@shared/components";
 
-const props = defineProps<{
-  result: Record<string, unknown> | null;
-  t: (key: string, ...args: unknown[]) => string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    result: Record<string, unknown> | null;
+    t: (key: string, ...args: unknown[]) => string;
+  }>(),
+  {
+    result: null,
+    t: (key: string) => key,
+  }
+);
 
 defineEmits<{
   (e: "viewTx", hash: string): void;
 }>();
 
-const formatTime = (time: string) => {
-  const d = new Date(time);
-  return new Intl.DateTimeFormat("en").format(d);
+const formatTime = (time: unknown) => {
+  const dateStr = typeof time === "string" ? time : String(time ?? "");
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat(undefined).format(d);
 };
 
-const truncateHash = (hash: string) => {
-  if (!hash) return "";
-  return `${hash.slice(0, 10)}${props.t("hashEllipsis")}${hash.slice(-8)}`;
+const truncateHash = (hash: unknown) => {
+  const str = typeof hash === "string" ? hash : String(hash ?? "");
+  if (!str) return "";
+  return `${str.slice(0, 10)}${props.t("hashEllipsis")}${str.slice(-8)}`;
 };
 
-const getVmStateLabel = (vmState: string) => {
-  if (vmState === "HALT") return props.t("vmHalt");
-  if (vmState === "FAULT") return props.t("vmFault");
-  return vmState;
+const getVmStateLabel = (vmState: unknown) => {
+  const str = typeof vmState === "string" ? vmState : String(vmState ?? "");
+  if (str === "HALT") return props.t("vmHalt");
+  if (str === "FAULT") return props.t("vmFault");
+  return str;
 };
 </script>
 

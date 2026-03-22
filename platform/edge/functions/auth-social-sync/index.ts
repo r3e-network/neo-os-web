@@ -112,26 +112,32 @@ export async function handler(req: Request): Promise<Response> {
             await supabase.from("users").update({ address }).eq("id", accountId);
           }
         }
-      } catch {
+      } catch (err) {
         // Pool service unreachable — wallet allocation deferred
+        console.error("[auth-social-sync] wallet pool error:", err instanceof Error ? err.message : String(err));
       }
     }
   }
 
   // Insert linked_identities
-  const { error: linkErr } = await supabase.from("linked_identities").upsert({
-    user_id: accountId,
-    provider,
-    provider_user_id: providerUserId,
-    auth0_sub: sub,
-    email,
-    name,
-    avatar_url: avatar,
-    last_login: new Date().toISOString(),
-  }, { onConflict: "provider,provider_user_id" });
+  try {
+    const { error: linkErr } = await supabase.from("linked_identities").upsert({
+      user_id: accountId,
+      provider,
+      provider_user_id: providerUserId,
+      auth0_sub: sub,
+      email,
+      name,
+      avatar_url: avatar,
+      last_login: new Date().toISOString(),
+    }, { onConflict: "provider,provider_user_id" });
 
-  if (linkErr) {
-    return error(500, "failed to link identity", "DB_ERROR", req);
+    if (linkErr) {
+      return error(500, "failed to link identity", "DB_ERROR", req);
+    }
+  } catch (err) {
+    console.error("[auth-social-sync] linked_identities upsert error:", err instanceof Error ? err.message : String(err));
+    return error(500, "failed to link identity", "INTERNAL_ERROR", req);
   }
 
   return json({ user_id: accountId, is_new: true }, {}, req);

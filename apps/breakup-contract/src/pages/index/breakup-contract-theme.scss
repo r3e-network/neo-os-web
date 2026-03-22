@@ -4,6 +4,7 @@
   --heartbreak-accent: #ff0055;
   --heartbreak-accent-dark: #8b0046;
   --heartbreak-text: #ffeef5;
+  --heartbreak-text-muted: rgba(255, 238, 245, 0.7);
   --heartbreak-status-text: #ffffff;
   --heartbreak-status-shadow: 0 0 5px rgba(255, 0, 85, 0.6);
   --heartbreak-card-bg: rgba(40, 5, 20, 0.7);
@@ -21,6 +22,12 @@
   --heartbreak-success: #00e599;
   --heartbreak-heart-node-bg: #1a1a1a;
   --breakup-danger-gradient: linear-gradient(90deg, #ff6b6b, #ff9f43);
+
+  --bg-primary: var(--heartbreak-bg);
+  --text-primary: var(--heartbreak-text);
+  --text-secondary: var(--heartbreak-text-muted);
+  --text-muted: var(--heartbreak-text-muted);
+  --border-color: var(--heartbreak-card-border);
 }
 
 :global(.theme-light .theme-breakup-contract),
@@ -30,6 +37,7 @@
   --heartbreak-accent: #e11d48;
   --heartbreak-accent-dark: #9f1239;
   --heartbreak-text: #4a0b1f;
+  --heartbreak-text-muted: rgba(74, 11, 31, 0.7);
   --heartbreak-status-text: #4a0b1f;
   --heartbreak-status-shadow: 0 0 4px rgba(225, 29, 72, 0.4);
   --heartbreak-card-bg: rgba(255, 255, 255, 0.8);
@@ -47,4 +55,10 @@
   --heartbreak-success: #059669;
   --heartbreak-heart-node-bg: #ffffff;
   --breakup-danger-gradient: linear-gradient(90deg, #e11d48, #ea580c);
+
+  --bg-primary: var(--heartbreak-bg);
+  --text-primary: var(--heartbreak-text);
+  --text-secondary: var(--heartbreak-text-muted);
+  --text-muted: var(--heartbreak-text-muted);
+  --border-color: var(--heartbreak-card-border);
 }

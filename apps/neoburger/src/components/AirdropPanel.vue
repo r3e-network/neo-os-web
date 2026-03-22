@@ -7,7 +7,7 @@
 
     <div v-if="!walletConnected" class="card connect-card fade-up delay-1">
       <span class="section-text">{{ t("airdropConnectTip") }}</span>
-      <NeoButton variant="primary" size="lg" block @click="emit('connectWallet')">
+      <NeoButton type="button" variant="primary" size="lg" block @click="emit('connectWallet')">
         {{ t("connectWallet") }}
       </NeoButton>
     </div>
@@ -322,6 +322,12 @@ const nobugTbdWays = computed(() => [
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
   }
 }
 </style>

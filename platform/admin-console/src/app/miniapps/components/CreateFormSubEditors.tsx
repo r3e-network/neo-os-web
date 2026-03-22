@@ -48,12 +48,12 @@ export function OperationParamsEditor({
       </div>
       {params.map((p, i) => (
         <div key={i} className="flex gap-1.5 mb-1.5 items-center">
-          <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} />
+          <Input placeholder="name" value={p.name} onChange={e => update(i, "name", e.target.value)} aria-label="Parameter name" />
           <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={p.type} onChange={e => update(i, "type", e.target.value)} aria-label="Parameter type">
             {PARAM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} />
-          <Input placeholder="Placeholder" value={p.placeholder} onChange={e => update(i, "placeholder", e.target.value)} />
+          <Input placeholder="Label" value={p.label} onChange={e => update(i, "label", e.target.value)} aria-label="Parameter label" />
+          <Input placeholder="Placeholder" value={p.placeholder} onChange={e => update(i, "placeholder", e.target.value)} aria-label="Parameter placeholder" />
           <label className="flex items-center gap-1 text-xs shrink-0">
             <input type="checkbox" checked={p.required} onChange={e => update(i, "required", e.target.checked)} className="rounded accent-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" />
             Req
@@ -90,8 +90,8 @@ export function ContentBlocksEditor({
         <div key={i} className="rounded border border-gray-100 dark:border-gray-700 p-2 mb-2 space-y-1">
           <div className="flex gap-2 items-center">
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-20 shrink-0">{b.type}</span>
-            <Input placeholder="Title" value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} />
-            <button type="button" onClick={() => onChange(blocks.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+            <Input placeholder="Title" value={b.title || ""} onChange={e => updateBlock(i, { title: e.target.value })} aria-label="Block title" />
+            <button type="button" aria-label="Remove block" onClick={() => onChange(blocks.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
           </div>
           <BlockFields block={b} onChange={updates => updateBlock(i, updates)} />
         </div>
@@ -102,14 +102,14 @@ export function ContentBlocksEditor({
 
 function BlockFields({ block, onChange }: { block: ContentBlock; onChange: (u: Partial<ContentBlock>) => void }) {
   const t = block.type;
-  if (t === "markdown") return <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" rows={3} placeholder="Markdown content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} />;
-  if (t === "bullet_list") return <Input placeholder="Items (comma-separated)" value={(block.items || []).join(", ")} onChange={e => onChange({ items: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean) })} />;
+  if (t === "markdown") return <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" rows={3} placeholder="Markdown content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} aria-label="Markdown content" />;
+  if (t === "bullet_list") return <Input placeholder="Items (comma-separated)" value={(block.items || []).join(", ")} onChange={e => onChange({ items: e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean) })} aria-label="Bullet list items" />;
   if (t === "notice") return (
     <div className="flex gap-2">
       <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-28 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={block.tone || "info"} onChange={e => onChange({ tone: e.target.value })} aria-label="Notice tone">
         {["info","success","warning"].map(v => <option key={v} value={v}>{v}</option>)}
       </select>
-      <Input placeholder="Content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} />
+      <Input placeholder="Content" value={block.content || ""} onChange={e => onChange({ content: e.target.value })} aria-label="Notice content" />
     </div>
   );
   if (t === "key_value") return <KVEditor entries={block.entries || []} onChange={entries => onChange({ entries })} />;
@@ -128,12 +128,12 @@ function KVEditor({
     <div>
       {entries.map((e, i) => (
         <div key={i} className="flex gap-1.5 mb-1">
-          <Input placeholder="Key" value={e.key} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], key: ev.target.value }; onChange(n); }} />
-          <Input placeholder="Value" value={e.value} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], value: ev.target.value }; onChange(n); }} />
-          <button type="button" onClick={() => onChange(entries.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+          <Input placeholder="Key" value={e.key} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], key: ev.target.value }; onChange(n); }} aria-label="Key" />
+          <Input placeholder="Value" value={e.value} onChange={ev => { const n = [...entries]; n[i] = { ...n[i], value: ev.target.value }; onChange(n); }} aria-label="Value" />
+          <button type="button" aria-label="Remove pair" onClick={() => onChange(entries.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...entries, { key: "", value: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add pair</button>
+      <button type="button" aria-label="Add pair" onClick={() => onChange([...entries, { key: "", value: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add pair</button>
     </div>
   );
 }
@@ -149,12 +149,12 @@ function LinksEditor({
     <div>
       {links.map((l, i) => (
         <div key={i} className="flex gap-1.5 mb-1">
-          <Input placeholder="Label" value={l.label} onChange={e => { const n = [...links]; n[i] = { ...n[i], label: e.target.value }; onChange(n); }} />
-          <Input placeholder="https://..." value={l.href} onChange={e => { const n = [...links]; n[i] = { ...n[i], href: e.target.value }; onChange(n); }} />
-          <button type="button" onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
+          <Input placeholder="Label" value={l.label} onChange={e => { const n = [...links]; n[i] = { ...n[i], label: e.target.value }; onChange(n); }} aria-label="Link label" />
+          <Input placeholder="https://..." value={l.href} onChange={e => { const n = [...links]; n[i] = { ...n[i], href: e.target.value }; onChange(n); }} aria-label="Link URL" />
+          <button type="button" aria-label="Remove link" onClick={() => onChange(links.filter((_, idx) => idx !== i))} className="text-red-500 dark:text-red-400 text-xs px-1 shrink-0 cursor-pointer rounded-lg">×</button>
         </div>
       ))}
-      <button type="button" onClick={() => onChange([...links, { label: "", href: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add link</button>
+      <button type="button" aria-label="Add link" onClick={() => onChange([...links, { label: "", href: "" }])} className="text-xs cursor-pointer text-primary-600 hover:underline rounded-md">+ Add link</button>
     </div>
   );
 }

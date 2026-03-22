@@ -55,23 +55,47 @@ export type ErrorCategory =
 const errorStore: Map<string, TrackedError> = new Map();
 let errorCount = 0;
 
+// Listener references for cleanup
+let errorListener: ((event: ErrorEvent) => void) | null = null;
+let unhandledRejectionListener: ((event: PromiseRejectionEvent) => void) | null = null;
+let isInitialized = false;
+
 /**
  * Initialize global error handlers
  */
 export function initErrorTracking(): void {
   if (typeof window === "undefined") return;
-  
+  if (isInitialized) return;
+  isInitialized = true;
+
   // Handle uncaught JavaScript errors
-  window.addEventListener("error", handleGlobalError);
-  
+  errorListener = handleGlobalError;
+  window.addEventListener("error", errorListener);
+
   // Handle unhandled promise rejections
-  window.addEventListener("unhandledrejection", handleUnhandledRejection);
-  
+  unhandledRejectionListener = handleUnhandledRejection;
+  window.addEventListener("unhandledrejection", unhandledRejectionListener);
+
   // Handle network errors via fetch intercept
   patchFetch();
   patchXHR();
-  
+
   logger.info("Error tracking initialized");
+}
+
+/**
+ * Destroy error tracking and remove event listeners
+ */
+export function destroyErrorTracking(): void {
+  if (errorListener) {
+    window.removeEventListener("error", errorListener);
+    errorListener = null;
+  }
+  if (unhandledRejectionListener) {
+    window.removeEventListener("unhandledrejection", unhandledRejectionListener);
+    unhandledRejectionListener = null;
+  }
+  isInitialized = false;
 }
 
 /**
@@ -347,9 +371,7 @@ function sendErrorToService(error: TrackedError): void {
       data: error,
       sessionId: getSessionId(),
     }),
-  }).catch(() => {
-    // Silently fail
-  });
+  }).catch((e: unknown) => { console.warn("[monitoring] failed to send error event:", e instanceof Error ? e.message : String(e)); });
 }
 
 /**

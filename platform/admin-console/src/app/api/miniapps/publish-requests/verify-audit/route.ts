@@ -47,7 +47,7 @@ export async function GET(req: Request) {
       return jsonError(message, response.status);
     }
 
-    const payload = await response.json().catch(() => ({ ok: false, issues: [] }));
+    const payload = await response.json().catch((e: unknown) => { console.warn("[verify-audit] failed to parse response JSON:", e instanceof Error ? e.message : String(e)); return { ok: false, issues: [] }; });
     return NextResponse.json(payload);
   } catch {
     return jsonError("Failed to reach host-app audit verify endpoint", 502);

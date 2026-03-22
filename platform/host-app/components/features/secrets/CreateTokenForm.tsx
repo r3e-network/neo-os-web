@@ -15,23 +15,29 @@ interface CreateTokenFormProps {
 }
 
 export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps) {
-  const { createToken, loading } = useSecretsStore();
+  const { createToken, loading, error, clearError } = useSecretsStore();
   const [name, setName] = useState("");
   const [appId, setAppId] = useState(defaultAppId || "");
   const [secretType, setSecretType] = useState<string>("api_key");
   const [secretValue, setSecretValue] = useState("");
   const [showValue, setShowValue] = useState(false);
   const [created, setCreated] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !secretValue.trim()) return;
+    if (!name.trim() || !secretValue.trim()) {
+      setValidationError("Please fill in all required fields.");
+      return;
+    }
+    setValidationError(null);
+    clearError();
 
     try {
       await createToken(name, appId || "global", secretType, secretValue);
       setCreated(true);
     } catch {
-      // Error handled by store
+      // error set by store, will be shown via {error && ...}
     }
   };
 
@@ -119,6 +125,12 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </p>
         </div>
       </div>
+      {validationError && (
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{validationError}</p>
+      )}
+      {error && (
+        <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+      )}
       <div className="mt-4 flex gap-2">
         <Button type="submit" disabled={loading || !name.trim() || !secretValue.trim()}>
           {loading ? "Creating..." : "Create Secret"}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Trophy, Medal, Crown } from "lucide-react";
 import type { LeaderboardEntry } from "./types";
 import { LEVELS } from "./constants";
@@ -19,21 +19,26 @@ type LeaderboardResponse = {
 export function Leaderboard({ currentWallet }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchLeaderboard = useCallback(async () => {
-    try {
-      const data = await fetchJSON<LeaderboardResponse>("/api/gamification/leaderboard?limit=20");
-      setEntries(data.entries || []);
-    } catch (err) {
-      logger.warn("Failed to fetch leaderboard:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+    mountedRef.current = true;
+    const loadLeaderboard = async () => {
+      try {
+        const data = await fetchJSON<LeaderboardResponse>("/api/gamification/leaderboard?limit=20");
+        if (!mountedRef.current) return;
+        setEntries(data.entries || []);
+      } catch (err) {
+        logger.warn("Failed to fetch leaderboard:", err);
+        if (mountedRef.current) setError("Failed to load leaderboard");
+      } finally {
+        if (mountedRef.current) setLoading(false);
+      }
+    };
+    loadLeaderboard();
+    return () => { mountedRef.current = false; };
+  }, []);
 
   if (loading) {
     return (
@@ -58,7 +63,15 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
   }
 
   if (entries.length === 0) {
-    return <div className="text-center py-8 text-gray-500 dark:text-gray-400">No leaderboard entries yet</div>;
+    return (
+      <div className="text-center py-8">
+        {error ? (
+          <div className="text-red-500 dark:text-red-400">{error}</div>
+        ) : (
+          <div className="text-gray-500 dark:text-gray-400">No leaderboard entries yet</div>
+        )}
+      </div>
+    );
   }
 
   return (

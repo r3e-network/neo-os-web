@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (relaxedLimit(req, res)) return;
 
   if (!isSupabaseConfigured) {
+    // Graceful degradation: return empty list when Supabase is not configured
     return res.status(200).json({ apps: [] });
   }
 
@@ -86,6 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data, error } = await query.order("submitted_at", { ascending: false }).limit(200);
     if (error) {
       logger.warn("Community submissions query failed:", error.message);
+      // Graceful degradation: return empty list on DB error so UI remains functional
       return res.status(200).json({ apps: [] });
     }
 
@@ -113,6 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ apps });
   } catch (error) {
     logger.warn("Fetch community apps error:", error instanceof Error ? error.message : "unknown error");
+    // Graceful degradation: return empty list on error so UI remains functional
     return res.status(200).json({ apps: [] });
   }
 }

@@ -45,7 +45,7 @@ defineProps<{
 const { t } = createUseI18n(messages)();
 
 const formatTime = (timestamp: number): string => {
-  return new Intl.DateTimeFormat("en").format(new Date(timestamp));
+  return new Intl.DateTimeFormat(undefined).format(new Date(timestamp));
 };
 </script>
 

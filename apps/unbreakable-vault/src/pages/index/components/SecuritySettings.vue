@@ -6,10 +6,12 @@
         v-for="level in [1, 2, 3]"
         :key="level"
         size="sm"
+        type="button"
         :variant="difficulty === level ? 'primary' : 'secondary'"
+        :aria-label="difficultyLabel(level)"
         @click="$emit('update:difficulty', level)"
       >
-        {{ t(["difficultyEasy", "difficultyMedium", "difficultyHard"][level - 1]) }}
+        {{ difficultyLabel(level) }}
       </NeoButton>
     </div>
   </div>
@@ -25,6 +27,12 @@ defineProps<{
 }>();
 
 const { t } = createUseI18n(messages)();
+
+const DIFFICULTY_KEYS = ["difficultyEasy", "difficultyMedium", "difficultyHard"] as const;
+
+const difficultyLabel = (level: number): string => {
+  return t(DIFFICULTY_KEYS[level - 1] ?? "difficultyEasy");
+};
 
 defineEmits<{
   (e: "update:difficulty", value: number): void;

@@ -16,7 +16,7 @@
       <div v-if="!core.address.value" class="wallet-prompt mb-4">
         <NeoCard variant="warning" class="text-center">
           <span class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</span>
-          <NeoButton variant="primary" size="sm" @click="connectWallet">
+          <NeoButton type="button" variant="primary" size="sm" @click="connectWallet">
             {{ t("connectWallet") }}
           </NeoButton>
         </NeoCard>
@@ -61,7 +61,7 @@
           <!-- Right: Borrowed GAS -->
           <div class="hero-asset-card borrowed">
             <div class="asset-icon-ring">
-              <span class="asset-icon">↗</span>
+              <span class="asset-icon" aria-hidden="true">↗</span>
             </div>
             <span class="asset-amount">{{ fmt(core.loan.value?.borrowed ?? 0) }}</span>
             <span class="asset-token">{{ t("tokenGas") }}</span>
@@ -98,8 +98,8 @@
     <!-- Main Tab — RIGHT panel -->
     <template #operation>
       <BorrowForm
-        v-model="core.collateralAmount.value"
-        v-model:selectedTier="core.selectedTier.value"
+        v-model="core.collateralAmount"
+        v-model:selectedTier="core.selectedTier"
         :terms="core.borrowTerms.value"
         :ltv-options="core.ltvOptions.value"
         :platform-fee-bps="core.platformFeeBps.value"
@@ -152,9 +152,9 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
 const healthColor = computed(() => {
   const hf = core.healthFactor.value;
   if (hf == null) return "rgba(255,255,255,0.2)";
-  if (hf >= 1.5) return "var(--checkbook-success, #34d399)";
-  if (hf >= 1.2) return "var(--checkbook-warning, #fbbf24)";
-  return "var(--checkbook-danger, #f87171)";
+  if (hf >= 1.5) return "var(--checkbook-success)";
+  if (hf >= 1.2) return "var(--checkbook-warning)";
+  return "var(--checkbook-danger)";
 });
 
 const healthArc = computed(() => {
@@ -340,10 +340,10 @@ onMounted(() => {
   font-size: 16px;
 
   .locked & {
-    color: var(--checkbook-locked-asset, #fbbf24);
+    color: var(--checkbook-locked-asset);
   }
   .borrowed & {
-    color: var(--checkbook-borrowed-asset, #34d399);
+    color: var(--checkbook-borrowed-asset);
   }
 }
 
@@ -353,10 +353,10 @@ onMounted(() => {
   font-family: $font-mono;
 
   .locked & {
-    color: var(--checkbook-locked-asset, #fbbf24);
+    color: var(--checkbook-locked-asset);
   }
   .borrowed & {
-    color: var(--checkbook-borrowed-asset, #34d399);
+    color: var(--checkbook-borrowed-asset);
   }
 }
 
@@ -460,7 +460,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, var(--checkbook-success, #34d399), var(--checkbook-warning, #fbbf24), var(--checkbook-danger, #f87171));
+  background: linear-gradient(90deg, var(--checkbook-success), var(--checkbook-warning), var(--checkbook-danger));
   border-radius: 4px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
@@ -564,6 +564,15 @@ onMounted(() => {
   }
   50% {
     transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-health-gauge {
+    animation: none;
+  }
+  .asset-icon {
+    animation: none;
   }
 }
 

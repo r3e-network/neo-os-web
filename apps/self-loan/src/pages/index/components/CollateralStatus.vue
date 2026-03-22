@@ -133,4 +133,10 @@ const fmt = (n: number, d = 2) => formatNumber(n, d);
     transform: skewX(-20deg) translateX(250%);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-shine {
+    animation: none;
+  }
+}
 </style>

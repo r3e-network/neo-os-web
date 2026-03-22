@@ -27,7 +27,7 @@ interface Nep17BalancesResult {
 /**
  * Call Neo RPC method
  */
-async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
+async function rpcCall<T>(method: string, params: string[]): Promise<T> {
   const rpcUrl = getNeoRpcUrl();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
@@ -45,12 +45,12 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
     });
 
     if (!res.ok) {
-      throw new Error(`RPC request failed: ${res.status}`);
+      throw new Error(`Neo RPC request failed (${res.status})`);
     }
 
     const data: RpcResponse<T> = await res.json();
     if (data.error) {
-      throw new Error(`RPC error: ${data.error.message}`);
+      throw new Error(`Neo RPC error`);
     }
 
     return data.result as T;
@@ -58,7 +58,7 @@ async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new Error(`Neo RPC call "${method}" timed out after 10s`);
     }
-    throw err;
+    throw new Error(`Neo RPC call "${method}" failed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
     clearTimeout(timeout);
   }

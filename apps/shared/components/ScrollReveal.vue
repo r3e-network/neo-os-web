@@ -3,6 +3,8 @@
     class="scroll-reveal"
     :class="[animation, { 'is-visible': isVisible }]"
     :style="{ transitionDelay: delay + 'ms', transitionDuration: duration + 'ms' }"
+    role="region"
+    :aria-label="ariaLabel || t('scrollRevealAriaLabel')"
   >
     <slot />
   </div>
@@ -10,6 +12,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, getCurrentInstance, onUnmounted } from "vue";
+import { useI18n } from "@shared/composables";
 
 interface Props {
   animation?: "fade-up" | "fade-down" | "scale-in" | "slide-left" | "slide-right";
@@ -18,7 +21,10 @@ interface Props {
   threshold?: number;
   offset?: number;
   reversible?: boolean;
+  ariaLabel?: string;
 }
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<Props>(), {
   animation: "fade-up",
@@ -27,6 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
   threshold: 0.1,
   offset: -50,
   reversible: false,
+  ariaLabel: undefined,
 });
 
 const isVisible = ref(false);

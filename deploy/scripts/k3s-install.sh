@@ -34,7 +34,10 @@ setup_kubeconfig() {
 
 install_k3s() {
   echo "Installing k3s..."
-  curl -sfL https://get.k3s.io | sh -
+  K3S_INSTALLER=$(mktemp)
+  curl -sfL https://get.k3s.io -o "$K3S_INSTALLER"
+  sh "$K3S_INSTALLER"
+  rm -f "$K3S_INSTALLER"
   setup_kubeconfig
 
   echo "Waiting for node readiness..."

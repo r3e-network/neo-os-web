@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         warnOnce("platform-stats-rpc-missing", "platform_stats_aggregate RPC not available; returning fallback platform stats.");
         return res.status(200).json(base);
       }
-      logger.error("platform_stats_aggregate RPC failed:", error.message);
+      logger.error("platform_stats_aggregate RPC failed:", error instanceof Error ? error.message : String(error));
       return res.status(200).json(base);
     }
 
@@ -63,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    res.status(200).json(base);
+    return res.status(200).json(base);
   } catch (error) {
     logger.error("Stats API error:", error instanceof Error ? error.message : "unknown error");
     return apiError.internal(res, "Failed to fetch stats");

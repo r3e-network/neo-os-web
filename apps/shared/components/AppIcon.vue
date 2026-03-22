@@ -1,237 +1,352 @@
 <template>
-  <div
+  <component
+    :is="resolvedIcon"
+    v-if="resolvedIcon"
+    :size="size"
+    :stroke-width="strokeWidth"
+    :style="iconStyle"
+    :aria-hidden="ariaHidden"
+    :aria-label="ariaLabel"
+    :role="presentation"
     :class="['app-icon', `icon-${name}`, sizeClass]"
+  />
+  <span
+    v-else
+    :class="['app-icon', 'icon-fallback', `icon-${name}`, sizeClass]"
     :style="customStyle"
     :aria-hidden="ariaHidden"
     :aria-label="ariaLabel"
     :role="presentation"
-  >
-    <span v-if="iconEmoji" class="icon-emoji" :aria-hidden="true">{{ iconEmoji }}</span>
-    <span v-else-if="iconText" class="icon-text" :aria-hidden="true">{{ iconText }}</span>
-    <span v-else class="icon-fallback" :aria-label="`${t('iconFallbackLabel')}: ${name}`">{{ name.charAt(0).toUpperCase() }}</span>
-  </div>
+  >{{ name }}</span>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
-import { useI18n } from "@shared/composables";
+import { computed } from "vue";
+import {
+  Home,
+  Settings,
+  User,
+  Wallet,
+  Book,
+  Trophy,
+  Star,
+  Heart,
+  Check,
+  Clock,
+  Plus,
+  X,
+  Menu,
+  Activity,
+  Award,
+  Archive,
+  Rocket,
+  ShoppingCart,
+  Ticket,
+  ShoppingBag,
+  TrendingUp,
+  BarChart3,
+  Calendar,
+  Search,
+  Filter,
+  Pencil,
+  Trash2,
+  Copy,
+  Share2,
+  Download,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Info,
+  Loader2,
+  Gem,
+  Zap,
+  FileText,
+  Link2,
+  Box,
+  Handshake,
+  Gift,
+  ShieldCheck,
+  Crown,
+  Gamepad2,
+  Mail,
+  Flame,
+  Moon,
+  Target,
+  HeartOff,
+  Sparkles,
+  Camera,
+  Medal,
+  Eye,
+  EyeOff,
+  PartyPopper,
+  Lock,
+  Unlock,
+  Link,
+  MessageCircle,
+  Lightbulb,
+  Bell,
+  Music,
+  Radio,
+  Hand,
+  Shield,
+  Coffee,
+  Puzzle,
+  Key,
+  Skull,
+  DollarSign,
+  Inbox,
+  RefreshCw,
+  Wrench,
+  Circle,
+  CreditCard,
+  Smartphone,
+  TrendingUp as TrendingUpIcon,
+  Brain,
+  Droplet,
+  CheckCircle,
+  PenTool,
+  Dices,
+  Package,
+  Building2,
+  Building,
+  Pill,
+  Globe,
+  Store,
+  MapPin,
+  Bird,
+} from "lucide-vue-next";
 
 /**
  * AppIcon Component
  *
- * A versatile icon component that renders icons using emoji mappings, text symbols,
- * or fallback to first character. Supports multiple sizes and includes accessibility
- * features.
+ * Renders professional Lucide SVG icons. Maintains backward compatibility with
+ * previous emoji-based icon names while providing crisp, consistent SVG rendering.
  *
  * @example
  * ```vue
- * <!-- Using predefined emoji icon -->
  * <AppIcon name="home" :size="24" />
- *
- * <!-- Using text symbol icon -->
- * <AppIcon name="arrow-left" :size="20" />
- *
- * <!-- Fallback icon (shows first letter) -->
- * <AppIcon name="custom-icon" :size="16" />
+ * <AppIcon name="flame" :size="32" label="On fire" />
+ * <AppIcon name="locked" decorative />
  * ```
  */
 const props = withDefaults(
   defineProps<{
-    /** Icon name - maps to predefined emoji or text symbol */
+    /** Icon name - maps to Lucide SVG icon */
     name: string;
     /** Icon size in pixels (default: 20) */
     size?: number;
+    /** Stroke width (default: 2) */
+    strokeWidth?: number;
+    /** Icon color */
+    color?: string;
     /** Accessibility label - if provided, icon will be announced to screen readers */
     label?: string;
-    /** Whether icon is decorative and should be hidden from screen readers (default: true) */
+    /** Whether icon is decorative (default: true) */
     decorative?: boolean;
   }>(),
   {
     size: 20,
+    strokeWidth: 2,
+    color: undefined,
     decorative: true,
   }
 );
 
-const { t } = useI18n();
+/** Icon registry: icon name → Lucide component */
+const ICON_MAP: Record<string, typeof Home | null> = {
+  // Navigation
+  home: Home,
+  settings: Settings,
+  user: User,
+  wallet: Wallet,
+  book: Book,
+  trophy: Trophy,
+  star: Star,
+  heart: Heart,
+  check: Check,
+  clock: Clock,
+  plus: Plus,
+  add: Plus,
+  close: X,
+  x: X,
+  menu: Menu,
+  activity: Activity,
+  award: Award,
+  archive: Archive,
+  rocket: Rocket,
+  cart: ShoppingCart,
+  ticket: Ticket,
+  bag: ShoppingBag,
 
-/**
- * Complete registry of icon emoji mappings
- * Organized by category for better maintainability
- */
-const iconEmojis: Record<string, string> = {
-  // Navigation icons
-  home: "🏠",
-  settings: "⚙️",
-  user: "👤",
-  wallet: "💼",
-  book: "📖",
-  trophy: "🏆",
-  star: "⭐",
-  heart: "❤️",
-  check: "✓",
-  clock: "🕐",
-  plus: "➕",
-  add: "➕",
-  close: "✕",
-  x: "✕",
-  menu: "☰",
-  activity: "📡",
-  award: "🏅",
-  archive: "🗄️",
-  rocket: "🚀",
-  cart: "🛒",
-  ticket: "🎟️",
-  bag: "👜",
+  // Action
+  trending: TrendingUp,
+  chart: BarChart3,
+  calendar: Calendar,
+  search: Search,
+  filter: Filter,
+  edit: Pencil,
+  delete: Trash2,
+  copy: Copy,
+  share: Share2,
+  download: Download,
+  upload: Upload,
 
-  // Action icons
-  trending: "📈",
-  chart: "📊",
-  calendar: "📅",
-  search: "🔍",
-  filter: "🔽",
-  edit: "✏️",
-  delete: "🗑️",
-  copy: "📋",
-  share: "📤",
-  download: "⬇️",
-  upload: "⬆️",
+  // Status
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+  loading: Loader2,
+  fail: X,
+  deny: XCircle,
+  status_pass: Check,
+  status_fail: X,
+  confirm: CheckCircle,
 
-  // Status icons
-  success: "✓",
-  error: "✕",
-  warning: "⚠️",
-  info: "ℹ️",
-  loading: "⏳",
+  // Crypto
+  neo: Gem,
+  gas: Zap,
+  contract: FileText,
+  chain: Link2,
+  block: Box,
 
-  // Crypto/blockchain icons
-  neo: "💎",
-  gas: "⛽",
-  contract: "📜",
-  chain: "⛓️",
-  block: "🧱",
+  // Social
+  helpful: Handshake,
+  generous: Gift,
+  verified: ShieldCheck,
+  contributor: Star,
+  champion: Trophy,
+  legend: Crown,
+  game: Gamepad2,
+  stats: BarChart3,
+  docs: FileText,
+  about: Info,
+  contact: Mail,
 
-  // Social icons
-  helpful: "🤝",
-  generous: "🎁",
-  verified: "✓",
-  contributor: "⭐",
-  champion: "🏆",
-  legend: "👑",
-
-  // Misc icons
-  game: "🎮",
-  stats: "📊",
-  docs: "📄",
-  about: "ℹ️",
-  contact: "✉️",
+  // App-specific
+  flame: Flame,
+  sleeping: Moon,
+  milestone: Target,
+  broken_heart: HeartOff,
+  sparkle: Sparkles,
+  camera: Camera,
+  candle: Flame,
+  fuel: Zap,
+  eye_hidden: EyeOff,
+  eye_visible: Eye,
+  moon: Moon,
+  party: PartyPopper,
+  envelope_red: Mail,
+  locked: Lock,
+  unlocked: Unlock,
+  link: Link,
+  chat: MessageCircle,
+  bulb: Lightbulb,
+  bell: Bell,
+  music: Music,
+  announce: Radio,
+  wave: Hand,
+  clap: Hand,
+  shield: Shield,
+  coffee: Coffee,
+  puzzle: Puzzle,
+  key: Key,
+  skull: Skull,
+  dove: Bird,
+  tombstone: Building,
+  money: DollarSign,
+  inbox: Inbox,
+  refresh: RefreshCw,
+  tools: Wrench,
+  crystal_ball: Circle,
+  cards: CreditCard,
+  signal: Activity,
+  globe: Globe,
+  store: Store,
+  box: Package,
+  bank: Building2,
+  pill: Pill,
+  slot: Dices,
+  compass: MapPin,
+  phone: Smartphone,
+  document: FileText,
+  green_circle: Circle,
+  chart_up: TrendingUpIcon,
+  photo: Camera,
+  brain: Brain,
+  puzzle_box: Box,
+  dice: Dices,
+  water_drop: Droplet,
+  did: CreditCard,
+  pray: Heart,
+  signature: PenTool,
 };
 
-/**
- * Text symbol fallbacks for directional and action icons
- * These use Unicode characters instead of emoji
- */
-const textMappings: Record<string, string> = {
-  logout: "↪",
-  back: "←",
-  forward: "→",
-  arrowUp: "↑",
-  arrowDown: "↓",
-  arrowLeft: "←",
-  arrowRight: "→",
-  refresh: "↻",
+/** Color for medal rank icons */
+const MEDAL_COLORS: Record<string, string> = {
+  medal_gold: "#FFD700",
+  medal_silver: "#C0C0C0",
+  medal_bronze: "#CD7F32",
 };
 
-/**
- * Accessibility: Determine if icon should be hidden from screen readers
- * Icons are decorative by default unless a label is provided
- */
+/** Accessibility: Determine if icon should be hidden from screen readers */
 const ariaHidden = computed(() => {
-  // If a label is provided, icon is not hidden
   if (props.label) return undefined;
-  // Otherwise, hide decorative icons from screen readers
   return props.decorative ? "true" : undefined;
 });
 
-/**
- * Accessibility: Role for decorative icons
- */
+/** Accessibility: Role for decorative icons */
 const presentation = computed(() => {
   return props.decorative ? "presentation" : undefined;
 });
 
-/**
- * Accessibility: Generate aria-label for screen readers
- */
+/** Accessibility: Generate aria-label for screen readers */
 const ariaLabel = computed(() => {
   if (props.label) return props.label;
-  // Auto-generate label for non-decorative icons
-  if (!props.decorative) {
-    return `${props.name} icon`;
-  }
+  if (!props.decorative) return `${props.name} icon`;
   return undefined;
 });
 
-/**
- * Determine size class based on pixel size
- * Maps to predefined size variants for consistent styling
- */
+/** Determine size class for CSS styling */
 const sizeClass = computed(() => {
   if (props.size <= 16) return "icon-sm";
-  if (props.size <= 20) return "icon-md";
-  if (props.size <= 24) return "icon-lg";
+  if (props.size <= 24) return "icon-md";
+  if (props.size <= 32) return "icon-lg";
   return "icon-xl";
 });
 
-/**
- * Generate custom inline styles for non-standard sizes
- * Default sizes use predefined CSS classes for better performance
- */
-const customStyle = computed(() => {
-  if (!sizeClass.value || sizeClass.value === "icon-md") return {};
+/** Custom inline style for non-standard sizes */
+const customStyle = computed(() => ({
+  width: `${props.size}px`,
+  height: `${props.size}px`,
+  fontSize: `${props.size}px`,
+}));
 
-  const baseSize = props.size;
-  return {
-    width: `${baseSize}px`,
-    height: `${baseSize}px`,
-    fontSize: `${baseSize * 0.6}px`,
-  };
+/** Inline style for Lucide icon color */
+const iconStyle = computed(() => {
+  // Medal rank colors
+  if (props.name in MEDAL_COLORS) {
+    return { color: MEDAL_COLORS[props.name] };
+  }
+  // Explicit color prop
+  if (props.color) {
+    return { color: props.color };
+  }
+  return {};
 });
 
-/**
- * Get emoji icon for the given name
- * Returns undefined if no emoji mapping exists
- */
-const iconEmoji = computed(() => iconEmojis[props.name]);
-
-/**
- * Get text symbol for the given name
- * Used for directional arrows and other special characters
- */
-const iconText = computed(() => textMappings[props.name]);
-
-/**
- * Validate icon name on mount
- * Logs warning if icon name is not recognized (helps catch typos)
- */
-onMounted(() => {
-  const hasEmoji = props.name in iconEmojis;
-  const hasText = props.name in textMappings;
-
-  if (!hasEmoji && !hasText) {
-    if (import.meta.env.DEV) {
-      console.warn(
-        `[AppIcon] Unknown icon name "${props.name}". Using fallback (first letter). ` +
-          `Available icons: ${[...Object.keys(iconEmojis), ...Object.keys(textMappings)].sort().join(", ")}`
-      );
-    }
-  }
+/** Resolve the Lucide component for the given icon name */
+const resolvedIcon = computed(() => {
+  const icon = ICON_MAP[props.name];
+  if (icon) return icon;
+  return null;
 });
 </script>
 
 <style lang="scss" scoped>
 @use "../styles/tokens.scss" as *;
 
-// Base icon container styles
 .app-icon {
   display: inline-flex;
   align-items: center;
@@ -239,65 +354,26 @@ onMounted(() => {
   flex-shrink: 0;
   transition: transform var(--transition-fast, var(--transition-normal, 150ms ease));
 
-  // Active state feedback
   &:active {
     transform: scale(0.9);
   }
 }
 
-// Size variants - using CSS classes for better performance than inline styles
-.icon-sm {
-  width: 16px;
-  height: 16px;
-  font-size: 10px;
-}
-
-.icon-md {
-  width: 20px;
-  height: 20px;
-  font-size: 12px;
-}
-
-.icon-lg {
-  width: 24px;
-  height: 24px;
-  font-size: 14px;
-}
-
-.icon-xl {
-  width: 28px;
-  height: 28px;
-  font-size: 16px;
-}
-
-// Icon content types (emoji, text symbols, or fallback letter)
-.icon-emoji,
-.icon-text,
 .icon-fallback {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  line-height: 1;
-  // Use system emoji font stack for best cross-platform rendering
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
-}
-
-// Fallback icon (when no emoji or text mapping exists)
-.icon-fallback {
   font-weight: var(--font-weight-bold, 700);
   color: var(--icon-fallback-color, var(--text-secondary, rgba(248, 250, 252, 0.7)));
   background: var(--icon-fallback-bg, var(--bg-tertiary, rgba(255, 255, 255, 0.1)));
   border-radius: var(--radius-sm, 4px);
-  text-transform: uppercase;
 }
 
-// Reduced motion support for accessibility
 @media (prefers-reduced-motion: reduce) {
   .app-icon {
     transition: none;
-
     &:active {
       transform: none;
     }

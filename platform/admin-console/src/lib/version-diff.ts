@@ -28,6 +28,7 @@ function stringifyForCompare(value: unknown): string {
   try {
     return JSON.stringify(value);
   } catch {
+    // Fallback to String() for non-serializable values (e.g., functions, symbols)
     return String(value);
   }
 }
@@ -149,7 +150,7 @@ export function toCsvRow(value: unknown): string {
     ? value
     : value === undefined
       ? ""
-      : JSON.stringify(value);
+      : (() => { try { return JSON.stringify(value); } catch { return String(value); } })();
 
   return `"${String(text).replace(/"/g, '""')}"`;
 }

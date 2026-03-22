@@ -41,22 +41,32 @@ export async function handler(req: Request): Promise<Response> {
   if (walletCheck instanceof Response) return walletCheck;
 
   // Parse query params
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get("limit") || "20", 10) || 20));
 
   // Query transaction history via RPC
   const rpcUrl = getNeoRpcUrl();
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(10000),
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getnep17transfers",
-      params: [walletCheck.address],
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getnep17transfers",
+        params: [walletCheck.address],
+      }),
+    });
+  } catch (e) {
+    return error(500, "RPC request failed", "RPC_ERROR", req);
+  }
 
   if (!res.ok) {
     return error(500, "RPC request failed", "RPC_ERROR", req);

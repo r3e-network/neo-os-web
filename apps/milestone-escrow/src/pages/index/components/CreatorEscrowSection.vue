@@ -50,8 +50,10 @@
         <NeoButton
           size="sm"
           variant="secondary"
+          type="button"
           :loading="cancellingId === escrow.id"
           :disabled="!escrow.active"
+          :aria-label="cancellingId === escrow.id ? t('cancelling') : t('cancel')"
           @click="onCancel(escrow)"
         >
           {{ cancellingId === escrow.id ? t("cancelling") : t("cancel") }}
@@ -103,7 +105,7 @@ const onCancel = (escrow: EscrowItem) => emit("cancel", escrow);
 .count-badge {
   padding: 2px 10px;
   border-radius: 999px;
-  background: rgba(245, 158, 11, 0.2);
+  background: var(--escrow-badge-bg);
   color: var(--escrow-accent);
   font-size: 11px;
   font-weight: 700;

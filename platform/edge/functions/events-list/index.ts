@@ -19,7 +19,12 @@ export async function handler(req: Request): Promise<Response> {
   const scopeCheck = requireScope(req, auth, "events-list");
   if (scopeCheck) return scopeCheck;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const appId = url.searchParams.get("app_id") ?? undefined;
   const eventName = url.searchParams.get("event_name") ?? undefined;
   const contractHash = url.searchParams.get("contract_hash") ?? undefined;

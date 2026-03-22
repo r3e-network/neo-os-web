@@ -78,7 +78,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       .maybeSingle();
 
     if (error) {
-      logger.error("miniapp admin upsert existing fetch error:", error.message);
+      logger.error("miniapp admin upsert existing fetch error:", error instanceof Error ? error.message : String(error));
       return apiError.internal(res, "Failed to load existing miniapp");
     }
     existing = (data as ExistingRow | null) || null;
@@ -173,7 +173,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     .single();
 
   if (upsertError || !upserted) {
-    logger.error("miniapp admin upsert failed:", upsertError?.message || "unknown error");
+    logger.error("miniapp admin upsert failed:", upsertError instanceof Error ? upsertError.message : "unknown error");
     return apiError.internal(res, "Failed to save miniapp");
   }
 

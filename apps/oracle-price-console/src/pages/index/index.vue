@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="fetchPrice"
-    hero-icon="📈"
+    hero-icon="chart_up"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('latestPrice')"

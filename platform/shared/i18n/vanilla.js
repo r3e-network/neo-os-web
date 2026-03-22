@@ -20,7 +20,7 @@ export function getStoredLocale() {
     if (stored && translations[stored]) return stored;
     const browserLang = navigator.language.split("-")[0];
     if (browserLang === "zh" && translations.zh) return "zh";
-  } catch (e) {}
+  } catch (e) { console.warn("[i18n] Failed to read localStorage:", e); }
   return DEFAULT_LOCALE;
 }
 

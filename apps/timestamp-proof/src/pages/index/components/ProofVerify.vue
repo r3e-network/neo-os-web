@@ -2,7 +2,7 @@
   <div class="verify-section">
     <span class="section-title">{{ t("verifyProof") }}</span>
     <input v-model="proofId" class="id-input" :placeholder="t('enterProofId')" type="number" :aria-label="t('enterProofId')" />
-    <button type="button" class="verify-button" :disabled="isVerifying || !proofId" @click="$emit('verify')">
+    <button type="button" class="verify-button" :disabled="isVerifying || !proofId" :aria-label="t('verifyProof')" @click="$emit('verify')">
       <span>{{ isVerifying ? t("loading") : t("verifyProof") }}</span>
     </button>
 
@@ -47,7 +47,7 @@ defineEmits<{
 const proofId = defineModel<string>("proofId", { required: true });
 
 const formatTime = (timestamp: number): string => {
-  return new Intl.DateTimeFormat("en").format(new Date(timestamp));
+  return new Intl.DateTimeFormat(undefined).format(new Date(timestamp));
 };
 </script>
 
@@ -83,9 +83,14 @@ const formatTime = (timestamp: number): string => {
   transition: all var(--transition-normal);
 
   &:focus {
-    outline: none;
     border-color: var(--proof-input-focus);
     box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
   }
 
   &::placeholder {

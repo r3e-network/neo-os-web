@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { formatNum, parseGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
@@ -43,7 +43,7 @@ export function useGovMercPool(t: (key: string) => string) {
       return address.value as string;
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
-      throw e;
+      throw new Error(formatErrorMessage(e, t("error")));
     }
   };
 
@@ -90,10 +90,13 @@ export function useGovMercPool(t: (key: string) => string) {
   };
 
   const loadData = async () => {
+    if (!isMounted.value) return;
     try {
       dataLoading.value = true;
       await loadPoolData();
+      if (!isMounted.value) return;
       await loadUserDeposits();
+      if (!isMounted.value) return;
       await loadBids();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("loadFailed")), "error");
@@ -101,6 +104,14 @@ export function useGovMercPool(t: (key: string) => string) {
       dataLoading.value = false;
     }
   };
+
+  const isMounted = ref(true);
+  const stopAddressWatch = watch(address, () => loadData(), { immediate: true });
+
+  onUnmounted(() => {
+    isMounted.value = false;
+    stopAddressWatch();
+  });
 
   const depositNeo = async () => {
     if (isBusy.value) return;
@@ -178,7 +189,9 @@ export function useGovMercPool(t: (key: string) => string) {
     }
   };
 
-  watch(address, () => loadData(), { immediate: true });
+  const stopAddressWatch = watch(address, () => loadData(), { immediate: true });
+
+  onUnmounted(() => stopAddressWatch());
 
   return {
     address,

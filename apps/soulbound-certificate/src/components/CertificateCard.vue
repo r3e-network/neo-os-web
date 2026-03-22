@@ -19,7 +19,7 @@
         <span class="detail-row">{{ t("recipientName") }}{{ t("detailSeparator") }}{{ cert.recipientName || t("notAvailable") }}</span>
         <span class="detail-row">{{ t("achievement") }}{{ t("detailSeparator") }}{{ cert.achievement || t("notAvailable") }}</span>
         <span class="detail-row">{{ t("tokenId") }}{{ t("detailSeparator") }}{{ cert.tokenId }}</span>
-        <NeoButton size="sm" variant="secondary" class="copy-btn" @click="$emit('copy', cert.tokenId)">
+        <NeoButton size="sm" variant="secondary" type="button" class="copy-btn" :aria-label="t('copyTokenId')" @click="$emit('copy', cert.tokenId)">
           {{ t("copyTokenId") }}
         </NeoButton>
       </div>

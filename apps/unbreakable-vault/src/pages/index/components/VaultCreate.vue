@@ -39,8 +39,10 @@
         variant="primary"
         size="lg"
         block
+        type="button"
         :loading="loading"
         :disabled="!canCreate || loading"
+        :aria-label="loading ? t('creating') : t('createVault')"
         @click="$emit('create')"
       >
         {{ loading ? t("creating") : t("createVault") }}
@@ -52,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, onUnmounted, watch, computed } from "vue";
 import { NeoCard, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
@@ -89,12 +91,21 @@ const localDifficulty = ref(props.difficulty);
 const localSecret = ref(props.secret);
 const localConfirm = ref(props.secretConfirm);
 
-watch(localBounty, (v) => emit("update:bounty", v));
-watch(localTitle, (v) => emit("update:title", v));
-watch(localDescription, (v) => emit("update:description", v));
-watch(localDifficulty, (v) => emit("update:difficulty", v));
-watch(localSecret, (v) => emit("update:secret", v));
-watch(localConfirm, (v) => emit("update:secretConfirm", v));
+const stopBountyWatch = watch(localBounty, (v) => emit("update:bounty", v));
+const stopTitleWatch = watch(localTitle, (v) => emit("update:title", v));
+const stopDescriptionWatch = watch(localDescription, (v) => emit("update:description", v));
+const stopDifficultyWatch = watch(localDifficulty, (v) => emit("update:difficulty", v));
+const stopSecretWatch = watch(localSecret, (v) => emit("update:secret", v));
+const stopConfirmWatch = watch(localConfirm, (v) => emit("update:secretConfirm", v));
+
+onUnmounted(() => {
+  stopBountyWatch();
+  stopTitleWatch();
+  stopDescriptionWatch();
+  stopDifficultyWatch();
+  stopSecretWatch();
+  stopConfirmWatch();
+});
 
 const mismatch = computed(() => {
   if (!localConfirm.value) return false;

@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="count === 0" class="empty-state">
-      <span class="empty-icon" aria-hidden="true">📋</span>
+      <AppIcon name="copy" :size="48" class="empty-icon" />
       <span class="empty-title">{{ emptyTitle }}</span>
       <span class="empty-desc">{{ emptyDescription }}</span>
     </div>
@@ -38,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { HistoryItem } from "../composables/useMultisigHistory";
 
 interface Props {

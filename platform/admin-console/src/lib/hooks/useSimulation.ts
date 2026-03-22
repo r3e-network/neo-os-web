@@ -24,14 +24,14 @@ export function useSimulationStatus() {
 export function useStartSimulation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (config?: any) => {
+    mutationFn: async (config?: unknown) => {
       const res = await fetch("/api/simulations", {
         method: "POST",
         headers: { ...getAdminAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", config }),
+        body: (() => { try { return JSON.stringify({ action: "start", config }); } catch (_e: unknown) { console.warn("[useSimulation] JSON.stringify failed:", _e instanceof Error ? _e.message : String(_e)); return '{"action":"start"}'; } })(),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to start simulation" }));
+        const error = await res.json().catch((e: unknown) => { console.warn("[useSimulation] failed to parse start simulation response:", e instanceof Error ? e.message : String(e)); return { error: "Failed to start simulation" }; });
         throw new Error(error.error || "Failed to start simulation");
       }
       return res.json();
@@ -52,7 +52,7 @@ export function useStopSimulation() {
         body: JSON.stringify({ action: "stop" }),
       });
       if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Failed to stop simulation" }));
+        const error = await res.json().catch((e: unknown) => { console.warn("[useSimulation] failed to parse stop simulation response:", e instanceof Error ? e.message : String(e)); return { error: "Failed to stop simulation" }; });
         throw new Error(error.error || "Failed to stop simulation");
       }
       return res.json();

@@ -190,7 +190,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     .single();
 
   if (updateError || !updated) {
-    logger.error("miniapp status update failed:", updateError?.message || "unknown error");
+    logger.error("miniapp status update failed:", updateError instanceof Error ? updateError.message : "unknown error");
     return apiError.internal(res, "Failed to update miniapp status");
   }
 

@@ -39,12 +39,12 @@
         <!-- Side Labels -->
         <div class="hero-sides">
           <div :class="['side-badge', { active: displayOutcome === 'heads' || (!displayOutcome && !isFlipping) }]">
-            <span class="side-icon">👑</span>
+            <AppIcon name="legend" :size="20" class="side-icon" />
             <span class="side-text">{{ t("heads") }}</span>
           </div>
           <div class="side-vs">{{ t("vs") }}</div>
           <div :class="['side-badge', { active: displayOutcome === 'tails' }]">
-            <span class="side-icon">🌙</span>
+            <AppIcon name="moon" :size="20" class="side-icon" />
             <span class="side-text">{{ t("tails") }}</span>
           </div>
         </div>
@@ -97,7 +97,7 @@ import { computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, NeoCard, NeoButton, StatsTab } from "@shared/components";
+import { AppIcon, MiniAppPage, NeoCard, NeoButton, StatsTab } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import CoinArena from "./components/CoinArena.vue";
@@ -203,7 +203,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   left: 50%;
   width: 280px;
   height: 280px;
-  border: 1px dashed rgba(0, 229, 153, 0.12);
+  border: 1px dashed var(--coin-arena-ring);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: arena-spin 40s linear infinite;
@@ -212,7 +212,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
 .arena-ring-2 {
   width: 220px;
   height: 220px;
-  border-color: rgba(251, 191, 36, 0.08);
+  border-color: var(--coin-arena-ring-2);
   animation-direction: reverse;
   animation-duration: 30s;
 }
@@ -223,14 +223,14 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   left: 50%;
   width: 180px;
   height: 180px;
-  background: radial-gradient(circle, rgba(0, 229, 153, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%);
   transform: translate(-50%, -50%);
   transition: all 0.5s ease;
 
   &.flipping {
     width: 250px;
     height: 250px;
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 70%);
   }
 }
 
@@ -255,16 +255,16 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   gap: 4px;
   padding: 8px 16px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--coin-record-bg);
+  border: 1px solid var(--coin-record-border);
   transition: all 0.3s ease;
   opacity: 0.5;
 
   &.active {
     opacity: 1;
-    background: rgba(0, 229, 153, 0.06);
-    border-color: rgba(0, 229, 153, 0.2);
-    box-shadow: 0 0 12px rgba(0, 229, 153, 0.1);
+    background: var(--coin-side-active-bg);
+    border-color: var(--coin-side-active-border);
+    box-shadow: 0 0 12px var(--coin-side-glow);
   }
 }
 
@@ -276,13 +276,13 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--coin-text-muted);
 }
 
 .side-vs {
   font-size: 12px;
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--coin-text-muted-light);
   letter-spacing: 0.15em;
 }
 
@@ -292,8 +292,8 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   align-items: center;
   gap: 16px;
   padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--coin-record-bg);
+  border: 1px solid var(--coin-record-border);
   border-radius: 12px;
   z-index: 2;
 }
@@ -309,7 +309,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   font-size: 20px;
   font-weight: 900;
   font-family: $font-mono;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--coin-text-light);
 
   .win & {
     color: var(--coin-win);
@@ -318,7 +318,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
     color: var(--coin-loss);
   }
   .total & {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--coin-text-muted-light);
   }
 }
 
@@ -327,13 +327,13 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--coin-text-muted-light);
 }
 
 .record-divider {
   width: 1px;
   height: 28px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--coin-record-divider);
 }
 
 @keyframes arena-spin {
@@ -373,20 +373,38 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
 @keyframes glow-pulse {
   0%,
   100% {
-    box-shadow: 0 0 15px rgba(0, 229, 153, 0.2);
+    box-shadow: 0 0 15px var(--coin-glow-pulse);
   }
   50% {
-    box-shadow: 0 0 30px rgba(0, 229, 153, 0.5);
+    box-shadow: 0 0 30px var(--coin-glow-pulse-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-ring {
+    animation: none;
+  }
+
+  .arena-ring-2 {
+    animation: none;
+  }
+
+  .coin-display {
+    animation: none;
+  }
+
+  .hero-record {
+    animation: none;
   }
 }
 
 .hero-container {
-  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.08) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, var(--coin-hero-bg) 0%, transparent 60%);
 }
 
 .coin-display {
   animation: coin-float 3s ease-in-out infinite;
-  filter: drop-shadow(0 8px 24px rgba(0, 229, 153, 0.25));
+  filter: drop-shadow(0 8px 24px var(--coin-glow-green));
 }
 
 .hero-record {
@@ -396,7 +414,7 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
     box-shadow 0.2s ease;
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 229, 153, 0.3);
+    box-shadow: 0 4px 20px var(--coin-hover-glow);
   }
 }
 
@@ -404,10 +422,10 @@ const gameStats = computed<StatsDisplayItem[]>(() => [
   transition: all 0.2s ease;
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 15px var(--coin-border-faint);
   }
   &.active {
-    box-shadow: 0 0 20px rgba(0, 229, 153, 0.4);
+    box-shadow: 0 0 20px var(--coin-side-glow);
   }
 }
 

@@ -20,7 +20,7 @@
           ]"
         >
           <div class="leader-rank-container">
-            <span class="leader-medal" aria-hidden="true">{{ getMedalIcon((item as unknown as LeaderEntry).rank) }}</span>
+            <AppIcon :name="getMedalIcon((item as unknown as LeaderEntry).rank)" :size="16" :aria-label="getMedalAriaLabel((item as unknown as LeaderEntry).rank)" />
             <span class="leader-rank">#{{ (item as unknown as LeaderEntry).rank }}</span>
           </div>
           <span class="leader-addr">{{ (item as unknown as LeaderEntry).address }}</span>
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard, ItemList } from "@shared/components";
+import { NeoCard, ItemList, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";
@@ -56,9 +56,16 @@ const { t } = createUseI18n(messages)();
 const formatNum = (n: number) => formatNumber(n, 2);
 
 const getMedalIcon = (rank: number): string => {
-  if (rank === 1) return "🥇";
-  if (rank === 2) return "🥈";
-  if (rank === 3) return "🥉";
+  if (rank === 1) return "medal_gold";
+  if (rank === 2) return "medal_silver";
+  if (rank === 3) return "medal_bronze";
+  return "";
+};
+
+const getMedalAriaLabel = (rank: number): string => {
+  if (rank === 1) return t("rankGold");
+  if (rank === 2) return t("rankSilver");
+  if (rank === 3) return t("rankBronze");
   return "";
 };
 </script>

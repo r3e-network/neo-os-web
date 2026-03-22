@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { ActionModal, NeoButton, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -44,12 +44,16 @@ const emit = defineEmits<{
 
 const localPassword = ref("");
 
-watch(
+const stopVisibleWatch = watch(
   () => props.visible,
   (newVal) => {
     if (!newVal) localPassword.value = "";
   }
 );
+
+onUnmounted(() => {
+  stopVisibleWatch();
+});
 </script>
 
 <style lang="scss" scoped>

@@ -34,5 +34,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return apiError.gatewayError(res, "upstream request failed");
   }
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-  res.status(200).json(payload);
+  return res.status(200).json(payload);
 }

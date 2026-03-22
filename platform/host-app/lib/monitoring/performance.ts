@@ -58,6 +58,9 @@ interface WindowWithWebVitals extends Window {
 let metricsBuffer: PerformanceMetric[] = [];
 let isInitialized = false;
 
+// Listener reference for cleanup
+let pageHideListener: (() => void) | null = null;
+
 /**
  * Initialize performance monitoring
  * Sets up Performance Observer for Core Web Vitals
@@ -81,14 +84,17 @@ export function initPerformanceMonitoring(): void {
   }
   
   // Report on page unload
-  window.addEventListener("pagehide", sendMetricsBuffer);
-  
+  pageHideListener = sendMetricsBuffer;
+  window.addEventListener("pagehide", pageHideListener);
+
   logger.info("Performance monitoring initialized");
 }
 
 /**
  * Setup Performance Observers for various metrics
  */
+const performanceObservers: PerformanceObserver[] = [];
+
 function setupPerformanceObservers(): void {
   // Largest Contentful Paint
   try {
@@ -100,10 +106,11 @@ function setupPerformanceObservers(): void {
       }
     });
     lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
+    performanceObservers.push(lcpObserver);
   } catch {
     // LCP not supported
   }
-  
+
   // First Input Delay
   try {
     const fidObserver = new PerformanceObserver((list) => {
@@ -115,10 +122,11 @@ function setupPerformanceObservers(): void {
       }
     });
     fidObserver.observe({ type: "first-input", buffered: true });
+    performanceObservers.push(fidObserver);
   } catch {
     // FID not supported
   }
-  
+
   // Cumulative Layout Shift
   try {
     let clsValue = 0;
@@ -132,10 +140,11 @@ function setupPerformanceObservers(): void {
       onCLS(clsValue);
     });
     clsObserver.observe({ type: "layout-shift", buffered: true });
+    performanceObservers.push(clsObserver);
   } catch {
     // CLS not supported
   }
-  
+
   // Resource timing
   try {
     const resourceObserver = new PerformanceObserver((list) => {
@@ -153,6 +162,7 @@ function setupPerformanceObservers(): void {
       }
     });
     resourceObserver.observe({ type: "resource", buffered: true });
+    performanceObservers.push(resourceObserver);
   } catch {
     // Resource timing not supported
   }
@@ -317,9 +327,7 @@ function sendMetricToService(metric: PerformanceMetric): void {
       sessionId: getSessionId(),
     }),
     // Don't await - fire and forget
-  }).catch(() => {
-    // Silently fail
-  });
+  }).catch((e: unknown) => { console.warn("[monitoring] failed to send performance metric:", e instanceof Error ? e.message : String(e)); });
 }
 
 /**
@@ -425,3 +433,18 @@ export const onPerformanceMetric: Set<PerformanceCallback> = new Set();
 export const onPerformanceReport: Set<ReportCallback> = new Set();
 
 export { metricsBuffer };
+
+/**
+ * Destroy performance monitoring and remove event listeners
+ */
+export function destroyPerformanceMonitoring(): void {
+  if (pageHideListener) {
+    window.removeEventListener("pagehide", pageHideListener);
+    pageHideListener = null;
+  }
+  for (const observer of performanceObservers) {
+    observer.disconnect();
+  }
+  performanceObservers.length = 0;
+  isInitialized = false;
+}

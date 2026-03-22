@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="loadKey"
-    hero-icon="🔐"
+    hero-icon="locked"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('outputTitle')"
@@ -31,15 +31,15 @@
 
       <NeoCard variant="erobo" :title="t('outputTitle')" class="mb-6">
         <div class="stack">
-          <label class="label">{{ t("ciphertext") }}</label>
-          <textarea :value="ciphertext" class="json-box" rows="7" readonly :aria-label="t('ciphertext')" />
-          <NeoButton variant="secondary" :disabled="!ciphertext" @click="copyText(ciphertext, 'cipher')">
+          <label for="ciphertext" class="label">{{ t("ciphertext") }}</label>
+          <textarea id="ciphertext" :value="ciphertext" class="json-box" rows="7" readonly :aria-label="t('ciphertext')" />
+          <NeoButton variant="secondary" type="button" :disabled="!ciphertext" :aria-label="t('copyCiphertext')" @click="copyText(ciphertext, 'cipher')">
             {{ copiedKey === "cipher" ? t("copied") : t("copyCiphertext") }}
           </NeoButton>
 
-          <label class="label">{{ t("wrapperJson") }}</label>
-          <textarea :value="wrapperJson" class="json-box" rows="7" readonly :aria-label="t('wrapperJson')" />
-          <NeoButton variant="secondary" :disabled="!ciphertext" @click="copyText(wrapperJson, 'wrapper')">
+          <label for="wrapper-json" class="label">{{ t("wrapperJson") }}</label>
+          <textarea id="wrapper-json" :value="wrapperJson" class="json-box" rows="7" readonly :aria-label="t('wrapperJson')" />
+          <NeoButton variant="secondary" type="button" :disabled="!ciphertext" :aria-label="t('copyWrapper')" @click="copyText(wrapperJson, 'wrapper')">
             {{ copiedKey === "wrapper" ? t("copied") : t("copyWrapper") }}
           </NeoButton>
         </div>
@@ -52,9 +52,9 @@
             <div><span class="label">{{ t("storageName") }}</span><span class="value">{{ storedRef?.name || storageName || t("notAvailable") }}</span></div>
           </div>
 
-          <label class="label">{{ t("copyRefWrapper") }}</label>
-          <textarea :value="refWrapperJson" class="json-box" rows="5" readonly :aria-label="t('copyRefWrapper')" />
-          <NeoButton variant="secondary" :disabled="!storedRef?.secret_ref" @click="copyText(refWrapperJson, 'ref')">
+          <label for="ref-wrapper" class="label">{{ t("copyRefWrapper") }}</label>
+          <textarea id="ref-wrapper" :value="refWrapperJson" class="json-box" rows="5" readonly :aria-label="t('copyRefWrapper')" />
+          <NeoButton variant="secondary" type="button" :disabled="!storedRef?.secret_ref" :aria-label="t('copyRefWrapper')" @click="copyText(refWrapperJson, 'ref')">
             {{ copiedKey === "ref" ? t("copied") : t("copyRefWrapper") }}
           </NeoButton>
         </div>
@@ -64,14 +64,14 @@
     <template #operation>
       <div class="stack">
         <div class="button-row">
-          <NeoButton :variant="inputMode === 'json' ? 'primary' : 'secondary'" @click="inputMode = 'json'">{{ t("jsonMode") }}</NeoButton>
-          <NeoButton :variant="inputMode === 'text' ? 'primary' : 'secondary'" @click="inputMode = 'text'">{{ t("textMode") }}</NeoButton>
+          <NeoButton :variant="inputMode === 'json' ? 'primary' : 'secondary'" type="button" :aria-label="t('jsonMode')" @click="inputMode = 'json'">{{ t("jsonMode") }}</NeoButton>
+          <NeoButton :variant="inputMode === 'text' ? 'primary' : 'secondary'" type="button" :aria-label="t('textMode')" @click="inputMode = 'text'">{{ t("textMode") }}</NeoButton>
         </div>
 
         <div class="button-row button-row--three">
-          <NeoButton :variant="fieldName === 'encrypted_payload' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_payload'">{{ t("encryptedPayload") }}</NeoButton>
-          <NeoButton :variant="fieldName === 'encrypted_params' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_params'">{{ t("encryptedParams") }}</NeoButton>
-          <NeoButton :variant="fieldName === 'encrypted_token' ? 'primary' : 'secondary'" @click="fieldName = 'encrypted_token'">{{ t("encryptedToken") }}</NeoButton>
+          <NeoButton :variant="fieldName === 'encrypted_payload' ? 'primary' : 'secondary'" type="button" :aria-label="t('encryptedPayload')" @click="fieldName = 'encrypted_payload'">{{ t("encryptedPayload") }}</NeoButton>
+          <NeoButton :variant="fieldName === 'encrypted_params' ? 'primary' : 'secondary'" type="button" :aria-label="t('encryptedParams')" @click="fieldName = 'encrypted_params'">{{ t("encryptedParams") }}</NeoButton>
+          <NeoButton :variant="fieldName === 'encrypted_token' ? 'primary' : 'secondary'" type="button" :aria-label="t('encryptedToken')" @click="fieldName = 'encrypted_token'">{{ t("encryptedToken") }}</NeoButton>
         </div>
 
         <NeoInput
@@ -87,9 +87,9 @@
         <NeoInput v-model="boundRequester" :label="t('requesterScriptHash')" :placeholder="t('hexOptional')" />
         <NeoInput v-model="boundCallbackContract" :label="t('callbackContract')" :placeholder="t('hexOptional')" />
 
-        <NeoButton variant="secondary" :loading="isLoadingKey" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
-        <NeoButton variant="primary" :loading="isSealing" :disabled="!canSeal" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
-        <NeoButton variant="secondary" :loading="isStoring" :disabled="!canStoreRef" @click="storeCiphertextRef">{{ t("storeRef") }}</NeoButton>
+        <NeoButton variant="secondary" type="button" :loading="isLoadingKey" :aria-label="t('refreshKey')" @click="loadKey">{{ t("refreshKey") }}</NeoButton>
+        <NeoButton variant="primary" type="button" :loading="isSealing" :disabled="!canSeal" :aria-label="t('sealNow')" @click="sealPayload">{{ t("sealNow") }}</NeoButton>
+        <NeoButton variant="secondary" type="button" :loading="isStoring" :disabled="!canStoreRef" :aria-label="t('storeRef')" @click="storeCiphertextRef">{{ t("storeRef") }}</NeoButton>
       </div>
     </template>
   </ConsoleMiniApp>
@@ -214,7 +214,7 @@ async function copyText(value: string, key: "cipher" | "wrapper" | "ref") {
       copyTimer = undefined;
     }, 1500);
   } catch (_e: unknown) {
-    /* non-critical: clipboard copy failed */
+    console.warn("[oracle-seal-console] clipboard copy failed:", _e instanceof Error ? _e.message : String(_e));
   }
 }
 

@@ -105,7 +105,7 @@ const coinStyle = computed(() => {
   transform: translateX(-50%) rotateX(75deg);
   width: 140px;
   height: 140px;
-  background: radial-gradient(circle, rgba(0,0,0,0.6) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--coin-coin-shadow) 0%, transparent 70%);
   border-radius: 50%;
   transition: all 0.3s ease;
   z-index: -1;
@@ -134,5 +134,19 @@ const coinStyle = computed(() => {
 
 .coin-container:not(.flipping) {
   animation: coin-bounce 3s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-flipping {
+    animation: none;
+  }
+
+  .coin-container:not(.flipping) {
+    animation: none;
+  }
+
+  .coin-container {
+    animation: none;
+  }
 }
 </style>
