@@ -6,6 +6,8 @@
         <NeoButton
           size="sm"
           :variant="selectedCategory === null ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="t('filterAll')"
           @click="selectedCategory = null"
         >
           {{ t("filterAll") }}
@@ -15,6 +17,8 @@
           :key="category"
           size="sm"
           :variant="selectedCategory === category ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="category"
           @click="selectedCategory = category"
         >
           {{ category }}
@@ -24,6 +28,8 @@
         <NeoButton
           size="sm"
           :variant="sortMode === 'popular' ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="t('sortPopular')"
           @click="sortMode = 'popular'"
         >
           {{ t("sortPopular") }}
@@ -31,6 +37,8 @@
         <NeoButton
           size="sm"
           :variant="sortMode === 'newest' ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="t('sortNewest')"
           @click="sortMode = 'newest'"
         >
           {{ t("sortNewest") }}
@@ -38,6 +46,8 @@
         <NeoButton
           size="sm"
           :variant="sortMode === 'priceLow' ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="t('sortPriceLow')"
           @click="sortMode = 'priceLow'"
         >
           {{ t("sortPriceLow") }}
@@ -45,6 +55,8 @@
         <NeoButton
           size="sm"
           :variant="sortMode === 'priceHigh' ? 'primary' : 'secondary'"
+          type="button"
+          :aria-label="t('sortPriceHigh')"
           @click="sortMode = 'priceHigh'"
         >
           {{ t("sortPriceHigh") }}

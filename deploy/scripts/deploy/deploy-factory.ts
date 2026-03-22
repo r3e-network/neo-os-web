@@ -172,7 +172,7 @@ class FactoryDeployer {
       
       return contractHash;
     } catch (error) {
-      console.error('  Deployment failed:', error);
+      console.error('  Deployment failed:', error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -243,7 +243,7 @@ class FactoryDeployer {
       console.log(`Factory: ${factoryHash}`);
       console.log(`Templates: ${DEFAULT_TEMPLATES.length}`);
     } catch (error) {
-      console.error('Deployment failed:', error);
+      console.error('Deployment failed:', error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
   }

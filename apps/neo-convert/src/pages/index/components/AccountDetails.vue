@@ -11,7 +11,7 @@
             @click="$emit('copy', account.address)"
             :aria-label="t('copyAddress')"
           >
-            <span class="icon" aria-hidden="true">📋</span>
+            <AppIcon name="copy" :size="14" />
           </button>
         </div>
       </div>
@@ -28,7 +28,7 @@
             @click="$emit('copy', account.publicKey)"
             :aria-label="t('copyPublicKey')"
           >
-            <span class="icon" aria-hidden="true">📋</span>
+            <AppIcon name="copy" :size="14" />
           </button>
         </div>
       </div>
@@ -48,7 +48,7 @@
             @click="$emit('toggle-secrets')"
             :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
           >
-            <span class="icon" aria-hidden="true">{{ showSecrets ? "🙈" : "👁️" }}</span>
+            <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="14" />
           </button>
           <button
             type="button"
@@ -56,7 +56,7 @@
             @click="$emit('copy', account.privateKey)"
             :aria-label="t('copyPrivateKey')"
           >
-            <span class="icon" aria-hidden="true">📋</span>
+            <AppIcon name="copy" :size="14" />
           </button>
         </div>
       </div>
@@ -76,7 +76,7 @@
             @click="$emit('copy', account.wif)"
             :aria-label="t('copyWif')"
           >
-            <span class="icon" aria-hidden="true">📋</span>
+            <AppIcon name="copy" :size="14" />
           </button>
         </div>
       </div>
@@ -101,8 +101,8 @@
 
     <ScrollReveal animation="fade-up" :delay="600">
       <div class="actions">
-        <NeoButton variant="primary" @click="$emit('download-pdf')" class="download-btn">
-          <span class="btn-icon" aria-hidden="true">📥</span> {{ t("downloadPdf") }}
+        <NeoButton variant="primary" type="button" @click="$emit('download-pdf')" class="download-btn">
+          <AppIcon name="download" :size="14" /> {{ t("downloadPdf") }}
         </NeoButton>
       </div>
     </ScrollReveal>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoButton } from "@shared/components";
+import { NeoButton, AppIcon } from "@shared/components";
 import ScrollReveal from "@shared/components/ScrollReveal.vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";

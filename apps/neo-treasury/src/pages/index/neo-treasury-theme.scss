@@ -1,6 +1,7 @@
 :global(.theme-neo-treasury) {
   --treasury-bg: #1a1a00;
   --treasury-gold: #fbbf24;
+  --treasury-light-gold: #fff8dc;
   --treasury-dark-gold: #b45309;
   --treasury-text: #fffbeb;
   --treasury-card-bg: linear-gradient(135deg, rgba(30, 25, 10, 0.95), rgba(40, 35, 15, 0.9));
@@ -37,6 +38,7 @@
 :global([data-theme="light"] .theme-neo-treasury) {
   --treasury-bg: #fff7e6;
   --treasury-gold: #b45309;
+  --treasury-light-gold: #fde8b5;
   --treasury-dark-gold: #7c2d12;
   --treasury-text: #3b2400;
   --treasury-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 244, 224, 0.92));

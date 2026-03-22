@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { UserStats } from "@/components/features/gamification/types";
 import { LEVELS } from "@/components/features/gamification/constants";
 import { fetchJSON, RequestError, toApiError } from "@/lib/fetch-client";
@@ -23,27 +23,37 @@ export function useGamification(wallet?: string): UseGamificationResult {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fetchStats = useCallback(async () => {
     if (!wallet) {
-      setStats(null);
+      if (mountedRef.current) setStats(null);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    if (mountedRef.current) setLoading(true);
+    if (mountedRef.current) setError(null);
 
     try {
       const data = await fetchJSON<{ stats?: UserStats }>(`/api/gamification/stats?wallet=${encodeURIComponent(wallet)}`);
-      setStats(data.stats ?? null);
+      if (mountedRef.current) setStats(data.stats ?? null);
     } catch (err) {
-      if (err instanceof RequestError) {
-        setError("Failed to fetch stats");
-      } else {
-        setError(toApiError(err).message);
+      if (mountedRef.current) {
+        if (err instanceof RequestError) {
+          setError("Failed to fetch stats");
+        } else {
+          setError(toApiError(err).message);
+        }
       }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [wallet]);
 

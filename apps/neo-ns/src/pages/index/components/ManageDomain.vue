@@ -147,4 +147,10 @@ function formatDate(ts: number): string {
     transform: translateY(0);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .manage-view {
+    animation: none;
+  }
+}
 </style>

@@ -46,6 +46,8 @@
   --gacha-row-bg: rgba(255, 255, 255, 0.05);
   --gacha-glow-border: #fde047;
   --gacha-glow-shadow: 0 0 10px rgba(253, 224, 71, 0.3);
+  --gacha-hero-gradient-start: #a78bfa;
+  --gacha-hero-gradient-end: #818cf8;
 
   --bg-primary: var(--gacha-bg);
   --bg-card: var(--gacha-surface);
@@ -101,6 +103,8 @@
   --gacha-row-bg: rgba(255, 255, 255, 0.7);
   --gacha-glow-border: #b45309;
   --gacha-glow-shadow: 0 0 8px rgba(180, 83, 9, 0.25);
+  --gacha-hero-gradient-start: #7c3aed;
+  --gacha-hero-gradient-end: #6366f1;
 
   --bg-primary: var(--gacha-bg);
   --bg-card: var(--gacha-surface);

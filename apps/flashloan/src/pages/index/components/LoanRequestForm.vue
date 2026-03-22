@@ -27,8 +27,7 @@
     <div v-if="activeTab === 'lookup'" class="tab-content">
       <div class="input-section">
         <NeoInput
-          :modelValue="loanId"
-          @update:modelValue="$emit('update:loanId', $event)"
+          v-model="loanId"
           type="number"
           :placeholder="t('loanIdPlaceholder')"
           :label="t('loanId')"

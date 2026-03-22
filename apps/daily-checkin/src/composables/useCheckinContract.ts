@@ -64,7 +64,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       if (isTxEventPendingError(e, eventName)) {
         return { pending: true };
       }
-      throw e;
+      throw new Error(formatErrorMessage(e, "Event wait failed"));
     }
   };
 
@@ -116,7 +116,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
           const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
           return {
             streak: Number(values[1] ?? 0),
-            time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
+            time: new Intl.DateTimeFormat(undefined).format(new Date((evt.created_at as string | number | Date) || Date.now())),
             reward: Number(values[2] ?? 0),
           };
         });

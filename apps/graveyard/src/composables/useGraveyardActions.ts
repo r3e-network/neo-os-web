@@ -104,7 +104,7 @@ export function useGraveyardActions() {
       history.value.unshift({
         id: memoryId || String(Date.now()),
         hash: contentHash,
-        time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
+        time: new Intl.DateTimeFormat(undefined).format(new Date(evt.created_at || Date.now())),
         forgotten: false,
       });
 
@@ -174,7 +174,7 @@ export function useGraveyardActions() {
           return {
             id: memoryId,
             hash: contentHash,
-            time: new Intl.DateTimeFormat("en").format(new Date(evt.created_at || Date.now())),
+            time: new Intl.DateTimeFormat(undefined).format(new Date(evt.created_at || Date.now())),
             forgotten,
           };
         })

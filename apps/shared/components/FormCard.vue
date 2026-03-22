@@ -168,10 +168,11 @@ const { t } = useI18n();
 
   &__submit {
     flex: 1;
-    padding: 12px 20px;
+    height: 44px;
+    padding: 0 20px;
     border-radius: 10px;
     background: var(--accent-primary, #3b82f6);
-    color: #fff;
+    color: var(--text-primary, #fff);
     font-size: $font-size-sm;
     font-weight: $font-weight-bold;
     text-transform: uppercase;
@@ -182,9 +183,16 @@ const { t } = useI18n();
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
 
     &:hover {
       filter: brightness(1.1);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
     }
 
     &--loading,
@@ -198,7 +206,7 @@ const { t } = useI18n();
     width: 16px;
     height: 16px;
     border: 2px solid rgba(0, 0, 0, 0.2);
-    border-top-color: #000;
+    border-top-color: var(--text-primary, #000);
     border-radius: 50%;
     animation: formCardSpin 0.6s linear infinite;
   }

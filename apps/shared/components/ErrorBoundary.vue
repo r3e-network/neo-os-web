@@ -33,6 +33,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   showDetails: false,
+  fallback: "",
 });
 
 const emit = defineEmits<{

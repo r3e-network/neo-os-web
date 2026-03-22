@@ -10,16 +10,16 @@
       />
       <div v-else-if="photo" class="encrypted-notice">
         <span class="notice-text">{{ t("encryptedPhotoNotice") }}</span>
-        <NeoButton size="sm" variant="primary" @click="$emit('decrypt')">
+        <NeoButton size="sm" variant="primary" type="button" @click="$emit('decrypt')">
           {{ t("decryptToView") }}
         </NeoButton>
       </div>
     </div>
     <template #actions>
-      <NeoButton v-if="showShare" size="sm" variant="secondary" @click="$emit('share')">
+      <NeoButton v-if="showShare" size="sm" variant="secondary" type="button" @click="$emit('share')">
         {{ t("share") }}
       </NeoButton>
-      <NeoButton size="sm" variant="ghost" @click="$emit('close')">
+      <NeoButton size="sm" variant="ghost" type="button" @click="$emit('close')">
         {{ t("close") }}
       </NeoButton>
     </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useI18n } from "@shared/composables/useI18n";
+import { createUseI18n } from "@shared/composables/useI18n";
+import { messages } from "@/locale/messages";
 
 /**
  * StakeForm - TrustAnchor Stake/Unstake Form Component
@@ -32,9 +33,10 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   (e: "stake", amount: number): void;
   (e: "unstake", amount: number): void;
+  (e: "connect"): void;
 }>();
 
-const { t } = useI18n();
+const { t } = createUseI18n(messages)();
 
 const stakeAmount = ref("");
 const unstakeAmount = ref("");
@@ -60,9 +62,10 @@ const handleUnstake = () => {
 
     <div v-if="address" class="stake-form">
       <div class="input-group mb-4">
-        <span class="input-label">{{ t("stake") }}</span>
+        <label for="stake-amount-input" class="input-label">{{ t("stake") }}</label>
         <div class="input-row">
           <input
+            id="stake-amount-input"
             type="number"
             v-model="stakeAmount"
             class="amount-input"
@@ -78,9 +81,10 @@ const handleUnstake = () => {
       </div>
 
       <div class="input-group">
-        <span class="input-label">{{ t("unstake") }}</span>
+        <label for="unstake-amount-input" class="input-label">{{ t("unstake") }}</label>
         <div class="input-row">
           <input
+            id="unstake-amount-input"
             type="number"
             v-model="unstakeAmount"
             class="amount-input"
@@ -97,7 +101,7 @@ const handleUnstake = () => {
     </div>
 
     <div v-else class="connect-prompt">
-      <NeoButton variant="primary" type="button" @click="requestWallet()" :aria-label="t('connectWallet')">
+      <NeoButton variant="primary" type="button" @click="$emit('connect')" :aria-label="t('connectWallet')">
         {{ t("connectWallet") }}
       </NeoButton>
     </div>

@@ -159,17 +159,17 @@ export async function createMiniAppMediaUploadUrl(
 ): Promise<MiniAppMediaUploadUrlResult> {
   const config = parseConfig();
   if (!config) {
-    throw new Error("Cloudflare R2 media upload is not configured");
+    throw new Error("createMiniAppMediaUploadUrl: Cloudflare R2 media upload is not configured (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, or R2_SECRET_ACCESS_KEY missing)");
   }
 
   const appId = asTrimmedString(input.app_id).toLowerCase();
   if (!APP_ID_REGEX.test(appId)) {
-    throw new Error("Invalid app_id format");
+    throw new Error(`createMiniAppMediaUploadUrl: invalid app_id="${appId}" does not match required pattern`);
   }
 
   const contentType = asTrimmedString(input.content_type).toLowerCase();
   if (!contentType.startsWith(IMAGE_MIME_PREFIX)) {
-    throw new Error("Only image uploads are supported");
+    throw new Error(`createMiniAppMediaUploadUrl: content_type="${contentType}" does not start with "${IMAGE_MIME_PREFIX}"`);
   }
 
   const extension = inferExtension(input.file_name || "", contentType);

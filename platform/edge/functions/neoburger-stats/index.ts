@@ -18,30 +18,36 @@ export async function handler(req: Request): Promise<Response> {
   const rpcUrl = getNeoRpcUrl();
 
   // Query bNEO total supply
-  const supplyRes = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(10000),
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "invokefunction",
-      params: [BNEO_CONTRACT, "totalSupply", []],
-    }),
-  });
-
   let totalSupply = "0";
-  if (supplyRes.ok) {
-    try {
-      const data = await supplyRes.json();
-      const stackVal = String(data.result?.stack?.[0]?.value ?? "");
-      if (/^\d+$/.test(stackVal)) {
-        const raw = BigInt(stackVal);
-        totalSupply = (raw / 100000000n).toString();
+  try {
+    const supplyRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "invokefunction",
+        params: [BNEO_CONTRACT, "totalSupply", []],
+      }),
+    });
+
+    if (supplyRes.ok) {
+      try {
+        const data = await supplyRes.json();
+        const stackVal = String(data.result?.stack?.[0]?.value ?? "");
+        if (/^\d+$/.test(stackVal)) {
+          const raw = BigInt(stackVal);
+          totalSupply = (raw / 100000000n).toString();
+        }
+      } catch (err) {
+        // RPC returned 200 with invalid JSON; fall through with default
+        console.warn("[neoburger-stats] RPC parse error:", err instanceof Error ? err.message : String(err));
       }
-    } catch {
-      // RPC returned 200 with invalid JSON; fall through with default
     }
+  } catch (err) {
+    // RPC fetch failed; fall through with default totalSupply
+    console.warn("[neoburger-stats] RPC fetch error:", err instanceof Error ? err.message : String(err));
   }
 
   // Calculate APY based on Neo governance rewards

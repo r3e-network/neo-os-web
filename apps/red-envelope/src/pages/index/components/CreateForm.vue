@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import CreateEnvelopeForm from "./CreateEnvelopeForm.vue";
 import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
 
@@ -45,12 +45,23 @@ const expiryHours = ref("24");
 const minNeoRequired = ref("100");
 const minHoldDays = ref("2");
 
-watch(envelopeType, (val) => emit("update:envelopeType", val));
-watch(name, (val) => emit("update:name", val));
-watch(description, (val) => emit("update:description", val));
-watch(amount, (val) => emit("update:amount", val));
-watch(count, (val) => emit("update:count", val));
-watch(expiryHours, (val) => emit("update:expiryHours", val));
-watch(minNeoRequired, (val) => emit("update:minNeoRequired", val));
-watch(minHoldDays, (val) => emit("update:minHoldDays", val));
+const stopEnvelopeTypeWatch = watch(envelopeType, (val) => emit("update:envelopeType", val));
+const stopNameWatch = watch(name, (val) => emit("update:name", val));
+const stopDescriptionWatch = watch(description, (val) => emit("update:description", val));
+const stopAmountWatch = watch(amount, (val) => emit("update:amount", val));
+const stopCountWatch = watch(count, (val) => emit("update:count", val));
+const stopExpiryHoursWatch = watch(expiryHours, (val) => emit("update:expiryHours", val));
+const stopMinNeoRequiredWatch = watch(minNeoRequired, (val) => emit("update:minNeoRequired", val));
+const stopMinHoldDaysWatch = watch(minHoldDays, (val) => emit("update:minHoldDays", val));
+
+onUnmounted(() => {
+  stopEnvelopeTypeWatch();
+  stopNameWatch();
+  stopDescriptionWatch();
+  stopAmountWatch();
+  stopCountWatch();
+  stopExpiryHoursWatch();
+  stopMinNeoRequiredWatch();
+  stopMinHoldDaysWatch();
+});
 </script>

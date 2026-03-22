@@ -2,7 +2,7 @@
 # Update all platform and MiniApp contracts on testnet
 # Usage: ./scripts/update-platform-contracts.sh
 
-set -e
+set -euo pipefail
 
 # Load environment variables
 if [ -f .env ]; then

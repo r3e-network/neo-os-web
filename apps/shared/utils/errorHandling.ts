@@ -244,7 +244,8 @@ export async function handleContractOperation<T>(
     }
 
     if (rethrow) {
-      throw error;
+      const errMsg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Contract operation failed: ${errMsg}`);
     }
 
     return null;
@@ -302,7 +303,22 @@ export function formatErrorMessage(
   }
 
   if (error instanceof Error) {
-    return error.message;
+    const msg = error.message;
+    // Check if message looks like a user-friendly message (short, no technical artifacts)
+    if (
+      typeof msg === "string" &&
+      msg.length > 0 &&
+      msg.length < 100 &&
+      !msg.includes("0x") && // No hex addresses/hashes
+      !msg.includes("http") && // No URLs
+      !msg.includes("stack") &&
+      !msg.includes("\n") &&
+      !msg.includes("at ") // No stack trace lines
+    ) {
+      return msg;
+    }
+    // Message looks like internal details - use default
+    return defaultMessage;
   }
 
   return defaultMessage;
@@ -392,7 +408,9 @@ export async function retryAsync<T>(
     }
   }
 
-  throw lastError;
+  throw lastError
+    ? new Error(`retryAsync(${maxAttempts} attempts) failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
+    : new Error(`retryAsync(${maxAttempts} attempts) failed: unknown error`);
 }
 
 /**
@@ -411,6 +429,8 @@ export async function retryAsync<T>(
  * );
  * ```
  */
+const ERROR_CODE_EVENT_NOT_FOUND = "EVENT_NOT_FOUND";
+
 export async function pollForEvent<T>(
   fetch: () => Promise<T[]>,
   predicate: (item: T) => boolean,
@@ -439,7 +459,7 @@ export async function pollForEvent<T>(
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
 
-  throw new Error(errorMessage);
+  throw new MiniAppError(errorMessage, ERROR_CODE_EVENT_NOT_FOUND, undefined, undefined, undefined, ERROR_CODE_EVENT_NOT_FOUND);
 }
 
 /**

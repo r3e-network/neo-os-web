@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { logger } from "@/lib/logger";
 
 /**
  * Data Binding Hook
@@ -33,80 +34,104 @@ export function useDataBinding({ bindings, enabled = true, onError }: UseDataBin
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, Error>>({});
   const abortControllers = useRef<Record<string, AbortController>>({});
+  const intervalsRef = useRef<NodeJS.Timeout[]>([]);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!enabled || bindings.length === 0) return;
 
-    setLoading(true);
+    if (mountedRef.current) setLoading(true);
     setErrors({});
 
-    const results = await Promise.all(
-      bindings.map(async (binding) => {
-        try {
-          let result: unknown;
+    try {
+      const results = await Promise.all(
+        bindings.map(async (binding) => {
+          try {
+            let result: unknown;
 
-          switch (binding.source.type) {
-            case "static":
-              result = binding.source.endpoint;
-              break;
+            switch (binding.source.type) {
+              case "static":
+                result = binding.source.endpoint;
+                break;
 
-            case "api":
-              result = await fetchApiData(binding.source, binding.key);
-              break;
+              case "api":
+                result = await fetchApiData(binding.source, binding.key, abortControllers);
+                break;
 
-            case "contract":
-              result = await fetchContractData(binding.source, binding.key);
-              break;
+              case "contract":
+                result = await fetchContractData(binding.source, binding.key);
+                break;
 
-            default:
-              result = null;
+              default:
+                result = null;
+            }
+
+            const transformed = binding.source.transform ? binding.source.transform(result) : result;
+            return { key: binding.key, value: transformed ?? binding.defaultValue };
+          } catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            onError?.(err, binding.source);
+            return { key: binding.key, value: binding.defaultValue, error: err };
           }
+        })
+      );
 
-          const transformed = binding.source.transform ? binding.source.transform(result) : result;
-          return { key: binding.key, value: transformed ?? binding.defaultValue };
-        } catch (error) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          onError?.(err, binding.source);
-          return { key: binding.key, value: binding.defaultValue, error: err };
+      const newData: DataState = {};
+      const newErrors: Record<string, Error> = {};
+
+      results.forEach((r) => {
+        if (r.error) {
+          newErrors[r.key] = r.error;
+        } else {
+          newData[r.key] = r.value;
         }
-      })
-    );
+      });
 
-    const newData: DataState = {};
-    const newErrors: Record<string, Error> = {};
-
-    results.forEach((r) => {
-      if (r.error) {
-        newErrors[r.key] = r.error;
-      } else {
-        newData[r.key] = r.value;
+      if (mountedRef.current) {
+        setData((prev) => ({ ...prev, ...newData }));
+        setErrors(newErrors);
       }
-    });
-
-    setData((prev) => ({ ...prev, ...newData }));
-    setErrors(newErrors);
-    setLoading(false);
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
   }, [bindings, enabled, onError]);
 
+  // Clean up intervals when bindings or enabled change
   useEffect(() => {
+    // Clear existing intervals first
+    intervalsRef.current.forEach(clearInterval);
+    intervalsRef.current = [];
+
+    // Abort any in-flight requests
+    Object.values(abortControllers.current).forEach((ac) => ac.abort());
+    abortControllers.current = {};
+
+    if (!enabled || bindings.length === 0) return;
+
     fetchData();
 
     // Set up polling for sources with interval
-    const intervals: NodeJS.Timeout[] = [];
     bindings.forEach((binding) => {
       if (binding.source.pollInterval && binding.source.pollInterval > 0) {
         const interval = setInterval(() => {
           fetchData();
         }, binding.source.pollInterval);
-        intervals.push(interval);
+        intervalsRef.current.push(interval);
       }
     });
 
     return () => {
-      intervals.forEach(clearInterval);
+      intervalsRef.current.forEach(clearInterval);
+      intervalsRef.current = [];
       Object.values(abortControllers.current).forEach((ac) => ac.abort());
+      abortControllers.current = {};
     };
-  }, [fetchData]);
+  }, [bindings, enabled, fetchData]);
 
   const refetch = useCallback(() => {
     fetchData();
@@ -125,17 +150,31 @@ export function useDataBinding({ bindings, enabled = true, onError }: UseDataBin
   };
 }
 
-async function fetchApiData(source: DataSource, key: string): Promise<unknown> {
+async function fetchApiData(
+  source: DataSource,
+  key: string,
+  abortControllers: React.MutableRefObject<Record<string, AbortController>>
+): Promise<unknown> {
   if (!source.endpoint) return null;
 
   const controller = new AbortController();
+  abortControllers.current[key] = controller;
 
   const response = await fetch(source.endpoint, {
     method: source.method || "GET",
     headers: {
       "Content-Type": "application/json",
     },
-    body: source.params ? JSON.stringify(source.params) : undefined,
+    body: source.params
+      ? (() => {
+          try {
+            return JSON.stringify(source.params);
+          } catch (_e: unknown) {
+            console.warn("[useDataBinding] JSON.stringify failed:", _e instanceof Error ? _e.message : String(_e));
+            return undefined;
+          }
+        })()
+      : undefined,
     signal: controller.signal,
   });
 
@@ -161,6 +200,8 @@ export function useWebSocketSubscription(
   enabled = true
 ) {
   const wsRef = useRef<WebSocket | null>(null);
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
 
   useEffect(() => {
     if (!enabled || !url) return;
@@ -171,23 +212,28 @@ export function useWebSocketSubscription(
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        onMessage(data);
+        onMessageRef.current(data);
       } catch {
-        onMessage(event.data);
+        // Raw string fallback if JSON parse fails
+        onMessageRef.current(event.data);
       }
     };
 
     ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
+      logger.error("WebSocket error:", error);
     };
 
     return () => {
       ws.close();
     };
-  }, [url, enabled, onMessage]);
+  }, [url, enabled]);
 
   const send = useCallback((data: unknown) => {
-    wsRef.current?.send(JSON.stringify(data));
+    try {
+      wsRef.current?.send(JSON.stringify(data));
+    } catch (err) {
+      console.warn("[useWebSocketSubscription] send failed:", err instanceof Error ? err.message : String(err));
+    }
   }, []);
 
   return { send };

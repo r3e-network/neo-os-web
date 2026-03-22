@@ -239,6 +239,17 @@ export function useFlamingoLauncherPage(productKey: FlamingoProductKey) {
 
   function openExternal(url: string) {
     if (!url) return;
+    // Validate URL protocol to prevent javascript: XSS attacks
+    try {
+      const parsed = new URL(url);
+      if (/^(https?|mailto|tel):/i.test(parsed.protocol) === false) {
+        console.warn("openExternal: refused to open URL with disallowed protocol:", parsed.protocol);
+        return;
+      }
+    } catch {
+      console.warn("openExternal: invalid URL:", url);
+      return;
+    }
     if (typeof window !== "undefined" && window.open) {
       window.open(url, "_blank", "noopener,noreferrer");
       return;

@@ -55,6 +55,7 @@ async function checkNeoBlockchainHealth(): Promise<any> {
       uptime: "online"
     };
   } catch (err) {
+    console.error("[admin-services-health] neo-n3-blockchain health check failed:", err instanceof Error ? err.message : String(err));
     return {
       name: "neo-n3-blockchain",
       status: "unhealthy",
@@ -94,6 +95,7 @@ async function checkServiceHealth(name: string, url: string) {
       uptime: data.uptime || "unknown",
     };
   } catch (err) {
+    console.error(`[admin-services-health] ${name} health check failed:`, err instanceof Error ? err.message : String(err));
     return {
       name,
       status: "unhealthy",
@@ -132,14 +134,15 @@ export async function handler(req: Request): Promise<Response> {
                 status: "unhealthy", 
                 url: isNeo ? NEO_RPC_URL : services[i].url, 
                 lastCheck: new Date().toISOString(), 
-                error: r.reason?.message || "Health check failed" 
+                error: r instanceof Error ? r.message : (r?.reason?.message || "Health check failed") 
             };
         });
 
         return json(healthChecks, {}, req);
     } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return error(500, `Failed to check services health: ${msg}`, "INTERNAL_ERROR", req);
+        // Log internal error for debugging, don't expose details to client
+        console.error("[admin-services-health]", err instanceof Error ? err.message : String(err));
+        return error(500, "Failed to check services health", "INTERNAL_ERROR", req);
     }
 }
 

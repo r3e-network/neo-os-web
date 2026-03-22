@@ -23,7 +23,12 @@ export async function handler(req: Request): Promise<Response> {
   const ensured = await ensureUserRow(auth, {}, req);
   if (ensured instanceof Response) return ensured;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const name = (url.searchParams.get("name") ?? "").trim();
   if (!name) return error(400, "name required", "NAME_REQUIRED", req);
 
@@ -45,7 +50,7 @@ export async function handler(req: Request): Promise<Response> {
   try {
     value = await decryptSecretValue(encryptedBase64);
   } catch (e) {
-    return error(500, "failed to decrypt secret", "DECRYPT_FAILED", req);
+    return error(500, `failed to decrypt secret: ${e instanceof Error ? e.message : String(e)}`, "DECRYPT_FAILED", req);
   }
 
   return json(

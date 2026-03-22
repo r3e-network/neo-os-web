@@ -33,7 +33,8 @@ function asObject(value: unknown): Record<string, unknown> | null {
 async function parseJSONSafe(res: Response): Promise<unknown> {
   try {
     return await res.json();
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[fetch-client] failed to parse JSON response:", _e instanceof Error ? _e.message : String(_e));
     return null;
   }
 }

@@ -70,7 +70,7 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMin
       signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
+      const text = await response.text().catch((e: unknown) => { console.warn("[miniapp-catalog] failed to read response text:", e instanceof Error ? e.message : String(e)); return ""; });
       const parsedError = parsePostgrestErrorResponse(text);
       if (isMissingSupabaseSchemaObject(parsedError || text)) {
         warnOnce(
@@ -155,7 +155,7 @@ export async function loadMiniAppStatsMap(): Promise<Record<string, {
       signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
+      const text = await response.text().catch((e: unknown) => { console.warn("[miniapp-catalog] failed to read stats response text:", e instanceof Error ? e.message : String(e)); return ""; });
       logger.warn(`miniapp stats fetch failed: ${response.status} ${text}`);
       return {};
     }

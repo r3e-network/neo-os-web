@@ -217,6 +217,9 @@ const appMessages = {
     copyWif: { en: "Copy WIF", zh: "复制 WIF" },
     addressQrCode: { en: "Address QR Code", zh: "地址二维码" },
     wifQrCode: { en: "WIF QR Code", zh: "WIF 二维码" },
+    iconCopy: { en: "Copy to clipboard", zh: "复制到剪贴板" },
+    showSecretsIcon: { en: "Toggle secret visibility", zh: "切换密钥可见性" },
+    hideSecretsIcon: { en: "Hide secrets", zh: "隐藏密钥" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

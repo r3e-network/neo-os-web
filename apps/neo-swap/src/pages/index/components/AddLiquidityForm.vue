@@ -38,7 +38,7 @@
 
     <div class="rate-info"> {{ t("neoGasRate") }} </div>
 
-    <NeoButton variant="primary" block @click="$emit('addLiquidity')" :loading="loading">
+    <NeoButton variant="primary" block type="button" @click="$emit('addLiquidity')" :loading="loading" :disabled="!canSubmit || loading">
       {{ t("addLiquidity") }}
     </NeoButton>
   </NeoCard>
@@ -49,11 +49,14 @@ import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
-defineProps<{
+const props = withDefaults(defineProps<{
   amountA: string;
   amountB: string;
   loading: boolean;
-}>();
+  canSubmit: boolean;
+}>(), {
+  canSubmit: true,
+});
 
 const { t } = createUseI18n(messages)();
 

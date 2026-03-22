@@ -5,13 +5,13 @@
         <button type="button" class="dev-card-glass" :aria-label="dev.name" @click="$emit('select', dev)">
           <div class="dev-card-header">
             <div class="dev-avatar-glass">
-              <span class="avatar-emoji" aria-hidden="true">👨‍💻</span>
+              <AppIcon name="user" :size="28" class="avatar-emoji" />
               <div class="avatar-badge-glass">{{ dev.rank }}</div>
             </div>
             <div class="dev-info">
               <span class="dev-name-glass">{{ dev.name }}</span>
               <span class="dev-projects-glass">
-                <span class="project-icon" aria-hidden="true">🧩</span>
+                <AppIcon name="puzzle" :size="10" class="project-icon" />
                 {{ dev.role }}
               </span>
               <span class="dev-contributions-glass">{{ dev.tipCount }} {{ t("tipsCount") }}</span>
@@ -23,7 +23,7 @@
               <span class="tip-amount-glass">{{ formatNum(dev.totalTips) }} {{ t("tokenGas") }}</span>
             </div>
             <div class="tip-action">
-              <span class="tip-icon text-glass" aria-hidden="true">💚</span>
+              <AppIcon name="heart" :size="18" class="tip-icon text-glass" />
             </div>
           </div>
         </button>
@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from "@shared/components/AppIcon.vue";
 import { NeoCard, ItemList } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";

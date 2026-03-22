@@ -70,7 +70,7 @@
         <div class="form-group">
           <div class="input-group">
             <span class="input-label">{{ t("vaultIdLabel") }}</span>
-            <NeoInput v-model="breaker.vaultIdInput.value" type="number" :placeholder="t('vaultIdPlaceholder')" />
+            <NeoInput v-model="breaker.vaultIdInput" type="number" :placeholder="t('vaultIdPlaceholder')" :min="0" />
           </div>
 
           <NeoButton variant="secondary" block type="button" :loading="breaker.isLoading.value" @click="breaker.loadVault">
@@ -79,7 +79,7 @@
 
           <div class="input-group">
             <span class="input-label">{{ t("secretAttemptLabel") }}</span>
-            <NeoInput v-model="breaker.attemptSecret.value" :placeholder="t('secretAttemptPlaceholder')" />
+            <NeoInput v-model="breaker.attemptSecret" :placeholder="t('secretAttemptPlaceholder')" />
           </div>
 
           <span class="helper-text">{{ t("attemptFeeNote", { fee: breaker.attemptFeeDisplay.value, tokenGas: t("tokenGas") }) }}</span>
@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { sha256Hex } from "@shared/utils/hash";
 import { MiniAppPage, NeoCard, HeroSection } from "@shared/components";
@@ -141,7 +141,7 @@ const breaker = useVaultBreaker(APP_ID, t);
 const creator = useVaultCreator(APP_ID, t, breaker.setStatus);
 
 const appState = computed(() => ({
-  hasVault: Boolean(breaker.currentVault.value || creator.myVaults.value.length),
+  hasVault: creator.myVaults.value.length > 0,
   difficulty: vaultDifficulty.value,
 }));
 
@@ -175,12 +175,21 @@ const createVault = async () => {
   );
 };
 
-watch(secret, async (value) => {
+const isMounted = ref(true);
+
+const stopSecretWatch = watch(secret, async (value) => {
+  if (!isMounted.value) return;
   try {
     secretHash.value = value ? await sha256Hex(value) : "";
   } catch (_e: unknown) {
+    console.warn("[unbreakable-vault] sha256 hash failed:", _e instanceof Error ? _e.message : String(_e));
     secretHash.value = "";
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopSecretWatch();
 });
 
 onMounted(() => {
@@ -189,12 +198,8 @@ onMounted(() => {
 });
 
 const resetAndReload = async () => {
-  try {
-    breaker.loadRecentVaults();
-    creator.loadMyVaults();
-  } catch (_e: unknown) {
-    /* non-critical: reload failed */
-  }
+  breaker.loadRecentVaults();
+  creator.loadMyVaults();
 };
 </script>
 

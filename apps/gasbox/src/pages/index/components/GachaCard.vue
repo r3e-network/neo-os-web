@@ -2,7 +2,7 @@
   <NeoCard variant="erobo" class="machine-card" hoverable @click="$emit('select', machine)">
     <div class="card-header">
       <div class="machine-icon-wrapper">
-        <span class="machine-icon" aria-hidden="true">🎰</span>
+        <AppIcon name="slot" :size="20" class="machine-icon" />
       </div>
       <div class="machine-info">
         <span class="machine-name">{{ machine.name }}</span>
@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { formatAddress } from "@shared/utils/format";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";

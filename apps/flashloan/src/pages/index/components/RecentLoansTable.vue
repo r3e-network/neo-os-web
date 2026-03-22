@@ -1,6 +1,6 @@
 <template>
   <NeoCard variant="erobo" class="history-card">
-    <span class="stats-title-glass">📜 {{ t("recentLoans") }}</span>
+    <span class="stats-title-glass"><AppIcon name="contract" :size="14" />{{ t("recentLoans") }}</span>
     <div v-if="recentLoans.length > 0" class="loans-table-glass">
       <div class="table-header-glass">
         <span class="th-glass th-loan">{{ t("loanId") }}</span>
@@ -19,14 +19,14 @@
       </div>
     </div>
     <div v-else class="empty-state">
-      <span class="empty-icon">📭</span>
+      <AppIcon name="inbox" :size="32" class="empty-icon" />
       <span class="empty-text">{{ t("noHistory") }}</span>
     </div>
   </NeoCard>
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";

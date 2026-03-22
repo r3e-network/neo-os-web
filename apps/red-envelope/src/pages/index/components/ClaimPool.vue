@@ -11,10 +11,13 @@
         @update:modelValue="poolIdInput = $event"
         :placeholder="t('enterPoolId')"
         type="number"
+        :aria-label="t('enterPoolId')"
+        :error="error"
       />
       <NeoButton
         variant="primary"
         size="sm"
+        type="button"
         :loading="claiming"
         :disabled="!poolIdInput.trim()"
         @click="handleClaim(poolIdInput.trim())"
@@ -24,11 +27,11 @@
     </div>
 
     <!-- Error -->
-    <span v-if="error" class="error-msg">{{ error }}</span>
+    <span v-if="error" class="error-msg" role="alert">{{ error }}</span>
 
     <!-- Success -->
     <div v-if="claimResult" class="claim-success">
-      <span class="success-icon" aria-hidden="true">🎉</span>
+      <AppIcon name="party" :size="20" class="success-icon" />
       <span class="success-text">{{ t("claimSuccess") }}</span>
     </div>
 
@@ -37,22 +40,22 @@
       <span class="pools-label">{{ t("availablePools") }}</span>
 
       <div v-if="pools.length === 0" class="empty-state">
-        <span class="empty-icon" aria-hidden="true">🎯</span>
+        <AppIcon name="milestone" :size="40" class="empty-icon" />
         <span class="empty-text">{{ t("noPools") }}</span>
       </div>
 
       <div v-else class="pool-grid">
         <div v-for="pool in pools" :key="pool.id" class="pool-card">
           <div class="pool-header">
-            <span class="pool-icon" aria-hidden="true">🧧</span>
+            <AppIcon name="envelope_red" :size="20" class="pool-icon" />
             <span class="pool-id">{{ t("poolLabel", { poolId: String(pool.id) }) }}</span>
           </div>
 
-          <span class="pool-amount"><span aria-hidden="true">💎</span> {{ pool.totalAmount }} {{ t("tokenGas") }}</span>
+          <span class="pool-amount"><AppIcon name="neo" :size="20" /> {{ pool.totalAmount }} {{ t("tokenGas") }}</span>
 
           <div class="pool-progress">
             <span class="progress-text">
-              <span aria-hidden="true">🎫</span>
+              <AppIcon name="ticket" :size="20" />
               {{ t("claimedCount", { claimed: String(pool.openedCount), total: String(pool.packetCount) }) }}
             </span>
             <div class="progress-bar">
@@ -62,11 +65,11 @@
 
           <div v-if="pool.minNeoRequired > 0" class="pool-gate">
             <span class="gate-text">
-              <span aria-hidden="true">🔒</span> {{ pool.minNeoRequired }} {{ t("tokenNeo") }}, {{ Math.round(pool.minHoldSeconds / 86400) }} {{ t("daysSuffix") }} {{ t("holdDuration") }}
+              <AppIcon name="locked" :size="20" /> {{ pool.minNeoRequired }} {{ t("tokenNeo") }}, {{ Math.round(pool.minHoldSeconds / 86400) }} {{ t("daysSuffix") }} {{ t("holdDuration") }}
             </span>
           </div>
 
-          <span v-if="pool.expiryTime" class="pool-expiry"><span aria-hidden="true">⏰</span> {{ formatTimeLeft(pool.expiryTime) }} </span>
+          <span v-if="pool.expiryTime" class="pool-expiry"><AppIcon name="clock" :size="20" /> {{ formatTimeLeft(pool.expiryTime) }} </span>
 
           <span v-if="pool.message" class="pool-message">"{{ pool.message }}"</span>
 
@@ -74,6 +77,7 @@
             variant="primary"
             size="sm"
             block
+            type="button"
             :loading="claiming"
             :disabled="pool.depleted || pool.expired"
             @click="handleClaim(pool.id)"
@@ -88,7 +92,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { NeoInput, NeoButton } from "@shared/components";
+import { AppIcon, NeoInput, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";

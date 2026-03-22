@@ -193,7 +193,7 @@ const resetAndReload = async () => {
 };
 
 onMounted(() => {
-  loadUserData();
+  loadUserData().catch((e: unknown) => { console.warn("[gas-sponsor] loadUserData failed:", e instanceof Error ? e.message : String(e)); });
 });
 </script>
 
@@ -261,6 +261,13 @@ onMounted(() => {
   }
   50% {
     transform: rotate(20deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat,
+  .hero-stat-icon {
+    animation: none;
   }
 }
 

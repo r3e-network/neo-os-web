@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="refreshState"
-    hero-icon="🧩"
+    hero-icon="puzzle"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('updateVerifier')"

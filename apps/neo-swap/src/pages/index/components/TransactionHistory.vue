@@ -6,6 +6,7 @@
     aria-modal="true"
     :aria-label="t('selectToken')"
     @click="$emit('close')"
+    @keydown.escape="$emit('close')"
   >
     <div class="modal-content" @click.stop>
       <div class="modal-header">
@@ -91,7 +92,7 @@ function formatBalance(balance: number): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-index-modal, 500);
 }
 
 .modal-content {
@@ -201,6 +202,6 @@ function formatBalance(balance: number): string {
 .token-item-balance {
   font-size: 13px;
   color: var(--swap-modal-text-muted);
-  font-family: "JetBrains Mono", monospace;
+  font-family: $font-mono;
 }
 </style>

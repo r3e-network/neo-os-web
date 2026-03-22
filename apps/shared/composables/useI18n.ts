@@ -1,12 +1,13 @@
-import { ref, onUnmounted } from "vue";
+import { ref, onUnmounted, onMounted } from "vue";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
 
-// Module-level state for event listeners
+// Module-level state for shared locale and event listeners
 let listenersRefCount = 0;
 let languageChangeHandler: ((event: Event) => void) | null = null;
 let messageHandler: ((event: MessageEvent) => void) | null = null;
+const sharedLocale = ref<Locale>(getLocale());
 
 type InterpolationArgs = Record<string, string | number>;
 
@@ -27,7 +28,6 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     ...baseMessages,
     ...messages,
   } as MergedMessages<T>;
-  const currentLocale = ref<Locale>(getLocale());
 
   const t = (key: keyof MergedMessages<T>, args?: InterpolationArgs) => {
     const entry = mergedMessages[key];
@@ -37,14 +37,14 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     if (typeof entry === "string") {
       str = entry;
     } else {
-      str = entry[currentLocale.value] || entry.en || entry.zh || String(key);
+      str = entry[sharedLocale.value] || entry.en || entry.zh || String(key);
     }
 
     return args ? interpolate(str, args) : str;
   };
 
   const setLocale = (lang: string) => {
-    currentLocale.value = normalizeLocale(lang);
+    sharedLocale.value = normalizeLocale(lang);
   };
 
   // Register event listeners on first use
@@ -53,7 +53,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
       languageChangeHandler = (event: Event) => {
         const newLang = (event as CustomEvent<{ language?: string }>).detail?.language;
         if (newLang) {
-          setLocale(newLang);
+          sharedLocale.value = normalizeLocale(newLang);
         }
       };
 
@@ -81,7 +81,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
         if (data.type !== "language-change") return;
         const newLang = String(data.language || data.locale || data.lang || "").trim();
         if (!newLang) return;
-        setLocale(newLang);
+        sharedLocale.value = normalizeLocale(newLang);
       };
 
       window.addEventListener("languageChange", languageChangeHandler);
@@ -101,7 +101,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
   }
 
   return () => ({
-    locale: currentLocale,
+    locale: sharedLocale,
     t,
     setLocale,
   });

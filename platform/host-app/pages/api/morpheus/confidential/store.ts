@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
     res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/json");
-    res.send(text);
+    return res.send(text);
   } catch (error) {
     if (controller.signal.aborted) {
       return apiError.gatewayTimeout(res, "Morpheus confidential store timed out");

@@ -28,7 +28,7 @@
         <template #stats>
           <div class="hero-stats">
             <div class="hero-stat">
-              <span class="hero-stat-icon" aria-hidden="true">💀</span>
+              <AppIcon name="skull" :size="28" class="hero-stat-icon" />
               <span class="hero-stat-value">{{ totalDestroyed }}</span>
               <span class="hero-stat-label">{{ t("itemsDestroyed") }}</span>
             </div>
@@ -67,7 +67,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGraveyardActions } from "@/composables/useGraveyardActions";
 
@@ -111,33 +111,38 @@ const resetAndReload = async () => {
 };
 
 const activeTab = ref("main");
+const isMounted = ref(true);
 
 const appState = computed(() => ({
   totalDestroyed: totalDestroyed.value,
   gasReclaimed: gasReclaimed.value,
 }));
 
-onUnmounted(() => {
-  cleanupTimers();
-});
-
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await loadStats();
     await loadHistory();
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[graveyard] initial load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
 
-watch(activeTab, async (tab) => {
+const stopActiveTabWatch = watch(activeTab, async (tab) => {
+  if (!isMounted.value) return;
   if (tab === "history") {
     try {
       await loadHistory();
     } catch (_e: unknown) {
-      /* non-critical: history load */
+      console.warn("[graveyard] history tab load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  cleanupTimers();
+  stopActiveTabWatch();
 });
 </script>
 

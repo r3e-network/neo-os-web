@@ -13,7 +13,7 @@
   >
     <template #content>
       <ErrorToast :show="!!errorMessage" :message="errorMessage ?? ''" type="error" @close="errorMessage = ''" />
-      <div v-if="!game.address" class="wallet-prompt">
+      <div v-if="!game.address.value" class="wallet-prompt">
         <NeoCard variant="warning" class="text-center">
           <span class="mb-2 block font-bold">{{ t("connectWalletToPlay") }}</span>
           <NeoButton variant="primary" size="sm" type="button" @click="connectWallet" :aria-label="t('connectWallet')">{{ t("connectWallet") }}</NeoButton>
@@ -22,12 +22,12 @@
 
       <div class="hero-container">
         <!-- Danger Ring -->
-        <div :class="['danger-ring', timer.dangerLevel, { pulse: timer.shouldPulse }]">
+        <div :class="['danger-ring', timer.dangerLevel.value, { pulse: timer.shouldPulse.value }]">
           <div class="ring-inner">
             <div class="ring-glow" />
             <!-- Countdown Timer -->
             <div class="hero-countdown" aria-live="polite" role="timer">
-              <span class="countdown-digits">{{ timer.countdown }}</span>
+              <span class="countdown-digits">{{ timer.countdown.value }}</span>
               <span class="countdown-label">{{ t("timeUntilEvent") }}</span>
             </div>
           </div>
@@ -36,13 +36,13 @@
         <!-- Prize Pool -->
         <div class="hero-prize-pool">
           <span class="prize-label">{{ t("totalPot") }}</span>
-          <span class="prize-amount">{{ formatNumber(game.totalPot, 2) }} {{ t("tokenGas") }}</span>
+          <span class="prize-amount">{{ formatNumber(game.totalPot.value, 2) }} {{ t("tokenGas") }}</span>
         </div>
 
         <!-- Claim Banner -->
-        <div v-if="game.canClaim" class="hero-claim-banner" role="alert">
+        <div v-if="game.canClaim.value" class="hero-claim-banner" role="alert">
           <span class="claim-text">{{ t("youWon") }}</span>
-          <NeoButton variant="primary" size="lg" block type="button" :loading="game.isClaiming" @click="handleClaimPrize" :aria-label="t('claimPrize')">
+          <NeoButton variant="primary" size="lg" block type="button" :loading="game.isClaiming.value" @click="handleClaimPrize" :aria-label="t('claimPrize')">
             {{ t("claimPrize") }}
           </NeoButton>
         </div>
@@ -51,14 +51,14 @@
         <div class="hero-danger-meter">
           <div class="meter-header">
             <span class="meter-label-left">{{ t("safe") }}</span>
-            <div :class="['danger-badge', timer.dangerLevel]">
-              <span>{{ timer.dangerLevelText }}</span>
+            <div :class="['danger-badge', timer.dangerLevel.value]">
+              <span>{{ timer.dangerLevelText.value }}</span>
             </div>
             <span class="meter-label-right">{{ t("critical") }}</span>
           </div>
           <div class="meter-track">
-            <div :class="['meter-fill', timer.dangerLevel]" :style="{ width: timer.dangerProgress + '%' }" />
-            <div class="meter-glow-point" :style="{ left: timer.dangerProgress + '%' }" />
+            <div :class="['meter-fill', timer.dangerLevel.value]" :style="{ width: timer.dangerProgress.value + '%' }" />
+            <div class="meter-glow-point" :style="{ left: timer.dangerProgress.value + '%' }" />
           </div>
         </div>
       </div>
@@ -66,11 +66,11 @@
 
     <template #operation>
       <BuyKeysCard
-        v-if="game.isRoundActive && !game.canClaim"
-        v-model:keyCount="game.keyCount"
-        :estimated-cost="game.estimatedCost"
-        :is-paying="game.isPaying"
-        :validation-error="game.keyValidationError"
+        v-if="game.isRoundActive.value && !game.canClaim.value"
+        v-model:keyCount="gameKeyCount"
+        :estimated-cost="game.estimatedCost.value"
+        :is-paying="game.isPaying.value"
+        :validation-error="game.keyValidationError.value"
         @buy="handleBuyKeys"
       />
     </template>
@@ -83,13 +83,13 @@
     </template>
 
     <template #tab-history>
-      <HistoryList :history="game.history" :t="t" />
+      <HistoryList :history="game.history.value" :t="t" />
     </template>
   </MiniAppPage>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
@@ -141,6 +141,11 @@ const appState = computed(() => ({
   isRoundActive: game.isRoundActive.value,
 }));
 
+const gameKeyCount = computed({
+  get: () => game.keyCount.value,
+  set: (val: string) => { game.keyCount.value = val; },
+});
+
 const gameStatsGrid = computed<StatsDisplayItem[]>(() => [
   { label: t("round"), value: `#${game.roundId.value}`, icon: "🔄" },
   { label: t("totalPot"), value: `${formatNumber(game.totalPot.value, 2)} ${t("tokenGas")}`, icon: "💰" },
@@ -158,20 +163,32 @@ const gameStatsRows = computed<StatsDisplayItem[]>(() => [
 
 const timerTicker = useTicker(() => timer.updateNow(), 1000);
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await refreshData();
     timerTicker.start();
-  } catch (_e: unknown) {
-    /* non-critical: initial data load */
+  } catch (e: unknown) {
+    // refreshData handles errors internally; this catches only truly unexpected exceptions
+    console.error("[last-survivor] onMounted unexpected error:", e instanceof Error ? e.message : String(e));
   }
 });
 
-watch(game.address, async () => {
+onUnmounted(() => {
+  isMounted.value = false;
+  timerTicker.stop();
+  stopGameAddressWatch();
+});
+
+const stopGameAddressWatch = watch(game.address, async () => {
+  if (!isMounted.value) return;
   try {
     await game.loadUserKeys();
-  } catch (_e: unknown) {
-    /* non-critical: user keys load */
+  } catch (e: unknown) {
+    // loadUserKeys handles errors internally (sets keys to 0); this catches only truly unexpected exceptions
+    console.error("[last-survivor] loadUserKeys unexpected error:", e instanceof Error ? e.message : String(e));
   }
 });
 </script>
@@ -272,8 +289,8 @@ watch(game.address, async () => {
   width: 190px;
   height: 190px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-elevated, rgba(0, 0, 0, 0.5));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -286,7 +303,7 @@ watch(game.address, async () => {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at center, rgba(165, 180, 252, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle at center, var(--ring-glow-color, rgba(165, 180, 252, 0.08)) 0%, transparent 70%);
 }
 
 .hero-countdown {
@@ -304,14 +321,14 @@ watch(game.address, async () => {
   font-family: $font-mono;
   letter-spacing: 0.04em;
   line-height: 1;
-  background: linear-gradient(180deg, #fff 0%, #a5b4fc 100%);
+  background: linear-gradient(180deg, var(--doom-white, #fff) 0%, var(--doom-indigo-light, #a5b4fc) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 10px rgba(165, 180, 252, 0.5));
 
   .critical & {
-    background: linear-gradient(180deg, #fff 0%, #f87171 100%);
+    background: linear-gradient(180deg, var(--doom-white, #fff) 0%, var(--doom-danger-light, #f87171) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     filter: drop-shadow(0 0 12px rgba(248, 113, 113, 0.6));
@@ -323,7 +340,7 @@ watch(game.address, async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.4));
 }
 
 /* ── Prize Pool ── */
@@ -339,14 +356,14 @@ watch(game.address, async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.4));
 }
 
 .prize-amount {
   font-size: 28px;
   font-weight: 900;
   font-family: $font-mono;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706);
+  background: linear-gradient(135deg, var(--doom-warn-light, #fbbf24), var(--doom-amber, #f59e0b), var(--doom-warn, #d97706));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -369,7 +386,7 @@ watch(game.address, async () => {
   display: block;
   font-size: 18px;
   font-weight: 900;
-  color: #34d399;
+  color: var(--doom-success, var(--accent-success, #34d399));
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -394,7 +411,7 @@ watch(game.address, async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.3));
 }
 
 .danger-badge {
@@ -404,35 +421,35 @@ watch(game.address, async () => {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.15));
   backdrop-filter: blur(4px);
 
   &.low {
     background: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+    color: var(--doom-safe, var(--accent-success, #34d399));
   }
   &.medium {
     background: rgba(245, 158, 11, 0.2);
-    color: #fbbf24;
+    color: var(--doom-warn-light, var(--accent-warning, #fbbf24));
   }
   &.high {
     background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    color: var(--doom-danger-light, var(--accent-error, #f87171));
   }
   &.critical {
     background: rgba(239, 68, 68, 0.3);
-    color: #f87171;
+    color: var(--doom-danger-light, var(--accent-error, #f87171));
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
   }
 }
 
 .meter-track {
   height: 6px;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--bg-elevated, rgba(0, 0, 0, 0.4));
   border-radius: 3px;
   position: relative;
   overflow: visible;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
 }
 
 .meter-fill {
@@ -440,16 +457,16 @@ watch(game.address, async () => {
   border-radius: 3px;
   transition: width 0.5s ease;
   &.low {
-    background: linear-gradient(90deg, #10b981, #34d399);
+    background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-success, #34d399));
   }
   &.medium {
-    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    background: linear-gradient(90deg, var(--doom-amber, #f59e0b), var(--doom-warn-light, #fbbf24));
   }
   &.high {
-    background: linear-gradient(90deg, #ef4444, #f87171);
+    background: linear-gradient(90deg, var(--doom-red, #ef4444), var(--doom-danger-light, #f87171));
   }
   &.critical {
-    background: linear-gradient(90deg, #dc2626, #ef4444);
+    background: linear-gradient(90deg, var(--doom-red-deep, #dc2626), var(--doom-red, #ef4444));
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
   }
 }
@@ -460,9 +477,9 @@ watch(game.address, async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--doom-white, var(--text-primary, #fff));
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 8px var(--doom-white, rgba(255, 255, 255, 0.8));
   transition: left 0.5s ease;
 }
 

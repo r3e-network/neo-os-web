@@ -62,7 +62,15 @@ function stableSort(value: unknown): unknown {
 }
 
 export function stableStringify(value: unknown): string {
-  return JSON.stringify(stableSort(value));
+  try {
+    return JSON.stringify(stableSort(value));
+  } catch (_e: unknown) {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
 }
 
 function normalizeStringList(

@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection } from "@shared/components";
@@ -158,7 +158,7 @@ const resetAndReload = async () => {
       await refreshCertificates();
     }
   } catch (_e: unknown) {
-    /* non-critical: reload certificate data */
+    console.warn("[soulbound-certificate] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
@@ -172,11 +172,14 @@ const onTabChange = async (tab: string) => {
     if (tab === "templates") await refreshTemplates();
     if (tab === "certificates") await refreshCertificates();
   } catch (_e: unknown) {
-    /* non-critical: tab change handler */
+    console.warn("[soulbound-certificate] tab change failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 
+const isMounted = ref(true);
+
 onMounted(async () => {
+  if (!isMounted.value) return;
   try {
     await connect();
     if (address.value) {
@@ -184,23 +187,28 @@ onMounted(async () => {
       await refreshCertificates();
     }
   } catch (_e: unknown) {
-    /* non-critical: initial data load */
+    console.warn("[soulbound-certificate] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
-
-watch(address, async (newAddr) => {
+const stopAddressWatch = watch(address, async (newAddr) => {
+  if (!isMounted.value) return;
   if (newAddr) {
     try {
       await refreshTemplates();
       await refreshCertificates();
     } catch (_e: unknown) {
-      /* non-critical: address change handler */
+      console.warn("[soulbound-certificate] address change failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else {
     templates.value = [];
     certificates.value = [];
     lookup.value = null;
   }
+});
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopAddressWatch();
 });
 </script>
 
@@ -344,5 +352,12 @@ watch(address, async (newAddr) => {
 }
 .certificate-scene {
   background: linear-gradient(180deg, rgba(159, 157, 243, 0.04), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cert-seal,
+  .cert-badge {
+    animation: none;
+  }
 }
 </style>

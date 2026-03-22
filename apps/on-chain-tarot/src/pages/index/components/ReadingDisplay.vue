@@ -1,7 +1,7 @@
 <template>
   <NeoCard variant="erobo-bitcoin" class="reading-card-container">
     <div class="fortune-container-glass">
-      <span class="fortune-icon" aria-hidden="true">🔮</span>
+      <AppIcon name="crystal_ball" :size="64" class="fortune-icon" />
       <span class="reading-text-glass">{{ reading }}</span>
       <div class="mystical-divider-glass">
         <span aria-hidden="true">✦ ✦ ✦</span>
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 
 defineProps<{
   reading: string;

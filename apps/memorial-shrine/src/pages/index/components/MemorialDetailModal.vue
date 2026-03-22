@@ -158,7 +158,7 @@ const payTribute = async () => {
       emit("tribute-paid", props.memorial.id, selectedOffering.value);
     }
   } catch (_e: unknown) {
-    /* non-critical: tribute payment */
+    console.warn("[memorial-shrine] tribute payment failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
 </script>

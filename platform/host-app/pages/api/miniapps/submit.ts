@@ -35,7 +35,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.internal(res, "Database not configured");
   }
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
 
   const body = req.body as SubmitMiniAppRequest | undefined;
@@ -111,7 +117,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (error) throw error;
 
     res.setHeader("Cache-Control", "no-store, private");
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       app_id,
       message: "MiniApp submitted for review",

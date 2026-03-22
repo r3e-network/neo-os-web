@@ -18,7 +18,12 @@ export async function handler(req: Request): Promise<Response> {
   const rl = await requireRateLimit(req, "social-comment-delete", auth);
   if (rl) return rl;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const commentId = url.searchParams.get("id")?.trim();
 
   if (!commentId) {

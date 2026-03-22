@@ -217,6 +217,7 @@ export default function LandingPage() {
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
+                      aria-label="Grid view"
                       className={cn(
                         "p-2 rounded-lg transition-all focus-visible:outline-none",
                         viewMode === "grid"
@@ -229,6 +230,7 @@ export default function LandingPage() {
                     <button
                       type="button"
                       onClick={() => setViewMode("list")}
+                      aria-label="List view"
                       className={cn(
                         "p-2 rounded-lg transition-all focus-visible:outline-none",
                         viewMode === "list"
@@ -293,7 +295,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {toolApps.map((app, idx) => (
+            {toolApps && toolApps.length > 0 ? toolApps.map((app, idx) => (
               <motion.div
                 key={app.app_id}
                 initial={{ opacity: 0, y: 20 }}
@@ -303,7 +305,7 @@ export default function LandingPage() {
               >
                 <MiniAppCard app={app} />
               </motion.div>
-            ))}
+            )) : null}
           </div>
         </div>
       </section>

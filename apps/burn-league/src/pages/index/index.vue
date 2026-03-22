@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
@@ -93,13 +93,21 @@ const burnTokens = async () => {
   });
 };
 
-watch(
+const isMounted = ref(true);
+
+const stopAddressWatch = watch(
   address,
   () => {
+    if (!isMounted.value) return;
     refreshData(setStatus);
   },
   { immediate: true },
 );
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopAddressWatch();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -160,6 +168,13 @@ watch(
     box-shadow:
       0 0 25px rgba(255, 100, 0, 0.3),
       0 0 50px rgba(255, 60, 0, 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.hero-section),
+  :deep(.hero-icon) {
+    animation: none;
   }
 }
 

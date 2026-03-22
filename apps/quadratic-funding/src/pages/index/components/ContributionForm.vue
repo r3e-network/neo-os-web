@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch, computed } from "vue";
+import { reactive, ref, onUnmounted, watch, computed } from "vue";
 import { NeoInput, FormCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -50,13 +50,17 @@ const localForm = reactive({
   memo: "",
 });
 
-watch(
+const stopRoundIdWatch = watch(
   () => props.roundId,
   (newId) => {
     localForm.roundId = newId;
   },
   { immediate: true }
 );
+
+onUnmounted(() => {
+  stopRoundIdWatch();
+});
 
 const emitContribute = () => {
   emit("contribute", { ...localForm });

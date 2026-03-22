@@ -24,6 +24,12 @@ export function formatGas(amount: bigint | number | string, decimals = 4): strin
   } catch (_e: unknown) {
     value = 0n;
   }
+  // Reject negative values — modulo on negative bigint is implementation-defined
+  if (value < 0n) {
+    return "0";
+  }
+  // Clamp decimals to a safe range to prevent memory issues
+  const safeDecimals = Math.min(Math.max(decimals, 0), 80);
   const divisor = BigInt(100000000);
   const whole = value / divisor;
   const fraction = value % divisor;
@@ -33,7 +39,7 @@ export function formatGas(amount: bigint | number | string, decimals = 4): strin
   }
 
   const fractionStr = fraction.toString().padStart(8, "0");
-  const trimmed = fractionStr.slice(0, decimals).replace(/0+$/, "");
+  const trimmed = fractionStr.slice(0, safeDecimals).replace(/0+$/, "");
 
   return trimmed ? `${whole}.${trimmed}` : whole.toString();
 }
@@ -67,7 +73,7 @@ export function fromFixed8(value: bigint | number | string | unknown): number {
  * Uses string parsing to avoid floating point rounding.
  */
 export function toFixedDecimals(value: string | number, decimals: number): string {
-  if (!Number.isFinite(decimals) || decimals < 0) return "0";
+  if (!Number.isFinite(decimals) || decimals < 0 || decimals > 80) return "0";
   const raw = typeof value === "number" ? String(value) : String(value);
   const trimmed = raw.trim();
   if (!trimmed || trimmed.startsWith("-")) return "0";
@@ -116,6 +122,7 @@ export function hexToBytes(hex: string): Uint8Array {
   const cleaned = hex.replace(/^0x/i, "").trim();
   if (!cleaned) return new Uint8Array();
   const normalized = cleaned.length % 2 === 0 ? cleaned : `0${cleaned}`;
+  if (!/^[0-9a-fA-F]*$/.test(normalized)) return new Uint8Array();
   const bytes = new Uint8Array(normalized.length / 2);
   for (let i = 0; i < bytes.length; i += 1) {
     bytes[i] = Number.parseInt(normalized.slice(i * 2, i * 2 + 2), 16);
@@ -129,8 +136,10 @@ export function bytesToHex(bytes: Uint8Array): string {
 
 export function randomIntFromBytes(bytes: Uint8Array, max?: number): number {
   if (!bytes.length) return 0;
+  // Limit bytes to prevent value from exceeding safe integer range before modulo
+  const safeBytes = bytes.slice(0, 7);
   let value = 0n;
-  for (const byte of bytes) {
+  for (const byte of safeBytes) {
     value = (value << 8n) + BigInt(byte);
   }
   const safeMax = BigInt(Number.MAX_SAFE_INTEGER);

@@ -23,6 +23,7 @@ export function Input({ value, onChange, type = "text", placeholder, label, min,
         placeholder={placeholder}
         disabled={disabled}
         onInput={(e) => onChange(e.detail.value)}
+        aria-label={label}
       />
     </View>
   );

@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="resolveDid"
-    hero-icon="🪪"
+    hero-icon="did"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('latestDocument')"

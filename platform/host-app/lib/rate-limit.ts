@@ -35,8 +35,12 @@ export function rateLimit(config?: RateLimitConfig) {
 
   const store = new Map<string, SlidingWindowEntry>();
 
+  // Track if cleanup has been called
+  let isCleanedUp = false;
+
   // Periodic cleanup of expired entries
   const cleanup = setInterval(() => {
+    if (isCleanedUp) return;
     const now = Date.now();
     const cutoff = now - windowMs;
     for (const [key, entry] of store) {
@@ -52,6 +56,12 @@ export function rateLimit(config?: RateLimitConfig) {
   if (cleanup.unref) {
     cleanup.unref();
   }
+
+  // Cleanup function to clear the interval
+  const destroy = () => {
+    isCleanedUp = true;
+    clearInterval(cleanup);
+  };
 
   return function check(req: NextApiRequest, res: NextApiResponse): boolean {
     const key = keyGenerator(req);
@@ -91,6 +101,10 @@ export function rateLimit(config?: RateLimitConfig) {
     entry.timestamps.push(now);
     // Update remaining after recording this request
     res.setHeader("X-RateLimit-Remaining", Math.max(0, max - entry.timestamps.length));
+
+    // Attach destroy to res for cleanup
+    (res as NextApiResponse & { destroyRateLimit?: () => void }).destroyRateLimit = destroy;
+
     return false;
   };
 }

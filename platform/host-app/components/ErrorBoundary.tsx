@@ -148,8 +148,8 @@ export class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReport}
+                aria-label="Report this error"
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                title="Report this error"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -199,17 +199,20 @@ export function useGlobalErrors() {
   const [errors, setErrors] = React.useState<ReturnType<typeof getTrackedErrors>>([]);
   
   React.useEffect(() => {
-    // Update on mount and periodically
+    let active = true;
     const update = () => {
+      if (!active) return;
       setErrorCount(getErrorCount());
       setErrors(getTrackedErrors());
     };
-    
+
     update();
-    
-    // Listen for new errors
+
     const interval = setInterval(update, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
   
   return { errorCount, errors };

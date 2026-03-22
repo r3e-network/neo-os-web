@@ -1,10 +1,10 @@
 <template>
-  <div v-if="luckyMessage" class="lucky-overlay" role="button" tabindex="0" :aria-label="t('close')" @click="$emit('close')" @keydown.enter="$emit('close')" @keydown.space="$emit('close')">
+  <div v-if="luckyMessage" class="lucky-overlay" :aria-label="t('close')" @click="$emit('close')" @keydown.enter="$emit('close')" @keydown.space="$emit('close')">
     <div class="lucky-card-glass" role="dialog" aria-modal="true" :aria-label="t('congratulations')" @click.stop>
       <div class="card-glow"></div>
 
       <div class="lucky-content">
-        <span class="lucky-header"><span aria-hidden="true">🎉</span> {{ t("congratulations") }} <span aria-hidden="true">🎉</span></span>
+        <span class="lucky-header"><AppIcon name="party" :size="18" /> {{ t("congratulations") }} <AppIcon name="party" :size="18" /></span>
 
         <div class="amount-circle">
           <div class="amount-inner">
@@ -30,7 +30,7 @@
           class="coin-item"
           :style="{ animationDelay: `${Math.random() * 2}s`, left: `${Math.random() * 100}%` }"
         >
-          <AppIcon name="money" :size="24" class="text-gold" />
+          <AppIcon name="money" :size="24" class="text-gold" aria-hidden="true" />
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-index-modal, 500);
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -247,7 +247,7 @@ defineEmits<{
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .amount-display::before,
+  .amount-circle::before,
   .coin-item {
     animation: none;
   }

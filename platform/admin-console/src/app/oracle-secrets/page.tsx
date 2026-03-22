@@ -1,41 +1,69 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
+interface Secret {
+  id: string;
+  name: string;
+  description: string;
+  value: string;
+  lastUpdated?: string;
+}
+
 export default function OracleSecretsPage() {
-  const [secrets, setSecrets] = useState<any[]>([]);
+  const [secrets, setSecrets] = useState<Secret[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", description: "", value: "" });
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetchSecrets();
+    mountedRef.current = true;
+    fetchSecrets()
+      .catch((e: unknown) => { console.warn("[oracle-secrets] failed to load secrets:", e instanceof Error ? e.message : String(e)); })
+      .finally(() => { if (mountedRef.current) setLoading(false); });
+    return () => { mountedRef.current = false; };
   }, []);
 
   const fetchSecrets = async () => {
     const res = await fetch("/api/oracle-secrets");
     const data = await res.json();
-    setSecrets(data);
-    setLoading(false);
+    if (mountedRef.current) setSecrets(data);
   };
 
   const handleSave = async () => {
-    await fetch("/api/oracle-secrets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm),
-    });
-    setIsEditing(false);
-    fetchSecrets();
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/oracle-secrets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) throw new Error("Failed to save secret");
+      setIsEditing(false);
+      fetchSecrets();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to remove this secret? Oracle requests using it will fail.")) return;
-    await fetch(`/api/oracle-secrets?id=${id}`, { method: "DELETE" });
-    fetchSecrets();
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/oracle-secrets?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete secret");
+      fetchSecrets();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    }
   };
 
   const openNew = () => {
@@ -47,6 +75,16 @@ export default function OracleSecretsPage() {
 
   return (
     <div className="space-y-6">
+      {saveError && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <p className="text-sm text-red-400">Failed to save secret: {saveError}</p>
+        </div>
+      )}
+      {deleteError && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <p className="text-sm text-red-400">Failed to delete secret: {deleteError}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">NeoOracle Secrets</h1>
@@ -63,27 +101,30 @@ export default function OracleSecretsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Secret Name</label>
-                <input 
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white" 
+                <label htmlFor="secret-name" className="block text-sm text-gray-400 mb-1">Secret Name</label>
+                <input
+                  id="secret-name"
+                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
                   placeholder="e.g. binance_api_key"
-                  value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} 
+                  value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})}
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Description</label>
-                <input 
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white" 
-                  value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} 
+                <label htmlFor="secret-description" className="block text-sm text-gray-400 mb-1">Description</label>
+                <input
+                  id="secret-description"
+                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
+                  value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})}
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm text-gray-400 mb-1">Secret Value (Token/Key)</label>
-                <input 
+                <label htmlFor="secret-value" className="block text-sm text-gray-400 mb-1">Secret Value (Token/Key)</label>
+                <input
+                  id="secret-value"
                   type="password"
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white" 
+                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-white"
                   placeholder="Will be encrypted in the TEE Vault"
-                  value={editForm.value} onChange={e => setEditForm({...editForm, value: e.target.value})} 
+                  value={editForm.value} onChange={e => setEditForm({...editForm, value: e.target.value})}
                 />
               </div>
             </div>
@@ -111,7 +152,7 @@ export default function OracleSecretsPage() {
                 <tr key={secret.id} className="hover:bg-white/5 transition-colors">
                   <td className="p-4 font-bold text-white font-mono">{secret.name}</td>
                   <td className="p-4">{secret.description}</td>
-                  <td className="p-4">{new Date(secret.lastUpdated).toLocaleString()}</td>
+                  <td className="p-4">{secret.lastUpdated ? new Date(secret.lastUpdated).toLocaleString() : "N/A"}</td>
                   <td className="p-4 text-right space-x-2">
                     <Button size="sm" variant="danger" onClick={() => handleDelete(secret.id)}>Delete</Button>
                   </td>

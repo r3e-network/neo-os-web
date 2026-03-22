@@ -206,7 +206,9 @@ async function invokeMarketRead(
     args,
   });
   if (String(result?.state ?? "").toUpperCase().includes("FAULT")) {
-    throw new Error(result?.exception || `${operation} faulted`);
+    const exception = result?.exception;
+    const sanitized = typeof exception === "string" && exception.length < 100 ? exception : "Contract operation failed";
+    throw new Error(sanitized);
   }
   return result;
 }
@@ -241,7 +243,7 @@ export async function readAddressListing(
   }
 
   const myPendingPayment = currentAddress
-    ? await getPendingPaymentOf(wallet, marketHash, decoded.id, currentAddress).catch((_e: unknown) => "0")
+    ? await getPendingPaymentOf(wallet, marketHash, decoded.id, currentAddress).catch((e: unknown) => { console.warn("[aa-market] getPendingPaymentOf failed, using '0':", e instanceof Error ? e.message : String(e)); return "0"; })
     : "0";
 
   return {
@@ -263,7 +265,7 @@ export async function listAddressListings(
   }
 
   const reads = Array.from({ length: count }, (_, index) =>
-    invokeMarketRead(wallet, marketHash, "getListing", [{ type: "Integer", value: String(index + 1) }]).catch((_e: unknown) => null));
+    invokeMarketRead(wallet, marketHash, "getListing", [{ type: "Integer", value: String(index + 1) }]).catch((e: unknown) => { console.warn("[aa-market] getListing failed at index", index, ":", e instanceof Error ? e.message : String(e)); return null; }));
 
   const decoded = (await Promise.all(reads))
     .map((result) => (result ? decodeListing(result) : null))
@@ -276,7 +278,7 @@ export async function listAddressListings(
   }
 
   const pendingPayments = await Promise.all(
-    decoded.map((listing) => getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch((_e: unknown) => "0")),
+    decoded.map((listing) => getPendingPaymentOf(wallet, marketHash, listing.id, currentAddress).catch((e: unknown) => { console.warn("[aa-market] getPendingPaymentOf failed for listing", listing.id, ":", e instanceof Error ? e.message : String(e)); return "0"; })),
   );
 
   return decoded

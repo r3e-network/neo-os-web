@@ -10,7 +10,7 @@
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
     :on-retry="loadListings"
-    hero-icon="🏪"
+    hero-icon="store"
     :hero-stats="heroStats"
     :overview-stats="overviewStats"
     :result-title="t('totalListings')"
@@ -192,8 +192,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { ConsoleMiniApp, HeroStatsStrip, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import {
@@ -234,7 +235,7 @@ const isWalletConnecting = ref(false);
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "aa-market-hub",
   messages,
-  tab: { key: "market", labelKey: "totalListings", icon: "🏪" },
+  tab: { key: "market", labelKey: "totalListings", icon: "store" },
   sidebarItems: [
     { labelKey: "totalListings", value: () => listings.value.length },
     { labelKey: "marketHash", value: () => marketHash.value || t("notAvailable") },
@@ -385,7 +386,8 @@ async function submitRefundSelected() {
   );
 }
 
-watch([marketHash, aaContractHash], persistConfig);
+const stopConfigWatch = watch([marketHash, aaContractHash], persistConfig);
+onUnmounted(() => stopConfigWatch());
 
 onMounted(() => {
   if (typeof window === "undefined") return;
@@ -398,9 +400,9 @@ onMounted(() => {
 });
 
 const heroStats = computed<HeroStatsStripItem[]>(() => [
-  { label: t("totalListings"), value: listings.value.length, icon: "📦" },
-  { label: t("activeListings"), value: activeListings.value, icon: "⚡" },
-  { label: t("modeLabel"), value: t("interactiveMode"), icon: "🧩" },
+  { label: t("totalListings"), value: listings.value.length, icon: "box" },
+  { label: t("activeListings"), value: activeListings.value, icon: "fuel" },
+  { label: t("modeLabel"), value: t("interactiveMode"), icon: "puzzle" },
 ]);
 
 const overviewStats = computed<StatsDisplayItem[]>(() => [
@@ -418,6 +420,11 @@ const appState = computed(() => ({
 </script>
 
 <style scoped>
+/* CSS Variables for aa-market-hub */
+.chip {
+  --market-active: #8ef0aa;
+}
+
 .summary {
   margin: 0;
   line-height: 1.6;
@@ -518,7 +525,7 @@ const appState = computed(() => ({
 
 .chip--active {
   background: rgba(34, 197, 94, 0.16);
-  color: #8ef0aa;
+  color: var(--market-active);
 }
 
 .chip--sold {

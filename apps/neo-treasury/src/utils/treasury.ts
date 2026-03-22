@@ -114,8 +114,14 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
           params,
         }),
       });
+      if (!res.ok) continue;
       const data = await res.json();
-      if (data.result) return data.result;
+      if (data.result !== undefined) return data.result;
+      if (data.error) {
+        const errMsg = data.error?.message;
+        const sanitized = typeof errMsg === "string" && errMsg.length < 100 ? errMsg : "RPC request failed";
+        throw new Error(sanitized);
+      }
     } catch (_e: unknown) {
       /* RPC endpoint unreachable — try next */
     }
@@ -126,13 +132,13 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
 // Get NEP-17 balances for an address
 async function getNep17Balances(address: string): Promise<TokenBalance> {
   const result = (await rpcCall("getnep17balances", [address])) as {
-    balance: Array<{ assethash: string; amount: string }>;
+    balance?: Array<{ assethash: string; amount: string }>;
   };
 
   let neo = 0;
   let gas = 0;
 
-  for (const b of result.balance || []) {
+  for (const b of result.balance ?? []) {
     if (b.assethash === NEO_CONTRACT) {
       neo = parseInt(b.amount) / 1; // NEO has 0 decimals
     } else if (b.assethash === GAS_CONTRACT) {
@@ -170,7 +176,8 @@ async function fetchAddressBalances(
       totalNeo += balance.neo;
       totalGas += balance.gas;
     } catch (e: unknown) {
-      wallets.push({ address, label: `${labelPrefix} Wallet ${i + 1}`, neo: 0, gas: 0 });
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      throw new Error(`Failed to fetch balance for ${address}: ${msg}`);
     }
   }
 

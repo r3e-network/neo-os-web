@@ -48,12 +48,11 @@ export async function handler(req: Request): Promise<Response> {
                 method: "POST",
                 signal: AbortSignal.timeout(10000),
                 headers: { "Content-Type": "application/json" },
-                body: config ? JSON.stringify(config) : undefined,
+                body: config ? (() => { try { return JSON.stringify(config); } catch { return "{}"; } })() : undefined,
             });
 
             if (!res.ok) {
-                const errText = await res.text();
-                return error(res.status, `Failed to ${action} simulation: ${errText}`, "UPSTREAM_ERROR", req);
+                return error(res.status, `Simulation ${action} failed`, "UPSTREAM_ERROR", req);
             }
 
             return json({ success: true }, {}, req);
@@ -61,8 +60,9 @@ export async function handler(req: Request): Promise<Response> {
 
         return error(405, "Method not allowed", "METHOD_NOT_ALLOWED", req);
     } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        return error(500, `Failed to handle simulation request: ${msg}`, "INTERNAL_ERROR", req);
+        // Log internal error for debugging, don't expose details to client
+        console.error("[admin-simulations]", err instanceof Error ? err.message : String(err));
+        return error(500, "Failed to handle simulation request", "INTERNAL_ERROR", req);
     }
 }
 

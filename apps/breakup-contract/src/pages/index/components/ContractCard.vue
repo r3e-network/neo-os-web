@@ -19,7 +19,11 @@
         </div>
         <div class="connection-line" :class="contract.status">
           <div class="heart-node">
-            <span class="heart-icon" aria-hidden="true">{{ contract.status === "broken" ? "💔" : "❤️" }}</span>
+            <AppIcon
+              :name="contract.status === 'broken' ? 'broken_heart' : 'heart'"
+              :size="12"
+              :aria-label="contract.status === 'broken' ? t('brokenHeartIcon') : t('heartIcon')"
+            />
           </div>
         </div>
         <div class="avatar partner">
@@ -82,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 import type { RelationshipContractView } from "@/types";
@@ -390,6 +394,13 @@ const { t } = createUseI18n(messages)();
   }
   100% {
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-ring,
+  .shimmer {
+    animation: none;
   }
 }
 </style>

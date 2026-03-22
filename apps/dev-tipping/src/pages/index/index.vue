@@ -15,7 +15,7 @@
     <!-- Main Tab — LEFT panel -->
     <template #content>
       <div class="hero-container">
-        <HeroSection variant="erobo" icon="☕" compact>
+        <HeroSection variant="erobo" icon="coffee" compact>
           <template #stats>
             <HeroStatsStrip :items="heroStatsItems" />
           </template>
@@ -161,6 +161,16 @@ onMounted(() => {
   }
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat {
+    animation: none;
+  }
+  :deep(.hero-icon)::before,
+  :deep(.hero-icon)::after {
+    animation: none;
   }
 }
 

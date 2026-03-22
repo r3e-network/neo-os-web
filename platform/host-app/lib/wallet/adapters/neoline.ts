@@ -90,7 +90,7 @@ export class NeoLineAdapter implements WalletAdapter {
 
       return this.instance;
     } catch (error) {
-      throw new WalletConnectionError(`Failed to initialize NeoLine: ${error}`);
+      throw new WalletConnectionError(`Failed to initialize NeoLine: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -107,7 +107,7 @@ export class NeoLineAdapter implements WalletAdapter {
         label: account.label,
       };
     } catch (error) {
-      throw new WalletConnectionError(`Failed to connect to NeoLine: ${error}`);
+      throw new WalletConnectionError(`Failed to connect to NeoLine: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

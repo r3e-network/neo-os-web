@@ -120,7 +120,8 @@ export function verifyNeoSignature(
 
     const msgHash = sha256(textEncoder.encode(message));
     return p256.verify(signature, msgHash, publicKey);
-  } catch {
+  } catch (_e: unknown) {
+    console.warn("[neo] p256 signature verification failed:", _e instanceof Error ? _e.message : String(_e));
     return false;
   }
 }

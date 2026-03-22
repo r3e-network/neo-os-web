@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ success: true, contracts });
   } catch (error) {
+    console.error("contracts POST failed:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Invalid contract data" }, { status: 400 });
   }
 }

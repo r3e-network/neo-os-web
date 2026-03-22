@@ -71,11 +71,12 @@
         </div>
 
         <div class="actions">
-          <NeoButton variant="primary" block :loading="isSigning" @click="signMessage" :disabled="!message || !address">
+          <NeoButton type="button" variant="primary" block :loading="isSigning" @click="signMessage" :disabled="!message || !address">
             {{ t("signBtn") }}
           </NeoButton>
 
           <NeoButton
+            type="button"
             variant="ghost"
             block
             :loading="isBroadcasting"
@@ -330,5 +331,19 @@ const {
 }
 .header .title {
   text-shadow: 0 0 24px rgba(30, 64, 175, 0.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container {
+    animation: none;
+  }
+
+  .pen-graphic {
+    animation: none;
+  }
+
+  .checkmark-graphic {
+    animation: none;
+  }
 }
 </style>

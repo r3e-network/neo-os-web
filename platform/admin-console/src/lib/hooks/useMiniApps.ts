@@ -181,6 +181,11 @@ export type MiniAppMediaUploadVariant = {
   locale?: string;
 };
 
+export type MediaUploadOptions = {
+  variant?: MiniAppMediaUploadVariant;
+  applyAsPrimary?: boolean;
+};
+
 export type MiniAppMediaUploadUrlResult = {
   success: boolean;
   upload_url: string;
@@ -311,7 +316,7 @@ export function useUpdateMiniAppStatus() {
         signal: AbortSignal.timeout(15000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } | null;
 
@@ -342,14 +347,14 @@ export function useCreateMiniApp() {
       const response = await fetch("/api/miniapps/create", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
-        body: JSON.stringify(payload),
+        body: (() => { try { return JSON.stringify(payload); } catch { throw new Error("Invalid form data"); } })(),
         signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: { message: "Create failed" } }));
+        const err = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] create failed, could not parse error response:", e instanceof Error ? e.message : String(e)); return { error: { message: "Create failed" } }; });
         throw new Error(err?.error?.message || err?.error || "Failed to create MiniApp");
       }
-      const data = await response.json().catch(() => null) as {
+      const data = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] create success but could not parse response JSON:", e instanceof Error ? e.message : String(e)); return null; }) as {
         action?: string;
       } & Record<string, unknown> | null;
 
@@ -383,7 +388,7 @@ export function useDeleteMiniApp() {
         signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: { message: "Disable failed" } }));
+        const err = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] disable failed, could not parse error response:", e instanceof Error ? e.message : String(e)); return { error: { message: "Disable failed" } }; });
         throw new Error(err?.error?.message || err?.error || "Failed to disable MiniApp");
       }
       return response.json();
@@ -411,11 +416,11 @@ export function useUpdateMiniApp() {
       const response = await fetch(`/api/miniapps/${encodeURIComponent(appId)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
-        body: JSON.stringify(payload),
+        body: (() => { try { return JSON.stringify(payload); } catch { throw new Error("Invalid form data"); } })(),
         signal: AbortSignal.timeout(15000),
       });
       if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: { message: "Update failed" } }));
+        const err = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] update failed, could not parse error response:", e instanceof Error ? e.message : String(e)); return { error: { message: "Update failed" } }; });
         throw new Error(err?.error?.message || err?.error || "Failed to update MiniApp");
       }
       return response.json();
@@ -441,7 +446,7 @@ export function useImportMiniAppDefinitions() {
         signal: AbortSignal.timeout(30000),
       });
 
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
         error?: string;
       } & Partial<MiniAppDefinitionImportResult> | null;
 
@@ -482,7 +487,7 @@ export function useImportMiniAppBatch() {
         signal: AbortSignal.timeout(60000),
       });
 
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
         error?: string;
       } & Partial<MiniAppBatchImportResult> | null;
 
@@ -521,7 +526,7 @@ export function useRollbackMiniAppBatchImport() {
         signal: AbortSignal.timeout(60000),
       });
 
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
         error?: string;
       } & Partial<MiniAppBatchRollbackResult> | null;
 
@@ -560,7 +565,7 @@ export function useCreateMiniAppMediaUploadUrl() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = (await response.json().catch(() => null)) as {
+      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
         error?: string;
       } & Partial<MiniAppMediaUploadUrlResult> | null;
 
@@ -604,7 +609,7 @@ export function useMiniAppVersions(
         signal: AbortSignal.timeout(15000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<MiniAppVersionListResult> | null;
 
@@ -648,7 +653,7 @@ export function useRollbackMiniAppVersion() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<MiniAppRollbackResult> | null;
 
@@ -696,7 +701,7 @@ export function useMiniAppPublishRequests(
         signal: AbortSignal.timeout(15000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<MiniAppPublishRequestListResult> | null;
 
@@ -737,7 +742,7 @@ export function useReviewMiniAppPublishRequest() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } | null;
 
@@ -772,7 +777,7 @@ export function useTriggerPublishReminders() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<MiniAppPublishReminderResult> | null;
 
@@ -812,7 +817,7 @@ export function useVerifyPublishAuditChain() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<MiniAppPublishAuditVerifyResult> | null;
 
@@ -872,7 +877,7 @@ export function useTemplateMarketTemplates(
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<TemplateMarketTemplateListResult> | null;
 
@@ -915,7 +920,7 @@ export function useTemplateMarketRequests(
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } & Partial<TemplateMarketRequestListResult> | null;
 
@@ -963,7 +968,7 @@ export function useUpsertTemplateMarketEntry() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
         template?: TemplateCatalogItem;
         request?: TemplatePublishRequestRow;
@@ -1003,7 +1008,7 @@ export function useReviewTemplateMarketRequest() {
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = await response.json().catch(() => null) as {
+      const payload = await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; }) as {
         error?: string;
       } | null;
 

@@ -2,7 +2,7 @@
   <NeoCard variant="erobo" class="template-list">
     <div class="templates-header">
       <span class="section-title">{{ t("yourTemplates") }}</span>
-      <NeoButton size="sm" variant="secondary" :loading="refreshing" @click="$emit('refresh')">
+      <NeoButton size="sm" variant="secondary" type="button" :loading="refreshing" :aria-label="t('refresh')" @click="$emit('refresh')">
         {{ t("refresh") }}
       </NeoButton>
     </div>
@@ -10,7 +10,7 @@
     <div v-if="!hasAddress" class="empty-state">
       <NeoCard variant="erobo" class="p-6 text-center">
         <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
-        <NeoButton size="sm" variant="primary" @click="$emit('connect')">
+        <NeoButton size="sm" variant="primary" type="button" :aria-label="t('connectWallet')" @click="$emit('connect')">
           {{ t("connectWallet") }}
         </NeoButton>
       </NeoCard>

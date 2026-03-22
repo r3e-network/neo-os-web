@@ -12,8 +12,8 @@
         <div class="domain-status-indicator active"></div>
       </div>
       <div class="domain-actions flex gap-2">
-        <NeoButton size="sm" variant="secondary" @click="$emit('manage', domain)">{{ t("manage") }}</NeoButton>
-        <NeoButton size="sm" variant="primary" @click="$emit('renew', domain)">{{ t("renew") }}</NeoButton>
+        <NeoButton type="button" size="sm" variant="secondary" @click="$emit('manage', domain)">{{ t("manage") }}</NeoButton>
+        <NeoButton type="button" size="sm" variant="primary" @click="$emit('renew', domain)">{{ t("renew") }}</NeoButton>
       </div>
     </div>
   </NeoCard>

@@ -42,7 +42,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         html: options.html,
       });
       if (error) {
-        throw new Error(error.message);
+        throw new Error(`sendEmailViaSendGrid: failed to send email to ${options.to} — ${error instanceof Error ? error.message : String(error)}`);
       }
       return true;
     }

@@ -50,12 +50,12 @@ export async function fetchOraclePublicKey(networkInput?: string | null): Promis
   const rpcUrl = integration.rpcUrl;
 
   const [algorithm, publicKey] = await Promise.all([
-    invokeReadString(rpcUrl, contract, "oracleEncryptionAlgorithm").catch(() => "X25519-HKDF-SHA256-AES-256-GCM"),
+    invokeReadString(rpcUrl, contract, "oracleEncryptionAlgorithm").catch((e: unknown) => { console.warn("[morpheus-oracle] failed to read encryption algorithm, using default:", e instanceof Error ? e.message : String(e)); return "X25519-HKDF-SHA256-AES-256-GCM"; }),
     invokeReadString(rpcUrl, contract, "oracleEncryptionPublicKey"),
   ]);
 
   if (!publicKey) {
-    throw new Error("Oracle encryption public key is empty");
+    throw new Error(`Oracle encryption public key is empty for contract="${contract}" on network="${network}"`);
   }
 
   return {

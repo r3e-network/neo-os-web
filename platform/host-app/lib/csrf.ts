@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
+import { apiError } from "./api-response";
 
 const CSRF_TOKEN_LENGTH = 32;
 const CSRF_HEADER = "x-csrf-token";
@@ -43,7 +44,7 @@ export function withCsrfProtection(handler: (req: NextApiRequest, res: NextApiRe
   return async (req: NextApiRequest, res: NextApiResponse) => {
     // Validate CSRF token
     if (!validateCsrfToken(req)) {
-      return res.status(403).json({ error: "Invalid CSRF token" });
+      return apiError.forbidden(res, "Invalid CSRF token");
     }
 
     return handler(req, res);

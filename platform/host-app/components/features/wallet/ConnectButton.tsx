@@ -108,8 +108,9 @@ export function ConnectButton() {
         walletType: "external",
         loading: false,
       });
-    } catch (e: any) {
-      useAuthStore.setState({ loading: false, error: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : typeof e === "string" ? e : "Connection failed";
+      useAuthStore.setState({ loading: false, error: message });
     }
   };
 
@@ -127,8 +128,20 @@ export function ConnectButton() {
       {/* Polymarket-style Global Login Modal */}
       {showConnectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowConnectModal(false)} />
-          <div className="relative w-full max-w-[440px] rounded-3xl bg-white dark:bg-[#12131C] border border-gray-200 dark:border-white/10 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowConnectModal(false)}
+            onKeyDown={(e) => e.key === "Escape" && setShowConnectModal(false)}
+            role="button"
+            tabIndex={0}
+            aria-label="Close modal"
+          />
+          <div
+            className="relative w-full max-w-[440px] rounded-3xl bg-white dark:bg-[#12131C] border border-gray-200 dark:border-white/10 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Connect wallet"
+          >
             <button
               onClick={() => setShowConnectModal(false)}
               aria-label="Close login modal"

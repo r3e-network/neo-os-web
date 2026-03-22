@@ -25,7 +25,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const sanitizedEmail = sanitizeInput(email).toLowerCase();
   const sanitizedWallet = sanitizeInput(wallet);
 
-  const authedWallet = await requireWalletAuth(req, res);
+  let authedWallet: string | null;
+  try {
+    authedWallet = await requireWalletAuth(req, res);
+  } catch (err) {
+    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    return apiError.internal(res, "Authentication failed");
+  }
   if (!authedWallet) return;
   if (sanitizedWallet !== authedWallet) {
     return apiError.forbidden(res, "Wallet mismatch");

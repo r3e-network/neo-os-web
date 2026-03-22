@@ -1,5 +1,7 @@
 #!/bin/bash
-cd contracts
+set -euo pipefail
+
+cd "$(dirname "$0")/contracts"
 
 KEEP=(
   "AppRegistry"

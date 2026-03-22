@@ -14,7 +14,7 @@
   >
     <template #content>
       <div class="hero-container">
-        <HeroSection variant="erobo-neo" icon="🔒" compact>
+        <HeroSection variant="erobo-neo" icon="locked" compact>
           <template #background>
             <div class="capsule-scene" aria-hidden="true">
               <div class="capsule-graphic">
@@ -82,12 +82,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { useTicker } from "@shared/composables/useTicker";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useCapsuleCreation } from "@/composables/useCapsuleCreation";
 import { useCapsuleUnlock } from "@/composables/useCapsuleUnlock";
@@ -108,8 +109,8 @@ const {
   messages,
   template: {
     tabs: [
-      { key: "capsules", labelKey: "tabCapsules", icon: "🔒", default: true },
-      { key: "create", labelKey: "tabCreate", icon: "➕" },
+      { key: "capsules", labelKey: "tabCapsules", icon: "locked", default: true },
+      { key: "create", labelKey: "tabCreate", icon: "plus" },
     ],
     docFeatureCount: 3,
   },
@@ -140,26 +141,34 @@ const countdownTicker = useTicker(() => {
   currentTime.value = Date.now();
 }, 1000);
 
+const isMounted = ref(true);
+
 onMounted(() => {
   countdownTicker.start();
 });
 
-watch(
+const stopAddressWatch = watch(
   address,
   () => {
+    if (!isMounted.value) return;
     loadData();
   },
   { immediate: true },
 );
 
+onUnmounted(() => {
+  isMounted.value = false;
+  stopAddressWatch();
+});
+
 const loadData = async () => {
+  if (!isMounted.value) return;
   if (!address.value) return;
   isLoadingData.value = true;
   try {
     capsules.value = await loadCapsules();
   } catch (_e: unknown) {
-    // non-critical: capsule data fetch — capsules remain at last known state (or empty initial)
-    capsules.value = capsules.value;
+    console.warn("[time-capsule] capsule data fetch failed:", _e instanceof Error ? _e.message : String(_e));
   } finally {
     isLoadingData.value = false;
   }
@@ -320,6 +329,13 @@ const resetAndReload = async () => {
   100% {
     transform: translate(-50%, -50%) rotate(360deg) scale(1);
     opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule-glow,
+  .hero-stat-value {
+    animation: none;
   }
 }
 

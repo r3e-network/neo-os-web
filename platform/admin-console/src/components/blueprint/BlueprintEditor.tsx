@@ -206,6 +206,8 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
                 />
                 <select
                   value={tab.type}
+                  aria-label="Tab type"
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TAB_TYPES values are string literals from the union
                   onChange={(e) => updateTab(i, { type: e.target.value as any })}
                   className="rounded-md border border-gray-300 dark:border-gray-600 px-2 text-sm"
                 >
@@ -251,10 +253,11 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="panel-position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Panel Position
             </label>
             <select
+              id="panel-position"
               value={config.operation_panel?.position || "right"}
               onChange={(e) => updateOpPanel({ position: e.target.value as "right" | "bottom" })}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2"
@@ -265,12 +268,13 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
           </div>
           <div className="flex items-center gap-2 pt-6">
             <input
+              id="panel-collapsible"
               type="checkbox"
               checked={config.operation_panel?.collapsible || false}
               onChange={(e) => updateOpPanel({ collapsible: e.target.checked })}
               className="rounded"
             />
-            <label className="text-sm">Collapsible</label>
+            <label htmlFor="panel-collapsible" className="text-sm">Collapsible</label>
           </div>
         </div>
       )}

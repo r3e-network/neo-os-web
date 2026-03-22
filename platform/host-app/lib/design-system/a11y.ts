@@ -88,7 +88,7 @@ export function useFocusTrap(options: FocusTrapOptions) {
     const firstFocusable = containerRef.current?.querySelector(initialFocus) || 
       focusableElements?.[0] as HTMLElement;
 
-    setTimeout(() => (firstFocusable as HTMLElement | undefined)?.focus(), 0);
+    const focusTimer = setTimeout(() => (firstFocusable as HTMLElement | undefined)?.focus(), 0);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
@@ -111,6 +111,7 @@ export function useFocusTrap(options: FocusTrapOptions) {
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      clearTimeout(focusTimer);
       document.removeEventListener("keydown", handleKeyDown);
       if (returnFocus && previousActiveElement.current) {
         previousActiveElement.current.focus();
@@ -237,12 +238,24 @@ export interface LiveRegionConfig {
 export function useLiveAnnouncement() {
   const [announcement, setAnnouncement] = useState("");
   const [priority, setPriority] = useState<"polite" | "assertive">("polite");
+  const announceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const announce = useCallback((message: string, priority: "polite" | "assertive" = "polite") => {
-    setPriority(priority);
+  useEffect(() => {
+    return () => {
+      if (announceTimerRef.current) {
+        clearTimeout(announceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const announce = useCallback((message: string, newPriority: "polite" | "assertive" = "polite") => {
+    setPriority(newPriority);
     // Clear and reset to trigger re-announcement
     setAnnouncement("");
-    setTimeout(() => setAnnouncement(message), 50);
+    if (announceTimerRef.current) {
+      clearTimeout(announceTimerRef.current);
+    }
+    announceTimerRef.current = setTimeout(() => setAnnouncement(message), 50);
   }, []);
 
   const clear = useCallback(() => {

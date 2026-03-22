@@ -7,6 +7,10 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .neo-stat-icon {
@@ -17,10 +21,10 @@
 .neo-stat-value {
   font-size: 1.8em;
   font-weight: bold;
-  color: #00d9ff;
+  color: var(--accent-primary, #00d9ff);
 }
 
 .neo-stat-label {
   font-size: 0.85em;
-  color: #888;
+  color: var(--text-secondary, #888);
 }

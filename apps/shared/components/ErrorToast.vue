@@ -7,7 +7,7 @@
         role="alert"
       >
         <div class="error-toast__content">
-          <span class="error-toast__icon">{{ iconMap[type] }}</span>
+          <span class="error-toast__icon" aria-hidden="true">{{ iconMap[type] }}</span>
           <span class="error-toast__message">{{ message }}</span>
         </div>
         <button type="button" class="error-toast__close" :aria-label="t('close')" @click="$emit('close')">×</button>
@@ -62,7 +62,7 @@ const clearTimer = () => {
   }
 };
 
-watch(
+const stopShowWatch = watch(
   () => props.show,
   (visible) => {
     clearTimer();
@@ -73,7 +73,10 @@ watch(
   { immediate: true }
 );
 
-onBeforeUnmount(clearTimer);
+onBeforeUnmount(() => {
+  stopShowWatch();
+  clearTimer();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -101,42 +104,42 @@ onBeforeUnmount(clearTimer);
   &--error {
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.3);
-    --toast-color: #fca5a5;
+    --toast-color: var(--accent-error, #ef4444);
     color: var(--toast-color);
   }
 
   &--success {
     background: rgba(16, 185, 129, 0.15);
     border: 1px solid rgba(16, 185, 129, 0.3);
-    --toast-color: #6ee7b7;
+    --toast-color: var(--accent-success, #10b981);
     color: var(--toast-color);
   }
 
   &--warning {
     background: rgba(245, 158, 11, 0.15);
     border: 1px solid rgba(245, 158, 11, 0.3);
-    --toast-color: #fcd34d;
+    --toast-color: var(--accent-warning, #f59e0b);
     color: var(--toast-color);
   }
 
   &--info {
     background: rgba(59, 130, 246, 0.15);
     border: 1px solid rgba(59, 130, 246, 0.3);
-    --toast-color: #60a5fa;
+    --toast-color: var(--accent-info, #3b82f6);
     color: var(--toast-color);
   }
 
   &--danger {
     background: rgba(220, 38, 38, 0.15);
     border: 1px solid rgba(220, 38, 38, 0.3);
-    --toast-color: #f87171;
+    --toast-color: var(--accent-error, #ef4444);
     color: var(--toast-color);
   }
 
   &--loading {
     background: rgba(75, 85, 99, 0.15);
     border: 1px solid rgba(75, 85, 99, 0.3);
-    --toast-color: #9ca3af;
+    --toast-color: var(--text-secondary, #9ca3af);
     color: var(--toast-color);
   }
 

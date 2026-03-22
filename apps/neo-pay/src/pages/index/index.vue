@@ -40,7 +40,7 @@
         <!-- Stats Row -->
         <div class="hero-stream-stats">
           <div class="stream-stat">
-            <span class="stream-stat-icon" aria-hidden="true">📤</span>
+            <AppIcon name="upload" :size="20" class="stream-stat-icon" />
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ createdStreams.length }}</span>
               <span class="stream-stat-label">{{ t("myCreated") }}</span>
@@ -48,7 +48,7 @@
           </div>
           <div class="stream-stat-divider" />
           <div class="stream-stat">
-            <span class="stream-stat-icon" aria-hidden="true">📥</span>
+            <AppIcon name="download" :size="20" class="stream-stat-icon" />
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ beneficiaryStreams.length }}</span>
               <span class="stream-stat-label">{{ t("beneficiaryVaults") }}</span>
@@ -122,9 +122,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, NeoCard, NeoButton } from "@shared/components";
+import AppIcon from "@shared/components/AppIcon.vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import StreamList from "@/components/StreamList.vue";
 import StreamCreateForm from "@/components/StreamCreateForm.vue";
@@ -172,11 +173,13 @@ onMounted(() => {
   }
 });
 
-watch(activeTab, (next) => {
+const stopActiveTabWatch = watch(activeTab, (next) => {
   if (next === "vaults" && address.value) {
     refreshStreams();
   }
 });
+
+onUnmounted(() => stopActiveTabWatch());
 </script>
 
 <style lang="scss" scoped>
@@ -255,7 +258,7 @@ watch(activeTab, (next) => {
   transition: all 0.3s ease;
 
   .active & {
-    background: #818cf8;
+    background: var(--stream-accent-glow);
     border-color: rgba(129, 140, 248, 0.5);
     box-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
   }
@@ -355,7 +358,7 @@ watch(activeTab, (next) => {
 
   &.live {
     border-color: rgba(52, 211, 153, 0.3);
-    color: #34d399;
+    color: var(--stream-success-light);
   }
 }
 
@@ -366,7 +369,7 @@ watch(activeTab, (next) => {
   background: rgba(255, 255, 255, 0.2);
 
   .live & {
-    background: #34d399;
+    background: var(--stream-success-light);
     box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
     animation: dot-blink 2s ease-in-out infinite;
   }
@@ -444,6 +447,15 @@ watch(activeTab, (next) => {
   }
   50% {
     opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-flow,
+  .node-pulse,
+  .particle,
+  .live .active-dot {
+    animation: none;
   }
 }
 

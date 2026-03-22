@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const walletStore = useWalletStore.getState();
       await walletStore.connect(provider);
       const { address, publicKey } = useWalletStore.getState();
-      if (!address) throw new Error("wallet connection failed");
+      if (!address) throw new Error("loginWallet: wallet connection failed — address is empty after connect()");
 
       const edgeBaseUrl = getAuthEdgeBaseUrl();
 
@@ -59,11 +59,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         body: JSON.stringify({ address }),
         signal: AbortSignal.timeout(10000),
       });
-      if (!nonceResp.ok) throw new Error("failed to get nonce");
+      if (!nonceResp.ok) throw new Error(`loginWallet: failed to get nonce (status=${nonceResp.status})`);
       const { nonce, message } = await nonceResp.json();
 
       const adapter = (await import("@/lib/wallet/store")).getWalletAdapter();
-      if (!adapter) throw new Error("no wallet adapter");
+      if (!adapter) throw new Error("loginWallet: no wallet adapter available");
       const signResult = await adapter.signMessage(message);
 
       const authResp = await fetch(`${edgeBaseUrl}/auth-wallet`, {
@@ -78,7 +78,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         }),
         signal: AbortSignal.timeout(10000),
       });
-      if (!authResp.ok) throw new Error("authentication failed");
+      if (!authResp.ok) throw new Error(`loginWallet: authentication failed (status=${authResp.status})`);
       const { access_token, user } = await authResp.json();
 
       sessionStorage.setItem("sb-access-token", access_token);
@@ -99,7 +99,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     const { method } = get();
     useWalletStore.getState().disconnect();
     sessionStorage.removeItem("sb-access-token");
-    try { localStorage.removeItem("neo_miniapp_auth_jwt"); } catch { /* SSR guard */ }
+    try { localStorage.removeItem("neo_miniapp_auth_jwt"); } catch (e) { console.warn("[auth] localStorage removal failed (SSR?):", e instanceof Error ? e.message : String(e)); }
     set({
       authenticated: false,
       userId: "",

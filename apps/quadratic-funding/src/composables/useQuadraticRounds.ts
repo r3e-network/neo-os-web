@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -383,7 +383,7 @@ export function useQuadraticRounds() {
     if (!startTime || !endTime) return t("dateUnknown");
     const start = new Date(startTime * 1000);
     const end = new Date(endTime * 1000);
-    return `${new Intl.DateTimeFormat("en").format(start)} - ${new Intl.DateTimeFormat("en").format(end)}`;
+    return `${new Intl.DateTimeFormat(undefined).format(start)} - ${new Intl.DateTimeFormat(undefined).format(end)}`;
   };
 
   const formatAmount = (assetSymbol: string, amount: bigint) => {
@@ -395,7 +395,9 @@ export function useQuadraticRounds() {
     return normalized ? `${intPart}.${normalized}` : intPart;
   };
 
-  watch(address, async (newAddr) => {
+  const mountedRef = ref(true);
+  const stopAddressWatch = watch(address, async (newAddr) => {
+    if (!mountedRef.value) return;
     if (newAddr) {
       try {
         await refreshRounds();
@@ -404,6 +406,8 @@ export function useQuadraticRounds() {
       }
     }
   });
+
+  onUnmounted(() => { mountedRef.value = false; stopAddressWatch(); });
 
   return {
     rounds,

@@ -146,6 +146,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
       await Promise.all([loadMyStake(), loadPendingRewards(), loadPendingWithdraw(), loadStats()]);
     } finally {
       isLoading.value = false;
+      clearError();
     }
   };
 

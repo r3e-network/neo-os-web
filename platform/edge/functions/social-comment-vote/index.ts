@@ -66,8 +66,10 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "failed to record vote", "DB_ERROR", req);
   }
 
-  // Log spam action
-  await logSpamAction(supabase, userId, "vote");
+  // Log spam action (non-critical, best-effort)
+  await logSpamAction(supabase, userId, "vote").catch((e) => {
+    console.warn("[social-comment-vote] logSpamAction failed:", e instanceof Error ? e.message : String(e));
+  });
 
   // Get updated counts
   const { count: upvotes } = await supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "upvote");

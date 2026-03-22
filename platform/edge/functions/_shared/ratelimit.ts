@@ -85,7 +85,7 @@ async function bump(identifier: string, identifierType: string, windowSeconds: n
     p_window_seconds: windowSeconds,
   });
   if (error) {
-    throw new Error(error.message);
+    throw new Error(error instanceof Error ? error.message : (error?.message || "rate limit check failed"));
   }
   const row: RateLimitBumpResponse | null = Array.isArray(data) ? data[0] : data;
   return {
@@ -118,6 +118,7 @@ export async function requireRateLimit(req: Request, endpoint: string, auth?: Au
   } catch (e) {
     // In local dev, do not hard-fail on missing DB/RPC plumbing.
     if (!isProductionEnv()) return null;
+    console.error("[ratelimit] rate limit bump failed in production:", e instanceof Error ? e.message : String(e));
     return json({ error: { code: "RATE_LIMIT_UNAVAILABLE", message: "rate limit service unavailable" } }, { status: 503 }, req);
   }
 

@@ -91,7 +91,8 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
           .order("step_index")
           .limit(500);
         return data || [];
-      } catch {
+      } catch (err) {
+        console.warn("[explorer-search] opcode traces query failed:", err instanceof Error ? err.message : String(err));
         return [];
       }
     })(),
@@ -104,7 +105,8 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
           .order("call_index")
           .limit(200);
         return data || [];
-      } catch {
+      } catch (err) {
+        console.warn("[explorer-search] contract calls query failed:", err instanceof Error ? err.message : String(err));
         return [];
       }
     })(),
@@ -117,7 +119,8 @@ async function searchTransaction(supabase: SupabaseClient, hash: string) {
           .order("call_index")
           .limit(200);
         return data || [];
-      } catch {
+      } catch (err) {
+        console.warn("[explorer-search] syscalls query failed:", err instanceof Error ? err.message : String(err));
         return [];
       }
     })(),

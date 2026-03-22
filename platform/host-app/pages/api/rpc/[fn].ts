@@ -40,7 +40,9 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries: num
     }
   }
 
-  throw lastError;
+  throw lastError
+    ? new Error(`fetchWithRetry(${url}) failed after ${maxRetries} retries: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
+    : new Error(`fetchWithRetry(${url}) failed after ${maxRetries} retries: unknown error`);
 }
 
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
@@ -83,7 +85,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return;
   }
 
-  const url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  let url: URL;
+  try {
+    url = new URL(`${base}/${encodeURIComponent(fn)}`);
+  } catch {
+    apiError.internal(res, "Invalid EDGE_BASE_URL configuration");
+    return;
+  }
+
   for (const [key, value] of Object.entries(req.query)) {
     if (key === "fn") continue;
     if (Array.isArray(value)) {
@@ -119,10 +128,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (buf.length > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
-    res.send(buf);
+    return res.send(buf);
   } catch (err) {
     logger.error("RPC upstream error:", err instanceof Error ? err.message : "unknown error");
-    apiError.gatewayTimeout(res, "Upstream request failed");
+    return apiError.gatewayTimeout(res, "Upstream request failed");
   }
 }
 

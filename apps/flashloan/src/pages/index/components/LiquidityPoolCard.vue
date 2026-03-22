@@ -6,7 +6,7 @@
         <span class="live-text">{{ t("live") }}</span>
       </div>
       <span class="card-title">{{ t("poolBalance") }}</span>
-      <div class="lightning-badge lightning-badge--sm" aria-hidden="true">⚡</div>
+      <AppIcon name="fuel" :size="12" class="lightning-badge lightning-badge--sm" />
     </div>
 
     <div class="liquidity-item">
@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { NeoCard } from "@shared/components";
+import { NeoCard, AppIcon } from "@shared/components"; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 import { formatNumber } from "@shared/utils/format";

@@ -128,7 +128,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
     .in("app_id", appIds);
 
   if (err || !data) {
-    console.warn("miniapp-stats: failed to load miniapp metadata", err?.message ?? "unknown error");
+    console.warn("miniapp-stats: failed to load miniapp metadata", err instanceof Error ? err.message : (err?.message ?? "unknown error"));
     return {};
   }
 
@@ -148,7 +148,12 @@ export async function handler(req: Request): Promise<Response> {
   const rateLimited = await requireRateLimit(req, "miniapp-stats");
   if (rateLimited) return rateLimited;
 
-  const url = new URL(req.url);
+  let url: URL;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return error(400, "invalid request url", "INVALID_URL", req);
+  }
   const appId = url.searchParams.get("app_id");
 
   const supabase = supabaseClient();

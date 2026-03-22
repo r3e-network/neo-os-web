@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, Copy } from "lucide-react";
 
 type CodeBlockProps = {
@@ -10,11 +10,23 @@ type CodeBlockProps = {
 
 export function CodeBlock({ code, language = "bash" }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    navigator.clipboard.writeText(code).catch((e: unknown) => { console.warn("[CodeBlock] clipboard write failed:", e instanceof Error ? e.message : String(e)); });
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    timeoutRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   return (

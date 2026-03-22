@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { buildEdgeUrl, forwardAuthHeaders } from "../../../../lib/edge";
 import { apiError } from "../../../../lib/api-response";
 import { relaxedLimit } from "../../../../lib/rate-limit";
+import { logger } from "../../../../lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -38,8 +39,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!upstream.ok) {
       return apiError.internal(res, "Upstream request failed");
     }
-    res.status(upstream.status).json(payload);
-  } catch {
+    return res.status(upstream.status).json(payload);
+  } catch (err) {
+    logger.warn("Failed to fetch news:", err instanceof Error ? err.message : "unknown error");
     return apiError.internal(res, "Failed to fetch news");
   }
 }

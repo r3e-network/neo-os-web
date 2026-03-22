@@ -198,6 +198,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
         approval_required: true,
       });
     } catch (error) {
+      logger.error("template-market upsert failed:", error instanceof Error ? error.message : "unknown error");
       const message = error instanceof Error ? error.message : "Failed to upsert template";
       return apiError.badRequest(res, message);
     }

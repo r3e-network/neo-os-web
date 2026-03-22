@@ -1,5 +1,5 @@
 import Head from "next/head";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Layout, PageHero } from "@/components/layout";
 import { IconFeatureGrid } from "@/components/content";
 import {
@@ -159,6 +159,15 @@ export default function DeveloperPage() {
   const [marketSource, setMarketSource] = useState<"all" | MarketTemplateSource>("all");
   const [marketVerified, setMarketVerified] = useState<"all" | "true">("all");
   const [marketSearch, setMarketSearch] = useState("");
+  const mountedRef = useRef(true);
+  const hideFormTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (hideFormTimeoutRef.current) clearTimeout(hideFormTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -166,7 +175,7 @@ export default function DeveloperPage() {
         const res = await fetch("/api/miniapps/admin/template-catalog", { signal: AbortSignal.timeout(10000) });
         if (!res.ok) return;
         const data = (await res.json()) as AdminTemplateCatalog;
-        setCatalog(data);
+        if (mountedRef.current) setCatalog(data);
       } catch (error) {
         logger.debug("template catalog unavailable", error);
       }
@@ -192,7 +201,7 @@ export default function DeveloperPage() {
         const res = await fetch(`/api/miniapps/template-market?${params.toString()}`, {
           signal: AbortSignal.timeout(12000),
         });
-        const payload = await res.json().catch(() => ({}));
+        const payload = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse marketplace template response:", e instanceof Error ? e.message : String(e)); return ({}); });
         if (!res.ok) {
           if (!cancelled) {
             setMarketTemplates([]);
@@ -374,7 +383,12 @@ export default function DeveloperPage() {
 
   const syncDefinitionText = (mode: "json" | "yaml", payload: Record<string, unknown>) => {
     if (mode === "json") {
-      setDefinitionText(JSON.stringify(payload, null, 2));
+      try {
+        setDefinitionText(JSON.stringify(payload, null, 2));
+      } catch (err) {
+        logger.warn("Failed to serialize definition payload", err instanceof Error ? err.message : String(err));
+        setDefinitionText("");
+      }
       return;
     }
     setDefinitionText(yaml.dump(payload, { noRefs: true, lineWidth: 120 }));
@@ -416,7 +430,7 @@ export default function DeveloperPage() {
         body: JSON.stringify({ content: definitionText }),
         signal: AbortSignal.timeout(30000),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse schema preview response:", e instanceof Error ? e.message : String(e)); return ({}); });
       if (!res.ok) {
         setPreviewResult({ ok: false, message: asErrorMessage(data, "Preview failed") });
         return;
@@ -445,7 +459,7 @@ export default function DeveloperPage() {
         body: JSON.stringify({ content: definitionPayloadText }),
         signal: AbortSignal.timeout(30000),
       });
-      const previewData = await previewRes.json().catch(() => ({}));
+      const previewData = await previewRes.json().catch((e: unknown) => { console.warn("[developer] failed to parse definition preview response:", e instanceof Error ? e.message : String(e)); return ({}); });
       if (!previewRes.ok) {
         setResult({ success: false, message: asErrorMessage(previewData, "Definition preview failed") });
         return;
@@ -479,14 +493,15 @@ export default function DeveloperPage() {
         body: JSON.stringify(upsertBody),
         signal: AbortSignal.timeout(30000),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse save draft response:", e instanceof Error ? e.message : String(e)); return ({}); });
 
       if (res.ok) {
         setResult({ success: true, message: `MiniApp definition for "${form.name}" saved as draft.` });
         setForm(initialForm);
         setDefinitionText("");
         setPreviewResult(null);
-        setTimeout(() => setShowForm(false), 1500);
+        if (hideFormTimeoutRef.current) clearTimeout(hideFormTimeoutRef.current);
+        hideFormTimeoutRef.current = setTimeout(() => { if (mountedRef.current) setShowForm(false); }, 1500);
       } else {
         setResult({ success: false, message: asErrorMessage(data, "Save draft failed") });
       }
@@ -677,6 +692,10 @@ export default function DeveloperPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowForm(false)}
+              onKeyDown={(e) => e.key === "Escape" && setShowForm(false)}
+              role="button"
+              tabIndex={0}
+              aria-label="Close dialog"
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             />
 

@@ -21,7 +21,7 @@
           <span class="hero-title">{{ t("title") }}</span>
           <span class="hero-subtitle">{{ t("heroSubtitle") }}</span>
         </div>
-        <span class="hero-icon" aria-hidden="true">💊</span>
+        <AppIcon name="pill" :size="40" class="hero-icon" />
       </NeoCard>
 
       <div v-if="isLoading" class="loading-state">
@@ -41,7 +41,7 @@
               @select="$emit('select-machine', machine)"
             />
           </div>
-          <NeoButton size="sm" variant="secondary" @click="$emit('browse-all')">
+          <NeoButton size="sm" variant="secondary" type="button" :aria-label="t('browseAll')" @click="$emit('browse-all')">
             {{ t("browseAll") }}
           </NeoButton>
         </NeoCard>
@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { NeoCard, NeoButton } from "@shared/components";
+import { NeoCard, NeoButton, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { formatGas } from "@shared/utils/format";
@@ -226,6 +226,12 @@ const forSaleMachines = computed(() =>
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-icon {
+    animation: none;
   }
 }
 

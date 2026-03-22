@@ -5,13 +5,23 @@ import { ContentBlocksEditor } from "../CreateFormSubEditors";
 
 type FrontendSpecFormat = "markdown" | "yaml" | "json";
 
+type ContentBlock = {
+  type: string;
+  title?: string;
+  content?: string;
+  items?: string[];
+  tone?: string;
+  entries?: Array<{ key: string; value: string }>;
+  links?: Array<{ label: string; href: string }>;
+};
+
 type Props = {
-  form: any;
+  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional string/boolean fields
   update: (key: string, value: string | boolean) => void;
-  dtTabs: Array<{ id: string; label: string; type: string; blocks?: any[] }>;
+  dtTabs: Array<{ id: string; label: string; type: string; blocks?: ContentBlock[] }>;
   dtHero: Record<string, string>;
   dtOp: Record<string, string>;
-  updateDT: (updates: any) => void;
+  updateDT: (updates: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 export function LayoutTab({
@@ -40,8 +50,8 @@ export function LayoutTab({
         {dtTabs.map((t, i) => (
           <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
             <div className="flex gap-2 items-center">
-              <Input placeholder="ID" value={t.id} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], id: e.target.value }; updateDT({ tabs: next }); }} />
-              <Input placeholder="Label" value={t.label} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], label: e.target.value }; updateDT({ tabs: next }); }} />
+              <Input placeholder="ID" value={t.id} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], id: e.target.value }; updateDT({ tabs: next }); }} aria-label="Tab ID" />
+              <Input placeholder="Label" value={t.label} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], label: e.target.value }; updateDT({ tabs: next }); }} aria-label="Tab label" />
               <select className="rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer dark:bg-gray-800 dark:text-gray-100 w-32 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={t.type} onChange={e => { const next = [...dtTabs]; next[i] = { ...next[i], type: e.target.value }; updateDT({ tabs: next }); }} aria-label="Tab type">
                 {["content","reviews","forum","news","secrets"].map(v => <option key={v} value={v}>{v}</option>)}
               </select>
@@ -99,8 +109,9 @@ export function LayoutTab({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logic JSON (Optional)</label>
+          <label htmlFor="logic-json" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Logic JSON (Optional)</label>
           <textarea
+            id="logic-json"
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={6}
             value={form.logic_json}
@@ -109,8 +120,9 @@ export function LayoutTab({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marketplace JSON (Optional)</label>
+          <label htmlFor="marketplace-json" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Marketplace JSON (Optional)</label>
           <textarea
+            id="marketplace-json"
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={6}
             value={form.marketplace_json}

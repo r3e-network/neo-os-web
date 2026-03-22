@@ -20,7 +20,16 @@ export function ExplorerSearchResults({ result }: { result: ExplorerSearchResult
 
   switch (result.type) {
     case "transaction":
-      return <TransactionResult data={result.data!} />;
+      if (!result.data) {
+        return (
+          <Card>
+            <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">
+              Transaction data unavailable
+            </CardContent>
+          </Card>
+        );
+      }
+      return <TransactionResult data={result.data} />;
     case "address":
       return <AddressResult result={result} />;
     case "contract":
@@ -135,14 +144,18 @@ function AddressResult({ result }: { result: ExplorerSearchResult }) {
       </CardHeader>
       <CardContent>
         <p className="mb-4">Total Transactions: {result.tx_count}</p>
-        <ul className="space-y-2">
-          {result.transactions?.map((tx) => (
-            <li key={tx.tx_hash} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
-              <span className="break-all font-mono text-xs">{tx.tx_hash}</span>
-              <Badge variant="outline">{tx.role}</Badge>
-            </li>
-          ))}
-        </ul>
+        {result.transactions && result.transactions.length > 0 ? (
+          <ul className="space-y-2">
+            {result.transactions.map((tx) => (
+              <li key={tx.tx_hash} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
+                <span className="break-all font-mono text-xs">{tx.tx_hash}</span>
+                <Badge variant="outline">{tx.role}</Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No transactions found</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -156,14 +169,18 @@ function ContractResult({ result }: { result: ExplorerSearchResult }) {
       </CardHeader>
       <CardContent>
         <p className="mb-4">Total Calls: {result.call_count}</p>
-        <ul className="space-y-2">
-          {result.calls?.map((call) => (
-            <li key={`${call.contract_hash}-${call.method}`} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
-              <span className="font-medium">{call.method}</span>
-              <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
-            </li>
-          ))}
-        </ul>
+        {result.calls && result.calls.length > 0 ? (
+          <ul className="space-y-2">
+            {result.calls.map((call) => (
+              <li key={`${call.contract_hash}-${call.method}`} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
+                <span className="font-medium">{call.method}</span>
+                <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No contract calls found</p>
+        )}
       </CardContent>
     </Card>
   );

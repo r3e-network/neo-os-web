@@ -23,8 +23,8 @@
             />
             <defs>
               <linearGradient id="boltGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#facc15" />
-                <stop offset="100%" stop-color="#f59e0b" />
+                <stop offset="0%" stop-color="var(--flash-accent-yellow, #facc15)" />
+                <stop offset="100%" stop-color="var(--flash-pending, #f59e0b)" />
               </linearGradient>
             </defs>
           </svg>
@@ -34,7 +34,7 @@
         <div class="hero-stats-row">
           <div class="hero-stat">
             <span class="hero-stat-label">{{ t("sidebarPoolBalance") }}</span>
-            <span class="hero-stat-value">{{ poolBalance ?? t("notAvailable") }}</span>
+            <span class="hero-stat-value">{{ poolBalance || poolBalance === 0 ? poolBalance : t("notAvailable") }}</span>
           </div>
           <div class="hero-stat-divider" />
           <div class="hero-stat">
@@ -85,14 +85,14 @@
           {{ isLoading ? t("checking") : t("checkStatus") }}
         </NeoButton>
         <div v-if="loanDetails" class="op-result"></div>
-        <StatsDisplay v-if="loanDetails" :items="opStats" layout="rows" />
+        <StatsDisplay v-if="loanDetails" :items="stats" layout="rows" />
       </NeoCard>
     </template>
   </MiniAppPage>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 import { messages } from "@/locale/messages";
 import { MiniAppPage } from "@shared/components";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
@@ -167,20 +167,48 @@ const handleBoundaryError = (error: Error) => {
 };
 
 const resetAndReload = async () => {
-  clearError();
-  clearErrorStatus();
-  canRetryError.value = false;
-  await loadData();
+  try {
+    clearError();
+    clearErrorStatus();
+    canRetryError.value = false;
+    await loadData();
+  } catch (e: unknown) {
+    // loadData handles errors internally; this catches only truly unexpected exceptions
+    console.error("[flashloan] resetAndReload unexpected error:", e instanceof Error ? e.message : String(e));
+  }
 };
 const handleLookup = async () => {
-  await lookupLoan(loanIdInput.value, setStatus, setErrorStatus);
+  try {
+    await lookupLoan(loanIdInput.value, setStatus, setErrorStatus);
+  } catch (e: unknown) {
+    // lookupLoan handles errors internally; this catches only truly unexpected exceptions
+    console.error("[flashloan] handleLookup unexpected error:", e instanceof Error ? e.message : String(e));
+  }
 };
 
 const handleRequestLoan = async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
-  await requestLoan(data, setStatus, clearStatus, setErrorStatus);
+  try {
+    await requestLoan(data, setStatus, clearStatus, setErrorStatus);
+  } catch (e: unknown) {
+    // requestLoan handles errors internally via callbacks; this catches only truly unexpected exceptions
+    console.error("[flashloan] handleRequestLoan unexpected error:", e instanceof Error ? e.message : String(e));
+  }
 };
 
-watch(chainType, () => loadData(), { immediate: true });
+const isMounted = ref(true);
+const stopChainTypeWatch = watch(chainType, async () => {
+  if (!isMounted.value) return;
+  try {
+    await loadData();
+  } catch (e: unknown) {
+    console.warn("[flashloan] chain type change reload failed:", e instanceof Error ? e.message : String(e));
+  }
+}, { immediate: true });
+
+onUnmounted(() => {
+  isMounted.value = false;
+  stopChainTypeWatch();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -208,7 +236,7 @@ watch(chainType, () => loadData(), { immediate: true });
   gap: 6px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid var(--border-subtle);
 }
 
 .hero-container {
@@ -255,8 +283,8 @@ watch(chainType, () => loadData(), { immediate: true });
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--bg-card-hover, rgba(255, 255, 255, 0.04));
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: 16px 24px;
 }
@@ -282,7 +310,7 @@ watch(chainType, () => loadData(), { immediate: true });
 .hero-stat-divider {
   width: 1px;
   height: 36px;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: var(--border-subtle);
 }
 
 .hero-status {
@@ -292,13 +320,13 @@ watch(chainType, () => loadData(), { immediate: true });
   font-weight: 600;
 
   &--success {
-    color: #34d399;
-    background: rgba(52, 211, 153, 0.1);
+    color: var(--flash-success, var(--accent-success, #34d399));
+    background: rgba(0, 229, 153, 0.1);
   }
 
   &--error {
-    color: #f87171;
-    background: rgba(248, 113, 113, 0.1);
+    color: var(--flash-danger, var(--accent-error, #f87171));
+    background: rgba(239, 68, 68, 0.1);
   }
 }
 
@@ -376,6 +404,48 @@ watch(chainType, () => loadData(), { immediate: true });
   box-shadow:
     0 0 20px rgba(59, 130, 246, 0.08),
     inset 0 1px 0 rgba(250, 204, 21, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-container,
+  .bolt-svg,
+  .bolt-glow {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-container {
+    min-height: 250px;
+    padding: 24px 16px;
+    gap: 12px;
+  }
+
+  .hero-bolt {
+    width: 56px;
+    height: 84px;
+  }
+
+  .hero-label {
+    font-size: 18px;
+  }
+
+  .hero-stats-row {
+    gap: 14px;
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-stat-value {
+    font-size: 16px;
+  }
+
+  .hero-stat-divider {
+    width: 100%;
+    height: 1px;
+    width: 80px;
+  }
 }
 
 </style>
