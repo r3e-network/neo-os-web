@@ -196,6 +196,7 @@ echo "=== Direct Oracle: neo-morpheus-oracle testnet smoke ==="
     MORPHEUS_NETWORK=testnet \
     NEO_RPC_URL=https://testnet1.neo.coz.io:443 \
     NEO_NETWORK_MAGIC=894710606 \
+    MORPHEUS_SMOKE_REQUEST_WIF="$ORACLE_TEST_WIF" \
     NEO_N3_WIF="$ORACLE_TEST_WIF" \
     NEO_TESTNET_WIF="$ORACLE_TEST_WIF" \
     CONTRACT_MORPHEUS_ORACLE_HASH="$MORPHEUS_ORACLE_HASH" \
