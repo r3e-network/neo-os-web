@@ -54,7 +54,8 @@ const rows = [];
 for (const app of FLAGSHIP_APPS) {
   const manifestPath = `apps/${app.slug}/neo-manifest.json`;
   const definitionPath = `platform/host-app/public/miniapp-definitions/${app.slug}.json`;
-  const distPath = `apps/${app.slug}/dist/index.html`;
+  const appIndexPath = `apps/${app.slug}/index.html`;
+  const appPagePath = `apps/${app.slug}/src/pages/index/index.vue`;
   const contractPath = app.contractDir ? `contracts/${app.contractDir}/${app.contractDir}.csproj` : null;
 
   const manifest = readJson(path.join(root, manifestPath));
@@ -70,7 +71,8 @@ for (const app of FLAGSHIP_APPS) {
   const contractExists = contractPath ? exists(contractPath) : false;
   const contractAppId = readContractAppId(app.contractDir);
   const abiMethods = readManifestMethods(app.contractDir);
-  const distExists = exists(distPath);
+  const appIndexExists = exists(appIndexPath);
+  const appPageExists = exists(appPagePath);
   const definitionExists = Boolean(definition);
   const definitionIdMatches = definitionExists && definition.app_id === manifest.id;
   const definitionHashMatches =
@@ -83,7 +85,8 @@ for (const app of FLAGSHIP_APPS) {
   if (definitionExists && !definitionHashMatches) problems.push("definition contract hash mismatch");
   if (!registryLinked) problems.push("host registry missing app_id");
   if (!homeLinked) problems.push("home catalog missing app_id");
-  if (!distExists) problems.push("frontend dist missing");
+  if (!appIndexExists) problems.push("frontend index missing");
+  if (!appPageExists) problems.push("frontend page entry missing");
   if (app.contractDir && !contractExists) problems.push("contract project missing");
   if (app.contractDir && contractAppId && contractAppId !== manifest.id) problems.push("contract APP_ID mismatch");
   if (app.contractDir && abiMethods.length === 0) problems.push("contract manifest missing");
