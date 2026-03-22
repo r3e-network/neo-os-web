@@ -1,46 +1,35 @@
 name: CI Pipeline
-
-on:
+true:
   push:
-    branches: [main, master, develop]
+    branches:
+    - main
+    - master
+    - develop
   pull_request:
-    branches: [main, master, develop]
-
+    branches:
+    - main
+    - master
+    - develop
 permissions:
   contents: read
-
 jobs:
   format:
     name: Format Check (Go)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24.x"
-          cache: true
-
-      - name: Verify gofmt
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mapfile -t go_files < <(git ls-files '*.go')
-          if [ "${#go_files[@]}" -eq 0 ]; then
-            echo "No Go files found."
-            exit 0
-          fi
-
-          unformatted="$(gofmt -s -l "${go_files[@]}")"
-          if [ -n "$unformatted" ]; then
-            echo "Unformatted Go files:"
-            echo "$unformatted"
-            echo "Run: make fmt"
-            exit 1
-          fi
-
-          echo "All Go files are properly formatted."
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.24.x
+        cache: true
+    - name: Verify gofmt
+      shell: bash
+      run: "set -euo pipefail\n\nmapfile -t go_files < <(git ls-files '*.go')\nif\
+        \ [ \"${#go_files[@]}\" -eq 0 ]; then\n  echo \"No Go files found.\"\n  exit\
+        \ 0\nfi\n\nunformatted=\"$(gofmt -s -l \"${go_files[@]}\")\"\nif [ -n \"$unformatted\"\
+        \ ]; then\n  echo \"Unformatted Go files:\"\n  echo \"$unformatted\"\n  echo\
+        \ \"Run: make fmt\"\n  exit 1\nfi\n\necho \"All Go files are properly formatted.\"\
+        \n"
