@@ -46,8 +46,7 @@ function normalizeParams(params = []) {
 }
 
 function normalizeSignerAccount(account) {
-  const raw = trim(String(account ?? ""));
-  return raw.startsWith("0x") ? raw.slice(2) : raw;
+  return normalizeHash(account).replace(/^$/, "");
 }
 
 function normalizeSigners(signers = []) {
@@ -67,9 +66,28 @@ function resolveSigningKey(account) {
   return account.WIF || account.privateKey;
 }
 
+function toRpcBinaryPayload(value) {
+  if (value instanceof Transaction) {
+    return hexToBytes(value.serialize(true));
+  }
+  if (typeof value?.serialize === "function") {
+    const serialized = value.serialize(true);
+    if (typeof serialized === "string" && /^[0-9a-f]+$/i.test(serialized)) {
+      return hexToBytes(serialized);
+    }
+    return serialized;
+  }
+  if (typeof value === "string" && /^[0-9a-f]+$/i.test(value)) {
+    return hexToBytes(value);
+  }
+  return value;
+}
+
 async function estimateNetworkFee(rpcClient, transaction) {
   try {
-    const result = await rpcClient.inner.calculateNetworkFee({ tx: transaction.serialize(true) });
+    const result = await rpcClient.inner.calculateNetworkFee({
+      tx: toRpcBinaryPayload(transaction),
+    });
     return BigInt(result?.networkfee || 0);
   } catch (_error) {
     return 5000000n;
@@ -118,13 +136,11 @@ class RPCClient {
   }
 
   async sendRawTransaction(input) {
-    const serialized =
-      typeof input === "string"
+    const payload =
+      typeof input === "string" || typeof input?.serialize === "function"
         ? input
-        : typeof input?.serialize === "function"
-          ? input.serialize(true)
-          : input?.tx;
-    return this.inner.sendRawTransaction({ tx: serialized });
+        : input?.tx;
+    return this.inner.sendRawTransaction({ tx: toRpcBinaryPayload(payload) });
   }
 }
 
