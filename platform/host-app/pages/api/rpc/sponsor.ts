@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
-import { tx, wallet, u } from "@cityofzion/neon-js";
+import { tx, wallet } from "@r3e/neo-js-sdk/browser";
 
 function getSponsorConfig() {
   return {
@@ -19,6 +19,27 @@ const sponsorStats = {
   lastResetDay: new Date().getUTCDate(),
   userTxCounts: new Map<string, { count: number; hour: number }>(),
 };
+
+type SponsorSigner = {
+  account: string;
+  scopes?: unknown;
+};
+
+type SponsorWitnessLike = {
+  invocationScript?: string;
+  verificationScript?: string;
+  toJSON?: () => unknown;
+};
+
+type SponsorTransaction = {
+  signers: SponsorSigner[];
+  witnesses: SponsorWitnessLike[];
+  networkFee: bigint | number;
+  serialize: (signed?: boolean) => string;
+  sign: (signingKey: string | { privateKey: string }, networkMagic: number) => void;
+};
+
+const normalizeAccount = (account: unknown): string => String(account ?? "");
 
 function resetStatsIfNeeded() {
   const currentDay = new Date().getUTCDate();
@@ -63,36 +84,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const sponsorAccount = new wallet.Account(sponsoredWIF);
-    const transaction = tx.Transaction.deserialize(txBase64);
+    const transaction = tx.Transaction.deserialize(txBase64) as SponsorTransaction;
 
-    const hasUserSigner = transaction.signers.some((s) => wallet.getAddressFromScriptHash(s.account.toString()) === userAddress);
+    const hasUserSigner = transaction.signers.some(
+      (signer) => wallet.getAddressFromScriptHash(normalizeAccount(signer.account)) === userAddress,
+    );
     if (!hasUserSigner) {
       return apiError.badRequest(res, "Transaction does not belong to the user");
     }
 
     const sponsorScriptHash = sponsorAccount.scriptHash;
-    const hasSponsorSigner = transaction.signers.some((s) => s.account.toString() === sponsorScriptHash);
+    const hasSponsorSigner = transaction.signers.some(
+      (signer) => normalizeAccount(signer.account) === sponsorScriptHash,
+    );
 
     if (!hasSponsorSigner) {
-      transaction.signers.push(new tx.Signer({
+      transaction.signers.push({
         account: sponsorAccount.scriptHash,
         scopes: tx.WitnessScope.None,
-      }));
+      });
     }
 
     const feePerByte = 1000;
+    const sponsorVerificationScript = sponsorAccount.contract?.script
+      ? Buffer.from(sponsorAccount.contract.script, "base64").toString("hex")
+      : `21${String(sponsorAccount.publicKey)}ac`;
 
-    const dummySignatures = transaction.signers.map((signer) => {
-      if (signer.account.toString() === sponsorAccount.scriptHash) {
-        return new tx.Witness({
-          invocationScript: "0c40" + "00".repeat(64),
-          verificationScript: "21" + sponsorAccount.publicKey + "ac",
-        });
-      }
-      return new tx.Witness({ invocationScript: "", verificationScript: "" });
-    });
+    const sizingTransaction = tx.Transaction.deserialize(transaction.serialize(true)) as SponsorTransaction;
+    sizingTransaction.signers = [...transaction.signers];
+    sizingTransaction.witnesses = transaction.signers.map((signer) =>
+      normalizeAccount(signer.account) === sponsorAccount.scriptHash
+        ? new tx.Witness({
+            invocationScript: `0c40${"00".repeat(64)}`,
+            verificationScript: sponsorVerificationScript,
+          })
+        : new tx.Witness({
+            invocationScript: "",
+            verificationScript: "",
+          }),
+    );
 
-    const size = transaction.serialize().length / 2 + dummySignatures.reduce((acc, sig) => acc + sig.serialize().length / 2, 0);
+    const size = sizingTransaction.serialize(true).length / 2;
     const calculatedFee = (size * feePerByte) + 100000;
 
     const requestedFeeGas = calculatedFee / 100000000;
@@ -101,8 +133,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return apiError.badRequest(res, `Transaction fee exceeds maximum sponsored amount (${MAX_GAS_PER_TX} GAS)`);
     }
 
-    transaction.networkFee = u.BigInteger.fromNumber(Math.floor(calculatedFee));
-    transaction.sign(sponsorAccount, networkMagic);
+    transaction.networkFee = BigInt(Math.floor(calculatedFee));
+    transaction.sign(sponsoredWIF, networkMagic);
 
     sponsorStats.dailyGasSpent += requestedFeeGas;
     userStats.count += 1;
@@ -111,7 +143,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       success: true,
       sponsoredTxBase64: transaction.serialize(true),
-      witnesses: transaction.witnesses.map((w) => w.serialize()),
+      witnesses: transaction.witnesses.map((witness) =>
+        typeof witness?.toJSON === "function" ? witness.toJSON() : witness,
+      ),
     });
   } catch (error) {
     logger.error("Sponsor API error:", error instanceof Error ? error.message : "unknown");
