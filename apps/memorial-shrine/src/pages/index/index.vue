@@ -28,12 +28,12 @@
           <template #stats>
             <div class="hero-stats">
               <div class="hero-stat">
-                <AppIcon name="candle" :size="28" class="hero-stat-icon" />
+                <AppIcon name="candle" :size="28" class="hero-stat-icon" aria-hidden="true" />
                 <span class="hero-stat-value">{{ memorials.length }}</span>
                 <span class="hero-stat-label">{{ t("memorials") }}</span>
               </div>
               <div class="hero-stat">
-                <AppIcon name="pray" :size="28" class="hero-stat-icon" />
+                <AppIcon name="pray" :size="28" class="hero-stat-icon" aria-hidden="true" />
                 <span class="hero-stat-value">{{ visitedMemorials.length }}</span>
                 <span class="hero-stat-label">{{ t("myTributes") }}</span>
               </div>
@@ -74,7 +74,7 @@
         />
       </div>
       <div v-else class="empty-memorials">
-        <AppIcon name="tombstone" :size="48" class="empty-icon" />
+        <AppIcon name="tombstone" :size="48" class="empty-icon" aria-hidden="true" />
         <p>{{ t("noMemorials") }}</p>
       </div>
     </template>

@@ -97,6 +97,7 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     } catch (e: unknown) {
       // Non-critical: recent vault list unavailable, can retry
       console.error("[unbreakable-vault] loadRecentVaults error:", e instanceof Error ? e.message : String(e));
+      setStatus("Recent vaults unavailable", "error");
     }
   };
 

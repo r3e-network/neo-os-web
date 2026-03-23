@@ -1,7 +1,7 @@
 <template>
   <div class="verify-section">
     <span class="section-title">{{ t("verifyProof") }}</span>
-    <input v-model="proofId" class="id-input" :placeholder="t('enterProofId')" type="number" :aria-label="t('enterProofId')" />
+    <input id="proof-id" v-model="proofId" class="id-input" :placeholder="t('enterProofId')" type="number" :aria-label="t('enterProofId')" />
     <button type="button" class="verify-button" :disabled="isVerifying || !proofId" :aria-label="t('verifyProof')" @click="$emit('verify')">
       <span>{{ isVerifying ? t("loading") : t("verifyProof") }}</span>
     </button>

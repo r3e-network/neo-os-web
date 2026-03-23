@@ -198,8 +198,8 @@ onMounted(() => {
 });
 
 const resetAndReload = async () => {
-  breaker.loadRecentVaults();
-  creator.loadMyVaults();
+  await breaker.loadRecentVaults();
+  await creator.loadMyVaults();
 };
 </script>
 

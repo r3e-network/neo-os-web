@@ -21,7 +21,7 @@
           <span class="hero-title">{{ t("title") }}</span>
           <span class="hero-subtitle">{{ t("heroSubtitle") }}</span>
         </div>
-        <AppIcon name="pill" :size="40" class="hero-icon" />
+        <AppIcon name="pill" :size="40" class="hero-icon" aria-hidden="true" />
       </NeoCard>
 
       <div v-if="isLoading" class="loading-state">

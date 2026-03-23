@@ -39,12 +39,12 @@
         <!-- Side Labels -->
         <div class="hero-sides">
           <div :class="['side-badge', { active: displayOutcome === 'heads' || (!displayOutcome && !isFlipping) }]">
-            <AppIcon name="legend" :size="20" class="side-icon" />
+            <AppIcon name="legend" :size="20" class="side-icon" aria-hidden="true" />
             <span class="side-text">{{ t("heads") }}</span>
           </div>
           <div class="side-vs">{{ t("vs") }}</div>
           <div :class="['side-badge', { active: displayOutcome === 'tails' }]">
-            <AppIcon name="moon" :size="20" class="side-icon" />
+            <AppIcon name="moon" :size="20" class="side-icon" aria-hidden="true" />
             <span class="side-text">{{ t("tails") }}</span>
           </div>
         </div>

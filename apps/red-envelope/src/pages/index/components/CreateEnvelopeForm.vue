@@ -96,7 +96,7 @@
     </div>
     <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" :disabled="!isValid || isLoading" @click="handleCreate" class="send-button">
       <div class="btn-content">
-        <AppIcon name="envelope" :size="24" />
+        <AppIcon name="envelope" :size="24" aria-hidden="true" />
         <span class="button-text">{{ t("sendRedEnvelope") }}</span>
       </div>
     </NeoButton>

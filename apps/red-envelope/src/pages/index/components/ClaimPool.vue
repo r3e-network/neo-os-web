@@ -31,7 +31,7 @@
 
     <!-- Success -->
     <div v-if="claimResult" class="claim-success">
-      <AppIcon name="party" :size="20" class="success-icon" />
+      <AppIcon name="party" :size="20" class="success-icon" aria-hidden="true" />
       <span class="success-text">{{ t("claimSuccess") }}</span>
     </div>
 
@@ -40,22 +40,22 @@
       <span class="pools-label">{{ t("availablePools") }}</span>
 
       <div v-if="pools.length === 0" class="empty-state">
-        <AppIcon name="milestone" :size="40" class="empty-icon" />
+        <AppIcon name="milestone" :size="40" class="empty-icon" aria-hidden="true" />
         <span class="empty-text">{{ t("noPools") }}</span>
       </div>
 
       <div v-else class="pool-grid">
         <div v-for="pool in pools" :key="pool.id" class="pool-card">
           <div class="pool-header">
-            <AppIcon name="envelope_red" :size="20" class="pool-icon" />
+            <AppIcon name="envelope_red" :size="20" class="pool-icon" aria-hidden="true" />
             <span class="pool-id">{{ t("poolLabel", { poolId: String(pool.id) }) }}</span>
           </div>
 
-          <span class="pool-amount"><AppIcon name="neo" :size="20" /> {{ pool.totalAmount }} {{ t("tokenGas") }}</span>
+          <span class="pool-amount"><AppIcon name="neo" :size="20" aria-hidden="true" /> {{ pool.totalAmount }} {{ t("tokenGas") }}</span>
 
           <div class="pool-progress">
             <span class="progress-text">
-              <AppIcon name="ticket" :size="20" />
+              <AppIcon name="ticket" :size="20" aria-hidden="true" />
               {{ t("claimedCount", { claimed: String(pool.openedCount), total: String(pool.packetCount) }) }}
             </span>
             <div class="progress-bar">
@@ -65,11 +65,11 @@
 
           <div v-if="pool.minNeoRequired > 0" class="pool-gate">
             <span class="gate-text">
-              <AppIcon name="locked" :size="20" /> {{ pool.minNeoRequired }} {{ t("tokenNeo") }}, {{ Math.round(pool.minHoldSeconds / 86400) }} {{ t("daysSuffix") }} {{ t("holdDuration") }}
+              <AppIcon name="locked" :size="20" aria-hidden="true" /> {{ pool.minNeoRequired }} {{ t("tokenNeo") }}, {{ Math.round(pool.minHoldSeconds / 86400) }} {{ t("daysSuffix") }} {{ t("holdDuration") }}
             </span>
           </div>
 
-          <span v-if="pool.expiryTime" class="pool-expiry"><AppIcon name="clock" :size="20" /> {{ formatTimeLeft(pool.expiryTime) }} </span>
+          <span v-if="pool.expiryTime" class="pool-expiry"><AppIcon name="clock" :size="20" aria-hidden="true" /> {{ formatTimeLeft(pool.expiryTime) }} </span>
 
           <span v-if="pool.message" class="pool-message">"{{ pool.message }}"</span>
 

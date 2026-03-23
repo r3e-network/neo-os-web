@@ -2,22 +2,22 @@
   <NeoCard variant="accent">
     <div class="stat-grid">
       <NeoCard variant="default" class="flex-1 text-center">
-        <AppIcon name="gas" :size="24" class="stat-icon" />
+        <AppIcon name="gas" :size="24" class="stat-icon" aria-hidden="true" />
         <span class="stat-value">{{ formatBalance(usedQuota) }}</span>
         <span class="stat-label">{{ t("usedToday") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <AppIcon name="target" :size="24" class="stat-icon" />
+        <AppIcon name="target" :size="24" class="stat-icon" aria-hidden="true" />
         <span class="stat-value">{{ formatBalance(remainingQuota) }}</span>
         <span class="stat-label">{{ t("available") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <AppIcon name="chart" :size="24" class="stat-icon" />
+        <AppIcon name="chart" :size="24" class="stat-icon" aria-hidden="true" />
         <span class="stat-value">{{ formatBalance(dailyLimit) }}</span>
         <span class="stat-label">{{ t("dailyLimit") }}</span>
       </NeoCard>
       <NeoCard variant="default" class="flex-1 text-center">
-        <AppIcon name="clock" :size="24" class="stat-icon" />
+        <AppIcon name="clock" :size="24" class="stat-icon" aria-hidden="true" />
         <span class="stat-value">{{ resetTime }}</span>
         <span class="stat-label">{{ t("nextReset") }}</span>
       </NeoCard>

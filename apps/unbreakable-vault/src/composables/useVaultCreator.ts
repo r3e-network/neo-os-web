@@ -58,6 +58,7 @@ export function useVaultCreator(
     } catch (e: unknown) {
       // Non-critical: user sees empty vault list, can retry
       console.error("[unbreakable-vault] loadMyVaults error:", e instanceof Error ? e.message : String(e));
+      setStatus("My vaults unavailable", "error");
     }
   };
 

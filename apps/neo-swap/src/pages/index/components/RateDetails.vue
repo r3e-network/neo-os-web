@@ -13,9 +13,9 @@
       </div>
       <div class="rate-actions">
         <button type="button" class="refresh-icon-btn" :aria-label="t('exchangeRate')" @click.stop="$emit('refresh')">
-          <AppIcon name="history" :size="20" />
+          <AppIcon name="history" :size="20" aria-hidden="true" />
         </button>
-        <AppIcon name="chevron-right" :size="16" :rotate="showDetails ? 270 : 90" />
+        <AppIcon name="chevron-right" :size="16" :rotate="showDetails ? 270 : 90" aria-hidden="true" />
       </div>
     </button>
 

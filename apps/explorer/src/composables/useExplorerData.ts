@@ -24,7 +24,7 @@ const getApiBase = () => {
       if (parentOrigin) return `${parentOrigin}/api/explorer`;
     }
   } catch (_e: unknown) {
-    // Fallback
+    console.warn("[useExplorerData] getApiBase failed:", _e instanceof Error ? _e.message : String(_e));
   }
   return "/api/explorer";
 };
@@ -139,7 +139,7 @@ export function useExplorerData(t: (key: string) => string) {
       const cached = uni.getStorageSync(STATS_CACHE_KEY);
       if (cached) stats.value = JSON.parse(cached);
     } catch (_e: unknown) {
-      /* Cache read failure is non-critical */
+      console.warn("[useExplorerData] stats cache read failed:", _e instanceof Error ? _e.message : String(_e));
     }
 
     let freshStats: typeof stats.value | null = null;
@@ -158,7 +158,7 @@ export function useExplorerData(t: (key: string) => string) {
           freshStats = parseResponseData(res.data);
         }
       } catch (_e: unknown) {
-        // Ignore and fall back to cached stats.
+        console.warn("[useExplorerData] fetch stats failed, using cached:", _e instanceof Error ? _e.message : String(_e));
       }
     }
 
@@ -173,7 +173,7 @@ export function useExplorerData(t: (key: string) => string) {
       const cached = uni.getStorageSync(TXS_CACHE_KEY);
       if (cached) recentTxs.value = JSON.parse(cached);
     } catch (_e: unknown) {
-      /* Cache read failure is non-critical */
+      console.warn("[useExplorerData] txs cache read failed:", _e instanceof Error ? _e.message : String(_e));
     }
 
     let freshTxs: TransactionRecord[] = [];
@@ -196,7 +196,7 @@ export function useExplorerData(t: (key: string) => string) {
           hasFreshTxs = true;
         }
       } catch (_e: unknown) {
-        // Ignore and fall back to cached txs.
+        console.warn("[useExplorerData] fetch txs failed, using cached:", _e instanceof Error ? _e.message : String(_e));
       }
     }
 
@@ -263,8 +263,8 @@ export function useExplorerData(t: (key: string) => string) {
   };
 
   const startPolling = () => {
-    loadStats();
-    loadRecentTxs();
+    loadStats().catch((_e: unknown) => { console.warn("[useExplorerData] loadStats failed:", _e instanceof Error ? _e.message : String(_e)); setStatus(_e instanceof Error ? _e.message : "Stats update failed", "error"); });
+    loadRecentTxs().catch((_e: unknown) => { console.warn("[useExplorerData] loadRecentTxs failed:", _e instanceof Error ? _e.message : String(_e)); setStatus(_e instanceof Error ? _e.message : "Recent txs update failed", "error"); });
     statsTicker.start();
   };
 
@@ -274,7 +274,7 @@ export function useExplorerData(t: (key: string) => string) {
 
   const watchNetwork = () => {
     const stop = watch(selectedNetwork, () => {
-      loadRecentTxs();
+      loadRecentTxs().catch((_e: unknown) => { console.warn("[useExplorerData] loadRecentTxs failed:", _e instanceof Error ? _e.message : String(_e)); setStatus(_e instanceof Error ? _e.message : "Network txs update failed", "error"); });
     });
     onUnmounted(stop);
   };

@@ -8,7 +8,7 @@
 
     <div class="chamber-header-glass">
       <div class="icon-pulse">
-        <AppIcon name="flame" :size="24" class="chamber-icon-glass" />
+        <AppIcon name="flame" :size="24" class="chamber-icon-glass" aria-hidden="true" />
       </div>
     </div>
 
@@ -39,7 +39,7 @@
     <!-- Animated Warning -->
     <div class="warning-box-glass" :class="{ shake: showWarningShake }">
       <div class="warning-icon-container">
-        <AppIcon name="warning" :size="24" class="warning-icon" />
+        <AppIcon name="warning" :size="24" class="warning-icon" aria-hidden="true" />
       </div>
       <div class="warning-content">
         <span class="warning-title-glass">{{ t("warning") }}</span>
@@ -60,7 +60,7 @@
         :class="['destroy-btn-glass', { 'is-destroying': isDestroying }]"
       >
         <div class="btn-fire-effect" v-if="isDestroying"></div>
-        <AppIcon v-if="!isDestroying" name="skull" :size="16" class="btn-icon" />
+        <AppIcon v-if="!isDestroying" name="skull" :size="16" class="btn-icon" aria-hidden="true" />
         <span class="btn-text">{{ isDestroying ? t("destroying") : t("destroyForever") }}</span>
       </NeoButton>
     </div>

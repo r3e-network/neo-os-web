@@ -89,7 +89,7 @@
         </div>
 
         <div class="message-input">
-          <input v-model="message" :placeholder="t('messagePlaceholder')" class="input" :aria-label="t('messagePlaceholder')" />
+          <input id="memorial-message" v-model="message" :placeholder="t('messagePlaceholder')" class="input" :aria-label="t('messagePlaceholder')" />
         </div>
 
         <div v-if="status" class="status-bar" :class="status.type">

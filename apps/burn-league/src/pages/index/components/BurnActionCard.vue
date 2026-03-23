@@ -12,7 +12,7 @@
       <span class="reward-value">+{{ formatNum(estimatedReward) }} {{ t("points") }}</span>
     </div>
     <NeoButton variant="primary" size="lg" block :loading="isLoading" @click="$emit('burn')" class="burn-button">
-      <span class="burn-button-text"><AppIcon name="flame" :size="14" /> {{ t("burnNow") }}</span>
+      <span class="burn-button-text"><AppIcon name="flame" :size="14" aria-hidden="true" /> {{ t("burnNow") }}</span>
     </NeoButton>
   </NeoCard>
 </template>

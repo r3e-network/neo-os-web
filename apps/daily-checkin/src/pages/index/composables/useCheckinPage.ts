@@ -84,7 +84,7 @@ export function useCheckinPage(t: (key: string) => string) {
       countdownTicker.start();
       await loadAll();
     } catch (_e: unknown) {
-      /* non-critical: initial data load */
+      console.warn("[useCheckinPage] initial load error:", _e instanceof Error ? _e.message : String(_e));
     }
   });
 

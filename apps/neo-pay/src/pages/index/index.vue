@@ -40,7 +40,7 @@
         <!-- Stats Row -->
         <div class="hero-stream-stats">
           <div class="stream-stat">
-            <AppIcon name="upload" :size="20" class="stream-stat-icon" />
+            <AppIcon name="upload" :size="20" class="stream-stat-icon" aria-hidden="true" />
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ createdStreams.length }}</span>
               <span class="stream-stat-label">{{ t("myCreated") }}</span>
@@ -48,7 +48,7 @@
           </div>
           <div class="stream-stat-divider" />
           <div class="stream-stat">
-            <AppIcon name="download" :size="20" class="stream-stat-icon" />
+            <AppIcon name="download" :size="20" class="stream-stat-icon" aria-hidden="true" />
             <div class="stream-stat-info">
               <span class="stream-stat-value">{{ beneficiaryStreams.length }}</span>
               <span class="stream-stat-label">{{ t("beneficiaryVaults") }}</span>
@@ -164,7 +164,7 @@ const {
 } = useNeoPay(t);
 
 const resetAndReload = async () => {
-  if (address.value) refreshStreams();
+  if (address.value) await refreshStreams();
 };
 
 onMounted(() => {

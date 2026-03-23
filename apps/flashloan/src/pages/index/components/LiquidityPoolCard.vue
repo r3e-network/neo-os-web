@@ -6,7 +6,7 @@
         <span class="live-text">{{ t("live") }}</span>
       </div>
       <span class="card-title">{{ t("poolBalance") }}</span>
-      <AppIcon name="fuel" :size="12" class="lightning-badge lightning-badge--sm" />
+      <AppIcon name="fuel" :size="12" class="lightning-badge lightning-badge--sm" aria-hidden="true" />
     </div>
 
     <div class="liquidity-item">

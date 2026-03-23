@@ -4,6 +4,7 @@ import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { messages } from "@/locale/messages";
 import { parseInvokeResult } from "@shared/utils/neo";
 import type { TemplateItem, CertificateItem } from "@/types";
@@ -27,6 +28,7 @@ export function useCertificates(): UseCertificatesReturn {
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
     key === "contractUnavailable" ? t("contractMissing") : t(key)
   );
+  const { setStatus } = useStatusMessage();
 
   const templates = ref<TemplateItem[]>([]);
   const certificates = ref<CertificateItem[]>([]);
@@ -165,7 +167,7 @@ export function useCertificates(): UseCertificatesReturn {
             try {
               certQrs[cert.tokenId] = await QRCode.toDataURL(cert.tokenId, { margin: 1 });
             } catch (_e: unknown) {
-              /* QR generation is non-critical */
+              console.warn("[useCertificates] QR generation failed:", _e instanceof Error ? _e.message : String(_e));
             }
           }
         })

@@ -1,7 +1,7 @@
 <template>
   <ActionModal :visible="visible" :title="t('transferEnvelope')" :closeable="true" @close="$emit('close')">
     <div class="envelope-info">
-      <span class="info-label"><AppIcon name="envelope_red" :size="20" /> #{{ envelope?.id }}</span>
+      <span class="info-label"><AppIcon name="envelope_red" :size="20" aria-hidden="true" /> #{{ envelope?.id }}</span>
       <span class="info-amount">{{ envelope?.totalAmount }} {{ t("tokenGas") }}</span>
     </div>
 

@@ -240,9 +240,9 @@ function openExternal(url: string) {
 }
 
 onMounted(() => {
-  loadBalances().catch((e: unknown) => { console.warn("[neoburger] loadBalances failed:", e instanceof Error ? e.message : String(e)); });
-  loadApy().catch((e: unknown) => { console.warn("[neoburger] loadApy failed:", e instanceof Error ? e.message : String(e)); });
-  loadPrices().catch((e: unknown) => { console.warn("[neoburger] loadPrices failed:", e instanceof Error ? e.message : String(e)); });
+  loadBalances();
+  loadApy();
+  loadPrices();
 });
 
 onUnmounted(() => {

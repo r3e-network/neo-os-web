@@ -45,10 +45,10 @@
                 "
                 class="best-luck"
               >
-                <AppIcon name="party" :size="12" class="best-luck-icon" />
+                <AppIcon name="party" :size="12" class="best-luck-icon" aria-hidden="true" />
                 <span class="best-luck-text"
-                  >{{ t("bestLuck") }}: {{ formatAddress((item as unknown as EnvelopeItem).bestLuckAddress!) }} ({{
-                    ((item as unknown as EnvelopeItem).bestLuckAmount! / 1e8).toFixed(4)
+                  >{{ t("bestLuck") }}: {{ formatAddress((item as unknown as EnvelopeItem).bestLuckAddress ?? "") }} ({{
+                    (((item as unknown as EnvelopeItem).bestLuckAmount ?? 0) / 1e8).toFixed(4)
                   }}
                   {{ t("tokenGas") }})</span
           >
@@ -73,7 +73,7 @@
                 }}
               </span>
               <button type="button" class="share-btn" :aria-label="t('ariaShare')" @click.stop="$emit('share', item)">
-                <AppIcon name="link" :size="14" />
+                <AppIcon name="link" :size="14" aria-hidden="true" />
               </button>
             </div>
           </div>

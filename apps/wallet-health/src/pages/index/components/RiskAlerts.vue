@@ -18,7 +18,7 @@
 
     <NeoCard variant="erobo" class="risk-card">
       <div class="risk-pill" :class="riskClass">
-        <AppIcon :name="riskIcon" :size="14" />
+        <AppIcon :name="riskIcon" :size="14" aria-hidden="true" />
         <span>{{ riskLabel }}</span>
       </div>
     </NeoCard>

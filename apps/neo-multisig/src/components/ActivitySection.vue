@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="count === 0" class="empty-state">
-      <AppIcon name="copy" :size="48" class="empty-icon" />
+      <AppIcon name="copy" :size="48" class="empty-icon" aria-hidden="true" />
       <span class="empty-title">{{ emptyTitle }}</span>
       <span class="empty-desc">{{ emptyDescription }}</span>
     </div>

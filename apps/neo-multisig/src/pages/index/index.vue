@@ -18,9 +18,9 @@
           <template #background>
             <div class="multisig-scene" aria-hidden="true">
               <div class="key-group">
-                <AppIcon name="key" :size="24" class="key-icon key-icon--active" />
-                <AppIcon name="key" :size="24" class="key-icon key-icon--active" />
-                <AppIcon name="key" :size="24" class="key-icon key-icon--inactive" />
+                <AppIcon name="key" :size="24" class="key-icon key-icon--active" aria-hidden="true" />
+                <AppIcon name="key" :size="24" class="key-icon key-icon--active" aria-hidden="true" />
+                <AppIcon name="key" :size="24" class="key-icon key-icon--inactive" aria-hidden="true" />
               </div>
               <span class="key-label">{{ t("multisigThreshold") }}</span>
             </div>

@@ -7,7 +7,7 @@
         <button type="button" class="founder-item" :aria-label="cat.name" @click="$emit('select', cat.name)">
           <div class="founder-main">
             <div class="founder-icon">
-              <AppIcon name="user" :size="32" />
+              <AppIcon name="user" :size="32" aria-hidden="true" />
             </div>
             <div class="founder-info">
               <span class="founder-name">{{ cat.name }}</span>
@@ -15,7 +15,7 @@
             </div>
             <div class="founder-total">
               <span class="total-usd">{{ t("currencySymbol") }}{{ formatNum(cat.totalUsd) }}</span>
-              <AppIcon name="chevron-right" :size="20" class="arrow" />
+              <AppIcon name="chevron-right" :size="20" class="arrow" aria-hidden="true" />
             </div>
           </div>
 

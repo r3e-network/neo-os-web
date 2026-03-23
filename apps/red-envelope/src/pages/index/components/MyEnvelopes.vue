@@ -1,18 +1,18 @@
 <template>
   <div class="my-envelopes">
     <div class="section-header">
-      <span class="section-title"><AppIcon name="envelope_red" :size="20" /> {{ t("sectionPools") }}</span>
+      <span class="section-title"><AppIcon name="envelope_red" :size="20" aria-hidden="true" /> {{ t("sectionPools") }}</span>
     </div>
 
     <div v-if="createdEnvelopes.length === 0" class="empty-state">
-      <AppIcon name="envelope_red" :size="40" class="empty-icon" />
+      <AppIcon name="envelope_red" :size="40" class="empty-icon" aria-hidden="true" />
       <span class="empty-text">{{ t("noEnvelopesHeld") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="envelope in createdEnvelopes" :key="envelope.id" class="envelope-card">
         <div class="card-header">
-          <AppIcon name="envelope_red" :size="20" class="envelope-icon" />
+          <AppIcon name="envelope_red" :size="20" class="envelope-icon" aria-hidden="true" />
           <div class="status-badge" :class="statusClass(envelope)">
             <span class="status-text">{{ statusLabel(envelope) }}</span>
           </div>
@@ -29,18 +29,18 @@
     </div>
 
     <div class="section-header">
-      <span class="section-title"><AppIcon name="generous" :size="20" /> {{ t("sectionClaims") }}</span>
+      <span class="section-title"><AppIcon name="generous" :size="20" aria-hidden="true" /> {{ t("sectionClaims") }}</span>
     </div>
 
     <div v-if="claims.length === 0" class="empty-state">
-      <AppIcon name="generous" :size="40" class="empty-icon" />
+      <AppIcon name="generous" :size="40" class="empty-icon" aria-hidden="true" />
       <span class="empty-text">{{ t("noClaims") }}</span>
     </div>
 
     <div v-else class="envelope-grid">
       <div v-for="claim in claims" :key="claim.id" class="envelope-card claim-card">
         <div class="card-header">
-          <AppIcon name="success" :size="20" class="envelope-icon" />
+          <AppIcon name="success" :size="20" class="envelope-icon" aria-hidden="true" />
           <span class="claim-origin">{{ t("fromPool", { poolId: claim.poolId }) }}</span>
         </div>
         <span class="envelope-amount">{{ t("claimedGas", { amount: claim.amount.toFixed(4), tokenGas: t("tokenGas") }) }}</span>
