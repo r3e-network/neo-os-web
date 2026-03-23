@@ -565,18 +565,27 @@ async function runGraveyard() {
 async function ensureSeason(contractHash, contract) {
   let seasonId = String(await invokeRead(contractHash, "currentSeasonId") || "0");
   let active = false;
+  let ended = false;
+  let endSeasonTx = null;
   if (seasonId !== "0") {
     const season = await invokeRead(contractHash, "getSeasonDetails", [{ type: "Integer", value: seasonId }]);
     active = season.active === true;
+    ended = BigInt(String(season.endTime || "0")) <= BigInt(Date.now());
+  }
+  if (active && ended) {
+    endSeasonTx = await contract.invoke("endSeason", []);
+    const endLog = await waitForLog(endSeasonTx);
+    if (endLog.execution.vmstate !== "HALT") throw new Error(endLog.execution.exception || "endSeason failed");
+    active = false;
   }
   if (!active) {
     const tx = await contract.invoke("startSeason", []);
     const log = await waitForLog(tx);
     if (log.execution.vmstate !== "HALT") throw new Error(log.execution.exception || "startSeason failed");
     seasonId = String(await invokeRead(contractHash, "currentSeasonId") || "0");
-    return { seasonId, tx: asTxid(tx) };
+    return { seasonId, tx: asTxid(tx), endSeasonTx: endSeasonTx ? asTxid(endSeasonTx) : null };
   }
-  return { seasonId, tx: null };
+  return { seasonId, tx: null, endSeasonTx: endSeasonTx ? asTxid(endSeasonTx) : null };
 }
 
 async function runHallOfFame() {
@@ -626,7 +635,7 @@ async function runHallOfFame() {
     { type: "String", value: nominee },
   ]);
   if (BigInt(String(details.totalVotes || "0")) < BigInt(voteAmount)) throw new Error("nominee totalVotes did not increase");
-  return { contractHash, seasonId: season.seasonId, startSeasonTx: season.tx, addNomineeTx: asTxid(addNomineeTx), voteTx: asTxid(voteTx), nominee };
+  return { contractHash, seasonId: season.seasonId, endSeasonTx: season.endSeasonTx, startSeasonTx: season.tx, addNomineeTx: asTxid(addNomineeTx), voteTx: asTxid(voteTx), nominee };
 }
 
 async function runHeritageTrust() {
