@@ -42,12 +42,15 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseServiceClient();
 
   // Find account by wallet
-  const { data: user } = await supabase
+  const { data: user, error: userQueryError } = await supabase
     .from("users")
     .select("id, nonce")
     .eq("address", address)
     .maybeSingle();
 
+  if (userQueryError) {
+    console.warn("[auth-wallet] user lookup failed:", userQueryError.message);
+  }
   if (!user?.id) {
     return error(404, "account not found", "NOT_FOUND", req);
   }
@@ -58,7 +61,10 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Clear nonce
-  await supabase.from("users").update({ nonce: null }).eq("id", user.id);
+  const { error: nonceClearError } = await supabase.from("users").update({ nonce: null }).eq("id", user.id);
+  if (nonceClearError) {
+    console.warn("[auth-wallet] failed to clear nonce for user", user.id, nonceClearError.message);
+  }
 
   // Generate a standard Supabase-compatible JWT
   const payload = {

@@ -20,7 +20,7 @@ export function supabaseClient() {
   return createClient(url, anonKey, { auth: { persistSession: false } });
 }
 
-export function supabaseServiceClient() {
+export function supabaseServiceClient(): ReturnType<typeof createClient> {
   const url = mustGetEnv("SUPABASE_URL");
   const serviceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY") ?? getEnv("SUPABASE_SERVICE_KEY");
   if (!serviceKey) {
@@ -72,7 +72,12 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
   const apiKey = parseUserAPIKey(req);
   if (!apiKey) return error(401, "missing Authorization or X-API-Key", "AUTH_REQUIRED", req);
 
-  const supabase = supabaseServiceClient();
+  let supabase;
+  try {
+    supabase = supabaseServiceClient();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "supabase configuration error", "INTERNAL_ERROR", req);
+  }
   const { data, error: verifyErr } = await supabase.rpc("verify_api_key", { input_key: apiKey });
   if (verifyErr) return error(500, "failed to verify api key", "DB_ERROR", req);
 
@@ -90,7 +95,12 @@ export async function requireAuth(req: Request): Promise<AuthContext | Response>
 }
 
 export async function requirePrimaryWallet(userId: string, req?: Request): Promise<{ address: string } | Response> {
-  const supabase = supabaseServiceClient();
+  let supabase;
+  try {
+    supabase = supabaseServiceClient();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "supabase configuration error", "INTERNAL_ERROR", req);
+  }
   const { data, error: walletsErr } = await supabase
     .from("user_wallets")
     .select("address,is_primary,verified")
@@ -115,7 +125,12 @@ export async function ensureUserRow(
   const row: Record<string, unknown> = { id: auth.userId, ...patch };
   if (auth.email) row.email = auth.email;
 
-  const supabase = supabaseServiceClient();
+  let supabase;
+  try {
+    supabase = supabaseServiceClient();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "supabase configuration error", "INTERNAL_ERROR", req);
+  }
   const { data, error: upsertErr } = await supabase
     .from("users")
     .upsert(row, { onConflict: "id" })

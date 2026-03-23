@@ -75,7 +75,8 @@ export async function handler(req: Request): Promise<Response> {
     if (insertErr) return error(500, "failed to create secret", "DB_ERROR", req);
 
     // Reset permissions on create (best-effort).
-    await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+    const { error: policyDeleteErr } = await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+    if (policyDeleteErr) console.warn("[secrets-upsert] policy delete failed:", policyDeleteErr.message);
 
     return json({ secret: inserted, created: true }, {}, req);
   }

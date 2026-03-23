@@ -318,7 +318,7 @@ function sendMetricToService(metric: PerformanceMetric): void {
   const endpoint = process.env.NEXT_PUBLIC_PERFORMANCE_ENDPOINT;
   if (!endpoint) return;
   
-  fetch(endpoint, {
+  void fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -326,7 +326,6 @@ function sendMetricToService(metric: PerformanceMetric): void {
       data: metric,
       sessionId: getSessionId(),
     }),
-    // Don't await - fire and forget
   }).catch((e: unknown) => { console.warn("[monitoring] failed to send performance metric:", e instanceof Error ? e.message : String(e)); });
 }
 
@@ -346,7 +345,12 @@ function sendMetricsBuffer(): void {
     sessionId: getSessionId(),
   });
   
-  navigator.sendBeacon(endpoint, data);
+  navigator.sendBeacon?.(endpoint, data)
+    || void fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: data,
+    }).catch((e: unknown) => { console.warn("[performance] sendBeacon fallback failed:", e instanceof Error ? e.message : String(e)); });
   metricsBuffer = [];
 }
 

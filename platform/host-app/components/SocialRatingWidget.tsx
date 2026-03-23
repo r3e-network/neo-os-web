@@ -121,6 +121,7 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
                 ))}
               </div>
               <textarea
+                id="review-text"
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write a review (optional)"

@@ -191,6 +191,7 @@ function NewThreadForm({
   return (
     <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
       <input
+        id="thread-title"
         type="text"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -200,6 +201,7 @@ function NewThreadForm({
         maxLength={200}
       />
       <textarea
+        id="thread-content"
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
@@ -215,6 +217,7 @@ function NewThreadForm({
       )}
       <div className="flex items-center justify-between">
         <select
+          id="thread-category"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           aria-label="Thread category"
@@ -263,7 +266,7 @@ function ThreadDetail({
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchReplies(thread.id).then((r: import("./types").ForumReply[]) => { if (mountedRef.current) setReplies(r); });
+    fetchReplies(thread.id).then((r: import("./types").ForumReply[]) => { if (mountedRef.current) setReplies(r); }).catch((e: unknown) => { console.warn("[ForumTab] fetchReplies failed:", e instanceof Error ? e.message : String(e)); });
     return () => { mountedRef.current = false; };
   }, [fetchReplies, thread.id]);
 
@@ -332,6 +335,7 @@ function ThreadDetail({
         <>
           <div className="flex gap-2">
             <input
+              id="reply-content"
               type="text"
               value={replyContent}
               onChange={(e) => { setReplyContent(e.target.value); setReplyError(null); }}
