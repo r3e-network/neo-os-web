@@ -68,7 +68,7 @@ export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEleme
     return (
       <div
         ref={ref}
-        className={cn("px-6 py-5 border-t border-gray-200/50 dark:border-white/5 bg-gray-50/50 dark:bg-white/5", className)}
+        className={cn("px-6 py-5 border-t border-gray-200/50 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 text-gray-600 dark:text-gray-300", className)}
         {...props}
       >
         {children}

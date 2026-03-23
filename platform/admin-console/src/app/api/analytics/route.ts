@@ -82,12 +82,12 @@ export async function GET(req: Request) {
         : 0;
     };
 
-    const usersCount = parseCount(usersResponse);
-    const miniappsCount = parseCount(miniappsResponse);
-    const totalTransactions = parseCount(txResponse);
+    const usersCount = usersResponse.ok ? parseCount(usersResponse) : 0;
+    const miniappsCount = miniappsResponse.ok ? parseCount(miniappsResponse) : 0;
+    const totalTransactions = txResponse.ok ? parseCount(txResponse) : 0;
 
-    const usageRaw = await usageResponse.json();
-    const usageData = z.array(usageRowSchema).catch([]).parse(usageRaw);
+    const usageRaw = usageResponse.ok ? await usageResponse.json() : null;
+    const usageData = usageRaw ? z.array(usageRowSchema).catch([]).parse(usageRaw) : [];
     const gasUsageToday = usageData.reduce((sum: number, item) => sum + (item.gas_used || 0), 0);
 
     let usageByApp: z.infer<typeof usageByAppRowSchema>[] = [];

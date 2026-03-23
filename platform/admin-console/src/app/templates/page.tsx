@@ -619,8 +619,8 @@ export default function TemplateStudioPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label htmlFor="template-kind" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
-              <select id="template-kind" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as TemplateKind })}>
+              <label htmlFor="template-kind-form" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
+              <select id="template-kind-form" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as TemplateKind })}>
                 <option value="frontend">frontend</option>
                 <option value="contract">contract</option>
               </select>
@@ -628,8 +628,8 @@ export default function TemplateStudioPage() {
             <Input label="Template ID" value={form.template_id} onChange={(e) => setForm({ ...form, template_id: e.target.value })} placeholder="prediction.market.modern" />
             <Input label="Version" value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} placeholder="1.0.0" />
             <div>
-              <label htmlFor="template-source" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
-              <select id="template-source" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
+              <label htmlFor="template-source-form" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
+              <select id="template-source-form" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
                 <option value="community">community</option>
                 <option value="miniapp">miniapp</option>
                 <option value="verified">verified</option>

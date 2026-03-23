@@ -44,7 +44,8 @@ export const TableHead = forwardRef<HTMLTableCellElement, ThHTMLAttributes<HTMLT
     return (
       <th
         ref={ref}
-        className={cn("px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider", className)}
+        scope="col"
+        className={cn("px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wider", className)}
         {...props}
       />
     );

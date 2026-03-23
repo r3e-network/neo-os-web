@@ -49,6 +49,7 @@ export function MiniAppVersionHistorySection({
         <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Version History</h4>
         <div className="flex items-center gap-2">
           <select
+            id="version-channel-filter"
             className="cursor-pointer rounded-md border border-gray-300 p-1.5 text-xs transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             value={versionChannel}
             onChange={(event) => onVersionChannelChange(event.target.value as VersionChannel)}
@@ -103,6 +104,7 @@ export function MiniAppVersionHistorySection({
             </h5>
             <div className="flex items-center gap-2">
               <select
+                id="diff-scope-filter"
                 className="cursor-pointer rounded-md border border-gray-300 p-1 text-[11px] transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 value={diffScope}
                 onChange={(event) => onDiffScopeChange(event.target.value as DiffScope)}

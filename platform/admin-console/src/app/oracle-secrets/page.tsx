@@ -138,7 +138,8 @@ export default function OracleSecretsPage() {
 
       <Card variant="glass">
         <CardContent className="p-0">
-          <table className="w-full text-left text-sm text-gray-300">
+          <table className="w-full text-left text-sm text-gray-300" aria-label="Oracle secrets">
+            <caption className="sr-only">Oracle Secrets</caption>
             <thead className="bg-white/5 text-gray-400">
               <tr>
                 <th className="p-4 font-medium">Secret Name</th>

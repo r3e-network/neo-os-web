@@ -24,8 +24,8 @@ export async function POST(req: Request) {
     if (body && typeof body === "object") {
       dryRun = parseDryRun((body as Record<string, unknown>).dry_run);
     }
-  } catch {
-    // noop
+  } catch (_e: unknown) {
+    console.warn("[publish-requests/remind] dry_run parse failed:", _e instanceof Error ? _e.message : String(_e));
   }
 
   try {
