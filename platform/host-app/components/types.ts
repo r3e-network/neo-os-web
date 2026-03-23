@@ -17,7 +17,7 @@ export type MiniAppInfo = {
   contract_hash?: string | null;
   news_integration?: boolean | null;
   stats_display?: string[] | null;
-  status?: "active" | "disabled" | "pending" | null;
+  status?: "active" | "disabled" | "pending" | "beta" | null;
   source?: MiniAppSource;
   stats?: { users?: number; transactions?: number };
   operations?: OperationEntry[] | null;
