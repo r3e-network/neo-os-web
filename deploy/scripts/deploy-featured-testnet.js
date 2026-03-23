@@ -42,6 +42,7 @@ function sleep(ms) {
 
 async function waitForTx(txid, maxMs = 120000) {
   const deadline = Date.now() + maxMs;
+  let consecutiveErrors = 0;
   while (Date.now() < deadline) {
     try {
       const log = await rpcClient.getApplicationLog(txid);
@@ -55,8 +56,12 @@ async function waitForTx(txid, maxMs = 120000) {
           return null;
         }
       }
+      consecutiveErrors = 0;
     } catch (err) {
-      // Transient RPC error — retry polling silently
+      consecutiveErrors++;
+      if (consecutiveErrors <= 3 || consecutiveErrors % 10 === 0) {
+        console.warn(`[warn] waitForTx polling error (attempt ${consecutiveErrors}): ${err.message}`);
+      }
     }
     await sleep(3000);
     process.stdout.write(".");
