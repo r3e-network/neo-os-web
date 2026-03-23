@@ -9,6 +9,15 @@ const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = requ
 const root = path.resolve(__dirname, "..", "..");
 const siblingOracleEnvPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env");
 const siblingOracleEnvLocalPath = path.resolve(root, "..", "neo-morpheus-oracle", ".env.local");
+const siblingEdgeGatewayConfigPath = path.resolve(
+  root,
+  "..",
+  "neo-morpheus-oracle",
+  "deploy",
+  "cloudflare",
+  "morpheus-edge-gateway",
+  "wrangler.meshmini.toml"
+);
 const TARGET_NETWORK = normalizeNetworkName(process.env.NEO_TARGET_NETWORK || process.env.FLAGSHIP_NETWORK) || "testnet";
 const siblingOraclePhalaEnvPath = path.resolve(
   root,
@@ -50,16 +59,18 @@ function loadOptionalEnvFile(filePath) {
     const env = {};
     for (const line of text.split(/\r?\n/)) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
-      const idx = trimmed.indexOf("=");
-      let value = trimmed.slice(idx + 1).trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const match = trimmed.match(/^([A-Za-z0-9_]+)\s*=\s*(.+)$/);
+      if (!match) continue;
+      const key = match[1];
+      let value = match[2].trim();
       if (
         (value.startsWith('"') && value.endsWith('"'))
         || (value.startsWith("'") && value.endsWith("'"))
       ) {
         value = value.slice(1, -1);
       }
-      env[trimmed.slice(0, idx)] = value;
+      env[key] = value;
     }
     return env;
   } catch {
@@ -70,6 +81,7 @@ function loadOptionalEnvFile(filePath) {
 const siblingOracleEnv = loadOptionalEnvFile(siblingOracleEnvPath);
 const siblingOracleEnvLocal = loadOptionalEnvFile(siblingOracleEnvLocalPath);
 const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+const siblingEdgeGatewayConfig = loadOptionalEnvFile(siblingEdgeGatewayConfigPath);
 
 function resolvePhalaRuntimeUrl() {
   const explicit = String(
@@ -85,6 +97,27 @@ function resolvePhalaRuntimeUrl() {
       : (process.env.MORPHEUS_TESTNET_RUNTIME_URL || process.env.MORPHEUS_TESTNET_PHALA_API_URL || "")
   ).trim();
   if (networkScoped) return networkScoped;
+
+  const siblingEnvScoped = String(
+    TARGET_NETWORK === "mainnet"
+      ? (siblingOracleEnv.MORPHEUS_MAINNET_RUNTIME_URL || siblingOracleEnv.PHALA_API_URL_MAINNET || "")
+      : (siblingOracleEnv.MORPHEUS_TESTNET_RUNTIME_URL || siblingOracleEnv.PHALA_API_URL_TESTNET || "")
+  ).trim();
+  if (siblingEnvScoped) return siblingEnvScoped;
+
+  const siblingEdgeOrigin = String(
+    TARGET_NETWORK === "mainnet"
+      ? (siblingEdgeGatewayConfig.MORPHEUS_MAINNET_ORIGIN_URL || siblingEdgeGatewayConfig.MORPHEUS_ORIGIN_URL || "")
+      : (siblingEdgeGatewayConfig.MORPHEUS_TESTNET_ORIGIN_URL || siblingEdgeGatewayConfig.MORPHEUS_ORIGIN_URL || "")
+  ).trim();
+  if (siblingEdgeOrigin) return siblingEdgeOrigin;
+
+  const siblingEnvDirect = String(
+    siblingOracleEnv.MORPHEUS_RUNTIME_URL
+      || siblingOracleEnv.PHALA_API_URL
+      || ""
+  ).trim();
+  if (siblingEnvDirect) return siblingEnvDirect;
 
   const customDomain = String(
     TARGET_NETWORK === "mainnet"
@@ -182,7 +215,10 @@ async function callPhala(pathname, payload) {
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(30000),
   });
-  const body = await res.json().catch(() => ({}));
+  const body = await res.json().catch((e) => {
+    console.warn(`[warn] ${pathname}: non-JSON response (status ${res.status}): ${e.message}`);
+    return {};
+  });
   if (!res.ok) {
     throw new Error(body?.error || body?.message || `${pathname} failed with ${res.status}`);
   }
@@ -246,7 +282,9 @@ async function waitForLog(txid, timeoutMs = 120000) {
       if (execution) {
         return { txid: normalized, execution };
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[live_validate_flows] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+    }
     await sleep(2000);
   }
   throw new Error(`timed out waiting for ${normalized}`);
