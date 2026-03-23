@@ -312,4 +312,7 @@ const deployer = new FactoryDeployer({
   factory: argv.factory
 });
 
-deployer.deploy();
+deployer.deploy().catch((e) => {
+  console.error("Deployment failed:", e instanceof Error ? e.message : String(e));
+  process.exit(1);
+});

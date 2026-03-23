@@ -46,7 +46,9 @@ async function waitForTx(txid, timeoutMs = 120000) {
       if (log?.executions?.length) {
         return log.executions[0];
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[configure_flagship] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+    }
     await sleep(3000);
   }
   throw new Error(`timed out waiting for ${txid}`);
