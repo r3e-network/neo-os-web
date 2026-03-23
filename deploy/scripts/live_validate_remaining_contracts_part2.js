@@ -2,6 +2,14 @@
 
 const fs = require("fs");
 const path = require("path");
+const {
+  sleep,
+  asTxid,
+  stackValue,
+  executionReturnedTrue,
+  findNotification,
+  createWaitForLog,
+} = require("./lib/live_neo");
 let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
@@ -40,6 +48,10 @@ let gasByAdmin;
 let gasByUser;
 let neoByAdmin;
 let neoByUser;
+const waitForLog = createWaitForLog({
+  getApplicationLog: (txid) => rpcClient.getApplicationLog(txid),
+  label: "live_validate_p2",
+});
 
 async function initNeon() {
   if (Neon) return;
@@ -59,77 +71,6 @@ function appContract(hash, account) {
     networkMagic: NETWORK_MAGIC,
     account,
   });
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function asTxid(value) {
-  const text = String(value || "");
-  return text.startsWith("0x") ? text : `0x${text}`;
-}
-
-async function waitForLog(txid, timeoutMs = 120000) {
-  const deadline = Date.now() + timeoutMs;
-  const normalized = asTxid(txid);
-  while (Date.now() < deadline) {
-    try {
-      const log = await rpcClient.getApplicationLog(normalized);
-      const execution = log?.executions?.[0];
-      if (execution) return { txid: normalized, execution };
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (!/Unknown script container/i.test(message)) {
-        console.warn(`[live_validate_p2] getApplicationLog failed, retrying: ${message}`);
-      }
-    }
-    await sleep(2000);
-  }
-  throw new Error(`timed out waiting for ${normalized}`);
-}
-
-function executionReturnedTrue(execution) {
-  const item = execution?.stack?.[0];
-  if (!item) return false;
-  if (item.type === "Boolean") return item.value === true;
-  if (item.type === "Integer") return String(item.value || "0") !== "0";
-  return false;
-}
-
-function findNotification(execution, contractHash, eventName) {
-  const expected = String(contractHash).toLowerCase();
-  return (execution.notifications || []).find(
-    (entry) => String(entry.contract || "").toLowerCase() === expected && String(entry.eventname || "") === eventName,
-  );
-}
-
-function stackValue(item) {
-  if (!item || typeof item !== "object") return null;
-  switch (item.type) {
-    case "Integer":
-      return String(item.value || "0");
-    case "Boolean":
-      return Boolean(item.value);
-    case "ByteString": {
-      const bytes = Buffer.from(String(item.value || ""), "base64");
-      if (bytes.length === 20) {
-        return `0x${Buffer.from(bytes).reverse().toString("hex")}`;
-      }
-      try {
-        return bytes.toString("utf8");
-      } catch {
-        return item.value ?? null;
-      }
-    }
-    case "Array":
-    case "Struct":
-      return Array.isArray(item.value) ? item.value.map(stackValue) : [];
-    case "Map":
-      return Object.fromEntries((item.value || []).map((entry) => [stackValue(entry.key), stackValue(entry.value)]));
-    default:
-      return item.value ?? null;
-  }
 }
 
 async function invokeRead(scriptHash, operation, args = []) {
