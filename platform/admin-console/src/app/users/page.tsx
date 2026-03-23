@@ -36,6 +36,7 @@ export default function UsersPage() {
           <div className="mb-4">
             <Input
               type="search"
+              id="user-search-input"
               placeholder="Search by address or email..."
               aria-label="Search users"
               value={searchTerm}

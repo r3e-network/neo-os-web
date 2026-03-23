@@ -188,12 +188,12 @@ export function formToConfig(form: Record<string, any>) {
         required: p.required,
         default_value: p.default_value || undefined,
         placeholder: p.placeholder || undefined,
-        options: p.options ? (() => { try { return JSON.parse(p.options); } catch { return undefined; } })() : undefined,
+        options: p.options ? (() => { try { return JSON.parse(p.options); } catch (_e: unknown) { console.warn("[form-converters] JSON.parse options failed:", _e instanceof Error ? _e.message : String(_e)); return undefined; } })() : undefined,
       })) : [],
     })) : [],
     components: Array.isArray(form.components) ? form.components.filter((c) => c.type).map((c) => ({
       type: c.type, display: c.display || undefined,
-      props: (() => { try { return c.props ? JSON.parse(c.props) : {}; } catch { return {}; } })(),
+      props: (() => { try { return c.props ? JSON.parse(c.props) : {}; } catch (_e: unknown) { console.warn("[form-converters] JSON.parse props failed:", _e instanceof Error ? _e.message : String(_e)); return {}; } })(),
     })) : [],
     content: {
       description: form.content_description || undefined,

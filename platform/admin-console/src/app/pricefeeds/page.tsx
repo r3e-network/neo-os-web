@@ -149,7 +149,8 @@ export default function PriceFeedsPage() {
 
       <Card variant="glass">
         <CardContent className="p-0">
-          <table className="w-full text-left text-sm text-gray-300">
+          <table className="w-full text-left text-sm text-gray-300" aria-label="Price feed sources">
+            <caption className="sr-only">Price Feed Sources</caption>
             <thead className="bg-white/5 text-gray-400">
               <tr>
                 <th className="p-4 font-medium">Symbol</th>

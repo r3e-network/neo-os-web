@@ -9,15 +9,23 @@ export default function SettingsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     fetch("/api/settings")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
       .then((data) => { if (active) { setConfig(data); setLoading(false); } })
-      .catch((e: unknown) => { console.warn("[settings] failed to load config:", e instanceof Error ? e.message : String(e)); if (active) setLoading(false); });
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : "Failed to load settings";
+        console.warn("[settings] failed to load config:", msg);
+        if (active) { setLoadError(msg); setLoading(false); }
+      });
     return () => { active = false; };
   }, []);
 
@@ -41,6 +49,15 @@ export default function SettingsPage() {
   };
 
   if (loading) return <div className="flex justify-center p-12"><Spinner /></div>;
+
+  if (loadError || !config) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{loadError || "Settings unavailable"}</p>
+        <Button variant="secondary" onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -66,27 +83,27 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-xl border-gray-200 dark:border-white/10 bg-white/5">
-              <div>
+              <label htmlFor="maintenance-mode-toggle" className="cursor-pointer">
                 <div className="font-semibold text-white">Maintenance Mode</div>
                 <div className="text-sm text-gray-400">Suspend all non-admin traffic</div>
-              </div>
+              </label>
               <input
+                id="maintenance-mode-toggle"
                 type="checkbox"
-                aria-label="Maintenance Mode"
-                checked={config.maintenanceMode}
+                checked={config.maintenanceMode ?? false}
                 onChange={(e) => setConfig({...config, maintenanceMode: e.target.checked})}
                 className="w-5 h-5 accent-neo"
               />
             </div>
             <div className="flex items-center justify-between p-4 border rounded-xl border-gray-200 dark:border-white/10 bg-white/5">
-              <div>
+              <label htmlFor="approval-gate-toggle" className="cursor-pointer">
                 <div className="font-semibold text-white">MiniApp Approval Gate</div>
                 <div className="text-sm text-gray-400">Require manual review for production publish</div>
-              </div>
+              </label>
               <input
+                id="approval-gate-toggle"
                 type="checkbox"
-                aria-label="MiniApp Approval Gate"
-                checked={config.approvalGateRequired}
+                checked={config.approvalGateRequired ?? false}
                 onChange={(e) => setConfig({...config, approvalGateRequired: e.target.checked})}
                 className="w-5 h-5 accent-neo"
               />
@@ -104,7 +121,7 @@ export default function SettingsPage() {
               <input
                 id="max-bundle-size"
                 type="number"
-                value={config.maxMiniappSizeMb}
+                value={config.maxMiniappSizeMb ?? ""}
                 onChange={(e) => setConfig({...config, maxMiniappSizeMb: parseInt(e.target.value)})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"
               />
@@ -114,7 +131,7 @@ export default function SettingsPage() {
               <input
                 id="pricefeed-interval"
                 type="number"
-                value={config.pricefeedIntervalMs}
+                value={config.pricefeedIntervalMs ?? ""}
                 onChange={(e) => setConfig({...config, pricefeedIntervalMs: parseInt(e.target.value)})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"
               />
@@ -123,7 +140,7 @@ export default function SettingsPage() {
               <label htmlFor="log-level" className="block text-sm font-medium text-gray-300 mb-1">Log Level</label>
               <select
                 id="log-level"
-                value={config.logLevel}
+                value={config.logLevel ?? "info"}
                 onChange={(e) => setConfig({...config, logLevel: e.target.value})}
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo"
               >

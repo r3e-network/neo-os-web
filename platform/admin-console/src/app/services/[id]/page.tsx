@@ -12,15 +12,23 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     fetch(`/api/services/${params.id}/config`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        return res.json();
+      })
       .then((data) => { if (active) { setConfig(data); setLoading(false); } })
-      .catch((e: unknown) => { console.warn("[services] failed to load service config:", e instanceof Error ? e.message : String(e)); if (active) setLoading(false); });
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? e.message : "Failed to load service configuration";
+        console.warn("[services] failed to load service config:", msg);
+        if (active) { setLoadError(msg); setLoading(false); }
+      });
     return () => { active = false; };
   }, [params.id]);
 
@@ -44,6 +52,15 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
   };
 
   if (loading) return <div className="flex justify-center p-12"><Spinner /></div>;
+
+  if (loadError || !config) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-400 mb-4">{loadError || "Configuration unavailable"}</p>
+        <Button variant="ghost" onClick={() => router.push("/services")}>&larr; Back</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -76,7 +93,7 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
                 <input
                   type="checkbox"
                   aria-labelledby="routing-enabled-label"
-                  checked={config.routing.enabled}
+                  checked={config.routing?.enabled ?? false}
                   onChange={(e) => setConfig({
                     ...config,
                     routing: { ...config.routing, enabled: e.target.checked }
@@ -89,7 +106,7 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
               <input
                 type="number"
                 id="routing-max-concurrent"
-                value={config.routing.max_concurrent_requests}
+                value={config.routing?.max_concurrent_requests ?? ""}
                 onChange={(e) => setConfig({
                   ...config,
                   routing: { ...config.routing, max_concurrent_requests: parseFloat(e.target.value) }
@@ -102,7 +119,7 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
               <input
                 type="number"
                 id="routing-timeout"
-                value={config.routing.timeout_ms}
+                value={config.routing?.timeout_ms ?? ""}
                 onChange={(e) => setConfig({
                   ...config,
                   routing: { ...config.routing, timeout_ms: parseFloat(e.target.value) }
@@ -123,7 +140,7 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
                 <input
                   type="checkbox"
                   aria-labelledby="security-require-sig-label"
-                  checked={config.security.require_signature}
+                  checked={config.security?.require_signature ?? false}
                   onChange={(e) => setConfig({
                     ...config,
                     security: { ...config.security, require_signature: e.target.checked }
@@ -136,7 +153,7 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
                 <input
                   type="checkbox"
                   aria-labelledby="security-allowlist-label"
-                  checked={config.security.allowlist_only}
+                  checked={config.security?.allowlist_only ?? false}
                   onChange={(e) => setConfig({
                     ...config,
                     security: { ...config.security, allowlist_only: e.target.checked }

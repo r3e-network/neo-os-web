@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
             </div>
           ) : (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
-              <div className="flex h-40 items-end gap-2">
+              <div className="flex h-40 items-end gap-2" aria-label="Gas usage chart for the last 30 days">
                 {chartData.map((point) => {
                   const heightPercent = maxChartValue > 0 ? Math.max((point.gas / maxChartValue) * 100, 4) : 4;
                   return (
