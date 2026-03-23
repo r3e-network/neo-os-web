@@ -20,7 +20,7 @@
           ]"
         >
           <div class="leader-rank-container">
-            <AppIcon :name="getMedalIcon((item as unknown as LeaderEntry).rank)" :size="16" :aria-label="getMedalAriaLabel((item as unknown as LeaderEntry).rank)" />
+            <AppIcon :name="getMedalIcon((item as unknown as LeaderEntry).rank)" :size="16" aria-hidden="true" />
             <span class="leader-rank">#{{ (item as unknown as LeaderEntry).rank }}</span>
           </div>
           <span class="leader-addr">{{ (item as unknown as LeaderEntry).address }}</span>

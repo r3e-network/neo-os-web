@@ -6,7 +6,7 @@
       </div>
       <div class="icon-frame" v-else>
         <span class="candle-icon" :class="{ burning: memorial.hasRecentTribute }">
-          <AppIcon name="candle" :size="24" :aria-label="t('candleIcon')" />
+          <AppIcon name="candle" :size="24" aria-hidden="true" />
         </span>
       </div>
     </div>
@@ -14,7 +14,7 @@
       <span class="name">{{ memorial.name }}</span>
       <span class="years">{{ memorial.birthYear }}{{ t("yearRangeSeparator") }}{{ memorial.deathYear }}</span>
       <span class="candle" :class="{ burning: memorial.hasRecentTribute }">
-        <AppIcon name="candle" :size="20" :aria-label="t('candleIcon')" />
+        <AppIcon name="candle" :size="20" aria-hidden="true" />
       </span>
     </div>
   </button>

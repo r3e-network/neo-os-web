@@ -199,7 +199,7 @@ export function useQuadraticProjects(
         try {
           await refreshProjects();
         } catch (_e: unknown) {
-          /* non-critical: round change handler */
+          console.warn("[useQuadraticProjects] refreshProjects failed:", _e instanceof Error ? _e.message : String(_e));
         }
       }
     }
@@ -211,7 +211,7 @@ export function useQuadraticProjects(
       try {
         claimingProjectId.value = null;
       } catch (_e: unknown) {
-        /* non-critical: address change handler */
+        console.warn("[useQuadraticProjects] address change failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }
   });

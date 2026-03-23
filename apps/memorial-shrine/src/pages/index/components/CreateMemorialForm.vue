@@ -1,11 +1,11 @@
 <template>
   <div class="create-form">
-    <span class="title"><AppIcon name="sparkle" :size="20" :aria-label="t('createTitleIcon')" /> {{ t("createTitle") }}</span>
+    <span class="title"><AppIcon name="sparkle" :size="20" aria-hidden="true" /> {{ t("createTitle") }}</span>
     <span class="desc">{{ t("createDesc") }}</span>
 
     <div class="form-group">
       <span class="label">{{ t("labelName") }} *</span>
-      <input v-model="form.name" :placeholder="t('placeholderName')" class="input" :aria-label="t('labelName')" />
+      <input id="memorial-name" v-model="form.name" :placeholder="t('placeholderName')" class="input" :aria-label="t('labelName')" />
     </div>
 
     <div class="form-group">
@@ -15,7 +15,7 @@
           <img :src="photoPreview" mode="aspectFill" :alt="t('photoPreview')" />
         </div>
         <div class="photo-placeholder" v-else>
-          <AppIcon name="camera" :size="24" :aria-label="t('photoUploadIcon')" />
+          <AppIcon name="camera" :size="24" aria-hidden="true" />
           <span class="text">{{ t("uploadPhoto") }}</span>
         </div>
       </button>
@@ -24,27 +24,27 @@
     <div class="form-row">
       <div class="form-group half">
         <span class="label">{{ t("labelBirth") }}</span>
-        <input v-model.number="form.birthYear" type="number" :placeholder="t('placeholderBirthYear')" class="input" :aria-label="t('labelBirth')" />
+        <input id="memorial-birth-year" v-model.number="form.birthYear" type="number" :placeholder="t('placeholderBirthYear')" class="input" :aria-label="t('labelBirth')" />
       </div>
       <div class="form-group half">
         <span class="label">{{ t("labelDeath") }}</span>
-        <input v-model.number="form.deathYear" type="number" :placeholder="t('placeholderDeathYear')" class="input" :aria-label="t('labelDeath')" />
+        <input id="memorial-death-year" v-model.number="form.deathYear" type="number" :placeholder="t('placeholderDeathYear')" class="input" :aria-label="t('labelDeath')" />
       </div>
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelRelation") }}</span>
-      <input v-model="form.relationship" :placeholder="t('placeholderRelation')" class="input" :aria-label="t('labelRelation')" />
+      <input id="memorial-relationship" v-model="form.relationship" :placeholder="t('placeholderRelation')" class="input" :aria-label="t('labelRelation')" />
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelBio") }}</span>
-      <textarea v-model="form.biography" :placeholder="t('placeholderBio')" class="textarea" :maxlength="2000" :aria-label="t('labelBio')" />
+      <textarea id="memorial-biography" v-model="form.biography" :placeholder="t('placeholderBio')" class="textarea" :maxlength="2000" :aria-label="t('labelBio')" />
     </div>
 
     <div class="form-group">
       <span class="label">{{ t("labelObituary") }}</span>
-      <textarea v-model="form.obituary" :placeholder="t('placeholderObituary')" class="textarea" :maxlength="1000" :aria-label="t('labelObituary')" />
+      <textarea id="memorial-obituary" v-model="form.obituary" :placeholder="t('placeholderObituary')" class="textarea" :maxlength="1000" :aria-label="t('labelObituary')" />
     </div>
 
     <div v-if="status" class="status-bar" :class="status.type">

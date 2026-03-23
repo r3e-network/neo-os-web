@@ -1,7 +1,7 @@
 <template>
   <NeoCard variant="erobo-bitcoin" class="reading-card-container">
     <div class="fortune-container-glass">
-      <AppIcon name="crystal_ball" :size="64" class="fortune-icon" />
+      <AppIcon name="crystal_ball" :size="64" class="fortune-icon" aria-hidden="true" />
       <span class="reading-text-glass">{{ reading }}</span>
       <div class="mystical-divider-glass">
         <span aria-hidden="true">✦ ✦ ✦</span>

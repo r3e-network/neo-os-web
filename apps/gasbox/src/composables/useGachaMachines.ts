@@ -4,14 +4,14 @@ import { normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
-import { useErrorHandler } from "@shared/composables/useErrorHandler";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-gasbox";
 
 export function useGachaMachines() {
   const { t } = createUseI18n(messages)();
-  const { handleError } = useErrorHandler();
+  const { setStatus } = useStatusMessage();
   const { address, contractAddress, ensureContractAddress, read } = useContractInteraction({ appId: APP_ID, t });
 
   const machines = ref<Machine[]>([]);
@@ -184,7 +184,7 @@ export function useGachaMachines() {
         selectedMachine.value = updated;
       }
     } catch (e: unknown) {
-      handleError(e, { operation: "loadMachines" });
+      setStatus(t("machinesLoadFailed") || "Machines unavailable", "error");
     } finally {
       isLoadingMachines.value = false;
     }
@@ -217,7 +217,6 @@ export function useGachaMachines() {
     isItemAvailable,
     read,
     address,
-    handleError,
     t,
   };
 }

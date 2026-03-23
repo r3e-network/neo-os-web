@@ -5,6 +5,7 @@ import { formatCompactNumber } from "@shared/utils/format";
 import type { UniAppGlobals } from "@shared/types/globals";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useTicker } from "@shared/composables/useTicker";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { messages } from "@/locale/messages";
 
 const APY_CACHE_KEY = "neoburger_apy_cache";
@@ -21,6 +22,7 @@ const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost
 
 export function useNeoburgerStats() {
   const { t } = createUseI18n(messages)();
+  const { setStatus } = useStatusMessage();
 
   const apy = ref(0);
   const animatedApy = ref("0.0");
@@ -78,7 +80,7 @@ export function useNeoburgerStats() {
         if (!response.ok) continue;
         return await response.json();
       } catch (_e: unknown) {
-        /* endpoint unreachable -- try next */
+        console.warn("[useNeoburgerStats] endpoint failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }
     return null;
@@ -94,6 +96,7 @@ export function useNeoburgerStats() {
       const value = Number(raw);
       return Number.isFinite(value) && value >= 0 ? value : null;
     } catch (_e: unknown) {
+      console.warn("[useNeoburgerStats] readCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
       return null;
     }
   };
@@ -108,7 +111,7 @@ export function useNeoburgerStats() {
         localStorage.setItem(APY_CACHE_KEY, String(value));
       }
     } catch (_e: unknown) {
-      /* APY cache write is non-critical */
+      console.warn("[useNeoburgerStats] writeCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
@@ -130,7 +133,8 @@ export function useNeoburgerStats() {
         if (typeof formatted === "string") totalStakedFormatted.value = formatted;
       }
     } catch (_e: unknown) {
-      // non-critical: APY data fetch
+      console.warn("[useNeoburgerStats] loadApy failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus("APY data unavailable", "error");
     } finally {
       loadingApy.value = false;
       animateApy();
@@ -141,7 +145,8 @@ export function useNeoburgerStats() {
     try {
       priceData.value = await getPrices();
     } catch (_e: unknown) {
-      // non-critical: price data fetch
+      console.warn("[useNeoburgerStats] loadPrices failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus("Price data unavailable", "error");
     }
   }
 

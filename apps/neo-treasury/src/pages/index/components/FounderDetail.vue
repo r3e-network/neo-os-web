@@ -5,7 +5,7 @@
       <div class="hero-body">
         <div class="hero-info">
           <div class="founder-badge">
-            <AppIcon name="user" :size="24" />
+            <AppIcon name="user" :size="24" aria-hidden="true" />
             <span class="badge-text">{{ category.name }}</span>
           </div>
           <span class="hero-usd">{{ t("currencySymbol") }}{{ formatNum(category.totalUsd) }}</span>
@@ -47,7 +47,7 @@
           </div>
           <div class="wallet-right">
             <span class="addr-usd">{{ t("currencySymbol") }}{{ formatNum(walletUsd(wallet)) }}</span>
-            <AppIcon name="chevron-right" :size="16" :class="['arrow', { rotated: expandedIdx === idx }]" />
+            <AppIcon name="chevron-right" :size="16" :class="['arrow', { rotated: expandedIdx === idx }]" aria-hidden="true" />
           </div>
         </div>
 

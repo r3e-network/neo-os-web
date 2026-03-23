@@ -28,12 +28,12 @@
         <template #stats>
           <div class="hero-stats">
             <div class="hero-stat">
-              <AppIcon name="skull" :size="28" class="hero-stat-icon" />
+              <AppIcon name="skull" :size="28" class="hero-stat-icon" aria-hidden="true" />
               <span class="hero-stat-value">{{ totalDestroyed }}</span>
               <span class="hero-stat-label">{{ t("itemsDestroyed") }}</span>
             </div>
             <div class="hero-stat">
-              <AppIcon name="gas" :size="28" class="hero-stat-icon" />
+              <AppIcon name="gas" :size="28" class="hero-stat-icon" aria-hidden="true" />
               <span class="hero-stat-value">{{ formatNum(gasReclaimed) }}</span>
               <span class="hero-stat-label">{{ t("gasReclaimed") }}</span>
             </div>

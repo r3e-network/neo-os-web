@@ -96,7 +96,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
         };
       }
     } catch (_e: unknown) {
-      // Global stats load failure handled silently
+      console.warn("[useCheckinContract] loadGlobalStats failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
@@ -121,7 +121,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
           };
         });
     } catch (_e: unknown) {
-      // History load failure handled silently
+      console.warn("[useCheckinContract] loadHistory failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 

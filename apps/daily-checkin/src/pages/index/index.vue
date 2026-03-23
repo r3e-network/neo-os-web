@@ -29,7 +29,7 @@
               },
             ]"
           >
-            <span class="day-icon" :aria-label="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? t('dayCompleted') : t('dayPending')"><AppIcon :name="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? 'check-circle' : 'circle'" :size="16" /></span>
+            <span class="day-icon" :aria-label="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? t('dayCompleted') : t('dayPending')"><AppIcon :name="day <= (currentStreak % 7 || (currentStreak >= 7 ? 7 : 0)) ? 'check-circle' : 'circle'" :size="16" aria-hidden="true" /></span>
             <span class="day-label">{{ t("dayPrefix") }}{{ day }}</span>
           </div>
         </div>
@@ -46,7 +46,7 @@
         <!-- Countdown to Next -->
         <div class="hero-next-checkin">
           <div class="utc-clock-hero" role="timer" aria-live="polite">
-            <AppIcon name="clock" :size="18" class="clock-icon" />
+            <AppIcon name="clock" :size="18" class="clock-icon" aria-hidden="true" />
             <span class="clock-display">{{ utcTimeDisplay }}</span>
             <span class="clock-utc-label">{{ t("utcLabel") }}</span>
           </div>
@@ -55,7 +55,7 @@
 
         <!-- Status Indicator -->
         <div class="hero-status-pill" :class="{ ready: canCheckIn }">
-          <AppIcon :name="canCheckIn ? 'star' : 'check'" :size="18" />
+          <AppIcon :name="canCheckIn ? 'star' : 'check'" :size="18" aria-hidden="true" />
           <span>{{ canCheckIn ? t("statusReady") : t("statusDone") }}</span>
         </div>
       </div>
@@ -75,7 +75,7 @@
           class="checkin-btn"
         >
           <div class="btn-content">
-            <AppIcon :name="canCheckIn ? 'star' : 'clock'" :size="16" />
+            <AppIcon :name="canCheckIn ? 'star' : 'clock'" :size="16" aria-hidden="true" />
             <span>{{ canCheckIn ? t("checkInNow") : t("waitForNext") }}</span>
           </div>
         </NeoButton>
@@ -104,7 +104,7 @@
           </div>
           <div v-else class="history-list">
             <div v-for="item in checkinHistory" :key="item.time" class="history-item">
-              <AppIcon name="flame" :size="20" class="history-icon" />
+              <AppIcon name="flame" :size="20" class="history-icon" aria-hidden="true" />
               <div class="history-info">
                 <span class="history-day">{{ t("day") }} {{ item.streak }}</span>
                 <span class="history-time">{{ item.time }}</span>

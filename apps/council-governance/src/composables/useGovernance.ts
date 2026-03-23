@@ -85,7 +85,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
         if (parentOrigin) return parentOrigin;
       }
     } catch (_e: unknown) {
-      // Fallback
+      console.warn("[useGovernance] getApiBase failed:", _e instanceof Error ? _e.message : String(_e));
     }
     return "";
   };

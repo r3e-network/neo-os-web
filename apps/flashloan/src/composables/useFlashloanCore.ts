@@ -9,6 +9,7 @@ import { formatNumber, formatAddress, formatGas, toFixed8 } from "@shared/utils/
 import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 
 const APP_ID = "miniapp-flashloan";
 
@@ -36,6 +37,7 @@ type ExecutedLoan = {
 export function useFlashloanCore() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
+  const { setStatus } = useStatusMessage();
   const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
   const { contractAddress, ensure: ensureContractAddress } = useContractAddress((key: string) =>
@@ -136,6 +138,7 @@ export function useFlashloanCore() {
       poolBalance.value = toGas(parseInvokeResult(res));
     } catch (e: unknown) {
       handleError(e, { operation: "loadPoolBalance" });
+      setStatus(formatErrorMessage(e, t("error")), "error");
       poolBalance.value = 0;
     } finally {
       isLoading.value = false;
@@ -184,6 +187,7 @@ export function useFlashloanCore() {
         .slice(0, 10);
     } catch (e: unknown) {
       handleError(e, { operation: "loadLoanStats" });
+      setStatus(formatErrorMessage(e, t("error")), "error");
       stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
       recentLoans.value = [];
     } finally {
@@ -196,6 +200,7 @@ export function useFlashloanCore() {
       await Promise.all([loadPoolBalance(), loadLoanStats()]);
     } catch (e: unknown) {
       handleError(e, { operation: "loadData" });
+      setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
 

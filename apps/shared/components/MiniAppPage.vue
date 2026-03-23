@@ -22,7 +22,7 @@
       <!-- ═══ LEFT SIDEBAR ═══ -->
       <aside class="sidebar-left" :aria-label="t('navigationSidebar')">
         <div class="sidebar-brand">
-          <div class="brand-mark"><AppIcon :name="brandIcon" :size="18" /></div>
+          <div class="brand-mark"><AppIcon :name="brandIcon" :size="18" aria-hidden="true" /></div>
           <div class="brand-text">
             <span class="brand-name">{{ t("title") }}</span>
             <span class="brand-tag">{{ t("neoN3") }}</span>
@@ -41,7 +41,7 @@
             :aria-label="t(tab.labelKey)"
             @click="setActiveTab(tab.key)"
           >
-            <AppIcon :name="tab.icon" :size="15" class="nav-icon" />
+            <AppIcon :name="tab.icon" :size="15" class="nav-icon" aria-hidden="true" />
             <span class="nav-label">{{ t(tab.labelKey) }}</span>
             <span v-if="activeTab === tab.key" class="nav-indicator" />
           </button>

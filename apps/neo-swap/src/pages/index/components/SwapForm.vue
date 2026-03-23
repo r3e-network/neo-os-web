@@ -7,6 +7,7 @@
     <div class="token-row">
       <TokenSelect :token="token" @click="$emit('select')" />
       <input
+        id="swap-amount-input"
         type="number"
         :value="modelValue"
         :placeholder="placeholder"

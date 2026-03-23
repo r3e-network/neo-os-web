@@ -4,7 +4,7 @@
       <div class="card-glow"></div>
 
       <div class="lucky-content">
-        <span class="lucky-header"><AppIcon name="party" :size="18" /> {{ t("congratulations") }} <AppIcon name="party" :size="18" /></span>
+        <span class="lucky-header"><AppIcon name="party" :size="18" aria-hidden="true" /> {{ t("congratulations") }} <AppIcon name="party" :size="18" aria-hidden="true" /></span>
 
         <div class="amount-circle">
           <div class="amount-inner">

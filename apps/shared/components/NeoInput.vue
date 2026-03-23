@@ -38,7 +38,7 @@
         @blur="$emit('blur', $event)"
       />
       <div v-if="suffixIcon || suffix" class="neo-input__suffix">
-        <AppIcon v-if="suffixIcon" :name="suffixIcon" :size="18" />
+        <AppIcon v-if="suffixIcon" :name="suffixIcon" :size="18" aria-hidden="true" />
         <span v-if="suffix">{{ suffix }}</span>
       </div>
     </div>

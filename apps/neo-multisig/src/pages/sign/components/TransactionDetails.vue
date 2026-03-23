@@ -20,7 +20,7 @@
     </div>
     <div class="raw-data">
       <span class="label">{{ t("detailRawTx") }}</span>
-      <textarea class="raw-input" :value="request.transaction_hex" disabled :aria-label="t('detailRawTx')" />
+      <textarea id="raw-transaction-hex" class="raw-input" :value="request.transaction_hex" disabled :aria-label="t('detailRawTx')" />
     </div>
   </NeoCard>
 </template>

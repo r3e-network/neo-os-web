@@ -10,7 +10,7 @@
     @close="$emit('cancel')"
   >
     <div class="confirm-body">
-      <AppIcon name="skull" :size="80" class="confirm-skull" />
+      <AppIcon name="skull" :size="80" class="confirm-skull" aria-hidden="true" />
       <span class="confirm-text">{{ t("confirmText") }}</span>
       <div class="confirm-hash">{{ assetHash }}</div>
     </div>

@@ -142,7 +142,8 @@ export function useGraveyardActions() {
       totalDestroyed.value = Number(totalResult || 0);
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
     } catch (_e: unknown) {
-      // non-critical: graveyard stats fetch
+      console.warn("[useGraveyardActions] stats fetch failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus(t("loadFailed") || "Failed to load stats", "error");
     }
   };
 
@@ -168,7 +169,7 @@ export function useGraveyardActions() {
                 }
               }
             } catch (_e: unknown) {
-              /* Individual memory detail fetch failure -- skip enrichment */
+              console.warn("[useGraveyardActions] memory detail fetch failed, skipping enrichment:", _e instanceof Error ? _e.message : String(_e));
             }
           }
           return {
@@ -181,7 +182,8 @@ export function useGraveyardActions() {
       );
       history.value = entries;
     } catch (_e: unknown) {
-      // non-critical: graveyard history fetch
+      console.warn("[useGraveyardActions] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus(t("loadFailed") || "Failed to load history", "error");
     }
   };
 
