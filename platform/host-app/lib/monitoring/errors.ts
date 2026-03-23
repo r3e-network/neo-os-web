@@ -363,7 +363,7 @@ function sendErrorToService(error: TrackedError): void {
   const endpoint = process.env.NEXT_PUBLIC_ERROR_ENDPOINT;
   if (!endpoint) return;
   
-  fetch(endpoint, {
+  void fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
