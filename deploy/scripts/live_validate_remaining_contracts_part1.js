@@ -12,6 +12,14 @@ const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF 
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const ROOT = path.resolve(__dirname, "../..");
+const siblingOraclePhalaEnvPath = path.resolve(
+  ROOT,
+  "..",
+  "neo-morpheus-oracle",
+  "deploy",
+  "phala",
+  "morpheus.testnet.env"
+);
 const OUTPUT_PATH = path.join(ROOT, "docs", "reports", "2026-03-19-remaining-miniapp-live-smoke-part1.json");
 const TARGET_FILTER = new Set(
   String(process.env.REMAINING_MINIAPP_SMOKE_TARGETS || "")
@@ -25,6 +33,38 @@ if (!ADMIN_WIF || !USER_WIF) {
   process.exit(1);
 }
 
+function loadOptionalEnvFile(filePath) {
+  try {
+    const text = fs.readFileSync(filePath, "utf8");
+    const env = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+      const idx = trimmed.indexOf("=");
+      let value = trimmed.slice(idx + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"'))
+        || (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      env[trimmed.slice(0, idx)] = value;
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+const ORACLE_UPDATER_WIF = String(
+  process.env.MORPHEUS_ORACLE_UPDATER_WIF
+    || process.env.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.PHALA_NEO_N3_WIF
+    || ADMIN_WIF
+).trim();
+
 const ADDRESSES = {
   breakup: "0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8",
   burnleague: "0x0946e3c3db8abdd2fa14bbae4978992015473c09",
@@ -35,9 +75,10 @@ const ADDRESSES = {
 
 const admin = new Neon.wallet.Account(ADMIN_WIF);
 const user = new Neon.wallet.Account(USER_WIF);
+const oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
 const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
 const adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const oracle = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+const oracle = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -187,7 +228,7 @@ async function ensureOracleRequestFulfilled(requestId, requestType, resultBytes,
   const request = await getOracleRequest(requestId);
   if (oracleRequestCompleted(request)) return null;
   const digestHex = buildFulfillmentDigestHex(requestId, requestType, true, resultBytes, errorText);
-  const signature = Neon.wallet.sign(digestHex, admin.privateKey);
+  const signature = Neon.wallet.sign(digestHex, oracleUpdater.privateKey);
   try {
     const txid = await oracle.invoke("fulfillRequest", [
       Neon.sc.ContractParam.integer(String(requestId)),
@@ -344,12 +385,18 @@ async function runOnChainTarot() {
   const log = await waitForLog(tx);
   if (log.execution.vmstate !== "HALT") throw new Error(log.execution.exception || "requestReading failed");
   const requested = findNotification(log.execution, hash, "ReadingRequested");
+  const oracleRequested = findNotification(log.execution, ORACLE_HASH, "OracleRequested");
   const readingId = String(stackValue(requested?.state?.value?.[0]));
-  const requestId = String(stackValue(requested?.state?.value?.[0])); // request map tracks readingId via oracle event path, not exposed separately
+  const requestId = String(stackValue(oracleRequested?.state?.value?.[0] || ""));
+  if (!requestId) throw new Error("oracle request id missing from ReadingRequested flow");
   const totalBefore = await invokeRead(hash, "totalReadings");
   const deadline = Date.now() + 60000;
   let details = await invokeRead(hash, "getReadingDetails", [{ type: "Integer", value: readingId }]);
   while (details.completed !== true && Date.now() < deadline) {
+    const request = await getOracleRequest(requestId).catch(() => null);
+    if (request && !oracleRequestCompleted(request)) {
+      await ensureOracleRequestFulfilled(requestId, "rng", crypto.randomBytes(32));
+    }
     await sleep(2000);
     details = await invokeRead(hash, "getReadingDetails", [{ type: "Integer", value: readingId }]);
   }
