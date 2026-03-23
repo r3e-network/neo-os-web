@@ -49,6 +49,7 @@ export function PublishRequestsToolbar({
           Send Reminders
         </Button>
         <select
+          id="publish-request-status-filter"
           className="cursor-pointer rounded-md border border-gray-300 p-1.5 text-xs transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           value={publishRequestStatus}
           onChange={(event) => onPublishRequestStatusChange(event.target.value as PublishRequestStatus)}

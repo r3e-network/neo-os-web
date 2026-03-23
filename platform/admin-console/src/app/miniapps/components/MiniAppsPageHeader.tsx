@@ -62,10 +62,10 @@ export function MiniAppsPageHeader({
         ) : null}
       </div>
       <div className="flex flex-wrap justify-end gap-2">
-        <label className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+        <button type="button" className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800" onClick={() => document.getElementById("batch-file-input")?.click()}>
           Upload JSON/YAML Batch
-          <input type="file" accept=".json,.yaml,.yml" multiple className="hidden" onChange={onBatchFilesSelected} />
-        </label>
+        </button>
+        <input id="batch-file-input" type="file" accept=".json,.yaml,.yml" multiple className="hidden" onChange={onBatchFilesSelected} />
         <Button variant="secondary" disabled={importBatchPending || batchFilesCount === 0} onClick={onValidateBatch}>
           Validate Uploaded Batch
         </Button>

@@ -13,7 +13,7 @@ export function PermissionsTab({ form, permissionKeys, togglePerm, update }: Pro
   return (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</label>
+        <div className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permissions</div>
         <div className="flex flex-wrap gap-3">
           {permissionKeys.map(key => (
             <label key={key} className="flex items-center gap-1.5 text-sm">

@@ -52,10 +52,10 @@ export function ContractInitSchemaAutoForm({
 
           return (
             <div key={field.key} className="space-y-1">
-              <label className="block text-xs text-gray-500 dark:text-gray-400">
+              <div className="block text-xs text-gray-500 dark:text-gray-400">
                 {field.label}
                 {field.required ? " *" : ""}
-              </label>
+              </div>
               {field.type === "boolean" ? (
                 <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input
@@ -68,6 +68,7 @@ export function ContractInitSchemaAutoForm({
                 </label>
               ) : field.enumValues.length ? (
                 <select
+                  id={`field-${field.key}`}
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                   value={displayValue}
                   onChange={(event) => onChange(field, event.target.value)}
@@ -82,6 +83,7 @@ export function ContractInitSchemaAutoForm({
                 </select>
               ) : (
                 <input
+                  id={`field-${field.key}`}
                   type={field.type === "number" || field.type === "integer" ? "number" : "text"}
                   step={field.type === "number" ? "any" : undefined}
                   value={displayValue}

@@ -54,8 +54,9 @@ export function BasicTab({
           <Input label="Frontend Variant" placeholder="market-modern" value={form.frontend_template_variant} onChange={e => update("frontend_template_variant", e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Frontend Params JSON</label>
+          <label htmlFor="frontend-params-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Frontend Params JSON</label>
           <textarea
+            id="frontend-params-json"
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={4}
             value={form.frontend_template_params_json}
@@ -92,8 +93,9 @@ export function BasicTab({
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Init Params JSON</label>
+            <label htmlFor="contract-init-params-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Init Params JSON</label>
             <textarea
+              id="contract-init-params-json"
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_init_params_json}
@@ -103,8 +105,9 @@ export function BasicTab({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Init Schema JSON</label>
+            <label htmlFor="contract-init-schema-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Init Schema JSON</label>
             <textarea
+              id="contract-init-schema-json"
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_init_schema_json}
@@ -123,8 +126,9 @@ export function BasicTab({
         />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Method Schema JSON</label>
+            <label htmlFor="contract-method-schema-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Contract Method Schema JSON</label>
             <textarea
+              id="contract-method-schema-json"
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_method_schema_json}
@@ -134,8 +138,9 @@ export function BasicTab({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Security Profile JSON</label>
+            <label htmlFor="security-profile-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Security Profile JSON</label>
             <textarea
+              id="security-profile-json"
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
               rows={4}
               value={form.contract_template_security_profile_json}
