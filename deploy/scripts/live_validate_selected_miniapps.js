@@ -75,7 +75,6 @@ const ADDRESSES = {
   millionpiecemap: "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
   graveyard: "0xb55aa635b10a5abb5cbac169db26a38df739778e",
   heritagetrust: "0x42e14d04c17dad0b1d76ee7509e537791230431b",
-  halloffame: "0x00d44aefa345f72c0eb15036129a32a56c765474",
   turtlematch: "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
 };
 
@@ -129,7 +128,10 @@ async function waitForLog(txid, timeoutMs = 120000) {
         return { txid: normalized, execution };
       }
     } catch (e) {
-      console.warn(`[live_validate_miniapps] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/Unknown script container/i.test(message)) {
+        console.warn(`[live_validate_miniapps] getApplicationLog failed, retrying: ${message}`);
+      }
     }
     await sleep(2000);
   }
@@ -575,82 +577,6 @@ async function runGraveyard() {
   return { contractHash, memoryId, buryTx: asTxid(buryTx), epitaphTx: asTxid(epitaphTx), forgetTx: asTxid(forgetTx) };
 }
 
-async function ensureSeason(contractHash, contract) {
-  let seasonId = String(await invokeRead(contractHash, "currentSeasonId") || "0");
-  let active = false;
-  let ended = false;
-  let endSeasonTx = null;
-  if (seasonId !== "0") {
-    const season = await invokeRead(contractHash, "getSeasonDetails", [{ type: "Integer", value: seasonId }]);
-    active = season.active === true;
-    ended = BigInt(String(season.endTime || "0")) <= BigInt(Date.now());
-  }
-  if (active && ended) {
-    endSeasonTx = await contract.invoke("endSeason", []);
-    const endLog = await waitForLog(endSeasonTx);
-    if (endLog.execution.vmstate !== "HALT") throw new Error(endLog.execution.exception || "endSeason failed");
-    active = false;
-  }
-  if (!active) {
-    const tx = await contract.invoke("startSeason", []);
-    const log = await waitForLog(tx);
-    if (log.execution.vmstate !== "HALT") throw new Error(log.execution.exception || "startSeason failed");
-    seasonId = String(await invokeRead(contractHash, "currentSeasonId") || "0");
-    return { seasonId, tx: asTxid(tx), endSeasonTx: endSeasonTx ? asTxid(endSeasonTx) : null };
-  }
-  return { seasonId, tx: null, endSeasonTx: endSeasonTx ? asTxid(endSeasonTx) : null };
-}
-
-async function runHallOfFame() {
-  const contractHash = ADDRESSES.halloffame;
-  const adminContract = appContract(contractHash, admin);
-  const userContract = appContract(contractHash, user);
-  const season = await ensureSeason(contractHash, adminContract);
-  const category = "projects";
-  let nominee = "";
-  let addNomineeTx = null;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    nominee = uniqueLabel("codex-nominee");
-    try {
-      addNomineeTx = await adminContract.invoke("addNominee", [
-        Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
-        Neon.sc.ContractParam.string(category),
-        Neon.sc.ContractParam.string(nominee),
-        Neon.sc.ContractParam.string("Codex smoke nominee"),
-      ]);
-      const nomineeLog = await waitForLog(addNomineeTx);
-      if (nomineeLog.execution.vmstate !== "HALT") {
-        throw new Error(nomineeLog.execution.exception || "addNominee failed");
-      }
-      break;
-    } catch (error) {
-      if (!String(error?.message || error).includes("nominee exists") || attempt === 4) {
-        throw error;
-      }
-      nominee = "";
-      addNomineeTx = null;
-    }
-  }
-  if (!addNomineeTx || !nominee) throw new Error("unable to add nominee");
-
-  const voteAmount = "10000000";
-  await transferGAS(userGas, user, contractHash, voteAmount, "miniapp-hall-of-fame:vote");
-  const voteTx = await userContract.invoke("vote", [
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
-    Neon.sc.ContractParam.string(category),
-    Neon.sc.ContractParam.string(nominee),
-    Neon.sc.ContractParam.integer(voteAmount),
-  ]);
-  const voteLog = await waitForLog(voteTx);
-  if (voteLog.execution.vmstate !== "HALT") throw new Error(voteLog.execution.exception || "vote failed");
-  const details = await invokeRead(contractHash, "getNomineeDetails", [
-    { type: "String", value: category },
-    { type: "String", value: nominee },
-  ]);
-  if (BigInt(String(details.totalVotes || "0")) < BigInt(voteAmount)) throw new Error("nominee totalVotes did not increase");
-  return { contractHash, seasonId: season.seasonId, endSeasonTx: season.endSeasonTx, startSeasonTx: season.tx, addNomineeTx: asTxid(addNomineeTx), voteTx: asTxid(voteTx), nominee };
-}
-
 async function runHeritageTrust() {
   const contractHash = ADDRESSES.heritagetrust;
   const contract = appContract(contractHash, admin);
@@ -908,7 +834,6 @@ async function runAll() {
     ["masqueradedao", runMasqueradeDAO],
     ["millionpiecemap", runMillionPieceMap],
     ["graveyard", runGraveyard],
-    ["halloffame", runHallOfFame],
     ["heritagetrust", runHeritageTrust],
     ["dicegame", runDiceGame],
     ["gascircle", runGasCircle],

@@ -77,7 +77,10 @@ async function waitForLog(txid, timeoutMs = 120000) {
       const execution = log?.executions?.[0];
       if (execution) return { txid: normalized, execution };
     } catch (e) {
-      console.warn(`[live_validate_p3] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/Unknown script container/i.test(message)) {
+        console.warn(`[live_validate_p3] getApplicationLog failed, retrying: ${message}`);
+      }
     }
     await sleep(2000);
   }

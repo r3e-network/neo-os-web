@@ -117,7 +117,10 @@ async function waitForLog(txid, timeoutMs = 120000) {
       const execution = log?.executions?.[0];
       if (execution) return { txid: normalized, execution };
     } catch (e) {
-      console.warn(`[live_validate] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+      const message = e instanceof Error ? e.message : String(e);
+      if (!/Unknown script container/i.test(message)) {
+        console.warn(`[live_validate] getApplicationLog failed, retrying: ${message}`);
+      }
     }
     await sleep(2000);
   }
@@ -350,11 +353,22 @@ async function runBurnLeague() {
 
 async function runDevTipping() {
   const hash = ADDRESSES.devtipping;
-  const adminContract = appContract(hash, admin);
-  const userContract = appContract(hash, user);
+  const onchainAdmin = String(await invokeRead(hash, "admin") || "").toLowerCase();
+  const managerAccount =
+    onchainAdmin === `0x${admin.scriptHash}`.toLowerCase()
+      ? admin
+      : onchainAdmin === `0x${user.scriptHash}`.toLowerCase()
+        ? user
+        : null;
+  if (!managerAccount) {
+    throw new Error(`devtipping admin ${onchainAdmin || "<unset>"} does not match available smoke accounts`);
+  }
+  const tipperAccount = managerAccount.address === admin.address ? user : admin;
+  const managerContract = appContract(hash, managerAccount);
+  const tipperContract = appContract(hash, tipperAccount);
 
-  const registerTx = await adminContract.invoke("registerDeveloper", [
-    Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
+  const registerTx = await managerContract.invoke("registerDeveloper", [
+    Neon.sc.ContractParam.hash160(`0x${managerAccount.scriptHash}`),
     Neon.sc.ContractParam.string(uniqueLabel("Dev")),
     Neon.sc.ContractParam.string("builder"),
   ]);
@@ -362,9 +376,9 @@ async function runDevTipping() {
   if (registerLog.execution.vmstate !== "HALT") throw new Error(registerLog.execution.exception || "registerDeveloper failed");
   const devId = String(stackValue(findNotification(registerLog.execution, hash, "DeveloperRegistered")?.state?.value?.[0]));
 
-  await transferGAS(user, hash, "5000000", "miniapp-dev-tipping:tip");
-  const tipTx = await userContract.invoke("tip", [
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
+  await transferGAS(tipperAccount, hash, "5000000", "miniapp-dev-tipping:tip");
+  const tipTx = await tipperContract.invoke("tip", [
+    Neon.sc.ContractParam.hash160(`0x${tipperAccount.scriptHash}`),
     Neon.sc.ContractParam.integer(devId),
     Neon.sc.ContractParam.integer("5000000"),
     Neon.sc.ContractParam.string("codex smoke"),
@@ -373,12 +387,20 @@ async function runDevTipping() {
   const tipLog = await waitForLog(tipTx);
   if (tipLog.execution.vmstate !== "HALT") throw new Error(tipLog.execution.exception || "tip failed");
 
-  const withdrawTx = await adminContract.invoke("withdraw", [
+  const withdrawTx = await managerContract.invoke("withdraw", [
     Neon.sc.ContractParam.integer(devId),
   ]);
   const withdrawLog = await waitForLog(withdrawTx);
   if (withdrawLog.execution.vmstate !== "HALT") throw new Error(withdrawLog.execution.exception || "withdraw failed");
-  return { contractHash: hash, devId, registerTx: asTxid(registerTx), tipTx: asTxid(tipTx), withdrawTx: asTxid(withdrawTx) };
+  return {
+    contractHash: hash,
+    manager: managerAccount.address,
+    tipper: tipperAccount.address,
+    devId,
+    registerTx: asTxid(registerTx),
+    tipTx: asTxid(tipTx),
+    withdrawTx: asTxid(withdrawTx),
+  };
 }
 
 async function runOnChainTarot() {
