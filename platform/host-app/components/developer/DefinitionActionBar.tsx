@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Database, Rocket, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +17,8 @@ export function DefinitionActionBar({
   onPreview,
   onImport,
 }: DefinitionActionBarProps) {
+  const importInputId = useId();
+
   return (
     <div className="mb-3 flex flex-wrap gap-2">
       <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={onGenerate}>
@@ -26,20 +29,25 @@ export function DefinitionActionBar({
         <Rocket size={14} className="mr-1" />
         {previewLoading ? "Previewing..." : "Schema + Runtime Preview"}
       </Button>
-      <label className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-white/10">
-        <Upload size={14} className="mr-1" />
+      <button
+        type="button"
+        className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-white/10"
+        onClick={() => document.getElementById(importInputId)?.click()}
+      >
+        <Upload size={14} className="mr-1" aria-hidden="true" />
         Import File
-        <input
-          type="file"
-          accept=".json,.yaml,.yml"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) onImport(file);
-            e.currentTarget.value = "";
-          }}
-        />
-      </label>
+      </button>
+      <input
+        id={importInputId}
+        type="file"
+        accept=".json,.yaml,.yml"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onImport(file);
+          e.currentTarget.value = "";
+        }}
+      />
     </div>
   );
 }

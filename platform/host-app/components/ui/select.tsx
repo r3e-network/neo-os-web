@@ -264,6 +264,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       <div className="w-full" ref={containerRef}>
         {label && (
           <label
+            id={`${selectId}-label`}
             htmlFor={selectId}
             className="block text-sm font-medium text-gray-300 mb-1.5"
           >
