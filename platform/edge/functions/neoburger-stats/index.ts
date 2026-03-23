@@ -44,6 +44,8 @@ export async function handler(req: Request): Promise<Response> {
         // RPC returned 200 with invalid JSON; fall through with default
         console.warn("[neoburger-stats] RPC parse error:", err instanceof Error ? err.message : String(err));
       }
+    } else {
+      console.warn("[neoburger-stats] RPC returned error response:", supplyRes.status, supplyRes.statusText);
     }
   } catch (err) {
     // RPC fetch failed; fall through with default totalSupply

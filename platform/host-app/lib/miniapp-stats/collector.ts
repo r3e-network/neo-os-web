@@ -58,8 +58,8 @@ async function getContractEvents(
         }
       }
     }
-  } catch {
-    // Silently handle - indexer would be more reliable
+  } catch (_e: unknown) {
+    console.warn("[collector] getContractEvents failed:", _e instanceof Error ? _e.message : String(_e));
   }
 
   return events;

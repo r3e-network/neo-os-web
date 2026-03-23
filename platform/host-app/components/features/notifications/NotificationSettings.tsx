@@ -156,6 +156,7 @@ function EmailBindInput({
   return (
     <div className="flex gap-2">
       <input
+        id="notification-email"
         type="email"
         value={email}
         onChange={(e) => onChange(e.target.value)}
@@ -191,6 +192,7 @@ function VerifyCodeInput({
       <p className="text-xs text-gray-500 dark:text-gray-400">Enter the verification code sent to your email</p>
       <div className="flex gap-2">
         <input
+          id="verification-code"
           type="text"
           value={code}
           onChange={(e) => onChange(e.target.value)}

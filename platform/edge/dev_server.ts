@@ -21,8 +21,8 @@ async function discoverFunctions(): Promise<Set<string>> {
       const indexUrl = new URL(`./functions/${entry.name}/index.ts`, import.meta.url);
       const stat = await Deno.stat(indexUrl);
       if (stat.isFile) names.add(entry.name);
-    } catch {
-      // ignore
+    } catch (_e: unknown) {
+      console.warn("[dev_server] Deno.stat failed for function file, skipping:", _e instanceof Error ? _e.message : String(_e));
     }
   }
   return names;

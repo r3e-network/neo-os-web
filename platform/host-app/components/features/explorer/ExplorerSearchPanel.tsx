@@ -23,6 +23,7 @@ export function ExplorerSearchPanel({
     <>
       <div role="search" className="mx-auto mb-8 flex max-w-2xl gap-2">
         <Input
+          id="explorer-search-input"
           aria-label="Search by transaction hash, address, or contract"
           placeholder="Search by tx hash, address, or contract..."
           value={query}

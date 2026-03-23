@@ -47,13 +47,16 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseServiceClient();
 
   // Check existing linked_identities
-  const { data: existing } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from("linked_identities")
     .select("user_id")
     .eq("provider", provider)
     .eq("provider_user_id", providerUserId)
     .maybeSingle();
 
+  if (existingErr) {
+    console.warn("[auth-social-sync] linked_identities lookup failed:", existingErr.message);
+  }
   if (existing?.user_id) {
     return json({ user_id: existing.user_id, is_new: false }, {}, req);
   }
@@ -61,12 +64,15 @@ export async function handler(req: Request): Promise<Response> {
   // Check if another identity with same email exists (merge case)
   let accountId: string | null = null;
   if (email) {
-    const { data: byEmail } = await supabase
+    const { data: byEmail, error: byEmailErr } = await supabase
       .from("linked_identities")
       .select("user_id")
       .eq("email", email)
       .limit(1)
       .maybeSingle();
+    if (byEmailErr) {
+      console.warn("[auth-social-sync] email lookup failed:", byEmailErr.message);
+    }
     if (byEmail?.user_id) accountId = byEmail.user_id;
   }
 
@@ -74,7 +80,10 @@ export async function handler(req: Request): Promise<Response> {
   if (!accountId) {
     // Check main users table directly just in case
     if (email) {
-      const { data: userByEmail } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
+      const { data: userByEmail, error: userByEmailErr } = await supabase.from("users").select("id").eq("email", email).maybeSingle();
+      if (userByEmailErr) {
+        console.warn("[auth-social-sync] user email lookup failed:", userByEmailErr.message);
+      }
       if (userByEmail?.id) accountId = userByEmail.id;
     }
 
@@ -102,14 +111,20 @@ export async function handler(req: Request): Promise<Response> {
         if (poolResp.ok) {
           const { address } = await poolResp.json();
           if (address) {
-            await supabase.from("user_wallets").insert({
+            const { error: insertWalletError } = await supabase.from("user_wallets").insert({
               user_id: accountId,
               address,
               is_primary: true,
               verified: true,
             });
+            if (insertWalletError) {
+              console.warn("[auth-social-sync] failed to insert user wallet:", insertWalletError.message);
+            }
             // Link to main users record
-            await supabase.from("users").update({ address }).eq("id", accountId);
+            const { error: updateUserError } = await supabase.from("users").update({ address }).eq("id", accountId);
+            if (updateUserError) {
+              console.warn("[auth-social-sync] failed to link wallet to user:", updateUserError.message);
+            }
           }
         }
       } catch (err) {

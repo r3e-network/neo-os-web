@@ -24,7 +24,12 @@ export async function handler(req: Request): Promise<Response> {
   const rl = await requireRateLimit(req, "datafeed-price");
   if (rl) return rl;
 
-  const upstream = resolveDatafeedPriceUpstream(symbol);
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveDatafeedPriceUpstream(symbol);
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const result = await getJSON(
     upstream.url,
     {

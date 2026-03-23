@@ -29,12 +29,15 @@ export async function handler(req: Request): Promise<Response> {
   const message = `Sign this message to log in with your ${network} wallet.\n\nAddress: ${address}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
   // Find or create account by wallet address
-  const { data: user } = await supabase
+  const { data: user, error: userErr } = await supabase
     .from("users")
     .select("id")
     .eq("address", address)
     .maybeSingle();
 
+  if (userErr) {
+    console.warn("[auth-wallet-nonce] user lookup failed:", userErr.message);
+  }
   let accountId: string;
   if (user?.id) {
     accountId = user.id;

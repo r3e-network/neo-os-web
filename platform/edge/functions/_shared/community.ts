@@ -83,13 +83,16 @@ export async function verifyProofOfInteraction(
     };
   }
 
-  // Cache the proof for future lookups
-  await supabase.from("social_proof_of_interaction").upsert({
+  // Cache the proof for future lookups (best-effort)
+  const { error: upsertErr } = await supabase.from("social_proof_of_interaction").upsert({
     app_id: appId,
     user_id: userId,
     tx_hash: txEvents[0].tx_hash,
     verified_at: txEvents[0].created_at,
-  }, { onConflict: "app_id,user_id" }).catch((e) => { console.warn("[community] social_proof_of_interaction upsert failed:", e instanceof Error ? e.message : String(e)); });
+  }, { onConflict: "app_id,user_id" });
+  if (upsertErr) {
+    console.warn("[community] social_proof_of_interaction upsert failed:", upsertErr.message);
+  }
 
   return {
     verified: true,
@@ -142,11 +145,14 @@ export async function logSpamAction(
   actionType: string,
   appId?: string,
 ): Promise<void> {
-  await supabase.rpc("log_spam_action", {
+  const { error: rpcErr } = await supabase.rpc("log_spam_action", {
     p_user_id: userId,
     p_action_type: actionType,
     p_app_id: appId ?? null,
   });
+  if (rpcErr) {
+    throw new Error(`log_spam_action RPC failed: ${rpcErr.message}`);
+  }
 }
 
 // -----------------------------------------------------------------------------
