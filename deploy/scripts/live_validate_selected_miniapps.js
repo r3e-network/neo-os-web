@@ -13,6 +13,14 @@ const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const ROOT = path.resolve(__dirname, "../..");
+const siblingOraclePhalaEnvPath = path.resolve(
+  ROOT,
+  "..",
+  "neo-morpheus-oracle",
+  "deploy",
+  "phala",
+  "morpheus.testnet.env"
+);
 const OUTPUT_PATH = path.join(ROOT, "docs", "reports", "2026-03-19-selected-miniapp-live-smoke.json");
 const TARGET_FILTER = new Set(
   String(process.env.SELECTED_MINIAPP_SMOKE_TARGETS || "")
@@ -25,6 +33,38 @@ if (!ADMIN_WIF || !USER_WIF) {
   console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF (or equivalent env fallbacks) are required");
   process.exit(1);
 }
+
+function loadOptionalEnvFile(filePath) {
+  try {
+    const text = fs.readFileSync(filePath, "utf8");
+    const env = {};
+    for (const line of text.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+      const idx = trimmed.indexOf("=");
+      let value = trimmed.slice(idx + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"'))
+        || (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      env[trimmed.slice(0, idx)] = value;
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+const siblingOraclePhalaEnv = loadOptionalEnvFile(siblingOraclePhalaEnvPath);
+const ORACLE_UPDATER_WIF = String(
+  process.env.MORPHEUS_ORACLE_UPDATER_WIF
+    || process.env.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.MORPHEUS_RELAYER_NEO_N3_WIF
+    || siblingOraclePhalaEnv.PHALA_NEO_N3_WIF
+    || ADMIN_WIF
+).trim();
 
 const ADDRESSES = {
   flashloan: "0xde8e595d8d3c293731db499367ee2a768e1e458b",
@@ -41,11 +81,12 @@ const ADDRESSES = {
 
 const admin = new Neon.wallet.Account(ADMIN_WIF);
 const user = new Neon.wallet.Account(USER_WIF);
+const oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
 const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
 const adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
 const userGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
 const adminNeo = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const oracleContract = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+const oracleContract = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -258,7 +299,7 @@ function buildFulfillmentDigestHex(requestId, requestType, success, resultBytes,
 
 async function fulfillOracleRequest(requestId, requestType, resultBytes, errorText = "") {
   const digestHex = buildFulfillmentDigestHex(requestId, requestType, true, resultBytes, errorText);
-  const signature = Neon.wallet.sign(digestHex, admin.privateKey);
+  const signature = Neon.wallet.sign(digestHex, oracleUpdater.privateKey);
   const txid = await oracleContract.invoke("fulfillRequest", [
     Neon.sc.ContractParam.integer(String(requestId)),
     Neon.sc.ContractParam.boolean(true),
