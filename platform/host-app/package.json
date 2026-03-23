@@ -15,8 +15,6 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
-    "@aws-sdk/client-s3": "^3.995.0",
-    "@aws-sdk/s3-request-presigner": "^3.995.0",
     "@cityofzion/neon-js": "^5.8.1",
     "@sendgrid/mail": "^8.1.6",
     "@supabase/supabase-js": "^2.89.0",
@@ -29,7 +27,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "ethers": "^6.16.0",
-    "fast-xml-parser": "^5.5.8",
     "framer-motion": "^12.23.26",
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.562.0",
@@ -39,7 +36,6 @@
     "react-dom": "^18.3.1",
     "recharts": "^3.6.0",
     "resend": "^6.9.3",
-    "socket.io-parser": "4.2.6",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
     "webpack": "^5.105.4",
@@ -63,8 +59,7 @@
     "typescript": "^5.8.2"
   },
   "overrides": {
-    "@aws-sdk/xml-builder": "3.972.11",
-    "fast-xml-parser": "$fast-xml-parser",
+    "socket.io-parser": "4.2.6",
     "glob": "^11.0.0",
     "minimatch": "^10.2.1"
   }
