@@ -3,7 +3,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
@@ -73,12 +73,23 @@ const ADDRESSES = {
   vault: "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
 };
 
-const admin = new Neon.wallet.Account(ADMIN_WIF);
-const user = new Neon.wallet.Account(USER_WIF);
-const oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
-const adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const oracle = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
+let admin;
+let user;
+let oracleUpdater;
+let rpcClient;
+let adminGas;
+let oracle;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  admin = new Neon.wallet.Account(ADMIN_WIF);
+  user = new Neon.wallet.Account(USER_WIF);
+  oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+  adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  oracle = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
+}
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -438,6 +449,7 @@ async function runVault() {
 }
 
 async function runAll() {
+  await initNeon();
   const results = {};
   const tasks = [
     ["breakup", runBreakup],

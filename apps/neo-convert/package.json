@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@cityofzion/neon-core": "catalog:",
+    "@r3e/neo-js-sdk": "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
     "@noble/curves": "catalog:",
     "@noble/hashes": "catalog:",
     "base-x": "^5.0.1",

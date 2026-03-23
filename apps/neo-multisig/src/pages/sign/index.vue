@@ -64,7 +64,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { api } from "../../services/api";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { tx } from "@cityofzion/neon-core";
+import { tx } from "@r3e/neo-js-sdk/browser";
 import {
   buildVerificationScript,
   buildWitness,

@@ -123,7 +123,7 @@ Neo Convert performs all cryptographic operations locally using:
 │         ▼                      ▼           │
 │  ┌─────────────────────────────────────┐   │
 │  │      Cryptographic Engine           │   │
-│  │  - @cityofzion/neon-core            │   │
+│  │  - @r3e/neo-js-sdk/core             │   │
 │  │  - @noble/curves (secp256r1)        │   │
 │  │  - Custom conversion utilities      │   │
 │  └─────────────────────────────────────┘   │
@@ -184,7 +184,7 @@ npm run build
 ### Dependencies
 
 Key cryptographic libraries:
-- `@cityofzion/neon-core`: Neo N3 core functionality
+- `@r3e/neo-js-sdk`: Neo N3 SDK with browser/core compatibility exports
 - `@noble/curves`: Pure JavaScript elliptic curve operations
 - `jspdf`: PDF generation for paper wallets
 - `qrcode`: QR code generation

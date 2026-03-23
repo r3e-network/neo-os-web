@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 const { getManifestContractHash, getNetworkConfig, normalizeNetworkName } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
@@ -155,19 +155,29 @@ if (!WIF) {
   process.exit(1);
 }
 
-const account = new Neon.wallet.Account(WIF);
-const oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
-const gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
-  rpcAddress: RPC_URL,
-  networkMagic: NETWORK_MAGIC,
-  account,
-});
-const neoContract = new Neon.experimental.SmartContract(NEO_HASH, {
-  rpcAddress: RPC_URL,
-  networkMagic: NETWORK_MAGIC,
-  account,
-});
+let account;
+let oracleUpdaterAccount;
+let rpcClient;
+let gasContract;
+let neoContract;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  account = new Neon.wallet.Account(WIF);
+  oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+  gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+  neoContract = new Neon.experimental.SmartContract(NEO_HASH, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account,
+  });
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -920,6 +930,7 @@ async function runNeoPay() {
 }
 
 async function main() {
+  await initNeon();
   const summary = {
     generatedAt: new Date().toISOString(),
     targetNetwork: TARGET_NETWORK,

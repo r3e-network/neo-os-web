@@ -5,7 +5,7 @@
  */
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = 894710606;
@@ -17,8 +17,8 @@ if (!DEPLOYER_WIF) {
   process.exit(1);
 }
 
-const deployer = new Neon.wallet.Account(DEPLOYER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+let deployer;
+let rpcClient;
 const TARGET_FILTER = new Set(
   String(process.env.FEATURED_TARGETS || "")
     .split(",")
@@ -35,6 +35,13 @@ const CONTRACTS = [
   { name: "MiniAppSelfLoan", appDir: "self-loan", displayName: "SelfLoan" },
   { name: "MiniAppNeoPay", appDir: "neo-pay", displayName: "NeoPay" },
 ];
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  deployer = new Neon.wallet.Account(DEPLOYER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+}
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -153,6 +160,7 @@ async function deployContract(contract) {
 }
 
 async function main() {
+  await initNeon();
   console.log("\n🚀 Redeploying flagship contracts to Neo N3 Testnet");
   console.log(`   Deployer: ${deployer.address}`);
   console.log(`   RPC: ${RPC_URL}\n`);
