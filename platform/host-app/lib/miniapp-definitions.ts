@@ -292,6 +292,9 @@ async function loadBundledManifest(slug: string): Promise<Dict | null> {
     const parsed = JSON.parse(content);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Dict) : null;
   } catch (_e: unknown) {
+    if (_e && typeof _e === "object" && "code" in _e && (_e as { code?: string }).code === "ENOENT") {
+      return null;
+    }
     console.warn("[miniapp-definitions] failed to read manifest for", slug, ":", _e instanceof Error ? _e.message : String(_e));
     return null;
   }
