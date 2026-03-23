@@ -21,7 +21,12 @@ export async function handler(req: Request): Promise<Response> {
   const walletCheck = await requirePrimaryWallet(auth.userId, req);
   if (walletCheck instanceof Response) return walletCheck;
 
-  const upstream = resolveComputeExecuteUpstream();
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveComputeExecuteUpstream();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const jobsUrl = upstream.url.replace(/\/execute$/, "/jobs");
   const result = await getJSON(
     jobsUrl,

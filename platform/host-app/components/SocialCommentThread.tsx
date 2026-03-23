@@ -79,6 +79,7 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
       {canComment && (
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <textarea
+            id="comment-text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Write a comment..."

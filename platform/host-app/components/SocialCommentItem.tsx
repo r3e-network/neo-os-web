@@ -102,6 +102,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
       {showReplyForm && (
         <div className="ml-6 mb-3">
           <textarea
+            id="reply-text"
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."

@@ -58,7 +58,7 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
       <h4 className="font-semibold text-gray-900 dark:text-white">Create New Secret</h4>
       <div className="mt-3 space-y-3">
         <div>
-          <label className="block text-sm text-gray-600 dark:text-gray-400">Secret Type</label>
+          <div className="block text-sm text-gray-600 dark:text-gray-400">Secret Type</div>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {SECRET_TYPES.map((type) => (
               <button

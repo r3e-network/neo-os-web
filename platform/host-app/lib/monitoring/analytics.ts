@@ -469,7 +469,7 @@ export function flushEvents(): void {
       };
       
       navigator.sendBeacon?.(endpoint, JSON.stringify(payload))
-        || fetch(endpoint, {
+        || void fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -488,7 +488,7 @@ function sendEventToService(event: AnalyticsEvent): void {
   const endpoint = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT;
   if (!endpoint) return;
   
-  fetch(endpoint, {
+  void fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

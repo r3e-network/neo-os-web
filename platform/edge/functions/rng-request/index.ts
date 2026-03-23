@@ -45,7 +45,12 @@ export async function handler(req: Request): Promise<Response> {
 
   const requestId = crypto.randomUUID();
 
-  const upstream = resolveVrfRandomUpstream();
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveVrfRandomUpstream();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const vrfResult = await postJSON(
     upstream.url,
     { request_id: requestId },

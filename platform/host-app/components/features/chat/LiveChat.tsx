@@ -195,6 +195,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
             {walletAddress ? (
               <div className="flex items-center gap-2">
                 <input
+                  id="chat-message"
                   ref={inputRef}
                   type="text"
                   value={inputValue}

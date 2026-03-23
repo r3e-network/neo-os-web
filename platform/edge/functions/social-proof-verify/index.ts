@@ -36,7 +36,7 @@ export async function handler(req: Request): Promise<Response> {
   const userId = auth.userId;
 
   // Check existing proof cache
-  const { data: cached } = await supabase
+  const { data: cached, error: cachedErr } = await supabase
     .from("social_proof_of_interaction")
     .select("tx_hash, verified_at")
     .eq("app_id", app_id)
@@ -44,6 +44,9 @@ export async function handler(req: Request): Promise<Response> {
     .order("verified_at", { ascending: false })
     .limit(5);
 
+  if (cachedErr) {
+    console.warn("[social-proof-verify] proof cache lookup failed:", cachedErr.message);
+  }
   if (cached && cached.length > 0) {
     return json(
       {
@@ -59,8 +62,11 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Look up user's wallet address
-  const { data: userData } = await supabase.from("users").select("neo_address").eq("id", userId).single();
+  const { data: userData, error: userDataErr } = await supabase.from("users").select("neo_address").eq("id", userId).single();
 
+  if (userDataErr) {
+    console.warn("[social-proof-verify] user lookup failed:", userDataErr.message);
+  }
   if (!userData?.neo_address) {
     return json(
       {
@@ -76,7 +82,7 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Check miniapp_tx_events for interactions
-  const { data: txEvents } = await supabase
+  const { data: txEvents, error: txEventsErr } = await supabase
     .from("miniapp_tx_events")
     .select("tx_hash, created_at")
     .eq("app_id", app_id)
@@ -84,6 +90,9 @@ export async function handler(req: Request): Promise<Response> {
     .order("created_at", { ascending: true })
     .limit(10);
 
+  if (txEventsErr) {
+    console.warn("[social-proof-verify] tx events lookup failed:", txEventsErr.message);
+  }
   if (!txEvents || txEvents.length === 0) {
     return json(
       {
@@ -98,7 +107,7 @@ export async function handler(req: Request): Promise<Response> {
     );
   }
 
-  // Cache the proof
+  // Cache the proof (best-effort, non-fatal)
   const proofRecords = txEvents.map((tx) => ({
     app_id,
     user_id: userId,
@@ -106,11 +115,9 @@ export async function handler(req: Request): Promise<Response> {
     interaction_type: "transaction",
   }));
 
-  try {
-    await supabase.from("social_proof_of_interaction").upsert(proofRecords, { onConflict: "app_id,user_id,tx_hash" });
-  } catch (e) {
-    console.error("[social-proof-verify] upsert failed:", e instanceof Error ? e.message : String(e));
-    // Non-fatal: proof is still verified, cache write failure should not block response
+  const { error: upsertErr } = await supabase.from("social_proof_of_interaction").upsert(proofRecords, { onConflict: "app_id,user_id,tx_hash" });
+  if (upsertErr) {
+    console.warn("[social-proof-verify] upsert failed:", upsertErr.message);
   }
 
   return json(

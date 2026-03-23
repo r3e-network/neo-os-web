@@ -109,6 +109,7 @@ export async function requestJSON(
     try {
       body = JSON.stringify(init.body);
     } catch (_e: unknown) {
+      console.warn("[tee] JSON.stringify failed, using String() fallback:", _e instanceof Error ? _e.message : String(_e));
       body = String(init.body);
     }
   }
