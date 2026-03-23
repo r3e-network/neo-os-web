@@ -40,13 +40,13 @@ export function ContractsTab({
     <div className="space-y-6">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</label>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Contracts</div>
           <button type="button" onClick={addContract} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Contract</button>
         </div>
         {form.contracts.map((c: { name: string; hash: string }, i: number) => (
           <div key={i} className="flex gap-2 mb-2">
-            <Input placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} aria-label="Contract name" />
-            <Input placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} aria-label="Contract hash" />
+            <Input id={`contract-name-${i}`} placeholder="Contract name" value={c.name} onChange={e => updateContract(i, "name", e.target.value)} aria-label="Contract name" />
+            <Input id={`contract-hash-${i}`} placeholder="0x..." value={c.hash} onChange={e => updateContract(i, "hash", e.target.value)} aria-label="Contract hash" />
             <button type="button" onClick={() => removeContract(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
           </div>
         ))}
@@ -54,21 +54,21 @@ export function ContractsTab({
       </div>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</label>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</div>
           <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Operation</button>
         </div>
         {form.operations.map((o: any, i: number) => (
           <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
             <div className="flex gap-2">
-              <Input placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} aria-label="Operation name" />
-              <Input placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} aria-label="Operation method" />
-              <Input placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} aria-label="Operation description" />
-              <Input placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} aria-label="Gas cost" />
+              <Input id={`op-name-${i}`} placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} aria-label="Operation name" />
+              <Input id={`op-method-${i}`} placeholder="Method" value={o.method} onChange={e => updateOperation(i, "method", e.target.value)} aria-label="Operation method" />
+              <Input id={`op-desc-${i}`} placeholder="Description" value={o.description} onChange={e => updateOperation(i, "description", e.target.value)} aria-label="Operation description" />
+              <Input id={`op-gas-${i}`} placeholder="Gas" value={o.gas_cost} onChange={e => updateOperation(i, "gas_cost", e.target.value)} aria-label="Gas cost" />
               <button type="button" onClick={() => removeOperation(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
             </div>
             <div className="flex gap-2">
               <div className="w-40">
-                <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
+                <select id={`button-style-${i}`} className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-1.5 text-xs cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={o.button_style} onChange={e => updateOperation(i, "button_style", e.target.value)} aria-label="Button style">
                   <option value="">Button Style</option>
                   <option value="primary">Primary</option>
                   <option value="secondary">Secondary</option>
@@ -76,7 +76,7 @@ export function ContractsTab({
                   <option value="success">Success</option>
                 </select>
               </div>
-              <Input placeholder="Confirm message (optional)" value={o.confirm_message} onChange={e => updateOperation(i, "confirm_message", e.target.value)} aria-label="Confirm message" />
+              <Input id={`op-confirm-${i}`} placeholder="Confirm message (optional)" value={o.confirm_message} onChange={e => updateOperation(i, "confirm_message", e.target.value)} aria-label="Confirm message" />
             </div>
             <OperationParamsEditor params={o.params} onChange={params => { const next = [...form.operations]; next[i] = { ...next[i], params }; setForm({ ...form, operations: next }); }} />
           </div>
@@ -85,14 +85,14 @@ export function ContractsTab({
       </div>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</label>
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</div>
           <button type="button" onClick={addComponent} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Component</button>
         </div>
         {form.components.map((c: any, i: number) => (
           <div key={i} className="flex gap-2 mb-2">
-            <Input placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} aria-label="Component type" />
-            <Input placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} aria-label="Component display" />
-            <Input placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} aria-label="Component props" />
+            <Input id={`comp-type-${i}`} placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} aria-label="Component type" />
+            <Input id={`comp-display-${i}`} placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} aria-label="Component display" />
+            <Input id={`comp-props-${i}`} placeholder='{"key":"value"}' value={c.props} onChange={e => updateComponent(i, "props", e.target.value)} aria-label="Component props" />
             <button type="button" onClick={() => removeComponent(i)} className="text-red-500 dark:text-red-400 text-xs px-2 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">Remove</button>
           </div>
         ))}

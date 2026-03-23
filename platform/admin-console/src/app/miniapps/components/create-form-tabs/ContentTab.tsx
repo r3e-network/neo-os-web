@@ -41,8 +41,8 @@ export function ContentTab({
 }: Props) {
   return (
     <div className="space-y-4">
-      <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
-      <textarea className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" rows={3} placeholder="App description (ZH)" value={form.description_zh} onChange={e => update("description_zh", e.target.value)} aria-label="App description zh" />
+      <textarea id="app-description" className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" rows={3} placeholder="App description" value={form.content_description} onChange={e => update("content_description", e.target.value)} aria-label="App description" />
+      <textarea id="app-description-zh" className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed" rows={3} placeholder="App description (ZH)" value={form.description_zh} onChange={e => update("description_zh", e.target.value)} aria-label="App description zh" />
       <div className="grid grid-cols-3 gap-4">
         <Input label="Icon URL" placeholder="https://..." value={form.content_icon_url} onChange={e => update("content_icon_url", e.target.value)} />
         <Input label="Logo URL" placeholder="https://..." value={form.content_logo_url} onChange={e => update("content_logo_url", e.target.value)} />
@@ -51,8 +51,8 @@ export function ContentTab({
       <div className="grid grid-cols-3 gap-4">
         <Input label="Docs URL" placeholder="https://docs.example.com" value={form.content_docs_url} onChange={e => update("content_docs_url", e.target.value)} />
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-          <select className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={form.content_category} onChange={e => update("content_category", e.target.value)} aria-label="Category">
+          <label htmlFor="content-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+          <select id="content-category" className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm cursor-pointer transition-colors dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50" value={form.content_category} onChange={e => update("content_category", e.target.value)}>
             <option value="">Select...</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -61,8 +61,9 @@ export function ContentTab({
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo Variants JSON</label>
+          <label htmlFor="logo-variants-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Logo Variants JSON</label>
           <textarea
+            id="logo-variants-json"
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={5}
             value={form.content_logo_variants_json}
@@ -72,8 +73,9 @@ export function ContentTab({
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Banner Variants JSON</label>
+          <label htmlFor="banner-variants-json" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Banner Variants JSON</label>
           <textarea
+            id="banner-variants-json"
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-xs font-mono transition-colors resize-none dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
             rows={5}
             value={form.content_banner_variants_json}
@@ -99,16 +101,19 @@ export function ContentTab({
               <div key={assetType} className="rounded border border-gray-200 dark:border-gray-700 p-2 space-y-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-300">{assetType}</p>
                 <input
+                  id={`upload-${assetType}`}
                   type="file"
                   accept="image/*"
                   onChange={(event) => handleAssetFileSelect(assetType, event)}
                   className="block w-full text-xs dark:text-gray-100 file:mr-2 file:rounded-md file:border-0 file:bg-primary-600 file:px-2 file:py-1 file:text-xs file:text-white file:cursor-pointer hover:file:bg-primary-700"
+                  aria-label={`Upload ${assetType}`}
                 />
                 {variantAssetType && variantSettings ? (
                   <div className="space-y-2 rounded border border-gray-200 dark:border-gray-700 p-2">
                     <p className="text-[11px] text-gray-600 dark:text-gray-300">Optional Variant Metadata</p>
                     <div className="grid grid-cols-3 gap-2">
                       <select
+                        id={`${assetType}-theme`}
                         className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
                         value={variantSettings.theme}
                         onChange={(event) => updateAssetVariantSettings(variantAssetType, {
@@ -122,6 +127,7 @@ export function ContentTab({
                         <option value="any">any</option>
                       </select>
                       <select
+                        id={`${assetType}-density`}
                         className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
                         value={variantSettings.density}
                         onChange={(event) => updateAssetVariantSettings(variantAssetType, {
@@ -135,6 +141,7 @@ export function ContentTab({
                         <option value="3x">3x</option>
                       </select>
                       <input
+                        id={`${assetType}-locale`}
                         type="text"
                         className="rounded border border-gray-300 dark:border-gray-600 px-2 py-1 text-[11px] dark:bg-gray-800 dark:text-gray-100"
                         value={variantSettings.locale}

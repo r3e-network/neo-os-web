@@ -239,6 +239,7 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
         <input
           type="text"
           aria-label="Search templates"
+          id="template-search-input"
           placeholder="Search templates..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
