@@ -1,5 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import crypto from "crypto";
 
 export type MiniAppMediaAssetKind = "icon" | "logo" | "banner";
 export type MiniAppMediaVariant = {
@@ -32,14 +31,15 @@ type R2MediaConfig = {
   endpoint: string;
   publicBaseURL: string;
   signedUrlTTL: number;
+  host: string;
 };
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 const IMAGE_MIME_PREFIX = "image/";
 const ALLOWED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp", "svg", "gif", "avif"]);
-
-let cachedClient: S3Client | null = null;
-let cachedClientKey = "";
+const AWS_ALGORITHM = "AWS4-HMAC-SHA256";
+const AWS_REGION = "auto";
+const AWS_SERVICE = "s3";
 
 function asTrimmedString(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -62,8 +62,9 @@ function parseConfig(): R2MediaConfig | null {
     return null;
   }
 
+  const host = `${accountId}.r2.cloudflarestorage.com`;
+  const endpoint = `https://${host}`;
   const publicBaseURL = asTrimmedString(process.env.MINIAPP_MEDIA_PUBLIC_BASE_URL || "https://meshmini.app").replace(/\/+$/, "");
-  const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
   return {
     accountId,
@@ -73,29 +74,12 @@ function parseConfig(): R2MediaConfig | null {
     endpoint,
     publicBaseURL,
     signedUrlTTL: normalizeSignedUrlTTL(process.env.MINIAPP_R2_SIGNED_URL_EXPIRES_SECONDS),
+    host,
   };
 }
 
 export function isMiniAppMediaUploadConfigured(): boolean {
   return Boolean(parseConfig());
-}
-
-function getClient(config: R2MediaConfig): S3Client {
-  const key = `${config.accountId}:${config.accessKeyId}:${config.bucket}:${config.endpoint}`;
-  if (cachedClient && cachedClientKey === key) {
-    return cachedClient;
-  }
-
-  cachedClient = new S3Client({
-    region: "auto",
-    endpoint: config.endpoint,
-    credentials: {
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey,
-    },
-  });
-  cachedClientKey = key;
-  return cachedClient;
 }
 
 function inferExtension(fileName: string, contentType: string): string {
@@ -154,6 +138,100 @@ function resolvePublicURL(config: R2MediaConfig, key: string): string {
   return `${config.endpoint}/${config.bucket}/${key}`;
 }
 
+function encodeRfc3986(value: string): string {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
+    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+function encodeCanonicalUri(bucket: string, key: string): string {
+  return `/${[bucket, ...key.split("/")].map((part) => encodeRfc3986(part)).join("/")}`;
+}
+
+function hashHex(value: string): string {
+  return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function hmac(key: Buffer | string, data: string): Buffer {
+  return crypto.createHmac("sha256", key).update(data, "utf8").digest();
+}
+
+function buildSigningKey(secretAccessKey: string, dateStamp: string): Buffer {
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, AWS_REGION);
+  const kService = hmac(kRegion, AWS_SERVICE);
+  return hmac(kService, "aws4_request");
+}
+
+function formatAmzDate(date: Date): { amzDate: string; dateStamp: string } {
+  const iso = date.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  return {
+    amzDate: iso,
+    dateStamp: iso.slice(0, 8),
+  };
+}
+
+function buildCanonicalQuery(params: Record<string, string>): string {
+  return Object.entries(params)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${encodeRfc3986(key)}=${encodeRfc3986(value)}`)
+    .join("&");
+}
+
+function buildPresignedPutUrl(
+  config: R2MediaConfig,
+  key: string,
+  contentType: string,
+  cacheControl: string,
+): string {
+  const now = new Date();
+  const { amzDate, dateStamp } = formatAmzDate(now);
+  const canonicalUri = encodeCanonicalUri(config.bucket, key);
+  const signedHeaders = "cache-control;content-type;host";
+  const credentialScope = `${dateStamp}/${AWS_REGION}/${AWS_SERVICE}/aws4_request`;
+  const query: Record<string, string> = {
+    "X-Amz-Algorithm": AWS_ALGORITHM,
+    "X-Amz-Credential": `${config.accessKeyId}/${credentialScope}`,
+    "X-Amz-Date": amzDate,
+    "X-Amz-Expires": String(config.signedUrlTTL),
+    "X-Amz-SignedHeaders": signedHeaders,
+  };
+
+  const canonicalHeaders = [
+    `cache-control:${cacheControl}`,
+    `content-type:${contentType}`,
+    `host:${config.host}`,
+  ].join("\n");
+
+  const canonicalRequest = [
+    "PUT",
+    canonicalUri,
+    buildCanonicalQuery(query),
+    `${canonicalHeaders}\n`,
+    signedHeaders,
+    "UNSIGNED-PAYLOAD",
+  ].join("\n");
+
+  const stringToSign = [
+    AWS_ALGORITHM,
+    amzDate,
+    credentialScope,
+    hashHex(canonicalRequest),
+  ].join("\n");
+
+  const signature = crypto
+    .createHmac("sha256", buildSigningKey(config.secretAccessKey, dateStamp))
+    .update(stringToSign, "utf8")
+    .digest("hex");
+
+  const finalQuery = buildCanonicalQuery({
+    ...query,
+    "X-Amz-Signature": signature,
+  });
+
+  return `${config.endpoint}${canonicalUri}?${finalQuery}`;
+}
+
 export async function createMiniAppMediaUploadUrl(
   input: CreateMiniAppMediaUploadUrlInput,
 ): Promise<MiniAppMediaUploadUrlResult> {
@@ -164,28 +242,18 @@ export async function createMiniAppMediaUploadUrl(
 
   const appId = asTrimmedString(input.app_id).toLowerCase();
   if (!APP_ID_REGEX.test(appId)) {
-    throw new Error(`createMiniAppMediaUploadUrl: invalid app_id="${appId}" does not match required pattern`);
+    throw new Error(`createMiniAppMediaUploadUrl: invalid app_id=\"${appId}\" does not match required pattern`);
   }
 
   const contentType = asTrimmedString(input.content_type).toLowerCase();
   if (!contentType.startsWith(IMAGE_MIME_PREFIX)) {
-    throw new Error(`createMiniAppMediaUploadUrl: content_type="${contentType}" does not start with "${IMAGE_MIME_PREFIX}"`);
+    throw new Error(`createMiniAppMediaUploadUrl: content_type=\"${contentType}\" does not start with \"${IMAGE_MIME_PREFIX}\"`);
   }
 
   const extension = inferExtension(input.file_name || "", contentType);
   const key = buildKey(appId, input.asset_type, extension, input.variant);
   const cacheControl = "public, max-age=31536000, immutable";
-
-  const command = new PutObjectCommand({
-    Bucket: config.bucket,
-    Key: key,
-    ContentType: contentType,
-    CacheControl: cacheControl,
-  });
-
-  const uploadURL = await getSignedUrl(getClient(config), command, {
-    expiresIn: config.signedUrlTTL,
-  });
+  const uploadURL = buildPresignedPutUrl(config, key, contentType, cacheControl);
 
   return {
     upload_url: uploadURL,
