@@ -9,8 +9,11 @@ const { createHash } = require("crypto");
 try {
   // Optional: supports local .env when dotenv is installed.
   require("dotenv").config();
-} catch {
-  // noop
+} catch (e) {
+  // dotenv is optional - warn if missing
+  if (e instanceof Error && e.message.includes("dotenv")) {
+    console.warn("[verify-publish-audit-chain] dotenv not found, continuing without it");
+  }
 }
 
 function getEnv(key, fallback = "") {
