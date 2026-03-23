@@ -14,6 +14,12 @@ export const FLAGSHIP_MINIAPP_IDS: string[] = [
   "miniapp-neo-pay",
 ];
 
+export function applyMiniAppReleaseDefaults(app: MiniAppInfo): MiniAppInfo {
+  if (isFlagshipMiniApp(app.app_id)) return app;
+  if (app.status === "disabled" || app.status === "pending") return app;
+  return { ...app, status: "beta" };
+}
+
 export function applyBuiltInMiniAppDefaults(app: MiniAppInfo): MiniAppInfo {
   const next: MiniAppInfo = {
     ...app,
@@ -26,5 +32,9 @@ export function applyBuiltInMiniAppDefaults(app: MiniAppInfo): MiniAppInfo {
     if (!next.operations) next.operations = template.operations;
   }
 
-  return withMiniAppCardAssets(next);
+  return withMiniAppCardAssets(applyMiniAppReleaseDefaults(next));
+}
+
+function isFlagshipMiniApp(appId: string): boolean {
+  return FLAGSHIP_MINIAPP_IDS.includes(appId);
 }
