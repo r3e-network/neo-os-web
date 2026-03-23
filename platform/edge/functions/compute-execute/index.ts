@@ -51,7 +51,12 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "entry_point must be a valid identifier", "INVALID_ENTRY_POINT", req);
   }
 
-  const upstream = resolveComputeExecuteUpstream();
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveComputeExecuteUpstream();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const result = await postJSON(
     upstream.url,
     {

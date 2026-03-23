@@ -48,7 +48,7 @@ export async function handler(req: Request): Promise<Response> {
                 method: "POST",
                 signal: AbortSignal.timeout(10000),
                 headers: { "Content-Type": "application/json" },
-                body: config ? (() => { try { return JSON.stringify(config); } catch { return "{}"; } })() : undefined,
+                body: config ? (() => { try { return JSON.stringify(config); } catch (_e: unknown) { console.warn("[admin-simulations] JSON.stringify config failed:", _e instanceof Error ? _e.message : String(_e)); return "{}"; } })() : undefined,
             });
 
             if (!res.ok) {

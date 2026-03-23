@@ -46,13 +46,16 @@ export async function handler(req: Request): Promise<Response> {
   let userRating = null;
 
   if (user) {
-    const { data: myRating } = await supabase
+    const { data: myRating, error: ratingErr } = await supabase
       .from("social_ratings")
       .select("rating_value, review_text")
       .eq("app_id", appId)
       .eq("rater_user_id", user.id)
       .single();
 
+    if (ratingErr) {
+      console.warn("[social-ratings] user rating lookup failed:", ratingErr.message);
+    }
     if (myRating) {
       userRating = myRating;
     }

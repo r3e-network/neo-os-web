@@ -33,6 +33,7 @@ export function TemplateMarketFilters({
     <div className="mb-4 grid gap-3 md:grid-cols-5">
       <SelectField
         variant="glass"
+        id="filter-kind"
         aria-label="Filter kind"
         value={marketKind}
         onChange={(e) => onMarketKindChange(e.target.value)}
@@ -43,6 +44,7 @@ export function TemplateMarketFilters({
       </SelectField>
       <SelectField
         variant="glass"
+        id="filter-category"
         aria-label="Filter category"
         value={marketCategory}
         onChange={(e) => onMarketCategoryChange(e.target.value)}
@@ -56,6 +58,7 @@ export function TemplateMarketFilters({
       </SelectField>
       <SelectField
         variant="glass"
+        id="filter-source"
         aria-label="Filter source"
         value={marketSource}
         onChange={(e) => onMarketSourceChange(e.target.value)}
@@ -67,6 +70,7 @@ export function TemplateMarketFilters({
       </SelectField>
       <SelectField
         variant="glass"
+        id="filter-verified"
         aria-label="Filter verified"
         value={marketVerified}
         onChange={(e) => onMarketVerifiedChange(e.target.value)}
@@ -76,6 +80,7 @@ export function TemplateMarketFilters({
       </SelectField>
       <TextField
         variant="glass"
+        id="template-search"
         aria-label="Search templates"
         type="text"
         value={marketSearch}

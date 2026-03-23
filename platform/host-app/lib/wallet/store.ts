@@ -101,8 +101,8 @@ export const useWalletStore = create<WalletStore>()(
         try {
           const balance = await adapters[provider].getBalance(address);
           set({ balance });
-        } catch {
-          // Silently fail balance refresh
+        } catch (_e: unknown) {
+          console.warn("[wallet-store] refreshBalance failed:", _e instanceof Error ? _e.message : String(_e));
         }
       },
 

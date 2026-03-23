@@ -72,10 +72,28 @@ export async function handler(req: Request): Promise<Response> {
   });
 
   // Get updated counts
-  const { count: upvotes } = await supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "upvote");
-  const { count: downvotes } = await supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "downvote");
+  let upvotes = 0;
+  let downvotes = 0;
+  try {
+    const [upResult, downResult] = await Promise.all([
+      supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "upvote"),
+      supabase.from("social_comment_votes").select("id", { count: "exact", head: true }).eq("comment_id", comment_id).eq("vote_type", "downvote"),
+    ]);
+    if (upResult.error) {
+      console.warn("[social-comment-vote] upvotes count query error:", upResult.error.message);
+    } else {
+      upvotes = upResult.count ?? 0;
+    }
+    if (downResult.error) {
+      console.warn("[social-comment-vote] downvotes count query error:", downResult.error.message);
+    } else {
+      downvotes = downResult.count ?? 0;
+    }
+  } catch (_e: unknown) {
+    console.warn("[social-comment-vote] count query failed:", _e instanceof Error ? _e.message : String(_e));
+  }
 
-  return json({ success: true, upvotes: upvotes ?? 0, downvotes: downvotes ?? 0 }, {}, req);
+  return json({ success: true, upvotes, downvotes }, {}, req);
 }
 
 if (import.meta.main) {

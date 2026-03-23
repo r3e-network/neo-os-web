@@ -155,7 +155,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
       ) : (
         <ManifestRuntime app={app} />
       )}
-      {toastMessage && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neo/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[60]">{toastMessage}</div>}
+      {toastMessage && <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-neo/90 text-black px-6 py-3 rounded-lg font-semibold text-sm z-[60]">{toastMessage}</div>}
 
       {/* LiveChat for MiniApp */}
       <LiveChat

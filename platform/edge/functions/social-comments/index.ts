@@ -72,11 +72,15 @@ export async function handler(req: Request): Promise<Response> {
   const validIds = commentIds.filter((id: string) => uuidRegex.test(id));
 
   const { data: replyCounts } = validIds.length > 0
-    ? await supabase
-        .from("social_comments")
-        .select("parent_id")
-        .in("parent_id", validIds)
-        .is("deleted_at", null)
+    ? await (async () => {
+        const { data: d, error: e } = await supabase
+          .from("social_comments")
+          .select("parent_id")
+          .in("parent_id", validIds)
+          .is("deleted_at", null);
+        if (e) console.warn("[social-comments] reply counts lookup failed:", e.message);
+        return { data: d || [] };
+      })()
     : { data: [] };
 
   const replyCountMap = new Map<string, number>();

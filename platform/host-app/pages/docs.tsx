@@ -71,6 +71,7 @@ export default function DocsPage() {
             <input
               type="text"
               aria-label="Search documentation"
+              id="docs-search-input"
               placeholder="Search documentation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

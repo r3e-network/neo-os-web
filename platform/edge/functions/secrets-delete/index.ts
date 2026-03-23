@@ -37,7 +37,8 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseServiceClient();
 
   // Best-effort: drop policies first.
-  await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+  const { error: policyDeleteErr } = await supabase.from("secret_policies").delete().eq("user_id", auth.userId).eq("secret_name", name);
+  if (policyDeleteErr) console.warn("[secrets-delete] policy delete failed:", policyDeleteErr.message);
 
   const { error: delErr, count } = await supabase
     .from("secrets")

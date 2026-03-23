@@ -113,7 +113,12 @@ export async function handler(req: Request): Promise<Response> {
   }
 
   // Forward to NeoCompute service
-  const upstream = resolveComputeExecuteUpstream();
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveComputeExecuteUpstream();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const result = await postJSON(
     upstream.url,
     {

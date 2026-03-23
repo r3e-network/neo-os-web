@@ -31,7 +31,12 @@ export async function handler(req: Request): Promise<Response> {
   const jobId = (url.searchParams.get("id") ?? "").trim();
   if (!jobId) return error(400, "id required", "ID_REQUIRED", req);
 
-  const upstream = resolveComputeExecuteUpstream();
+  let upstream: { url: string; authToken?: string };
+  try {
+    upstream = resolveComputeExecuteUpstream();
+  } catch (e) {
+    return error(500, e instanceof Error ? e.message : "upstream misconfigured", "UPSTREAM_ERROR", req);
+  }
   const jobsUrl = upstream.url.replace(/\/execute$/, `/jobs/${encodeURIComponent(jobId)}`);
   const result = await getJSON(
     jobsUrl,
