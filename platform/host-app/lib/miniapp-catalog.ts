@@ -6,6 +6,7 @@ import { logger } from "./logger";
 import { warnOnce } from "./log-once";
 import { isMissingSupabaseSchemaObject, parsePostgrestErrorResponse } from "./supabase-errors";
 import { getSupabaseEnv } from "./supabase-env";
+import { applyMiniAppReleaseDefaults } from "./miniapp-builtins";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
@@ -87,7 +88,7 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMin
     return rows
       .map((row) => coerceMiniAppInfo(row))
       .filter((app): app is MiniAppInfo => Boolean(app))
-      .map((app) => ({ ...app, source: "verified" as const }));
+      .map((app) => applyMiniAppReleaseDefaults({ ...app, source: "verified" as const }));
   } catch (error) {
     logger.warn("miniapp catalog fetch error:", error);
     return [];
@@ -108,7 +109,7 @@ export async function loadMiniAppCatalog(
   for (const app of dbApps) {
     const appId = canonicalizeMiniAppId(app.app_id) || app.app_id;
     const fallback = miniAppById.get(appId);
-    merged.push({ ...(fallback || {}), ...app, app_id: appId, source: app.source || "verified" });
+    merged.push(applyMiniAppReleaseDefaults({ ...(fallback || {}), ...app, app_id: appId, source: app.source || "verified" }));
     seen.add(appId);
   }
 
@@ -117,7 +118,7 @@ export async function loadMiniAppCatalog(
   if (status === "active") {
     for (const miniapp of definitionApps) {
       if (seen.has(miniapp.app_id)) continue;
-      merged.push({ ...miniapp, source: "miniapp" });
+      merged.push(applyMiniAppReleaseDefaults({ ...miniapp, source: "miniapp" }));
     }
   }
 

@@ -16,6 +16,9 @@ export function AppDetailHeader({ app, onBack }: Props) {
   if (app.status === "active") {
     statusBadge = "Online";
     statusColor = "text-neo bg-neo/10 border-neo/20";
+  } else if (app.status === "beta") {
+    statusBadge = "Beta";
+    statusColor = "text-sky-600 bg-sky-500/10 border-sky-500/20 dark:text-sky-300";
   } else if (app.status === "disabled") {
     statusBadge = "Maintenance";
     statusColor = "text-amber-500 bg-amber-500/10 border-amber-500/20";
@@ -67,8 +70,8 @@ export function AppDetailHeader({ app, onBack }: Props) {
               </span>
               <span className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-widest border ${statusColor}`}>
                 <span className="relative flex h-2 w-2">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${app.status === 'active' ? 'bg-neo' : 'hidden'}`}></span>
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${app.status === 'active' ? 'bg-neo' : 'bg-current'}`}></span>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${app.status === 'active' ? 'bg-neo' : app.status === 'beta' ? 'bg-sky-400' : 'hidden'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${app.status === 'active' ? 'bg-neo' : app.status === 'beta' ? 'bg-sky-400' : 'bg-current'}`}></span>
                 </span>
                 {statusBadge}
               </span>

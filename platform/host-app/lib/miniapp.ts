@@ -141,7 +141,9 @@ function normalizeStatsDisplay(value: unknown): string[] | undefined {
 
 export function normalizeStatus(value: unknown, fallback?: MiniAppInfo["status"]): MiniAppInfo["status"] | undefined {
   const raw = toString(value).trim().toLowerCase();
-  if (raw === "active" || raw === "disabled" || raw === "pending") return raw as MiniAppInfo["status"];
+  if (raw === "active" || raw === "disabled" || raw === "pending" || raw === "beta") {
+    return raw as MiniAppInfo["status"];
+  }
   return fallback;
 }
 

@@ -27,6 +27,10 @@ const sourceColors = {
     "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/50",
 };
 
+const statusColors = {
+  beta: "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700/50",
+};
+
 export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
   const showSourceBadge = app.source && app.source !== "miniapp";
   const bannerSources = useMemo(
@@ -83,6 +87,11 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
             <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-2.5 py-0.5 text-[10px] font-bold tracking-wider")} variant="secondary">
               {app.category}
             </Badge>
+            {app.status === "beta" && (
+              <Badge className={cn(statusColors.beta, "px-2.5 py-0.5 tracking-wide text-[10px] font-bold uppercase")} variant="outline">
+                Beta
+              </Badge>
+            )}
             {showSourceBadge && (
               <Badge className={cn(sourceColors[app.source ?? "community"], "px-2.5 py-0.5 tracking-wide text-[10px] font-bold backdrop-blur-md")} variant="outline">
                 {app.source === "community" ? "Community" : "Verified"}

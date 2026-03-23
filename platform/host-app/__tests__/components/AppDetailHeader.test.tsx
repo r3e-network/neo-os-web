@@ -80,4 +80,12 @@ describe("AppDetailHeader", () => {
 
     expect(screen.getByText(/pending/i)).toBeInTheDocument();
   });
+
+  it("displays Beta status when app status is beta", () => {
+    const onBack = jest.fn();
+    const betaApp = { ...mockApp, status: "beta" as const };
+    render(<AppDetailHeader app={betaApp} onBack={onBack} />);
+
+    expect(screen.getByText(/beta/i)).toBeInTheDocument();
+  });
 });

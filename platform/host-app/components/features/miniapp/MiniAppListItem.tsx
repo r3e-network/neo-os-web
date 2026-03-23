@@ -22,6 +22,10 @@ const categoryColors = {
   other: "bg-gray-100 text-gray-800 dark:bg-gray-500/10 dark:text-gray-300 dark:border-gray-500/20",
 };
 
+const statusColors = {
+  beta: "bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-700/50",
+};
+
 export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppListItemProps) {
   return (
     <Link
@@ -46,6 +50,11 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
               <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-2 py-0.5 text-[10px] font-bold font-mono tracking-tight")} variant="secondary">
                 {app.category}
               </Badge>
+              {app.status === "beta" && (
+                <Badge className={cn(statusColors.beta, "px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight")} variant="outline">
+                  Beta
+                </Badge>
+              )}
             </div>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate" title={app.description}>{app.description}</p>
           </div>
