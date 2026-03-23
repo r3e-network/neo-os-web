@@ -22,7 +22,7 @@
             <AppIcon
               :name="contract.status === 'broken' ? 'broken_heart' : 'heart'"
               :size="12"
-              :aria-label="contract.status === 'broken' ? t('brokenHeartIcon') : t('heartIcon')"
+              aria-hidden="true"
             />
           </div>
         </div>

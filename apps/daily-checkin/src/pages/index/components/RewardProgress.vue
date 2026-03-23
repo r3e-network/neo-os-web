@@ -14,7 +14,7 @@
           <AppIcon
             :name="currentStreak >= milestone.day ? 'check' : 'milestone'"
             :size="24"
-            :aria-label="currentStreak >= milestone.day ? t('milestoneReached') : t('milestonePending')"
+            aria-hidden="true"
           />
         </div>
         <span class="milestone-day">{{ t("day") }} {{ milestone.day }}</span>

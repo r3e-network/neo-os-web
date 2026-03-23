@@ -3,7 +3,7 @@
     <ItemList :items="capsules" item-key="id">
       <template #empty>
         <div class="empty-state">
-          <div class="empty-icon"><AppIcon name="archive" :size="64" class="text-secondary" /></div>
+          <div class="empty-icon"><AppIcon name="archive" :size="64" class="text-secondary" aria-hidden="true" /></div>
           <span class="empty-text">{{ t("noCapsules") }}</span>
         </div>
       </template>
@@ -15,8 +15,8 @@
               <div class="capsule-top"></div>
               <div class="capsule-middle">
                 <div class="lock-indicator">
-                  <AppIcon v-if="cap.locked" name="lock" :size="20" />
-                  <AppIcon v-else name="unlock" :size="20" />
+                  <AppIcon v-if="cap.locked" name="lock" :size="20" aria-hidden="true" />
+                  <AppIcon v-else name="unlock" :size="20" aria-hidden="true" />
                 </div>
               </div>
               <div class="capsule-bottom"></div>

@@ -17,7 +17,7 @@
 
     <div class="plus-divider">
       <div class="plus-icon-circle">
-        <AppIcon name="plus" :size="16" />
+        <AppIcon name="plus" :size="16" aria-hidden="true" />
       </div>
     </div>
 

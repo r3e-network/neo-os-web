@@ -193,7 +193,7 @@ const resetAndReload = async () => {
 };
 
 onMounted(() => {
-  loadUserData().catch((e: unknown) => { console.warn("[gas-sponsor] loadUserData failed:", e instanceof Error ? e.message : String(e)); });
+  loadUserData();
 });
 </script>
 

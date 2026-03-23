@@ -57,7 +57,7 @@ export function listenForThemeChanges(): () => void {
         return new URL(document.referrer).origin;
       }
     } catch (_e: unknown) {
-      // Ignore cross-origin errors
+      console.warn("[theme] getOrigin failed:", _e instanceof Error ? _e.message : String(_e));
     }
     return window.location.origin;
   })();

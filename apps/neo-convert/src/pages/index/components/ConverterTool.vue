@@ -8,6 +8,7 @@
       <div class="input-section">
         <span class="label">{{ t("inputLabel") }}</span>
         <textarea
+          id="converter-key-input"
           class="key-input"
           v-model="inputKey"
           :placeholder="t('inputPlaceholder')"
@@ -31,7 +32,7 @@
             <div class="value-row">
               <span class="value">{{ result.address }}</span>
               <button type="button" class="copy-btn" @click="copy(result.address)" :aria-label="t('copyAddress')">
-                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
+                <AppIcon name="copy" :size="16" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -43,7 +44,7 @@
             <div class="value-row">
               <span class="value truncate">{{ result.publicKey }}</span>
               <button type="button" class="copy-btn" @click="copy(result.publicKey)" :aria-label="t('copyPublicKey')">
-                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
+                <AppIcon name="copy" :size="16" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -63,10 +64,10 @@
                 @click="showSecrets = !showSecrets"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
               >
-                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')" />
+                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" aria-hidden="true" />
               </button>
               <button type="button" class="copy-btn" @click="copy(result.wif)" :aria-label="t('copyWif')">
-                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
+                <AppIcon name="copy" :size="16" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -86,10 +87,10 @@
                 @click="showSecrets = !showSecrets"
                 :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
               >
-                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')" />
+                <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="16" aria-hidden="true" />
               </button>
               <button type="button" class="copy-btn" @click="copy(result.privateKey)" :aria-label="t('copyPrivateKey')">
-                <AppIcon name="copy" :size="16" :aria-label="t('iconCopy')" />
+                <AppIcon name="copy" :size="16" aria-hidden="true" />
               </button>
             </div>
           </div>

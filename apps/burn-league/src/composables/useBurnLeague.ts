@@ -5,6 +5,7 @@ import { parseStackItem } from "@shared/utils/neo";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { useAllEvents } from "@shared/composables/useAllEvents";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { waitForListedEventByTransaction } from "@shared/utils";
 import type { LeaderEntry } from "../pages/index/components/LeaderboardList.vue";
@@ -19,6 +20,7 @@ export function useBurnLeague(t: (key: string) => string) {
   });
   const { list: listEvents } = useEvents();
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
+  const { setStatus } = useStatusMessage();
 
   const totalBurned = ref(0);
   const rewardPool = ref(0);
@@ -41,7 +43,8 @@ export function useBurnLeague(t: (key: string) => string) {
         userBurned.value = 0;
       }
     } catch (e: unknown) {
-      // Stats load failure is non-critical - retain previous values
+      console.warn("[useBurnLeague] loadStats failed:", e instanceof Error ? e.message : String(e));
+      setStatus(t("loadFailed") || "Failed to load stats", "error");
     }
   };
 
@@ -74,7 +77,8 @@ export function useBurnLeague(t: (key: string) => string) {
       rank.value = userEntry ? userEntry.rank : 0;
       burnCount.value = userBurns;
     } catch (e: unknown) {
-      // Leaderboard load failure is non-critical - retain previous values
+      console.warn("[useBurnLeague] loadLeaderboard failed:", e instanceof Error ? e.message : String(e));
+      setStatus(t("loadFailed") || "Failed to load leaderboard", "error");
     }
   };
 

@@ -402,7 +402,7 @@ export function useQuadraticRounds() {
       try {
         await refreshRounds();
       } catch (_e: unknown) {
-        /* non-critical: address change handler */
+        console.warn("[useQuadraticRounds] refreshRounds failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }
   });

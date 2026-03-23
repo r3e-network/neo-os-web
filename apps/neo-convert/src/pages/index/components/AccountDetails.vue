@@ -11,7 +11,7 @@
             @click="$emit('copy', account.address)"
             :aria-label="t('copyAddress')"
           >
-            <AppIcon name="copy" :size="14" />
+            <AppIcon name="copy" :size="14" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -28,7 +28,7 @@
             @click="$emit('copy', account.publicKey)"
             :aria-label="t('copyPublicKey')"
           >
-            <AppIcon name="copy" :size="14" />
+            <AppIcon name="copy" :size="14" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -48,7 +48,7 @@
             @click="$emit('toggle-secrets')"
             :aria-label="showSecrets ? t('hideSecrets') : t('showSecrets')"
           >
-            <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="14" />
+            <AppIcon :name="showSecrets ? 'eye_hidden' : 'eye_visible'" :size="14" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -56,7 +56,7 @@
             @click="$emit('copy', account.privateKey)"
             :aria-label="t('copyPrivateKey')"
           >
-            <AppIcon name="copy" :size="14" />
+            <AppIcon name="copy" :size="14" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -76,7 +76,7 @@
             @click="$emit('copy', account.wif)"
             :aria-label="t('copyWif')"
           >
-            <AppIcon name="copy" :size="14" />
+            <AppIcon name="copy" :size="14" aria-hidden="true" />
           </button>
         </div>
       </div>

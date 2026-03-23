@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { createUseI18n } from "@shared/composables";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { messages } from "@/locale/messages";
 import { parseGas, formatNum } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
@@ -26,6 +27,7 @@ export interface RecentTip {
 
 export function useDevTippingStats() {
   const { t } = createUseI18n(messages)();
+  const { setStatus } = useStatusMessage();
   const { read, ensureContractAddress } = useContractInteraction({ appId: "miniapp-dev-tipping", t });
   const { list: listEvents } = useEvents();
 
@@ -87,7 +89,8 @@ export function useDevTippingStats() {
       });
       developers.value = validDevs;
     } catch (_e: unknown) {
-      // Stats load failure is non-critical
+      console.warn("[useDevTippingStats] stats load failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus("Developer list unavailable", "error");
     } finally {
       isLoading.value = false;
     }
@@ -113,7 +116,8 @@ export function useDevTippingStats() {
         };
       });
     } catch (_e: unknown) {
-      // Stats load failure is non-critical
+      console.warn("[useDevTippingStats] loadRecentTips failed:", _e instanceof Error ? _e.message : String(_e));
+      setStatus("Recent tips unavailable", "error");
     }
   };
 

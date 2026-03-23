@@ -97,7 +97,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
         }
       }
     } catch (_e: unknown) {
-      /* Local storage read is non-critical — checklist resets on failure */
+      console.warn("[useHealthScore] loadChecklist failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
@@ -105,7 +105,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
     try {
       uni.setStorageSync(checklistStorageKey, JSON.stringify(checklistState));
     } catch (_e: unknown) {
-      /* Local storage write is non-critical */
+      console.warn("[useHealthScore] saveChecklist failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 

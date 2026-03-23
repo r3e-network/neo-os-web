@@ -182,7 +182,7 @@ const handleOpen = async (cap: Capsule) => {
   });
 };
 const resetAndReload = async () => {
-  if (address.value) loadData();
+  if (address.value) await loadData();
 };
 </script>
 

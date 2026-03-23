@@ -202,7 +202,7 @@ export function useCapsuleUnlock() {
               return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
             }
           } catch (_e: unknown) {
-            // fallback to event values
+            console.warn("[useCapsuleUnlock] buildCapsuleFromDetails failed, falling back to event values:", _e instanceof Error ? _e.message : String(_e));
           }
 
           return buildCapsuleFromDetails(

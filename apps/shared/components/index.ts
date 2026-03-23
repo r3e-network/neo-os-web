@@ -20,7 +20,6 @@ export { default as NeoInput } from "./NeoInput.vue";
 
 // ── Feedback ──
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
-export { default as ErrorToast } from "./ErrorToast.vue";
 export { default as Fireworks } from "./Fireworks.vue";
 
 // ── Specialized ──

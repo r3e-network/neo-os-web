@@ -24,7 +24,7 @@
           :aria-label="t('close')"
           @click="$emit('close')"
         >
-          <AppIcon name="x" :size="20" />
+          <AppIcon name="x" :size="20" aria-hidden="true" />
         </button>
       </div>
 

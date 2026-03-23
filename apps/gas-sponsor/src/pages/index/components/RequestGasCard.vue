@@ -1,13 +1,13 @@
 <template>
   <NeoCard class="request-card">
     <div v-if="!isEligible" class="not-eligible-msg">
-      <AppIcon name="warning" :size="40" class="warning-icon" />
+      <AppIcon name="warning" :size="40" class="warning-icon" aria-hidden="true" />
       <span class="warning-title">{{ t("notEligibleTitle") }}</span>
       <span class="warning-desc">{{ t("balanceExceeds") }}</span>
       <span class="warning-desc">{{ t("newUsersOnly") }}</span>
     </div>
     <div v-else-if="remainingQuota <= 0" class="not-eligible-msg">
-      <AppIcon name="deny" :size="40" class="warning-icon" />
+      <AppIcon name="deny" :size="40" class="warning-icon" aria-hidden="true" />
       <span class="warning-title">{{ t("quotaExhausted") }}</span>
       <span class="warning-desc">{{ t("tryTomorrow") }}</span>
     </div>
@@ -58,7 +58,7 @@
           @click="$emit('request')"
         >
           <div class="btn-content">
-            <AppIcon v-if="!isRequesting" name="gas" :size="20" />
+            <AppIcon v-if="!isRequesting" name="gas" :size="20" aria-hidden="true" />
             <span>{{ isRequesting ? t("requesting") : t("requestGas") }}</span>
           </div>
         </NeoButton>

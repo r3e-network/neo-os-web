@@ -30,7 +30,7 @@
       </div>
       <div class="tank-status">
         <div :class="['status-indicator', isEligible ? 'eligible' : 'full']">
-          <AppIcon :name="isEligible ? 'fuel' : 'check'" :size="16" :aria-label="isEligible ? t('iconFuel') : t('statusPass')" />
+          <AppIcon :name="isEligible ? 'fuel' : 'check'" :size="16" aria-hidden="true" />
           <span class="status-text">{{ isEligible ? t("needsFuel") : t("tankFull") }}</span>
         </div>
       </div>

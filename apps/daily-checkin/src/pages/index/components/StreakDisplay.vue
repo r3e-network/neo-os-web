@@ -2,10 +2,10 @@
   <NeoCard variant="erobo" class="streak-card pt-6 pb-6 text-center">
     <div class="streak-flames">
       <span v-for="i in Math.min(currentStreak, 7)" :key="i" class="flame">
-        <AppIcon name="flame" :size="32" :aria-label="t('flameIcon')" />
+        <AppIcon name="flame" :size="32" aria-hidden="true" />
       </span>
       <span v-if="currentStreak === 0" class="flame-empty">
-        <AppIcon name="sleeping" :size="32" :aria-label="t('sleepingIcon')" />
+        <AppIcon name="sleeping" :size="32" aria-hidden="true" />
       </span>
     </div>
     <span class="streak-count">{{ currentStreak }} {{ t("dayStreak") }}</span>

@@ -3,7 +3,7 @@
     <span class="load-label" :id="`load-label-${uid}`">{{ label }}</span>
     <div class="load-input-row">
       <div class="input-wrapper">
-        <AppIcon name="link" :size="16" class="input-icon" />
+        <AppIcon name="link" :size="16" class="input-icon" aria-hidden="true" />
         <input
           :id="`load-input-${uid}`"
           type="text"

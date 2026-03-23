@@ -175,7 +175,7 @@ const {
 
 const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, handleBoundaryError } = createMiniApp({
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createMiniApp({
   name: "trustanchor",
   messages,
   template: {
@@ -279,7 +279,7 @@ const handleClaimPendingWithdraw = async () => {
   try {
     await claimPendingWithdraw();
   } catch (e: unknown) {
-    console.error("[trustanchor] handleClaimPendingWithdraw error:", e instanceof Error ? e.message : String(e));
+    setStatus(e instanceof Error ? e.message : String(e), "error");
   }
 };
 
@@ -288,7 +288,7 @@ const resetAndReload = async () => {
     if (!(await ensureContractReady())) return;
     await loadAll();
   } catch (e: unknown) {
-    console.error("[trustanchor] resetAndReload error:", e instanceof Error ? e.message : String(e));
+    setStatus(e instanceof Error ? e.message : String(e), "error");
   }
 };
 
@@ -296,7 +296,11 @@ const isMounted = ref(true);
 
 onMounted(async () => {
   if (!isMounted.value) return;
-  await resetAndReload();
+  try {
+    await resetAndReload();
+  } catch (_e: unknown) {
+    console.warn("[trustanchor] onMounted error:", _e instanceof Error ? _e.message : String(_e));
+  }
 });
 
 onUnmounted(() => {

@@ -99,7 +99,7 @@ async function handleRenew(domain: Domain) {
   try {
     await ns.handleRenew(domain, showStatus);
   } catch (_e: unknown) {
-    console.warn("[neo-ns] renew failed:", _e instanceof Error ? _e.message : String(_e));
+    showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
 
@@ -108,7 +108,7 @@ async function handleSetTarget(targetAddress: string) {
   try {
     await ns.handleSetTarget(managingDomain.value, targetAddress, showStatus);
   } catch (_e: unknown) {
-    console.warn("[neo-ns] setTarget failed:", _e instanceof Error ? _e.message : String(_e));
+    showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
 
@@ -120,7 +120,7 @@ async function handleTransfer(transferAddress: string) {
       managingDomain.value = null;
     }
   } catch (_e: unknown) {
-    console.warn("[neo-ns] transfer failed:", _e instanceof Error ? _e.message : String(_e));
+    showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
 

@@ -167,7 +167,7 @@
 
     <!-- Warning -->
     <div class="warning-box">
-      <AppIcon name="alert-triangle" :size="20" />
+      <AppIcon name="alert-triangle" :size="20" aria-hidden="true" />
       <span class="warning-text">{{ t("warningText") }}</span>
     </div>
   </div>

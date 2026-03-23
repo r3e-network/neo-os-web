@@ -132,7 +132,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     try {
       await refreshRounds();
     } catch (_e: unknown) {
-      /* non-critical: initial data load */
+      console.warn("[useQuadraticFundingPage] initial load error:", _e instanceof Error ? _e.message : String(_e));
     }
   });
 

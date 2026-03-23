@@ -162,7 +162,7 @@ export function useEventTicketContract(
             try {
               ticketQrs[ticket.tokenId] = await QRCode.toDataURL(ticket.tokenId, { margin: 1 });
             } catch (_e: unknown) {
-              /* QR generation is non-critical */
+              console.warn("[useEventTicketContract] QR generation failed:", _e instanceof Error ? _e.message : String(_e));
             }
           }
         })

@@ -46,6 +46,7 @@ export function useWalletAnalysis() {
     try {
       return BigInt(String(value ?? "0"));
     } catch (_e: unknown) {
+      console.warn("[useWalletAnalysis] parseBigInt failed:", _e instanceof Error ? _e.message : String(_e));
       return 0n;
     }
   };
@@ -96,7 +97,7 @@ export function useWalletAnalysis() {
         await refreshBalances();
         if (!mountedRef.value) return;
       } catch (_e: unknown) {
-        /* non-critical: balance refresh */
+        console.warn("[useWalletAnalysis] balance refresh failed:", _e instanceof Error ? _e.message : String(_e));
       }
     } else {
       if (!mountedRef.value) return;

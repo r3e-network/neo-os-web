@@ -192,7 +192,7 @@ onMounted(() => {
 
 const resetAndReload = async () => {
   await refreshBalances();
-  loadChecklist();
+  await loadChecklist();
 };
 </script>
 
