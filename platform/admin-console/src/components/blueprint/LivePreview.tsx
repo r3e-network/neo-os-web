@@ -103,13 +103,21 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
           <div className="flex-1 p-3">
             {/* Tabs */}
             {tabs.length > 0 && (
-              <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-3">
+              <div role="tablist" className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-3">
                 {tabs.slice(0, 4).map((tab, i) => (
                   <button
                     key={tab.id}
+                    role="tab"
+                    type="button"
+                    aria-selected={activeTab === i}
+                    tabIndex={activeTab === i ? 0 : -1}
                     onClick={() => setActiveTab(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowRight") { e.preventDefault(); setActiveTab((activeTab + 1) % tabs.length); }
+                      else if (e.key === "ArrowLeft") { e.preventDefault(); setActiveTab((activeTab - 1 + tabs.length) % tabs.length); }
+                    }}
                     className={cn(
-                      "px-2 py-1 text-[9px] font-medium border-b-2 transition-colors",
+                      "px-2 py-1 text-[9px] font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neo",
                       activeTab === i
                         ? "border-neo text-neo"
                         : "border-transparent text-gray-500"
