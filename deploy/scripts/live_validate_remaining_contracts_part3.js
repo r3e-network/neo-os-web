@@ -3,7 +3,7 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
@@ -31,13 +31,25 @@ const ADDRESSES = {
   timecapsule: "0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489",
 };
 
-const admin = new Neon.wallet.Account(ADMIN_WIF);
-const user = new Neon.wallet.Account(USER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
-const gasByAdmin = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const gasByUser = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
-const neoByAdmin = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const neoByUser = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+let admin;
+let user;
+let rpcClient;
+let gasByAdmin;
+let gasByUser;
+let neoByAdmin;
+let neoByUser;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  admin = new Neon.wallet.Account(ADMIN_WIF);
+  user = new Neon.wallet.Account(USER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+  gasByAdmin = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  gasByUser = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+  neoByAdmin = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  neoByUser = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+}
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -299,6 +311,7 @@ async function runTimeCapsule() {
 }
 
 async function runAll() {
+  await initNeon();
   const results = {};
   const tasks = [
     ["govmerc", runGovMerc],

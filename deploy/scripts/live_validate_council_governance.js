@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
@@ -16,11 +16,21 @@ if (!ADMIN_WIF || !USER_WIF) {
   process.exit(1);
 }
 
-const admin = new Neon.wallet.Account(ADMIN_WIF);
-const user = new Neon.wallet.Account(USER_WIF);
-const rpc = new Neon.rpc.RPCClient(RPC_URL);
-const adminContract = new Neon.experimental.SmartContract(HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const userContract = new Neon.experimental.SmartContract(HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+let admin;
+let user;
+let rpc;
+let adminContract;
+let userContract;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  admin = new Neon.wallet.Account(ADMIN_WIF);
+  user = new Neon.wallet.Account(USER_WIF);
+  rpc = new Neon.rpc.RPCClient(RPC_URL);
+  adminContract = new Neon.experimental.SmartContract(HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  userContract = new Neon.experimental.SmartContract(HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -90,6 +100,7 @@ async function invokeRead(operation, args = []) {
 }
 
 async function main() {
+  await initNeon();
   const adminCandidate = await invokeRead("isCandidate", [Neon.sc.ContractParam.hash160(admin.address)]);
   const userCandidate = await invokeRead("isCandidate", [Neon.sc.ContractParam.hash160(user.address)]);
   if (!adminCandidate || !userCandidate) {

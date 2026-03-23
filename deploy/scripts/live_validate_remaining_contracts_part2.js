@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
@@ -33,13 +33,25 @@ const ADDRESSES = {
   trustanchor: "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2",
 };
 
-const admin = new Neon.wallet.Account(ADMIN_WIF);
-const user = new Neon.wallet.Account(USER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
-const gasByAdmin = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const gasByUser = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
-const neoByAdmin = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const neoByUser = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+let admin;
+let user;
+let rpcClient;
+let gasByAdmin;
+let gasByUser;
+let neoByAdmin;
+let neoByUser;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  admin = new Neon.wallet.Account(ADMIN_WIF);
+  user = new Neon.wallet.Account(USER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+  gasByAdmin = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  gasByUser = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+  neoByAdmin = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  neoByUser = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+}
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -343,6 +355,7 @@ async function runTrustAnchor() {
 }
 
 async function runAll() {
+  await initNeon();
   const results = {};
   const tasks = [
     ["eventticket", runEventTicket],

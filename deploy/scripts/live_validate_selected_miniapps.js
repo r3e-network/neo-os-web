@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
@@ -79,14 +79,27 @@ const ADDRESSES = {
   turtlematch: "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
 };
 
-const admin = new Neon.wallet.Account(ADMIN_WIF);
-const user = new Neon.wallet.Account(USER_WIF);
-const oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
-const adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const userGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
-const adminNeo = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
-const oracleContract = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
+let admin;
+let user;
+let oracleUpdater;
+let rpcClient;
+let adminGas;
+let userGas;
+let adminNeo;
+let oracleContract;
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  admin = new Neon.wallet.Account(ADMIN_WIF);
+  user = new Neon.wallet.Account(USER_WIF);
+  oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+  adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  userGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: user });
+  adminNeo = new Neon.experimental.SmartContract(NEO_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
+  oracleContract = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
+}
 
 function appContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
@@ -887,6 +900,7 @@ async function runTurtleMatch() {
 }
 
 async function runAll() {
+  await initNeon();
   const results = {};
   const tasks = [
     ["flashloan", runFlashLoanBasic],

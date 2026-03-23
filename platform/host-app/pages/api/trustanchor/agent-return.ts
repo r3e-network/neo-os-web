@@ -3,7 +3,16 @@ import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { requireMiniAppAdmin } from "@/lib/admin-auth";
-import { sc, tx, u, wallet } from "@cityofzion/neon-js";
+import {
+  OpCode,
+  PrivateKey,
+  RpcClient,
+  Tx as CoreTx,
+  bytesToHex,
+  deserialize,
+  hexToBytes,
+} from "@r3e/neo-js-sdk/core";
+import { sc, tx, u, wallet } from "@r3e/neo-js-sdk/browser";
 
 const RPC_URL = String(process.env.TRUSTANCHOR_RPC_URL || process.env.NEO_RPC_URL || "https://n3seed1.ngd.network:20332").trim();
 const NETWORK_MAGIC = parseInt(
@@ -13,12 +22,21 @@ const NETWORK_MAGIC = parseInt(
 const TRUSTANCHOR_HASH = String(process.env.TRUSTANCHOR_TESTNET_HASH || "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2").trim();
 const ADMIN_WIF = String(process.env.TRUSTANCHOR_ADMIN_WIF || "").trim();
 const SPONSORED_WIF = String(process.env.SPONSORED_WIF || "").trim();
-const CHECKSIG_CODE = sc.InteropServiceCode.SYSTEM_CRYPTO_CHECKSIG;
+const CHECKSIG_SYSCALL = "System.Crypto.CheckSig";
 const MAX_AGENT_ID = 21;
+const NEO_TOKEN_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 
 type AgentReturnBody = {
   agentId?: number;
   amount?: number | string;
+};
+
+type InvokeResultLike = {
+  state?: string;
+  exception?: string;
+  gasconsumed?: string | number;
+  script?: string;
+  stack?: any[];
 };
 
 function parsePositiveInteger(value: unknown): number | null {
@@ -33,11 +51,11 @@ function parsePositiveInteger(value: unknown): number | null {
 function buildAgentAccount(adminAccount: InstanceType<typeof wallet.Account>, agentId: number) {
   const builder = new sc.ScriptBuilder();
   builder.emitNumber(agentId);
-  builder.emit(sc.OpCode.DROP);
-  builder.emitPublicKey(adminAccount.publicKey);
-  builder.emitSysCall(CHECKSIG_CODE);
+  builder.emit(OpCode.DROP);
+  builder.emitPublicKey(String(adminAccount.publicKey));
+  builder.emitSyscall(CHECKSIG_SYSCALL);
   const verificationScript = builder.build();
-  const scriptHash = wallet.getScriptHashFromVerificationScript(verificationScript);
+  const scriptHash = u.reverseHex(u.hash160(verificationScript));
   return {
     verificationScript,
     scriptHash: `0x${scriptHash}`,
@@ -86,7 +104,7 @@ function parseAgentDetailsMap(stackItem: any): Record<string, unknown> {
 async function waitForTransaction(rpcClient: any, txid: string, maxAttempts = 60) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      const log = await rpcClient.getApplicationLog(txid);
+      const log = await rpcClient.getApplicationLog({ hash: txid });
       if (log?.executions?.length) {
         const execution = log.executions[0];
         if (execution.vmstate === "HALT") return execution;
@@ -129,13 +147,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const adminAccount = new wallet.Account(ADMIN_WIF);
     const sponsorAccount = new wallet.Account(SPONSORED_WIF);
-    const rpcClient = new (require("@cityofzion/neon-js").rpc.RPCClient)(RPC_URL);
+    const rpcClient = new RpcClient(RPC_URL);
 
     const agentAccount = buildAgentAccount(adminAccount, agentId);
 
-    const agentDetails = await rpcClient.invokeFunction(TRUSTANCHOR_HASH, "getAgentDetails", [
-      { type: "Integer", value: String(agentId) },
-    ]);
+    const agentDetails = (await rpcClient.send("invokefunction", [
+      TRUSTANCHOR_HASH,
+      "getAgentDetails",
+      [{ type: "Integer", value: String(agentId) }],
+    ])) as InvokeResultLike;
     if (agentDetails.state !== "HALT") {
       return apiError.gatewayError(res, "failed to read trustanchor agent details");
     }
@@ -147,28 +167,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return apiError.badRequest(res, "agent is not active");
     }
 
-    const transferPreview = await rpcClient.execute(
-      new (require("@cityofzion/neon-js").rpc.Query)({
-        method: "invokefunction",
-        params: [
-          "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-          "transfer",
-          [
-            { type: "Hash160", value: agentAccount.scriptHash },
-            { type: "Hash160", value: TRUSTANCHOR_HASH },
-            { type: "Integer", value: String(amount) },
-            { type: "Any", value: null },
-          ],
-          [
-            { account: agentAccount.scriptHash.replace(/^0x/, ""), scopes: "CalledByEntry" },
-            { account: sponsorAccount.scriptHash, scopes: "None" },
-          ],
-        ],
-      }),
-    );
+    const transferPreview = (await rpcClient.send("invokefunction", [
+      NEO_TOKEN_HASH,
+      "transfer",
+      [
+        { type: "Hash160", value: agentAccount.scriptHash },
+        { type: "Hash160", value: TRUSTANCHOR_HASH },
+        { type: "Integer", value: String(amount) },
+        { type: "Any", value: null },
+      ],
+      [
+        { account: agentAccount.scriptHash.replace(/^0x/, ""), scopes: "CalledByEntry" },
+        { account: sponsorAccount.scriptHash, scopes: "None" },
+      ],
+    ])) as InvokeResultLike;
 
     if (transferPreview.state !== "HALT") {
       return apiError.badRequest(res, transferPreview.exception || "trustanchor agent return preview failed");
+    }
+    if (!transferPreview.script) {
+      return apiError.badRequest(res, "trustanchor agent return preview did not return a script");
     }
 
     const currentHeight = await rpcClient.getBlockCount();
@@ -178,27 +196,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         { account: sponsorAccount.scriptHash, scopes: tx.WitnessScope.None },
       ],
       validUntilBlock: currentHeight + 200,
-      script: Buffer.from(transferPreview.script, "base64").toString("hex"),
+      script: Buffer.from(String(transferPreview.script), "base64").toString("hex"),
     });
 
-    transaction.systemFee = u.BigInteger.fromNumber(Math.ceil(Number(transferPreview.gasconsumed) * 1.5));
-    transaction.networkFee = u.BigInteger.fromNumber(5000000);
+    transaction.systemFee = BigInt(Math.ceil(Number(transferPreview.gasconsumed || 0) * 1.5));
+    transaction.networkFee = 5000000n;
 
-    const message = transaction.getMessageForSigning(NETWORK_MAGIC);
-    const signature = wallet.generateSignature(message, adminAccount.privateKey);
-    const invocationBuilder = new sc.ScriptBuilder();
-    invocationBuilder.emitPush(signature);
-    transaction.addWitness(
+    const unsignedTx = deserialize(hexToBytes(transaction.serialize(false)), CoreTx);
+    const agentWitness = new PrivateKey(adminAccount.privateKey).signWitness(unsignedTx.getSignData(NETWORK_MAGIC));
+    transaction.witnesses.push(
       new tx.Witness({
-        invocationScript: invocationBuilder.build(),
+        invocationScript: bytesToHex(agentWitness.invocationScript),
         verificationScript: agentAccount.verificationScript,
       }),
     );
 
-    transaction.sign(sponsorAccount, NETWORK_MAGIC);
+    transaction.sign(SPONSORED_WIF, NETWORK_MAGIC);
 
-    const result = await rpcClient.sendRawTransaction(transaction);
-    const txid = result.hash || result;
+    const result = await rpcClient.sendRawTransaction({ tx: transaction.serialize(true) });
+    const txid = typeof result === "string" ? result : String(result.hash || "");
+    if (!txid) {
+      throw new Error("trustanchor agent return relay did not return a transaction hash");
+    }
     await waitForTransaction(rpcClient, txid);
 
     return res.status(200).json({
