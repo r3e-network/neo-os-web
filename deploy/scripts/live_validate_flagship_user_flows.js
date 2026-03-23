@@ -372,7 +372,11 @@ async function transferNEO(toHash, amount, memo) {
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
-    memo,
+    memo == null
+      ? Neon.sc.ContractParam.any(null)
+      : typeof memo === "string"
+        ? Neon.sc.ContractParam.string(memo)
+        : Neon.sc.ContractParam.hash160(memo),
   ]);
   const { execution } = await waitForLog(txid);
   if (execution.vmstate !== "HALT") {
