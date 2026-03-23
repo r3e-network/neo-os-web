@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const Neon = require("@cityofzion/neon-js");
+let Neon;
 
 const root = path.resolve(__dirname, "..", "..");
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
@@ -17,14 +17,21 @@ if (!DEPLOYER_WIF) {
   process.exit(1);
 }
 
-const account = new Neon.wallet.Account(DEPLOYER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+let account;
+let rpcClient;
 
 const TARGETS = [
   { brand: "FogPlay", manifest: "apps/fogplay/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
   { brand: "GASBOX", manifest: "apps/gasbox/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
   { brand: "Red Envelope", manifest: "apps/red-envelope/neo-manifest.json", methods: [["setOracle", [ORACLE_HASH]]], callbackCredit: true },
 ];
+
+async function initNeon() {
+  if (Neon) return;
+  Neon = (await import("./lib/neon-compat.mjs")).default;
+  account = new Neon.wallet.Account(DEPLOYER_WIF);
+  rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -119,6 +126,7 @@ async function readOracle(scriptHash) {
 }
 
 async function main() {
+  await initNeon();
   const rows = [];
   for (const target of TARGETS) {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, target.manifest), "utf8"));

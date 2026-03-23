@@ -23,7 +23,7 @@ export default createAppConfig(__dirname, {
     ),
   },
   optimizeDeps: {
-    include: ["@cityofzion/neon-core", "jspdf", "qrcode"],
+    include: ["@r3e/neo-js-sdk/browser", "jspdf", "qrcode"],
     esbuildOptions: {
       target: "esnext",
     },

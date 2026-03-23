@@ -225,7 +225,7 @@ apps/neo-multisig/
 
 ### Dependencies
 
-- `@cityofzion/neon-core`: Neo N3 blockchain interaction
+- `@r3e/neo-js-sdk`: Neo N3 blockchain interaction and browser-safe compatibility helpers
 - `@noble/curves`: Cryptographic operations
 - `qrcode`: QR code generation for sharing
 

@@ -26,7 +26,7 @@ Current production target is **Neo N3 only**.
 - Tailwind CSS
 - Zustand
 - TanStack Query
-- `@cityofzion/neon-js`
+- `@r3e/neo-js-sdk`
 - Module Federation for selected miniapp entry loading
 - Supabase-backed host APIs for stats, notifications, publish workflow, and auth-linked features
 

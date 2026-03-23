@@ -13,33 +13,38 @@ describe("/api/rpc/sponsor env access", () => {
   it("reads sponsor config lazily at request time", async () => {
     const signMock = jest.fn();
     const serializeMock = jest.fn(() => "deadbeef");
+    const deserializeMock = jest.fn();
+    const fakePrimaryTx = {
+      signers: [{ account: "user-script-hash" }],
+      serialize: serializeMock,
+      sign: signMock,
+      witnesses: [{ toJSON: () => ({ invocation: "witness-1", verification: "witness-2" }) }],
+    };
+    const fakeSizingTx = {
+      signers: [],
+      witnesses: [],
+      serialize: jest.fn(() => "00".repeat(120)),
+    };
+    deserializeMock.mockImplementationOnce(() => fakePrimaryTx).mockImplementationOnce(() => fakeSizingTx);
 
-    jest.doMock("@cityofzion/neon-js", () => {
-      const fakeTx = {
-        signers: [{ account: "user-script-hash" }],
-        serialize: serializeMock,
-        sign: signMock,
-        witnesses: [{ serialize: () => "witness-1" }],
-      };
-
+    jest.doMock("@r3e/neo-js-sdk/browser", () => {
       return {
         tx: {
-          Transaction: { deserialize: jest.fn(() => fakeTx) },
-          Signer: function Signer(init: unknown) { return init; },
+          Transaction: { deserialize: deserializeMock },
           Witness: function Witness(init: Record<string, unknown>) {
-            return { ...init, serialize: () => "00" };
+            return { ...init, toJSON: () => init };
           },
           WitnessScope: { None: "None" },
         },
         wallet: {
-          Account: jest.fn(() => ({ scriptHash: "sponsor-script-hash", publicKey: "03abc" })),
+          Account: jest.fn(() => ({
+            scriptHash: "sponsor-script-hash",
+            publicKey: "03abc",
+            contract: {
+              script: Buffer.from("2103abcac", "hex").toString("base64"),
+            },
+          })),
           getAddressFromScriptHash: jest.fn((hash: string) => hash),
-        },
-        rpc: {},
-        u: {
-          BigInteger: {
-            fromNumber: (value: number) => value,
-          },
         },
       };
     });
@@ -63,10 +68,7 @@ describe("/api/rpc/sponsor env access", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    expect(signMock).toHaveBeenCalledWith(
-      expect.objectContaining({ scriptHash: "sponsor-script-hash" }),
-      123,
-    );
+    expect(signMock).toHaveBeenCalledWith("updated-wif", 123);
     expect(JSON.parse(res._getData())).toEqual(
       expect.objectContaining({ success: true, sponsoredTxBase64: "deadbeef" }),
     );
