@@ -74,7 +74,9 @@ async function waitForLog(txid, timeoutMs = 120000) {
       if (execution) {
         return { txid: normalized, execution };
       }
-    } catch {}
+    } catch (e) {
+      console.warn(`[live_validate_miniapps] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+    }
     await sleep(2000);
   }
   throw new Error(`timed out waiting for ${normalized}`);
@@ -767,7 +769,10 @@ async function runTurtleMatch() {
   const scriptName = "turtle-match-logic";
   const scriptHash = crypto.createHash("sha256").update("codex-turtle-match-v1").digest();
 
-  const scriptInfo = await invokeRead(contractHash, "getScriptInfo", [{ type: "String", value: scriptName }]).catch(() => ({ exists: false }));
+  const scriptInfo = await invokeRead(contractHash, "getScriptInfo", [{ type: "String", value: scriptName }]).catch((e) => {
+    console.warn(`[warn] getScriptInfo(${scriptName}) failed: ${e.message} — treating as not registered`);
+    return { exists: false };
+  });
   if (!scriptInfo.exists) {
     const registerTx = await contract.invoke("registerScript", [
       Neon.sc.ContractParam.string(scriptName),

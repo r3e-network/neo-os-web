@@ -39,7 +39,9 @@ async function waitForLog(txid, timeoutMs = 120000) {
       const log = await rpc.getApplicationLog(normalized);
       const execution = log?.executions?.[0];
       if (execution) return { txid: normalized, execution };
-    } catch {}
+    } catch (e) {
+      console.warn(`[live_validate_council] getApplicationLog failed, retrying: ${e instanceof Error ? e.message : String(e)}`);
+    }
     await sleep(2000);
   }
   throw new Error(`timed out waiting for ${normalized}`);

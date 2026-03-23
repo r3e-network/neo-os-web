@@ -215,12 +215,19 @@ func main() {
 		_ = maniBytes
 	}
 
-	out, _ := json.MarshalIndent(results, "", "  ")
-	fmt.Println(string(out))
+	out, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: json.MarshalIndent failed: %v\n", err)
+	} else {
+		fmt.Println(string(out))
+	}
 	if apply && len(results) > 0 {
 		outputPath := filepath.Join("contracts", "build", "selected_miniapps_redeployed.json")
-		_ = os.WriteFile(outputPath, out, 0644)
-		fmt.Printf("\nSaved: %s\n", outputPath)
+		if err := os.WriteFile(outputPath, out, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to write output file: %v\n", err)
+		} else {
+			fmt.Printf("\nSaved: %s\n", outputPath)
+		}
 	}
 
 	if failed {
