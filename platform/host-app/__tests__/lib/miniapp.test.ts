@@ -1,4 +1,5 @@
 import { coerceMiniAppInfo } from "@/lib/miniapp";
+import { applyBuiltInMiniAppDefaults } from "@/lib/miniapp-builtins";
 
 describe("miniapp coercion", () => {
   const originalTargetNetwork = process.env.NEO_TARGET_NETWORK;
@@ -79,5 +80,32 @@ describe("miniapp coercion", () => {
 
     expect(app.entry_url).toBe("https://wallet.matrix/apps/aa");
     expect(app.permissions.aa).toBe(true);
+  });
+
+  it("defaults non-flagship miniapps to beta while preserving flagship active state", () => {
+    const nonFlagship = applyBuiltInMiniAppDefaults({
+      app_id: "miniapp-on-chain-tarot",
+      name: "On-Chain Tarot",
+      description: "utility app",
+      icon: "🔮",
+      category: "utility",
+      entry_url: "mf://manifest?app=miniapp-on-chain-tarot",
+      permissions: {},
+      status: null,
+    });
+
+    const flagship = applyBuiltInMiniAppDefaults({
+      app_id: "miniapp-neo-pay",
+      name: "NeoPay",
+      description: "flagship app",
+      icon: "💸",
+      category: "defi",
+      entry_url: "mf://manifest?app=miniapp-neo-pay",
+      permissions: {},
+      status: "active",
+    });
+
+    expect(nonFlagship.status).toBe("beta");
+    expect(flagship.status).toBe("active");
   });
 });
