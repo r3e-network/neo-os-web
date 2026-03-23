@@ -1,7 +1,7 @@
 <template>
   <div class="hero-section">
     <div class="hero-badge">
-      <AppIcon name="locked" :size="16" class="badge-icon" />
+      <AppIcon name="locked" :size="16" class="badge-icon" aria-hidden="true" />
       <span class="badge-text">{{ title }}</span>
     </div>
     <span class="hero-title">{{ headline }}</span>

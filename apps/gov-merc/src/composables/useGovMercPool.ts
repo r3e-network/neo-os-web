@@ -54,10 +54,14 @@ export function useGovMercPool(t: (key: string) => string) {
   ]);
 
   const loadPoolData = async () => {
-    await ensureContractAddress();
-    const [poolResult, epochResult] = await Promise.all([read("TotalPool"), read("GetCurrentEpochId")]);
-    totalPool.value = Number(poolResult || 0);
-    currentEpoch.value = Number(epochResult || 0);
+    try {
+      await ensureContractAddress();
+      const [poolResult, epochResult] = await Promise.all([read("TotalPool"), read("GetCurrentEpochId")]);
+      totalPool.value = Number(poolResult || 0);
+      currentEpoch.value = Number(epochResult || 0);
+    } catch (e: unknown) {
+      setStatus(formatErrorMessage(e, t("loadFailed")), "error");
+    }
   };
 
   const loadUserDeposits = async () => {
@@ -106,7 +110,7 @@ export function useGovMercPool(t: (key: string) => string) {
   };
 
   const isMounted = ref(true);
-  const stopAddressWatch = watch(address, () => loadData(), { immediate: true });
+  const stopAddressWatch = watch(address, () => { void loadData(); }, { immediate: true });
 
   onUnmounted(() => {
     isMounted.value = false;
@@ -162,6 +166,7 @@ export function useGovMercPool(t: (key: string) => string) {
       setStatus(t("enterAmount"), "error");
       return;
     }
+    let delayTimer: ReturnType<typeof setTimeout> | null = null;
     try {
       await ensureConnectedAddress();
       await invokeDirectly(
@@ -175,7 +180,13 @@ export function useGovMercPool(t: (key: string) => string) {
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      // Wait for confirmation delay — store timer so unmount can cancel it
+      await new Promise((resolve) => {
+        delayTimer = setTimeout(resolve, 4000);
+      });
+
+      // Guard against post-unmount state updates
+      if (!isMounted.value) return;
 
       await invokeDirectly("placeBid", [
         { type: "Hash160", value: address.value as string },
@@ -186,12 +197,10 @@ export function useGovMercPool(t: (key: string) => string) {
       await loadData();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("error")), "error");
+    } finally {
+      if (delayTimer) clearTimeout(delayTimer);
     }
   };
-
-  const stopAddressWatch = watch(address, () => loadData(), { immediate: true });
-
-  onUnmounted(() => stopAddressWatch());
 
   return {
     address,

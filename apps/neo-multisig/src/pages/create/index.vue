@@ -112,17 +112,17 @@
 
         <div class="form-group">
           <span class="label">{{ t("toAddressLabel") }}</span>
-          <input class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" :aria-label="t('toAddressLabel')" required />
+          <input id="multisig-to-address" class="input" v-model="form.toAddress" :placeholder="t('toAddressPlaceholder')" :aria-label="t('toAddressLabel')" required />
         </div>
 
         <div class="form-group">
           <span class="label">{{ t("amountLabel") }}</span>
-          <input class="input" v-model="form.amount" type="number" :placeholder="t('amountPlaceholder')" :aria-label="t('amountLabel')" required />
+          <input id="multisig-amount" class="input" v-model="form.amount" type="number" :placeholder="t('amountPlaceholder')" :aria-label="t('amountLabel')" required />
         </div>
 
         <div class="form-group">
           <span class="label">{{ t("memoLabel") }}</span>
-          <input class="input" v-model="form.memo" :placeholder="t('memoPlaceholder')" :aria-label="t('memoLabel')" />
+          <input id="multisig-memo" class="input" v-model="form.memo" :placeholder="t('memoPlaceholder')" :aria-label="t('memoLabel')" />
         </div>
 
         <div class="actions row">

@@ -68,7 +68,7 @@ export function useCapsuleCreation() {
       store[hash] = content;
       uni.setStorageSync(CONTENT_STORE_KEY, JSON.stringify(store));
     } catch (_e: unknown) {
-      /* Local storage write is non-critical */
+      console.warn("[useCapsuleCreation] local storage write failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 

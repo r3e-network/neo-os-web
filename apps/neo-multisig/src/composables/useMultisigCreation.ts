@@ -187,7 +187,7 @@ export function useMultisigCreation() {
       });
       uni.setStorageSync("multisig_history", (() => {
         try { return JSON.stringify(history.slice(0, 10)); }
-        catch { return "[]"; }
+        catch (_e: unknown) { console.warn("[useMultisigCreation] history serialization failed:", _e instanceof Error ? _e.message : String(_e)); return "[]"; }
       })());
 
       onSuccess?.(result.id);

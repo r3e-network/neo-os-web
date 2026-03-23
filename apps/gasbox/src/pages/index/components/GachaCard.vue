@@ -2,7 +2,7 @@
   <NeoCard variant="erobo" class="machine-card" hoverable @click="$emit('select', machine)">
     <div class="card-header">
       <div class="machine-icon-wrapper">
-        <AppIcon name="slot" :size="20" class="machine-icon" />
+        <AppIcon name="slot" :size="20" class="machine-icon" aria-hidden="true" />
       </div>
       <div class="machine-info">
         <span class="machine-name">{{ machine.name }}</span>

@@ -195,7 +195,12 @@ async function fetchEvents(params: EventsListParams): Promise<EventsListResponse
 
   const res = await fetch(`${PLATFORM_API}/api/activity/events?${query.toString()}`);
   if (!res.ok) return { events: [], total: 0 };
-  return res.json();
+  try {
+    return await res.json();
+  } catch (_e: unknown) {
+    console.warn("[wallet-sdk] fetchEvents failed to parse JSON:", _e instanceof Error ? _e.message : String(_e));
+    return { events: [], total: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -3,19 +3,19 @@
     <div class="eligibility-check">
       <div class="check-item">
         <span class="check-icon">
-          <AppIcon :name="parseFloat(gasBalance) < 0.1 ? 'check' : 'fail'" :size="16" :aria-label="parseFloat(gasBalance) < 0.1 ? t('statusPass') : t('statusFail')" />
+          <AppIcon :name="parseFloat(gasBalance) < 0.1 ? 'check' : 'fail'" :size="16" aria-hidden="true" />
         </span>
         <span class="check-text">{{ t("balanceCheck") }} ({{ formatBalance(gasBalance) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
         <span class="check-icon">
-          <AppIcon :name="remainingQuota > 0 ? 'check' : 'fail'" :size="16" :aria-label="remainingQuota > 0 ? t('statusPass') : t('statusFail')" />
+          <AppIcon :name="remainingQuota > 0 ? 'check' : 'fail'" :size="16" aria-hidden="true" />
         </span>
         <span class="check-text">{{ t("quotaCheck") }} ({{ formatBalance(remainingQuota) }} {{ t("tokenGas") }})</span>
       </div>
       <div class="check-item">
         <span class="check-icon">
-          <AppIcon :name="userAddress ? 'check' : 'fail'" :size="16" :aria-label="userAddress ? t('statusPass') : t('statusFail')" />
+          <AppIcon :name="userAddress ? 'check' : 'fail'" :size="16" aria-hidden="true" />
         </span>
         <span class="check-text">{{ t("walletCheck") }}</span>
       </div>

@@ -52,6 +52,7 @@ import type { HeroStatsStripItem } from "@shared/components";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
 import { useDevTippingStats } from "@/composables/useDevTippingStats";
+import type { Developer } from "@/composables/useDevTippingStats";
 import { useDevTippingWallet } from "@/composables/useDevTippingWallet";
 import TipList from "@/components/TipList.vue";
 
@@ -86,6 +87,11 @@ const heroStatsItems = computed<HeroStatsStripItem[]>(() => [
 ]);
 
 const selectedDevId = ref<number | null>(null);
+const tipAmount = ref("");
+const tipMessage = ref("");
+const tipperName = ref("");
+const anonymous = ref(false);
+
 const refreshData = async () => {
   await loadDevelopers();
   await loadRecentTips(APP_ID);
@@ -95,8 +101,14 @@ const handleSelectDev = (dev: Developer) => {
   selectedDevId.value = dev.id;
   setStatus(`${t("selected")} ${dev.name}`, "success");
 };
+
+const handleSendTip = async () => {
+  if (!selectedDevId.value) return;
+  await sendTip(selectedDevId.value, tipAmount.value, tipMessage.value, tipperName.value, anonymous.value);
+};
+
 onMounted(() => {
-  refreshData();
+  refreshData().catch((e: unknown) => { console.warn("[dev-tipping] refreshData failed:", e instanceof Error ? e.message : String(e)); });
 });
 </script>
 

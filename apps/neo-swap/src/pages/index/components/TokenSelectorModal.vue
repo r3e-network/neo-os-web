@@ -13,12 +13,12 @@
         @keydown.enter="$emit('select', token)"
         @keydown.space.prevent="$emit('select', token)"
       >
-        <AppIcon :name="token.symbol.toLowerCase()" :size="32" />
+        <AppIcon :name="token.symbol.toLowerCase()" :size="32" aria-hidden="true" />
         <div class="token-info">
           <span class="token-name">{{ token.symbol }}</span>
           <span class="token-balance">{{ formatAmount(token.balance) }}</span>
         </div>
-        <AppIcon v-if="token.symbol === currentSymbol" name="check" :size="20" class="check-mark" />
+        <AppIcon v-if="token.symbol === currentSymbol" name="check" :size="20" class="check-mark" aria-hidden="true" />
       </li>
     </scroll-view>
   </ActionModal>

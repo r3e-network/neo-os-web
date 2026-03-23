@@ -5,13 +5,13 @@
         <button type="button" class="dev-card-glass" :aria-label="dev.name" @click="$emit('select', dev)">
           <div class="dev-card-header">
             <div class="dev-avatar-glass">
-              <AppIcon name="user" :size="28" class="avatar-emoji" />
+              <AppIcon name="user" :size="28" class="avatar-emoji" aria-hidden="true" />
               <div class="avatar-badge-glass">{{ dev.rank }}</div>
             </div>
             <div class="dev-info">
               <span class="dev-name-glass">{{ dev.name }}</span>
               <span class="dev-projects-glass">
-                <AppIcon name="puzzle" :size="10" class="project-icon" />
+                <AppIcon name="puzzle" :size="10" class="project-icon" aria-hidden="true" />
                 {{ dev.role }}
               </span>
               <span class="dev-contributions-glass">{{ dev.tipCount }} {{ t("tipsCount") }}</span>
@@ -23,7 +23,7 @@
               <span class="tip-amount-glass">{{ formatNum(dev.totalTips) }} {{ t("tokenGas") }}</span>
             </div>
             <div class="tip-action">
-              <AppIcon name="heart" :size="18" class="tip-icon text-glass" />
+              <AppIcon name="heart" :size="18" class="tip-icon text-glass" aria-hidden="true" />
             </div>
           </div>
         </button>

@@ -1,6 +1,6 @@
 <template>
   <NeoCard variant="erobo" class="history-card">
-    <span class="stats-title-glass"><AppIcon name="contract" :size="14" />{{ t("recentLoans") }}</span>
+    <span class="stats-title-glass"><AppIcon name="contract" :size="14" aria-hidden="true" />{{ t("recentLoans") }}</span>
     <div v-if="recentLoans.length > 0" class="loans-table-glass">
       <div class="table-header-glass">
         <span class="th-glass th-loan">{{ t("loanId") }}</span>
@@ -19,7 +19,7 @@
       </div>
     </div>
     <div v-else class="empty-state">
-      <AppIcon name="inbox" :size="32" class="empty-icon" />
+      <AppIcon name="inbox" :size="32" class="empty-icon" aria-hidden="true" />
       <span class="empty-text">{{ t("noHistory") }}</span>
     </div>
   </NeoCard>

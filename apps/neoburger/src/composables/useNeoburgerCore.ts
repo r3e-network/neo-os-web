@@ -5,6 +5,7 @@ import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { messages } from "@/locale/messages";
 
@@ -12,6 +13,7 @@ const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 
 export function useNeoburgerCore() {
   const { t } = createUseI18n(messages)();
+  const { setStatus } = useStatusMessage();
   const { getAddress, invokeContract, getBalance, chainType } = useWallet() as WalletSDK;
   const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
     key === "contractUnavailable" ? t("contractUnavailable") : t(key)
@@ -36,6 +38,7 @@ export function useNeoburgerCore() {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("contractUnavailable");
       error.value = msg;
+      setStatus(msg, "error");
     } finally {
       error.value = null;
     }
@@ -58,7 +61,9 @@ export function useNeoburgerCore() {
       neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
       bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : t("balanceLoadFailed");
+      const msg = e instanceof Error ? e.message : t("balanceLoadFailed");
+      error.value = msg;
+      setStatus(msg, "error");
     } finally {
       error.value = null;
     }
@@ -83,7 +88,9 @@ export function useNeoburgerCore() {
       });
       return true;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : t("stakeFailed");
+      const msg = e instanceof Error ? e.message : t("stakeFailed");
+      error.value = msg;
+      setStatus(msg, "error");
       return false;
     } finally {
       error.value = null;
@@ -110,7 +117,9 @@ export function useNeoburgerCore() {
       });
       return true;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : t("unstakeFailed");
+      const msg = e instanceof Error ? e.message : t("unstakeFailed");
+      error.value = msg;
+      setStatus(msg, "error");
       return false;
     } finally {
       error.value = null;
@@ -123,7 +132,9 @@ export function useNeoburgerCore() {
       const sdkModule = await import("@shared/utils/wallet-sdk");
       const sdk = sdkModule.waitForSDK ? await sdkModule.waitForSDK() : null;
       if (!sdk?.invoke) {
-        error.value = t("claimFailed");
+        const msg = t("claimFailed");
+        error.value = msg;
+        setStatus(msg, "error");
         return false;
       }
       const bneoContract = await ensureBneoContract();
@@ -131,7 +142,9 @@ export function useNeoburgerCore() {
       await sdk.invoke("invokeFunction", { contract: bneoContract, method: "claim", args: [] });
       return true;
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : t("claimFailed");
+      const msg = e instanceof Error ? e.message : t("claimFailed");
+      error.value = msg;
+      setStatus(msg, "error");
       return false;
     } finally {
       error.value = null;

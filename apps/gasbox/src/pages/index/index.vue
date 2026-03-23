@@ -22,7 +22,7 @@
             <div class="dome-shine" />
             <div class="capsules-float">
               <span v-for="i in 7" :key="i" class="hero-capsule" :style="getCapsuleHeroStyle(i)">
-                <AppIcon :name="['pill', 'crystal_ball', 'neo', 'generous', 'star', 'dice', 'sparkle'][i - 1]" :size="20" />
+                <AppIcon :name="['pill', 'crystal_ball', 'neo', 'generous', 'star', 'dice', 'sparkle'][i - 1]" :size="20" aria-hidden="true" />
               </span>
             </div>
           </div>
@@ -35,7 +35,7 @@
           <!-- Machine Base -->
           <div class="hero-machine-base">
             <div class="dispense-slot">
-              <div v-if="isPlaying" class="dispense-capsule"><AppIcon name="pill" :size="24" /></div>
+              <div v-if="isPlaying" class="dispense-capsule"><AppIcon name="pill" :size="24" aria-hidden="true" /></div>
             </div>
           </div>
         </div>

@@ -9,10 +9,8 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Token } from "@/types";
 
-const TOKENS: Token[] = [
-  { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 },
-  { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 },
-];
+const NEO_TOKEN_TEMPLATE = { symbol: "NEO" as const, hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
+const GAS_TOKEN_TEMPLATE = { symbol: "GAS" as const, hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
 
 /** Swap transaction deadline in seconds (10 minutes). */
 const SWAP_DEADLINE_SECONDS = 600;
@@ -28,8 +26,9 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     key === "contractUnavailable" ? t.value("swapRouterUnavailable") : t.value(key)
   );
 
-  const fromToken = ref<Token>({ ...TOKENS[0] });
-  const toToken = ref<Token>({ ...TOKENS[1] });
+  // Instance-level token state — avoid shared module-level mutation
+  const fromToken = ref<Token>({ ...NEO_TOKEN_TEMPLATE });
+  const toToken = ref<Token>({ ...GAS_TOKEN_TEMPLATE });
   const fromAmount = ref("");
   const toAmount = ref("");
   const exchangeRate = ref("");
@@ -44,19 +43,21 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   const stopBalancesWatch = watch(
     balances,
     (newVal) => {
-      const neo = newVal["NEO"] || 0;
-      const gas = newVal["GAS"] || 0;
-      TOKENS[0].balance = Number(neo);
-      TOKENS[1].balance = Number(gas);
-      if (fromToken.value.symbol === "NEO") fromToken.value.balance = TOKENS[0].balance;
-      if (fromToken.value.symbol === "GAS") fromToken.value.balance = TOKENS[1].balance;
-      if (toToken.value.symbol === "NEO") toToken.value.balance = TOKENS[0].balance;
-      if (toToken.value.symbol === "GAS") toToken.value.balance = TOKENS[1].balance;
+      const neo = Number(newVal["NEO"] || 0);
+      const gas = Number(newVal["GAS"] || 0);
+      // Update token balances directly on the reactive refs (not a shared module array)
+      if (fromToken.value.symbol === "NEO") fromToken.value.balance = neo;
+      if (fromToken.value.symbol === "GAS") fromToken.value.balance = gas;
+      if (toToken.value.symbol === "NEO") toToken.value.balance = neo;
+      if (toToken.value.symbol === "GAS") toToken.value.balance = gas;
     },
     { deep: true, immediate: true }
   );
 
-  const availableTokens = computed(() => TOKENS);
+  const availableTokens = computed<Token[]>(() => [
+    { ...NEO_TOKEN_TEMPLATE, balance: fromToken.value.symbol === "NEO" ? fromToken.value.balance : toToken.value.symbol === "NEO" ? toToken.value.balance : 0 },
+    { ...GAS_TOKEN_TEMPLATE, balance: fromToken.value.symbol === "GAS" ? fromToken.value.balance : toToken.value.symbol === "GAS" ? toToken.value.balance : 0 },
+  ]);
   const hasRate = computed(() => {
     const rate = parseFloat(exchangeRate.value);
     return Number.isFinite(rate) && rate > 0;
@@ -131,7 +132,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     toToken.value = temp;
     fromAmount.value = "";
     toAmount.value = "";
-    loadExchangeRate();
+    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed after swapTokens:", e instanceof Error ? e.message : String(e)); });
     if (swapAnimTimer) clearTimeout(swapAnimTimer);
     swapAnimTimer = setTimeout(() => {
       isSwapping.value = false;
@@ -162,7 +163,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
       else toToken.value = { ...token };
     }
     closeSelector();
-    loadExchangeRate();
+    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed after selectToken:", e instanceof Error ? e.message : String(e)); });
   }
 
   async function executeSwap() {

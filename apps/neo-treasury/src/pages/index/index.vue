@@ -70,7 +70,7 @@
 
       <!-- Error State -->
       <div v-else-if="error" class="error-container" role="alert">
-        <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" />
+        <AppIcon name="alert-circle" :size="48" class="text-danger mb-4" aria-hidden="true" />
         <span class="error-label">{{ error }}</span>
         <NeoButton type="button" variant="primary" class="mt-4" @click="loadData">
           {{ t("retry") }}
@@ -81,14 +81,14 @@
     <!-- Da Hongfei Tab -->
     <template #tab-da>
       <div v-if="data">
-        <FounderDetail :category="daCategory!" :prices="data.prices" :t="t" />
+        <FounderDetail v-if="daCategory" :category="daCategory" :prices="data.prices" :t="t" />
       </div>
     </template>
 
     <!-- Erik Zhang Tab -->
     <template #tab-erik>
       <div v-if="data">
-        <FounderDetail :category="erikCategory!" :prices="data.prices" :t="t" />
+        <FounderDetail v-if="erikCategory" :category="erikCategory" :prices="data.prices" :t="t" />
       </div>
     </template>
 
@@ -141,6 +141,9 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
     { labelKey: "sidebarFounders", value: () => data.value?.categories?.length ?? 0 },
   ],
 });
+
+const daCategory = computed(() => data.value?.categories?.find((c: { name: string }) => c.name === "Da Hongfei"));
+const erikCategory = computed(() => data.value?.categories?.find((c: { name: string }) => c.name === "Erik Zhang"));
 
 const appState = computed(() => ({
   loading: loading.value,

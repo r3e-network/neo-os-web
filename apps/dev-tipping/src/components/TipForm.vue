@@ -74,7 +74,7 @@
       </div>
 
       <NeoButton variant="primary" size="lg" block type="button" :loading="isLoading" :disabled="!canSubmit" :aria-label="t('sendTipBtn')" @click="$emit('submit')">
-        <span v-if="!isLoading"><AppIcon name="heart" :size="20" /> {{ t("sendTipBtn") }}</span>
+        <span v-if="!isLoading"><AppIcon name="heart" :size="20" aria-hidden="true" /> {{ t("sendTipBtn") }}</span>
         <span v-else>{{ t("sending") }}</span>
       </NeoButton>
     </div>

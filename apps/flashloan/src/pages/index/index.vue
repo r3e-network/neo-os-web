@@ -101,7 +101,7 @@ import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
-import { ErrorToast } from "@shared/components";
+import ErrorToast from "./components/ErrorToast.vue";
 import LoanRequest from "./components/LoanRequest.vue";
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, clearStatus } =

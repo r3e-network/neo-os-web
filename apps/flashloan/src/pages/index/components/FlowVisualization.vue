@@ -4,7 +4,7 @@
       <!-- Step 1: Borrow -->
       <div class="flow-step">
         <div class="step-icon-container">
-          <AppIcon name="money" :size="24" class="step-icon" />
+          <AppIcon name="money" :size="24" class="step-icon" aria-hidden="true" />
           <div class="step-ring"></div>
         </div>
         <span class="step-label">{{ t("borrow") }}</span>
@@ -21,7 +21,7 @@
       <!-- Step 2: Execute -->
       <div class="flow-step">
         <div class="step-icon-container active">
-          <AppIcon name="refresh" :size="24" class="step-icon" />
+          <AppIcon name="refresh" :size="24" class="step-icon" aria-hidden="true" />
           <div class="step-ring pulse"></div>
         </div>
         <span class="step-label highlight">{{ t("execute") }}</span>
@@ -38,7 +38,7 @@
       <!-- Step 3: Repay -->
       <div class="flow-step">
         <div class="step-icon-container">
-          <AppIcon name="success" :size="24" class="step-icon" />
+          <AppIcon name="success" :size="24" class="step-icon" aria-hidden="true" />
           <div class="step-ring"></div>
         </div>
         <span class="step-label">{{ t("repay") }}</span>
@@ -46,7 +46,7 @@
     </div>
 
     <div class="flow-note-glass">
-      <AppIcon name="info" :size="14" class="note-icon" />
+      <AppIcon name="info" :size="14" class="note-icon" aria-hidden="true" />
       <span class="note-text">{{ t("flowNote") }}</span>
     </div>
   </NeoCard>

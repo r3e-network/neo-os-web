@@ -395,7 +395,7 @@ onMounted(() => {
   aaContractHash.value = window.localStorage.getItem(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash();
   newBackupOwner.value = walletAddress.value;
   if (marketHash.value.trim()) {
-    void loadListings();
+    loadListings().catch((e: unknown) => { console.warn("[aa-market-hub] loadListings failed:", e instanceof Error ? e.message : String(e)); });
   }
 });
 

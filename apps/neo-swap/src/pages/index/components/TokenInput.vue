@@ -11,7 +11,7 @@
         :aria-label="`${t('balance')}: ${symbol}`"
         @click="$emit('select-token')"
       >
-        <AppIcon :name="symbol.toLowerCase()" :size="32" />
+        <AppIcon :name="symbol.toLowerCase()" :size="32" aria-hidden="true" />
         <div class="token-info">
           <span class="token-symbol">{{ symbol }}</span>
           <AppIcon name="chevron-right" :size="16" rotate="90" class="chevron-icon" />

@@ -133,10 +133,10 @@ export function useAlbumPhotos(t: (key: string) => string) {
   };
 
   onMounted(() => {
-    if (address.value) loadPhotos();
+    if (address.value) void loadPhotos();
   });
 
-  const stopAddressWatch = watch(address, () => loadPhotos());
+  const stopAddressWatch = watch(address, () => { void loadPhotos(); });
 
   onUnmounted(() => stopAddressWatch());
 

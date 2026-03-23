@@ -6,7 +6,7 @@
     </div>
 
     <div v-if="history.length === 0" class="empty-state">
-      <AppIcon name="dove" :size="32" class="empty-icon" />
+      <AppIcon name="dove" :size="32" class="empty-icon" aria-hidden="true" />
       <span class="empty-text">{{ t("noDestructions") }}</span>
     </div>
 
