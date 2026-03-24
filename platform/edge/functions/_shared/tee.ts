@@ -14,6 +14,7 @@ function logMTLSStatus(message: string) {
 function isPublicRuntimeHost(hostname: string) {
   const host = String(hostname || "").trim().toLowerCase();
   return [
+    "oracle.meshmini.app",
     "morpheus-mainnet.meshmini.app",
     "morpheus-testnet.meshmini.app",
     "edge.meshmini.app",
