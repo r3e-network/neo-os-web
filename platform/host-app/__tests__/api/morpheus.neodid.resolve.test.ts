@@ -87,7 +87,7 @@ describe("/api/morpheus/neodid/resolve", () => {
     expect(registry.serviceEndpoint.contract).toBe("");
     expect(oracle.serviceEndpoint.contract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");
     expect(runtime.serviceEndpoint.runtime_url).toBe(
-      "https://morpheus-testnet.meshmini.app",
+      "https://oracle.meshmini.app/testnet",
     );
   });
 

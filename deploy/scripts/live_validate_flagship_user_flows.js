@@ -143,8 +143,8 @@ function resolvePhalaRuntimeUrl() {
     return /^https?:\/\//i.test(customDomain) ? customDomain : `https://${customDomain}`;
   }
 
-  if (TARGET_NETWORK === "mainnet") return "https://morpheus-mainnet.meshmini.app";
-  return "https://morpheus-testnet.meshmini.app";
+  if (TARGET_NETWORK === "mainnet") return "https://oracle.meshmini.app/mainnet";
+  return "https://oracle.meshmini.app/testnet";
 }
 
 const PHALA_API_URL = resolvePhalaRuntimeUrl();
