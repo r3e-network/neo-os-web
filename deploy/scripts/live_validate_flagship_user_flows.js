@@ -54,6 +54,13 @@ const LIVE_TARGET_FILTER = new Set(
     .map((value) => value.trim())
     .filter(Boolean),
 );
+const RNG_FALLBACK_ENABLED = !["0", "false", "no", "off"].includes(
+  String(process.env.MORPHEUS_LIVE_VALIDATE_RNG_FALLBACK || "1").trim().toLowerCase()
+);
+const RNG_FALLBACK_LEAD_MS = Math.max(
+  0,
+  Number(process.env.MORPHEUS_LIVE_VALIDATE_RNG_FALLBACK_LEAD_MS || "15000")
+);
 
 const DAILY_CHECKIN_FEE = "100000";
 const FOGPLAY_BET = "5000000";
@@ -351,7 +358,13 @@ async function waitForRequestStatus(requestId, timeoutMs = 120000) {
       return request;
     }
     const requestType = String(request[1] || "").toLowerCase();
-    if (!forced && Date.now() + 100000 >= deadline && Array.isArray(request) && (requestType === "rng" || requestType.includes("vrf") || requestType.includes("random"))) {
+    if (
+      RNG_FALLBACK_ENABLED
+      && !forced
+      && Date.now() + RNG_FALLBACK_LEAD_MS >= deadline
+      && Array.isArray(request)
+      && (requestType === "rng" || requestType.includes("vrf") || requestType.includes("random"))
+    ) {
       try {
         await forceFulfillRngRequest(requestId, requestType);
       } catch (error) {
