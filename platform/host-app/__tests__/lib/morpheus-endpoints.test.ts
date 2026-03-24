@@ -30,7 +30,7 @@ describe("morpheus endpoint resolvers", () => {
     expect(resolveMorpheusRuntimeCandidates("testnet")).toEqual([
       "https://testnet-runtime.example",
       "https://generic-runtime.example",
-      "https://morpheus-testnet.meshmini.app",
+      "https://oracle.meshmini.app/testnet",
       "https://edge.meshmini.app/testnet",
     ]);
   });
