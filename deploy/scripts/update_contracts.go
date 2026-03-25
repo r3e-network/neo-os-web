@@ -25,7 +25,6 @@ var contracts = []struct {
 	NEF      string
 	Manifest string
 }{
-	{"PaymentHub", "CONTRACT_PAYMENTHUB_HASH", "PaymentHubV2.nef", "PaymentHubV2.manifest.json"},
 	{"PriceFeed", "CONTRACT_PRICEFEED_HASH", "PriceFeed.nef", "PriceFeed.manifest.json"},
 	{"RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH", "RandomnessLog.nef", "RandomnessLog.manifest.json"},
 	{"Governance", "CONTRACT_GOVERNANCE_HASH", "Governance.nef", "Governance.manifest.json"},

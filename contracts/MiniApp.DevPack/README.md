@@ -13,7 +13,7 @@ MiniApp DevPack provides a comprehensive inheritance-based framework for buildin
 - **Bet Limits**: Anti-Martingale protection for gaming contracts
 - **Service Integration**: RNG, Price Feed, Encryption services
 - **Automation Support**: Periodic task execution via AutomationAnchor
-- **Payment Validation**: Double-spend prevention via PaymentHub receipts
+- **Payment Validation**: Direct prepaid-credit settlement with on-contract accounting
 
 ## Architecture
 
@@ -38,7 +38,7 @@ Examples:
 
 | Range | Owner | Purpose |
 |-------|-------|---------|
-| 0x01-0x09 | MiniAppBase | Core (Admin, Gateway, PaymentHub, Pause, TimeLock) |
+| 0x01-0x09 | MiniAppBase | Core (Admin, Gateway, pause controls, TimeLock) |
 | 0x0A-0x0E | MiniAppBase | Optional (Automation, Badges, TotalUsers) |
 | 0x10-0x17 | MiniAppGameBase | Gaming (BetLimits, PlayerTracking, RequestData) |
 | 0x18-0x1B | MiniAppServiceBase | Service (RequestData) |
@@ -68,7 +68,7 @@ Core abstract base class providing essential functionality for ALL MiniApps.
 |--------|----------|---------|
 | 0x01 | PREFIX_ADMIN | Admin address |
 | 0x02 | PREFIX_GATEWAY | Oracle address |
-| 0x03 | PREFIX_PAYMENTHUB | PaymentHub address |
+| 0x03 | PREFIX_PAYMENTHUB | reserved legacy slot |
 | 0x04 | PREFIX_PAUSED | Local pause flag |
 | 0x05 | PREFIX_PAUSE_REGISTRY | Global pause registry |
 | 0x06 | PREFIX_RECEIPT_USED | Used receipt tracking |
@@ -94,7 +94,6 @@ SetTimeLockDelay(BigInteger delaySeconds) // Set delay (min 1 hour)
 **Configuration**
 ```csharp
 SetOracle(UInt160 gw)              // Set oracle address
-SetPaymentHub(UInt160 hub)          // Set payment hub
 SetPauseRegistry(UInt160 registry)  // Set global pause registry
 SetAutomationAnchor(UInt160 anchor) // Set automation anchor
 SetPaused(bool paused, string appId) // Toggle local pause
@@ -107,7 +106,6 @@ ValidateOracle()                    // Check oracle caller
 ValidateAddress(UInt160 addr)        // Validate address
 ValidateNotPaused()                  // Check local pause
 ValidateNotGloballyPaused(string appId) // Check global pause
-ValidatePaymentReceipt(...)          // Validate payment receipt
 ```
 
 **Badge System**
@@ -366,14 +364,14 @@ public class MiniAppMyApp : MiniAppBase
             Runtime.Transaction.Sender);
     }
 
-    public static void MyMethod(UInt160 user, BigInteger receiptId)
+    public static void MyMethod(UInt160 user)
     {
         UInt160 gateway = Oracle();
         bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
         ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(user), "unauthorized");
 
         ValidateNotGloballyPaused(APP_ID);
-        ValidatePaymentReceipt(APP_ID, user, 100000000, receiptId);
+        ConsumeDirectGasCredit(user, 100000000);
         // Business logic
     }
 }
@@ -387,14 +385,14 @@ public class MiniAppMyGame : MiniAppGameBase
     private const string APP_ID = "miniapp-mygame";
 
     public static BigInteger PlaceBet(UInt160 player, BigInteger amount,
-                                       bool choice, BigInteger receiptId)
+                                       bool choice)
     {
         UInt160 gateway = Oracle();
         bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
         ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(player), "unauthorized");
 
         ValidateNotGloballyPaused(APP_ID);
-        ValidatePaymentReceipt(APP_ID, player, amount, receiptId);
+        ConsumeDirectGasCredit(player, amount);
         ValidateBetLimits(player, amount);
 
         // Store bet and request RNG
@@ -460,7 +458,7 @@ public class MiniAppMyService : MiniAppServiceBase
 |------|-------------|--------|
 | Admin | Human operator | TimeLock-protected control |
 | Gateway | TEE-attested service | Required for service callbacks; optional for user flows |
-| Users | End users | Pay via PaymentHub; may call directly when CheckWitness is allowed |
+| Users | End users | Prepay directly to the contract; may call directly when CheckWitness is allowed |
 
 ### Security Features
 
@@ -506,7 +504,7 @@ MiniApp DevPack v3.0.0 是 Neo N3 MiniApp 开发框架，提供基于继承的�
 - **下注限制**: 游戏合约的反马丁格尔保护
 - **服务集成**: RNG、价格预言机、加密服务
 - **自动化支持**: 通过 AutomationAnchor 执行周期性任务
-- **支付验证**: 通过 PaymentHub 收据防止双花
+- **支付验证**: 通过合约内预付额度与状态检查避免重复结算
 
 ### 继承层次
 

@@ -25,17 +25,13 @@ Usage tracking:
 
 Morpheus routing env vars (required by functions that proxy to runtime services):
 
-- preferred unified routing:
+- unified runtime routing:
   - `MORPHEUS_RUNTIME_URL`
   - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
   - `MORPHEUS_PUBLIC_API_URL`
   - `MORPHEUS_EDGE_URL`
   - `MORPHEUS_CONTROL_PLANE_URL`
-- legacy compatibility:
-  - `NEOFEEDS_URL`
-  - `NEOCOMPUTE_URL`
-  - `NEOVRF_URL`
-  - `NEOORACLE_URL`
+- auxiliary services when explicitly used:
   - `NEOFLOW_URL`
   - `TXPROXY_URL`
 

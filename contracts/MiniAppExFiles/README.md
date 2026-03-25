@@ -44,7 +44,7 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 
 当前支付模式：
 
-- 合约不再依赖 PaymentHub
+- 合约使用直接预付 GAS 模式
 - 用户先向合约预付 GAS，再调用业务方法消费预付余额
 
 ## English
@@ -87,7 +87,7 @@ public static BigInteger CreateRecord(UInt160 creator, ByteString dataHash, BigI
 
 Current payment model:
 
-- the contract no longer depends on PaymentHub
+- the contract uses direct prepaid GAS
 - users prepay GAS to the contract and business methods consume prepaid balance
 
 ## Technical

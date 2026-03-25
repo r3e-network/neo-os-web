@@ -468,7 +468,7 @@ Sprint 1 完成后，继续执行 Sprint 2: TEE Security Foundation
 ## 参考文档
 
 - [Architecture Overview](../../docs/ARCHITECTURE.md)
-- [Deployment Guide](../../docs/DEPLOYMENT_GUIDE.md)
+- [Repository README](../../README.md)
 - [cert-manager README](cert-manager/README.md)
 - [ArgoCD README](argocd/README.md)
 - [NATS README](nats/README.md)

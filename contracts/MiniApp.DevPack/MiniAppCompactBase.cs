@@ -18,7 +18,7 @@ namespace NeoMiniAppPlatform.Contracts
     {
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         protected static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
-        protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
+        protected static readonly byte[] PREFIX_RESERVED_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
         protected static readonly byte[] PREFIX_GATEWAY = new byte[] { 0x06 };
@@ -36,9 +36,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         [Safe]
         public static UInt160 Oracle() => ReadHash(PREFIX_ORACLE);
-
-        [Safe]
-        public static UInt160 PaymentHub() => ReadHash(PREFIX_PAYMENTHUB);
 
         [Safe]
         public static UInt160 PauseRegistry() => ReadHash(PREFIX_PAUSE_REGISTRY);
@@ -89,13 +86,6 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ValidateAddress(oracle);
             Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
-        }
-
-        public static void SetPaymentHub(UInt160 hub)
-        {
-            ValidateAdmin();
-            ValidateAddress(hub);
-            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, hub);
         }
 
         public static void SetPauseRegistry(UInt160 registry)

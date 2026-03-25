@@ -12,7 +12,7 @@ Neo smart contracts don't support abstract class inheritance, so we use **partia
 │  (Shared partial class with common functionality)            │
 ├─────────────────────────────────────────────────────────────┤
 │  • Standard Storage Prefixes (0x01-0x05)                    │
-│  • Standard Getters (Admin, Gateway, PaymentHub, etc.)      │
+│  • Standard Getters (Admin, Gateway, pause controls, etc.)  │
 │  • Validation Methods (ValidateAdmin, ValidateGateway)      │
 │  • Admin Management (SetAdmin, SetOracle, SetPaused, etc.) │
 │  • Global Pause Check (ValidateNotGloballyPaused)           │
@@ -50,7 +50,6 @@ Core shared functionality for all MiniApp contracts. Includes:
 - **Standard Getters**:
   - `Admin()` - Get admin address
   - `Oracle()` - Get oracle address
-  - `PaymentHub()` - Get payment hub address
   - `PauseRegistry()` - Get pause registry address
   - `IsPaused()` - Check local pause state
 
@@ -64,7 +63,6 @@ Core shared functionality for all MiniApp contracts. Includes:
 - **Admin Management**:
   - `SetAdmin(newAdmin)`
   - `SetOracle(gw)`
-  - `SetPaymentHub(hub)`
   - `SetPauseRegistry(registry)`
   - `SetPaused(paused)`
   - `Update(nef, manifest)`

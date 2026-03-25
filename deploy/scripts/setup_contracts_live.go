@@ -111,7 +111,7 @@ func main() {
 		time.Sleep(2 * time.Second)
 	}
 
-	fmt.Println("\nSkipping PaymentHub app configuration: flagship live flows no longer depend on PaymentHub.")
+	fmt.Println("\nFlagship live flows do not require extra platform payment configuration.")
 }
 
 func parseContractHash(hashStr string) (util.Uint160, error) {

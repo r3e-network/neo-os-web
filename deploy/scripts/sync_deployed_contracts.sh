@@ -92,7 +92,6 @@ if ! jq -e . "$DEPLOYED_FILE" >/dev/null 2>&1; then
 fi
 
 PLATFORM_CONTRACTS=(
-  "PaymentHub"
   "Governance"
   "PriceFeed"
   "RandomnessLog"

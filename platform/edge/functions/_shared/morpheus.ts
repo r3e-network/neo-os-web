@@ -14,11 +14,7 @@ type UpstreamTarget = {
 };
 
 function resolveRuntimeUrl() {
-  return normalizeUrl(
-    getEnv("MORPHEUS_RUNTIME_URL")
-    || getEnv("PHALA_API_URL")
-    || "",
-  );
+  return normalizeUrl(getEnv("MORPHEUS_RUNTIME_URL") || "");
 }
 
 export function resolveMorpheusRuntimeToken() {
@@ -31,9 +27,6 @@ export function resolveMorpheusRuntimeToken() {
 }
 
 export function resolveOracleQueryUpstream(): UpstreamTarget {
-  const legacy = normalizeUrl(getEnv("NEOORACLE_URL") || getEnv("NEOORACLE_SERVICE_URL") || "");
-  if (legacy) return { url: `${legacy}/query` };
-
   const runtime = resolveRuntimeUrl();
   if (runtime) {
     return {
@@ -42,13 +35,10 @@ export function resolveOracleQueryUpstream(): UpstreamTarget {
     };
   }
 
-  throw new Error("missing required env var: NEOORACLE_URL or MORPHEUS_RUNTIME_URL");
+  throw new Error("missing required env var: MORPHEUS_RUNTIME_URL");
 }
 
 export function resolveComputeExecuteUpstream(): UpstreamTarget {
-  const legacy = normalizeUrl(getEnv("NEOCOMPUTE_URL") || getEnv("NEOCOMPUTE_SERVICE_URL") || "");
-  if (legacy) return { url: `${legacy}/execute` };
-
   const runtime = resolveRuntimeUrl();
   if (runtime) {
     return {
@@ -57,13 +47,10 @@ export function resolveComputeExecuteUpstream(): UpstreamTarget {
     };
   }
 
-  throw new Error("missing required env var: NEOCOMPUTE_URL or MORPHEUS_RUNTIME_URL");
+  throw new Error("missing required env var: MORPHEUS_RUNTIME_URL");
 }
 
 export function resolveDatafeedPriceUpstream(symbol: string): UpstreamTarget {
-  const legacy = normalizeUrl(getEnv("NEOFEEDS_URL") || getEnv("NEOFEEDS_SERVICE_URL") || "");
-  if (legacy) return { url: `${legacy}/price/${encodeURIComponent(symbol)}` };
-
   const runtime = resolveRuntimeUrl();
   if (runtime) {
     return {
@@ -72,13 +59,10 @@ export function resolveDatafeedPriceUpstream(symbol: string): UpstreamTarget {
     };
   }
 
-  throw new Error("missing required env var: NEOFEEDS_URL or MORPHEUS_RUNTIME_URL");
+  throw new Error("missing required env var: MORPHEUS_RUNTIME_URL");
 }
 
 export function resolveVrfRandomUpstream(): UpstreamTarget {
-  const legacy = normalizeUrl(getEnv("NEOVRF_URL") || getEnv("NEOVRF_SERVICE_URL") || "");
-  if (legacy) return { url: `${legacy}/random` };
-
   const runtime = resolveRuntimeUrl();
   if (runtime) {
     return {
@@ -87,5 +71,5 @@ export function resolveVrfRandomUpstream(): UpstreamTarget {
     };
   }
 
-  throw new Error("missing required env var: NEOVRF_URL or MORPHEUS_RUNTIME_URL");
+  throw new Error("missing required env var: MORPHEUS_RUNTIME_URL");
 }

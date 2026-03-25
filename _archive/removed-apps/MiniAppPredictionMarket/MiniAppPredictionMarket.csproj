@@ -1,6 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <Compile Include="../MiniAppBase/MiniAppBase.Core.cs" />
-    <Compile Include="../MiniAppBase/MiniAppTemplate.cs" />
-  </ItemGroup>
-</Project>
