@@ -22,7 +22,7 @@ bash "$SCRIPT_DIR/verify_cross_repo_testnet.sh"
 
 echo ""
 echo "=== Flagship Miniapp Live User Flows ==="
-node "$SCRIPT_DIR/live_validate_flagship_user_flows.js"
+bash -lc "set -a; [ -f \"$REPO_ROOT/.env\" ] && . \"$REPO_ROOT/.env\"; set +a; node \"$SCRIPT_DIR/live_validate_flagship_user_flows.js\""
 
 echo ""
 echo "Full-stack testnet validation completed successfully."
