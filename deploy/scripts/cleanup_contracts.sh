@@ -12,7 +12,6 @@ KEEP=(
   "MiniAppFactoryV2"
   "MiniAppTemplates"
   "PauseRegistry"
-  "PaymentHub"
   "PriceFeed"
   "RandomnessLog"
   "MiniAppFogPlay"

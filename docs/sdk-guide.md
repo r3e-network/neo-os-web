@@ -280,9 +280,6 @@ The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
 | Gaming     | `miniapp-nft-evolve`        | Dynamic NFT evolution                |
 # Note
 
-This SDK guide still shows older PaymentHub-only payment diagrams in some
-sections.
-
 The current flagship direction is:
 
 - direct contract transfers when the MiniApp business flow allows it

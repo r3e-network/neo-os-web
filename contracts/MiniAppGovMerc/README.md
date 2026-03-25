@@ -28,7 +28,7 @@
 
 - canonical app id: `miniapp-gov-merc`
 - the frontend should transfer GAS to the contract before calling `PlaceBid`
-- no PaymentHub receipt is required in the live path
+- the live path uses direct prepaid GAS into the contract
 - AA session keys can drive bidding and reward-claim UX, but the contract logic itself remains direct
 
 ## Epoch Model

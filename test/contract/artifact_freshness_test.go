@@ -12,13 +12,13 @@ import (
 func TestContractArtifactsNeedBuild(t *testing.T) {
 	baseTime := time.Date(2026, time.March, 6, 10, 0, 0, 0, time.UTC)
 
-	t.Run("uses alias artifact when present and fresh", func(t *testing.T) {
+	t.Run("uses artifact when present and fresh", func(t *testing.T) {
 		contractsRoot := t.TempDir()
-		writeFileWithTime(t, filepath.Join(contractsRoot, "PaymentHub", "PaymentHub.cs"), baseTime)
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.nef"), baseTime.Add(time.Minute))
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.manifest.json"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "Governance", "Governance.cs"), baseTime)
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.nef"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.manifest.json"), baseTime.Add(time.Minute))
 
-		needsBuild, err := contractArtifactsNeedBuild(contractsRoot, "PaymentHub")
+		needsBuild, err := contractArtifactsNeedBuild(contractsRoot, "Governance")
 		require.NoError(t, err)
 		require.False(t, needsBuild)
 	})
@@ -26,8 +26,8 @@ func TestContractArtifactsNeedBuild(t *testing.T) {
 	t.Run("builds when requested artifact is missing", func(t *testing.T) {
 		contractsRoot := t.TempDir()
 		writeFileWithTime(t, filepath.Join(contractsRoot, "MiniAppTemplates", "Template.Lottery.cs"), baseTime)
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.nef"), baseTime.Add(time.Minute))
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.manifest.json"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.nef"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.manifest.json"), baseTime.Add(time.Minute))
 
 		needsBuild, err := contractArtifactsNeedBuild(contractsRoot, "MiniAppTemplate.Lottery")
 		require.NoError(t, err)
@@ -60,12 +60,12 @@ func TestContractArtifactsNeedBuild(t *testing.T) {
 
 	t.Run("ignores newer changes in unrelated contract projects", func(t *testing.T) {
 		contractsRoot := t.TempDir()
-		writeFileWithTime(t, filepath.Join(contractsRoot, "PaymentHub", "PaymentHub.cs"), baseTime)
+		writeFileWithTime(t, filepath.Join(contractsRoot, "Governance", "Governance.cs"), baseTime)
 		writeFileWithTime(t, filepath.Join(contractsRoot, "MiniAppTemplates", "MiniAppTemplate.Base.cs"), baseTime.Add(5*time.Minute))
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.nef"), baseTime.Add(time.Minute))
-		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "PaymentHubV2.manifest.json"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.nef"), baseTime.Add(time.Minute))
+		writeFileWithTime(t, filepath.Join(contractsRoot, "build", "Governance.manifest.json"), baseTime.Add(time.Minute))
 
-		needsBuild, err := contractArtifactsNeedBuild(contractsRoot, "PaymentHub")
+		needsBuild, err := contractArtifactsNeedBuild(contractsRoot, "Governance")
 		require.NoError(t, err)
 		require.False(t, needsBuild)
 	})

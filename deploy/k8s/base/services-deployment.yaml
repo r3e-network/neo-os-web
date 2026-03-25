@@ -1543,11 +1543,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PAYMENTHUB_HASH
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: CONTRACT_PAYMENTHUB_HASH
         - name: CONTRACT_GOVERNANCE_HASH
           valueFrom:
             configMapKeyRef:
@@ -2135,11 +2130,6 @@ spec:
             configMapKeyRef:
               name: service-layer-config
               key: NEO_NETWORK_MAGIC
-        - name: CONTRACT_PAYMENTHUB_HASH
-          valueFrom:
-            configMapKeyRef:
-              name: service-layer-config
-              key: CONTRACT_PAYMENTHUB_HASH
         - name: CONTRACT_PRICEFEED_HASH
           valueFrom:
             configMapKeyRef:

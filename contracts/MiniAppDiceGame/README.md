@@ -54,10 +54,6 @@ Executes a dice roll for the player.
 
 Sets the Morpheus Oracle address. Only admin can call.
 
-#### `SetPaymentHub(UInt160 hub)`
-
-Legacy compatibility hook inherited from the base contract. The live dice flow does not use PaymentHub.
-
 #### `SetPaused(bool paused)`
 
 Pauses or unpauses the contract. Only admin can call.
@@ -75,10 +71,6 @@ Returns the admin address.
 #### `Oracle() → UInt160`
 
 Returns the oracle address.
-
-#### `PaymentHub() → UInt160`
-
-Returns the legacy PaymentHub setting, which is unused by the live dice flow.
 
 #### `IsPaused() → bool`
 

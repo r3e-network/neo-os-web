@@ -42,7 +42,7 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus a small set of dormant compatibility artifacts kept outside the flagship path.
+- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus supporting non-flagship artifacts outside the flagship path.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
 
@@ -111,7 +111,7 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | Morpheus DataFeed | `pricefeed.morpheus.neo` | `0x03013f49c42a14546c8bbe58f9d434c3517fccab` |
 | NeoDID Registry | `neodid.morpheus.neo` | `0xb81f31ea81e279793b30411b82c2e82078b63105` |
 | AA canonical entrypoint | `smartwallet.neo` | `0x9742b4ed62a84a886f404d36149da6147528ee33` |
-| AA compatibility alias | `aa.morpheus.neo` | `0x9742b4ed62a84a886f404d36149da6147528ee33` |
+| AA additional alias | `aa.morpheus.neo` | `0x9742b4ed62a84a886f404d36149da6147528ee33` |
 | AA Web3Auth verifier | `web3auth.smartwallet.neo` | `0xb4107cb2cb4bace0ebe15bc4842890734abe133a` |
 | AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0xe82b9d056c011819ff3652427682224daad0cd1f` |
 | AA SocialRecovery verifier | `recovery.smartwallet.neo` | `0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3` |
@@ -119,6 +119,13 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 Entry domains for MiniApps are not limited to `.neo`. The host runtime now
 accepts canonical `https://...`, `mf://...`, and bare `*.matrix` / `*.neo`
 entry domains, normalizing bare domains to `https://...` before launch.
+
+Current published Morpheus attestation anchors:
+
+- Oracle runtime CVM: `oracle-morpheus-neo-r3e` / `ddff154546fe22d15b65667156dd4b7c611e6093`
+- Oracle attestation explorer: `https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093`
+- DataFeed CVM: `datafeed-morpheus-neo-r3e` / `28294e89d490924b79c85cdee057ce55723b3d56`
+- DataFeed attestation explorer: `https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56`
 
 ### Testnet
 
@@ -185,8 +192,10 @@ Current featured flagship 7:
 | NeoPay | `miniapp-neo-pay` | prepaid asset credit recurring streams |
 | GASBOX | `miniapp-gasbox` | prepaid GAS hybrid gacha settlement |
 
-For current verified testnet behavior of these flagship apps, see
-[`docs/reports/2026-03-16-flagship-live-user-flows.md`](docs/reports/2026-03-16-flagship-live-user-flows.md).
+Current verified testnet behavior is now validated directly through:
+
+- `deploy/scripts/live_validate_flagship_user_flows.js`
+- `deploy/scripts/verify_cross_repo_testnet.sh`
 
 Current AA / Oracle operator tools surfaced directly on the host home page:
 
@@ -240,35 +249,22 @@ Use these commands to verify readiness and live testnet workflows:
 ```bash
 set -a; source .env; set +a
 
-# Nitro attestation + production-readiness checks
-./deploy/scripts/check_enclave_signing_key.sh --backend nitro
-./deploy/scripts/production_readiness_check.sh
-
 # Current flagship live testnet validation (7 flagship MiniApps)
 FLAGSHIP_LIVE_WIF=<funded-testnet-wif> \
   node deploy/scripts/live_validate_flagship_user_flows.js
-
-# Legacy platform-native governance / pricefeed verification
-./deploy/scripts/verify_testnet_workflows.sh --env-file .env
 
 # Cross-repo preferred path verification
 AA_TEST_WIF=<funded-aa-testnet-wif-that-controls-PAYMASTER_ACCOUNT_ID> \
   ./deploy/scripts/verify_cross_repo_testnet.sh
 
-# PriceFeed freshness for current required symbols
-env PRICEFEED_WATCH_SYMBOLS='NEO-USD,GAS-USD,USDT-USD,USDC-USD,BTC-USD,ETH-USD,XRP-USD,BNB-USD,SOL-USD,TRX-USD,DOGE-USD,XAU-USD,XAG-USD,NVDA-USD,AAPL-USD,GOOGL-USD,MSFT-USD,META-USD,TSM-USD,TSLA-USD,TCEHY-USD' \
-  PRICEFEED_WATCH_MAX_STALENESS='24h' \
-  go run -tags=scripts deploy/scripts/check_pricefeed_freshness.go
 ```
 
 Notes:
 
 - `live_validate_flagship_user_flows.js` is the current end-to-end flagship testnet proof path.
 - `verify_cross_repo_testnet.sh` is the preferred validation entrypoint.
-- `verify_testnet_workflows.sh` is legacy / platform-native only and no longer covers MiniApp payment routing.
 - `verify_cross_repo_testnet.sh` expects `AA_TEST_WIF` to control the configured `PAYMASTER_ACCOUNT_ID` for the stable allowlisted paymaster path.
 - The current stable default `PAYMASTER_ACCOUNT_ID` used by `verify_cross_repo_testnet.sh` is `0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56`.
-- Mainnet flagship alignment and post-update validation are recorded in `docs/reports/2026-03-18-mainnet-flagship-alignment.md`.
 
 ## Environment Variables
 
@@ -286,7 +282,6 @@ Notes:
 | `MORPHEUS_PUBLIC_API_URL` | Morpheus web/public API URL |
 | `MORPHEUS_EDGE_URL` | Morpheus edge URL |
 | `MORPHEUS_CONTROL_PLANE_URL` | Morpheus control-plane URL |
-| `NEOFEEDS_URL` / `NEOORACLE_URL` / `NEOVRF_URL` / `NEOCOMPUTE_URL` | legacy split-service compatibility only |
 | `TXPROXY_URL` | external txproxy URL |
 | `AA_RELAY_URL` | external AA relay URL used by `/api/aa/relay` |
 | `AA_PAYMASTER_ENDPOINT` or `MORPHEUS_PAYMASTER_*` | paymaster authorization endpoint |
@@ -300,17 +295,7 @@ See [`.env.example`](.env.example) for complete list.
 ├── contracts/              # Neo N3 smart contracts (C#)
 ├── platform/               # Host app, admin console, SDK, shared UI/runtime
 ├── apps/                   # MiniApp frontends
-├── docs/                   # Platform docs and runbooks
-├── _archive/               # Legacy service-layer Go code kept only for reference
-│   ├── vrf/                # Verifiable random function
-│   ├── datafeed/           # Price feed aggregation
-│   ├── automation/         # Task scheduling
-│   └── ...
-├── platform/               # Frontend & Gateway
-│   ├── edge/               # Supabase Edge functions
-│   ├── host-app/           # Next.js host application
-│   └── sdk/                # MiniApp JavaScript SDK
-├── docs/                   # Documentation
+├── docs/                   # Current platform docs and runbooks
 └── scripts/                # Build and deploy scripts
 ```
 
@@ -318,12 +303,12 @@ See [`.env.example`](.env.example) for complete list.
 
 | Document                                          | Description                          |
 | ------------------------------------------------- | ------------------------------------ |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)           | System architecture and TEE boundary |
-| [WORKFLOWS.md](docs/WORKFLOWS.md)                 | MiniApp lifecycle and callbacks      |
-| [DATAFLOWS.md](docs/DATAFLOWS.md)                 | Request flows and audit tables       |
-| [API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md) | Gateway and service APIs             |
-| [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)   | Deployment paths                     |
-| [sdk-guide.md](docs/sdk-guide.md)                 | MiniApp SDK integration              |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)             | Current platform architecture          |
+| [WORKFLOWS.md](docs/WORKFLOWS.md)                   | MiniApp lifecycle and callback flows  |
+| [LOCAL_DEV.md](docs/LOCAL_DEV.md)                   | Current local development path        |
+| [FRONTEND_SPECIFICATION.md](docs/FRONTEND_SPECIFICATION.md) | Host/frontend behavior          |
+| [MINIAPP_ENV_TEMPLATE.md](docs/MINIAPP_ENV_TEMPLATE.md)     | Current environment template   |
+| [sdk-guide.md](docs/sdk-guide.md)                   | MiniApp SDK integration               |
 
 ## License
 

@@ -6,8 +6,6 @@ describe("morpheus endpoint resolvers", () => {
     process.env = { ...originalEnv };
     delete process.env.MORPHEUS_TESTNET_RUNTIME_URL;
     delete process.env.MORPHEUS_RUNTIME_URL;
-    delete process.env.MORPHEUS_TESTNET_PHALA_API_URL;
-    delete process.env.PHALA_API_URL;
     delete process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN;
     delete process.env.MORPHEUS_RUNTIME_TOKEN;
     delete process.env.MORPHEUS_TESTNET_PHALA_API_TOKEN;
@@ -35,8 +33,7 @@ describe("morpheus endpoint resolvers", () => {
     ]);
   });
 
-  it("falls back to PHALA env keys and token aliases", () => {
-    process.env.PHALA_API_URL = "https://legacy-runtime.example/";
+  it("falls back to runtime token aliases when runtime URL is already resolved", () => {
     process.env.PHALA_SHARED_SECRET = "shared-secret";
 
     const {
@@ -44,7 +41,7 @@ describe("morpheus endpoint resolvers", () => {
       resolveMorpheusRuntimeToken,
     } = require("../../lib/morpheus-endpoints");
 
-    expect(resolveMorpheusRuntimeCandidates("mainnet")[0]).toBe("https://legacy-runtime.example");
+    expect(resolveMorpheusRuntimeCandidates("mainnet")[0]).toBe("https://oracle.meshmini.app/mainnet");
     expect(resolveMorpheusRuntimeToken("mainnet")).toBe("shared-secret");
   });
 

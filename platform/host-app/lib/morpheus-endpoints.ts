@@ -33,8 +33,6 @@ export function resolveMorpheusRuntimeCandidates(networkInput?: string | null) {
   const config = getExternalIntegrationConfig(network);
   return uniqueUrls([
     ...resolveEnvSequence(network, "RUNTIME_URL"),
-    ...resolveEnvSequence(network, "PHALA_API_URL"),
-    process.env.PHALA_API_URL,
     ...config.morpheusRuntimeUrls,
     config.morpheusRuntimeUrl,
   ]);
@@ -61,4 +59,3 @@ export function resolveMorpheusPublicApiCandidates(networkInput?: string | null)
     config.morpheusPublicApiUrl,
   ]);
 }
-

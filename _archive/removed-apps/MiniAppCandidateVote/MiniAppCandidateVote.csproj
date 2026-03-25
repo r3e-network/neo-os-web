@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-<ItemGroup>
-    <Compile Remove="MiniAppCandidateVote.Badge.cs" />
-    <Compile Remove="MiniAppCandidateVote.Hybrid.cs" />
-    <Compile Remove="MiniAppCandidateVote.Internal.cs" />
-    <Compile Remove="MiniAppCandidateVote.Methods.cs" />
-    <Compile Remove="MiniAppCandidateVote.Query.cs" />
-  </ItemGroup>
-</Project>
