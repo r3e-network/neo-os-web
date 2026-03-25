@@ -47,6 +47,12 @@ const WIF =
   process.env.FLAGSHIP_TESTNET_WIF ||
   process.env.NEO_TESTNET_WIF ||
   "";
+const ADMIN_WIF =
+  process.env.TEST_SMOKE_ADMIN_WIF ||
+  process.env.MINIAPP_UPDATE_WIF ||
+  process.env.DEPLOYER_WIF ||
+  process.env.FLAGSHIP_LIVE_WIF ||
+  "";
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHash).trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -173,6 +179,7 @@ if (!WIF) {
 }
 
 let account;
+let adminAccount;
 let oracleUpdaterAccount;
 let rpcClient;
 let gasContract;
@@ -186,6 +193,7 @@ async function initNeon() {
   if (Neon) return;
   Neon = (await import("./lib/neon-compat.mjs")).default;
   account = new Neon.wallet.Account(WIF);
+  adminAccount = ADMIN_WIF ? new Neon.wallet.Account(ADMIN_WIF) : account;
   oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
   rpcClient = new Neon.rpc.RPCClient(RPC_URL);
   gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
@@ -594,9 +602,14 @@ async function runLastSurvivor() {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+  const adminContract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account: adminAccount || account,
+  });
 
   const startRound = async () => {
-    const tx = await contract.invoke("startNewRound", []);
+    const tx = await adminContract.invoke("startNewRound", []);
     const { execution } = await waitForLog(tx);
     if (execution.vmstate !== "HALT") {
       throw new Error(execution.exception || "startNewRound failed");
@@ -638,6 +651,13 @@ async function runLastSurvivor() {
   let roundId = String(status.roundId || "0");
   let startTx = "";
   if (status.active !== true) {
+    const adminHash = String(await invokeRead(contractHash, "admin") || "").toLowerCase();
+    const signerHash = `0x${String((adminAccount || account).scriptHash || "").toLowerCase()}`;
+    if (adminHash && adminHash !== signerHash.toLowerCase()) {
+      throw new Error(
+        `lastSurvivor round inactive and admin signer mismatch (admin ${adminHash}, signer ${signerHash})`
+      );
+    }
     const started = await startRound();
     roundId = started.roundId;
     startTx = started.txid;
