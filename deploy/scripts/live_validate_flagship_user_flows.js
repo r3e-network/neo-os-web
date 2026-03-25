@@ -50,6 +50,8 @@ const WIF =
 const ADMIN_WIF =
   process.env.TEST_SMOKE_ADMIN_WIF ||
   process.env.MINIAPP_UPDATE_WIF ||
+  process.env.TEE_WIF ||
+  process.env.TEE_PRIVATE_KEY ||
   process.env.DEPLOYER_WIF ||
   process.env.FLAGSHIP_LIVE_WIF ||
   "";
