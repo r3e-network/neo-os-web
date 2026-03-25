@@ -453,6 +453,50 @@ async function topUpOracleCallbackCredit(callbackContractHash) {
   return asTxid(txid);
 }
 
+async function assertOracleCallbackReady(contractHash) {
+  const configuredOracle = String(await invokeRead(contractHash, "oracle") || "").toLowerCase();
+  const expectedOracle = String(ORACLE_HASH || "").toLowerCase();
+  if (configuredOracle !== expectedOracle) {
+    throw new Error(
+      `oracle mismatch for ${contractHash}: expected ${expectedOracle}, got ${configuredOracle || "unset"}`
+    );
+  }
+
+  const callbackAllowed = Boolean(
+    await invokeRead(ORACLE_HASH, "isAllowedCallback", [{ type: "Hash160", value: contractHash }])
+  );
+  if (!callbackAllowed) {
+    throw new Error(`callback contract ${contractHash} is not allowlisted in oracle`);
+  }
+}
+
+async function assertGasBoxHybridScriptReady(contractHash) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    try {
+      const scriptInfo = await invokeRead(contractHash, "getScriptInfo", [
+        { type: "String", value: "select-item" },
+      ]);
+      if (!scriptInfo || scriptInfo.exists !== true) {
+        throw new Error("gasBox select-item hybrid script is not registered");
+      }
+      if (scriptInfo.enabled !== true) {
+        throw new Error("gasBox select-item hybrid script is disabled");
+      }
+      return scriptInfo;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      lastError = message;
+      if (!/aborted/i.test(message) || attempt === 4) {
+        break;
+      }
+      console.warn(`[gasBox scriptInfo] transient read failure, retrying (${attempt}/4): ${message}`);
+      await sleep(1500 * attempt);
+    }
+  }
+  throw new Error(lastError || "failed to read gasBox script info");
+}
+
 async function findPlayableGasBoxMachine(contractHash) {
   const total = Number(await invokeRead(contractHash, "totalMachines"));
   for (let machineId = 1; machineId <= total; machineId += 1) {
@@ -545,6 +589,7 @@ async function provisionGasBoxMachine(contractHash) {
 
 async function runGasBox() {
   const contractHash = appHash("apps/gasbox/neo-manifest.json");
+  const scriptInfo = await assertGasBoxHybridScriptReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -604,6 +649,7 @@ async function runGasBox() {
   const play = await invokeRead(contractHash, "getPlay", [{ type: "Integer", value: String(playId) }]);
   return {
     contractHash,
+    scriptInfo,
     machineId,
     provisioned,
     transferTx,
@@ -617,6 +663,17 @@ async function runGasBox() {
 
 async function runDailyCheckin() {
   const contractHash = appHash("apps/daily-checkin/neo-manifest.json");
+  const status = await invokeRead(contractHash, "getCheckinStatus", [
+    { type: "Hash160", value: `0x${account.scriptHash}` },
+  ]);
+  if (status && status.canCheckin === false) {
+    return {
+      contractHash,
+      skipped: true,
+      reason: "already checked in today",
+      status,
+    };
+  }
   const txid = await transferGAS(contractHash, DAILY_CHECKIN_FEE, "miniapp-dailycheckin:checkin");
   const { execution } = await waitForLog(txid);
   const checkedIn = findNotification(execution, contractHash, "CheckedIn");
@@ -725,6 +782,7 @@ async function runLastSurvivor() {
 
 async function runFogPlay() {
   const contractHash = appHash("apps/fogplay/neo-manifest.json");
+  await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -758,6 +816,7 @@ async function runFogPlay() {
 
 async function runRedEnvelope() {
   const contractHash = appHash("apps/red-envelope/neo-manifest.json");
+  await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
