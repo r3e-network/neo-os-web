@@ -6,8 +6,8 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start -p 3002",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test": "bash -lc 'NODE_BIN=${NODE_BIN:-$(command -v node)}; if [ -x /opt/homebrew/bin/node ]; then NODE_BIN=/opt/homebrew/bin/node; fi; exec \"$NODE_BIN\" ../../node_modules/vitest/vitest.mjs'",
+    "test:coverage": "bash -lc 'NODE_BIN=${NODE_BIN:-$(command -v node)}; if [ -x /opt/homebrew/bin/node ]; then NODE_BIN=/opt/homebrew/bin/node; fi; exec \"$NODE_BIN\" ../../node_modules/vitest/vitest.mjs run --coverage'",
     "typegen": "next typegen",
     "typecheck": "node -e \"const fs=require('fs'); fs.rmSync('.next/types',{recursive:true,force:true}); fs.rmSync('tsconfig.tsbuildinfo',{force:true});\" && next typegen && tsc --noEmit --incremental false"
   },
