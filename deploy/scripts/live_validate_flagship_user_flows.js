@@ -402,6 +402,35 @@ async function waitForEnvelopeReady(contractHash, envelopeId, timeoutMs = 120000
   throw new Error(`timed out waiting for envelope ${envelopeId} to become ready`);
 }
 
+async function invokeWithPendingRequestRetry(
+  contract,
+  operation,
+  args,
+  {
+    retries = 6,
+    delayMs = 6000,
+  } = {}
+) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    const tx = await contract.invoke(operation, args);
+    const { execution } = await waitForLog(tx);
+    if (execution.vmstate === "HALT") {
+      return { txid: asTxid(tx), execution };
+    }
+
+    const message = String(execution.exception || `${operation} failed`);
+    lastError = message;
+    if (!message.includes("request_in_progress") || attempt === retries) {
+      throw new Error(message);
+    }
+    console.warn(`[${operation}] oracle request still in progress, retrying (${attempt}/${retries})...`);
+    await sleep(delayMs);
+  }
+
+  throw new Error(lastError || `${operation} failed`);
+}
+
 async function getOracleRequestFee() {
   const fee = await invokeRead(ORACLE_HASH, "requestFee");
   return String(fee || "1000000");
@@ -705,15 +734,11 @@ async function runFogPlay() {
   const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-fogplay:bet");
   await sleep(4000);
-  const betTx = await contract.invoke("placeBet", [
+  const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeBet", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(FOGPLAY_BET),
     Neon.sc.ContractParam.boolean(false),
   ]);
-  const { execution } = await waitForLog(betTx);
-  if (execution.vmstate !== "HALT") {
-    throw new Error(execution.exception || "placeBet failed");
-  }
 
   const betPlaced = findNotification(execution, contractHash, "BetPlaced");
   const oracleRequested = findNotification(execution, ORACLE_HASH, "OracleRequested");
@@ -742,16 +767,12 @@ async function runRedEnvelope() {
   const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, RED_ENVELOPE_TOTAL, "miniapp-redenvelope:create");
   await sleep(4000);
-  const createTx = await contract.invoke("createEnvelope", [
+  const { txid: createTx, execution } = await invokeWithPendingRequestRetry(contract, "createEnvelope", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(RED_ENVELOPE_TOTAL),
     Neon.sc.ContractParam.integer("2"),
     Neon.sc.ContractParam.integer("86400000"),
   ]);
-  const { execution } = await waitForLog(createTx);
-  if (execution.vmstate !== "HALT") {
-    throw new Error(execution.exception || "createEnvelope failed");
-  }
 
   const created = findNotification(execution, contractHash, "EnvelopeCreated");
   const oracleRequested = findNotification(execution, ORACLE_HASH, "OracleRequested");
@@ -784,7 +805,7 @@ async function runRedEnvelope() {
     contractHash,
     oracleFeeTx,
     transferTx,
-    createTx: asTxid(createTx),
+    createTx,
     requestId,
     envelopeId,
     request,
