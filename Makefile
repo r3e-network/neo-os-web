@@ -3,7 +3,7 @@
 # Frontend/admin apps + contracts + deployment helpers
 # =============================================================================
 
-.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full fairy-start fairy-stop export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro test-testnet-direct
+.PHONY: all build test test-race clean docker frontend deploy help contracts-build test-contracts test-fairy test-fairy-full export-miniapps export-supabase-functions check-git docker-smoke docker-smoke-nitro test-testnet-direct
 .PHONY: export-supabase-migrations supabase-start supabase-stop supabase-status supabase-cli-install
 .PHONY: edge-check edge-dev
 
@@ -64,16 +64,6 @@ test-e2e: ## Legacy Go service layer tests were moved to external repos
 test-testnet-direct: ## Run the preferred cross-repo direct Oracle / direct AA testnet validation
 	@echo "Running direct Oracle / direct AA cross-repo validation..."
 	bash ./deploy/scripts/verify_cross_repo_testnet.sh
-
-fairy-start: ## Start Neo Fairy (requires NEOROOT)
-	@if [ -z "$$NEOROOT" ]; then \
-		echo "NEOROOT is required (path to neo-node checkout)"; \
-		exit 1; \
-	fi
-	NEOROOT="$$NEOROOT" ./test/fairy/start-fairy.sh
-
-fairy-stop: ## Stop Neo Fairy
-	./test/fairy/stop-fairy.sh
 
 test-fairy: ## Legacy Go/Fairy tests were moved out with the service layer
 	@echo "Legacy Go/Fairy tests moved to the extracted service-layer repos."

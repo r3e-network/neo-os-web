@@ -158,7 +158,6 @@ deploy_contract() {
 # Deploy core contracts in order
 echo ""
 echo "=== Deploying Platform Contracts ==="
-deploy_contract "PaymentHub"
 deploy_contract "Governance"
 deploy_contract "PriceFeed"
 deploy_contract "RandomnessLog"

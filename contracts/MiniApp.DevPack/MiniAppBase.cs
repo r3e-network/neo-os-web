@@ -16,7 +16,6 @@ namespace NeoMiniAppPlatform.Contracts
     /// - Admin management with TimeLock security
     /// - Oracle / callback-authority validation
     /// - Pause mechanism (local + global)
-    /// - Payment receipt validation
     /// - Contract lifecycle (Update/Destroy)
     ///
     /// SECURITY MODEL:
@@ -33,7 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
     /// - MiniAppTimeLockBase → Time-locked operations
     ///
     /// STORAGE LAYOUT:
-    /// - 0x01-0x09: Core (Admin, Oracle, PaymentHub, Pause, TimeLock)
+    /// - 0x01-0x09: Core (Admin, Oracle, reserved, Pause, TimeLock)
     /// - 0x0A-0x0E: Optional core (Automation, Badges, TotalUsers)
     /// - 0x10-0x17: Game base (bet limits, player tracking, request data)
     /// - 0x18-0x1B: Service base (service request data)
@@ -52,10 +51,10 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         protected static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
-        protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
+        protected static readonly byte[] PREFIX_RESERVED_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
-        protected static readonly byte[] PREFIX_RECEIPT_USED = new byte[] { 0x06 };
+        protected static readonly byte[] PREFIX_RESERVED_PAYMENT_RECEIPT = new byte[] { 0x06 };
         // TimeLock storage (P0 security fix)
         protected static readonly byte[] PREFIX_PENDING_ADMIN = new byte[] { 0x07 };
         protected static readonly byte[] PREFIX_ADMIN_CHANGE_TIME = new byte[] { 0x08 };
@@ -133,14 +132,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static object[] RequireObjectArray(object? value, string errorMessage)
         {
-            object[] array = (object[])value;
-            if (array != null)
+            if (value == null)
             {
-                return array;
+                ExecutionEngine.Assert(false, errorMessage);
+                return new object[0];
             }
 
-            ExecutionEngine.Assert(false, errorMessage);
-            return new object[0];
+            return (object[])value;
         }
 
         #endregion
@@ -154,10 +152,6 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static UInt160 Oracle() =>
             GetStoredHashOrZero(PREFIX_ORACLE);
-
-        [Safe]
-        public static UInt160 PaymentHub() =>
-            GetStoredHashOrZero(PREFIX_PAYMENTHUB);
 
         [Safe]
         public static UInt160 PauseRegistry() =>
@@ -321,20 +315,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
-        #region Oracle & PaymentHub Management
+        #region Oracle Management
 
         public static void SetOracle(UInt160 oracle)
         {
             ValidateAdmin();
             ValidateAddress(oracle);
             Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, oracle);
-        }
-
-        public static void SetPaymentHub(UInt160 hub)
-        {
-            ValidateAdmin();
-            ValidateAddress(hub);
-            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, hub);
         }
 
         public static void SetPauseRegistry(UInt160 registry)
@@ -391,41 +378,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
-        #region Payment Receipt Validation
-
-        protected static void ValidatePaymentReceipt(
-            string appId, UInt160 payer, BigInteger minAmount, BigInteger receiptId)
-        {
-            ValidateAddress(payer);
-            ExecutionEngine.Assert(minAmount > 0, "amount must be > 0");
-            ExecutionEngine.Assert(receiptId > 0, "receiptId required");
-
-            UInt160 hub = PaymentHub();
-            ExecutionEngine.Assert(hub != UInt160.Zero && hub.IsValid, "payment hub not set");
-
-            StorageMap used = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT_USED);
-            ByteString receiptKey = (ByteString)receiptId.ToByteArray();
-            ExecutionEngine.Assert(used.Get(receiptKey) == null, "receipt already used");
-
-            object receiptObj = Contract.Call(hub, "getReceipt", CallFlags.ReadOnly, receiptId);
-            ExecutionEngine.Assert(receiptObj != null, "receipt not found");
-
-            object[] receipt = RequireObjectArray(receiptObj, "invalid receipt");
-            ExecutionEngine.Assert(receipt.Length >= 6, "invalid receipt");
-
-            string receiptAppId = (string)receipt[1];
-            UInt160 receiptPayer = (UInt160)receipt[2];
-            BigInteger receiptAmount = (BigInteger)receipt[3];
-
-            ExecutionEngine.Assert(receiptAppId == appId, "receipt app mismatch");
-            ExecutionEngine.Assert(receiptPayer == payer, "receipt payer mismatch");
-            ExecutionEngine.Assert(receiptAmount >= minAmount, "insufficient payment");
-
-            used.Put(receiptKey, 1);
-        }
-
-        #endregion
-
         #region Direct GAS Credit Flow
 
         protected static string ReadPaymentMemo(object data)
@@ -433,7 +385,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (data == null) return "";
             if (data is string text) return text ?? "";
             if (data is ByteString byteString) return (string)byteString;
-            return data.ToString();
+            return data.ToString() ?? "";
         }
 
         protected static void CreditDirectGasPayment(string appId, UInt160 from, BigInteger amount, object data)
@@ -447,7 +399,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
             ByteString key = (ByteString)(byte[])from;
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             credits.Put(key, balance + amount);
         }
@@ -455,7 +407,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static BigInteger GetDirectGasCredit(UInt160 payer)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
-            ByteString existing = credits.Get((ByteString)(byte[])payer);
+            ByteString? existing = credits.Get((ByteString)(byte[])payer);
             return existing == null ? 0 : (BigInteger)existing;
         }
 
@@ -466,7 +418,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
             ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             ExecutionEngine.Assert(balance >= amount, "insufficient prepaid gas");
 
@@ -496,7 +448,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
             ByteString key = GetDirectAssetCreditKey(expectedAsset, from);
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             credits.Put(key, balance + amount);
         }
@@ -504,7 +456,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static BigInteger GetDirectAssetCredit(UInt160 asset, UInt160 payer)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
-            ByteString existing = credits.Get(GetDirectAssetCreditKey(asset, payer));
+            ByteString? existing = credits.Get(GetDirectAssetCreditKey(asset, payer));
             return existing == null ? 0 : (BigInteger)existing;
         }
 
@@ -516,7 +468,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
             ByteString key = GetDirectAssetCreditKey(asset, payer);
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             ExecutionEngine.Assert(balance >= amount, "insufficient prepaid asset");
 

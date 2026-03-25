@@ -21,7 +21,6 @@ BUILD_DIR="contracts/build"
 
 # Platform contracts: name -> hash|nef_name
 declare -A PLATFORM=(
-    ["PaymentHub"]="0x0bb8f09e6d3611bc5c8adbd79ff8af1e34f73193|PaymentHubV2"
     ["Governance"]="0xc8f3bbe1c205c932aab00b28f7df99f9bc788a05|Governance"
     ["AppRegistry"]="0x79d16bee03122e992bb80c478ad4ed405f33bc7f|AppRegistry"
     ["AutomationAnchor"]="0x1c888d699ce76b0824028af310d90c3c18adeab5|AutomationAnchor"

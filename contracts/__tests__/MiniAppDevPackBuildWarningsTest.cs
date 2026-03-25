@@ -10,10 +10,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public class MiniAppDevPackBuildWarningsTest
     {
         [Fact]
-        public void GardenOfNeoBuildHasNoDevPackCompilerWarnings()
+        public void LastSurvivorBuildHasNoDevPackCompilerWarnings()
         {
             string repoRoot = ContractSourceAssertions.FindRepoRoot();
-            string projectPath = Path.Combine(repoRoot, "contracts", "MiniAppGardenOfNeo", "MiniAppGardenOfNeo.csproj");
+            string projectPath = Path.Combine(repoRoot, "contracts", "MiniAppLastSurvivor", "MiniAppLastSurvivor.csproj");
 
             var startInfo = new ProcessStartInfo("dotnet", $"build \"{projectPath}\" -v q -t:Rebuild")
             {

@@ -13,8 +13,8 @@ namespace NeoMiniAppPlatform.Contracts
     // MiniApp Contract Template
     // ============================================================================
     // Copy this template for new MiniApp contracts. It includes:
-    // - Standard storage prefixes (0x01-0x04 reserved for base functionality)
-    // - Admin/Oracle/PaymentHub management
+    // - Standard storage prefixes (0x01-0x05 reserved for base functionality)
+    // - Admin/Oracle management
     // - Pause functionality
     // - Update capability
     // - Service callback handler
@@ -36,7 +36,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
-        private static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_RESERVED_PAYMENTHUB = new byte[] { 0x03 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
 
@@ -63,7 +63,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
         public static UInt160 Oracle() => ReadAddress(PREFIX_ORACLE);
-        public static UInt160 PaymentHub() => ReadAddress(PREFIX_PAYMENTHUB);
         public static UInt160 PauseRegistry() => ReadAddress(PREFIX_PAUSE_REGISTRY);
 
         public static bool IsPaused()
@@ -136,13 +135,6 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateAdmin();
             ExecutionEngine.Assert(oracle != UInt160.Zero && oracle.IsValid, "invalid");
             Storage.Put(Storage.CurrentContext, PREFIX_ORACLE, (ByteString)oracle);
-        }
-
-        public static void SetPaymentHub(UInt160 hub)
-        {
-            ValidateAdmin();
-            ExecutionEngine.Assert(hub != UInt160.Zero && hub.IsValid, "invalid");
-            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, (ByteString)hub);
         }
 
         public static void SetPauseRegistry(UInt160 registry)

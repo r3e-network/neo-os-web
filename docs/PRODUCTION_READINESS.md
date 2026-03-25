@@ -55,7 +55,6 @@ Out-of-scope for this repo:
 
 ### Platform Contracts
 
-- `CONTRACT_PAYMENTHUB_HASH`
 - `CONTRACT_GOVERNANCE_HASH`
 - `CONTRACT_PRICEFEED_HASH`
 - `CONTRACT_RANDOMNESSLOG_HASH`
@@ -71,11 +70,6 @@ Out-of-scope for this repo:
 - `MORPHEUS_PUBLIC_API_URL`
 - `MORPHEUS_EDGE_URL`
 - `MORPHEUS_CONTROL_PLANE_URL`
-- legacy compatibility only:
-  - `NEOFEEDS_URL`
-  - `NEOORACLE_URL`
-  - `NEOVRF_URL`
-  - `NEOCOMPUTE_URL`
 - `TXPROXY_URL`
 - `GLOBALSIGNER_SERVICE_URL` when health checks should include signer availability
 - `AA_RELAY_URL` when host `/api/aa/relay` should be enabled
@@ -108,26 +102,18 @@ npm test
 cd platform/host-app && npm run build
 cd ../admin-console && npm run build
 
-# Platform workflow validations
-cd ../..
-bash deploy/scripts/verify_testnet_workflows.sh --env-file .env --skip-stats-rollup-check
-
 # Preferred direct Oracle / direct AA validation
+cd ../..
 AA_TEST_WIF=<funded-aa-testnet-wif> \
   bash deploy/scripts/verify_cross_repo_testnet.sh
 ```
 
 ## Interpretation Of Workflow Results
 
-`verify_testnet_workflows.sh` proves different things depending on the current
-external environment:
+Treat failures in `verify_cross_repo_testnet.sh` as either:
 
-- if request submission succeeds, the platform contracts, wallet wiring, and request payload construction are working
-- if callback fulfillment also succeeds, the external Morpheus worker / relayer path is live and correctly integrated
-- if callback waits time out, the unresolved area is usually the external Oracle worker / relayer environment, not the local MiniApp platform code
-
-Treat callback timeouts as an integration or environment gap until the external
-stack is confirmed healthy.
+- local platform wiring problems, if request construction or relay preparation fails early
+- external integration problems, if Oracle / AA callbacks time out after request submission
 
 ## Release Gate
 

@@ -15,7 +15,7 @@ Primary rule:
 
 1. **Build the MiniApp**
     - Create a bundle (Module Federation or iframe bundle).
-    - Author `manifest.json` following `docs/manifest-spec.md`.
+    - Author `manifest.json` following the current host schema and existing `apps/*/neo-manifest.json` examples.
 2. **Register or Update Manifest**
     - Call `app-register` or `app-update-manifest` (Supabase Edge).
     - Edge canonicalizes the manifest, enforces **GAS-only / bNEO-only**, and
@@ -110,7 +110,6 @@ This is the **correct business workflow** for MiniApps that involve payments
 
 1. **USER ACTION: SDK prepares the correct transfer**
     - direct prepaid apps return a transfer intent targeting the MiniApp contract
-    - hybrid direct-prepaid apps may still pass `receiptId=0` later for ABI compatibility
     - the wallet signs and broadcasts the transfer
 
 2. **USER ACTION: call the MiniApp contract**
@@ -152,7 +151,6 @@ Contract transfers prize and emits PlayResolved
 
 - users sign both value transfer and MiniApp contract calls when required
 - MiniApp contracts own app-specific state and settlement logic
-- some flagship contracts still keep a legacy `receiptId` argument for ABI stability even though the live funding path is direct prepaid GAS
 - Oracle callback apps may require separate prepaid fee credit for the callback contract
 
 ## Off-Chain (Gateway) Workflows
@@ -261,20 +259,8 @@ workflow on Neo N3 testnet.
         - `callback_contract` set to the deployed MiniApp contract hash.
         - `callback_method` set to `onServiceCallback`.
 3. **Register + Approve in AppRegistry**
-    - Register the manifest on-chain and approve it:
-        ```bash
-        # uses manifest from Supabase by default (set MINIAPP_APP_ID if needed)
-        go run scripts/register_miniapp_appregistry.go
-        ```
-    - Optional overrides:
-        ```bash
-        # use a local manifest file instead of Supabase
-        export MINIAPP_MANIFEST_PATH=miniapps/templates/react-starter/manifest.json
-        # override developer pubkey if needed
-        export MINIAPP_DEVELOPER_PUBKEY=03...
-        # use a separate admin key (optional)
-        export MINIAPP_ADMIN_WIF=Kx...
-        ```
+    - Use the current deployment/registration toolchain that writes directly from the active manifests and deployment registries.
+    - Do not use the removed legacy Supabase registration helpers from older service-layer workflows.
 4. **Trigger a direct service request**
     - Run:
         ```bash
@@ -298,7 +284,7 @@ workflow on Neo N3 testnet.
 5. **Verify the direct runtime result**
     - Check the Oracle / AA runtime output and chain receipt.
     - Query chain state or app-specific getters to confirm the effect.
-    - Review the generated validation report in `docs/reports/`.
+    - Review the direct validation script output and the resulting chain state.
 
 If the direct runtime result does not arrive, verify:
 
@@ -312,29 +298,14 @@ If the direct runtime result does not arrive, verify:
 Use the helper scripts to run:
 
 - direct Oracle / direct AA cross-repo validation
-- platform-native PaymentHub / Governance / PriceFeed validation
 
 ```bash
-./scripts/verify_testnet_workflows.sh --env-file .env --miniapp-hash 0x...
+./scripts/verify_cross_repo_testnet.sh
 ```
-
-By default, the workflow runs three pre-flight checks before sending any
-testnet transactions:
-
-- txproxy signer funding check
-- PriceFeed freshness watchdog
-- `miniapp_stats_rollup` compatibility check
-
-Optional skip flags:
-
-- `--skip-signer-funding`
-- `--skip-pricefeed-watchdog`
-- `--skip-stats-rollup-check`
 
 Required environment variables:
 
 - `NEO_TESTNET_WIF`
-- `CONTRACT_PAYMENTHUB_HASH`
 - `CONTRACT_GOVERNANCE_HASH`
 - `CONTRACT_SERVICEGATEWAY_HASH`
 - `CONTRACT_APPREGISTRY_HASH`
@@ -725,9 +696,7 @@ Response:
 ```
 # Note
 
-This workflow document includes older PaymentHub-first examples.
-
 For the current flagship path, treat direct contract transfers, direct
 Morpheus Oracle callbacks, and direct AA relay integration as canonical. Use
-`docs/ARCHITECTURE.md` plus the latest `docs/reports/` as the current source
-of truth.
+`docs/ARCHITECTURE.md`, `docs/FRONTEND_SPECIFICATION.md`, and `README.md` as the
+current source of truth.

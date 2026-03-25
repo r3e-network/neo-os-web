@@ -17,7 +17,6 @@ import (
 )
 
 var contracts = []string{
-	"PaymentHubV2",
 	"Governance",
 	"PriceFeed",
 	"RandomnessLog",

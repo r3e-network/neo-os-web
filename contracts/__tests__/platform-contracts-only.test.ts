@@ -8,7 +8,6 @@ const requiredPlatformContracts = new Set([
   "Governance",
   "OracleService",
   "PauseRegistry",
-  "PaymentHub",
   "PriceFeed",
   "RandomnessLog",
 ]);

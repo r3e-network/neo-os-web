@@ -96,9 +96,6 @@ To validate the platform against current testnet contracts:
 cd /Users/jinghuiliao/git/neo-miniapps-platform
 AA_TEST_WIF=<funded-aa-testnet-wif> \
 bash deploy/scripts/verify_cross_repo_testnet.sh
-
-# legacy compatibility-only submission checks
-bash deploy/scripts/verify_testnet_workflows.sh --env-file .env --skip-stats-rollup-check
 ```
 
 Use `verify_cross_repo_testnet.sh` as the default testnet validation command.

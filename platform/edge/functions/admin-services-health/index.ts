@@ -10,15 +10,11 @@ const HEALTH_CHECK_TIMEOUT_MS = 5000;
 
 function buildPlatformServices(): ServiceEntry[] {
   const entries: Array<ServiceEntry | null> = [
-    { name: "morpheus-runtime", url: getEnv("MORPHEUS_RUNTIME_URL") || getEnv("PHALA_API_URL") || "" },
+    { name: "morpheus-runtime", url: getEnv("MORPHEUS_RUNTIME_URL") || "" },
     { name: "morpheus-public-api", url: getEnv("MORPHEUS_PUBLIC_API_URL") || getEnv("NEXT_PUBLIC_MORPHEUS_PUBLIC_API_URL") || "" },
     { name: "morpheus-control-plane", url: getEnv("MORPHEUS_CONTROL_PLANE_URL") || "" },
     { name: "morpheus-edge", url: getEnv("MORPHEUS_EDGE_URL") || "" },
-    { name: "morpheus-datafeed", url: getEnv("NEOFEEDS_URL") || getEnv("NEOFEEDS_SERVICE_URL") || "" },
     { name: "morpheus-automation", url: getEnv("NEOFLOW_URL") || getEnv("NEOFLOW_SERVICE_URL") || "" },
-    { name: "morpheus-compute", url: getEnv("NEOCOMPUTE_URL") || getEnv("NEOCOMPUTE_SERVICE_URL") || "" },
-    { name: "morpheus-vrf", url: getEnv("NEOVRF_URL") || getEnv("NEOVRF_SERVICE_URL") || "" },
-    { name: "morpheus-oracle", url: getEnv("NEOORACLE_URL") || getEnv("NEOORACLE_SERVICE_URL") || "" },
     { name: "txproxy", url: getEnv("TXPROXY_URL") || getEnv("TXPROXY_SERVICE_URL") || "" },
     { name: "gasbank", url: getEnv("GASBANK_URL") || getEnv("GASBANK_SERVICE_URL") || "" },
     { name: "globalsigner", url: getEnv("GLOBALSIGNER_SERVICE_URL") || "" },
