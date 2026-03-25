@@ -5,10 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-> Note: this repository’s **current** architecture uses a Supabase Edge gateway and a
-> small set of enclave services (see `README.md` and `docs/ARCHITECTURE.md`). Older
-> release notes remain in `RELEASE_NOTES_v1.0.0.md`, and removed pre-migration docs can
-> be recovered from Git history.
+> Note: this repository’s **current** architecture uses a Supabase Edge gateway plus
+> external Morpheus / AA runtimes. Removed pre-migration docs can be recovered from
+> Git history.
 
 ## [Unreleased]
 
@@ -20,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified structured logging package (`infrastructure/logging`)
 - Kubernetes secrets template (`k8s/secrets.yaml.template`)
 - Supabase Edge gateway functions (auth/routing, API keys, secrets, gasbank, intents)
-- Platform contracts for MiniApp flow (PaymentHub/Governance/PriceFeed/RandomnessLog/AppRegistry/AutomationAnchor)
+- Platform contracts for MiniApp flow (Governance/PriceFeed/RandomnessLog/AppRegistry/AutomationAnchor)
 - `txproxy` service for allowlisted tx signing/broadcast (single tx policy point)
 - Product enclave services: `neofeeds`, `neooracle`, `neocompute`, `neoflow`
 - Shared infrastructure packages under `infrastructure/` (chain, secrets, database, middleware, runtime, metrics)

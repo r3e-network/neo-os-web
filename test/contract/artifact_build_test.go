@@ -99,9 +99,6 @@ func contractArtifactCandidates(contractName string) []string {
 	}
 
 	candidates := []string{contractName}
-	if strings.EqualFold(contractName, "PaymentHub") {
-		candidates = append(candidates, "PaymentHubV2")
-	}
 	if strings.EqualFold(contractName, "MiniAppFactoryV2") {
 		candidates = append(candidates, "MiniAppFactory")
 	}
@@ -111,8 +108,6 @@ func contractArtifactCandidates(contractName string) []string {
 
 func contractProjectPath(contractsRoot, contractName string) (string, error) {
 	switch {
-	case strings.EqualFold(contractName, "PaymentHub"), strings.EqualFold(contractName, "PaymentHubV2"):
-		return filepath.Join(contractsRoot, "PaymentHub", "PaymentHub.csproj"), nil
 	case strings.EqualFold(contractName, "MiniAppFactory"), strings.EqualFold(contractName, "MiniAppFactoryV2"):
 		return filepath.Join(contractsRoot, "MiniAppFactoryV2", "MiniAppFactoryV2.csproj"), nil
 	case strings.EqualFold(contractName, "MiniAppTemplate"), strings.HasPrefix(strings.ToLower(contractName), "miniapptemplate."):

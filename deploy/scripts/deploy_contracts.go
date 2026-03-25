@@ -34,7 +34,6 @@ var contractsToDeploy = []string{
 	"AppRegistry",
 	"AutomationAnchor",
 	"PauseRegistry",
-	"PaymentHubV2",
 	"PriceFeed",
 	"RandomnessLog",
 	"OracleService",

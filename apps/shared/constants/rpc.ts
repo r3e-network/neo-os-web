@@ -8,7 +8,6 @@
  *
  * Keep the values below aligned with the upstream deployment registries:
  * - neo-morpheus-oracle/config/networks/*.json
- * - neo-morpheus-oracle/docs/MAINNET_DOMAIN_ROUTING_2026-03-15.md
  * - neo-abstract-account/README.md
  */
 
@@ -43,6 +42,12 @@ export type ExternalIntegrationConfig = {
   morpheusRuntimeUrls: string[];
   morpheusEdgeUrl: string;
   morpheusControlPlaneUrl: string;
+  morpheusOracleCvmId: string;
+  morpheusOracleCvmName: string;
+  morpheusOracleAttestationExplorerUrl: string;
+  morpheusDatafeedCvmId: string;
+  morpheusDatafeedCvmName: string;
+  morpheusDatafeedAttestationExplorerUrl: string;
   contracts: {
     neo: string;
     gas: string;
@@ -98,15 +103,6 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
   },
 };
 
-export const PLATFORM_CONTRACTS: Record<NeoNetwork, { paymentHub: string }> = {
-  mainnet: {
-    paymentHub: "0x5c389477ce466224f02935dae61e0690846478b2",
-  },
-  testnet: {
-    paymentHub: "0x340cb33d770b38f26d066716dd1f9df5283d629e",
-  },
-};
-
 export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig> = {
   mainnet: {
     network: "mainnet",
@@ -122,6 +118,14 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     ],
     morpheusEdgeUrl: "https://oracle.meshmini.app/mainnet",
     morpheusControlPlaneUrl: "https://control.meshmini.app/mainnet",
+    morpheusOracleCvmId: "ddff154546fe22d15b65667156dd4b7c611e6093",
+    morpheusOracleCvmName: "oracle-morpheus-neo-r3e",
+    morpheusOracleAttestationExplorerUrl:
+      "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
+    morpheusDatafeedCvmId: "28294e89d490924b79c85cdee057ce55723b3d56",
+    morpheusDatafeedCvmName: "datafeed-morpheus-neo-r3e",
+    morpheusDatafeedAttestationExplorerUrl:
+      "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -160,6 +164,14 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     ],
     morpheusEdgeUrl: "https://oracle.meshmini.app/testnet",
     morpheusControlPlaneUrl: "https://control.meshmini.app/testnet",
+    morpheusOracleCvmId: "ddff154546fe22d15b65667156dd4b7c611e6093",
+    morpheusOracleCvmName: "oracle-morpheus-neo-r3e",
+    morpheusOracleAttestationExplorerUrl:
+      "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
+    morpheusDatafeedCvmId: "28294e89d490924b79c85cdee057ce55723b3d56",
+    morpheusDatafeedCvmName: "datafeed-morpheus-neo-r3e",
+    morpheusDatafeedAttestationExplorerUrl:
+      "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
     contracts: {
       neo: NEO_HASH,
       gas: GAS_HASH,
@@ -209,8 +221,4 @@ export function getExternalIntegrationConfig(network?: NeoNetwork): ExternalInte
 
 export function getMiniAppContractHash(appId: string, network?: NeoNetwork): string {
   return MINIAPP_CONTRACTS[network ?? getNetwork()]?.[String(appId || "").trim()] || "";
-}
-
-export function getPaymentHubHash(network?: NeoNetwork): string {
-  return PLATFORM_CONTRACTS[network ?? getNetwork()]?.paymentHub || "";
 }

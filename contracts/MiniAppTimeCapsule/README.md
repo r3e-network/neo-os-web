@@ -147,7 +147,7 @@
 - **Fish Fee**: 0.05 GAS per attempt
 - **No Expiry**: Capsules stored permanently
 - **Public Discovery**: Random fishing mechanism
-- **Funding Model**: direct prepaid GAS to the contract, no PaymentHub receipt
+- **Funding Model**: direct prepaid GAS to the contract
 
 ### 中文
 
@@ -155,7 +155,7 @@
 - **钓鱼费用**: 每次尝试0.05 GAS
 - **无过期**: 胶囊永久存储
 - **公开发现**: 随机钓鱼机制
-- **资金模型**: 直接向合约预存 GAS，不再使用 PaymentHub 收据
+- **资金模型**: 直接向合约预存 GAS
 
 ## Use Cases | 使用场景
 

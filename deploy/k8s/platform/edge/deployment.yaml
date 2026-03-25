@@ -210,12 +210,6 @@ spec:
                   name: edge-gateway-config
                   key: TXPROXY_URL
 
-            # MiniApp platform contract hashes
-            - name: CONTRACT_PAYMENTHUB_HASH
-              valueFrom:
-                configMapKeyRef:
-                  name: edge-gateway-config
-                  key: CONTRACT_PAYMENTHUB_HASH
             - name: CONTRACT_GOVERNANCE_HASH
               valueFrom:
                 configMapKeyRef:

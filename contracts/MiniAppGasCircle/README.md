@@ -89,10 +89,6 @@ Updates the contract administrator address.
 
 Configures the Morpheus Oracle address for service integration.
 
-#### `SetPaymentHub(UInt160 hub)`
-
-Legacy compatibility hook inherited from the base contract. The live GasCircle flow does not use PaymentHub.
-
 #### `SetPaused(bool paused)`
 
 Enables or disables contract operations (emergency stop).
@@ -106,10 +102,6 @@ Returns the current administrator address.
 #### `Oracle() → UInt160`
 
 Returns the configured Oracle address.
-
-#### `PaymentHub() → UInt160`
-
-Returns the legacy PaymentHub setting, which is unused by the live GasCircle flow.
 
 #### `IsPaused() → bool`
 
@@ -492,14 +484,12 @@ MakeDeposit(UInt160 member, BigInteger amount)
 
 - `SetAdmin(UInt160 a)`: 更新合约管理员地址
 - `SetOracle(UInt160 g)`: 配置 Morpheus Oracle 地址
-- `SetPaymentHub(UInt160 hub)`: 兼容保留接口，当前业务流未使用
 - `SetPaused(bool paused)`: 启用或禁用合约操作
 
 #### 查询方法
 
 - `Admin()`: 返回当前管理员地址
 - `Oracle()`: 返回配置的网关地址
-- `PaymentHub()`: 返回兼容保留的旧配置，当前业务流未使用
 - `IsPaused()`: 返回合约是否暂停
 
 ### 使用场景

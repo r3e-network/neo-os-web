@@ -22,7 +22,8 @@ namespace NeoMiniAppPlatform.Contracts
     ///   direct contract invocation when the business flow supports it
     ///
     /// STORAGE LAYOUT:
-    /// - 0x01-0x05: Reserved for this Core class
+    /// - 0x01-0x07: Reserved for this Core class
+    /// - 0x03 / 0x06: reserved legacy slots kept unused to avoid storage layout drift
     /// - 0x10+: Available for app-specific storage
     /// </summary>
     public partial class MiniAppContract : SmartContract
@@ -31,10 +32,10 @@ namespace NeoMiniAppPlatform.Contracts
 
         protected static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         protected static readonly byte[] PREFIX_ORACLE = new byte[] { 0x02 };
-        protected static readonly byte[] PREFIX_PAYMENTHUB = new byte[] { 0x03 };
+        protected static readonly byte[] PREFIX_RESERVED_PAYMENTHUB = new byte[] { 0x03 };
         protected static readonly byte[] PREFIX_PAUSED = new byte[] { 0x04 };
         protected static readonly byte[] PREFIX_PAUSE_REGISTRY = new byte[] { 0x05 };
-        protected static readonly byte[] PREFIX_RECEIPT_USED = new byte[] { 0x06 };
+        protected static readonly byte[] PREFIX_RESERVED_PAYMENT_RECEIPT = new byte[] { 0x06 };
         protected static readonly byte[] PREFIX_ABSTRACT_ACCOUNT = new byte[] { 0x07 };
         protected static readonly byte[] PREFIX_DIRECT_GAS_CREDIT = new byte[] { 0x70 };
         protected static readonly byte[] PREFIX_DIRECT_ASSET_CREDIT = new byte[] { 0x71 };
@@ -52,8 +53,6 @@ namespace NeoMiniAppPlatform.Contracts
         public static UInt160 Admin() => ReadAddress(PREFIX_ADMIN);
 
         public static UInt160 Oracle() => ReadAddress(PREFIX_ORACLE);
-
-        public static UInt160 PaymentHub() => ReadAddress(PREFIX_PAYMENTHUB);
 
         public static UInt160 PauseRegistry() => ReadAddress(PREFIX_PAUSE_REGISTRY);
 
@@ -158,17 +157,6 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Sets the PaymentHub address for payment routing.
-        /// SECURITY: Only admin can set.
-        /// </summary>
-        public static void SetPaymentHub(UInt160 hub)
-        {
-            ValidateAdmin();
-            ValidateAddress(hub);
-            Storage.Put(Storage.CurrentContext, PREFIX_PAYMENTHUB, hub);
-        }
-
-        /// <summary>
         /// Sets the PauseRegistry for global pause coordination.
         /// SECURITY: Only admin can set.
         /// </summary>
@@ -230,40 +218,6 @@ namespace NeoMiniAppPlatform.Contracts
 
         #endregion
 
-        #region Payment Receipt Validation
-
-        protected static void ValidatePaymentReceipt(string appId, UInt160 payer, BigInteger minAmount, BigInteger receiptId)
-        {
-            ValidateAddress(payer);
-            ExecutionEngine.Assert(minAmount > 0, "amount must be > 0");
-            ExecutionEngine.Assert(receiptId > 0, "receiptId required");
-
-            UInt160 hub = PaymentHub();
-            ExecutionEngine.Assert(hub != UInt160.Zero && hub.IsValid, "payment hub not set");
-
-            StorageMap used = new StorageMap(Storage.CurrentContext, PREFIX_RECEIPT_USED);
-            ByteString receiptKey = (ByteString)receiptId.ToByteArray();
-            ExecutionEngine.Assert(used.Get(receiptKey) == null, "receipt already used");
-
-            object receiptObj = Contract.Call(hub, "getReceipt", CallFlags.ReadOnly, receiptId);
-            ExecutionEngine.Assert(receiptObj != null, "receipt not found");
-
-            object[] receipt = (object[])receiptObj!;
-            ExecutionEngine.Assert(receipt.Length >= 6, "receipt not found");
-
-            string receiptAppId = (string)receipt[1];
-            UInt160 receiptPayer = (UInt160)receipt[2];
-            BigInteger receiptAmount = (BigInteger)receipt[3];
-
-            ExecutionEngine.Assert(receiptAppId == appId, "receipt app mismatch");
-            ExecutionEngine.Assert(receiptPayer == payer, "receipt payer mismatch");
-            ExecutionEngine.Assert(receiptAmount >= minAmount, "insufficient payment");
-
-            used.Put(receiptKey, 1);
-        }
-
-        #endregion
-
         #region Direct GAS Credit Flow
 
         protected static string ReadPaymentMemo(object data)
@@ -271,7 +225,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (data == null) return "";
             if (data is string text) return text ?? "";
             if (data is ByteString byteString) return (string)byteString;
-            return data.ToString();
+            return data.ToString() ?? "";
         }
 
         protected static void CreditDirectGasPayment(string appId, UInt160 from, BigInteger amount, object data)
@@ -285,7 +239,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
             ByteString key = (ByteString)(byte[])from;
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             credits.Put(key, balance + amount);
         }
@@ -293,7 +247,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static BigInteger GetDirectGasCredit(UInt160 payer)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
-            ByteString existing = credits.Get((ByteString)(byte[])payer);
+            ByteString? existing = credits.Get((ByteString)(byte[])payer);
             return existing == null ? 0 : (BigInteger)existing;
         }
 
@@ -304,7 +258,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
             ByteString key = (ByteString)(byte[])payer;
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             ExecutionEngine.Assert(balance >= amount, "insufficient prepaid gas");
 
@@ -334,7 +288,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
             ByteString key = GetDirectAssetCreditKey(expectedAsset, from);
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             credits.Put(key, balance + amount);
         }
@@ -342,7 +296,7 @@ namespace NeoMiniAppPlatform.Contracts
         protected static BigInteger GetDirectAssetCredit(UInt160 asset, UInt160 payer)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
-            ByteString existing = credits.Get(GetDirectAssetCreditKey(asset, payer));
+            ByteString? existing = credits.Get(GetDirectAssetCreditKey(asset, payer));
             return existing == null ? 0 : (BigInteger)existing;
         }
 
@@ -354,7 +308,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_ASSET_CREDIT);
             ByteString key = GetDirectAssetCreditKey(asset, payer);
-            ByteString existing = credits.Get(key);
+            ByteString? existing = credits.Get(key);
             BigInteger balance = existing == null ? 0 : (BigInteger)existing;
             ExecutionEngine.Assert(balance >= amount, "insufficient prepaid asset");
 

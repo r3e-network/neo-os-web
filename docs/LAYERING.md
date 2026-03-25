@@ -24,7 +24,6 @@ Current layering is:
 5. `contracts/`
    - platform and MiniApp smart contracts
    - direct Oracle / direct AA integrations at the contract boundary
-   - legacy compatibility contracts such as `PaymentHub` only where still needed
 
 6. `deploy/` and `test/`
    - environment validation
@@ -50,7 +49,6 @@ External runtime ownership:
 
 - Do not reintroduce a second platform-owned service bus on top of Oracle / AA.
 - Prefer direct MiniApp contract flows for flagship apps.
-- Keep `PaymentHub` as compatibility-only settlement, not the universal payment path.
 - Keep browser and host code free of service-role secrets and enclave signing logic.
 - Keep Edge functions thin: validate, authorize, forward.
 
@@ -59,7 +57,6 @@ External runtime ownership:
 For current architecture and workflow details, prefer:
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md)
-- [DATAFLOWS.md](./DATAFLOWS.md)
 - [WORKFLOWS.md](./WORKFLOWS.md)
-- [MODULE_RESPONSIBILITIES.md](./MODULE_RESPONSIBILITIES.md)
+- [FRONTEND_SPECIFICATION.md](./FRONTEND_SPECIFICATION.md)
 - [LOCAL_DEV.md](./LOCAL_DEV.md)

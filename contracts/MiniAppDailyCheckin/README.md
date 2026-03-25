@@ -60,7 +60,7 @@ Badges are intended to reflect ongoing loyalty, not just one uninterrupted strea
 - The canonical app id is `miniapp-dailycheckin`.
 - Frontend, manifest, and host definitions are expected to use the same reward schedule:
   `day 7 -> 1 GAS`, `day 14 -> 2 GAS`, `then reset`.
-- The primary frontend path is direct `GAS.transfer(...)` into the contract, not PaymentHub.
+- The primary frontend path is direct `GAS.transfer(...)` into the contract.
 - AA session keys are the preferred execution path for the production UX.
 
 ## Known Boundaries

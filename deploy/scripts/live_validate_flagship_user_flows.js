@@ -41,6 +41,8 @@ const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || NETWORK_CONFIG.net
 const WIF =
   process.env.FLAGSHIP_LIVE_WIF ||
   process.env.DEPLOYER_WIF ||
+  process.env.AA_TEST_WIF ||
+  process.env.ORACLE_TEST_WIF ||
   (TARGET_NETWORK === "mainnet" ? process.env.NEO_MAINNET_WIF : "") ||
   process.env.FLAGSHIP_TESTNET_WIF ||
   process.env.NEO_TESTNET_WIF ||

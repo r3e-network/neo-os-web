@@ -17,7 +17,7 @@ This checklist provides security guidelines for developing Neo N3 smart contract
 
 ### User Authorization
 - [ ] Users cannot directly call MiniApp contracts (enforced by gateway pattern)
-- [ ] Any user-facing operations go through PaymentHub
+- [ ] User-facing operations follow the current direct contract / direct Oracle / direct AA path
 - [ ] Role-based access control is properly implemented
 
 ## 2. Input Validation
@@ -103,7 +103,7 @@ This checklist provides security guidelines for developing Neo N3 smart contract
 
 ### Integration Tests
 - [ ] Gateway integration is tested
-- [ ] PaymentHub integration is verified
+- [ ] Direct contract funding and settlement integration is verified
 - [ ] Multi-user scenarios are tested
 
 ### Security Tests

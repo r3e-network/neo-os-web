@@ -111,11 +111,10 @@ User flow:
 2. the contract records prepaid credit in `OnNEP17Payment`
 3. the frontend invokes the follow-up contract method
 
-### 2. Historical receipt flow
+### 2. Current payment model
 
-Older documentation referenced a `PaymentHub` receipt path. That is no longer
-part of the current flagship payment architecture and should not be used for
-new MiniApps.
+The current flagship payment architecture uses direct contract transfers and
+contract-local prepaid credit. New MiniApps should follow that path.
 
 ## Featured Catalog Policy
 
@@ -162,7 +161,6 @@ Current flagship payment matrix:
 
 - Direct prepaid GAS: FogPlay, Red Envelope, Daily Check-in, Self Loan, NeoPay
 - Direct prepaid GAS with `receiptId=0` ABI placeholder: LastSurvivor buy flow, GASBOX spin flow
-- Historical compatibility only: some older docs and dormant resale paths still mention receipt ids, but they are not part of the flagship flow set
 
 When there is any conflict between older screenshots, older docs, and runtime
 behavior, the manifest + host definitions + live validation report win.
@@ -174,7 +172,7 @@ For frontend-visible app metadata and routing, prefer:
 - `apps/*/neo-manifest.json`
 - `platform/host-app/public/miniapp-definitions/*.json`
 - `apps/shared/constants/rpc.ts`
-- `docs/reports/2026-03-16-flagship-live-user-flows.md`
+- `deploy/scripts/live_validate_flagship_user_flows.js`
 
 ## Current Non-Goals
 

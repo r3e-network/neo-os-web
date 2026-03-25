@@ -25,7 +25,7 @@ const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 //
 // Current scope:
 // - require direct prepaid GAS transfer to the MiniApp contract
-// - do not fall back to historical PaymentHub settlement
+// - do not route through removed intermediary settlement layers
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;

@@ -83,8 +83,8 @@ const secretHash = await crypto.subtle.digest(
 );
 
 const bounty = 5; // 5 GAS initial bounty
+await gasContract.transfer(walletAddress, contractHash, bounty * 100000000, "miniapp-unbreakablevault:create");
 
-const receipt = await paymentHub.payGAS(bounty);
 const difficulty = 1; // 1=Easy, 2=Medium, 3=Hard
 const title = "Genesis Vault";
 const description = "Optional hints or lore";
@@ -96,7 +96,6 @@ const vaultId = await contract.invoke("CreateVault", [
   difficulty,
   title,
   description,
-  receipt.id,
 ]);
 
 console.log(`Vault #${vaultId} created with ${bounty} GAS bounty`);
@@ -119,13 +118,12 @@ console.log(`Broken: ${vault.broken}`);
 
 ```javascript
 const myGuess = "password123"; // Your guess
+await gasContract.transfer(walletAddress, contractHash, 0.1 * 100000000, "miniapp-unbreakablevault:attempt");
 
-const receipt = await paymentHub.payGAS(0.1);
 const success = await contract.invoke("AttemptBreak", [
   vaultId,
   walletAddress,
   myGuess,
-  receipt.id,
 ]);
 
 if (success) {

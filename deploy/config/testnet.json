@@ -7,7 +7,6 @@
   ],
   "network_magic": 877933390,
   "contracts": {
-    "PaymentHub": null,
     "Governance": null,
     "PriceFeed": null,
     "RandomnessLog": null,

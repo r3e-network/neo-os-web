@@ -74,17 +74,13 @@ validation (no usage recording; see `migrations/032_miniapp_usage_check.sql`).
 
 Morpheus routing env vars (required by functions that proxy to runtime services):
 
-- preferred unified routing:
+- unified runtime routing:
   - `MORPHEUS_RUNTIME_URL`
   - `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`
   - `MORPHEUS_PUBLIC_API_URL`
   - `MORPHEUS_EDGE_URL`
   - `MORPHEUS_CONTROL_PLANE_URL`
-- legacy compatibility:
-  - `NEOFEEDS_URL`
-  - `NEOCOMPUTE_URL`
-  - `NEOVRF_URL`
-  - `NEOORACLE_URL`
+- auxiliary services when explicitly used:
   - `NEOFLOW_URL`
   - `TXPROXY_URL`
 
@@ -163,12 +159,9 @@ ports on `127.0.0.1` (e.g. `neofeeds` on `8083`). For the local dev server,
 set:
 
 - preferred:
-  - `MORPHEUS_RUNTIME_URL=https://morpheus-testnet.meshmini.app`
+  - `MORPHEUS_RUNTIME_URL=https://oracle.meshmini.app/testnet`
   - `PHALA_API_TOKEN=<token>`
-- or legacy local mesh:
-  - `NEOFEEDS_URL=http://localhost:8083`
-  - `NEOCOMPUTE_URL=http://localhost:8086`
-  - `NEOORACLE_URL=http://localhost:8088`
+- optional local auxiliaries:
   - `NEOFLOW_URL=http://localhost:8084`
   - `TXPROXY_URL=http://localhost:8090`
 

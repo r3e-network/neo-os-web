@@ -5,7 +5,6 @@ import { requireAdminAuth } from "@/lib/admin-auth";
 // Real implementation would sync with AppRegistry DB or `.env`.
 let contracts = [
   { id: "AppRegistry", name: "AppRegistry", hash: process.env.CONTRACT_APPREGISTRY_HASH || "0x1111111111111111111111111111111111111111", deployed: true },
-  { id: "PaymentHub", name: "PaymentHub", hash: process.env.CONTRACT_PAYMENTHUB_HASH || "0x2222222222222222222222222222222222222222", deployed: true },
   { id: "Governance", name: "Governance", hash: process.env.CONTRACT_GOVERNANCE_HASH || "0x3333333333333333333333333333333333333333", deployed: true },
   { id: "PriceFeed", name: "PriceFeed", hash: process.env.CONTRACT_PRICEFEED_HASH || "0x4444444444444444444444444444444444444444", deployed: true },
   { id: "RandomnessLog", name: "RandomnessLog", hash: process.env.CONTRACT_RANDOMNESSLOG_HASH || "0x5555555555555555555555555555555555555555", deployed: true },
