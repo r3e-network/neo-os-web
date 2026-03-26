@@ -98,6 +98,7 @@
       <CheckinTab
         v-else
         v-model:token-id="contract.checkin.tokenId"
+        v-model:template-id="badgeTemplateId"
         :lookup="contract.lookup"
         :is-looking-up="contract.isLookingUp"
         :is-checking-in="contract.isCheckingIn"
@@ -165,6 +166,7 @@ const { ensure: ensureContractAddress, ensureSafe: ensureContractSafe } = useCon
 const contract = useEventTicketContract(wallet, ensureContractAddress, setStatus, t);
 const contractReady = ref(false);
 const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
+const badgeTemplateId = ref("");
 
 const activeTab = ref("create");
 
@@ -175,6 +177,7 @@ const appState = computed(() => ({
   isRefreshing: contract.isRefreshing.value,
   eventsCount: contract.events.value.length,
   ticketsCount: contract.tickets.value.length,
+  badgeTemplateId: badgeTemplateId.value,
 }));
 
 const ensureContractReady = async () => {
@@ -227,6 +230,9 @@ function buildAttendanceBadgeUrl() {
     issueSource: "event-ticket-pass",
     autoIssueDraft: "1",
   });
+  if (badgeTemplateId.value.trim()) {
+    params.set("issueTemplateId", badgeTemplateId.value.trim());
+  }
   return `${soulboundAppUrl}?${params.toString()}`;
 }
 

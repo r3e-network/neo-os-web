@@ -25,6 +25,7 @@
         <NeoInput v-model="format" :label="t('format')" :placeholder="t('formatPlaceholder')" />
         <NeoInput v-model="secretName" :label="t('secretName')" :placeholder="t('secretNamePlaceholder')" />
         <NeoInput v-model="credentialRecipient" :label="t('credentialRecipient')" :placeholder="t('credentialRecipientPlaceholder')" />
+        <NeoInput v-model="credentialTemplateId" :label="t('credentialTemplateId')" :placeholder="t('credentialTemplateIdPlaceholder')" />
         <NeoInput v-model="ciphertext" type="textarea" :label="t('ciphertext')" :placeholder="t('ciphertextPlaceholder')" />
         <div class="button-row">
           <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="resolveDidDocument" :aria-label="t('resolveDid')">{{ t("resolveDid") }}</NeoButton>
@@ -56,6 +57,7 @@ const did = ref("did:morpheus:neo_n3:service:neodid");
 const format = ref("resolution");
 const secretName = ref("passport-ref");
 const credentialRecipient = ref("");
+const credentialTemplateId = ref("");
 const ciphertext = ref("");
 const latestPayload = ref<Record<string, unknown> | null>(null);
 const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
@@ -139,6 +141,9 @@ function buildIdentityCredentialUrl() {
     issueSource: "neodid-passport",
     autoIssueDraft: "1",
   });
+  if (credentialTemplateId.value.trim()) {
+    params.set("issueTemplateId", credentialTemplateId.value.trim());
+  }
   return `${soulboundAppUrl}?${params.toString()}`;
 }
 
@@ -194,6 +199,7 @@ const appState = computed(() => ({
   providerCount: providerCount.value,
   secretName: secretName.value,
   credentialRecipient: credentialRecipient.value || wallet.address.value || "",
+  credentialTemplateId: credentialTemplateId.value,
   hasCiphertext: Boolean(ciphertext.value.trim()),
 }));
 </script>
