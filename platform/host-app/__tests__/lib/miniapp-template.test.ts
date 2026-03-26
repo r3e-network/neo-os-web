@@ -3,8 +3,25 @@ import {
   coerceOperationEntries,
   resolveMiniAppDetailConfig,
 } from "@/lib/miniapp-template";
+import { MINIAPP_TEMPLATES } from "@/lib/templates/miniapp-templates";
 
 describe("miniapp-template", () => {
+  it("includes the new AA and Morpheus product miniapps in the built-in template registry", () => {
+    expect(MINIAPP_TEMPLATES).toEqual(
+      expect.objectContaining({
+        "miniapp-neodid-passport": expect.any(Object),
+        "miniapp-recovery-guardian": expect.any(Object),
+        "miniapp-automation-copilot": expect.any(Object),
+        "miniapp-event-ticket-pass": expect.any(Object),
+        "miniapp-quadratic-funding": expect.any(Object),
+        "miniapp-trustanchor": expect.any(Object),
+        "miniapp-soulbound-certificate": expect.any(Object),
+        "miniapp-unbreakablevault": expect.any(Object),
+        "miniapp-secret-vote": expect.any(Object),
+      }),
+    );
+  });
+
   describe("coerceOperationEntries", () => {
     it("parses valid operations and ignores invalid ones", () => {
       const operations = coerceOperationEntries([

@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-recovery-guardian",
+  "name": "Recovery Guardian",
+  "name_zh": "恢复守护者",
+  "version": "1.0.0",
+  "description": "Operator surface for AA guardian policy, recovery ticket flow, timelock review, and final recovery execution.",
+  "description_zh": "围绕 AA guardian 策略、恢复票据、timelock 审核和最终恢复执行的恢复控制台。",
+  "category": "utility",
+  "category_name": "Utility",
+  "category_name_zh": "工具",
+  "tags": [
+    "aa",
+    "recovery",
+    "guardian",
+    "neodid",
+    "security"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/recovery-guardian/index.html",
+    "icon": "/miniapps/wallet-health/logo.jpg",
+    "banner": "/miniapps/wallet-health/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://recovery-guardian"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-27T00:00:00Z",
+  "updatedAt": "2026-03-27T00:00:00Z"
+}

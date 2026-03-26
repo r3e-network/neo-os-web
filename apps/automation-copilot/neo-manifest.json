@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-automation-copilot",
+  "name": "Automation Copilot",
+  "name_zh": "自动化副驾驶",
+  "version": "1.0.0",
+  "description": "User-facing launcher for price alerts, AA automation recipes, private oracle jobs, and datafeed-backed runbooks.",
+  "description_zh": "围绕价格提醒、AA 自动执行、隐私预言机任务和数据驱动 runbook 的用户侧自动化入口。",
+  "category": "data",
+  "category_name": "Data",
+  "category_name_zh": "数据",
+  "tags": [
+    "automation",
+    "oracle",
+    "pricefeed",
+    "aa",
+    "runbook"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/automation-copilot/index.html",
+    "icon": "/miniapps/explorer/logo.jpg",
+    "banner": "/miniapps/explorer/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://automation-copilot"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-27T00:00:00Z",
+  "updatedAt": "2026-03-27T00:00:00Z"
+}
