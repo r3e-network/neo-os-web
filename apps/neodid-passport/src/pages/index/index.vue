@@ -24,12 +24,14 @@
         <NeoInput v-model="did" :label="t('did')" :placeholder="t('didPlaceholder')" />
         <NeoInput v-model="format" :label="t('format')" :placeholder="t('formatPlaceholder')" />
         <NeoInput v-model="secretName" :label="t('secretName')" :placeholder="t('secretNamePlaceholder')" />
+        <NeoInput v-model="credentialRecipient" :label="t('credentialRecipient')" :placeholder="t('credentialRecipientPlaceholder')" />
         <NeoInput v-model="ciphertext" type="textarea" :label="t('ciphertext')" :placeholder="t('ciphertextPlaceholder')" />
         <div class="button-row">
           <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="resolveDidDocument" :aria-label="t('resolveDid')">{{ t("resolveDid") }}</NeoButton>
           <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="loadProviders" :aria-label="t('loadProviders')">{{ t("loadProviders") }}</NeoButton>
           <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="fetchOracleKey" :aria-label="t('fetchOracleKey')">{{ t("fetchOracleKey") }}</NeoButton>
           <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="storeRef" :aria-label="t('storeConfidentialRef')">{{ t("storeConfidentialRef") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="openIdentityCredentialDraft" :aria-label="t('openIdentityCredential')">{{ t("openIdentityCredential") }}</NeoButton>
         </div>
       </div>
     </template>
@@ -43,15 +45,20 @@ import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { useOracle } from "@shared/composables/useOracle";
+import { useWallet } from "@shared/utils/wallet-sdk";
+import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { messages } from "@/locale/messages";
 
 const oracle = useOracle({ appId: "miniapp-neodid-passport" });
+const wallet = useWallet() as WalletSDK;
 const did = ref("did:morpheus:neo_n3:service:neodid");
 const format = ref("resolution");
 const secretName = ref("passport-ref");
+const credentialRecipient = ref("");
 const ciphertext = ref("");
 const latestPayload = ref<Record<string, unknown> | null>(null);
+const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "neodid-passport",
@@ -117,6 +124,36 @@ async function storeRef() {
   }
 }
 
+function buildIdentityCredentialUrl() {
+  const payload = latestPayload.value || {};
+  const recipient = String(credentialRecipient.value || wallet.address.value || "").trim();
+  const resolvedDid = String((payload.id as string) || did.value || "").trim();
+  const achievement = resolvedDid ? `NeoDID Passport Verified` : "Identity Credential";
+  const memo = resolvedDid ? `DID ${resolvedDid}` : "Identity credential draft";
+  const params = new URLSearchParams({
+    issueRecipient: recipient,
+    issueRecipientName: "",
+    issueAchievement: achievement,
+    issueMemo: memo,
+    issueCategory: "Identity",
+    issueSource: "neodid-passport",
+    autoIssueDraft: "1",
+  });
+  return `${soulboundAppUrl}?${params.toString()}`;
+}
+
+function openIdentityCredentialDraft() {
+  try {
+    const url = buildIdentityCredentialUrl();
+    if (typeof window !== "undefined" && window.open) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+    setStatus(t("identityCredentialReady"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("resolveFailed")), "error");
+  }
+}
+
 const providerCount = computed(() => {
   const payload = latestPayload.value;
   if (!payload) return 0;
@@ -156,6 +193,7 @@ const appState = computed(() => ({
   format: normalizedFormat.value,
   providerCount: providerCount.value,
   secretName: secretName.value,
+  credentialRecipient: credentialRecipient.value || wallet.address.value || "",
   hasCiphertext: Boolean(ciphertext.value.trim()),
 }));
 </script>
