@@ -46,6 +46,8 @@ const appMessages = {
   recommendedOnly: { en: "Recommended Only", zh: "仅看推荐" },
   allTemplates: { en: "All Templates", zh: "全部模板" },
   matchingTemplatesCount: { en: "Matching templates", zh: "匹配模板数" },
+  createEventTemplatePreset: { en: "Create Event Template Preset", zh: "创建事件模板预设" },
+  templatePresetReady: { en: "Event template preset applied", zh: "事件模板预设已应用" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
   issueRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
   recipientName: { en: "Recipient name", zh: "受证人姓名" },
