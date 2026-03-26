@@ -7,6 +7,9 @@
   "scripts": {
     "test": "npm run -s test:deploy-scripts && npm run -s test:host-app && npm run -s test:admin-console",
     "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
+    "test:testnet:local-gates": "bash deploy/scripts/run_local_validation_gates.sh",
+    "test:testnet:live": "bash deploy/scripts/run_live_testnet_validation.sh",
+    "test:testnet:live:direct-only": "bash deploy/scripts/run_live_testnet_validation.sh --direct-only",
     "test:testnet:direct": "bash deploy/scripts/verify_cross_repo_testnet.sh",
     "test:testnet:full-stack": "bash deploy/scripts/run_full_stack_testnet_validation.sh",
     "test:flagship-miniapps": "node deploy/scripts/audit_flagship_miniapps.js",
