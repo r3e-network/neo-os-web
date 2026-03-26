@@ -68,11 +68,27 @@
           </div>
           <p class="issue-draft-filter-count">{{ t("matchingTemplatesCount") }}: {{ recommendedTemplates.length }}</p>
         </div>
+        <div v-else-if="draftCategory === 'event'" class="issue-draft-filters">
+          <div class="issue-draft-filter-copy">
+            <p class="issue-draft-filter-title">{{ t("recommendedTemplatesTitle") }}</p>
+            <p class="issue-draft-filter-text">{{ t("recommendedTemplatesText") }}</p>
+          </div>
+          <div class="issue-draft-filter-actions">
+            <NeoButton size="sm" variant="primary" type="button" @click="applyEventTemplatePreset">
+              {{ t("createEventTemplatePreset") }}
+            </NeoButton>
+          </div>
+        </div>
       </div>
     </template>
 
     <template #operation>
-      <CertificateForm :loading="isCreating" @create="createTemplate" />
+      <CertificateForm
+        :loading="isCreating"
+        :prefill="templateFormPrefill"
+        :prefill-key="templateFormPrefillKey"
+        @create="createTemplate"
+      />
     </template>
 
     <template #tab-certificates>
@@ -163,6 +179,7 @@ const isRefreshing = ref(false);
 const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
 const showRecommendedOnly = ref(false);
+const templateFormPrefillKey = ref(0);
 const issueDraft = ref<{
   recipient?: string;
   recipientName?: string;
@@ -212,6 +229,17 @@ function resolveDraftTemplateId() {
 }
 
 const draftCategory = computed(() => String(issueDraft.value?.category || "").trim().toLowerCase());
+const templateFormPrefill = computed(() => {
+  if (draftCategory.value !== "event" || !issueDraft.value) return null;
+  const achievement = String(issueDraft.value.achievement || "").trim() || "Event Attendance Badge";
+  return {
+    name: "Event Attendance Badge",
+    issuerName: "Event Organizer",
+    category: "Event",
+    maxSupply: "1000",
+    description: `${achievement}. Imported from the event ticket attendance flow.`,
+  };
+});
 
 const recommendedTemplates = computed(() => {
   if (!draftCategory.value) return [];
@@ -231,6 +259,14 @@ const displayTemplates = computed(() => {
     ...templates.value.filter((template) => !recommendedIds.has(template.id)),
   ];
 });
+
+function applyEventTemplatePreset() {
+  if (!templateFormPrefill.value) return;
+  templateFormPrefillKey.value += 1;
+  activeTab.value = "templates";
+  showRecommendedOnly.value = false;
+  setStatus(t("templatePresetReady"), "success");
+}
 
 const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
