@@ -30,12 +30,12 @@ type deployTarget struct {
 }
 
 type deployRecord struct {
-	Name         string `json:"name"`
-	Hash         string `json:"hash"`
-	AppManifest  string `json:"app_manifest,omitempty"`
-	OracleSet    bool   `json:"oracle_set,omitempty"`
-	AASet        bool   `json:"aa_set,omitempty"`
-	AnchorSet    bool   `json:"anchor_set,omitempty"`
+	Name        string `json:"name"`
+	Hash        string `json:"hash"`
+	AppManifest string `json:"app_manifest,omitempty"`
+	OracleSet   bool   `json:"oracle_set,omitempty"`
+	AASet       bool   `json:"aa_set,omitempty"`
+	AnchorSet   bool   `json:"anchor_set,omitempty"`
 }
 
 type appManifest struct {
