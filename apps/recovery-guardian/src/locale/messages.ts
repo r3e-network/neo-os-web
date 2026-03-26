@@ -16,6 +16,8 @@ const appMessages = {
   recoveryExpiry: { en: "Recovery Expiry (minutes)", zh: "恢复过期时间（分钟）" },
   recoveryExpiryPlaceholder: { en: "30", zh: "30" },
   openRecoveryPreview: { en: "Open Recovery Preview", zh: "打开恢复预览" },
+  copyRecoveryLink: { en: "Copy Recovery Link", zh: "复制恢复链接" },
+  shareRecoveryLink: { en: "Share Recovery Link", zh: "分享恢复链接" },
   openIdentityWorkspace: { en: "Open Identity Workspace", zh: "打开身份工作区" },
   openAaWorkspace: { en: "Open AA Workspace", zh: "打开 AA 工作区" },
   openRecoveryDocs: { en: "Open Recovery Docs", zh: "打开恢复文档" },
@@ -33,6 +35,9 @@ const appMessages = {
   queryLoaded: { en: "Recovery state loaded", zh: "恢复状态已加载" },
   queryFailed: { en: "Failed to load recovery state", zh: "加载恢复状态失败" },
   previewLinkReady: { en: "Recovery preview link ready", zh: "恢复预览链接已准备好" },
+  previewLinkCopied: { en: "Recovery preview link copied", zh: "恢复预览链接已复制" },
+  previewLinkShared: { en: "Recovery preview link shared", zh: "恢复预览链接已分享" },
+  previewLinkUnavailable: { en: "Recovery preview link is not ready yet", zh: "恢复预览链接尚未准备好" },
   noStateYet: { en: "No recovery state loaded yet.", zh: "尚未加载恢复状态。" },
   noteTitle: { en: "Operator Note", zh: "运维提示" },
   noteText: {
