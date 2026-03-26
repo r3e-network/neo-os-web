@@ -152,6 +152,8 @@ const issueDraft = ref<{
   recipientName?: string;
   achievement?: string;
   memo?: string;
+  category?: string;
+  source?: string;
 } | null>(null);
 
 const appState = computed(() => ({
@@ -176,6 +178,21 @@ const resetAndReload = async () => {
   }
 };
 
+function resolveDraftTemplateId() {
+  if (issueTemplateId.value) return issueTemplateId.value;
+  const activeTemplates = templates.value.filter((template) => template.active);
+  const draftCategory = String(issueDraft.value?.category || "").trim().toLowerCase();
+  if (draftCategory) {
+    const categoryMatches = activeTemplates.filter((template) =>
+      String(template.category || "").trim().toLowerCase() === draftCategory,
+    );
+    if (categoryMatches.length === 1) {
+      return categoryMatches[0].id;
+    }
+  }
+  return "";
+}
+
 const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
   issueModalOpen.value = true;
@@ -199,10 +216,12 @@ onMounted(async () => {
     const recipientName = String(params.get("issueRecipientName") || "").trim();
     const achievement = String(params.get("issueAchievement") || "").trim();
     const memo = String(params.get("issueMemo") || "").trim();
+    const category = String(params.get("issueCategory") || "").trim();
+    const source = String(params.get("issueSource") || "").trim();
     const templateId = String(params.get("issueTemplateId") || "").trim();
     const autoIssueDraft = ["1", "true", "yes"].includes(String(params.get("autoIssueDraft") || "").trim().toLowerCase());
     if (recipient || recipientName || achievement || memo) {
-      issueDraft.value = { recipient, recipientName, achievement, memo };
+      issueDraft.value = { recipient, recipientName, achievement, memo, category, source };
       if (templateId) {
         issueTemplateId.value = templateId;
       }
@@ -218,7 +237,7 @@ onMounted(async () => {
       await refreshTemplates();
       await refreshCertificates();
       if (issueDraft.value) {
-        const targetTemplateId = issueTemplateId.value || templates.value.find((template) => template.active)?.id || "";
+        const targetTemplateId = resolveDraftTemplateId();
         if (targetTemplateId) {
           issueTemplateId.value = targetTemplateId;
           issueModalOpen.value = true;
@@ -236,7 +255,7 @@ const stopAddressWatch = watch(address, async (newAddr) => {
       await refreshTemplates();
       await refreshCertificates();
       if (issueDraft.value && !issueModalOpen.value) {
-        const targetTemplateId = issueTemplateId.value || templates.value.find((template) => template.active)?.id || "";
+        const targetTemplateId = resolveDraftTemplateId();
         if (targetTemplateId) {
           issueTemplateId.value = targetTemplateId;
           issueModalOpen.value = true;
