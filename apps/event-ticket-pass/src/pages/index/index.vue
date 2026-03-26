@@ -223,6 +223,7 @@ function buildAttendanceBadgeUrl() {
     issueRecipient: ticket.owner || "",
     issueAchievement: `${ticket.eventName || `Event #${ticket.eventId}`} Attendance`,
     issueMemo: `Ticket ${ticket.tokenId}${ticket.seat ? ` / Seat ${ticket.seat}` : ""}`,
+    issueCategory: "Event",
     issueSource: "event-ticket-pass",
     autoIssueDraft: "1",
   });
