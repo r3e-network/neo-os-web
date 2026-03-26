@@ -104,6 +104,7 @@
         :status="status"
         @lookup="contract.lookupTicket"
         @checkin="contract.checkInTicket"
+        @issue-badge="openAttendanceBadgeDraft"
       />
     </template>
   </MiniAppPage>
@@ -163,6 +164,7 @@ const { ensure: ensureContractAddress, ensureSafe: ensureContractSafe } = useCon
 
 const contract = useEventTicketContract(wallet, ensureContractAddress, setStatus, t);
 const contractReady = ref(false);
+const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 
 const activeTab = ref("create");
 
@@ -211,6 +213,34 @@ const resetAndReload = async () => {
     console.warn("[event-ticket-pass] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
+
+function buildAttendanceBadgeUrl() {
+  const ticket = contract.lookup.value;
+  if (!ticket || !ticket.used) {
+    throw new Error(t("ticketNotFound"));
+  }
+  const params = new URLSearchParams({
+    issueRecipient: ticket.owner || "",
+    issueAchievement: `${ticket.eventName || `Event #${ticket.eventId}`} Attendance`,
+    issueMemo: `Ticket ${ticket.tokenId}${ticket.seat ? ` / Seat ${ticket.seat}` : ""}`,
+    issueSource: "event-ticket-pass",
+    autoIssueDraft: "1",
+  });
+  return `${soulboundAppUrl}?${params.toString()}`;
+}
+
+function openAttendanceBadgeDraft() {
+  try {
+    const url = buildAttendanceBadgeUrl();
+    if (typeof window !== "undefined" && window.open) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+    setStatus(t("issueAttendanceBadge"), "success");
+  } catch (_e: unknown) {
+    console.warn("[event-ticket-pass] attendance badge handoff failed:", _e instanceof Error ? _e.message : String(_e));
+    setStatus(t("ticketNotFound"), "error");
+  }
+}
 
 const isMounted = ref(true);
 

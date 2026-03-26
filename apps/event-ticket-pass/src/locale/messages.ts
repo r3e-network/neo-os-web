@@ -48,9 +48,11 @@ const appMessages = {
   ticketUsed: { en: "Used", zh: "已使用" },
   ticketValid: { en: "Valid", zh: "有效" },
   ticketSeat: { en: "Seat", zh: "座位" },
+  ticketOwner: { en: "Owner", zh: "持有人" },
   seatFallback: { en: "General", zh: "普通票" },
   ticketTokenId: { en: "Token ID", zh: "Token ID" },
   copyTokenId: { en: "Copy Token ID", zh: "复制 Token ID" },
+  issueAttendanceBadge: { en: "Issue Attendance Badge", zh: "签发到场徽章" },
 
   checkinTokenId: { en: "Ticket Token ID", zh: "门票 Token ID" },
   checkinTokenIdPlaceholder: { en: "Enter token ID from QR", zh: "输入二维码中的 Token ID" },
