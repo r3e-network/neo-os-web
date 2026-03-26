@@ -69,6 +69,7 @@ export function useEventTicketContract(
     return {
       tokenId,
       eventId: String(raw.eventId || ""),
+      owner: String(raw.owner || ""),
       eventName: String(raw.eventName || ""),
       venue: String(raw.venue || ""),
       startTime: Number.parseInt(String(raw.startTime || "0"), 10) || 0,

@@ -14,6 +14,7 @@ export interface EventItem {
 export interface TicketItem {
   tokenId: string;
   eventId: string;
+  owner: string;
   eventName: string;
   venue: string;
   startTime: number;
