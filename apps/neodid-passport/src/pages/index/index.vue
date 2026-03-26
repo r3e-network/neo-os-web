@@ -1,5 +1,5 @@
 <template>
-  <OfficialLauncherMiniApp
+  <ConsoleMiniApp
     page-name="neodid-passport"
     :template-config="templateConfig"
     :app-state="appState"
@@ -9,119 +9,165 @@
     :sidebar-title="sidebarTitle"
     :fallback-message="fallbackMessage"
     :handle-boundary-error="handleBoundaryError"
-    :reset-status="resetStatus"
-    hero-mode="flamingo"
-    hero-mark="ID"
-    :hero-kicker="t('heroKicker')"
-    :hero-title="t('title')"
-    :hero-blurb="t('heroBlurb')"
+    :on-retry="resolveDidDocument"
+    hero-icon="user"
+    :hero-stats="heroStats"
     :overview-stats="overviewStats"
-    :main-cards="mainCards"
-    :detail-cards="detailCards"
-    :operation-title="t('bindPassport')"
-    :operation-actions="operationActions"
-  />
+    :result-title="t('latestResult')"
+    :operation-title="t('passportActions')"
+  >
+    <template #result>
+      <pre class="json-box">{{ renderedPayload }}</pre>
+    </template>
+    <template #operation>
+      <div class="stack">
+        <NeoInput v-model="did" :label="t('did')" :placeholder="t('didPlaceholder')" />
+        <NeoInput v-model="format" :label="t('format')" :placeholder="t('formatPlaceholder')" />
+        <NeoInput v-model="secretName" :label="t('secretName')" :placeholder="t('secretNamePlaceholder')" />
+        <NeoInput v-model="ciphertext" type="textarea" :label="t('ciphertext')" :placeholder="t('ciphertextPlaceholder')" />
+        <div class="button-row">
+          <NeoButton variant="primary" type="button" :loading="oracle.isRequesting" @click="resolveDidDocument" :aria-label="t('resolveDid')">{{ t("resolveDid") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="loadProviders" :aria-label="t('loadProviders')">{{ t("loadProviders") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="fetchOracleKey" :aria-label="t('fetchOracleKey')">{{ t("fetchOracleKey") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="storeRef" :aria-label="t('storeConfidentialRef')">{{ t("storeConfidentialRef") }}</NeoButton>
+        </div>
+      </div>
+    </template>
+  </ConsoleMiniApp>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { OfficialLauncherMiniApp } from "@shared/components";
-import type { StatsDisplayItem } from "@shared/components";
-import { createMiniApp } from "@shared/utils/createMiniApp";
+import { computed, ref } from "vue";
+import { ConsoleMiniApp, NeoButton, NeoInput } from "@shared/components";
+import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
+import { createConsolePage } from "@shared/utils/createConsolePage";
+import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
+import { useOracle } from "@shared/composables/useOracle";
+import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { messages } from "@/locale/messages";
 
-const identityWorkspaceUrl = "https://neo-abstract-account.vercel.app/identity";
-const neoDidStudioUrl = "https://oracle.meshmini.app/launchpad/neodid-live";
-const verifierUrl = "https://oracle.meshmini.app/verifier";
-const docsUrl = "https://oracle.meshmini.app/docs/neodid";
-const exampleDid = "did:morpheus:neo_n3:service:neodid";
+const oracle = useOracle({ appId: "miniapp-neodid-passport" });
+const did = ref("did:morpheus:neo_n3:service:neodid");
+const format = ref("resolution");
+const secretName = ref("passport-ref");
+const ciphertext = ref("");
+const latestPayload = ref<Record<string, unknown> | null>(null);
 
-const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, clearStatus, handleBoundaryError } =
-  createMiniApp({
-    name: "neodid-passport",
-    messages,
-    template: {
-      tabs: [
-        { key: "passport", labelKey: "tabPassport", icon: "🪪", default: true },
-        { key: "flows", labelKey: "tabFlows", icon: "🧬" },
-      ],
-      docSubtitleKey: "docsSubtitle",
-      docFeatureCount: 3,
-    },
-    sidebarItems: [
-      { labelKey: "identityRoot", value: () => t("identityRootValue") },
-      { labelKey: "verifierReady", value: () => t("verifierReadyValue") },
-      { labelKey: "reusableAcross", value: () => t("reusableAcrossValue") },
-      { labelKey: "passportMode", value: () => t("passportModeValue") },
-    ],
-  });
+const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
+  name: "neodid-passport",
+  messages,
+  tab: { key: "passport", labelKey: "latestResult", icon: "🪪" },
+  sidebarItems: [
+    { labelKey: "did", value: () => did.value },
+    { labelKey: "format", value: () => normalizedFormat.value },
+    { labelKey: "providerCount", value: () => providerCount.value },
+    { labelKey: "secretName", value: () => secretName.value || t("notAvailable") },
+  ],
+});
 
-const overviewStats = computed<StatsDisplayItem[]>(() => [
-  { label: t("identityRoot"), value: t("identityRootValue"), variant: "accent" },
-  { label: t("verifierReady"), value: t("verifierReadyValue"), variant: "success" },
-  { label: t("reusableAcross"), value: t("reusableAcrossValue"), variant: "erobo" },
-]);
+const normalizedFormat = computed<"resolution" | "document">(() =>
+  String(format.value || "").trim().toLowerCase() === "document" ? "document" : "resolution",
+);
 
-const appState = computed(() => ({
-  did: exampleDid,
-  identityWorkspace: identityWorkspaceUrl,
-  neoDidStudio: neoDidStudioUrl,
-  verifier: verifierUrl,
-}));
-
-const mainCards = computed(() => [
-  {
-    title: t("passportLayers"),
-    variant: "erobo" as const,
-    stats: [
-      { label: t("identityRoot"), value: t("identityRootValue"), variant: "accent" },
-      { label: t("routeOracle"), value: neoDidStudioUrl, variant: "default" },
-      { label: t("routeAA"), value: identityWorkspaceUrl, variant: "default" },
-    ],
-  },
-  {
-    title: t("passportRouting"),
-    variant: "erobo-neo" as const,
-    paragraphs: [t("passportLayersText"), t("passportRoutingText")],
-  },
-]);
-
-const detailCards = computed(() => [
-  {
-    title: t("routeOracle"),
-    variant: "erobo" as const,
-    stats: [
-      { label: t("routeOracle"), value: neoDidStudioUrl, variant: "accent" },
-      { label: t("routeVerifier"), value: verifierUrl, variant: "default" },
-    ],
-  },
-  {
-    title: t("routeAA"),
-    variant: "erobo" as const,
-    stats: [
-      { label: t("routeAA"), value: identityWorkspaceUrl, variant: "accent" },
-      { label: "Example DID", value: exampleDid, variant: "default" },
-    ],
-  },
-]);
-
-const operationActions = computed(() => [
-  { label: t("openIdentityWorkspace"), variant: "primary" as const, onClick: () => openExternal(identityWorkspaceUrl) },
-  { label: t("openNeoDidStudio"), variant: "secondary" as const, onClick: () => openExternal(neoDidStudioUrl) },
-  { label: t("openVerifier"), variant: "secondary" as const, onClick: () => openExternal(verifierUrl) },
-  { label: t("openDocs"), variant: "secondary" as const, onClick: () => openExternal(docsUrl) },
-]);
-
-function openExternal(url: string) {
-  if (!url) return;
-  if (typeof window !== "undefined" && window.open) {
-    window.open(url, "_blank", "noopener,noreferrer");
+async function resolveDidDocument() {
+  try {
+    latestPayload.value = await oracle.resolveNeoDid(did.value, normalizedFormat.value);
+    setStatus(t("resultLoaded"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("resolveFailed")), "error");
   }
 }
 
-function resetStatus() {
-  clearStatus();
+async function loadProviders() {
+  try {
+    latestPayload.value = await oracle.getNeoDidProviders();
+    setStatus(t("providersLoaded"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("loadProvidersFailed")), "error");
+  }
 }
 
-setStatus(t("subtitle"), "success");
+async function fetchOracleKey() {
+  try {
+    latestPayload.value = await oracle.getOraclePublicKey() as Record<string, unknown>;
+    setStatus(t("keyLoaded"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("keyFailed")), "error");
+  }
+}
+
+async function storeRef() {
+  if (!String(ciphertext.value || "").trim()) {
+    setStatus(t("storeFailed"), "error");
+    return;
+  }
+  try {
+    latestPayload.value = await oracle.storeConfidentialCiphertext({
+      ciphertext: ciphertext.value,
+      name: secretName.value || undefined,
+      project_slug: "neodid-passport",
+      metadata: {
+        did: did.value,
+        format: normalizedFormat.value,
+      },
+    }) as unknown as Record<string, unknown>;
+    setStatus(t("refStored"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("storeFailed")), "error");
+  }
+}
+
+const providerCount = computed(() => {
+  const payload = latestPayload.value;
+  if (!payload) return 0;
+  if (Array.isArray(payload)) return payload.length;
+  if (Array.isArray(payload.providers)) return payload.providers.length;
+  if (payload.providers && typeof payload.providers === "object") {
+    return Object.keys(payload.providers as Record<string, unknown>).length;
+  }
+  return 0;
+});
+
+const renderedPayload = computed(() => JSON.stringify(latestPayload.value ?? {}, null, 2) || t("notAvailable"));
+
+const heroStats = computed<HeroStatsStripItem[]>(() =>
+  buildOracleHeroStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    network: oracle.network,
+    middleLabel: t("format"),
+    middleValue: normalizedFormat.value,
+  }),
+);
+
+const overviewStats = computed<StatsDisplayItem[]>(() =>
+  buildOracleOverviewStats({
+    oracleHash: oracle.integration.contracts.morpheusOracle,
+    publicApiUrl: oracle.integration.morpheusPublicApiUrl,
+    extra: {
+      label: oracle.integration.domains.neodid ? t("neodidDomain") : t("oracleKeyAlgorithm"),
+      value: oracle.integration.domains.neodid || oracle.integration.contracts.morpheusNeoDid || t("notAvailable"),
+      variant: "erobo",
+    },
+  }),
+);
+
+const appState = computed(() => ({
+  did: did.value,
+  format: normalizedFormat.value,
+  providerCount: providerCount.value,
+  secretName: secretName.value,
+  hasCiphertext: Boolean(ciphertext.value.trim()),
+}));
 </script>
+
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.stack { @include console.stack; }
+.button-row { @include console.button-grid(2); }
+.json-box {
+  @include console.json-box(520px);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>
