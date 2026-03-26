@@ -53,6 +53,10 @@ const appMessages = {
   ticketTokenId: { en: "Token ID", zh: "Token ID" },
   copyTokenId: { en: "Copy Token ID", zh: "复制 Token ID" },
   issueAttendanceBadge: { en: "Issue Attendance Badge", zh: "签发到场徽章" },
+  copyAttendanceLink: { en: "Copy Badge Link", zh: "复制徽章链接" },
+  shareAttendanceLink: { en: "Share Badge Link", zh: "分享徽章链接" },
+  attendanceLinkCopied: { en: "Attendance badge link copied", zh: "到场徽章链接已复制" },
+  attendanceLinkShared: { en: "Attendance badge link shared", zh: "到场徽章链接已分享" },
 
   checkinTokenId: { en: "Ticket Token ID", zh: "门票 Token ID" },
   checkinTokenIdPlaceholder: { en: "Enter token ID from QR", zh: "输入二维码中的 Token ID" },
