@@ -27,8 +27,11 @@
       <div class="stack">
         <NeoInput v-model="accountAddress" :label="t('accountAddress')" :placeholder="t('accountAddressPlaceholder')" />
         <NeoInput v-model="verifierHashOverride" :label="t('verifierHash')" :placeholder="t('verifierHashPlaceholder')" />
+        <NeoInput v-model="recoveryNewOwner" :label="t('newOwner')" :placeholder="t('newOwnerPlaceholder')" />
+        <NeoInput v-model="recoveryExpiryMinutes" :label="t('recoveryExpiry')" :placeholder="t('recoveryExpiryPlaceholder')" />
         <div class="button-row">
           <NeoButton variant="primary" type="button" :loading="isQuerying" @click="queryGuardianState" :aria-label="t('queryState')">{{ t("queryState") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="openRecoveryPreviewLink" :aria-label="t('openRecoveryPreview')">{{ t("openRecoveryPreview") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(identityWorkspaceUrl)" :aria-label="t('openIdentityWorkspace')">{{ t("openIdentityWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(aaWorkspaceUrl)" :aria-label="t('openAaWorkspace')">{{ t("openAaWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(recoveryDocsUrl)" :aria-label="t('openRecoveryDocs')">{{ t("openRecoveryDocs") }}</NeoButton>
@@ -58,6 +61,8 @@ const recoveryDocsUrl = "https://neo-abstract-account.vercel.app/docs";
 
 const accountAddress = ref("");
 const verifierHashOverride = ref("");
+const recoveryNewOwner = ref("");
+const recoveryExpiryMinutes = ref("30");
 const latestPayload = ref<Record<string, unknown> | null>(null);
 const isQuerying = ref(false);
 
@@ -263,6 +268,34 @@ function openExternal(url: string) {
   }
 }
 
+function buildRecoveryPreviewUrl() {
+  const accountHash = String(latestPayload.value?.account_hash || "").trim() || normalizeHash160(accountAddress.value);
+  const verifierHash = String(latestPayload.value?.verifier_hash || "").trim() || (verifierHashOverride.value ? normalizeHash160(verifierHashOverride.value) : "");
+  const newOwner = String(recoveryNewOwner.value || "").trim();
+  if (!accountHash || !verifierHash || !newOwner) {
+    throw new Error("account, verifier, and new owner are required");
+  }
+
+  const params = new URLSearchParams({
+    account: accountHash,
+    recoveryVerifier: verifierHash,
+    recoveryNewOwner: newOwner,
+    recoveryExpiryMinutes: String(recoveryExpiryMinutes.value || "30"),
+    autoPreviewRecovery: "1",
+  });
+  return `${identityWorkspaceUrl}?${params.toString()}`;
+}
+
+function openRecoveryPreviewLink() {
+  try {
+    const url = buildRecoveryPreviewUrl();
+    openExternal(url);
+    setStatus(t("previewLinkReady"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("queryFailed")), "error");
+  }
+}
+
 const renderedPayload = computed(() =>
   latestPayload.value ? JSON.stringify(latestPayload.value, null, 2) : t("noStateYet"),
 );
@@ -293,6 +326,8 @@ const appState = computed(() => ({
   accountHash: latestPayload.value?.account_hash || "",
   accountId: latestPayload.value?.account_id || "",
   verifierHash: latestPayload.value?.verifier_hash || "",
+  recoveryNewOwner: recoveryNewOwner.value,
+  recoveryExpiryMinutes: recoveryExpiryMinutes.value,
   pendingRecoveryActive: Boolean((latestPayload.value?.pending_recovery as { active?: boolean } | undefined)?.active),
   activeSessionActive: Boolean((latestPayload.value?.active_session as { active?: boolean } | undefined)?.active),
 }));
