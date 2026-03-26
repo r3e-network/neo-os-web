@@ -191,17 +191,41 @@ MORPHEUS_CALLBACK_HASH="$(jq -r '.neo_n3.examples.oracle_callback_consumer' "$MO
 
 echo ""
 echo "=== Direct Oracle: neo-morpheus-oracle testnet smoke ==="
-(cd "$MORPHEUS_DIR" && \
-  env \
-    MORPHEUS_NETWORK=testnet \
-    NEO_RPC_URL=https://testnet1.neo.coz.io:443 \
-    NEO_NETWORK_MAGIC=894710606 \
-    MORPHEUS_SMOKE_REQUEST_WIF="$ORACLE_TEST_WIF" \
-    NEO_N3_WIF="$ORACLE_TEST_WIF" \
-    NEO_TESTNET_WIF="$ORACLE_TEST_WIF" \
-    CONTRACT_MORPHEUS_ORACLE_HASH="$MORPHEUS_ORACLE_HASH" \
-    CONTRACT_ORACLE_CALLBACK_CONSUMER_HASH="$MORPHEUS_CALLBACK_HASH" \
-    node scripts/smoke-oracle-n3.mjs)
+oracle_smoke_retries=3
+oracle_smoke_delay_seconds=8
+oracle_smoke_attempt=1
+while true; do
+  set +e
+  oracle_smoke_output="$(
+    cd "$MORPHEUS_DIR" && \
+      env \
+        MORPHEUS_NETWORK=testnet \
+        NEO_RPC_URL=https://testnet1.neo.coz.io:443 \
+        NEO_NETWORK_MAGIC=894710606 \
+        MORPHEUS_SMOKE_REQUEST_WIF="$ORACLE_TEST_WIF" \
+        NEO_N3_WIF="$ORACLE_TEST_WIF" \
+        NEO_TESTNET_WIF="$ORACLE_TEST_WIF" \
+        CONTRACT_MORPHEUS_ORACLE_HASH="$MORPHEUS_ORACLE_HASH" \
+        CONTRACT_ORACLE_CALLBACK_CONSUMER_HASH="$MORPHEUS_CALLBACK_HASH" \
+        node scripts/smoke-oracle-n3.mjs 2>&1
+  )"
+  oracle_smoke_status=$?
+  set -e
+  printf '%s\n' "$oracle_smoke_output"
+
+  if [[ $oracle_smoke_status -eq 0 ]]; then
+    break
+  fi
+
+  if [[ "$oracle_smoke_output" == *"request_in_progress"* ]] && [[ $oracle_smoke_attempt -lt $oracle_smoke_retries ]]; then
+    echo "[oracle-smoke] request still in progress, retrying (${oracle_smoke_attempt}/${oracle_smoke_retries})..." >&2
+    oracle_smoke_attempt=$((oracle_smoke_attempt + 1))
+    sleep "$oracle_smoke_delay_seconds"
+    continue
+  fi
+
+  exit $oracle_smoke_status
+done
 
 echo ""
 echo "=== Direct AA: neo-abstract-account paymaster relay ==="
