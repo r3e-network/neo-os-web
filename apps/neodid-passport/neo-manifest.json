@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neodid-passport",
+  "name": "NeoDID Passport",
+  "name_zh": "NeoDID 护照",
+  "version": "1.0.0",
+  "description": "Identity passport surface for Web2 login, NeoDID binding, zklogin payloads, and AA-ready verifier material.",
+  "description_zh": "把 Web2 登录、NeoDID 绑定、zklogin 参数和 AA 可验证材料整理成统一身份护照。",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "neodid",
+    "passport",
+    "identity",
+    "zklogin",
+    "aa"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/neodid-passport/index.html",
+    "icon": "/miniapps/explorer/logo.jpg",
+    "banner": "/miniapps/explorer/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neodid-passport"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-27T00:00:00Z",
+  "updatedAt": "2026-03-27T00:00:00Z"
+}
