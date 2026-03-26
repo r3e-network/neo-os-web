@@ -56,6 +56,8 @@ const appMessages = {
 
   checkinTokenId: { en: "Ticket Token ID", zh: "门票 Token ID" },
   checkinTokenIdPlaceholder: { en: "Enter token ID from QR", zh: "输入二维码中的 Token ID" },
+  attendanceTemplateId: { en: "Attendance Template ID", zh: "到场模板 ID" },
+  attendanceTemplateIdPlaceholder: { en: "Optional certificate template id", zh: "可选的证书模板 ID" },
   lookup: { en: "Lookup", zh: "查询" },
   lookingUp: { en: "Looking up...", zh: "查询中..." },
   checkIn: { en: "Check-in", zh: "核验" },
