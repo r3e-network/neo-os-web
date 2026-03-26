@@ -18,6 +18,12 @@
           <NeoButton v-if="lookup?.used" size="sm" variant="secondary" type="button" @click="$emit('issue-badge')">
             {{ t("issueAttendanceBadge") }}
           </NeoButton>
+          <NeoButton v-if="lookup?.used" size="sm" variant="secondary" type="button" @click="$emit('copy-badge-link')">
+            {{ t("copyAttendanceLink") }}
+          </NeoButton>
+          <NeoButton v-if="lookup?.used" size="sm" variant="secondary" type="button" @click="$emit('share-badge-link')">
+            {{ t("shareAttendanceLink") }}
+          </NeoButton>
         </div>
       </div>
     </NeoCard>
@@ -67,6 +73,8 @@ const emit = defineEmits<{
   (e: "lookup"): void;
   (e: "checkin"): void;
   (e: "issue-badge"): void;
+  (e: "copy-badge-link"): void;
+  (e: "share-badge-link"): void;
 }>();
 
 const localTokenId = ref(props.tokenId);
