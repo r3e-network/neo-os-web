@@ -39,7 +39,7 @@
       </div>
 
       <TemplateList
-        :templates="templates"
+        :templates="displayTemplates"
         :refreshing="isRefreshing"
         :toggling-id="togglingId"
         :has-address="!!address"
@@ -53,6 +53,21 @@
         <p class="issue-draft-title">{{ t("draftReadyTitle") }}</p>
         <p class="issue-draft-text">{{ t("draftReadyText") }}</p>
         <p class="issue-draft-meta">{{ issueDraft.achievement || t("notAvailable") }}</p>
+        <div v-if="draftCategory && recommendedTemplates.length" class="issue-draft-filters">
+          <div class="issue-draft-filter-copy">
+            <p class="issue-draft-filter-title">{{ t("recommendedTemplatesTitle") }}</p>
+            <p class="issue-draft-filter-text">{{ t("recommendedTemplatesText") }}</p>
+          </div>
+          <div class="issue-draft-filter-actions">
+            <NeoButton size="sm" :variant="showRecommendedOnly ? 'primary' : 'secondary'" type="button" @click="showRecommendedOnly = true">
+              {{ t("recommendedOnly") }}
+            </NeoButton>
+            <NeoButton size="sm" :variant="!showRecommendedOnly ? 'primary' : 'secondary'" type="button" @click="showRecommendedOnly = false">
+              {{ t("allTemplates") }}
+            </NeoButton>
+          </div>
+          <p class="issue-draft-filter-count">{{ t("matchingTemplatesCount") }}: {{ recommendedTemplates.length }}</p>
+        </div>
       </div>
     </template>
 
@@ -97,7 +112,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { messages } from "@/locale/messages";
-import { MiniAppPage, HeroSection } from "@shared/components";
+import { MiniAppPage, HeroSection, NeoButton } from "@shared/components";
 import { useCertificateActions } from "@/composables/useCertificateActions";
 import TemplateList from "@/components/TemplateList.vue";
 
@@ -147,6 +162,7 @@ const activeTab = ref("templates");
 const isRefreshing = ref(false);
 const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
+const showRecommendedOnly = ref(false);
 const issueDraft = ref<{
   recipient?: string;
   recipientName?: string;
@@ -162,8 +178,10 @@ const appState = computed(() => ({
   isCreating: isCreating.value,
   isRefreshing: isRefreshing.value,
   templatesCount: templates.value.length,
+  displayedTemplatesCount: displayTemplates.value.length,
   certificatesCount: certificates.value.length,
   issueDraft: issueDraft.value,
+  showRecommendedOnly: showRecommendedOnly.value,
 }));
 
 const resetAndReload = async () => {
@@ -192,6 +210,27 @@ function resolveDraftTemplateId() {
   }
   return "";
 }
+
+const draftCategory = computed(() => String(issueDraft.value?.category || "").trim().toLowerCase());
+
+const recommendedTemplates = computed(() => {
+  if (!draftCategory.value) return [];
+  return templates.value.filter((template) => template.active && String(template.category || "").trim().toLowerCase() === draftCategory.value);
+});
+
+const displayTemplates = computed(() => {
+  if (!issueDraft.value || !draftCategory.value || recommendedTemplates.value.length === 0) {
+    return templates.value;
+  }
+  if (showRecommendedOnly.value) {
+    return recommendedTemplates.value;
+  }
+  const recommendedIds = new Set(recommendedTemplates.value.map((template) => template.id));
+  return [
+    ...recommendedTemplates.value,
+    ...templates.value.filter((template) => !recommendedIds.has(template.id)),
+  ];
+});
 
 const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
@@ -227,6 +266,7 @@ onMounted(async () => {
       }
       if (autoIssueDraft) {
         activeTab.value = "templates";
+        showRecommendedOnly.value = category.length > 0;
       }
     }
   }
@@ -321,6 +361,44 @@ onUnmounted(() => {
   margin-top: 8px;
   font-size: 12px;
   font-weight: 700;
+}
+
+.issue-draft-filters {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.issue-draft-filter-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.issue-draft-filter-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.issue-draft-filter-text {
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: 0.82;
+}
+
+.issue-draft-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.issue-draft-filter-count {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.75;
 }
 
 .certificate-scene {
