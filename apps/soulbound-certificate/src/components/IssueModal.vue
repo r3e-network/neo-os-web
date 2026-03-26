@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { ActionModal, NeoInput } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -54,6 +54,12 @@ const props = defineProps<{
   visible: boolean;
   loading: boolean;
   templateId: string;
+  prefill?: {
+    recipient?: string;
+    recipientName?: string;
+    achievement?: string;
+    memo?: string;
+  } | null;
 }>();
 
 const { t } = createUseI18n(messages)();
@@ -64,6 +70,18 @@ const localForm = reactive({
   achievement: "",
   memo: "",
 });
+
+watch(
+  () => [props.visible, props.prefill],
+  ([visible, prefill]) => {
+    if (!visible) return;
+    localForm.recipient = String(prefill?.recipient || "");
+    localForm.recipientName = String(prefill?.recipientName || "");
+    localForm.achievement = String(prefill?.achievement || "");
+    localForm.memo = String(prefill?.memo || "");
+  },
+  { immediate: true },
+);
 
 const handleIssue = () => {
   emit("issue", {
