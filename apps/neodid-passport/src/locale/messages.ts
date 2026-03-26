@@ -14,6 +14,8 @@ const appMessages = {
   secretNamePlaceholder: { en: "passport-ref", zh: "passport-ref" },
   credentialRecipient: { en: "Credential Recipient", zh: "凭证接收地址" },
   credentialRecipientPlaceholder: { en: "Neo N3 address (optional)", zh: "Neo N3 地址（可选）" },
+  credentialTemplateId: { en: "Credential Template ID", zh: "凭证模板 ID" },
+  credentialTemplateIdPlaceholder: { en: "Optional certificate template id", zh: "可选的证书模板 ID" },
   ciphertext: { en: "Ciphertext", zh: "密文" },
   ciphertextPlaceholder: { en: "Paste encrypted payload or sealed note here...", zh: "在这里粘贴加密载荷或密封笔记..." },
   resolveDid: { en: "Resolve DID", zh: "解析 DID" },

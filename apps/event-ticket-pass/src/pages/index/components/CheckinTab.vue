@@ -7,6 +7,7 @@
     <NeoCard variant="erobo-neo">
       <div class="form-group">
         <NeoInput v-model="localTokenId" :label="t('checkinTokenId')" :placeholder="t('checkinTokenIdPlaceholder')" />
+        <NeoInput v-model="localTemplateId" :label="t('attendanceTemplateId')" :placeholder="t('attendanceTemplateIdPlaceholder')" />
         <div class="checkin-actions">
           <NeoButton size="sm" variant="secondary" type="button" :loading="isLookingUp" @click="$emit('lookup')">
             {{ isLookingUp ? t("lookingUp") : t("lookup") }}
@@ -51,6 +52,7 @@ import type { TicketItem } from "@/types";
 
 const props = defineProps<{
   tokenId: string;
+  templateId: string;
   lookup: TicketItem | null;
   isLookingUp: boolean;
   isCheckingIn: boolean;
@@ -61,12 +63,14 @@ const { t } = createUseI18n(messages)();
 
 const emit = defineEmits<{
   (e: "update:tokenId", value: string): void;
+  (e: "update:templateId", value: string): void;
   (e: "lookup"): void;
   (e: "checkin"): void;
   (e: "issue-badge"): void;
 }>();
 
 const localTokenId = ref(props.tokenId);
+const localTemplateId = ref(props.templateId);
 
 const stopPropTokenIdWatch = watch(
   () => props.tokenId,
@@ -75,13 +79,25 @@ const stopPropTokenIdWatch = watch(
   }
 );
 
+const stopPropTemplateIdWatch = watch(
+  () => props.templateId,
+  (newVal) => {
+    localTemplateId.value = newVal;
+  }
+);
+
 const stopLocalTokenIdWatch = watch(localTokenId, (newVal) => {
   emit("update:tokenId", newVal);
+});
+const stopLocalTemplateIdWatch = watch(localTemplateId, (newVal) => {
+  emit("update:templateId", newVal);
 });
 
 onUnmounted(() => {
   stopPropTokenIdWatch();
+  stopPropTemplateIdWatch();
   stopLocalTokenIdWatch();
+  stopLocalTemplateIdWatch();
 });
 
 const formatSchedule = (startTime: number, endTime: number) => {
