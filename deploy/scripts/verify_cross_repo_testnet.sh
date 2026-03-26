@@ -61,133 +61,55 @@ if [[ ! -d "$AA_DIR" ]]; then
   exit 1
 fi
 
-load_env_key() {
-  local file="$1"
-  local key="$2"
-  if [[ ! -f "$file" ]]; then
-    return 0
-  fi
-  node - <<'NODE' "$file" "$key"
-const fs = require('fs');
-const file = process.argv[2];
-const key = process.argv[3];
-const text = fs.readFileSync(file, 'utf8');
-for (const line of text.split(/\n/)) {
-  const s = line.trim();
-  if (!s || s.startsWith('#') || !s.includes('=')) continue;
-  const idx = s.indexOf('=');
-  if (s.slice(0, idx) === key) {
-    process.stdout.write(s.slice(idx + 1));
-    process.exit(0);
-  }
-}
-process.exit(0);
-NODE
-}
+WORKSPACE_CONTEXT_JSON="$(
+  node "$MORPHEUS_DIR/scripts/resolve-workspace-validation-context.mjs" testnet
+)"
 
-dequote_env_value() {
-  local raw="$1"
-  raw="${raw%\"}"
-  raw="${raw#\"}"
-  raw="${raw%\'}"
-  raw="${raw#\'}"
-  printf '%s' "$raw"
-}
+NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.neo_testnet_wif')}"
+AA_TEST_WIF="${AA_TEST_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.aa_test_wif')}"
+ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_test_wif')}"
+ORACLE_RUNTIME_RELAYER_WIF="${ORACLE_RUNTIME_RELAYER_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_relayer_wif')}"
+ORACLE_RUNTIME_RELAYER_PRIVATE_KEY="${ORACLE_RUNTIME_RELAYER_PRIVATE_KEY:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_relayer_private_key')}"
+ORACLE_RUNTIME_UPDATER_WIF="${ORACLE_RUNTIME_UPDATER_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_updater_wif')}"
+ORACLE_RUNTIME_UPDATER_PRIVATE_KEY="${ORACLE_RUNTIME_UPDATER_PRIVATE_KEY:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_updater_private_key')}"
+ORACLE_RUNTIME_VERIFIER_WIF="${ORACLE_RUNTIME_VERIFIER_WIF:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_verifier_wif')}"
+ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY="${ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.actors.oracle_runtime_verifier_private_key')}"
+PHALA_API_TOKEN="$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.morpheus.runtime_token')"
+PHALA_API_URL="$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.morpheus.runtime_url')"
+MORPHEUS_ORACLE_HASH="$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.morpheus.oracle_hash')"
+MORPHEUS_CALLBACK_HASH="$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.morpheus.callback_hash')"
+AA_CORE_HASH_TESTNET="${AA_CORE_HASH_TESTNET:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.core_hash_testnet')}"
+PAYMASTER_APP_ID="${MORPHEUS_PAYMASTER_APP_ID:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.paymaster_app_id')}"
+PAYMASTER_ACCOUNT_ID="${PAYMASTER_ACCOUNT_ID:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.paymaster_account_id')}"
 
-load_miniapp_env_value() {
-  local key="$1"
-  local raw
-  raw="$(load_env_key "$MINIAPP_ENV_FILE" "$key")"
-  dequote_env_value "$raw"
-}
-
-resolve_morpheus_runtime_url() {
-  local network="$1"
-  local explicit=""
-  if [[ "$network" == "mainnet" ]]; then
-    explicit="$(load_env_key "$MORPHEUS_ENV_FILE" MORPHEUS_MAINNET_RUNTIME_URL)"
-    explicit="$(dequote_env_value "$explicit")"
-    if [[ -n "$explicit" ]]; then
-      printf '%s' "$explicit"
-      return 0
-    fi
-  else
-    explicit="$(load_env_key "$MORPHEUS_ENV_FILE" MORPHEUS_TESTNET_RUNTIME_URL)"
-    explicit="$(dequote_env_value "$explicit")"
-    if [[ -n "$explicit" ]]; then
-      printf '%s' "$explicit"
-      return 0
-    fi
-  fi
-  explicit="$(load_env_key "$MORPHEUS_ENV_FILE" MORPHEUS_RUNTIME_URL)"
-  explicit="$(dequote_env_value "$explicit")"
-  if [[ -n "$explicit" ]]; then
-    printf '%s' "$explicit"
-    return 0
-  fi
-  local local_key=""
-  if [[ "$network" == "mainnet" ]]; then
-    local_key="MORPHEUS_MAINNET_CUSTOM_DOMAIN"
-  else
-    local_key="MORPHEUS_TESTNET_CUSTOM_DOMAIN"
-  fi
-  local custom_domain
-  custom_domain="$(load_env_key "$MORPHEUS_ENV_LOCAL_FILE" "$local_key")"
-  custom_domain="$(dequote_env_value "$custom_domain")"
-  if [[ -n "$custom_domain" ]]; then
-    if [[ "$custom_domain" == http://* || "$custom_domain" == https://* ]]; then
-      printf '%s' "$custom_domain"
-    else
-      printf 'https://%s' "$custom_domain"
-    fi
-    return 0
-  fi
-  local legacy
-  legacy="$(load_env_key "$MORPHEUS_ENV_FILE" PHALA_API_URL)"
-  legacy="$(dequote_env_value "$legacy")"
-  printf '%s' "$legacy"
-}
-
-NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-$(load_miniapp_env_value NEO_TESTNET_WIF)}"
-FLAGSHIP_LIVE_WIF="${FLAGSHIP_LIVE_WIF:-$(load_miniapp_env_value FLAGSHIP_LIVE_WIF)}"
-AA_TEST_WIF="${AA_TEST_WIF:-$(load_miniapp_env_value AA_TEST_WIF)}"
-ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-$(load_miniapp_env_value ORACLE_TEST_WIF)}"
-
-if [[ -z "${NEO_TESTNET_WIF:-}" ]]; then
-  echo "NEO_TESTNET_WIF missing in $MINIAPP_ENV_FILE" >&2
+if [[ -z "${NEO_TESTNET_WIF:-}" || "$NEO_TESTNET_WIF" == "null" ]]; then
+  echo "NEO_TESTNET_WIF missing in workspace validation context" >&2
   exit 1
 fi
-
-if [[ -z "${AA_TEST_WIF:-}" ]]; then
-  AA_TEST_WIF="$NEO_TESTNET_WIF"
-fi
-
-ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-${AA_TEST_WIF:-${FLAGSHIP_LIVE_WIF:-${NEO_TESTNET_WIF}}}}"
-
-PHALA_API_TOKEN="$(load_env_key "$MORPHEUS_ENV_FILE" MORPHEUS_RUNTIME_TOKEN)"
-PHALA_API_URL="$(resolve_morpheus_runtime_url testnet)"
-if [[ -z "$PHALA_API_TOKEN" ]]; then
-  PHALA_API_TOKEN="$(load_env_key "$MORPHEUS_ENV_FILE" PHALA_API_TOKEN)"
-fi
-if [[ -z "$PHALA_API_TOKEN" ]]; then
-  PHALA_API_TOKEN="$(load_env_key "$MORPHEUS_ENV_FILE" PHALA_SHARED_SECRET)"
-fi
-if [[ -z "$PHALA_API_TOKEN" ]]; then
-  echo "MORPHEUS_RUNTIME_TOKEN / PHALA_API_TOKEN / PHALA_SHARED_SECRET missing in $MORPHEUS_ENV_FILE" >&2
+if [[ -z "${AA_TEST_WIF:-}" || "$AA_TEST_WIF" == "null" ]]; then
+  echo "AA_TEST_WIF missing in workspace validation context" >&2
   exit 1
 fi
-if [[ -z "$PHALA_API_URL" ]]; then
-  echo "MORPHEUS_RUNTIME_URL / PHALA_API_URL or testnet custom domain missing in $MORPHEUS_ENV_FILE / $MORPHEUS_ENV_LOCAL_FILE" >&2
+if [[ -z "${ORACLE_TEST_WIF:-}" || "$ORACLE_TEST_WIF" == "null" ]]; then
+  echo "ORACLE_TEST_WIF missing in workspace validation context" >&2
   exit 1
 fi
-
-if [[ -z "$AA_TEST_WIF" ]]; then
-  echo "AA_TEST_WIF is required for the direct AA relay validation" >&2
+if [[ ( -z "${ORACLE_RUNTIME_UPDATER_WIF:-}" || "$ORACLE_RUNTIME_UPDATER_WIF" == "null" ) && ( -z "${ORACLE_RUNTIME_UPDATER_PRIVATE_KEY:-}" || "$ORACLE_RUNTIME_UPDATER_PRIVATE_KEY" == "null" ) ]]; then
+  echo "ORACLE_RUNTIME_UPDATER signer missing in workspace validation context" >&2
   exit 1
 fi
-
-MORPHEUS_ORACLE_HASH="$(jq -r '.neo_n3.contracts.morpheus_oracle' "$MORPHEUS_DIR/config/networks/testnet.json")"
-MORPHEUS_CALLBACK_HASH="$(jq -r '.neo_n3.examples.oracle_callback_consumer' "$MORPHEUS_DIR/config/networks/testnet.json")"
+if [[ ( -z "${ORACLE_RUNTIME_VERIFIER_WIF:-}" || "$ORACLE_RUNTIME_VERIFIER_WIF" == "null" ) && ( -z "${ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY:-}" || "$ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY" == "null" ) ]]; then
+  echo "ORACLE_RUNTIME_VERIFIER signer missing in workspace validation context" >&2
+  exit 1
+fi
+if [[ -z "${PHALA_API_TOKEN:-}" || "$PHALA_API_TOKEN" == "null" ]]; then
+  echo "MORPHEUS runtime token missing in workspace validation context" >&2
+  exit 1
+fi
+if [[ -z "${PHALA_API_URL:-}" || "$PHALA_API_URL" == "null" ]]; then
+  echo "MORPHEUS runtime url missing in workspace validation context" >&2
+  exit 1
+fi
 
 echo ""
 echo "=== Direct Oracle: neo-morpheus-oracle testnet smoke ==="
@@ -203,8 +125,15 @@ while true; do
         NEO_RPC_URL=https://testnet1.neo.coz.io:443 \
         NEO_NETWORK_MAGIC=894710606 \
         MORPHEUS_SMOKE_REQUEST_WIF="$ORACLE_TEST_WIF" \
-        NEO_N3_WIF="$ORACLE_TEST_WIF" \
         NEO_TESTNET_WIF="$ORACLE_TEST_WIF" \
+        MORPHEUS_RELAYER_NEO_N3_WIF_TESTNET="$ORACLE_RUNTIME_RELAYER_WIF" \
+        MORPHEUS_RELAYER_NEO_N3_PRIVATE_KEY_TESTNET="$ORACLE_RUNTIME_RELAYER_PRIVATE_KEY" \
+        MORPHEUS_UPDATER_NEO_N3_WIF_TESTNET="$ORACLE_RUNTIME_UPDATER_WIF" \
+        MORPHEUS_UPDATER_NEO_N3_PRIVATE_KEY_TESTNET="$ORACLE_RUNTIME_UPDATER_PRIVATE_KEY" \
+        MORPHEUS_ORACLE_VERIFIER_WIF_TESTNET="$ORACLE_RUNTIME_VERIFIER_WIF" \
+        MORPHEUS_ORACLE_VERIFIER_PRIVATE_KEY_TESTNET="$ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY" \
+        PHALA_ORACLE_VERIFIER_WIF_TESTNET="$ORACLE_RUNTIME_VERIFIER_WIF" \
+        PHALA_ORACLE_VERIFIER_PRIVATE_KEY_TESTNET="$ORACLE_RUNTIME_VERIFIER_PRIVATE_KEY" \
         CONTRACT_MORPHEUS_ORACLE_HASH="$MORPHEUS_ORACLE_HASH" \
         CONTRACT_ORACLE_CALLBACK_CONSUMER_HASH="$MORPHEUS_CALLBACK_HASH" \
         node scripts/smoke-oracle-n3.mjs 2>&1
