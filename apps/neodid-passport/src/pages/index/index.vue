@@ -33,6 +33,8 @@
           <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="fetchOracleKey" :aria-label="t('fetchOracleKey')">{{ t("fetchOracleKey") }}</NeoButton>
           <NeoButton variant="secondary" type="button" :loading="oracle.isRequesting" @click="storeRef" :aria-label="t('storeConfidentialRef')">{{ t("storeConfidentialRef") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openIdentityCredentialDraft" :aria-label="t('openIdentityCredential')">{{ t("openIdentityCredential") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="copyIdentityCredentialLink" :aria-label="t('copyIdentityCredential')">{{ t("copyIdentityCredential") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="shareIdentityCredentialLink" :aria-label="t('shareIdentityCredential')">{{ t("shareIdentityCredential") }}</NeoButton>
         </div>
       </div>
     </template>
@@ -156,6 +158,35 @@ function openIdentityCredentialDraft() {
     setStatus(t("identityCredentialReady"), "success");
   } catch (error: unknown) {
     setStatus(formatErrorMessage(error, t("resolveFailed")), "error");
+  }
+}
+
+async function copyIdentityCredentialLink() {
+  try {
+    const url = buildIdentityCredentialUrl();
+    await navigator.clipboard.writeText(url);
+    setStatus(t("identityCredentialCopied"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("resolveFailed")), "error");
+  }
+}
+
+async function shareIdentityCredentialLink() {
+  try {
+    const url = buildIdentityCredentialUrl();
+    if (navigator.share) {
+      await navigator.share({
+        title: t("openIdentityCredential"),
+        text: t("openIdentityCredential"),
+        url,
+      });
+      setStatus(t("identityCredentialShared"), "success");
+      return;
+    }
+    await copyIdentityCredentialLink();
+  } catch (error: unknown) {
+    if (error instanceof Error && /abort|cancel/i.test(error.message)) return;
+    await copyIdentityCredentialLink();
   }
 }
 

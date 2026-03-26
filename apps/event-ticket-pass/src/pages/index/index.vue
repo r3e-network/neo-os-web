@@ -106,6 +106,8 @@
         @lookup="contract.lookupTicket"
         @checkin="contract.checkInTicket"
         @issue-badge="openAttendanceBadgeDraft"
+        @copy-badge-link="copyAttendanceBadgeLink"
+        @share-badge-link="shareAttendanceBadgeLink"
       />
     </template>
   </MiniAppPage>
@@ -246,6 +248,36 @@ function openAttendanceBadgeDraft() {
   } catch (_e: unknown) {
     console.warn("[event-ticket-pass] attendance badge handoff failed:", _e instanceof Error ? _e.message : String(_e));
     setStatus(t("ticketNotFound"), "error");
+  }
+}
+
+async function copyAttendanceBadgeLink() {
+  try {
+    const url = buildAttendanceBadgeUrl();
+    await navigator.clipboard.writeText(url);
+    setStatus(t("attendanceLinkCopied"), "success");
+  } catch (_e: unknown) {
+    console.warn("[event-ticket-pass] attendance badge copy failed:", _e instanceof Error ? _e.message : String(_e));
+    setStatus(t("ticketNotFound"), "error");
+  }
+}
+
+async function shareAttendanceBadgeLink() {
+  try {
+    const url = buildAttendanceBadgeUrl();
+    if (navigator.share) {
+      await navigator.share({
+        title: t("issueAttendanceBadge"),
+        text: t("issueAttendanceBadge"),
+        url,
+      });
+      setStatus(t("attendanceLinkShared"), "success");
+      return;
+    }
+    await copyAttendanceBadgeLink();
+  } catch (_e: unknown) {
+    if (_e instanceof Error && /abort|cancel/i.test(_e.message)) return;
+    await copyAttendanceBadgeLink();
   }
 }
 
