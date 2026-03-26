@@ -38,6 +38,9 @@ const appMessages = {
   activate: { en: "Activate", zh: "启用" },
 
   issueTitle: { en: "Issue Certificate", zh: "签发证书" },
+  draftReadyTitle: { en: "Draft Ready", zh: "草稿已就绪" },
+  draftReadyText: { en: "A credential draft was passed in from another miniapp. Select a template below to issue it.", zh: "来自其他小程序的证书草稿已带入。请选择下方模板完成签发。" },
+  useDraftIssue: { en: "Use Draft", zh: "使用草稿" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
   issueRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
   recipientName: { en: "Recipient name", zh: "受证人姓名" },

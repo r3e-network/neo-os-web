@@ -48,6 +48,12 @@
         @issue="openIssueModal"
         @toggle="toggleTemplate"
       />
+
+      <div v-if="issueDraft" class="issue-draft-card">
+        <p class="issue-draft-title">{{ t("draftReadyTitle") }}</p>
+        <p class="issue-draft-text">{{ t("draftReadyText") }}</p>
+        <p class="issue-draft-meta">{{ issueDraft.achievement || t("notAvailable") }}</p>
+      </div>
     </template>
 
     <template #operation>
@@ -81,6 +87,7 @@
     :visible="issueModalOpen"
     :loading="isIssuing"
     :template-id="issueTemplateId"
+    :prefill="issueDraft"
     @close="closeIssueModal"
     @issue="handleIssueCertificate"
   />
@@ -140,6 +147,12 @@ const activeTab = ref("templates");
 const isRefreshing = ref(false);
 const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
+const issueDraft = ref<{
+  recipient?: string;
+  recipientName?: string;
+  achievement?: string;
+  memo?: string;
+} | null>(null);
 
 const appState = computed(() => ({
   activeTab: activeTab.value,
@@ -148,6 +161,7 @@ const appState = computed(() => ({
   isRefreshing: isRefreshing.value,
   templatesCount: templates.value.length,
   certificatesCount: certificates.value.length,
+  issueDraft: issueDraft.value,
 }));
 
 const resetAndReload = async () => {
@@ -179,12 +193,37 @@ const onTabChange = async (tab: string) => {
 const isMounted = ref(true);
 
 onMounted(async () => {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const recipient = String(params.get("issueRecipient") || "").trim();
+    const recipientName = String(params.get("issueRecipientName") || "").trim();
+    const achievement = String(params.get("issueAchievement") || "").trim();
+    const memo = String(params.get("issueMemo") || "").trim();
+    const templateId = String(params.get("issueTemplateId") || "").trim();
+    const autoIssueDraft = ["1", "true", "yes"].includes(String(params.get("autoIssueDraft") || "").trim().toLowerCase());
+    if (recipient || recipientName || achievement || memo) {
+      issueDraft.value = { recipient, recipientName, achievement, memo };
+      if (templateId) {
+        issueTemplateId.value = templateId;
+      }
+      if (autoIssueDraft) {
+        activeTab.value = "templates";
+      }
+    }
+  }
   if (!isMounted.value) return;
   try {
     await connect();
     if (address.value) {
       await refreshTemplates();
       await refreshCertificates();
+      if (issueDraft.value) {
+        const targetTemplateId = issueTemplateId.value || templates.value.find((template) => template.active)?.id || "";
+        if (targetTemplateId) {
+          issueTemplateId.value = targetTemplateId;
+          issueModalOpen.value = true;
+        }
+      }
     }
   } catch (_e: unknown) {
     console.warn("[soulbound-certificate] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
@@ -196,6 +235,13 @@ const stopAddressWatch = watch(address, async (newAddr) => {
     try {
       await refreshTemplates();
       await refreshCertificates();
+      if (issueDraft.value && !issueModalOpen.value) {
+        const targetTemplateId = issueTemplateId.value || templates.value.find((template) => template.active)?.id || "";
+        if (targetTemplateId) {
+          issueTemplateId.value = targetTemplateId;
+          issueModalOpen.value = true;
+        }
+      }
     } catch (_e: unknown) {
       console.warn("[soulbound-certificate] address change failed:", _e instanceof Error ? _e.message : String(_e));
     }
@@ -228,6 +274,34 @@ onUnmounted(() => {
 
 .hero-container {
   margin-bottom: 20px;
+}
+
+.issue-draft-card {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(159, 157, 243, 0.24);
+  background: rgba(159, 157, 243, 0.08);
+}
+
+.issue-draft-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.issue-draft-text {
+  font-size: 13px;
+  line-height: 1.6;
+  opacity: 0.82;
+}
+
+.issue-draft-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .certificate-scene {

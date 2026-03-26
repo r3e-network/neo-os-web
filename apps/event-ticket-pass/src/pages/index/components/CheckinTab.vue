@@ -14,6 +14,9 @@
           <NeoButton size="sm" variant="primary" type="button" :loading="isCheckingIn" @click="$emit('checkin')">
             {{ isCheckingIn ? t("checkingIn") : t("checkIn") }}
           </NeoButton>
+          <NeoButton v-if="lookup?.used" size="sm" variant="secondary" type="button" @click="$emit('issue-badge')">
+            {{ t("issueAttendanceBadge") }}
+          </NeoButton>
         </div>
       </div>
     </NeoCard>
@@ -33,6 +36,7 @@
         <span class="meta-value">{{ formatSchedule(lookup.startTime, lookup.endTime) }}</span>
       </div>
       <span class="detail-row">{{ t("ticketSeat") }}: {{ lookup.seat || t("seatFallback") }}</span>
+      <span class="detail-row">{{ t("ticketOwner") }}: {{ lookup.owner || t("notAvailable") }}</span>
       <span class="detail-row">{{ t("ticketTokenId") }}: {{ lookup.tokenId }}</span>
     </NeoCard>
   </div>
@@ -59,6 +63,7 @@ const emit = defineEmits<{
   (e: "update:tokenId", value: string): void;
   (e: "lookup"): void;
   (e: "checkin"): void;
+  (e: "issue-badge"): void;
 }>();
 
 const localTokenId = ref(props.tokenId);
