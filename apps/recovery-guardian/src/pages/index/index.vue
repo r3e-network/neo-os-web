@@ -20,6 +20,14 @@
       <div v-if="latestPayload" class="note-box">
         <p class="note-title">{{ t("noteTitle") }}</p>
         <p class="note-text">{{ t("noteText") }}</p>
+        <div v-if="previewUrl" class="link-box">
+          <p class="link-label">{{ t("openRecoveryPreview") }}</p>
+          <p class="link-value">{{ previewUrl }}</p>
+          <div class="link-actions">
+            <NeoButton variant="secondary" size="sm" type="button" @click="copyRecoveryPreviewLink" :aria-label="t('copyRecoveryLink')">{{ t("copyRecoveryLink") }}</NeoButton>
+            <NeoButton variant="secondary" size="sm" type="button" @click="shareRecoveryPreviewLink" :aria-label="t('shareRecoveryLink')">{{ t("shareRecoveryLink") }}</NeoButton>
+          </div>
+        </div>
       </div>
       <pre class="json-box">{{ renderedPayload }}</pre>
     </template>
@@ -32,6 +40,8 @@
         <div class="button-row">
           <NeoButton variant="primary" type="button" :loading="isQuerying" @click="queryGuardianState" :aria-label="t('queryState')">{{ t("queryState") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openRecoveryPreviewLink" :aria-label="t('openRecoveryPreview')">{{ t("openRecoveryPreview") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="copyRecoveryPreviewLink" :aria-label="t('copyRecoveryLink')">{{ t("copyRecoveryLink") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="shareRecoveryPreviewLink" :aria-label="t('shareRecoveryLink')">{{ t("shareRecoveryLink") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(identityWorkspaceUrl)" :aria-label="t('openIdentityWorkspace')">{{ t("openIdentityWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(aaWorkspaceUrl)" :aria-label="t('openAaWorkspace')">{{ t("openAaWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(recoveryDocsUrl)" :aria-label="t('openRecoveryDocs')">{{ t("openRecoveryDocs") }}</NeoButton>
@@ -286,13 +296,61 @@ function buildRecoveryPreviewUrl() {
   return `${identityWorkspaceUrl}?${params.toString()}`;
 }
 
+const previewUrl = computed(() => {
+  try {
+    return buildRecoveryPreviewUrl();
+  } catch {
+    return "";
+  }
+});
+
 function openRecoveryPreviewLink() {
   try {
-    const url = buildRecoveryPreviewUrl();
+    const url = previewUrl.value || buildRecoveryPreviewUrl();
     openExternal(url);
     setStatus(t("previewLinkReady"), "success");
   } catch (error: unknown) {
     setStatus(formatErrorMessage(error, t("queryFailed")), "error");
+  }
+}
+
+async function copyRecoveryPreviewLink() {
+  const url = previewUrl.value;
+  if (!url) {
+    setStatus(t("previewLinkUnavailable"), "error");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus(t("previewLinkCopied"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("queryFailed")), "error");
+  }
+}
+
+async function shareRecoveryPreviewLink() {
+  const url = previewUrl.value;
+  if (!url) {
+    setStatus(t("previewLinkUnavailable"), "error");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: t("title"),
+        text: t("subtitle"),
+        url,
+      });
+      setStatus(t("previewLinkShared"), "success");
+      return;
+    }
+    await copyRecoveryPreviewLink();
+  } catch (error: unknown) {
+    if (error instanceof Error && /abort|cancel/i.test(error.message)) {
+      return;
+    }
+    await copyRecoveryPreviewLink();
   }
 }
 
@@ -326,6 +384,7 @@ const appState = computed(() => ({
   accountHash: latestPayload.value?.account_hash || "",
   accountId: latestPayload.value?.account_id || "",
   verifierHash: latestPayload.value?.verifier_hash || "",
+  previewUrl: previewUrl.value,
   recoveryNewOwner: recoveryNewOwner.value,
   recoveryExpiryMinutes: recoveryExpiryMinutes.value,
   pendingRecoveryActive: Boolean((latestPayload.value?.pending_recovery as { active?: boolean } | undefined)?.active),
@@ -361,5 +420,29 @@ const appState = computed(() => ({
   font-size: 13px;
   line-height: 1.6;
   opacity: 0.8;
+}
+.link-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.link-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.link-value {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.88;
+  word-break: break-all;
+}
+.link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
 }
 </style>
