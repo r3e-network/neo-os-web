@@ -229,6 +229,8 @@ const issueDraft = ref<{
   achievement?: string;
   memo?: string;
   category?: string;
+  credentialType?: string;
+  issuerPolicy?: string;
   source?: string;
 } | null>(null);
 const RECENT_TEMPLATE_STORAGE_KEY = "soulbound-certificate.recent-template-ids";
@@ -272,6 +274,8 @@ function buildTemplateIssueLink(template: { id: string }) {
     if (issueDraft.value.achievement) params.set("issueAchievement", issueDraft.value.achievement);
     if (issueDraft.value.memo) params.set("issueMemo", issueDraft.value.memo);
     if (issueDraft.value.category) params.set("issueCategory", issueDraft.value.category);
+    if (issueDraft.value.credentialType) params.set("issueCredentialType", issueDraft.value.credentialType);
+    if (issueDraft.value.issuerPolicy) params.set("issueIssuerPolicy", issueDraft.value.issuerPolicy);
     if (issueDraft.value.source) params.set("issueSource", issueDraft.value.source);
   }
 
@@ -499,11 +503,13 @@ onMounted(async () => {
     const achievement = String(params.get("issueAchievement") || "").trim();
     const memo = String(params.get("issueMemo") || "").trim();
     const category = String(params.get("issueCategory") || "").trim();
+    const credentialType = String(params.get("issueCredentialType") || "").trim();
+    const issuerPolicy = String(params.get("issueIssuerPolicy") || "").trim();
     const source = String(params.get("issueSource") || "").trim();
     const templateId = String(params.get("issueTemplateId") || "").trim();
     const autoIssueDraft = ["1", "true", "yes"].includes(String(params.get("autoIssueDraft") || "").trim().toLowerCase());
     if (recipient || recipientName || achievement || memo) {
-      issueDraft.value = { recipient, recipientName, achievement, memo, category, source };
+      issueDraft.value = { recipient, recipientName, achievement, memo, category, credentialType, issuerPolicy, source };
       if (templateId) {
         issueTemplateId.value = templateId;
       }

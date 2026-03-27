@@ -140,6 +140,8 @@ function buildIdentityCredentialUrl() {
     issueAchievement: achievement,
     issueMemo: memo,
     issueCategory: "Identity",
+    issueCredentialType: "identity_passport",
+    issueIssuerPolicy: "identity_issuer_attests_neodid_resolution",
     issueSource: "neodid-passport",
     autoIssueDraft: "1",
   });
