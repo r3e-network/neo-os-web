@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -1016,5 +1018,59 @@ describe("POST /api/miniapps/admin/media/upload-url", () => {
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.app_id).toBe("miniapp-a");
     expect(body.asset_type).toBe("logo");
+  });
+});
+
+// ==========================================================================
+// 15. GET /api/reports/live-smoke
+// ==========================================================================
+
+describe("GET /api/reports/live-smoke", () => {
+  const liveSmokeRoot = path.join(process.cwd(), "docs", "reports", "live-smoke");
+
+  afterEach(() => {
+    for (const run of ["zzzz-test-live-smoke-a", "zzzz-test-live-smoke-b"]) {
+      fs.rmSync(path.join(liveSmokeRoot, run), { recursive: true, force: true });
+    }
+  });
+
+  it("returns the latest available live smoke summary", async () => {
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), { recursive: true });
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-b"), { recursive: true });
+    fs.writeFileSync(
+      path.join(liveSmokeRoot, "zzzz-test-live-smoke-a", "summary.json"),
+      JSON.stringify({ generatedAt: "2026-03-27T00:00:00.000Z", stage: "a" }),
+    );
+    fs.writeFileSync(
+      path.join(liveSmokeRoot, "zzzz-test-live-smoke-b", "summary.json"),
+      JSON.stringify({ generatedAt: "2026-03-27T01:00:00.000Z", stage: "b" }),
+    );
+
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/reports/live-smoke/route");
+    const res = await GET(authedRequest("http://localhost/api/reports/live-smoke"));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.latestRun).toBe("zzzz-test-live-smoke-b");
+    expect(data.run).toBe("zzzz-test-live-smoke-b");
+    expect(data.availableRuns).toEqual(["zzzz-test-live-smoke-b", "zzzz-test-live-smoke-a"]);
+    expect(data.summary).toMatchObject({ stage: "b" });
+  });
+
+  it("supports selecting a specific run", async () => {
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), { recursive: true });
+    fs.writeFileSync(
+      path.join(liveSmokeRoot, "zzzz-test-live-smoke-a", "summary.json"),
+      JSON.stringify({ generatedAt: "2026-03-27T00:00:00.000Z", stage: "a" }),
+    );
+
+    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/reports/live-smoke/route");
+    const res = await GET(authedRequest("http://localhost/api/reports/live-smoke?run=zzzz-test-live-smoke-a"));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.requestedRun).toBe("zzzz-test-live-smoke-a");
+    expect(data.run).toBe("zzzz-test-live-smoke-a");
+    expect(data.summary).toMatchObject({ stage: "a" });
   });
 });

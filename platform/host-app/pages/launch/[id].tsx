@@ -15,6 +15,7 @@ import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
 import { resolveMiniAppDetailConfig } from "../../lib/miniapp-template";
 import { OperationPanel } from "../../components/OperationPanel";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
+import { isSharedModeApp } from "../../lib/chain";
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -41,6 +42,13 @@ export default function LaunchPage({ app }: LaunchPageProps) {
   const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
   const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
   const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
+  const runtimeLabel = isSharedModeApp(app)
+    ? "Shared Runtime"
+    : isManifestMode
+      ? "Manifest Runtime"
+      : federated
+        ? "Federated Runtime"
+        : "External Runtime";
   const mountedRef = useRef(true);
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,6 +145,7 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         appId={app.app_id}
         wallet={wallet}
         networkLatency={networkLatency}
+        runtimeLabel={runtimeLabel}
         onExit={handleExit}
         onShare={handleShare}
       />

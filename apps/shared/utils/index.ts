@@ -15,3 +15,4 @@ export * from "./parsers";
 export * from "./createSidebarItems";
 export * from "./createMiniAppEntry";
 export * from "./n3index";
+export * from "./runtime-cache";

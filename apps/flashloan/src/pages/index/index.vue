@@ -94,14 +94,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
 import { messages } from "@/locale/messages";
-import { MiniAppPage } from "@shared/components";
+import { ErrorToast, MiniAppPage, NeoButton, NeoCard, NeoInput, StatsDisplay } from "@shared/components";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 
 import { useFlashloanCore } from "@/composables/useFlashloanCore";
-import ErrorToast from "./components/ErrorToast.vue";
 import LoanRequest from "./components/LoanRequest.vue";
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, clearStatus } =

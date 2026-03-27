@@ -3,6 +3,7 @@ import { ref, reactive } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -17,7 +18,13 @@ export function useQuadraticContributions(
   refreshRounds: () => Promise<void>
 ) {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, chainType } = wallet;
+  const { invokeDirectly, ensureWallet } = useContractInteraction({
+    appId: "miniapp-quadratic-funding",
+    t,
+    wallet,
+  });
 
   const isContributing = ref(false);
 
@@ -75,24 +82,24 @@ export function useQuadraticContributions(
 
     try {
       isContributing.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const memo = data.memo.trim().slice(0, 160);
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "contribute",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "contribute",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: selectedRound.value.id },
           { type: "Integer", value: String(parsedProjectId) },
           { type: "Integer", value: amount },
           { type: "String", value: memo },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
 
       setStatus(t("contributionSent"), "success");
       await refreshProjects();

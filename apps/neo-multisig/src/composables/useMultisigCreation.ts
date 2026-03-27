@@ -4,6 +4,7 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { api } from "@/services/api";
 import {
@@ -170,25 +171,16 @@ export function useMultisigCreation() {
         memo: form.value.memo || undefined,
       });
 
-      let history: Array<Record<string, unknown>> = [];
-      try {
-        const stored = uni.getStorageSync("multisig_history");
-        if (stored) {
-          history = JSON.parse(stored);
-        }
-      } catch (_e: unknown) {
-        history = [];
-      }
+      const history = Array.isArray(readCachedJSON<Array<Record<string, unknown>>>("multisig_history"))
+        ? (readCachedJSON<Array<Record<string, unknown>>>("multisig_history") as Array<Record<string, unknown>>)
+        : [];
       history.unshift({
         id: result.id,
         scriptHash: multisigAccount.value.scriptHash,
         status: result.status || "pending",
         createdAt: result.created_at || new Date().toISOString(),
       });
-      uni.setStorageSync("multisig_history", (() => {
-        try { return JSON.stringify(history.slice(0, 10)); }
-        catch (_e: unknown) { console.warn("[useMultisigCreation] history serialization failed:", _e instanceof Error ? _e.message : String(_e)); return "[]"; }
-      })());
+      writeCachedJSON("multisig_history", history.slice(0, 10));
 
       onSuccess?.(result.id);
     } catch (e: unknown) {

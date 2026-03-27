@@ -8,6 +8,15 @@ type MediaVariant = {
 };
 
 type FrontendSpecFormat = "markdown" | "yaml" | "json";
+type ContractCompositionMode = "template" | "shared" | "router" | "custom";
+type ContractModuleConfig = {
+  module_id: string;
+  version?: string;
+  config?: Record<string, unknown>;
+  binding?: string;
+  contract_hash?: string;
+  capabilities?: string[];
+};
 
 function parseJSONObjectText(input: string, fieldName: string): Record<string, unknown> {
   const source = String(input || "").trim();
@@ -46,6 +55,21 @@ function parseJSONVariantArray(input: string, fieldName: string): MediaVariant[]
           locale: typeof item.locale === "string" ? item.locale.trim() || undefined : undefined,
         };
       });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "invalid JSON";
+    throw new Error(`${fieldName} parse error: ${detail}`);
+  }
+}
+
+function parseJSONArrayText(input: string, fieldName: string): unknown[] {
+  const source = String(input || "").trim();
+  if (!source) return [];
+  try {
+    const parsed = JSON.parse(source);
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${fieldName} must be a JSON array`);
+    }
+    return parsed;
   } catch (error) {
     const detail = error instanceof Error ? error.message : "invalid JSON";
     throw new Error(`${fieldName} parse error: ${detail}`);
@@ -95,6 +119,7 @@ export function formToConfig(form: Record<string, any>) {
     : undefined;
 
   const frontendTemplateParams = parseJSONObjectText(form.frontend_template_params_json, "frontend_template_params_json");
+  const frontendComposition = parseJSONObjectText(form.frontend_composition_json, "frontend_composition_json");
   const contractTemplateInitParams = parseJSONObjectText(form.contract_template_init_params_json, "contract_template_init_params_json");
   const contractTemplateInitSchema = parseJSONObjectText(form.contract_template_init_schema_json, "contract_template_init_schema_json");
   const contractTemplateMethodSchema = parseJSONObjectText(form.contract_template_method_schema_json, "contract_template_method_schema_json");
@@ -111,6 +136,34 @@ export function formToConfig(form: Record<string, any>) {
   const contractTemplateAuditProvider = String(form.contract_template_audit_provider || "").trim() || undefined;
   const contractTemplateAuditHash = String(form.contract_template_audit_hash || "").trim() || undefined;
   const contractTemplateAuditDate = String(form.contract_template_audit_date || "").trim() || undefined;
+  const contractCompositionModeRaw = String(form.contract_composition_mode || "").trim().toLowerCase();
+  const contractCompositionMode =
+    contractCompositionModeRaw === "template" ||
+    contractCompositionModeRaw === "shared" ||
+    contractCompositionModeRaw === "router" ||
+    contractCompositionModeRaw === "custom"
+      ? (contractCompositionModeRaw as ContractCompositionMode)
+      : undefined;
+  const contractInstanceId = String(form.contract_instance_id || "").trim() || undefined;
+  const contractRecipeId = String(form.contract_recipe_id || "").trim() || undefined;
+  const contractRecipeVersion = String(form.contract_recipe_version || "").trim() || undefined;
+  const contractRouterTemplateRef = String(form.contract_router_template_ref || "").trim() || undefined;
+  const contractRegistries = parseJSONObjectText(
+    form.contract_registries_json,
+    "contract_registries_json",
+  );
+  const contractModules = parseJSONArrayText(form.contract_modules_json, "contract_modules_json")
+    .filter((item): item is ContractModuleConfig => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    .map((item) => item as ContractModuleConfig)
+    .filter((item) => typeof item.module_id === "string" && item.module_id.trim().length > 0);
+  const contractModuleBindings = parseJSONObjectText(
+    form.contract_module_bindings_json,
+    "contract_module_bindings_json",
+  );
+  const contractInstancePermissions = parseJSONObjectText(
+    form.contract_instance_permissions_json,
+    "contract_instance_permissions_json",
+  );
   const logic = parseJSONObjectText(form.logic_json, "logic_json");
   const marketplace = parseJSONObjectText(form.marketplace_json, "marketplace_json");
   const logoVariants = parseJSONVariantArray(form.content_logo_variants_json, "content_logo_variants_json");
@@ -143,6 +196,29 @@ export function formToConfig(form: Record<string, any>) {
     security_profile: Object.keys(normalizedSecurityProfile).length ? normalizedSecurityProfile : undefined,
   };
 
+  const contractComposition = {
+    mode: contractCompositionMode,
+    instance_id: contractInstanceId,
+    recipe: contractRecipeId
+      ? {
+          recipe_id: contractRecipeId,
+          version: contractRecipeVersion,
+        }
+      : undefined,
+    modules: contractModules.length > 0 ? contractModules : undefined,
+    router_template_ref: contractRouterTemplateRef,
+    registries: Object.keys(contractRegistries).length > 0 ? contractRegistries : undefined,
+    module_bindings: Object.keys(contractModuleBindings).length > 0 ? contractModuleBindings : undefined,
+    instance_permissions:
+      Object.keys(contractInstancePermissions).length > 0 ? contractInstancePermissions : undefined,
+  };
+
+  const hasContractComposition = Object.values(contractComposition).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === "object") return Object.keys(value).length > 0;
+    return Boolean(value);
+  });
+
   return {
     app_id: form.app_id, name: form.name, entry_url: form.entry_url,
     name_zh: form.name_zh || undefined,
@@ -156,10 +232,14 @@ export function formToConfig(form: Record<string, any>) {
     template: {
       template_type: form.blueprint || "default",
       frontend_template: frontendTemplate,
+      frontend_composition: Object.keys(frontendComposition).length > 0 ? frontendComposition : undefined,
       contract_template: contractTemplate,
+      contract_composition: hasContractComposition ? contractComposition : undefined,
     },
     frontend_template: frontendTemplate,
+    frontend_composition: Object.keys(frontendComposition).length > 0 ? frontendComposition : undefined,
     contract_template: contractTemplate,
+    contract_composition: hasContractComposition ? contractComposition : undefined,
     version: form.version || "1.0.0", developer_pubkey: form.developer_pubkey,
     callback_contract: form.callback_contract || undefined,
     callback_method: form.callback_method || undefined,
@@ -232,6 +312,11 @@ export function appToForm(app: MiniApp): Record<string, any> {
     : (templateContainer.contract_template && typeof templateContainer.contract_template === "object")
       ? templateContainer.contract_template as Record<string, unknown>
       : {};
+  const contractComposition = (m.contract_composition && typeof m.contract_composition === "object")
+    ? m.contract_composition as Record<string, unknown>
+    : (templateContainer.contract_composition && typeof templateContainer.contract_composition === "object")
+      ? templateContainer.contract_composition as Record<string, unknown>
+      : {};
   const contractTemplateSecurityProfile = asObject(contractTemplate.security_profile);
   const contracts = Array.isArray(m.contracts) ? m.contracts as Array<Record<string, unknown>> : [];
   const operations = Array.isArray(m.operations) ? (m.operations as Array<Record<string, unknown>>).map(o => ({
@@ -281,6 +366,7 @@ export function appToForm(app: MiniApp): Record<string, any> {
     frontend_template_version: String(frontendTemplate.version || "1.0.0"),
     frontend_template_variant: String(frontendTemplate.variant || ""),
     frontend_template_params_json: stringifyOrFallback(frontendTemplate.params, "{}"),
+    frontend_composition_json: stringifyOrFallback(m.frontend_composition, "{}"),
     contract_template_id: String(contractTemplate.template_id || m.template_id || ""),
     contract_template_version: String(contractTemplate.version || "1.0.0"),
     contract_template_variant: String(contractTemplate.variant || ""),
@@ -297,6 +383,15 @@ export function appToForm(app: MiniApp): Record<string, any> {
     contract_template_audit_provider: String(contractTemplateSecurityProfile.audit_provider || ""),
     contract_template_audit_hash: String(contractTemplateSecurityProfile.audit_hash || ""),
     contract_template_audit_date: String(contractTemplateSecurityProfile.audit_date || ""),
+    contract_composition_mode: String(contractComposition.mode || ""),
+    contract_instance_id: String(contractComposition.instance_id || ""),
+    contract_recipe_id: String(asObject(contractComposition.recipe).recipe_id || ""),
+    contract_recipe_version: String(asObject(contractComposition.recipe).version || ""),
+    contract_router_template_ref: String(contractComposition.router_template_ref || ""),
+    contract_registries_json: stringifyOrFallback(contractComposition.registries, "{}"),
+    contract_modules_json: stringifyOrFallback(contractComposition.modules, "[]"),
+    contract_module_bindings_json: stringifyOrFallback(contractComposition.module_bindings, "{}"),
+    contract_instance_permissions_json: stringifyOrFallback(contractComposition.instance_permissions, "{}"),
     logic_json: stringifyOrFallback(m.logic, "{}"),
     marketplace_json: stringifyOrFallback(m.marketplace, "{}"),
     assets_allowed: (app.assets_allowed || []).join(", "),

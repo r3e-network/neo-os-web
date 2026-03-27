@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import {
   MiniAppInfo,
@@ -25,6 +26,13 @@ import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
 import { logger } from "../../lib/logger";
+import {
+  buildSharedInvokeArgs,
+  isSharedModeApp,
+  resolveSharedModeRuntime,
+  resolveSharedOperationRecipe,
+  type SharedModeRuntimeInfo,
+} from "../../lib/chain";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
 import { invokeEvmContract } from "../../lib/wallet/evm";
@@ -55,10 +63,11 @@ type ResolvedTab = {
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
   notifications: MiniAppNotification[];
+  sharedRuntime?: SharedModeRuntimeInfo | null;
   error?: string;
 };
 
-export default function MiniAppDetailPage({ app, notifications, error }: AppDetailPageProps) {
+export default function MiniAppDetailPage({ app, notifications, sharedRuntime, error }: AppDetailPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [invokeFeedback, setInvokeFeedback] = useState<{
@@ -128,41 +137,70 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
   const handleInvoke = useCallback(async (operation: OperationEntry, values: Record<string, string>) => {
     setInvokeFeedback(null);
     try {
-      if (!app.contract_hash) {
-        throw new Error("Contract hash is not configured for this miniapp.");
-      }
-      if (!walletConnected && !walletAddress) {
+      if (!walletConnected || !walletAddress) {
         throw new Error("Connect wallet before sending transactions.");
       }
 
-      const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
-
       let txid: string;
-
-      // Neo X (EVM) Branch
-      if (walletAddress.startsWith("0x") || app.contract_hash.startsWith("0x")) {
-        const result = await invokeEvmContract(app.contract_hash, operation.method, args, walletAddress);
-        txid = result.txid;
-      } 
-      // Neo N3 Branch
-      else {
+      if (sharedRuntime && isSharedModeApp(app)) {
+        const sharedOperation = resolveSharedOperationRecipe(app, operation.method);
+        if (!sharedOperation) {
+          throw new Error("Shared runtime operation is not configured for this miniapp.");
+        }
+        const targetModule = sharedRuntime.modules.find((module) => module.binding === sharedOperation.binding);
+        if (!targetModule?.contractHash) {
+          throw new Error(`Shared module binding "${sharedOperation.binding}" is unavailable.`);
+        }
         const adapter = getWalletAdapter();
         if (!adapter) {
           throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
         }
 
-        const invokePayload: InvokeParams = {
-          scriptHash: app.contract_hash,
-          operation: operation.method,
-          args,
-        };
-
-        if (walletAddress) {
-          invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+        if (walletAddress.startsWith("0x")) {
+          throw new Error("Shared runtime invoke currently supports Neo N3 wallets only.");
         }
 
+        const args = buildSharedInvokeArgs(sharedOperation, values, sharedRuntime, walletAddress);
+        const invokePayload: InvokeParams = {
+          scriptHash: targetModule.contractHash,
+          operation: sharedOperation.method,
+          args,
+        };
+        invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
         const result = await adapter.invoke(invokePayload);
         txid = result.txid;
+      } else {
+        if (!app.contract_hash) {
+          throw new Error("Contract hash is not configured for this miniapp.");
+        }
+
+        const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
+
+        // Neo X (EVM) Branch
+        if (walletAddress.startsWith("0x") || app.contract_hash.startsWith("0x")) {
+          const result = await invokeEvmContract(app.contract_hash, operation.method, args, walletAddress);
+          txid = result.txid;
+        } 
+        // Neo N3 Branch
+        else {
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
+          }
+
+          const invokePayload: InvokeParams = {
+            scriptHash: app.contract_hash,
+            operation: operation.method,
+            args,
+          };
+
+          if (walletAddress) {
+            invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+          }
+
+          const result = await adapter.invoke(invokePayload);
+          txid = result.txid;
+        }
       }
 
       setInvokeFeedback({
@@ -177,7 +215,7 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
       });
       throw invokeError;
     }
-  }, [app.contract_hash, walletAddress, walletConnected]);
+  }, [app, sharedRuntime, walletAddress, walletConnected]);
 
   const operationPanel = app.detail_template?.operation_panel;
   const operationTitle = operationPanel?.title || (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
@@ -206,6 +244,27 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
                 {app.detail_template.hero.disclaimer}
               </p>
             )}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Link
+                href={`/launch/${app.app_id}`}
+                className="inline-flex items-center justify-center rounded-xl bg-neo px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              >
+                Launch MiniApp
+              </Link>
+              {app.docs_url && (
+                <a
+                  href={app.docs_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl border border-gray-200/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-neo/40 hover:text-neo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-white/10 dark:text-gray-200 dark:hover:text-neo"
+                >
+                  Read Documentation
+                </a>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              This page keeps the embedded surface, operations, permissions, and activity together. Use Runtime Mode for a focused full-screen launch shell.
+            </p>
           </section>
 
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -318,7 +377,59 @@ export default function MiniAppDetailPage({ app, notifications, error }: AppDeta
                     Connect wallet from the top navigation to submit on-chain transactions.
                   </p>
                 )}
+
+                {isSharedModeApp(app) && !app.contract_hash && (
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    This app is running in shared mode. Operations are resolved through recipe bindings and shared module contracts instead of a dedicated app contract.
+                  </p>
+                )}
               </section>
+
+              {sharedRuntime && (
+                <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
+                  <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Shared Runtime</h3>
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Instance ID:{" "}
+                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {sharedRuntime.instance.instanceId}
+                    </code>
+                  </p>
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Recipe:{" "}
+                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {sharedRuntime.instance.recipeId}@{sharedRuntime.instance.recipeVersion}
+                    </code>
+                  </p>
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Mode:{" "}
+                    <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {sharedRuntime.instance.runtimeMode}
+                    </span>
+                  </p>
+                  <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    Status:{" "}
+                    <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {sharedRuntime.instance.status === 1 ? "active" : String(sharedRuntime.instance.status)}
+                    </span>
+                  </p>
+                  <div className="mt-4 space-y-3">
+                    {sharedRuntime.modules.map((module) => (
+                      <div key={`${module.binding}:${module.moduleId}:${module.version}`} className="rounded-xl border border-gray-200/70 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">{module.binding}</span>
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${module.active ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"}`}>
+                            {module.active ? "active" : "inactive"}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-700 dark:text-gray-300">{module.moduleId}@{module.version}</p>
+                        {module.contractHash && (
+                          <p className="mt-1 break-all text-[11px] text-gray-500 dark:text-gray-400">{module.contractHash}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Contract Details</h3>
@@ -568,10 +679,18 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
       };
     }
 
+    const sharedRuntime = isSharedModeApp(app)
+      ? await resolveSharedModeRuntime(app, "testnet").catch((e: unknown) => {
+          console.warn("[miniapps/id] shared runtime resolve failed:", e instanceof Error ? e.message : String(e));
+          return null;
+        })
+      : null;
+
     return {
       props: {
         app: sanitizeForJson(app),
         notifications: notifData.notifications || [],
+        sharedRuntime: sanitizeForJson(sharedRuntime),
       },
     };
   } catch (loadError) {
@@ -581,6 +700,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
         props: {
           app: sanitizeForJson(fallback),
           notifications: [],
+          sharedRuntime: null,
           error: "Using fallback app metadata while live API data is unavailable",
         },
       };
@@ -589,6 +709,7 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
       props: {
         app: null,
         notifications: [],
+        sharedRuntime: null,
         error: "Failed to load app details",
       },
     };

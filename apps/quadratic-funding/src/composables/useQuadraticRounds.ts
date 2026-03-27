@@ -2,12 +2,12 @@ import { ref, computed, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useContractAddress } from "@shared/composables/useContractAddress";
-import { parseInvokeResult } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 
@@ -16,7 +16,13 @@ const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, chainType } = wallet;
+  const { read, invokeDirectly, ensureWallet } = useContractInteraction({
+    appId: "miniapp-quadratic-funding",
+    t,
+    wallet,
+  });
   const { ensure: ensureAddress } = useContractAddress((key: string) =>
     key === "contractUnavailable" ? t("contractMissing") : t(key)
   );
@@ -108,15 +114,10 @@ export function useQuadraticRounds() {
 
   const fetchRoundIds = async () => {
     const contract = await ensureContractAddress();
-    const result = await invokeRead({
-      scriptHash: contract,
-      operation: "getRounds",
-      args: [
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: "30" },
-      ],
-    });
-    const parsed = parseInvokeResult(result);
+    const parsed = await read("getRounds", [
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: "30" },
+    ], contract);
     if (!Array.isArray(parsed)) return [] as string[];
     return parsed
       .map((value) => Number.parseInt(String(value || "0"), 10))
@@ -126,12 +127,7 @@ export function useQuadraticRounds() {
 
   const fetchRoundDetails = async (roundId: string) => {
     const contract = await ensureContractAddress();
-    const details = await invokeRead({
-      scriptHash: contract,
-      operation: "getRoundDetails",
-      args: [{ type: "Integer", value: roundId }],
-    });
-    const parsed = parseInvokeResult(details);
+    const parsed = await read("getRoundDetails", [{ type: "Integer", value: roundId }], contract);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     return parseRound(parsed as Record<string, unknown>, roundId);
   };
@@ -196,18 +192,17 @@ export function useQuadraticRounds() {
 
     try {
       isCreatingRound.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const assetHash = data.asset === "NEO" ? NEO_HASH : GAS_HASH;
       const description = data.description.trim().slice(0, 240);
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "createRound",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "createRound",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Hash160", value: assetHash },
           { type: "Integer", value: matchingPool },
           { type: "Integer", value: startTime.toString() },
@@ -215,8 +210,9 @@ export function useQuadraticRounds() {
           { type: "String", value: title },
           { type: "String", value: description },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
 
       setStatus(t("roundCreated"), "success");
       await refreshRounds();
@@ -246,20 +242,20 @@ export function useQuadraticRounds() {
 
     try {
       isAddingMatching.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "addMatchingPool",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "addMatchingPool",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: selectedRound.value.id },
           { type: "Integer", value: parsedAmount },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
 
       setStatus(t("matchingAdded"), "success");
       await refreshRounds();
@@ -310,20 +306,20 @@ export function useQuadraticRounds() {
 
     try {
       isFinalizing.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "finalizeRound",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "finalizeRound",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: selectedRound.value.id },
           { type: "Array", value: projectIds.map((value) => ({ type: "Integer", value })) },
           { type: "Array", value: matchedAmounts.map((value) => ({ type: "Integer", value })) },
         ],
-      });
+        contract,
+      );
 
       setStatus(t("roundFinalized"), "success");
       await refreshRounds();
@@ -340,18 +336,18 @@ export function useQuadraticRounds() {
 
     try {
       isClaimingUnused.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "claimUnusedMatching",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "claimUnusedMatching",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: selectedRound.value.id },
         ],
-      });
+        contract,
+      );
 
       setStatus(t("unusedClaimed"), "success");
       await refreshRounds();

@@ -1,10 +1,10 @@
 import { ref } from "vue";
-import { useEvents, useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { parseStackItem, parseInvokeResult } from "@shared/utils/neo";
+import { useEvents } from "@shared/utils/wallet-sdk";
+import { parseStackItem } from "@shared/utils/neo";
 import { parseGas } from "@shared/utils/format";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { APP_ID } from "./useSelfLoanCore";
@@ -42,7 +42,7 @@ interface SelfLoanHistoryDeps {
 export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
   const { t } = createUseI18n(messages)();
   const { handleError } = useErrorHandler();
-  const { invokeRead } = useWallet() as WalletSDK;
+  const { read } = useContractInteraction({ appId: APP_ID, t });
 
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);
@@ -70,12 +70,12 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
 
     try {
       const contract = await deps.ensureContractAddress();
-      const countRes = await invokeRead({
-        scriptHash: contract,
-        operation: "GetUserLoanCount",
-        args: [{ type: "Hash160", value: deps.address.value }],
-      });
-      const count = Number(parseInvokeResult(countRes) || 0);
+      const countResult = await read(
+        "GetUserLoanCount",
+        [{ type: "Hash160", value: deps.address.value }],
+        contract,
+      );
+      const count = Number(countResult || 0);
       if (!count) {
         stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
         loanHistory.value = [];
@@ -83,28 +83,27 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
       }
 
       const limit = Math.min(count, 50);
-      const idsRes = await invokeRead({
-        scriptHash: contract,
-        operation: "GetUserLoans",
-        args: [
+      const idsResult = await read(
+        "GetUserLoans",
+        [
           { type: "Hash160", value: deps.address.value },
           { type: "Integer", value: "0" },
           { type: "Integer", value: String(limit) },
         ],
-      });
-      const idsRaw = parseInvokeResult(idsRes);
+        contract,
+      );
+      const idsRaw = idsResult;
       const idsList = Array.isArray(idsRaw) ? idsRaw : idsRaw != null ? [idsRaw] : [];
       const ids = idsList.map((id) => Number(id)).filter((id) => id > 0);
 
       const entries = await Promise.all(
         ids.map(async (loanId) => {
           try {
-            const detailRes = await invokeRead({
-              scriptHash: contract,
-              operation: "GetLoanDetails",
-              args: [{ type: "Integer", value: String(loanId) }],
-            });
-            const parsed = parseInvokeResult(detailRes);
+            const parsed = await read(
+              "GetLoanDetails",
+              [{ type: "Integer", value: String(loanId) }],
+              contract,
+            );
             if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
             const data = parsed as Record<string, unknown>;
             const collateral = toNumber(data.collateral);

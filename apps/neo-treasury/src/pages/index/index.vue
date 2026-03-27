@@ -109,6 +109,7 @@ import { MiniAppPage, NeoButton, AppIcon, HeroSection } from "@shared/components
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { fetchTreasuryData } from "@/utils/treasury";
 
 import TotalSummaryCard from "./components/TotalSummaryCard.vue";
@@ -163,9 +164,9 @@ async function loadData() {
 
   // 1. Try to load from cache first
   try {
-    const cached = uni.getStorageSync(CACHE_KEY);
+    const cached = readCachedJSON<TreasuryData>(CACHE_KEY);
     if (cached) {
-      data.value = JSON.parse(cached);
+      data.value = cached;
       // If we have cache, we can stop "hard" loading but keep "soft" loading in background
     }
   } catch (_e: unknown) {
@@ -176,7 +177,7 @@ async function loadData() {
     const freshData = await fetchTreasuryData();
     data.value = freshData;
     // 2. Save to cache
-    uni.setStorageSync(CACHE_KEY, JSON.stringify(freshData));
+    writeCachedJSON(CACHE_KEY, freshData);
   } catch (e: unknown) {
     if (!data.value) {
       error.value = formatErrorMessage(e, t("loadFailed"));

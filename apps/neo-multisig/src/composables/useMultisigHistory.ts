@@ -1,4 +1,5 @@
 import { ref, computed, onMounted } from "vue";
+import { clearCachedValue, readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 
 export interface HistoryItem {
   id: string;
@@ -21,19 +22,13 @@ export function useMultisigHistory() {
   );
 
   const loadHistory = () => {
-    const saved = uni.getStorageSync(STORAGE_KEY);
-    if (saved) {
-      try {
-        history.value = JSON.parse(saved);
-      } catch (_e: unknown) {
-        history.value = [];
-      }
-    }
+    const saved = readCachedJSON<HistoryItem[]>(STORAGE_KEY);
+    history.value = Array.isArray(saved) ? saved : [];
   };
 
   const saveHistory = () => {
     try {
-      uni.setStorageSync(STORAGE_KEY, JSON.stringify(history.value));
+      writeCachedJSON(STORAGE_KEY, history.value);
     } catch (err) {
       console.warn("[useMultisigHistory] saveHistory failed:", err instanceof Error ? err.message : String(err));
     }
@@ -62,7 +57,7 @@ export function useMultisigHistory() {
 
   const clearHistory = () => {
     history.value = [];
-    uni.removeStorageSync(STORAGE_KEY);
+    clearCachedValue(STORAGE_KEY);
   };
 
   onMounted(loadHistory);

@@ -5,7 +5,7 @@ const appMessages = {
   title: { en: "Red Envelope", zh: "红包" },
   subtitle: { en: "Lucky red packets", zh: "幸运红包" },
   createTab: { en: "Create", zh: "创建" },
-  claimTab: { en: "My Envelopes", zh: "我的红包" },
+  claimTab: { en: "Claim Pools", zh: "领取奖池" },
   createEnvelope: { en: "Create Envelope", zh: "创建红包" },
   namePlaceholder: { en: "Envelope name (optional)", zh: "红包名称（可选）" },
   descriptionPlaceholder: { en: "Blessing message", zh: "祝福语" },
@@ -44,8 +44,8 @@ const appMessages = {
   copied: { en: "Link copied!", zh: "链接已复制！" },
   docSubtitle: { en: "Randomized GAS envelopes for social gifting", zh: "社交随机 GAS 红包" },
   docDescription: {
-    en: "Red Envelope lets you send GAS as lucky packets with random distribution. NeoHub RNG ensures fair splits, and recipients claim directly to their wallets until the envelope is empty or expires.",
-    zh: "红包支持将 GAS 以随机份额分发。NeoHub 随机数保证公平分配，接收者可直接领取到钱包，直到红包领完或过期。",
+    en: "Red Envelope lets you send GAS as lucky packets with randomized distribution. The on-chain contract calculates fair lucky splits, and recipients claim directly to their wallets until the envelope is empty or expires.",
+    zh: "红包支持将 GAS 以随机份额分发。随机金额由链上合约计算并保证公平，接收者可直接领取到钱包，直到红包领完或过期。",
   },
   step1: { en: "Enter the total GAS and number of packets to create.", zh: "输入要创建的总 GAS 和红包数量。" },
   step2: { en: "Click 'Send Red Envelope' to authorize the payment.", zh: "点击「发送红包」授权支付。" },
@@ -56,8 +56,8 @@ const appMessages = {
   step4: { en: "Pass the NFT along until all packets are opened.", zh: "传递 NFT 直到所有红包被打开。" },
   feature1Name: { en: "Secure Distribution", zh: "安全分配" },
   feature1Desc: {
-    en: "Random amounts are calculated on-chain/TEE for fairness.",
-    zh: "随机金额在链上/TEE 中计算以确保公平。",
+    en: "Random amounts are calculated by the on-chain contract for fairness.",
+    zh: "随机金额由链上合约计算，保证公平。",
   },
   feature2Name: { en: "Instant Claim", zh: "即时领取" },
   feature2Desc: { en: "GAS is transferred directly to your Neo wallet.", zh: "GAS 直接转移到你的 Neo 钱包。" },
@@ -76,7 +76,7 @@ const appMessages = {
   opening: { en: "Opening...", zh: "开启中..." },
   openNow: { en: "Open Now", zh: "立即打开" },
   // NFT pass-along model keys
-  myEnvelopes: { en: "My Envelopes", zh: "我的红包" },
+  myEnvelopes: { en: "My NFTs", zh: "我的 NFT" },
   noEnvelopesHeld: { en: "You don't hold any envelope NFTs", zh: "你没有持有任何红包 NFT" },
   openEnvelope: { en: "Open Envelope", zh: "打开红包" },
   transferEnvelope: { en: "Transfer", zh: "转让" },
@@ -127,10 +127,10 @@ const appMessages = {
   },
 
   // Claim tab
-  claimTabLabel: { en: "🎯 Claim", zh: "🎯 领取" },
-  claimTitle: { en: "Claim Red Envelope", zh: "领取红包" },
+  claimTabLabel: { en: "Claim Pools", zh: "领取奖池" },
+  claimTitle: { en: "Claim Pools", zh: "领取奖池" },
   enterPoolId: { en: "Enter pool ID", zh: "输入奖池 ID" },
-  claimButton: { en: "🎯 Claim", zh: "🎯 领取" },
+  claimButton: { en: "Claim NFT", zh: "领取 NFT" },
   claiming: { en: "Claiming...", zh: "领取中..." },
   claimSuccess: { en: "Claimed! You received an NFT", zh: "领取成功！你获得了一个 NFT" },
   availablePools: { en: "Available Pools", zh: "可领取的奖池" },
@@ -141,7 +141,8 @@ const appMessages = {
   // My Envelopes sections
   sectionSpreading: { en: "Spreading Envelopes", zh: "传递红包" },
   sectionPools: { en: "Pools I Created", zh: "我创建的奖池" },
-  sectionClaims: { en: "NFTs I Claimed", zh: "我领取的 NFT" },
+  sectionClaims: { en: "Claimed NFTs", zh: "已领取的 NFT" },
+  noPoolsCreated: { en: "No pools created yet", zh: "暂未创建奖池" },
   unopened: { en: "🧧 Unopened", zh: "🧧 未打开" },
   claimedGas: { en: "Claimed {amount} {tokenGas}", zh: "已领取 {amount} {tokenGas}" },
   fromPool: { en: "From Pool #{poolId}", zh: "来自奖池 #{poolId}" },

@@ -3,7 +3,9 @@
  * Query flagship MiniApp contract states on Neo N3.
  */
 
+import type { MiniAppInfo } from "@/components/types";
 import { invokeRead, type Network, type StackItem } from "./rpc-client";
+import { resolveSharedModeRuntime } from "./shared-mode";
 import { logger } from "@/lib/logger";
 
 export const CONTRACTS = {
@@ -85,6 +87,60 @@ export interface MiniAppLiveStatus {
   nextDraw?: number;
   tvl?: string;
   volume24h?: string;
+}
+
+export async function getSharedModeContractStats(
+  app: MiniAppInfo,
+  network: Network = "testnet",
+): Promise<MiniAppContractStats | null> {
+  const runtime = await resolveSharedModeRuntime(app, network);
+  if (!runtime) return null;
+
+  if (runtime.instance.recipeId === "recipe.payment_streams.v1") {
+    const streamModule = runtime.modules.find((module) => module.binding === "stream");
+    if (!streamModule?.contractHash) return null;
+    const res = await invokeRead(
+      streamModule.contractHash,
+      "totalStreams",
+      [{ type: "String", value: runtime.instance.instanceId }],
+      network,
+    );
+    const totalStreams = parseInteger(res.stack?.[0]);
+    return {
+      totalValueLocked: "0",
+      totalTransactions: safeNumber(totalStreams),
+      uniqueUsers: runtime.instance.status === 1 ? 1 : 0,
+    };
+  }
+
+  return null;
+}
+
+export async function getSharedModeLiveStatus(
+  app: MiniAppInfo,
+  network: Network = "testnet",
+): Promise<MiniAppLiveStatus | null> {
+  const runtime = await resolveSharedModeRuntime(app, network);
+  if (!runtime) return null;
+
+  if (runtime.instance.recipeId === "recipe.payment_streams.v1") {
+    const streamModule = runtime.modules.find((module) => module.binding === "stream");
+    if (!streamModule?.contractHash) return null;
+    const res = await invokeRead(
+      streamModule.contractHash,
+      "totalStreams",
+      [{ type: "String", value: runtime.instance.instanceId }],
+      network,
+    );
+    const totalStreams = parseInteger(res.stack?.[0]);
+    return {
+      appId: app.app_id,
+      tvl: "0",
+      volume24h: totalStreams.toString(),
+    };
+  }
+
+  return { appId: app.app_id };
 }
 
 export async function getDoomsdayState(

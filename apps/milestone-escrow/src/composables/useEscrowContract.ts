@@ -1,24 +1,31 @@
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
-import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { formatGas, formatAddress, toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { EscrowItem } from "../pages/index/components/EscrowList.vue";
 
+const APP_ID = "miniapp-milestone-escrow";
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 
 export function useEscrowContract() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const translate = (key: string) => t(key as never);
+  const wallet = useWallet() as WalletSDK;
+  const { connect, chainType } = wallet;
+  const { address, ensureWallet, invokeDirectly, read, ensureContractAddress } = useContractInteraction({
+    appId: APP_ID,
+    t: translate,
+    wallet,
+  });
 
   const { status, setStatus } = useStatusMessage();
   const isRefreshing = ref(false);
@@ -86,28 +93,16 @@ export function useEscrowContract() {
   );
 
   const fetchEscrowDetails = async (escrowId: string) => {
-    const contract = await ensureContractAddress();
-    const details = await invokeRead({
-      scriptHash: contract,
-      operation: "GetEscrowDetails",
-      args: [{ type: "Integer", value: escrowId }],
-    });
-    const parsed = parseInvokeResult(details) as Record<string, unknown>;
+    const parsed = await read("GetEscrowDetails", [{ type: "Integer", value: escrowId }]) as Record<string, unknown>;
     return parseEscrow(parsed, escrowId);
   };
 
   const fetchEscrowIds = async (operation: string, walletAddress: string) => {
-    const contract = await ensureContractAddress();
-    const result = await invokeRead({
-      scriptHash: contract,
-      operation,
-      args: [
-        { type: "Hash160", value: walletAddress },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: "20" },
-      ],
-    });
-    const parsed = parseInvokeResult(result);
+    const parsed = await read(operation, [
+      { type: "Hash160", value: walletAddress },
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: "20" },
+    ]);
     if (!Array.isArray(parsed)) return [] as string[];
     return parsed
       .map((value) => String(value || ""))
@@ -158,7 +153,7 @@ export function useEscrowContract() {
     escrowFormRef: { setLoading: (v: boolean) => void; reset: () => void } | null
   ) => {
     if (isLoading.value) return;
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType, translate)) return;
 
     const beneficiary = data.beneficiary.trim();
     if (!beneficiary || !addressToScriptHash(beneficiary)) {
@@ -203,19 +198,17 @@ export function useEscrowContract() {
     try {
       isLoading.value = true;
       escrowFormRef?.setLoading(true);
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      const creatorAddress = await ensureWallet();
 
       const contract = await ensureContractAddress();
       const assetHash = data.asset === "NEO" ? BLOCKCHAIN_CONSTANTS.NEO_HASH : BLOCKCHAIN_CONSTANTS.GAS_HASH;
       const title = data.name.trim().slice(0, 60);
       const notes = data.notes.trim().slice(0, 240);
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "CreateEscrow",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "CreateEscrow",
+        [
+          { type: "Hash160", value: creatorAddress },
           { type: "Hash160", value: beneficiary },
           { type: "Hash160", value: assetHash },
           { type: "Integer", value: totalAmount.toString() },
@@ -225,9 +218,10 @@ export function useEscrowContract() {
           },
           { type: "String", value: title },
           { type: "String", value: notes },
-        ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        ] as unknown as Parameters<typeof invokeDirectly>[1],
+        contract,
+        globalSignerForCurrentWallet(),
+      );
 
       setStatus(t("escrowCreated"), "success");
       escrowFormRef?.reset();
@@ -242,21 +236,21 @@ export function useEscrowContract() {
 
   const approveMilestone = async (escrow: EscrowItem, milestoneIndex: number) => {
     if (approvingId.value) return;
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType, translate)) return;
     try {
       approvingId.value = `${escrow.id}-${milestoneIndex}`;
       if (!address.value) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "ApproveMilestone",
-        args: [
+      await invokeDirectly(
+        "ApproveMilestone",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: escrow.id },
           { type: "Integer", value: String(milestoneIndex) },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
       await refreshEscrows();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
@@ -267,21 +261,21 @@ export function useEscrowContract() {
 
   const claimMilestone = async (escrow: EscrowItem, milestoneIndex: number) => {
     if (claimingId.value) return;
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType, translate)) return;
     try {
       claimingId.value = `${escrow.id}-${milestoneIndex}`;
       if (!address.value) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "ClaimMilestone",
-        args: [
+      await invokeDirectly(
+        "ClaimMilestone",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: escrow.id },
           { type: "Integer", value: String(milestoneIndex) },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
       await refreshEscrows();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
@@ -292,20 +286,20 @@ export function useEscrowContract() {
 
   const cancelEscrow = async (escrow: EscrowItem) => {
     if (cancellingId.value) return;
-    if (!requireNeoChain(chainType, t)) return;
+    if (!requireNeoChain(chainType, translate)) return;
     try {
       cancellingId.value = escrow.id;
       if (!address.value) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "CancelEscrow",
-        args: [
+      await invokeDirectly(
+        "CancelEscrow",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: escrow.id },
         ],
-        signers: globalSignerForCurrentWallet(),
-      });
+        contract,
+        globalSignerForCurrentWallet(),
+      );
       await refreshEscrows();
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
