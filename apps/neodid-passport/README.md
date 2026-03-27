@@ -16,6 +16,7 @@ It provides:
 ## Official Endpoints
 
 - AA identity workspace: `https://neo-abstract-account.vercel.app/identity`
+- Runtime source of truth: `apps/shared/constants/rpc.ts`
 - NeoDID live studio: `https://oracle.meshmini.app/launchpad/neodid-live`
 - Verifier: `https://oracle.meshmini.app/verifier`
 - NeoDID docs: `https://oracle.meshmini.app/docs/neodid`
