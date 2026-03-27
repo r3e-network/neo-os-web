@@ -55,6 +55,8 @@ const appMessages = {
   recommendedTemplatesText: { en: "Templates matching this draft are shown first. Switch back to the full list if you need another credential type.", zh: "匹配当前草稿的模板会优先展示。如需其他证书类型，可切回全量模板列表。" },
   recommendedOnly: { en: "Recommended Only", zh: "仅看推荐" },
   allTemplates: { en: "All Templates", zh: "全部模板" },
+  allCredentialTypes: { en: "All Credential Types", zh: "全部凭证类型" },
+  credentialTypeFilterTitle: { en: "Filter By Credential Type", zh: "按凭证类型过滤" },
   matchingTemplatesCount: { en: "Matching templates", zh: "匹配模板数" },
   recentTemplatesTitle: { en: "Recent Templates", zh: "最近模板" },
   recentTemplatesEmpty: { en: "No recent templates yet", zh: "还没有最近模板" },
