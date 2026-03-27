@@ -51,6 +51,21 @@
         @share-issue-link="shareTemplateIssueLink"
       />
 
+      <div class="issue-draft-card">
+        <p class="issue-draft-title">{{ t("registryTitle") }}</p>
+        <p class="issue-draft-text">{{ t("registryText") }}</p>
+        <div class="operator-history-list">
+          <div v-for="entry in credentialRegistryEntries" :key="entry.key" class="operator-history-row">
+            <div class="operator-history-copy">
+              <p class="operator-history-name">{{ t("registryKey") }}: {{ entry.key }}</p>
+              <p class="operator-history-meta">{{ t("category") }}: {{ entry.category }}</p>
+              <p class="operator-history-meta">{{ t("draftCredentialType") }}: {{ entry.credentialType }}</p>
+              <p class="operator-history-meta">{{ t("draftIssuerPolicy") }}: {{ entry.issuerPolicy }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="recentTemplateItems.length || issueLinkHistory.length" class="operator-history-grid">
         <div class="operator-history-card">
           <p class="issue-draft-title">{{ t("recentTemplatesTitle") }}</p>
@@ -173,6 +188,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
+import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection, NeoButton } from "@shared/components";
 import { useCertificateActions } from "@/composables/useCertificateActions";
@@ -240,6 +256,12 @@ const issueDraft = ref<{
 } | null>(null);
 const RECENT_TEMPLATE_STORAGE_KEY = "soulbound-certificate.recent-template-ids";
 const RECENT_LINK_STORAGE_KEY = "soulbound-certificate.recent-issue-links";
+const credentialRegistryEntries = Object.entries(CREDENTIAL_REGISTRY).map(([key, value]) => ({
+  key,
+  category: value.category,
+  credentialType: value.credentialType,
+  issuerPolicy: value.issuerPolicy,
+}));
 
 const appState = computed(() => ({
   activeTab: activeTab.value,
