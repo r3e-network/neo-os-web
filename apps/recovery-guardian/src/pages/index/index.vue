@@ -28,6 +28,14 @@
             <NeoButton variant="secondary" size="sm" type="button" @click="shareRecoveryPreviewLink" :aria-label="t('shareRecoveryLink')">{{ t("shareRecoveryLink") }}</NeoButton>
           </div>
         </div>
+        <div v-if="credentialUrl" class="link-box">
+          <p class="link-label">{{ t("openRecoveryCredential") }}</p>
+          <p class="link-value">{{ credentialUrl }}</p>
+          <div class="link-actions">
+            <NeoButton variant="secondary" size="sm" type="button" @click="copyRecoveryCredentialLink" :aria-label="t('copyRecoveryCredential')">{{ t("copyRecoveryCredential") }}</NeoButton>
+            <NeoButton variant="secondary" size="sm" type="button" @click="shareRecoveryCredentialLink" :aria-label="t('shareRecoveryCredential')">{{ t("shareRecoveryCredential") }}</NeoButton>
+          </div>
+        </div>
       </div>
       <pre class="json-box">{{ renderedPayload }}</pre>
     </template>
@@ -37,11 +45,15 @@
         <NeoInput v-model="verifierHashOverride" :label="t('verifierHash')" :placeholder="t('verifierHashPlaceholder')" />
         <NeoInput v-model="recoveryNewOwner" :label="t('newOwner')" :placeholder="t('newOwnerPlaceholder')" />
         <NeoInput v-model="recoveryExpiryMinutes" :label="t('recoveryExpiry')" :placeholder="t('recoveryExpiryPlaceholder')" />
+        <NeoInput v-model="recoveryTemplateId" :label="t('recoveryTemplateId')" :placeholder="t('recoveryTemplateIdPlaceholder')" />
         <div class="button-row">
           <NeoButton variant="primary" type="button" :loading="isQuerying" @click="queryGuardianState" :aria-label="t('queryState')">{{ t("queryState") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openRecoveryPreviewLink" :aria-label="t('openRecoveryPreview')">{{ t("openRecoveryPreview") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="copyRecoveryPreviewLink" :aria-label="t('copyRecoveryLink')">{{ t("copyRecoveryLink") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="shareRecoveryPreviewLink" :aria-label="t('shareRecoveryLink')">{{ t("shareRecoveryLink") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="openRecoveryCredentialLink" :aria-label="t('openRecoveryCredential')">{{ t("openRecoveryCredential") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="copyRecoveryCredentialLink" :aria-label="t('copyRecoveryCredential')">{{ t("copyRecoveryCredential") }}</NeoButton>
+          <NeoButton variant="secondary" type="button" @click="shareRecoveryCredentialLink" :aria-label="t('shareRecoveryCredential')">{{ t("shareRecoveryCredential") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(identityWorkspaceUrl)" :aria-label="t('openIdentityWorkspace')">{{ t("openIdentityWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(aaWorkspaceUrl)" :aria-label="t('openAaWorkspace')">{{ t("openAaWorkspace") }}</NeoButton>
           <NeoButton variant="secondary" type="button" @click="openExternal(recoveryDocsUrl)" :aria-label="t('openRecoveryDocs')">{{ t("openRecoveryDocs") }}</NeoButton>
@@ -68,11 +80,13 @@ const aaCore = integration.contracts.aaCore;
 const identityWorkspaceUrl = "https://neo-abstract-account.vercel.app/identity";
 const aaWorkspaceUrl = "https://neo-abstract-account.vercel.app/app";
 const recoveryDocsUrl = "https://neo-abstract-account.vercel.app/docs";
+const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 
 const accountAddress = ref("");
 const verifierHashOverride = ref("");
 const recoveryNewOwner = ref("");
 const recoveryExpiryMinutes = ref("30");
+const recoveryTemplateId = ref("");
 const latestPayload = ref<Record<string, unknown> | null>(null);
 const isQuerying = ref(false);
 
@@ -296,9 +310,42 @@ function buildRecoveryPreviewUrl() {
   return `${identityWorkspaceUrl}?${params.toString()}`;
 }
 
+function buildRecoveryCredentialUrl() {
+  const accountHash = String(latestPayload.value?.account_hash || "").trim() || normalizeHash160(accountAddress.value);
+  const accountId = String(latestPayload.value?.account_id || "").trim();
+  const verifierHash = String(latestPayload.value?.verifier_hash || "").trim() || (verifierHashOverride.value ? normalizeHash160(verifierHashOverride.value) : "");
+  if (!accountHash || !verifierHash) {
+    throw new Error("account and verifier are required");
+  }
+
+  const pending = latestPayload.value?.pending_recovery as { new_owner?: string; active?: boolean } | undefined;
+  const recipient = String(recoveryNewOwner.value || pending?.new_owner || latestPayload.value?.owner || "").trim();
+  const params = new URLSearchParams({
+    issueRecipient: recipient,
+    issueRecipientName: "",
+    issueAchievement: "Recovery Flow Verified",
+    issueMemo: `AA ${accountId || accountHash} / verifier ${verifierHash}`,
+    issueCategory: "Recovery",
+    issueSource: "recovery-guardian",
+    autoIssueDraft: "1",
+  });
+  if (recoveryTemplateId.value.trim()) {
+    params.set("issueTemplateId", recoveryTemplateId.value.trim());
+  }
+  return `${soulboundAppUrl}?${params.toString()}`;
+}
+
 const previewUrl = computed(() => {
   try {
     return buildRecoveryPreviewUrl();
+  } catch {
+    return "";
+  }
+});
+
+const credentialUrl = computed(() => {
+  try {
+    return buildRecoveryCredentialUrl();
   } catch {
     return "";
   }
@@ -309,6 +356,16 @@ function openRecoveryPreviewLink() {
     const url = previewUrl.value || buildRecoveryPreviewUrl();
     openExternal(url);
     setStatus(t("previewLinkReady"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("queryFailed")), "error");
+  }
+}
+
+function openRecoveryCredentialLink() {
+  try {
+    const url = credentialUrl.value || buildRecoveryCredentialUrl();
+    openExternal(url);
+    setStatus(t("credentialLinkReady"), "success");
   } catch (error: unknown) {
     setStatus(formatErrorMessage(error, t("queryFailed")), "error");
   }
@@ -354,6 +411,46 @@ async function shareRecoveryPreviewLink() {
   }
 }
 
+async function copyRecoveryCredentialLink() {
+  const url = credentialUrl.value;
+  if (!url) {
+    setStatus(t("previewLinkUnavailable"), "error");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus(t("credentialLinkCopied"), "success");
+  } catch (error: unknown) {
+    setStatus(formatErrorMessage(error, t("queryFailed")), "error");
+  }
+}
+
+async function shareRecoveryCredentialLink() {
+  const url = credentialUrl.value;
+  if (!url) {
+    setStatus(t("previewLinkUnavailable"), "error");
+    return;
+  }
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: t("openRecoveryCredential"),
+        text: t("openRecoveryCredential"),
+        url,
+      });
+      setStatus(t("credentialLinkShared"), "success");
+      return;
+    }
+    await copyRecoveryCredentialLink();
+  } catch (error: unknown) {
+    if (error instanceof Error && /abort|cancel/i.test(error.message)) {
+      return;
+    }
+    await copyRecoveryCredentialLink();
+  }
+}
+
 const renderedPayload = computed(() =>
   latestPayload.value ? JSON.stringify(latestPayload.value, null, 2) : t("noStateYet"),
 );
@@ -385,6 +482,8 @@ const appState = computed(() => ({
   accountId: latestPayload.value?.account_id || "",
   verifierHash: latestPayload.value?.verifier_hash || "",
   previewUrl: previewUrl.value,
+  credentialUrl: credentialUrl.value,
+  recoveryTemplateId: recoveryTemplateId.value,
   recoveryNewOwner: recoveryNewOwner.value,
   recoveryExpiryMinutes: recoveryExpiryMinutes.value,
   pendingRecoveryActive: Boolean((latestPayload.value?.pending_recovery as { active?: boolean } | undefined)?.active),

@@ -103,14 +103,20 @@
           </div>
           <p class="issue-draft-filter-count">{{ t("matchingTemplatesCount") }}: {{ recommendedTemplates.length }}</p>
         </div>
-        <div v-else-if="draftCategory === 'event' || draftCategory === 'identity'" class="issue-draft-filters">
+        <div v-else-if="draftCategory === 'event' || draftCategory === 'identity' || draftCategory === 'recovery'" class="issue-draft-filters">
           <div class="issue-draft-filter-copy">
             <p class="issue-draft-filter-title">{{ t("recommendedTemplatesTitle") }}</p>
             <p class="issue-draft-filter-text">{{ t("recommendedTemplatesText") }}</p>
           </div>
           <div class="issue-draft-filter-actions">
             <NeoButton size="sm" variant="primary" type="button" @click="applyDraftTemplatePreset">
-              {{ draftCategory === "identity" ? t("createIdentityTemplatePreset") : t("createEventTemplatePreset") }}
+              {{
+                draftCategory === "identity"
+                  ? t("createIdentityTemplatePreset")
+                  : draftCategory === "recovery"
+                    ? t("createRecoveryTemplatePreset")
+                    : t("createEventTemplatePreset")
+              }}
             </NeoButton>
           </div>
         </div>
@@ -379,6 +385,16 @@ const templateFormPrefill = computed(() => {
       category: "Identity",
       maxSupply: "1000",
       description: `${achievement}. Imported from the NeoDID passport identity flow.`,
+    };
+  }
+  if (draftCategory.value === "recovery") {
+    const achievement = String(issueDraft.value.achievement || "").trim() || "Recovery Flow Verified";
+    return {
+      name: "Recovery Credential",
+      issuerName: "Recovery Operator",
+      category: "Recovery",
+      maxSupply: "1000",
+      description: `${achievement}. Imported from the recovery guardian flow.`,
     };
   }
   return null;
