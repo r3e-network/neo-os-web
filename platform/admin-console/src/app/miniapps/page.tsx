@@ -28,6 +28,7 @@ import type { MiniApp } from "@/types";
 import { BatchResultPanels } from "./components/BatchResultPanels";
 import { CreateFormPanel } from "./components/CreateFormPanel";
 import { MiniAppDetailPanel } from "./components/MiniAppDetailPanel";
+import { LiveSmokeReportsCard } from "./components/LiveSmokeReportsCard";
 import { MiniAppsPageHeader } from "./components/MiniAppsPageHeader";
 import { MiniAppsTableCard } from "./components/MiniAppsTableCard";
 import { PublishRequestDiffPanel } from "./components/miniapp-detail/PublishRequestDiffPanel";
@@ -56,6 +57,16 @@ import { useMiniAppDetailDiffController } from "./lib/use-miniapp-detail-diff-co
 import { useMiniAppEditorController } from "./lib/use-miniapp-editor-controller";
 
 type Panel = "none" | "create" | "edit" | "detail";
+type LiveSmokeReportRow = {
+  runId: string;
+  generatedAt?: string;
+  flagshipStatus?: number;
+  selectedStatus?: number;
+  flagshipCounts?: { pass?: number; fail?: number; skipped?: number };
+  selectedCounts?: { pass?: number; fail?: number; skipped?: number };
+  summaryPath: string;
+  warnings?: string[];
+};
 
 export default function MiniAppsPage() {
   const { data: miniapps, isLoading, error } = useMiniApps();
@@ -91,6 +102,9 @@ export default function MiniAppsPage() {
   const [importResult, setImportResult] = useState<MiniAppDefinitionImportResult | null>(null);
   const [templateInstallInfo, setTemplateInstallInfo] = useState("");
   const [publishInfo, setPublishInfo] = useState("");
+  const [liveSmokeReports, setLiveSmokeReports] = useState<LiveSmokeReportRow[]>([]);
+  const [liveSmokeLoading, setLiveSmokeLoading] = useState(true);
+  const [liveSmokeError, setLiveSmokeError] = useState("");
   const {
     form,
     setForm,
@@ -196,6 +210,40 @@ export default function MiniAppsPage() {
     } catch (error) {
       setTemplateInstallInfo(error instanceof Error ? error.message : "Failed to apply installed template draft");
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadReports = async () => {
+      setLiveSmokeLoading(true);
+      setLiveSmokeError("");
+      try {
+        const response = await fetch("/api/live-smoke-reports", {
+          credentials: "same-origin",
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        if (!cancelled) {
+          setLiveSmokeReports(Array.isArray(data?.reports) ? data.reports : []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLiveSmokeError(error instanceof Error ? error.message : "Failed to load live smoke reports");
+        }
+      } finally {
+        if (!cancelled) {
+          setLiveSmokeLoading(false);
+        }
+      }
+    };
+
+    loadReports().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleCreate = async () => {
@@ -331,6 +379,12 @@ export default function MiniAppsPage() {
       <BatchResultPanels
         batchImportResult={batchImportResult}
         batchRollbackResult={batchRollbackResult}
+      />
+
+      <LiveSmokeReportsCard
+        reports={liveSmokeReports}
+        loading={liveSmokeLoading}
+        error={liveSmokeError}
       />
 
       {/* Create / Edit Form Panel */}

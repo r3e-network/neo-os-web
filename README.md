@@ -288,6 +288,66 @@ Notes:
 
 See [`.env.example`](.env.example) for complete list.
 
+Shared-mode modular registration now also expects hash envs for:
+
+- `CONTRACT_MODULEREGISTRY_HASH`
+- `CONTRACT_RECIPEREGISTRY_HASH`
+- `CONTRACT_MINIAPPINSTANCEREGISTRY_HASH`
+- `CONTRACT_FUNDINGVAULT_HASH`
+- `CONTRACT_STREAMVESTING_HASH`
+
+The canonical example registration plan is:
+
+- [`deploy/config/modular-neopay.shared.example.json`](deploy/config/modular-neopay.shared.example.json)
+
+Validate a shared-mode instance plan before using signer funds:
+
+```bash
+go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
+  --plan deploy/config/modular-neopay.shared.example.json \
+  --validate-only
+```
+
+Negative validation sample for recipe/runtime/binding mismatches:
+
+```bash
+go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
+  --plan deploy/config/modular-neopay.shared.bad-plan.example.json \
+  --validate-only
+```
+
+The bad-plan fixture is expected to fail before RPC or signer setup and demonstrates that
+runtime-mode mismatch, recipe-version drift, and wrong/extra module bindings are blocked
+before `--dry-run` or live registration.
+
+Run the full live smoke suite with timestamped reports:
+
+```bash
+npm run test:testnet:live:smoke
+```
+
+This wrapper:
+
+- runs `flagship` live flows first
+- runs `selected miniapps` live flows second
+- writes timestamped reports under `docs/reports/live-smoke/<UTC timestamp>/`
+
+Useful variants:
+
+```bash
+npm run test:testnet:live:smoke:flagship
+npm run test:testnet:live:smoke:selected
+```
+
+If the chain-admin signer or distinct selected-user signer should come from a different wallet,
+set:
+
+- `LIVE_SMOKE_FLAGSHIP_ADMIN_WIF`
+- `LIVE_SMOKE_SELECTED_USER_WIF`
+
+If these are not set and `TEE_PRIVATE_KEY` is available, the wrapper will use that signer for the
+flagship admin phase and the selected-user phase.
+
 ## Repository Structure
 
 ```

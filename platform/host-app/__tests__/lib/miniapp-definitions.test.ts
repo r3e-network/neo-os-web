@@ -1,7 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import { loadBundledMiniAppById, loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 
 describe("miniapp-definitions loader", () => {
   const prevDir = process.env.MINIAPP_DEFINITIONS_DIR;
@@ -112,6 +112,168 @@ describe("miniapp-definitions loader", () => {
         template_id: "prediction-binary",
         contract: expect.objectContaining({
           template_id: "prediction-binary",
+        }),
+      }),
+    );
+  });
+
+  it("preserves modular contract composition metadata in bundled definitions", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-composition");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "shared-streams.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-shared-streams",
+          name: "Shared Streams",
+          entry_url: "mf://manifest?app=miniapp-shared-streams",
+          contract_composition: {
+            mode: "shared",
+            recipe: {
+              recipe_id: "recipe.payment_streams.v1",
+              version: "1.0.0",
+            },
+            modules: [
+              {
+                module_id: "module.funding_vault",
+                version: "1.0.0",
+                binding: "vault",
+              },
+              {
+                module_id: "module.stream_vesting",
+                version: "1.0.0",
+                binding: "stream",
+              },
+            ],
+            instance_permissions: {
+              oracle: false,
+              escrow_assets: ["GAS"],
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    const app = getApp(apps, "miniapp-shared-streams");
+    expect(app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-shared-streams",
+      }),
+    );
+    expect(app?.manifest).toEqual(
+      expect.objectContaining({
+        contract_composition: expect.objectContaining({
+          mode: "shared",
+          recipe: expect.objectContaining({
+            recipe_id: "recipe.payment_streams.v1",
+          }),
+          modules: expect.arrayContaining([
+            expect.objectContaining({
+              module_id: "module.funding_vault",
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("preserves template-container modular composition metadata", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-template-composition");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "templated-shared.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-templated-shared",
+          name: "Templated Shared",
+          entry_url: "mf://manifest?app=miniapp-templated-shared",
+          template: {
+            template_type: "defi",
+            contract_composition: {
+              mode: "shared",
+              instance_id: "templated:testnet:default",
+              recipe: {
+                recipe_id: "recipe.payment_streams.v1",
+                version: "1.0.0",
+              },
+              modules: [
+                {
+                  module_id: "module.stream_vesting",
+                  binding: "stream",
+                  version: "1.0.0",
+                },
+              ],
+            },
+            frontend_composition: {
+              shell_recipe: "shell.launcher.v1",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    const app = getApp(apps, "miniapp-templated-shared");
+    expect(app?.manifest).toEqual(
+      expect.objectContaining({
+        template: expect.objectContaining({
+          contract_composition: expect.objectContaining({
+            mode: "shared",
+            instance_id: "templated:testnet:default",
+          }),
+          frontend_composition: expect.objectContaining({
+            shell_recipe: "shell.launcher.v1",
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("loads bundled shared-mode examples by app id from definition files", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-bundled-shared");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "neo-pay.shared.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-neo-pay-shared-example",
+          name: "NeoPay Shared Mode Example",
+          entry_url: "mf://manifest?app=miniapp-neo-pay",
+          contract_composition: {
+            mode: "shared",
+            instance_id: "neopay:testnet:default",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const app = await loadBundledMiniAppById("miniapp-neo-pay-shared-example");
+    expect(app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-neo-pay-shared-example",
+      }),
+    );
+    expect(app?.manifest).toEqual(
+      expect.objectContaining({
+        contract_composition: expect.objectContaining({
+          mode: "shared",
+          instance_id: "neopay:testnet:default",
         }),
       }),
     );

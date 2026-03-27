@@ -2,14 +2,13 @@ import { ref, computed, watch } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
-import { parseInvokeResult } from "@shared/utils/neo";
-import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const STATUS_ACTIVE = 1;
 const STATUS_EXPIRED = 5;
-const CACHE_KEY = "council_proposals_cache";
+const CACHE_KEY_PREFIX = "council_proposals_cache";
 
 export interface Proposal {
   id: number;
@@ -63,8 +62,19 @@ export const resolveStatus = (proposal: Proposal) => {
 
 export function useGovernance(showStatus: (msg: string, type: string) => void, currentChainId: { value: string }) {
   const { t } = createUseI18n(messages)();
-  const { address, invokeContract, invokeRead } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureAddress } = useContractAddress(t);
+  const wallet = useWallet() as WalletSDK;
+  const { address } = wallet;
+  const {
+    read,
+    invokeDirectly,
+    ensureWallet,
+    contractAddress,
+    ensureContractAddress: ensureAddress,
+  } = useContractInteraction({
+    appId: "miniapp-council-governance",
+    t,
+    wallet,
+  });
 
   const proposals = ref<Proposal[]>([]);
   const selectedProposal = ref<Proposal | null>(null);
@@ -77,6 +87,11 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
 
   const activeProposals = computed(() => proposals.value.filter((p) => resolveStatus(p) === STATUS_ACTIVE));
   const historyProposals = computed(() => proposals.value.filter((p) => resolveStatus(p) !== STATUS_ACTIVE));
+  const cacheKey = computed(() => {
+    const chain = String(currentChainId.value || "unknown");
+    const contract = String(contractAddress.value || "unresolved");
+    return `${CACHE_KEY_PREFIX}:${chain}:${contract}`;
+  });
 
   const getApiBase = () => {
     try {
@@ -107,8 +122,30 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
   const readMethod = async (operation: string, args: { type: string; value: unknown }[] = []) => {
     const hasHash = await ensureContractAddress(false);
     if (!hasHash) throw new Error(t("contractUnavailable"));
-    const result = await invokeRead({ scriptHash: contractAddress.value as string, operation, args });
-    return parseInvokeResult(result);
+    return read(operation, args, contractAddress.value as string);
+  };
+
+  const readCachedProposals = (): Proposal[] | null => {
+    try {
+      const storage = (globalThis as { uni?: { getStorageSync?: (key: string) => string } }).uni;
+      if (!storage?.getStorageSync) return null;
+      const cached = storage.getStorageSync(cacheKey.value);
+      if (!cached) return null;
+      const parsed = JSON.parse(cached);
+      return Array.isArray(parsed) ? (parsed as Proposal[]) : null;
+    } catch (_e: unknown) {
+      return null;
+    }
+  };
+
+  const writeCachedProposals = (next: Proposal[]) => {
+    try {
+      const storage = (globalThis as { uni?: { setStorageSync?: (key: string, value: string) => void } }).uni;
+      if (!storage?.setStorageSync) return;
+      storage.setStorageSync(cacheKey.value, JSON.stringify(next));
+    } catch (_e: unknown) {
+      // non-critical cache write path
+    }
   };
 
   const selectProposal = async (p: Proposal) => {
@@ -138,15 +175,16 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
 
     try {
       isVoting.value = true;
-      await invokeContract({
-        scriptHash: contractAddress.value as string,
-        operation: "vote",
-        args: [
+      await ensureWallet();
+      await invokeDirectly(
+        "vote",
+        [
           { type: "Hash160", value: voter },
           { type: "Integer", value: proposalId },
           { type: "Boolean", value: voteType === "for" },
         ],
-      });
+        contractAddress.value as string,
+      );
       showStatus(t("voteRecorded"), "success");
       await loadProposals();
       await refreshHasVoted([proposalId]);
@@ -202,18 +240,19 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
       proposalData.type === 1 ? JSON.stringify({ method: proposalData.policyMethod, value: policyValueNumber }) : "";
 
     try {
-      await invokeContract({
-        scriptHash: contractAddress.value as string,
-        operation: "createProposal",
-        args: [
-          { type: "Hash160", value: address.value },
+      await ensureWallet();
+      await invokeDirectly(
+        "createProposal",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: proposalData.type },
           { type: "String", value: title },
           { type: "String", value: description },
           { type: "ByteString", value: policyDataS },
           { type: "Integer", value: proposalData.duration },
         ],
-      });
+        contractAddress.value as string,
+      );
       showStatus(t("proposalSubmitted"), "success");
       await loadProposals();
       return true;
@@ -232,11 +271,12 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     if (!hasHash) return;
 
     try {
-      await invokeContract({
-        scriptHash: contractAddress.value as string,
-        operation: "executeProposal",
-        args: [{ type: "Integer", value: proposalId }],
-      });
+      await ensureWallet();
+      await invokeDirectly(
+        "executeProposal",
+        [{ type: "Integer", value: proposalId }],
+        contractAddress.value as string,
+      );
       showStatus(t("executed"), "success");
       await loadProposals();
       selectedProposal.value = null;
@@ -250,11 +290,9 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     if (!hasHash) return;
 
     try {
-      const cached = uni.getStorageSync(CACHE_KEY);
-      if (cached) proposals.value = JSON.parse(cached);
-    } catch (_e: unknown) {
-      /* non-critical */
-    }
+      const cached = readCachedProposals();
+      if (cached) proposals.value = cached;
+    } catch (_e: unknown) { /* non-critical */ }
 
     try {
       loadingProposals.value = true;
@@ -266,7 +304,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
         })
       );
       proposals.value = (results.filter(Boolean) as Proposal[]).sort((a, b) => b.id - a.id);
-      uni.setStorageSync(CACHE_KEY, JSON.stringify(proposals.value));
+      writeCachedProposals(proposals.value);
     } catch (e: unknown) {
       if (proposals.value.length === 0) {
         showStatus(formatErrorMessage(e, t("failedToLoadProposals")), "error");
@@ -309,20 +347,18 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     const hasHash = await ensureContractAddress(false);
     if (!hasHash) return;
     const currentAddress = address.value;
-    const currentHash = contractAddress.value as string;
     const ids = proposalIds ?? proposals.value.map((p) => p.id);
     const updates: Record<number, boolean> = { ...hasVotedMap.value };
     await Promise.all(
       ids.map(async (id) => {
-        const res = await invokeRead({
-          scriptHash: currentHash,
-          operation: "hasVoted",
-          args: [
+        updates[id] = Boolean(await read(
+          "hasVoted",
+          [
             { type: "Hash160", value: currentAddress },
             { type: "Integer", value: id },
           ],
-        });
-        updates[id] = Boolean(parseInvokeResult(res));
+          contractAddress.value as string,
+        ));
       })
     );
     hasVotedMap.value = updates;

@@ -30,3 +30,14 @@ Configs are pushed to `miniapp-definitions/` and the DB.
 ### 3. Smart Contract Factories
 Found in `/contracts/MiniAppTemplates/`.
 Generic, parameter-driven C# contracts (`Template.Prediction.cs`, `Template.Lottery.cs`) handle arbitrary state for specific templates without requiring individual contract deployments.
+
+The next contract evolution is documented in
+[`contracts/MiniAppFactory/MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md`](../contracts/MiniAppFactory/MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md):
+
+- `NeoPay` is the reference `shared`-mode example, where one app instance binds reusable
+  `funding_vault` + `stream_vesting` modules with no dedicated business contract deployment.
+- `GASBox` is the reference `router`-mode example, where a thin generated orchestrator keeps
+  inventory, randomness, escrow, and settlement atomic while still reusing shared modules.
+
+The matching frontend/contract symmetry model is documented in
+[`COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md`](./COMPOSABLE_MINIAPP_PLATFORM_ARCHITECTURE.md).

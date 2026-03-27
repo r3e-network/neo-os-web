@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { miniAppConfigSchema } from "@/lib/schemas";
+import { miniAppConfigBaseSchema } from "@/lib/schemas";
 import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 export async function POST(req: Request) {
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   let action = "save_draft";
   try {
     const body = await req.json();
-    const parsed = miniAppConfigSchema.passthrough().parse(body);
+    const parsed = miniAppConfigBaseSchema.passthrough().parse(body);
     payload = parsed as Record<string, unknown>;
     const rawAction = String((body as Record<string, unknown>)?.action || "").trim();
     if (rawAction) action = rawAction;

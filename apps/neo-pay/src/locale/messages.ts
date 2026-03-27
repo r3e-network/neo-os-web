@@ -3,9 +3,9 @@ import { mergeMessages } from "@shared/locale/base-messages";
 const appMessages = {
   title: { en: "NeoPay", zh: "流式支付" },
   createTab: { en: "Create", zh: "创建" },
-  vaultsTab: { en: "Vaults", zh: "金库" },
+  vaultsTab: { en: "Streams", zh: "资金流" },
 
-  vaultName: { en: "Vault name", zh: "金库名称" },
+  vaultName: { en: "Stream name", zh: "资金流名称" },
   vaultNamePlaceholder: { en: "Monthly payroll stream", zh: "每月工资流" },
   beneficiary: { en: "Beneficiary address", zh: "受益人地址" },
   beneficiaryPlaceholder: { en: "Enter Neo N3 address", zh: "输入 Neo N3 地址" },
@@ -14,7 +14,7 @@ const appMessages = {
   assetGas: { en: "GAS", zh: "GAS" },
   totalAmount: { en: "Total amount", zh: "总金额" },
   totalAmountPlaceholder: { en: "20", zh: "20" },
-  totalAmountHint: { en: "Funds are locked in the vault", zh: "资金将锁定在金库中" },
+  totalAmountHint: { en: "Funds are locked in the stream", zh: "资金将锁定在该资金流中" },
   rateAmount: { en: "Release per interval", zh: "每期释放" },
   rateAmountPlaceholder: { en: "1.5", zh: "1.5" },
   intervalDays: { en: "Interval (days)", zh: "周期（天）" },
@@ -23,8 +23,8 @@ const appMessages = {
   notes: { en: "Notes (optional)", zh: "备注（可选）" },
   notesPlaceholder: { en: "Add context for the recipient", zh: "补充说明" },
 
-  createVault: { en: "Create Vault", zh: "创建金库" },
-  vaultCreated: { en: "Vault created", zh: "金库已创建" },
+  createVault: { en: "Create Stream", zh: "创建资金流" },
+  vaultCreated: { en: "Stream created", zh: "资金流已创建" },
 
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
 
@@ -35,8 +35,8 @@ const appMessages = {
   walletNotConnected: { en: "Wallet not connected", zh: "钱包未连接" },
 
   myCreated: { en: "Created by you", zh: "我创建的" },
-  beneficiaryVaults: { en: "For you", zh: "我受益的" },
-  emptyVaults: { en: "No vaults yet", zh: "暂无金库" },
+  beneficiaryVaults: { en: "For you", zh: "受益给我的资金流" },
+  emptyVaults: { en: "No streams yet", zh: "暂无资金流" },
   refresh: { en: "Refresh", zh: "刷新" },
   sidebarCreatedStreams: { en: "Created Streams", zh: "已创建流" },
   sidebarBeneficiaryStreams: { en: "Beneficiary Streams", zh: "受益流" },
@@ -63,12 +63,12 @@ const appMessages = {
     zh: "用于工资、订阅与津贴的定期释放",
   },
   docDescription: {
-    en: "Stream Vault locks GAS or NEO and stores a release schedule on-chain. Claimable amounts accrue per interval, letting beneficiaries claim over time while creators can cancel and recover unvested funds.",
-    zh: "流式金库会锁定 GAS 或 NEO，并将释放计划上链。可领取金额按周期累积，受益人按期领取，创建者可取消并收回未释放的余额。",
+    en: "A payment stream locks GAS or NEO and stores a release schedule on-chain. Claimable amounts accrue per interval, letting beneficiaries claim over time while creators can cancel and recover unvested funds.",
+    zh: "资金流会锁定 GAS 或 NEO，并将释放计划记录在链上。可领取金额按周期累积，受益人按期领取，创建者可取消并收回未释放的余额。",
   },
   step1: {
-    en: "Create a vault with beneficiary, asset, total, and interval.",
-    zh: "填写受益人、资产、总金额与周期创建金库。",
+    en: "Create a stream with beneficiary, asset, total amount, and interval.",
+    zh: "填写受益人、资产、总金额与周期来创建资金流。",
   },
   step2: { en: "Funds lock immediately and begin the release schedule.", zh: "资金立即锁定并开始按周期释放。" },
   step3: { en: "Beneficiary claims accumulated amounts each period.", zh: "受益人按期领取累积的可领取金额。" },

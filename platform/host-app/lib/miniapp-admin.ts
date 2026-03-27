@@ -297,7 +297,7 @@ const BLUEPRINT_DEFINITIONS: MiniAppBlueprintDefinition[] = [
       operation_panel: {
         title: "Operations",
         subtitle: "Configure parameters and submit the transaction.",
-        cta_label: "Launch App",
+        cta_label: "Launch MiniApp",
         operations: [],
       },
     },
@@ -757,6 +757,14 @@ export function normalizeMiniAppAdminPayload(
 
   const contractTemplateInput = asObject(mergedInput.contract_template ?? incomingManifest.contract_template ?? existingManifest.contract_template);
   const normalizedContractTemplate = hasMeaningfulValue(contractTemplateInput) ? contractTemplateInput : undefined;
+  const contractCompositionInput = asObject(
+    mergedInput.contract_composition ??
+    incomingManifest.contract_composition ??
+    existingManifest.contract_composition,
+  );
+  const normalizedContractComposition = hasMeaningfulValue(contractCompositionInput)
+    ? contractCompositionInput
+    : undefined;
 
   const templateId = asTrimmedString(preparedInput.template_id ?? contractInput.template_id);
   const initParams = preparedInput.init_params ?? contractInput.init_params;
@@ -788,6 +796,7 @@ export function normalizeMiniAppAdminPayload(
     init_params: hasMeaningfulValue(initParams) ? initParams : undefined,
     contract: hasMeaningfulValue(normalizedContract) ? normalizedContract : undefined,
     contract_template: normalizedContractTemplate,
+    contract_composition: normalizedContractComposition,
     frontend_spec: hasMeaningfulValue(frontendSpec) ? frontendSpec : undefined,
     detail_template: detailTemplate,
     page_template: detailTemplate,

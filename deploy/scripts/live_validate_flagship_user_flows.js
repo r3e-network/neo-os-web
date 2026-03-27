@@ -35,6 +35,10 @@ const siblingOraclePhalaEnvPath = path.resolve(
   "phala",
   TARGET_NETWORK === "mainnet" ? "morpheus.mainnet.env" : "morpheus.testnet.env"
 );
+const FLAGSHIP_REPORT_PATH = String(
+  process.env.FLAGSHIP_LIVE_REPORT_PATH
+    || path.join(root, "docs", "reports", "flagship-live-user-flows.json")
+).trim();
 const NETWORK_CONFIG = getNetworkConfig(TARGET_NETWORK);
 const RPC_URL = process.env.NEO_RPC_URL || NETWORK_CONFIG.rpcUrl;
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || NETWORK_CONFIG.networkMagic);
@@ -77,6 +81,16 @@ const FOGPLAY_BET = "5000000";
 const RED_ENVELOPE_TOTAL = "10000000";
 const SELF_LOAN_POOL_TOPUP = process.env.SELF_LOAN_POOL_TOPUP || "30000000";
 const SELF_LOAN_COLLATERAL = "1";
+const ORACLE_UPDATER_MIN_GAS = 10000000n;
+const FLAGSHIP_TASKS = [
+  ["dailyCheckin", runDailyCheckin],
+  ["lastSurvivor", runLastSurvivor],
+  ["gasBox", runGasBox],
+  ["fogPlay", runFogPlay],
+  ["redEnvelope", runRedEnvelope],
+  ["selfLoan", runSelfLoan],
+  ["neoPay", runNeoPay],
+];
 
 function loadOptionalEnvFile(filePath) {
   try {
@@ -312,6 +326,129 @@ async function invokeRead(scriptHash, operation, args = []) {
   return res.stack?.[0] ? stackValue(res.stack[0]) : null;
 }
 
+function normalizeHash160(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.startsWith("0x")) return text;
+  return /^[0-9a-f]{40}$/.test(text) ? `0x${text}` : text;
+}
+
+function toBigIntValue(value) {
+  try {
+    return BigInt(String(value ?? "0"));
+  } catch {
+    return 0n;
+  }
+}
+
+function boolish(value) {
+  if (typeof value === "boolean") return value;
+  const text = String(value ?? "").trim().toLowerCase();
+  return !(text === "" || text === "0" || text === "false" || text === "no" || text === "off");
+}
+
+function requireObjectKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} returned invalid payload`);
+  }
+  for (const key of keys) {
+    if (!(key in value)) {
+      throw new Error(`${label} missing field "${key}"`);
+    }
+  }
+  return value;
+}
+
+async function getGasBalance(addressOrHash) {
+  const res = await rpcClient.invokeFunction(GAS_HASH, "balanceOf", [Neon.sc.ContractParam.hash160(addressOrHash)]);
+  return toBigIntValue(res?.stack?.[0]?.value || "0");
+}
+
+async function getNeoBalance(addressOrHash) {
+  const res = await rpcClient.invokeFunction(NEO_HASH, "balanceOf", [Neon.sc.ContractParam.hash160(addressOrHash)]);
+  return toBigIntValue(res?.stack?.[0]?.value || "0");
+}
+
+async function ensureAccountHasGas(accountLike, required, label) {
+  const need = BigInt(String(required));
+  const available = await getGasBalance(`0x${accountLike.scriptHash}`);
+  if (available < need) {
+    throw new Error(
+      `${label}: insufficient GAS for ${accountLike.address}; need ${need.toString()}, have ${available.toString()}, short ${(
+        need - available
+      ).toString()}`
+    );
+  }
+  return available;
+}
+
+function resolveTargetSelection(tasks, filterSet) {
+  const available = tasks.map(([label]) => label);
+  const requested = [...filterSet];
+  const unknown = requested.filter((label) => !available.includes(label));
+  const selected = requested.length > 0
+    ? available.filter((label) => filterSet.has(label))
+    : available;
+  return { available, requested, selected, unknown };
+}
+
+async function buildPreflightSummary(targets) {
+  const accountGas = await getGasBalance(`0x${account.scriptHash}`);
+  const accountNeo = await getNeoBalance(`0x${account.scriptHash}`);
+  const adminGas = await getGasBalance(`0x${adminAccount.scriptHash}`);
+  const updaterGas = await getGasBalance(`0x${oracleUpdaterAccount.scriptHash}`);
+  const oracleUpdater = normalizeHash160(await invokeRead(ORACLE_HASH, "updater").catch(() => ""));
+  return {
+    files: {
+      siblingOracleEnvPath,
+      siblingOracleEnvLocalPath,
+      siblingOraclePhalaEnvPath,
+      siblingEdgeGatewayConfigPath,
+      siblingOracleEnvExists: fs.existsSync(siblingOracleEnvPath),
+      siblingOracleEnvLocalExists: fs.existsSync(siblingOracleEnvLocalPath),
+      siblingOraclePhalaEnvExists: fs.existsSync(siblingOraclePhalaEnvPath),
+      siblingEdgeGatewayConfigExists: fs.existsSync(siblingEdgeGatewayConfigPath),
+    },
+    targets,
+    runtime: {
+      phalaApiUrl: PHALA_API_URL || "",
+      phalaApiTokenConfigured: Boolean(PHALA_API_TOKEN),
+      rngFallbackEnabled: RNG_FALLBACK_ENABLED,
+      rngFallbackLeadMs: RNG_FALLBACK_LEAD_MS,
+      oracleUpdaterWifConfigured: Boolean(ORACLE_UPDATER_WIF),
+      oracleUpdaterOnChain: oracleUpdater || null,
+      oracleUpdaterLocal: normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`),
+      rngFallbackReady: Boolean(PHALA_API_URL && PHALA_API_TOKEN && ORACLE_UPDATER_WIF),
+      oracleUpdaterMinGas: ORACLE_UPDATER_MIN_GAS.toString(),
+    },
+    wallets: {
+      primary: {
+        address: account.address,
+        scriptHash: normalizeHash160(`0x${account.scriptHash}`),
+        gas: accountGas.toString(),
+        neo: accountNeo.toString(),
+      },
+      admin: {
+        address: adminAccount.address,
+        scriptHash: normalizeHash160(`0x${adminAccount.scriptHash}`),
+        gas: adminGas.toString(),
+      },
+      oracleUpdater: {
+        address: oracleUpdaterAccount.address,
+        scriptHash: normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`),
+        gas: updaterGas.toString(),
+      },
+    },
+    fundingHints: {
+      dailyCheckinFee: DAILY_CHECKIN_FEE,
+      fogPlayBet: FOGPLAY_BET,
+      redEnvelopeTotal: RED_ENVELOPE_TOTAL,
+      selfLoanPoolTopup: SELF_LOAN_POOL_TOPUP,
+      selfLoanCollateral: SELF_LOAN_COLLATERAL,
+    },
+  };
+}
+
 async function transferGAS(toHash, amount, memo) {
   const txid = await gasContract.invoke("transfer", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
@@ -453,21 +590,76 @@ async function topUpOracleCallbackCredit(callbackContractHash) {
   return asTxid(txid);
 }
 
-async function assertOracleCallbackReady(contractHash) {
-  const configuredOracle = String(await invokeRead(contractHash, "oracle") || "").toLowerCase();
-  const expectedOracle = String(ORACLE_HASH || "").toLowerCase();
+async function assertOracleCallbackReady(contractHash, { autoTopUp = true } = {}) {
+  const configuredOracle = normalizeHash160(await invokeRead(contractHash, "oracle"));
+  const expectedOracle = normalizeHash160(ORACLE_HASH);
   if (configuredOracle !== expectedOracle) {
     throw new Error(
       `oracle mismatch for ${contractHash}: expected ${expectedOracle}, got ${configuredOracle || "unset"}`
     );
   }
 
-  const callbackAllowed = Boolean(
+  const callbackAllowed = boolish(
     await invokeRead(ORACLE_HASH, "isAllowedCallback", [{ type: "Hash160", value: contractHash }])
   );
   if (!callbackAllowed) {
     throw new Error(`callback contract ${contractHash} is not allowlisted in oracle`);
   }
+
+  const requestFee = toBigIntValue(await invokeRead(ORACLE_HASH, "requestFee"));
+  if (requestFee <= 0n) {
+    throw new Error(`oracle request fee is invalid for ${contractHash}: ${requestFee.toString()}`);
+  }
+
+  let feeCredit = toBigIntValue(
+    await invokeRead(ORACLE_HASH, "feeCreditOf", [{ type: "Hash160", value: contractHash }])
+  );
+  let topUpTx = "";
+  if (feeCredit < requestFee) {
+    if (!autoTopUp) {
+      throw new Error(
+        `oracle callback credit too low for ${contractHash}: ${feeCredit.toString()} < ${requestFee.toString()}`
+      );
+    }
+    topUpTx = await topUpOracleCallbackCredit(contractHash);
+    feeCredit = toBigIntValue(
+      await invokeRead(ORACLE_HASH, "feeCreditOf", [{ type: "Hash160", value: contractHash }])
+    );
+    if (feeCredit < requestFee) {
+      throw new Error(
+        `oracle callback credit still too low after top-up for ${contractHash}: ${feeCredit.toString()} < ${requestFee.toString()}`
+      );
+    }
+  }
+
+  if (RNG_FALLBACK_ENABLED) {
+    if (!ORACLE_UPDATER_WIF) {
+      throw new Error(
+        `rng fallback enabled but MORPHEUS_ORACLE_UPDATER_WIF is not configured for ${contractHash}`
+      );
+    }
+    const onChainUpdater = normalizeHash160(await invokeRead(ORACLE_HASH, "updater"));
+    const localUpdater = normalizeHash160(`0x${String(oracleUpdaterAccount?.scriptHash || "")}`);
+    if (onChainUpdater && localUpdater && onChainUpdater !== localUpdater) {
+      throw new Error(
+        `oracle updater mismatch: on-chain ${onChainUpdater}, local signer ${localUpdater}`
+      );
+    }
+    const updaterGas = await getGasBalance(`0x${oracleUpdaterAccount.scriptHash}`);
+    if (updaterGas < ORACLE_UPDATER_MIN_GAS) {
+      throw new Error(
+        `oracle updater ${oracleUpdaterAccount.address} has insufficient GAS for rng fallback; need at least ${ORACLE_UPDATER_MIN_GAS.toString()}, have ${updaterGas.toString()}`
+      );
+    }
+  }
+
+  return {
+    configuredOracle,
+    callbackAllowed,
+    requestFee: requestFee.toString(),
+    feeCredit: feeCredit.toString(),
+    topUpTx,
+  };
 }
 
 async function assertGasBoxHybridScriptReady(contractHash) {
@@ -483,6 +675,10 @@ async function assertGasBoxHybridScriptReady(contractHash) {
       if (scriptInfo.enabled !== true) {
         throw new Error("gasBox select-item hybrid script is disabled");
       }
+      const scriptHash = String(scriptInfo.hash || scriptInfo.scriptHash || scriptInfo.codeHash || "").trim();
+      if (!scriptHash) {
+        throw new Error("gasBox select-item hybrid script hash missing");
+      }
       return scriptInfo;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -497,21 +693,43 @@ async function assertGasBoxHybridScriptReady(contractHash) {
   throw new Error(lastError || "failed to read gasBox script info");
 }
 
+function assertPlayableGasBoxMachine(machineId, machine, item, itemIndex) {
+  const machineState = requireObjectKeys(machine, ["active"], `getMachine(${machineId})`);
+  const active = boolish(machineState.active);
+  const banned = boolish(machineState.banned);
+  const price = toBigIntValue(machineState.price);
+  const itemCount = Number(machineState.itemCount || 0);
+  const totalWeight = toBigIntValue(
+    machineState.totalWeight || machineState.totalWeights || machineState.totalProbabilityWeight
+  );
+  if (!active || banned || price <= 0n || itemCount <= 0 || totalWeight <= 0n) {
+    return false;
+  }
+
+  const prize = requireObjectKeys(item, ["assetType", "assetHash", "amount", "stock"], `getMachineItem(${machineId}, ${itemIndex})`);
+  const assetType = String(prize.assetType || "0");
+  const assetHash = normalizeHash160(prize.assetHash);
+  const amount = toBigIntValue(prize.amount);
+  const stock = toBigIntValue(prize.stock);
+  return assetType === "1" && assetHash === normalizeHash160(GAS_HASH) && amount > 0n && stock >= amount;
+}
+
 async function findPlayableGasBoxMachine(contractHash) {
   const total = Number(await invokeRead(contractHash, "totalMachines"));
   for (let machineId = 1; machineId <= total; machineId += 1) {
     const machine = await invokeRead(contractHash, "getMachine", [{ type: "Integer", value: String(machineId) }]);
-    if (!machine || machine.active !== true) continue;
+    if (!machine || boolish(machine.active) !== true) continue;
     const itemCount = Number(machine.itemCount || 0);
     if (itemCount <= 0) continue;
-    const item = await invokeRead(contractHash, "getMachineItem", [
-      { type: "Integer", value: String(machineId) },
-      { type: "Integer", value: "1" },
-    ]);
-    if (!item || String(item.assetType || "0") !== "1") continue;
-    if (String(item.assetHash || "").toLowerCase() !== GAS_HASH.toLowerCase()) continue;
-    if (BigInt(String(item.stock || "0")) < BigInt(String(item.amount || "0"))) continue;
-    return { machineId, machine, item };
+    for (let itemIndex = 1; itemIndex <= itemCount; itemIndex += 1) {
+      const item = await invokeRead(contractHash, "getMachineItem", [
+        { type: "Integer", value: String(machineId) },
+        { type: "Integer", value: String(itemIndex) },
+      ]);
+      if (!item) continue;
+      if (!assertPlayableGasBoxMachine(machineId, machine, item, itemIndex)) continue;
+      return { machineId, machine, item, itemIndex };
+    }
   }
   throw new Error("no active GASBOX machine with funded GAS prize inventory found");
 }
@@ -522,6 +740,13 @@ async function provisionGasBoxMachine(contractHash) {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+  const minimumRequiredBalance = 15000000n;
+  const availableGas = await getGasBalance(`0x${account.scriptHash}`);
+  if (availableGas < minimumRequiredBalance) {
+    throw new Error(
+      `insufficient GAS to provision fallback GASBOX machine: need at least ${minimumRequiredBalance.toString()}, have ${availableGas.toString()}`
+    );
+  }
   const machineName = `Codex Live Box ${Date.now()}`;
   const createTx = await contract.invoke("createMachine", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
@@ -584,7 +809,10 @@ async function provisionGasBoxMachine(contractHash) {
     { type: "Integer", value: String(machineId) },
     { type: "Integer", value: "1" },
   ]);
-  return { machineId, machine, item, createTx: asTxid(createTx), fundTx, depositTx: asTxid(depositTx), activateTx: asTxid(activateTx) };
+  if (!assertPlayableGasBoxMachine(machineId, machine, item, 1)) {
+    throw new Error(`provisioned GASBOX machine ${machineId} is not playable`);
+  }
+  return { machineId, machine, item, itemIndex: 1, createTx: asTxid(createTx), fundTx, depositTx: asTxid(depositTx), activateTx: asTxid(activateTx) };
 }
 
 async function runGasBox() {
@@ -602,9 +830,14 @@ async function runGasBox() {
     playable = await findPlayableGasBoxMachine(contractHash);
   } catch {
     provisioned = await provisionGasBoxMachine(contractHash);
-    playable = { machineId: provisioned.machineId, machine: provisioned.machine };
+    playable = {
+      machineId: provisioned.machineId,
+      machine: provisioned.machine,
+      item: provisioned.item,
+      itemIndex: provisioned.itemIndex,
+    };
   }
-  const { machineId, machine } = playable;
+  const { machineId, machine, item, itemIndex } = playable;
   const playPrice = String(machine.price || "0");
   if (!playPrice || playPrice === "0") {
     throw new Error(`invalid GASBOX machine price for machine ${machineId}`);
@@ -651,6 +884,8 @@ async function runGasBox() {
     contractHash,
     scriptInfo,
     machineId,
+    itemIndex,
+    prizeItem: item,
     provisioned,
     transferTx,
     initiateTx: asTxid(initiateTx),
@@ -663,10 +898,18 @@ async function runGasBox() {
 
 async function runDailyCheckin() {
   const contractHash = appHash("apps/daily-checkin/neo-manifest.json");
-  const status = await invokeRead(contractHash, "getCheckinStatus", [
+  const status = requireObjectKeys(await invokeRead(contractHash, "getCheckinStatus", [
     { type: "Hash160", value: `0x${account.scriptHash}` },
-  ]);
-  if (status && status.canCheckin === false) {
+  ]), ["currentUtcDay", "lastCheckinDay", "canCheckin", "timeUntilEligible"], "getCheckinStatus");
+  const currentUtcDay = toBigIntValue(status.currentUtcDay);
+  const lastCheckinDay = toBigIntValue(status.lastCheckinDay);
+  const canCheckin = boolish(status.canCheckin);
+  if (lastCheckinDay > currentUtcDay) {
+    throw new Error(
+      `daily-checkin status inconsistent: lastCheckinDay ${lastCheckinDay.toString()} > currentUtcDay ${currentUtcDay.toString()}`
+    );
+  }
+  if (!canCheckin && lastCheckinDay === currentUtcDay) {
     return {
       contractHash,
       skipped: true,
@@ -674,13 +917,27 @@ async function runDailyCheckin() {
       status,
     };
   }
+  if (!canCheckin) {
+    throw new Error(
+      `daily-checkin not eligible yet: timeUntilEligible=${String(status.timeUntilEligible || "0")}`
+    );
+  }
   const txid = await transferGAS(contractHash, DAILY_CHECKIN_FEE, "miniapp-dailycheckin:checkin");
   const { execution } = await waitForLog(txid);
   const checkedIn = findNotification(execution, contractHash, "CheckedIn");
+  let statusAfter = null;
   if (!checkedIn) {
-    throw new Error("CheckedIn notification missing");
+    statusAfter = requireObjectKeys(await invokeRead(contractHash, "getCheckinStatus", [
+      { type: "Hash160", value: `0x${account.scriptHash}` },
+    ]), ["currentUtcDay", "lastCheckinDay", "canCheckin", "timeUntilEligible"], "getCheckinStatus");
+    const afterCurrent = toBigIntValue(statusAfter.currentUtcDay);
+    const afterLast = toBigIntValue(statusAfter.lastCheckinDay);
+    const afterCanCheckin = boolish(statusAfter.canCheckin);
+    if (afterLast !== afterCurrent || afterCanCheckin) {
+      throw new Error("CheckedIn notification missing and on-chain status did not advance");
+    }
   }
-  return { contractHash, txid };
+  return { contractHash, txid, notificationObserved: !!checkedIn, statusBefore: status, statusAfter };
 }
 
 async function runLastSurvivor() {
@@ -695,8 +952,26 @@ async function runLastSurvivor() {
     networkMagic: NETWORK_MAGIC,
     account: adminAccount || account,
   });
+  const resolvedAdminSignerHash = normalizeHash160(`0x${String((adminAccount || account).scriptHash || "")}`);
+  const resolvedAdminSignerAddress = String((adminAccount || account).address || "");
+
+  const assertCanStartRound = async (reason) => {
+    const adminHash = normalizeHash160(await invokeRead(contractHash, "admin"));
+    if (!adminHash || /^0x0{40}$/.test(adminHash)) {
+      throw new Error(
+        `lastSurvivor ${reason}: contract admin is unset or invalid (${adminHash || "empty"})`
+      );
+    }
+    if (adminHash !== resolvedAdminSignerHash) {
+      throw new Error(
+        `lastSurvivor ${reason}: on-chain admin ${adminHash} does not match resolved admin signer ${resolvedAdminSignerHash} (${resolvedAdminSignerAddress || "unknown address"}). Set TEST_SMOKE_ADMIN_WIF or MINIAPP_UPDATE_WIF to the current contract admin before rerunning.`
+      );
+    }
+    return adminHash;
+  };
 
   const startRound = async () => {
+    await assertCanStartRound("startNewRound precheck");
     const tx = await adminContract.invoke("startNewRound", []);
     const { execution } = await waitForLog(tx);
     if (execution.vmstate !== "HALT") {
@@ -739,13 +1014,6 @@ async function runLastSurvivor() {
   let roundId = String(status.roundId || "0");
   let startTx = "";
   if (status.active !== true) {
-    const adminHash = String(await invokeRead(contractHash, "admin") || "").toLowerCase();
-    const signerHash = `0x${String((adminAccount || account).scriptHash || "").toLowerCase()}`;
-    if (adminHash && adminHash !== signerHash.toLowerCase()) {
-      throw new Error(
-        `lastSurvivor round inactive and admin signer mismatch (admin ${adminHash}, signer ${signerHash})`
-      );
-    }
     const started = await startRound();
     roundId = started.roundId;
     startTx = started.txid;
@@ -753,6 +1021,10 @@ async function runLastSurvivor() {
 
   let result = await attemptBuy(roundId);
   if (!result.purchased || !result.extended) {
+    const refreshedStatus = await invokeRead(contractHash, "getGameStatus");
+    if (refreshedStatus.active !== true) {
+      await assertCanStartRound("fallback round restart");
+    }
     const started = await startRound();
     roundId = started.roundId;
     startTx = startTx || started.txid;
@@ -782,14 +1054,13 @@ async function runLastSurvivor() {
 
 async function runFogPlay() {
   const contractHash = appHash("apps/fogplay/neo-manifest.json");
-  await assertOracleCallbackReady(contractHash);
+  const oracleReady = await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
     account,
   });
 
-  const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-fogplay:bet");
   await sleep(4000);
   const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeBet", [
@@ -811,19 +1082,18 @@ async function runFogPlay() {
     throw new Error(`oracle rng request ${requestId} failed: ${String(request?.[11] || "unknown error")}`);
   }
   const bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: String(betId) }]);
-  return { contractHash, oracleFeeTx, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
+  return { contractHash, oracleReady, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
 }
 
 async function runRedEnvelope() {
   const contractHash = appHash("apps/red-envelope/neo-manifest.json");
-  await assertOracleCallbackReady(contractHash);
+  const oracleReady = await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
     account,
   });
 
-  const oracleFeeTx = await topUpOracleCallbackCredit(contractHash);
   const transferTx = await transferGAS(contractHash, RED_ENVELOPE_TOTAL, "miniapp-redenvelope:create");
   await sleep(4000);
   const { txid: createTx, execution } = await invokeWithPendingRequestRetry(contract, "createEnvelope", [
@@ -862,7 +1132,7 @@ async function runRedEnvelope() {
 
   return {
     contractHash,
-    oracleFeeTx,
+    oracleReady,
     transferTx,
     createTx,
     requestId,
@@ -889,9 +1159,18 @@ async function runSelfLoan() {
     ? neoBalance.balance.find((entry) => String(entry.assethash || "").toLowerCase() === NEO_HASH.toLowerCase())
     : null;
   const availableNeo = Number(neoAsset?.amount || "0");
+  const collateralPrecheck = {
+    address: account.address,
+    assetHash: NEO_HASH,
+    requiredCollateral: SELF_LOAN_COLLATERAL,
+    availableNeo: String(neoAsset?.amount || "0"),
+  };
   if (!Number.isFinite(availableNeo) || availableNeo < Number(SELF_LOAN_COLLATERAL)) {
-    throw new Error(`insufficient wallet NEO balance for selfLoan collateral: need ${SELF_LOAN_COLLATERAL}, have ${neoAsset?.amount || "0"}`);
+    throw new Error(
+      `selfLoan collateral precheck failed for ${account.address}: requires at least ${SELF_LOAN_COLLATERAL} whole NEO but current wallet balance is ${String(neoAsset?.amount || "0")}. Top up the wallet selected by FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / AA_TEST_WIF / ORACLE_TEST_WIF / NEO_TESTNET_WIF before rerunning.`
+    );
   }
+  await ensureAccountHasGas(account, BigInt(String(SELF_LOAN_POOL_TOPUP)), "selfLoan pool top-up");
 
   const poolTx = await transferGAS(contractHash, SELF_LOAN_POOL_TOPUP, "miniapp-self-loan:pool");
   const collateralTx = await transferNEO(contractHash, SELF_LOAN_COLLATERAL, "miniapp-self-loan:collateral");
@@ -914,6 +1193,7 @@ async function runSelfLoan() {
   const details = await invokeRead(contractHash, "getLoanDetails", [{ type: "Integer", value: String(loanId) }]);
   return {
     contractHash,
+    collateralPrecheck,
     poolTx,
     collateralTx,
     createTx: asTxid(createTx),
@@ -992,25 +1272,37 @@ async function runNeoPay() {
 
 async function main() {
   await initNeon();
+  const targets = resolveTargetSelection(FLAGSHIP_TASKS, LIVE_TARGET_FILTER);
+  if (targets.unknown.length > 0) {
+    throw new Error(
+      `unknown FLAGSHIP_LIVE_TARGETS entries: ${targets.unknown.join(", ")}; valid targets: ${targets.available.join(", ")}`
+    );
+  }
+  const preflight = await buildPreflightSummary(targets);
   const summary = {
     generatedAt: new Date().toISOString(),
     targetNetwork: TARGET_NETWORK,
     rpcUrl: RPC_URL,
     address: account.address,
     oracleHash: ORACLE_HASH,
+    targetInfo: targets,
+    preflight,
     results: {},
   };
 
+  console.error(`[targets] selected=${targets.selected.join(", ")}`);
+  if (targets.requested.length > 0) {
+    console.error(`[targets] requested=${targets.requested.join(", ")}`);
+  }
+  console.error(
+    `[preflight] primaryGas=${preflight.wallets.primary.gas} primaryNEO=${preflight.wallets.primary.neo} adminGas=${preflight.wallets.admin.gas} updaterGas=${preflight.wallets.oracleUpdater.gas}`
+  );
+  console.error(
+    `[preflight] phalaUrl=${preflight.runtime.phalaApiUrl || "unset"} phalaToken=${preflight.runtime.phalaApiTokenConfigured ? "set" : "unset"} rngFallback=${preflight.runtime.rngFallbackEnabled ? "on" : "off"}`
+  );
+
   let failed = false;
-  for (const [label, runner] of [
-    ["dailyCheckin", runDailyCheckin],
-    ["lastSurvivor", runLastSurvivor],
-    ["gasBox", runGasBox],
-    ["fogPlay", runFogPlay],
-    ["redEnvelope", runRedEnvelope],
-    ["selfLoan", runSelfLoan],
-    ["neoPay", runNeoPay],
-  ]) {
+  for (const [label, runner] of FLAGSHIP_TASKS) {
     if (LIVE_TARGET_FILTER.size > 0 && !LIVE_TARGET_FILTER.has(label)) {
       summary.results[label] = { skipped: true };
       continue;
@@ -1027,6 +1319,11 @@ async function main() {
     }
   }
 
+  if (FLAGSHIP_REPORT_PATH) {
+    fs.mkdirSync(path.dirname(FLAGSHIP_REPORT_PATH), { recursive: true });
+    fs.writeFileSync(FLAGSHIP_REPORT_PATH, JSON.stringify(summary, null, 2) + "\n");
+    console.error(`Report: ${FLAGSHIP_REPORT_PATH}`);
+  }
   console.log(JSON.stringify(summary, null, 2));
   if (failed) {
     process.exitCode = 1;

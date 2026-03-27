@@ -1,9 +1,9 @@
 import { ref } from "vue";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { useWallet } from "@shared/utils/wallet-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { handleAsync, formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
-import { parseInvokeResult } from "@shared/utils/neo";
 
 // ============================================
 // Types — simplified trustanchor accounting surface
@@ -16,13 +16,16 @@ export interface TrustAnchorStats {
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_DECIMALS = TOKEN_CONSTANTS.GAS_MULTIPLIER; // 1e8
+const APP_ID = "miniapp-trustanchor";
 
 // ============================================
 // Composable
 // ============================================
 
 export function useTrustAnchor(_t: (key: string) => string) {
-  const { address, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, chainType, getContractAddress: resolveContractAddress } = wallet;
+  const { read, invokeDirectly } = useContractInteraction({ appId: APP_ID, t: _t, wallet });
 
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -45,20 +48,14 @@ export function useTrustAnchor(_t: (key: string) => string) {
   // ------------------------------------------
 
   const getContractAddress = async (): Promise<string> => {
-    const { getContractAddress: resolve } = useWallet() as WalletSDK;
-    const addr = await resolve();
+    const addr = await resolveContractAddress();
     if (!addr) throw new Error(_t("contractUnavailable"));
     return addr;
   };
 
-  const readContract = async (operation: string, args?: { type: string; value: unknown }[]) => {
+  const readContract = async (operation: string, args?: Parameters<typeof read>[1]) => {
     const contract = await getContractAddress();
-    const result = await invokeRead({
-      scriptHash: contract,
-      operation,
-      ...(args && { args }),
-    });
-    return parseInvokeResult(result);
+    return read(operation, args, contract);
   };
 
   // ------------------------------------------
@@ -71,8 +68,9 @@ export function useTrustAnchor(_t: (key: string) => string) {
       myStake.value = 0;
       return;
     }
+    const account = address.value;
 
-    const result = await handleAsync(async () => readContract("stakeOf", [{ type: "Hash160", value: address.value }]), {
+    const result = await handleAsync(async () => readContract("stakeOf", [{ type: "Hash160", value: account }]), {
       context: "Loading stake",
       onError: (e: Error) => setError(formatErrorMessage(e, e.message)),
     });
@@ -88,9 +86,10 @@ export function useTrustAnchor(_t: (key: string) => string) {
       pendingRewards.value = 0;
       return;
     }
+    const account = address.value;
 
     const result = await handleAsync(
-      async () => readContract("rewardOf", [{ type: "Hash160", value: address.value }]),
+      async () => readContract("rewardOf", [{ type: "Hash160", value: account }]),
       { context: "Loading rewards", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
 
@@ -105,9 +104,10 @@ export function useTrustAnchor(_t: (key: string) => string) {
       pendingWithdraw.value = 0;
       return;
     }
+    const account = address.value;
 
     const result = await handleAsync(
-      async () => readContract("pendingWithdrawOf", [{ type: "Hash160", value: address.value }]),
+      async () => readContract("pendingWithdrawOf", [{ type: "Hash160", value: account }]),
       { context: "Loading pending withdraw", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
 
@@ -163,6 +163,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
       setError(_t("connectWallet"));
       return { success: false };
     }
+    const account = address.value;
     if (amount <= 0 || !Number.isInteger(amount)) {
       setError(_t("invalidAmount"));
       return { success: false };
@@ -172,17 +173,16 @@ export function useTrustAnchor(_t: (key: string) => string) {
 
     const result = await handleAsync(
       async () => {
-        const res = await invokeContract({
-          scriptHash: NEO_HASH,
-          operation: "transfer",
-          args: [
-            { type: "Hash160", value: address.value },
+        return invokeDirectly(
+          "transfer",
+          [
+            { type: "Hash160", value: account },
             { type: "Hash160", value: contractAddr },
             { type: "Integer", value: amount },
             { type: "Any", value: null },
-          ],
-        });
-        return res;
+          ] as unknown as Parameters<typeof invokeDirectly>[1],
+          NEO_HASH,
+        );
       },
       { context: "Staking NEO", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
@@ -202,6 +202,7 @@ export function useTrustAnchor(_t: (key: string) => string) {
       setError(_t("connectWallet"));
       return { success: false };
     }
+    const account = address.value;
     if (amount <= 0 || !Number.isInteger(amount)) {
       setError(_t("invalidAmount"));
       return { success: false };
@@ -211,15 +212,14 @@ export function useTrustAnchor(_t: (key: string) => string) {
 
     const result = await handleAsync(
       async () => {
-        const res = await invokeContract({
-          scriptHash: contractAddr,
-          operation: "withdraw",
-          args: [
-            { type: "Hash160", value: address.value },
+        return invokeDirectly(
+          "withdraw",
+          [
+            { type: "Hash160", value: account },
             { type: "Integer", value: amount },
           ],
-        });
-        return res;
+          contractAddr,
+        );
       },
       { context: "Withdrawing NEO", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
@@ -235,17 +235,13 @@ export function useTrustAnchor(_t: (key: string) => string) {
       setError(_t("connectWallet"));
       return { success: false };
     }
+    const account = address.value;
 
     const contractAddr = await getContractAddress();
 
     const result = await handleAsync(
       async () => {
-        const res = await invokeContract({
-          scriptHash: contractAddr,
-          operation: "claimWithdraw",
-          args: [{ type: "Hash160", value: address.value }],
-        });
-        return res;
+        return invokeDirectly("claimWithdraw", [{ type: "Hash160", value: account }], contractAddr);
       },
       { context: "Claiming pending withdraw", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );
@@ -266,17 +262,13 @@ export function useTrustAnchor(_t: (key: string) => string) {
       setError(_t("connectWallet"));
       return { success: false };
     }
+    const account = address.value;
 
     const contractAddr = await getContractAddress();
 
     const result = await handleAsync(
       async () => {
-        const res = await invokeContract({
-          scriptHash: contractAddr,
-          operation: "claimReward",
-          args: [{ type: "Hash160", value: address.value }],
-        });
-        return res;
+        return invokeDirectly("claimReward", [{ type: "Hash160", value: account }], contractAddr);
       },
       { context: "Claiming rewards", onError: (e: Error) => setError(formatErrorMessage(e, e.message)) },
     );

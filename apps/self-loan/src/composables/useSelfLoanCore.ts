@@ -1,11 +1,9 @@
 import { ref, computed } from "vue";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatNumber, parseGas, toFixedDecimals } from "@shared/utils/format";
-import { parseInvokeResult } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { useWalletBalanceReader } from "@shared/composables/useWalletBalanceReader";
 import { messages } from "@/locale/messages";
-import { useContractAddress } from "@shared/composables/useContractAddress";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -34,9 +32,14 @@ export const APP_ID = "miniapp-self-loan";
 export function useSelfLoanCore() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
-
-  const { address, connect, invokeContract, invokeRead, getBalance, chainType } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress(t);
+  const { readBalance } = useWalletBalanceReader();
+  const {
+    address,
+    ensureWallet,
+    ensureContractAddress,
+    read,
+    invokeDirectly,
+  } = useContractInteraction({ appId: APP_ID, t });
 
   const isLoading = ref(false);
   const neoBalance = ref(0);
@@ -128,15 +131,18 @@ export function useSelfLoanCore() {
     return null;
   };
 
+  const readNeoBalance = async (): Promise<number> => {
+    return readBalance("NEO", { decimals: 0 });
+  };
+
   const loadLoanPosition = async (loanId: number) => {
     try {
       const contract = await ensureContractAddress();
-      const res = await invokeRead({
-        scriptHash: contract,
-        operation: "GetLoanDetails",
-        args: [{ type: "Integer", value: String(loanId) }],
-      });
-      const parsed = parseInvokeResult(res);
+      const parsed = await read(
+        "GetLoanDetails",
+        [{ type: "Integer", value: String(loanId) }],
+        contract,
+      );
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         loan.value = { borrowed: 0, collateralLocked: 0, active: false };
         return;
@@ -163,8 +169,7 @@ export function useSelfLoanCore() {
   const loadPlatformStats = async () => {
     try {
       const contract = await ensureContractAddress();
-      const statsRes = await invokeRead({ scriptHash: contract, operation: "GetPlatformStats" });
-      const parsed = parseInvokeResult(statsRes);
+      const parsed = await read("GetPlatformStats", undefined, contract);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const data = parsed as Record<string, unknown>;
         const feeBps = toNumber(data.platformFeeBps);
@@ -185,8 +190,7 @@ export function useSelfLoanCore() {
   const loadBalance = async () => {
     if (!address.value) return;
     try {
-      const neo = await getBalance("NEO");
-      neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
+      neoBalance.value = await readNeoBalance();
     } catch (e: unknown) {
       handleError(e, { operation: "loadBalance" });
       // Non-critical: retain previous balance
@@ -211,7 +215,7 @@ export function useSelfLoanCore() {
 
     if (!address.value) {
       try {
-        await connect();
+        await ensureWallet();
       } catch (e: unknown) {
         handleError(e, { operation: "connectBeforeTakeLoan" });
         setStatus(formatErrorMessage(e, t("error")), "error");
@@ -229,28 +233,28 @@ export function useSelfLoanCore() {
     try {
       const selfLoanAddress = await ensureContractAddress();
 
-      await invokeContract({
-        scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH,
-        operation: "transfer",
-        args: [
+      await invokeDirectly(
+        "transfer",
+        [
           { type: "Hash160", value: address.value },
           { type: "Hash160", value: selfLoanAddress },
           { type: "Integer", value: collateral },
           { type: "String", value: `${APP_ID}:collateral` },
         ],
-      });
+        BLOCKCHAIN_CONSTANTS.NEO_HASH,
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      await invokeContract({
-        scriptHash: selfLoanAddress,
-        operation: "CreateLoan",
-        args: [
+      await invokeDirectly(
+        "CreateLoan",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: collateral },
           { type: "Integer", value: selectedTier.value },
         ],
-      });
+        selfLoanAddress,
+      );
 
       setStatus(t("loanApproved", { amount: fmt(netBorrow, 2), tokenGas: t("tokenGas") }), "success");
       collateralAmount.value = "";
@@ -268,7 +272,7 @@ export function useSelfLoanCore() {
 
   return {
     address,
-    connect,
+    connect: ensureWallet,
     isLoading,
     neoBalance,
     loan,
@@ -288,6 +292,7 @@ export function useSelfLoanCore() {
     collateralUtilization,
     ensureContractAddress,
     validateCollateral,
+    readNeoBalance,
     loadLoanPosition,
     loadPlatformStats,
     loadBalance,

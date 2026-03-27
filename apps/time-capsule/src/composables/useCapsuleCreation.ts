@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -63,10 +64,9 @@ export function useCapsuleCreation() {
   const saveLocalContent = (hash: string, content: string) => {
     if (!hash) return;
     try {
-      const existing = uni.getStorageSync(CONTENT_STORE_KEY);
-      const store = existing ? JSON.parse(existing) : {};
+      const store = readCachedJSON<Record<string, string>>(CONTENT_STORE_KEY) ?? {};
       store[hash] = content;
-      uni.setStorageSync(CONTENT_STORE_KEY, JSON.stringify(store));
+      writeCachedJSON(CONTENT_STORE_KEY, store);
     } catch (_e: unknown) {
       console.warn("[useCapsuleCreation] local storage write failed:", _e instanceof Error ? _e.message : String(_e));
     }

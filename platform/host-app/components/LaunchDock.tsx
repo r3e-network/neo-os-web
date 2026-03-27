@@ -6,11 +6,12 @@ export type LaunchDockProps = {
   appId: string;
   wallet: WalletState;
   networkLatency: number | null;
+  runtimeLabel?: string;
   onExit: () => void;
   onShare: () => void;
 };
 
-export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onShare }: LaunchDockProps) {
+export function LaunchDock({ appName, appId, wallet, networkLatency, runtimeLabel = "Focused Launch View", onExit, onShare }: LaunchDockProps) {
   // Network indicator color based on latency
   const getNetworkStatus = (): { bg: string; label: string } => {
     if (networkLatency === null) return { bg: "bg-red-500", label: "Offline" };
@@ -31,7 +32,16 @@ export function LaunchDock({ appName, appId, wallet, networkLatency, onExit, onS
   return (
     <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-50 border-b border-white/[0.08]">
       {/* Left: App Name */}
-      <div className="text-base font-semibold text-gray-100 truncate max-w-[200px]" title={appName}>{appName}</div>
+      <div className="min-w-0 max-w-[320px]">
+        <div className="truncate max-w-[320px] text-base font-semibold text-gray-100" title={appName}>{appName}</div>
+        <div className="mt-0.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] text-gray-300">
+            Runtime Mode
+          </span>
+          <span className="text-gray-400">{runtimeLabel}</span>
+          <span className="hidden truncate text-gray-500 md:inline" title={appId}>{appId}</span>
+        </div>
+      </div>
 
       {/* Spacer */}
       <div className="flex-1" />

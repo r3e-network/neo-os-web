@@ -70,6 +70,46 @@ export const templateBindingSchema = z.object({
   max_factory_version: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
 });
 
+export const contractModuleConfigSchema = z.object({
+  module_id: z.string().min(1),
+  version: z.string().optional(),
+  config: z.record(z.unknown()).optional(),
+  binding: z.string().min(1).optional(),
+  depends_on: z.array(z.string().min(1)).optional(),
+  contract_hash: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "valid Neo N3 contract hash").optional(),
+  capabilities: z.array(z.string()).optional(),
+});
+
+export const contractRecipeRefSchema = z.object({
+  recipe_id: z.string().min(1),
+  version: z.string().optional(),
+});
+
+export const contractCompositionSchema = z.object({
+  mode: z.enum(["template", "shared", "router", "custom"]).optional(),
+  instance_id: z.string().min(1).optional(),
+  recipe: contractRecipeRefSchema.optional(),
+  modules: z.array(contractModuleConfigSchema).optional(),
+  router_template_ref: z.string().optional(),
+  registries: z.object({
+    module_registry: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "valid Neo N3 contract hash").optional(),
+    recipe_registry: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "valid Neo N3 contract hash").optional(),
+    instance_registry: z.string().regex(/^0x[0-9a-fA-F]{40}$/, "valid Neo N3 contract hash").optional(),
+  }).partial().optional(),
+  module_bindings: z.record(z.unknown()).optional(),
+  instance_permissions: z.record(z.unknown()).optional(),
+});
+
+export const frontendCompositionSchema = z.object({
+  shell_recipe: z.string().optional(),
+  shell_version: z.string().optional(),
+  surface_slots: z.record(z.unknown()).optional(),
+  data_sources: z.array(z.record(z.unknown())).optional(),
+  operation_recipes: z.array(z.record(z.unknown())).optional(),
+  style_profile: z.record(z.unknown()).optional(),
+  capability_bindings: z.record(z.unknown()).optional(),
+});
+
 export const i18nSchema = z.object({
   name_zh: z.string().optional(),
   description_zh: z.string().optional(),
@@ -149,7 +189,7 @@ export const blueprintConfigSchema = z.object({
   }).optional(),
 });
 
-export const miniAppConfigSchema = z.object({
+export const miniAppConfigBaseSchema = z.object({
   app_id: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/, "lowercase alphanumeric with dots/hyphens"),
   developer_user_id: z.string().uuid().optional(),
   name: z.string().min(1),
@@ -180,10 +220,14 @@ export const miniAppConfigSchema = z.object({
   template: z.object({
     template_type: z.string().optional(),
     frontend_template: templateBindingSchema.partial().optional(),
+    frontend_composition: frontendCompositionSchema.optional(),
     contract_template: templateBindingSchema.partial().optional(),
+    contract_composition: contractCompositionSchema.optional(),
   }).passthrough().optional(),
   frontend_template: templateBindingSchema.partial().optional(),
   contract_template: templateBindingSchema.partial().optional(),
+  frontend_composition: frontendCompositionSchema.optional(),
+  contract_composition: contractCompositionSchema.optional(),
   frontend_spec: z.union([
     z.string(),
     z.object({
@@ -194,6 +238,163 @@ export const miniAppConfigSchema = z.object({
   ]).optional(),
   logic: z.record(z.unknown()).optional(),
   marketplace: z.record(z.unknown()).optional(),
+});
+
+export const miniAppConfigSchema = miniAppConfigBaseSchema.superRefine((value, ctx) => {
+  const contractComposition = value.contract_composition;
+  const frontendComposition = value.frontend_composition;
+  if (!contractComposition) return;
+
+  const mode = contractComposition.mode;
+  const modules = Array.isArray(contractComposition.modules) ? contractComposition.modules : [];
+  const moduleBindings = contractComposition.module_bindings && typeof contractComposition.module_bindings === "object"
+    ? contractComposition.module_bindings
+    : {};
+  const recipe = contractComposition.recipe;
+  const routerTemplateRef = String(contractComposition.router_template_ref || "").trim();
+  const instanceId = String(contractComposition.instance_id || "").trim();
+  const hasModularFields =
+    !!recipe?.recipe_id ||
+    modules.length > 0 ||
+    !!routerTemplateRef ||
+    !!instanceId ||
+    Object.keys(moduleBindings).length > 0 ||
+    !!contractComposition.registries;
+
+  if (!mode && hasModularFields) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contract_composition", "mode"],
+      message: "contract_composition.mode is required when recipe, instance, router, or module settings are provided",
+    });
+  }
+
+  if (mode === "template" && hasModularFields) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contract_composition", "mode"],
+      message: "template mode cannot include shared/router recipe or module settings",
+    });
+  }
+
+  const bindingIds = modules.map((module) => String(module.binding || "").trim()).filter(Boolean);
+  const uniqueBindingIds = new Set(bindingIds);
+
+  if (mode === "shared" || mode === "router") {
+    if (!recipe?.recipe_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contract_composition", "recipe"],
+        message: `${mode} mode requires a recipe reference`,
+      });
+    }
+    if (modules.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contract_composition", "modules"],
+        message: `${mode} mode requires at least one module`,
+      });
+    }
+    if (bindingIds.length !== modules.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contract_composition", "modules"],
+        message: `${mode} mode requires every module to define a unique binding`,
+      });
+    } else if (uniqueBindingIds.size !== bindingIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contract_composition", "modules"],
+        message: "Module bindings must be unique",
+      });
+    }
+  }
+
+  if (mode === "shared" && !instanceId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contract_composition", "instance_id"],
+      message: "shared mode requires instance_id",
+    });
+  }
+
+  if (mode === "router" && !routerTemplateRef) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["contract_composition", "router_template_ref"],
+      message: "router mode requires router_template_ref",
+    });
+  }
+
+  for (const key of Object.keys(moduleBindings)) {
+    if (!uniqueBindingIds.has(key)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["contract_composition", "module_bindings", key],
+        message: `Unknown module binding "${key}"`,
+      });
+    }
+  }
+
+  for (const module of modules) {
+    const dependencies = Array.isArray(module.depends_on) ? module.depends_on : [];
+    for (const dependency of dependencies) {
+      const dependencyKey = String(dependency || "").trim();
+      if (dependencyKey && !uniqueBindingIds.has(dependencyKey)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["contract_composition", "modules"],
+          message: `Module "${module.module_id}" depends on missing binding "${dependencyKey}"`,
+        });
+      }
+    }
+  }
+
+  const operationRecipes = Array.isArray(frontendComposition?.operation_recipes)
+    ? frontendComposition.operation_recipes
+    : [];
+  for (const [index, recipeEntry] of operationRecipes.entries()) {
+    const binding = String((recipeEntry as Record<string, unknown>)?.binding || "").trim();
+    if ((mode === "shared" || mode === "router") && !binding) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frontend_composition", "operation_recipes", index, "binding"],
+        message: "Operation recipe binding is required for modular contract composition",
+      });
+      continue;
+    }
+    if (binding && !uniqueBindingIds.has(binding)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frontend_composition", "operation_recipes", index, "binding"],
+        message: `Operation recipe references unknown binding "${binding}"`,
+      });
+    }
+  }
+
+  const dataSources = Array.isArray(frontendComposition?.data_sources)
+    ? frontendComposition.data_sources
+    : [];
+  for (const [index, entry] of dataSources.entries()) {
+    const source = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    const sourceType = String(source.type || "").trim();
+    if (sourceType !== "shared_mode_runtime") continue;
+    const sourceInstanceId = String(source.instance_id || "").trim();
+    if (mode !== "shared") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frontend_composition", "data_sources", index, "type"],
+        message: "shared_mode_runtime data sources require contract_composition.mode = shared",
+      });
+    }
+    if (!sourceInstanceId && !instanceId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["frontend_composition", "data_sources", index, "instance_id"],
+        message: "shared_mode_runtime data sources require instance_id",
+      });
+    }
+  }
 });
 
 export type MiniAppConfig = z.infer<typeof miniAppConfigSchema>;

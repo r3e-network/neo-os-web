@@ -25,13 +25,13 @@
 
     <!-- Lookup Tab -->
     <div v-if="activeTab === 'lookup'" class="tab-content">
-      <div class="input-section">
-        <NeoInput
-          v-model="loanId"
-          type="number"
-          :placeholder="t('loanIdPlaceholder')"
-          :label="t('loanId')"
-        />
+        <div class="input-section">
+          <NeoInput
+            v-model="loanIdModel"
+            type="number"
+            :placeholder="t('loanIdPlaceholder')"
+            :label="t('loanId')"
+          />
       </div>
 
       <NeoButton variant="primary" size="lg" block :loading="isLoading" type="button" @click="$emit('lookup')" class="execute-btn" :aria-label="t('checkStatus')">
@@ -173,6 +173,10 @@ const loanAmount = ref("");
 const callbackContractAddress = ref("");
 const callbackMethodName = ref("");
 const isCreating = ref(false);
+const loanIdModel = computed({
+  get: () => props.loanId,
+  set: (value: string) => emit("update:loanId", value),
+});
 
 const canRequest = computed(() => {
   const amount = Number(loanAmount.value);

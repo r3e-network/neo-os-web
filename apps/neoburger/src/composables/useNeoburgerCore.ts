@@ -4,20 +4,26 @@ import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { useWalletBalanceReader } from "@shared/composables/useWalletBalanceReader";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 import { messages } from "@/locale/messages";
 
 const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
+const BNEO_DECIMALS = TOKEN_CONSTANTS.GAS_DECIMALS;
 
 export function useNeoburgerCore() {
   const { t } = createUseI18n(messages)();
   const { setStatus } = useStatusMessage();
-  const { getAddress, invokeContract, getBalance, chainType } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("contractUnavailable") : t(key)
-  );
+  const wallet = useWallet() as WalletSDK;
+  const { chainType } = wallet;
+  const { address, ensureContractAddress, ensureWallet, invokeDirectly } = useContractInteraction({
+    appId: "miniapp-neoburger",
+    t,
+    wallet,
+  });
+  const { readBalance } = useWalletBalanceReader();
 
   const neoBalance = ref(0);
   const bNeoBalance = ref(0);
@@ -31,10 +37,7 @@ export function useNeoburgerCore() {
   async function ensureBneoContract(): Promise<string | null> {
     if (BNEO_CONTRACT.value) return BNEO_CONTRACT.value;
     try {
-      BNEO_CONTRACT.value = await ensureContractAddress({
-        silentChainCheck: true,
-        contractUnavailableMessage: t("contractUnavailable"),
-      });
+      BNEO_CONTRACT.value = await ensureContractAddress();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("contractUnavailable");
       error.value = msg;
@@ -45,25 +48,40 @@ export function useNeoburgerCore() {
     return BNEO_CONTRACT.value;
   }
 
-  async function loadBalances() {
+  async function loadBalances(connectIfNeeded = false) {
     try {
-      const address = await getAddress();
-      walletAddress.value = address || null;
-      if (!address) {
+      if (connectIfNeeded) {
+        await ensureWallet();
+      }
+      walletAddress.value = address.value || null;
+      if (!address.value) {
         neoBalance.value = 0;
         bNeoBalance.value = 0;
         return;
       }
       const bneoContract = await ensureBneoContract();
       if (!bneoContract) return;
-      const neo = await getBalance("NEO");
-      const bneo = await getBalance(bneoContract);
-      neoBalance.value = typeof neo === "string" ? parseFloat(neo) || 0 : typeof neo === "number" ? neo : 0;
-      bNeoBalance.value = typeof bneo === "string" ? parseFloat(bneo) || 0 : typeof bneo === "number" ? bneo : 0;
+      neoBalance.value = await readBalance("NEO", { decimals: 0 });
+      bNeoBalance.value = await readBalance(bneoContract, { decimals: BNEO_DECIMALS });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("balanceLoadFailed");
       error.value = msg;
       setStatus(msg, "error");
+    } finally {
+      error.value = null;
+    }
+  }
+
+  async function connectWallet() {
+    try {
+      await ensureWallet();
+      await loadBalances(false);
+      return Boolean(address.value);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : t("connectWallet");
+      error.value = msg;
+      setStatus(msg, "error");
+      return false;
     } finally {
       error.value = null;
     }
@@ -76,16 +94,13 @@ export function useNeoburgerCore() {
     const bneoContract = await ensureBneoContract();
     if (!bneoContract) return false;
     try {
-      await invokeContract({
-        scriptHash: NEO_CONTRACT,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: await getAddress() },
-          { type: "Hash160", value: bneoContract },
-          { type: "Integer", value: Math.floor(stakeAmount) },
-          { type: "Any", value: null },
-        ],
-      });
+      const walletAddress = await ensureWallet();
+      await invokeDirectly("transfer", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Hash160", value: bneoContract },
+        { type: "Integer", value: Math.floor(stakeAmount) },
+        { type: "Any", value: null },
+      ], NEO_CONTRACT);
       return true;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("stakeFailed");
@@ -105,16 +120,13 @@ export function useNeoburgerCore() {
     if (!bneoContract) return false;
     const integerAmount = toFixed8(amount);
     try {
-      await invokeContract({
-        scriptHash: bneoContract,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: await getAddress() },
-          { type: "Hash160", value: bneoContract },
-          { type: "Integer", value: integerAmount },
-          { type: "ByteArray", value: "" },
-        ],
-      });
+      const walletAddress = await ensureWallet();
+      await invokeDirectly("transfer", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Hash160", value: bneoContract },
+        { type: "Integer", value: integerAmount },
+        { type: "ByteArray", value: "" },
+      ], bneoContract);
       return true;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("unstakeFailed");
@@ -129,17 +141,9 @@ export function useNeoburgerCore() {
   async function handleClaimRewards() {
     if (!requireNeoChain(chainType, t)) return false;
     try {
-      const sdkModule = await import("@shared/utils/wallet-sdk");
-      const sdk = sdkModule.waitForSDK ? await sdkModule.waitForSDK() : null;
-      if (!sdk?.invoke) {
-        const msg = t("claimFailed");
-        error.value = msg;
-        setStatus(msg, "error");
-        return false;
-      }
       const bneoContract = await ensureBneoContract();
       if (!bneoContract) return false;
-      await sdk.invoke("invokeFunction", { contract: bneoContract, method: "claim", args: [] });
+      await invokeDirectly("claim", [], bneoContract);
       return true;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : t("claimFailed");
@@ -158,11 +162,13 @@ export function useNeoburgerCore() {
     bNeoBalance,
     walletAddress,
     walletConnected,
+    BNEO_CONTRACT,
     loading,
     error,
     statusMessage,
     statusType,
     ensureBneoContract,
+    connectWallet,
     loadBalances,
     handleStake,
     handleUnstake,

@@ -6,7 +6,15 @@
 import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
 import { supabase, isSupabaseConfigured } from "../supabase";
-import { FLAGSHIP_APPS, getContractStats, getLiveStatus as getChainLiveStatus } from "../chain";
+import {
+  FLAGSHIP_APPS,
+  getContractStats,
+  getLiveStatus as getChainLiveStatus,
+  getSharedModeContractStats,
+  getSharedModeLiveStatus,
+} from "../chain";
+import { loadBundledMiniAppById } from "../miniapp-definitions";
+import { isSharedModeApp } from "../chain/shared-mode";
 
 /**
  * Get stats for a single MiniApp
@@ -54,6 +62,29 @@ export async function getMiniAppStats(
     };
   }
 
+  const bundledApp = await loadBundledMiniAppById(appId).catch(() => null);
+  if (bundledApp && isSharedModeApp(bundledApp)) {
+    const sharedStats = await getSharedModeContractStats(bundledApp, network).catch(() => null);
+    if (sharedStats) {
+      return {
+        appId,
+        activeUsersMonthly: sharedStats.uniqueUsers,
+        activeUsersWeekly: sharedStats.uniqueUsers,
+        activeUsersDaily: sharedStats.uniqueUsers,
+        totalTransactions: sharedStats.totalTransactions,
+        transactionsWeekly: sharedStats.totalTransactions,
+        transactionsDaily: sharedStats.totalTransactions,
+        totalVolumeGas: sharedStats.totalValueLocked,
+        volumeWeeklyGas: sharedStats.totalValueLocked,
+        volumeDailyGas: sharedStats.totalValueLocked,
+        rating: 0,
+        reviewCount: 0,
+        weeklyTrend: 0,
+        lastUpdated: Date.now(),
+      };
+    }
+  }
+
   return getDefaultStats(appId);
 }
 
@@ -97,6 +128,12 @@ export async function getLiveStatus(
   category: string,
   network: "testnet" | "mainnet" = "testnet",
 ): Promise<MiniAppLiveStatus> {
+  const bundledApp = await loadBundledMiniAppById(appId).catch(() => null);
+  if (bundledApp && isSharedModeApp(bundledApp)) {
+    const sharedStatus = await getSharedModeLiveStatus(bundledApp, network).catch(() => null);
+    if (sharedStatus) return sharedStatus;
+  }
+
   try {
     return await getChainLiveStatus(appId, contractHash, category, network);
   } catch {

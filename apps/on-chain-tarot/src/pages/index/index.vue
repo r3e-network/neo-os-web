@@ -77,16 +77,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useWallet, useEvents } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { useEvents } from "@shared/utils/wallet-sdk";
 import { messages } from "@/locale/messages";
 import { parseStackItem } from "@shared/utils/neo";
 import { MiniAppPage, HeroSection } from "@shared/components";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { pollForEvent } from "@shared/utils/errorHandling";
+import { useAllEvents } from "@shared/composables/useAllEvents";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import { formatErrorMessage, pollForEvent } from "@shared/utils/errorHandling";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { waitForListedEventByTransaction } from "@shared/utils";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import { toFixed8 } from "@shared/utils/format";
 
 import GameArea from "./components/GameArea.vue";
 import ReadingDisplay from "./components/ReadingDisplay.vue";
@@ -94,8 +94,8 @@ import type { Card } from "./components/TarotCard.vue";
 import { TAROT_DECK } from "./components/tarot-data";
 
 const APP_ID = "miniapp-onchaintarot";
-const { address, connect, invokeContract } = useWallet() as WalletSDK;
 const { list: listEvents } = useEvents();
+const { listAllEvents } = useAllEvents(listEvents, APP_ID);
 const isLoading = ref(false);
 
 // Use the imported full deck
@@ -132,19 +132,20 @@ const {
     { labelKey: "allRevealed", value: () => (allFlipped.value ? t("yes") : t("no")) },
   ],
 });
-
-const { ensure: ensureContractAddress } = useContractAddress(t);
+const { ensureWallet, invokeWithDirectPrepaidGas } = useContractInteraction({ appId: APP_ID, t });
 
 const appState = computed(() => ({
   readingsCount: readingsCount.value,
   hasDrawn: hasDrawn.value,
 }));
+
+const listEventRecords = async (eventName: string) => {
+  return (await listAllEvents(eventName)) as Record<string, unknown>[];
+};
+
 const waitForEventByTx = async (tx: unknown, eventName: string) => {
   return waitForListedEventByTransaction(tx, {
-    listEvents: async () => {
-      const res = await listEvents({ app_id: APP_ID, event_name: eventName, limit: 25 });
-      return res.events || [];
-    },
+    listEvents: async () => listEventRecords(eventName),
     timeoutMs: 30000,
     pollIntervalMs: 1500,
     errorMessage: t("readingPending"),
@@ -153,10 +154,7 @@ const waitForEventByTx = async (tx: unknown, eventName: string) => {
 
 const waitForReading = async (readingId: string) => {
   return pollForEvent(
-    async () => {
-      const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 25 });
-      return res.events || [];
-    },
+    async () => listEventRecords("ReadingCompleted"),
     (evt: Record<string, unknown>) => {
       const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
       return String(values[0] ?? "") === String(readingId);
@@ -174,37 +172,21 @@ const draw = async () => {
   try {
     isLoading.value = true;
     setStatus(t("drawingCards"), "loading");
-    if (!address.value) await connect();
-    if (!address.value) throw new Error(t("connectWallet"));
-    const contract = await ensureContractAddress();
-    const readingFee = "0.1";
-    const readingFeeFixed8 = String(Math.round(Number.parseFloat(readingFee) * 1e8));
-
-    await invokeContract({
-      scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-      operation: "transfer",
-      args: [
-        { type: "Hash160", value: address.value },
-        { type: "Hash160", value: contract },
-        { type: "Integer", value: readingFeeFixed8 },
-        { type: "String", value: `${APP_ID}:reading:${Date.now()}` },
-      ],
-    });
-
-    await new Promise((resolve) => setTimeout(resolve, 4000));
+    const walletAddress = await ensureWallet();
 
     const prompt = question.value.trim() || t("defaultQuestion");
     // Contract signature: RequestReading(user, question, spreadType, category)
-    const tx = await invokeContract({
-      scriptHash: contract,
-      operation: "requestReading",
-      args: [
-        { type: "Hash160", value: address.value },
+    const { tx } = await invokeWithDirectPrepaidGas(
+      toFixed8("0.1"),
+      `${APP_ID}:reading:${Date.now()}`,
+      "requestReading",
+      [
+        { type: "Hash160", value: walletAddress },
         { type: "String", value: prompt.slice(0, 200) },
         { type: "Integer", value: "2" }, // spreadType: 2 = three-card
         { type: "Integer", value: "1" }, // category: 1 = general/default
       ],
-    });
+    );
     const requestedEvt = await waitForEventByTx(tx, "ReadingRequested");
     if (!requestedEvt) throw new Error(t("readingPending"));
     const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
@@ -257,8 +239,7 @@ const getReading = () => {
 
 const loadReadingCount = async () => {
   try {
-    const res = await listEvents({ app_id: APP_ID, event_name: "ReadingCompleted", limit: 50 });
-    readingsCount.value = res.events.length;
+    readingsCount.value = (await listEventRecords("ReadingCompleted")).length;
   } catch (_e: unknown) {
     console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
     readingsCount.value = Math.max(readingsCount.value, 0);

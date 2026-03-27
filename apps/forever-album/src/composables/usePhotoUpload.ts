@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { encryptPayload } from "../utils/crypto";
 import type { UploadItem } from "@/types";
@@ -16,8 +16,13 @@ export function usePhotoUpload(
   loadPhotos: () => Promise<void>,
   openWalletPrompt: () => void
 ) {
-  const { address, invokeContract } = useWallet() as WalletSDK;
-  const { ensure: ensureContractAddress } = useContractAddress(t);
+  const wallet = useWallet() as WalletSDK;
+  const { address } = wallet;
+  const { invokeDirectly, ensureSafe } = useContractInteraction({
+    appId: "miniapp-forever-album",
+    t,
+    wallet,
+  });
 
   const showUpload = ref(false);
   const selectedImages = ref<UploadItem[]>([]);
@@ -116,7 +121,10 @@ export function usePhotoUpload(
 
     uploading.value = true;
     try {
-      const contract = await ensureContractAddress();
+      const contractReady = await ensureSafe({ silentChainCheck: true });
+      if (!contractReady) {
+        throw new Error(t("uploadFailed"));
+      }
       const payloads: string[] = [];
       let totalSize = 0;
       for (const item of selectedImages.value) {
@@ -127,14 +135,13 @@ export function usePhotoUpload(
         payloads.push(payload);
       }
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "uploadPhotos",
-        args: [
+      await invokeDirectly(
+        "uploadPhotos",
+        [
           { type: "Array", value: payloads.map((p) => ({ type: "String", value: p })) },
           { type: "Array", value: payloads.map(() => ({ type: "Boolean", value: isEncrypted.value })) },
         ],
-      });
+      );
 
       setStatus(t("uploadSuccess"), "success");
       closeUpload();

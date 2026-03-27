@@ -75,9 +75,9 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     },
   ]);
 
-  // Status refs for sub-tabs
-  const projectsStatus = ref<{ msg: string; type: "success" | "error" } | null>(null);
-  const contributionStatus = ref<{ msg: string; type: "success" | "error" } | null>(null);
+  // Reuse the shared contract/status channel across tabs so sub-pages don't silently miss feedback.
+  const projectsStatus = roundsStatus;
+  const contributionStatus = roundsStatus;
 
   // Form refs
   const roundFormRef = ref<InstanceType<typeof RoundForm> | null>(null);

@@ -2,10 +2,10 @@ import { ref, computed } from "vue";
 import type { PriceData } from "@shared/utils/price";
 import { getPrices } from "@shared/utils/price";
 import { formatCompactNumber } from "@shared/utils/format";
-import type { UniAppGlobals } from "@shared/types/globals";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useTicker } from "@shared/composables/useTicker";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { readTimedCacheValue, writeTimedCache } from "@shared/utils/runtime-cache";
 import { messages } from "@/locale/messages";
 
 const APY_CACHE_KEY = "neoburger_apy_cache";
@@ -86,46 +86,32 @@ export function useNeoburgerStats() {
     return null;
   };
 
-  const readCachedApy = () => {
+  const readLegacyCachedApy = () => {
     try {
-      const g = globalThis as unknown as UniAppGlobals;
-      const uniApi = g?.uni as Record<string, (...args: unknown[]) => unknown> | undefined;
-      const raw =
-        uniApi?.getStorageSync?.(APY_CACHE_KEY) ??
-        (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
+      const g = globalThis as { uni?: { getStorageSync?: (key: string) => unknown } };
+      const raw = g?.uni?.getStorageSync?.(APY_CACHE_KEY) ?? (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
       const value = Number(raw);
       return Number.isFinite(value) && value >= 0 ? value : null;
     } catch (_e: unknown) {
-      console.warn("[useNeoburgerStats] readCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
+      console.warn("[useNeoburgerStats] readLegacyCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
       return null;
-    }
-  };
-
-  const writeCachedApy = (value: number) => {
-    try {
-      const g = globalThis as unknown as UniAppGlobals;
-      const uniApi = g?.uni as Record<string, (...args: unknown[]) => unknown> | undefined;
-      if (uniApi?.setStorageSync) {
-        uniApi.setStorageSync(APY_CACHE_KEY, String(value));
-      } else if (typeof localStorage !== "undefined") {
-        localStorage.setItem(APY_CACHE_KEY, String(value));
-      }
-    } catch (_e: unknown) {
-      console.warn("[useNeoburgerStats] writeCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
   async function loadApy() {
     try {
       loadingApy.value = true;
-      const cached = readCachedApy();
-      if (cached !== null) apy.value = cached;
+      const cached = readTimedCacheValue<number>(APY_CACHE_KEY) ?? readLegacyCachedApy();
+      if (cached !== null) {
+        apy.value = cached;
+        writeTimedCache(APY_CACHE_KEY, cached);
+      }
       const data = await loadStats();
       if (data) {
         const nextApy = parseFloat(data.apy ?? data.apr);
         if (Number.isFinite(nextApy) && nextApy >= 0) {
           apy.value = nextApy;
-          writeCachedApy(nextApy);
+          writeTimedCache(APY_CACHE_KEY, nextApy);
         }
         const nextTotalStaked = Number(data.total_staked ?? data.totalStakedNeo);
         if (Number.isFinite(nextTotalStaked) && nextTotalStaked >= 0) totalStaked.value = nextTotalStaked;

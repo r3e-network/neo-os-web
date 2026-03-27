@@ -205,4 +205,60 @@ describe("miniapp-admin normalization", () => {
       }),
     );
   });
+
+  it("preserves modular contract composition metadata", () => {
+    const result = normalizeMiniAppAdminPayload({
+      app_id: "miniapp-shared-streams",
+      name: "Shared Streams",
+      entry_url: "https://example.com/shared-streams",
+      developer_user_id: "123e4567-e89b-12d3-a456-426614174000",
+      contract_composition: {
+        mode: "shared",
+        recipe: {
+          recipe_id: "recipe.payment_streams.v1",
+          version: "1.0.0",
+        },
+        modules: [
+          {
+            module_id: "module.funding_vault",
+            version: "1.0.0",
+            binding: "vault",
+            config: {
+              asset: "GAS",
+            },
+          },
+          {
+            module_id: "module.stream_vesting",
+            version: "1.0.0",
+            binding: "stream",
+          },
+        ],
+        instance_permissions: {
+          oracle: false,
+          escrow_assets: ["GAS"],
+        },
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.row.manifest.contract_composition).toEqual(
+      expect.objectContaining({
+        mode: "shared",
+        recipe: expect.objectContaining({
+          recipe_id: "recipe.payment_streams.v1",
+        }),
+        modules: expect.arrayContaining([
+          expect.objectContaining({
+            module_id: "module.funding_vault",
+            binding: "vault",
+          }),
+        ]),
+        instance_permissions: expect.objectContaining({
+          oracle: false,
+        }),
+      }),
+    );
+  });
 });
