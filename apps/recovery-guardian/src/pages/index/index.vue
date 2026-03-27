@@ -326,6 +326,8 @@ function buildRecoveryCredentialUrl() {
     issueAchievement: "Recovery Flow Verified",
     issueMemo: `AA ${accountId || accountHash} / verifier ${verifierHash}`,
     issueCategory: "Recovery",
+    issueCredentialType: "recovery_audit",
+    issueIssuerPolicy: "recovery_operator_attests_guardian_state",
     issueSource: "recovery-guardian",
     autoIssueDraft: "1",
   });

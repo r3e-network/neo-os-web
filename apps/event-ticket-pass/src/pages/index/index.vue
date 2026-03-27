@@ -229,6 +229,8 @@ function buildAttendanceBadgeUrl() {
     issueAchievement: `${ticket.eventName || `Event #${ticket.eventId}`} Attendance`,
     issueMemo: `Ticket ${ticket.tokenId}${ticket.seat ? ` / Seat ${ticket.seat}` : ""}`,
     issueCategory: "Event",
+    issueCredentialType: "attendance_badge",
+    issueIssuerPolicy: "event_organizer_attests_checkin",
     issueSource: "event-ticket-pass",
     autoIssueDraft: "1",
   });
