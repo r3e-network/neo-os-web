@@ -51,6 +51,39 @@
         @share-issue-link="shareTemplateIssueLink"
       />
 
+      <div v-if="recentTemplateItems.length || issueLinkHistory.length" class="operator-history-grid">
+        <div class="operator-history-card">
+          <p class="issue-draft-title">{{ t("recentTemplatesTitle") }}</p>
+          <div v-if="recentTemplateItems.length" class="operator-history-list">
+            <div v-for="template in recentTemplateItems" :key="`recent-template-${template.id}`" class="operator-history-row">
+              <div class="operator-history-copy">
+                <p class="operator-history-name">{{ template.name || `#${template.id}` }}</p>
+                <p class="operator-history-meta">{{ template.category || t("notAvailable") }}</p>
+              </div>
+              <NeoButton size="sm" variant="secondary" type="button" @click="openIssueModal(template)">{{ t("reuseTemplate") }}</NeoButton>
+            </div>
+          </div>
+          <p v-else class="operator-history-empty">{{ t("recentTemplatesEmpty") }}</p>
+        </div>
+
+        <div class="operator-history-card">
+          <p class="issue-draft-title">{{ t("recentLinksTitle") }}</p>
+          <div v-if="issueLinkHistory.length" class="operator-history-list">
+            <div v-for="entry in issueLinkHistory" :key="`recent-link-${entry.url}`" class="operator-history-row">
+              <div class="operator-history-copy">
+                <p class="operator-history-name">{{ resolveTemplateName(entry.templateId) }}</p>
+                <p class="operator-history-meta">{{ t("issuedAt") }}: {{ formatHistoryTime(entry.createdAt) }}</p>
+              </div>
+              <div class="operator-history-actions">
+                <NeoButton size="sm" variant="secondary" type="button" @click="openStoredIssueLink(entry.url)">{{ t("openLink") }}</NeoButton>
+                <NeoButton size="sm" variant="secondary" type="button" @click="copyStoredIssueLink(entry.url)">{{ t("copyIssueLink") }}</NeoButton>
+              </div>
+            </div>
+          </div>
+          <p v-else class="operator-history-empty">{{ t("recentLinksEmpty") }}</p>
+        </div>
+      </div>
+
       <div v-if="issueDraft" class="issue-draft-card">
         <p class="issue-draft-title">{{ t("draftReadyTitle") }}</p>
         <p class="issue-draft-text">{{ t("draftReadyText") }}</p>
@@ -182,6 +215,8 @@ const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
 const showRecommendedOnly = ref(false);
 const templateFormPrefillKey = ref(0);
+const recentTemplateIds = ref<string[]>([]);
+const issueLinkHistory = ref<Array<{ templateId: string; url: string; createdAt: string }>>([]);
 const issueDraft = ref<{
   recipient?: string;
   recipientName?: string;
@@ -190,6 +225,8 @@ const issueDraft = ref<{
   category?: string;
   source?: string;
 } | null>(null);
+const RECENT_TEMPLATE_STORAGE_KEY = "soulbound-certificate.recent-template-ids";
+const RECENT_LINK_STORAGE_KEY = "soulbound-certificate.recent-issue-links";
 
 const appState = computed(() => ({
   activeTab: activeTab.value,
@@ -201,6 +238,8 @@ const appState = computed(() => ({
   certificatesCount: certificates.value.length,
   issueDraft: issueDraft.value,
   showRecommendedOnly: showRecommendedOnly.value,
+  recentTemplatesCount: recentTemplateItems.value.length,
+  recentLinksCount: issueLinkHistory.value.length,
 }));
 
 const resetAndReload = async () => {
@@ -231,6 +270,77 @@ function buildTemplateIssueLink(template: { id: string }) {
   }
 
   return `/miniapps/soulbound-certificate/index.html?${params.toString()}`;
+}
+
+function loadHistory() {
+  if (typeof window === "undefined") return;
+  try {
+    const templateIds = JSON.parse(window.localStorage.getItem(RECENT_TEMPLATE_STORAGE_KEY) || "[]");
+    if (Array.isArray(templateIds)) {
+      recentTemplateIds.value = templateIds.map((value) => String(value || "").trim()).filter(Boolean).slice(0, 6);
+    }
+  } catch {
+    recentTemplateIds.value = [];
+  }
+
+  try {
+    const links = JSON.parse(window.localStorage.getItem(RECENT_LINK_STORAGE_KEY) || "[]");
+    if (Array.isArray(links)) {
+      issueLinkHistory.value = links
+        .map((entry) => ({
+          templateId: String(entry?.templateId || "").trim(),
+          url: String(entry?.url || "").trim(),
+          createdAt: String(entry?.createdAt || "").trim(),
+        }))
+        .filter((entry) => entry.url)
+        .slice(0, 8);
+    }
+  } catch {
+    issueLinkHistory.value = [];
+  }
+}
+
+function persistHistory() {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(RECENT_TEMPLATE_STORAGE_KEY, JSON.stringify(recentTemplateIds.value));
+  window.localStorage.setItem(RECENT_LINK_STORAGE_KEY, JSON.stringify(issueLinkHistory.value));
+}
+
+function recordRecentTemplate(templateId: string) {
+  const normalized = String(templateId || "").trim();
+  if (!normalized) return;
+  recentTemplateIds.value = [normalized, ...recentTemplateIds.value.filter((entry) => entry !== normalized)].slice(0, 6);
+  persistHistory();
+}
+
+function recordIssueLink(templateId: string, url: string) {
+  const normalizedTemplate = String(templateId || "").trim();
+  const normalizedUrl = String(url || "").trim();
+  if (!normalizedUrl) return;
+  issueLinkHistory.value = [
+    {
+      templateId: normalizedTemplate,
+      url: normalizedUrl,
+      createdAt: new Date().toISOString(),
+    },
+    ...issueLinkHistory.value.filter((entry) => entry.url !== normalizedUrl),
+  ].slice(0, 8);
+  persistHistory();
+}
+
+const recentTemplateItems = computed(() =>
+  recentTemplateIds.value
+    .map((templateId) => templates.value.find((template) => template.id === templateId))
+    .filter((template): template is NonNullable<typeof template> => Boolean(template)),
+);
+
+function resolveTemplateName(templateId: string) {
+  return templates.value.find((template) => template.id === templateId)?.name || `#${templateId}`;
+}
+
+function formatHistoryTime(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? t("notAvailable") : date.toLocaleString();
 }
 
 function resolveDraftTemplateId() {
@@ -304,12 +414,14 @@ function applyDraftTemplatePreset() {
 const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
   issueModalOpen.value = true;
+  recordRecentTemplate(template.id);
 };
 
 async function copyTemplateIssueLink(template: { id: string }) {
   try {
     const url = buildTemplateIssueLink(template);
     await navigator.clipboard.writeText(url);
+    recordIssueLink(template.id, url);
     setStatus(t("issueLinkCopied"), "success");
   } catch (error: unknown) {
     console.warn("[soulbound-certificate] copy issue link failed:", error instanceof Error ? error.message : String(error));
@@ -325,6 +437,7 @@ async function shareTemplateIssueLink(template: { id: string }) {
         text: template.id,
         url,
       });
+      recordIssueLink(template.id, url);
       setStatus(t("issueLinkShared"), "success");
       return;
     }
@@ -332,6 +445,21 @@ async function shareTemplateIssueLink(template: { id: string }) {
   } catch (error: unknown) {
     if (error instanceof Error && /abort|cancel/i.test(error.message)) return;
     await copyTemplateIssueLink(template);
+  }
+}
+
+function openStoredIssueLink(url: string) {
+  if (typeof window !== "undefined" && window.open) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+async function copyStoredIssueLink(url: string) {
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus(t("issueLinkCopied"), "success");
+  } catch (error: unknown) {
+    console.warn("[soulbound-certificate] copy stored issue link failed:", error instanceof Error ? error.message : String(error));
   }
 }
 const onTabChange = async (tab: string) => {
@@ -347,6 +475,7 @@ const onTabChange = async (tab: string) => {
 const isMounted = ref(true);
 
 onMounted(async () => {
+  loadHistory();
   if (typeof window !== "undefined") {
     const params = new URLSearchParams(window.location.search);
     const recipient = String(params.get("issueRecipient") || "").trim();
