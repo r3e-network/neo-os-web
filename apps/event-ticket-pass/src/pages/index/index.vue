@@ -130,6 +130,7 @@ import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection, ContractAvailabilityCard } from "@shared/components";
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
+import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { useEventTicketContract } from "@/composables/useEventTicketContract";
 import EventList from "./components/EventList.vue";
 
@@ -169,6 +170,7 @@ const contract = useEventTicketContract(wallet, ensureContractAddress, setStatus
 const contractReady = ref(false);
 const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 const badgeTemplateId = ref("");
+const attendanceCredential = CREDENTIAL_REGISTRY.event_attendance;
 
 const activeTab = ref("create");
 
@@ -228,9 +230,9 @@ function buildAttendanceBadgeUrl() {
     issueRecipient: ticket.owner || "",
     issueAchievement: `${ticket.eventName || `Event #${ticket.eventId}`} Attendance`,
     issueMemo: `Ticket ${ticket.tokenId}${ticket.seat ? ` / Seat ${ticket.seat}` : ""}`,
-    issueCategory: "Event",
-    issueCredentialType: "attendance_badge",
-    issueIssuerPolicy: "event_organizer_attests_checkin",
+    issueCategory: attendanceCredential.category,
+    issueCredentialType: attendanceCredential.credentialType,
+    issueIssuerPolicy: attendanceCredential.issuerPolicy,
     issueSource: "event-ticket-pass",
     autoIssueDraft: "1",
   });
