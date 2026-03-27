@@ -48,6 +48,7 @@ import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildOracleHeroStats, buildOracleOverviewStats } from "@shared/utils/console-stats";
 import { useOracle } from "@shared/composables/useOracle";
+import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -63,6 +64,7 @@ const credentialTemplateId = ref("");
 const ciphertext = ref("");
 const latestPayload = ref<Record<string, unknown> | null>(null);
 const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
+const identityCredential = CREDENTIAL_REGISTRY.identity_passport;
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
   name: "neodid-passport",
@@ -139,9 +141,9 @@ function buildIdentityCredentialUrl() {
     issueRecipientName: "",
     issueAchievement: achievement,
     issueMemo: memo,
-    issueCategory: "Identity",
-    issueCredentialType: "identity_passport",
-    issueIssuerPolicy: "identity_issuer_attests_neodid_resolution",
+    issueCategory: identityCredential.category,
+    issueCredentialType: identityCredential.credentialType,
+    issueIssuerPolicy: identityCredential.issuerPolicy,
     issueSource: "neodid-passport",
     autoIssueDraft: "1",
   });
