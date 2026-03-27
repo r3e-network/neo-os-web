@@ -69,7 +69,13 @@ import { ConsoleMiniApp, NeoButton, NeoInput } from "@shared/components";
 import type { HeroStatsStripItem, StatsDisplayItem } from "@shared/components";
 import { createConsolePage } from "@shared/utils/createConsolePage";
 import { buildAAHeroStats, buildAAOverviewStats } from "@shared/utils/console-stats";
-import { getExternalIntegrationConfig, getNetwork } from "@shared/constants/rpc";
+import {
+  getAADocsUrl,
+  getAAAppWorkspaceUrl,
+  getAAIdentityWorkspaceUrl,
+  getExternalIntegrationConfig,
+  getNetwork,
+} from "@shared/constants/rpc";
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -78,9 +84,9 @@ import { messages } from "@/locale/messages";
 const network = getNetwork();
 const integration = getExternalIntegrationConfig(network);
 const aaCore = integration.contracts.aaCore;
-const identityWorkspaceUrl = "https://neo-abstract-account.vercel.app/identity";
-const aaWorkspaceUrl = "https://neo-abstract-account.vercel.app/app";
-const recoveryDocsUrl = "https://neo-abstract-account.vercel.app/docs";
+const identityWorkspaceUrl = getAAIdentityWorkspaceUrl(network);
+const aaWorkspaceUrl = getAAAppWorkspaceUrl(network);
+const recoveryDocsUrl = getAADocsUrl(network);
 const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 const recoveryCredential = CREDENTIAL_REGISTRY.recovery_audit;
 
