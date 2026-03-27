@@ -73,6 +73,8 @@
               <div class="operator-history-copy">
                 <p class="operator-history-name">{{ resolveTemplateName(entry.templateId) }}</p>
                 <p class="operator-history-meta">{{ t("issuedAt") }}: {{ formatHistoryTime(entry.createdAt) }}</p>
+                <p v-if="entry.credentialType" class="operator-history-meta">{{ t("draftCredentialType") }}: {{ entry.credentialType }}</p>
+                <p v-if="entry.issuerPolicy" class="operator-history-meta">{{ t("draftIssuerPolicy") }}: {{ entry.issuerPolicy }}</p>
               </div>
               <div class="operator-history-actions">
                 <NeoButton size="sm" variant="secondary" type="button" @click="openStoredIssueLink(entry.url)">{{ t("openLink") }}</NeoButton>
@@ -88,6 +90,9 @@
         <p class="issue-draft-title">{{ t("draftReadyTitle") }}</p>
         <p class="issue-draft-text">{{ t("draftReadyText") }}</p>
         <p class="issue-draft-meta">{{ issueDraft.achievement || t("notAvailable") }}</p>
+        <p v-if="issueDraft.credentialType" class="issue-draft-meta">{{ t("draftCredentialType") }}: {{ issueDraft.credentialType }}</p>
+        <p v-if="issueDraft.issuerPolicy" class="issue-draft-meta">{{ t("draftIssuerPolicy") }}: {{ issueDraft.issuerPolicy }}</p>
+        <p v-if="issueDraft.source" class="issue-draft-meta">{{ t("draftSource") }}: {{ issueDraft.source }}</p>
         <div v-if="draftCategory && recommendedTemplates.length" class="issue-draft-filters">
           <div class="issue-draft-filter-copy">
             <p class="issue-draft-filter-title">{{ t("recommendedTemplatesTitle") }}</p>
@@ -222,7 +227,7 @@ const issueTemplateId = ref("");
 const showRecommendedOnly = ref(false);
 const templateFormPrefillKey = ref(0);
 const recentTemplateIds = ref<string[]>([]);
-const issueLinkHistory = ref<Array<{ templateId: string; url: string; createdAt: string }>>([]);
+const issueLinkHistory = ref<Array<{ templateId: string; url: string; createdAt: string; credentialType?: string; issuerPolicy?: string }>>([]);
 const issueDraft = ref<{
   recipient?: string;
   recipientName?: string;
@@ -301,6 +306,8 @@ function loadHistory() {
           templateId: String(entry?.templateId || "").trim(),
           url: String(entry?.url || "").trim(),
           createdAt: String(entry?.createdAt || "").trim(),
+          credentialType: String(entry?.credentialType || "").trim(),
+          issuerPolicy: String(entry?.issuerPolicy || "").trim(),
         }))
         .filter((entry) => entry.url)
         .slice(0, 8);
@@ -332,6 +339,8 @@ function recordIssueLink(templateId: string, url: string) {
       templateId: normalizedTemplate,
       url: normalizedUrl,
       createdAt: new Date().toISOString(),
+      credentialType: String(issueDraft.value?.credentialType || "").trim(),
+      issuerPolicy: String(issueDraft.value?.issuerPolicy || "").trim(),
     },
     ...issueLinkHistory.value.filter((entry) => entry.url !== normalizedUrl),
   ].slice(0, 8);
