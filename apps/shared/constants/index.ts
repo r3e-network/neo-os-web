@@ -290,4 +290,5 @@ export function secondsToHuman(seconds: number): {
 export function getRetryDelay(baseMs: number, jitterMs: number = 500): number {
   return baseMs + Math.random() * jitterMs;
 }
+export * from "./credential";
 export * from "./rpc";
