@@ -42,6 +42,12 @@
       <NeoButton size="sm" variant="secondary" type="button" :loading="togglingId === template.id" :aria-label="template.active ? t('deactivate') : t('activate')" @click="$emit('toggle', template)">
         {{ template.active ? t("deactivate") : t("activate") }}
       </NeoButton>
+      <NeoButton size="sm" variant="secondary" type="button" :aria-label="t('copyIssueLink')" @click="$emit('copy-issue-link', template)">
+        {{ t("copyIssueLink") }}
+      </NeoButton>
+      <NeoButton size="sm" variant="secondary" type="button" :aria-label="t('shareIssueLink')" @click="$emit('share-issue-link', template)">
+        {{ t("shareIssueLink") }}
+      </NeoButton>
     </div>
   </div>
 </template>
@@ -60,6 +66,8 @@ defineProps<{
 defineEmits<{
   issue: [template: TemplateItem];
   toggle: [template: TemplateItem];
+  "copy-issue-link": [template: TemplateItem];
+  "share-issue-link": [template: TemplateItem];
 }>();
 
 const { t } = createUseI18n(messages)();
