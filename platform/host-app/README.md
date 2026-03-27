@@ -85,7 +85,7 @@ runtime remains external to this repo.
 Host-side Morpheus proxy routes now prefer the unified Morpheus runtime/public
 API model:
 
-- public/web API: `neo-morpheus-oracle-web.vercel.app`
+- public/web API: `oracle.meshmini.app/mainnet` or `oracle.meshmini.app/testnet`
 - runtime: `oracle.meshmini.app/mainnet` / `oracle.meshmini.app/testnet`
 - edge fallback: `edge.meshmini.app/<network>`
 - control-plane ingress: `control.meshmini.app/<network>`
