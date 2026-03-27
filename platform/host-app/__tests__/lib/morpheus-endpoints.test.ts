@@ -53,7 +53,7 @@ describe("morpheus endpoint resolvers", () => {
     expect(resolveMorpheusPublicApiCandidates("testnet")).toEqual([
       "https://testnet-public.example",
       "https://shared-public.example",
-      "https://neo-morpheus-oracle-web.vercel.app",
+      "https://oracle.meshmini.app/testnet",
     ]);
   });
 });
