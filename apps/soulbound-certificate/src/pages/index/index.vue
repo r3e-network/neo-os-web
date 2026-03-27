@@ -47,6 +47,8 @@
         @connect="connectWallet"
         @issue="openIssueModal"
         @toggle="toggleTemplate"
+        @copy-issue-link="copyTemplateIssueLink"
+        @share-issue-link="shareTemplateIssueLink"
       />
 
       <div v-if="issueDraft" class="issue-draft-card">
@@ -213,6 +215,24 @@ const resetAndReload = async () => {
   }
 };
 
+function buildTemplateIssueLink(template: { id: string }) {
+  const params = new URLSearchParams({
+    issueTemplateId: template.id,
+    autoIssueDraft: "1",
+  });
+
+  if (issueDraft.value) {
+    if (issueDraft.value.recipient) params.set("issueRecipient", issueDraft.value.recipient);
+    if (issueDraft.value.recipientName) params.set("issueRecipientName", issueDraft.value.recipientName);
+    if (issueDraft.value.achievement) params.set("issueAchievement", issueDraft.value.achievement);
+    if (issueDraft.value.memo) params.set("issueMemo", issueDraft.value.memo);
+    if (issueDraft.value.category) params.set("issueCategory", issueDraft.value.category);
+    if (issueDraft.value.source) params.set("issueSource", issueDraft.value.source);
+  }
+
+  return `/miniapps/soulbound-certificate/index.html?${params.toString()}`;
+}
+
 function resolveDraftTemplateId() {
   if (issueTemplateId.value) return issueTemplateId.value;
   const activeTemplates = templates.value.filter((template) => template.active);
@@ -285,6 +305,35 @@ const openIssueModal = (template: { id: string }) => {
   issueTemplateId.value = template.id;
   issueModalOpen.value = true;
 };
+
+async function copyTemplateIssueLink(template: { id: string }) {
+  try {
+    const url = buildTemplateIssueLink(template);
+    await navigator.clipboard.writeText(url);
+    setStatus(t("issueLinkCopied"), "success");
+  } catch (error: unknown) {
+    console.warn("[soulbound-certificate] copy issue link failed:", error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function shareTemplateIssueLink(template: { id: string }) {
+  try {
+    const url = buildTemplateIssueLink(template);
+    if (navigator.share) {
+      await navigator.share({
+        title: t("issueCertificate"),
+        text: template.id,
+        url,
+      });
+      setStatus(t("issueLinkShared"), "success");
+      return;
+    }
+    await copyTemplateIssueLink(template);
+  } catch (error: unknown) {
+    if (error instanceof Error && /abort|cancel/i.test(error.message)) return;
+    await copyTemplateIssueLink(template);
+  }
+}
 const onTabChange = async (tab: string) => {
   activeTab.value = tab;
   try {
@@ -318,6 +367,12 @@ onMounted(async () => {
         showRecommendedOnly.value = category.length > 0;
       }
     }
+    if (!issueDraft.value && templateId) {
+      issueTemplateId.value = templateId;
+      if (autoIssueDraft) {
+        activeTab.value = "templates";
+      }
+    }
   }
   if (!isMounted.value) return;
   try {
@@ -325,12 +380,10 @@ onMounted(async () => {
     if (address.value) {
       await refreshTemplates();
       await refreshCertificates();
-      if (issueDraft.value) {
-        const targetTemplateId = resolveDraftTemplateId();
-        if (targetTemplateId) {
-          issueTemplateId.value = targetTemplateId;
-          issueModalOpen.value = true;
-        }
+      const targetTemplateId = issueDraft.value ? resolveDraftTemplateId() : issueTemplateId.value;
+      if (targetTemplateId) {
+        issueTemplateId.value = targetTemplateId;
+        issueModalOpen.value = true;
       }
     }
   } catch (_e: unknown) {
@@ -343,12 +396,10 @@ const stopAddressWatch = watch(address, async (newAddr) => {
     try {
       await refreshTemplates();
       await refreshCertificates();
-      if (issueDraft.value && !issueModalOpen.value) {
-        const targetTemplateId = resolveDraftTemplateId();
-        if (targetTemplateId) {
-          issueTemplateId.value = targetTemplateId;
-          issueModalOpen.value = true;
-        }
+      const targetTemplateId = issueDraft.value ? resolveDraftTemplateId() : issueTemplateId.value;
+      if (targetTemplateId && !issueModalOpen.value) {
+        issueTemplateId.value = targetTemplateId;
+        issueModalOpen.value = true;
       }
     } catch (_e: unknown) {
       console.warn("[soulbound-certificate] address change failed:", _e instanceof Error ? _e.message : String(_e));
