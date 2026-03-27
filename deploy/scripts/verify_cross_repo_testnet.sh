@@ -146,8 +146,12 @@ while true; do
     break
   fi
 
-  if [[ "$oracle_smoke_output" == *"request_in_progress"* ]] && [[ $oracle_smoke_attempt -lt $oracle_smoke_retries ]]; then
-    echo "[oracle-smoke] request still in progress, retrying (${oracle_smoke_attempt}/${oracle_smoke_retries})..." >&2
+  if [[ $oracle_smoke_attempt -lt $oracle_smoke_retries ]] && [[ \
+    "$oracle_smoke_output" == *"request_in_progress"* || \
+    "$oracle_smoke_output" == *"fetch failed"* || \
+    "$oracle_smoke_output" == *"timed out waiting"* \
+  ]]; then
+    echo "[oracle-smoke] transient oracle failure, retrying (${oracle_smoke_attempt}/${oracle_smoke_retries})..." >&2
     oracle_smoke_attempt=$((oracle_smoke_attempt + 1))
     sleep "$oracle_smoke_delay_seconds"
     continue
