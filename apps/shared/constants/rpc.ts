@@ -109,8 +109,8 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_MAINNET_RPC,
     networkMagic: MAINNET_MAGIC,
     n3indexApi: N3INDEX_API,
-    morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
-    morpheusPublicApiUrls: ["https://neo-morpheus-oracle-web.vercel.app"],
+    morpheusPublicApiUrl: "https://oracle.meshmini.app/mainnet",
+    morpheusPublicApiUrls: ["https://oracle.meshmini.app/mainnet"],
     morpheusRuntimeUrl: "https://oracle.meshmini.app/mainnet",
     morpheusRuntimeUrls: [
       "https://oracle.meshmini.app/mainnet",
@@ -155,8 +155,8 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_TESTNET_RPC,
     networkMagic: TESTNET_MAGIC,
     n3indexApi: N3INDEX_API,
-    morpheusPublicApiUrl: "https://neo-morpheus-oracle-web.vercel.app",
-    morpheusPublicApiUrls: ["https://neo-morpheus-oracle-web.vercel.app"],
+    morpheusPublicApiUrl: "https://oracle.meshmini.app/testnet",
+    morpheusPublicApiUrls: ["https://oracle.meshmini.app/testnet"],
     morpheusRuntimeUrl: "https://oracle.meshmini.app/testnet",
     morpheusRuntimeUrls: [
       "https://oracle.meshmini.app/testnet",

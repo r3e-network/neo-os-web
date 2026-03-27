@@ -17,7 +17,6 @@ function isPublicRuntimeHost(hostname: string) {
     "oracle.meshmini.app",
     "edge.meshmini.app",
     "control.meshmini.app",
-    "neo-morpheus-oracle-web.vercel.app",
   ].includes(host) || host.endsWith(".workers.dev");
 }
 
