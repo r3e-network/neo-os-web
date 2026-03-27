@@ -19,3 +19,4 @@ It provides:
 - Datafeeds docs: `https://oracle.meshmini.app/docs/datafeeds`
 - Runtime explorer: `https://oracle.meshmini.app/explorer`
 - AA app workspace: `https://neo-abstract-account.vercel.app/app`
+- Runtime source of truth: `apps/shared/constants/rpc.ts`

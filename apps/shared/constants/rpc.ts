@@ -36,6 +36,7 @@ export type ExternalIntegrationConfig = {
   rpcUrl: string;
   networkMagic: number;
   n3indexApi: string;
+  aaFrontendBaseUrl: string;
   morpheusPublicApiUrl: string;
   morpheusPublicApiUrls: string[];
   morpheusRuntimeUrl: string;
@@ -109,6 +110,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_MAINNET_RPC,
     networkMagic: MAINNET_MAGIC,
     n3indexApi: N3INDEX_API,
+    aaFrontendBaseUrl: "https://neo-abstract-account.vercel.app",
     morpheusPublicApiUrl: "https://oracle.meshmini.app/mainnet",
     morpheusPublicApiUrls: ["https://oracle.meshmini.app/mainnet"],
     morpheusRuntimeUrl: "https://oracle.meshmini.app/mainnet",
@@ -155,6 +157,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
     rpcUrl: NEO_TESTNET_RPC,
     networkMagic: TESTNET_MAGIC,
     n3indexApi: N3INDEX_API,
+    aaFrontendBaseUrl: "https://neo-abstract-account.vercel.app",
     morpheusPublicApiUrl: "https://oracle.meshmini.app/testnet",
     morpheusPublicApiUrls: ["https://oracle.meshmini.app/testnet"],
     morpheusRuntimeUrl: "https://oracle.meshmini.app/testnet",
@@ -221,4 +224,20 @@ export function getExternalIntegrationConfig(network?: NeoNetwork): ExternalInte
 
 export function getMiniAppContractHash(appId: string, network?: NeoNetwork): string {
   return MINIAPP_CONTRACTS[network ?? getNetwork()]?.[String(appId || "").trim()] || "";
+}
+
+export function getAAFrontendBaseUrl(network?: NeoNetwork): string {
+  return getExternalIntegrationConfig(network).aaFrontendBaseUrl.replace(/\/$/, "");
+}
+
+export function getAAIdentityWorkspaceUrl(network?: NeoNetwork): string {
+  return `${getAAFrontendBaseUrl(network)}/identity`;
+}
+
+export function getAAAppWorkspaceUrl(network?: NeoNetwork): string {
+  return `${getAAFrontendBaseUrl(network)}/app`;
+}
+
+export function getAADocsUrl(network?: NeoNetwork): string {
+  return `${getAAFrontendBaseUrl(network)}/docs`;
 }

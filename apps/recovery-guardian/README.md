@@ -18,4 +18,5 @@ It provides:
 - AA identity workspace: `https://neo-abstract-account.vercel.app/identity`
 - AA app workspace: `https://neo-abstract-account.vercel.app/app`
 - AA docs: `https://neo-abstract-account.vercel.app/docs`
+- Runtime source of truth: `apps/shared/constants/rpc.ts`
 - Morpheus NeoDID docs: `https://oracle.meshmini.app/docs/neodid`
