@@ -44,6 +44,8 @@ const appMessages = {
   issueTitle: { en: "Issue Certificate", zh: "签发证书" },
   draftReadyTitle: { en: "Draft Ready", zh: "草稿已就绪" },
   draftReadyText: { en: "A credential draft was passed in from another miniapp. Select a template below to issue it.", zh: "来自其他小程序的证书草稿已带入。请选择下方模板完成签发。" },
+  draftCredentialType: { en: "Credential Type", zh: "凭证类型" },
+  draftIssuerPolicy: { en: "Issuer Policy", zh: "发行策略" },
   useDraftIssue: { en: "Use Draft", zh: "使用草稿" },
   recommendedTemplatesTitle: { en: "Recommended Templates", zh: "推荐模板" },
   recommendedTemplatesText: { en: "Templates matching this draft are shown first. Switch back to the full list if you need another credential type.", zh: "匹配当前草稿的模板会优先展示。如需其他证书类型，可切回全量模板列表。" },
