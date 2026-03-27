@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { createSidebarItems } from "@shared/utils";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -17,7 +18,13 @@ const getMessageBytes = (value: string): number => {
 };
 
 export function useSignAnything(t: (key: string) => string) {
-  const { address, connect, signMessage: signWithWallet, invokeContract, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, signMessage: signWithWallet, chainType } = wallet;
+  const { invokeDirectly, ensureWallet } = useContractInteraction({
+    appId: "miniapp-neo-sign-anything",
+    t,
+    wallet,
+  });
   const { status, setStatus } = useStatusMessage(5000);
 
   // --- Reactive state ---
@@ -55,12 +62,7 @@ export function useSignAnything(t: (key: string) => string) {
     txHash.value = ""; // clear previous results
 
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
+      await ensureWallet();
 
       const result = await signWithWallet(message.value);
 
@@ -100,37 +102,20 @@ export function useSignAnything(t: (key: string) => string) {
     signature.value = ""; // clear previous results
 
     try {
-      if (!address.value) {
-        await connect();
-      }
-      if (!address.value) {
-        throw new Error(t("connectWallet"));
-      }
+      const walletAddress = await ensureWallet();
 
       // Broadcast by sending a 0 GAS transfer to self with message in data.
-      const result = await invokeContract({
-        scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: address.value },
-          { type: "Hash160", value: address.value },
+      const { txid } = await invokeDirectly(
+        "transfer",
+        [
+          { type: "Hash160", value: walletAddress },
+          { type: "Hash160", value: walletAddress },
           { type: "Integer", value: "0" },
           { type: "String", value: message.value },
         ],
-      });
-
-      if (result && typeof result === "object") {
-        const resultRecord = result as Record<string, unknown>;
-        if (resultRecord.txid) {
-          txHash.value = String(resultRecord.txid);
-        } else {
-          txHash.value = t("txPending");
-        }
-      } else if (typeof result === "string") {
-        txHash.value = result;
-      } else {
-        txHash.value = t("txPending");
-      }
+        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+      );
+      txHash.value = txid || t("txPending");
     } catch (err: unknown) {
       setStatus(formatErrorMessage(err, t("broadcastFailed")), "error");
     } finally {

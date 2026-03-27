@@ -2,12 +2,12 @@ import { computed, reactive, ref, unref, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatFixed8 } from "@shared/utils/format";
-import { parseInvokeResult } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
@@ -16,7 +16,13 @@ const GAS_LOW_THRESHOLD = 10000000n;
 
 export function useWalletAnalysis() {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeRead, chainType, switchToAppChain } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, chainType, switchToAppChain } = wallet;
+  const { read, ensureWallet } = useContractInteraction({
+    appId: "miniapp-wallet-health",
+    t,
+    wallet,
+  });
 
   const { status, setStatus } = useStatusMessage();
   const isRefreshing = ref(false);
@@ -58,19 +64,16 @@ export function useWalletAnalysis() {
 
     try {
       isRefreshing.value = true;
-      const neoResult = await invokeRead({
-        scriptHash: NEO_HASH,
-        operation: "balanceOf",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-      const gasResult = await invokeRead({
-        scriptHash: GAS_HASH,
-        operation: "balanceOf",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-
-      balances.neo = parseBigInt(parseInvokeResult(neoResult));
-      balances.gas = parseBigInt(parseInvokeResult(gasResult));
+      balances.neo = parseBigInt(await read(
+        "balanceOf",
+        [{ type: "Hash160", value: address.value }],
+        NEO_HASH,
+      ));
+      balances.gas = parseBigInt(await read(
+        "balanceOf",
+        [{ type: "Hash160", value: address.value }],
+        GAS_HASH,
+      ));
     } catch (e: unknown) {
       setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     } finally {
@@ -80,7 +83,7 @@ export function useWalletAnalysis() {
 
   const connectWallet = async () => {
     try {
-      await connect();
+      await ensureWallet();
       if (address.value) {
         await refreshBalances();
       }

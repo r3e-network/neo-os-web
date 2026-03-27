@@ -60,6 +60,9 @@ function onInput(e: Record<string, unknown>) {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
 .token-section {
   position: relative;
   background: var(--swap-panel-bg);

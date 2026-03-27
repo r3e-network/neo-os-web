@@ -1,0 +1,58 @@
+{
+  "name": "NeoPay Shared Mode From Definition Example",
+  "definition_path": "platform/host-app/public/miniapp-definitions/neo-pay.shared.json",
+  "rpc_url": "https://testnet2.neo.coz.io:443",
+  "module_registry_hash": "0x7666a46644dca58e8c3b308b34e83db440e04991",
+  "recipe_registry_hash": "0xe22bc8072f616974a64c0da1dfda845945d4215f",
+  "instance_registry_hash": "0x5b9a6d1ca5fdbc95d4307990551682a3b7a1d5d6",
+  "app_registry_hash": "0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d",
+  "link_registries": true,
+  "modules": [
+    {
+      "module_id": "module.funding_vault",
+      "version": "1.0.0",
+      "binding": "vault",
+      "contract_hash": "0x958bccb2ec9292461977ef1d2f1222d4e7861537",
+      "init_schema_hash": "",
+      "operation_schema_hash": "",
+      "risk_profile": "custody",
+      "compatibility_metadata": {
+        "accepted_assets": ["NEO", "GAS"]
+      },
+      "active": true
+    },
+    {
+      "module_id": "module.stream_vesting",
+      "version": "1.0.0",
+      "binding": "stream",
+      "contract_hash": "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+      "init_schema_hash": "",
+      "operation_schema_hash": "",
+      "risk_profile": "payments",
+      "compatibility_metadata": {
+        "recipe": "recipe.payment_streams.v1"
+      },
+      "active": true
+    }
+  ],
+  "recipe": {
+    "recipe_id": "",
+    "version": "",
+    "allowed_runtime_mode": "",
+    "router_template_id": "",
+    "active": true
+  },
+  "instance": {
+    "instance_id": "neopay:testnet:from-definition",
+    "app_id": "",
+    "recipe_id": "",
+    "recipe_version": "",
+    "runtime_mode": "",
+    "owner": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+    "operator": "",
+    "developer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+    "router_contract": "",
+    "config_hash": "",
+    "frontend_ref": "miniapp-neo-pay@2.0.0"
+  }
+}

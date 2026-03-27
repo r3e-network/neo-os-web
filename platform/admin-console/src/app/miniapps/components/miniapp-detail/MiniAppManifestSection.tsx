@@ -7,7 +7,54 @@ type Props = {
   selectedApp: MiniApp;
 };
 
+const FLAGSHIP_TARGETS: Record<string, string> = {
+  "miniapp-last-survivor": "lastSurvivor",
+  "miniapp-gasbox": "gasBox",
+  "miniapp-redenvelope": "redEnvelope",
+  "miniapp-dailycheckin": "dailyCheckin",
+  "miniapp-fogplay": "fogPlay",
+  "miniapp-self-loan": "selfLoan",
+  "miniapp-neo-pay": "neoPay",
+};
+
+const SELECTED_TARGETS: Record<string, string> = {
+  "miniapp-flashloan": "flashloan",
+  "miniapp-exfiles": "exfiles",
+  "miniapp-masqueradedao": "masqueradedao",
+  "miniapp-millionpiecemap": "millionpiecemap",
+  "miniapp-graveyard": "graveyard",
+  "miniapp-heritagetrust": "heritagetrust",
+  "miniapp-dicegame": "dicegame",
+  "miniapp-gascircle": "gascircle",
+  "miniapp-turtlematch": "turtlematch",
+};
+
+function getLiveSmokeCommand(appId: string): { lane: string; command: string } | null {
+  const flagshipTarget = FLAGSHIP_TARGETS[appId];
+  if (flagshipTarget) {
+    return {
+      lane: "flagship",
+      command: `FLAGSHIP_LIVE_TARGETS=${flagshipTarget} npm run test:testnet:live:smoke:flagship`,
+    };
+  }
+
+  const selectedTarget = SELECTED_TARGETS[appId];
+  if (selectedTarget) {
+    return {
+      lane: "selected",
+      command: `SELECTED_MINIAPP_SMOKE_TARGETS=${selectedTarget} npm run test:testnet:live:smoke:selected`,
+    };
+  }
+
+  return null;
+}
+
 export function MiniAppManifestSection({ selectedApp }: Props) {
+  const liveSmoke = getLiveSmokeCommand(selectedApp.app_id);
+  const workflowHref = "https://github.com/r3e-network/neo-miniapps-platform/actions/workflows/live-smoke.yml";
+  const reportsHref = "https://github.com/r3e-network/neo-miniapps-platform/tree/main/docs/reports/live-smoke";
+  const runbookHref = "https://github.com/r3e-network/neo-miniapps-platform/blob/main/README.md#run-the-full-live-smoke-suite-with-timestamped-reports";
+
   return (
     <>
       <dl className="grid grid-cols-2 gap-4 text-sm">
@@ -128,6 +175,55 @@ export function MiniAppManifestSection({ selectedApp }: Props) {
           </>
         );
       })()}
+
+      <div>
+        <h4 className="mb-2 text-sm font-medium text-gray-500 dark:text-gray-400">Live Validation</h4>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={workflowHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              Workflow
+            </a>
+            <a
+              href={reportsHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              Reports
+            </a>
+            <a
+              href={runbookHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-primary-400 hover:text-primary-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+            >
+              Runbook
+            </a>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Use the scoped command below to rerun live smoke for this MiniApp without triggering the whole suite.
+          </p>
+          {liveSmoke ? (
+            <div>
+              <div className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                Suggested lane: {liveSmoke.lane}
+              </div>
+              <pre className="overflow-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+                {liveSmoke.command}
+              </pre>
+            </div>
+          ) : (
+            <pre className="overflow-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-gray-800">
+              npm run test:testnet:live:smoke
+            </pre>
+          )}
+        </div>
+      </div>
 
       <div>
         <h4 className="mb-1 text-sm font-medium text-gray-500 dark:text-gray-400">Full Manifest</h4>

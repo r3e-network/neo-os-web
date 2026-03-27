@@ -81,6 +81,9 @@ function formatBalance(balance: number): string {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
 .modal-overlay {
   position: fixed;
   top: 0;

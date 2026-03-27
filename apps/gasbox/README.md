@@ -13,7 +13,7 @@ What makes GASBOX special is the transparency of the machine itself. Prize table
 ## How to Play
 
 1. **Browse Machines** — Explore available gacha machines, each with its own theme, prizes, and spin cost.
-2. **Connect & Spin** — Log in with a social account or wallet. Pay the spin cost (starting at 0.1 GAS) to draw.
+2. **Connect & Spin** — Connect your Neo N3 wallet. Pay the spin cost (starting at 0.1 GAS) to draw.
 3. **See Your Prize** — The VRF generates a random seed on-chain. Your prize is determined instantly with a satisfying reveal animation.
 4. **Collect Rewards** — NEO, GAS, NFTs, or points are credited to your account automatically.
 5. **Go Again** — Start another draw whenever you want and keep chasing the legendary drop.

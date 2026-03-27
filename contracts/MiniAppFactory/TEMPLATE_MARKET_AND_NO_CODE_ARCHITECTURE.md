@@ -120,3 +120,22 @@ Based on current ecosystem best practice (modular proxy/factory patterns, strict
 - Developer page upgraded toward a no-code/template-builder workflow.
 - Media variant-aware fallback handling in runtime card assets.
 - Example YAML definition demonstrating template marketplace metadata.
+
+## Follow-On Architecture
+
+This document covers template-first deployment.
+
+For the next step beyond per-app template deployment, see:
+
+- [`MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md`](./MODULAR_CAPABILITY_COMPOSITION_ARCHITECTURE.md)
+
+That document defines how to evolve from:
+
+- `one template => one deployed contract`
+
+to:
+
+- shared capability contracts,
+- recipe bundles,
+- optional lightweight router deployments,
+- and true no-code MiniApp publication for most app classes.

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { miniAppConfigSchema } from "@/lib/schemas";
+import { miniAppConfigBaseSchema } from "@/lib/schemas";
 import { createProxyHeaders, parseHostErrorPayload, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
 
 const APP_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
@@ -96,7 +96,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   delete normalizedBody.action;
 
   // Validate partial config
-  const partial = miniAppConfigSchema.partial().safeParse(normalizedBody);
+  const partial = miniAppConfigBaseSchema.partial().safeParse(normalizedBody);
   if (!partial.success) {
     return jsonError(partial.error.errors[0]?.message || "Invalid input", 400);
   }

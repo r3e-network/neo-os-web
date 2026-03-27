@@ -208,6 +208,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
+import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { messages } from "@/locale/messages";
 import { MiniAppPage, HeroSection, NeoButton } from "@shared/components";
 import { useCertificateActions } from "@/composables/useCertificateActions";
@@ -327,22 +329,23 @@ function buildTemplateIssueLink(template: { id: string }) {
     if (issueDraft.value.source) params.set("issueSource", issueDraft.value.source);
   }
 
-  return `/miniapps/soulbound-certificate/index.html?${params.toString()}`;
+  return buildMiniAppLaunchUrl("miniapp-soulbound-certificate", Object.fromEntries(params.entries()));
 }
 
 function loadHistory() {
-  if (typeof window === "undefined") return;
   try {
-    const templateIds = JSON.parse(window.localStorage.getItem(RECENT_TEMPLATE_STORAGE_KEY) || "[]");
+    const templateIds = readCachedJSON<unknown[]>(RECENT_TEMPLATE_STORAGE_KEY);
     if (Array.isArray(templateIds)) {
       recentTemplateIds.value = templateIds.map((value) => String(value || "").trim()).filter(Boolean).slice(0, 6);
+    } else {
+      recentTemplateIds.value = [];
     }
   } catch {
     recentTemplateIds.value = [];
   }
 
   try {
-    const links = JSON.parse(window.localStorage.getItem(RECENT_LINK_STORAGE_KEY) || "[]");
+    const links = readCachedJSON<Array<Record<string, unknown>>>(RECENT_LINK_STORAGE_KEY);
     if (Array.isArray(links)) {
       issueLinkHistory.value = links
         .map((entry) => ({
@@ -354,6 +357,8 @@ function loadHistory() {
         }))
         .filter((entry) => entry.url)
         .slice(0, 8);
+    } else {
+      issueLinkHistory.value = [];
     }
   } catch {
     issueLinkHistory.value = [];
@@ -361,9 +366,8 @@ function loadHistory() {
 }
 
 function persistHistory() {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(RECENT_TEMPLATE_STORAGE_KEY, JSON.stringify(recentTemplateIds.value));
-  window.localStorage.setItem(RECENT_LINK_STORAGE_KEY, JSON.stringify(issueLinkHistory.value));
+  writeCachedJSON(RECENT_TEMPLATE_STORAGE_KEY, recentTemplateIds.value);
+  writeCachedJSON(RECENT_LINK_STORAGE_KEY, issueLinkHistory.value);
 }
 
 function recordRecentTemplate(templateId: string) {

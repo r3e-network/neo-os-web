@@ -192,7 +192,7 @@ export default function MiniAppsPage() {
               <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-neo">Flagship 7</p>
-                  <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white">Primary miniapps</h2>
+                  <h2 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white">Featured MiniApps</h2>
                   <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-gray-400">
                     These are the core user-facing miniapps surfaced on the homepage. Everything else remains available in the full catalog below.
                   </p>

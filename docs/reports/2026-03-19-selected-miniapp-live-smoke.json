@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-03-27T12:06:13.922Z",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "targetInfo": {
+    "available": [
+      "flashloan",
+      "exfiles",
+      "masqueradedao",
+      "millionpiecemap",
+      "graveyard",
+      "heritagetrust",
+      "dicegame",
+      "gascircle",
+      "turtlematch"
+    ],
+    "requested": [],
+    "selected": [
+      "flashloan",
+      "exfiles",
+      "masqueradedao",
+      "millionpiecemap",
+      "graveyard",
+      "heritagetrust",
+      "dicegame",
+      "gascircle",
+      "turtlematch"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingOraclePhalaEnvExists": true,
+      "outputPath": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/2026-03-19-selected-miniapp-live-smoke.json"
+    },
+    "targets": {
+      "available": [
+        "flashloan",
+        "exfiles",
+        "masqueradedao",
+        "millionpiecemap",
+        "graveyard",
+        "heritagetrust",
+        "dicegame",
+        "gascircle",
+        "turtlematch"
+      ],
+      "requested": [],
+      "selected": [
+        "flashloan",
+        "exfiles",
+        "masqueradedao",
+        "millionpiecemap",
+        "graveyard",
+        "heritagetrust",
+        "dicegame",
+        "gascircle",
+        "turtlematch"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      "oracleUpdaterWifConfigured": true,
+      "oracleRequestFee": "1000000",
+      "oracleRequestFeeError": null,
+      "oracleUpdaterMethod": "updater",
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "999104395588",
+        "neo": "3"
+      },
+      "user": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "2841593372346",
+        "neo": "9441"
+      },
+      "oracleUpdater": {
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "999867131003"
+      }
+    },
+    "actorConstraints": {
+      "gascircleRequiresDistinctActors": true,
+      "adminUserDistinct": true,
+      "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+      "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX"
+    }
+  },
+  "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "oracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "results": {
+    "flashloan": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "transferTx": "0xe7b4f88aa42ac88fe2ea36aa2ad7e42cc00016d08f72ed0ff94b89ac1887bba4",
+        "depositTx": "0xe273fc5213b9b913ce999f4441299cfaaa332aad9251534141b2494026fd4ed0",
+        "withdrawTx": "0xaedb6c5744bf1ffa370fc8fee28e83eb2aa8337f0d02b1bab8014aa9aa15fe96",
+        "before": "500090000",
+        "contractGasBefore": "500090000",
+        "afterDeposit": "503090000",
+        "afterWithdraw": "500090000"
+      }
+    },
+    "exfiles": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
+        "actorCheck": {
+          "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+          "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+          "distinct": true
+        },
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "totalRecordsBefore": "12",
+        "recordId": "13",
+        "createTx": "0x62bd12c755b9ee80ee94921143f4f4d501c0148df64aa2be6b91d3b2abc31a89",
+        "queryTx": "0xa3b908129afed1a814aa1eb0e6b3c2dcd9046cdf1491796dbf57cb0d997ddcb6",
+        "verifyTx": "0x45ad283705ecec68c0a161d4e7ec7bf3f8e64649a7af133c29d41a16bfc86f0b",
+        "reportTx": "0x53c76f594f4a3e5a3a5187433408efec946ac82478686f6321f268813f017c23",
+        "updateTx": "0xc919f3037f16180938fc9800b7084ba8689f4282deaa9b8526176515c3ae78d3",
+        "deleteTx": "0x9a21ac784a78fa3d80dc58de979a40e65f1974c8bf1d78b0f0c0c43496b98d68"
+      }
+    },
+    "masqueradedao": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "totalMasksBefore": "23",
+        "totalProposalsBefore": "10",
+        "maskA": "24",
+        "maskB": "25",
+        "proposalId": "11",
+        "createMaskAdminTx": "0xbbfe0a1781881188af86a8bab02c8fdb4d74e609c2e5ee95b88485105dee2e6c",
+        "createMaskUserTx": "0xe6b29403825e018f8a077a839ccfa1338de43ff53c66e95c755f9baaa5cf717c",
+        "proposalTx": "0xa4dc5174e9a1fa48c5d429a74156f1894cfbf1e22f2e9ad7b70a502473dfcde3",
+        "voteTx": "0xaf0b7e467a571fc2e2ceae71001ef7e52b3de834348106ee1caf57bd27443cbe"
+      }
+    },
+    "millionpiecemap": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
+        "actorPrecheck": {
+          "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+          "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+          "distinct": true
+        },
+        "mapPrecheck": {
+          "mapOverview": {
+            "width": "100",
+            "height": "100",
+            "regionSize": "10",
+            "totalPieces": "10000",
+            "totalRegions": "100",
+            "claimed": "8",
+            "available": "9992"
+          },
+          "piecePrice": "10000000",
+          "scriptedBuyPrice": "11000000"
+        },
+        "x": 25,
+        "y": 25,
+        "claimTx": "0xad9f26f7e2c058a5f3d70da7af3ca9571c073d68c74f5348fdf1e429a073d8c2",
+        "listTx": "0x88fc7606e3c3f252cf39246800b8f35c124c677660c35eef996cc6f6499f2e68",
+        "buyTx": "0x1862ee0ef921de15cfdbd5df9ff1a97ee2937e1ba99c63b9dad62fde48d9485c"
+      }
+    },
+    "graveyard": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55aa635b10a5abb5cbac169db26a38df739778e",
+        "fundingPrecheck": {
+          "buryFee": "10000000",
+          "forgetFee": "100000000",
+          "scriptedFunding": "110000000"
+        },
+        "memoryId": "9",
+        "buryTx": "0xc666ae1ff2530a918a5f5b14d3c01672bc8c775dcc2515c7e8489b54cf32b74d",
+        "epitaphTx": "0xab0752c03c06472622026559295ee09cdaa0dba6c7fa88e0ec42b7af6773614a",
+        "forgetTx": "0xb4aefa441fa7b4dc792877bbf6d10283c0ae2afdfd2f498a5c420506c19ea217"
+      }
+    },
+    "heritagetrust": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x42e14d04c17dad0b1d76ee7509e537791230431b",
+        "actorPrecheck": {
+          "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+          "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+          "distinct": true
+        },
+        "trustPrecheck": {
+          "minPrincipal": "1",
+          "scriptedPrincipal": "1",
+          "minHeartbeatSeconds": "604800",
+          "maxHeartbeatSeconds": "31536000",
+          "scriptedHeartbeatSeconds": "604800",
+          "adminNeoBalance": "3"
+        },
+        "trustId": "8",
+        "createTx": "0xbef0935286a88f27691af24efc2119f328b2ee813b4a539aa05a69bfabc65f74",
+        "guardianTx": "0x4f2c00a452a0312445691fe6ebaecafdabc633e74b54804c747e09d05246f415",
+        "heartbeatTx": "0x68e0cb0d046b30cf23da8620cb0c34a787033bb8a205c4361670a667fc5e0967",
+        "cancelTx": "0xe1df7769ccf51b46e361ede9a26ed2da52c37e907594adfa9710a5861745fbda"
+      }
+    },
+    "dicegame": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x1e448bf07a742da74084d4c64a61052980beb496",
+        "oraclePrecheck": {
+          "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "callbackAllowed": true,
+          "requestFee": "1000000",
+          "feeCredit": "1000000",
+          "feeCreditDeficit": "0",
+          "updaterMethod": "updater",
+          "updater": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+          "expectedUpdater": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+          "updaterGas": "999865519833"
+        },
+        "betId": "15",
+        "requestId": "4400",
+        "placeTx": "0xb68131053b4557a5c41720a006c73ba5b53920100d85667ff1652033dee738f7",
+        "fulfillTx": "0xd19c285673474c376dbbca179402292bfadd0ee6f55e75afdd99a5f7322aa9e2",
+        "rolled": "2",
+        "expectedPayout": "0"
+      }
+    },
+    "gascircle": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
+        "oraclePrecheck": {
+          "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+          "callbackAllowed": true,
+          "requestFee": "1000000",
+          "feeCredit": "2000000",
+          "feeCreditDeficit": "0",
+          "updaterMethod": "updater",
+          "updater": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+          "expectedUpdater": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+          "updaterGas": "999862174775"
+        },
+        "actorPrecheck": {
+          "adminAddress": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+          "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+          "distinct": true
+        },
+        "circleId": "14",
+        "createTx": "0xd1dfe4db1f11705fffbfb2a69e1449f32b88ecc3cbfce5d73c7a1a8556ea6a33",
+        "joinAdminTx": "0x7e9d79eb347c83a6e32bdb01c1a297335f85c17cd4e4673e7550218ed91c87b0",
+        "joinUserTx": "0xd42250ee07b6b8a041eb7c0f26487693233aa2e95d5808245cd460dba1f0ce70",
+        "payout1Tx": "0x2eb61242a28864243e1822299c473e165bcfcc31cb024d0f7c947f5b9b9cb198",
+        "fulfill1Tx": "0xb53cc5d248ab625ad3bd26585ddf1cb5177e7737f3e87de8503602de854dded3",
+        "payout2Tx": "0xf25f739d58a7d4aa86c22e19521281bb38e99f39aeb97e66cc86eccf7a28ea11",
+        "fulfill2Tx": "0xdab016acff739be504dbf1fd33f4d7dc050ff42f165f7025013a6caca709ee48"
+      }
+    },
+    "turtlematch": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
+        "scriptPrecheck": {
+          "scriptName": "turtle-match-logic",
+          "scriptExists": true,
+          "scriptEnabled": true,
+          "onChainScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "expectedScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "defaultScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "blindboxPrice": "10000000",
+          "boxCount": "3",
+          "scriptedFunding": "30000000"
+        },
+        "sessionId": "15",
+        "matches": "2",
+        "reward": "30000000",
+        "startTx": "0x1e200b5ed3ad6b02455a65cbdded6ed4e075aa0c3920180acd93397cfec2283b",
+        "settleTx": "0xf8c3b33e62ad7b655c1398530c643a3d31c5231b9e96b4b31e992901f7c973da"
+      }
+    }
+  }
+}

@@ -71,7 +71,80 @@
     </template>
 
     <template #operation>
-      <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
+      <div v-if="activeTab === 'market'" class="operation-stack">
+        <NeoCard variant="erobo" class="operation-card">
+          <template v-if="selectedMachine">
+            <span class="operation-title">{{ t("marketActionTitle") }}</span>
+            <span class="operation-subtitle">{{ selectedMachine.name }}</span>
+            <span class="operation-meta">{{ selectedMachine.price }} {{ t("tokenGas") }} · {{ t("playLabel") }}</span>
+            <div class="operation-actions">
+              <NeoButton
+                variant="primary"
+                size="sm"
+                block
+                :loading="isPlaying"
+                :disabled="!selectedMachine.active || !selectedMachine.inventoryReady"
+                @click="handlePlay"
+              >
+                {{ isPlaying ? t("rolling") : t("playNow") }}
+              </NeoButton>
+              <NeoButton
+                v-if="selectedMachine.forSale && selectedMachine.ownerHash !== walletHash"
+                variant="secondary"
+                size="sm"
+                block
+                @click="handleBuy"
+              >
+                {{ t("buyMachine") }}
+              </NeoButton>
+              <NeoButton variant="secondary" size="sm" block @click="selectedMachine = null">
+                {{ t("chooseAnotherMachine") }}
+              </NeoButton>
+            </div>
+            <span v-if="!selectedMachine.inventoryReady" class="operation-note">{{ t("inventoryEmpty") }}</span>
+          </template>
+          <template v-else>
+            <span class="operation-title">{{ t("marketPromptTitle") }}</span>
+            <span class="operation-subtitle">{{ t("marketPromptSubtitle") }}</span>
+            <span class="operation-note">{{ t("marketPromptHint") }}</span>
+            <div class="operation-actions">
+              <NeoButton variant="primary" size="sm" block @click="activeTab = 'discover'">
+                {{ t("discover") }}
+              </NeoButton>
+            </div>
+          </template>
+        </NeoCard>
+      </div>
+
+      <div v-else-if="activeTab === 'create'" class="operation-stack">
+        <CreatorStudio :publishing="isPublishing" @publish="handlePublish" />
+      </div>
+
+      <div v-else-if="activeTab === 'manage'" class="operation-stack">
+        <NeoCard variant="erobo" class="operation-card">
+          <span class="operation-title">{{ t("managePanelTitle") }}</span>
+          <span class="operation-subtitle">{{ t("managePanelSubtitle") }}</span>
+          <span class="operation-note">{{ t("managePanelHint") }}</span>
+          <div v-if="!address" class="operation-actions">
+            <NeoButton variant="primary" size="sm" block @click="handleWalletConnect">
+              {{ t("wpConnect") }}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      </div>
+
+      <div v-else class="operation-stack">
+        <NeoCard variant="erobo" class="operation-card">
+          <span class="operation-title">{{ t("discoverPanelTitle") }}</span>
+          <span class="operation-subtitle">{{ t("discoverPanelSubtitle") }}</span>
+          <span class="operation-note">{{ t("discoverPanelHint") }}</span>
+          <div class="operation-actions">
+            <NeoButton variant="secondary" size="sm" block @click="activeTab = 'market'">
+              {{ t("market") }}
+            </NeoButton>
+          </div>
+        </NeoCard>
+      </div>
     </template>
 
     <template #tab-discover>
@@ -110,7 +183,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
-import { MiniAppPage, AppIcon } from "@shared/components";
+import { MiniAppPage, AppIcon, NeoCard, NeoButton } from "@shared/components";
 import { messages } from "@/locale/messages";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { useGachaMachines } from "@/composables/useGachaMachines";
@@ -498,6 +571,45 @@ const stopAddressWatch = watch(
   font-weight: 700;
   text-align: center;
   color: var(--text-primary);
+}
+
+.operation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.operation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.operation-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gacha-accent-pink);
+}
+
+.operation-subtitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.operation-meta,
+.operation-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.operation-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 @keyframes machine-shake {

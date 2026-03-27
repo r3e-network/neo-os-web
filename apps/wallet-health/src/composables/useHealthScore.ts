@@ -1,6 +1,7 @@
 import { computed, reactive } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 
 export interface ChecklistItem {
   id: string;
@@ -87,14 +88,11 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
 
   const loadChecklist = () => {
     try {
-      const stored = uni.getStorageSync(checklistStorageKey);
-      if (stored) {
-        const parsed = JSON.parse(String(stored));
-        if (parsed && typeof parsed === "object") {
-          Object.keys(parsed).forEach((key) => {
-            checklistState[key] = Boolean(parsed[key]);
-          });
-        }
+      const parsed = readCachedJSON<Record<string, unknown>>(checklistStorageKey);
+      if (parsed && typeof parsed === "object") {
+        Object.keys(parsed).forEach((key) => {
+          checklistState[key] = Boolean(parsed[key]);
+        });
       }
     } catch (_e: unknown) {
       console.warn("[useHealthScore] loadChecklist failed:", _e instanceof Error ? _e.message : String(_e));
@@ -103,7 +101,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
 
   const saveChecklist = () => {
     try {
-      uni.setStorageSync(checklistStorageKey, JSON.stringify(checklistState));
+      writeCachedJSON(checklistStorageKey, { ...checklistState });
     } catch (_e: unknown) {
       console.warn("[useHealthScore] saveChecklist failed:", _e instanceof Error ? _e.message : String(_e));
     }

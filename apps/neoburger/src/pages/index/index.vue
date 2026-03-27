@@ -84,7 +84,7 @@
     </template>
 
     <template #tab-airdrop>
-      <AirdropPanel :wallet-connected="walletConnected" @connect-wallet="loadBalances" />
+      <AirdropPanel :wallet-connected="walletConnected" @connect-wallet="connectWallet" />
     </template>
 
     <template #tab-treasury>
@@ -117,7 +117,7 @@ import HeroSection from "@/components/HeroSection.vue";
 import StationPanel from "@/components/StationPanel.vue";
 import StatsPanel from "@/components/StatsPanel.vue";
 
-const { neoBalance, bNeoBalance, walletConnected, BNEO_CONTRACT, loadBalances, handleClaimRewards } =
+const { neoBalance, bNeoBalance, walletConnected, BNEO_CONTRACT, connectWallet, loadBalances, handleClaimRewards } =
   useNeoburgerCore();
 
 const activeTab = ref("home");
@@ -171,7 +171,7 @@ async function handlePrimaryAction() {
         showStatus(t("actionFailed"), "error");
       }
     } else {
-      await loadBalances();
+      await connectWallet();
     }
   } catch (_e: unknown) {
     showStatus(t("actionFailed"), "error");
@@ -187,12 +187,12 @@ async function handleJazzAction() {
       const success = await handleClaimRewards();
       if (success) {
         showStatus(t("claimSuccess"), "success");
-        await loadBalances();
+        await loadBalances(false);
       } else {
         showStatus(t("claimFailed"), "error");
       }
     } else {
-      await loadBalances();
+      await connectWallet();
     }
   } catch (_e: unknown) {
     showStatus(t("claimFailed"), "error");
@@ -240,7 +240,7 @@ function openExternal(url: string) {
 }
 
 onMounted(() => {
-  loadBalances();
+  loadBalances(false);
   loadApy();
   loadPrices();
 });
@@ -250,7 +250,7 @@ onUnmounted(() => {
 });
 
 const resetAndReload = async () => {
-  await loadBalances();
+  await loadBalances(false);
   await loadApy();
   await loadPrices();
 };

@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 const STORAGE_KEY = "miniapp-timestamp-proof:proofs:v2";
@@ -26,11 +27,8 @@ function sanitizeProof(item: Partial<TimestampProof>): TimestampProof {
 }
 
 function readStoredProofs(): TimestampProof[] {
-  if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown[];
+    const parsed = readCachedJSON<unknown[]>(STORAGE_KEY);
     if (!Array.isArray(parsed)) return [];
     return parsed
       .map((item) => sanitizeProof(item as Partial<TimestampProof>))
@@ -43,8 +41,7 @@ function readStoredProofs(): TimestampProof[] {
 }
 
 function writeStoredProofs(items: TimestampProof[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  writeCachedJSON(STORAGE_KEY, items);
 }
 
 export function useTimestampProofContract(t: (key: string) => string) {

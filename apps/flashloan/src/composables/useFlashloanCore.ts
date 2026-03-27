@@ -1,12 +1,12 @@
 import { ref, computed } from "vue";
-import { useWallet, useEvents } from "@shared/utils/wallet-sdk";
+import { useEvents, useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, ContractEvent } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useAllEvents } from "@shared/composables/useAllEvents";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { formatNumber, formatAddress, formatGas, toFixed8 } from "@shared/utils/format";
-import { parseInvokeResult, parseStackItem } from "@shared/utils/neo";
+import { parseStackItem } from "@shared/utils/neo";
 import { useErrorHandler } from "@shared/composables/useErrorHandler";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -38,11 +38,16 @@ export function useFlashloanCore() {
   const { t } = createUseI18n(messages)();
   const { handleError, getUserMessage, canRetry } = useErrorHandler();
   const { setStatus } = useStatusMessage();
-  const { address, connect, chainType, invokeRead, invokeContract } = useWallet() as WalletSDK;
+  const { chainType } = useWallet() as WalletSDK;
   const { list: listEvents } = useEvents();
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t("error") : t(key)
-  );
+  const {
+    address,
+    ensureWallet,
+    contractAddress,
+    ensureContractAddress,
+    read,
+    invokeDirectly,
+  } = useContractInteraction({ appId: APP_ID, t });
   const { listAllEvents } = useAllEvents(listEvents, APP_ID, {
     onError: (error: unknown, eventName: string) => {
       handleError(error, { operation: "listEvents", metadata: { eventName } });
@@ -134,8 +139,8 @@ export function useFlashloanCore() {
     isLoading.value = true;
     try {
       const contract = await ensureContractAddress();
-      const res = await invokeRead({ scriptHash: contract, operation: "getPoolBalance" });
-      poolBalance.value = toGas(parseInvokeResult(res));
+      const result = await read("getPoolBalance", undefined, contract);
+      poolBalance.value = toGas(result);
     } catch (e: unknown) {
       handleError(e, { operation: "loadPoolBalance" });
       setStatus(formatErrorMessage(e, t("error")), "error");
@@ -225,13 +230,11 @@ export function useFlashloanCore() {
       const contract = await ensureContractAddress();
 
       try {
-        const res = await invokeRead({
-          scriptHash: contract,
-          operation: "getLoan",
-          args: [{ type: "Integer", value: String(loanId) }],
-        });
-
-        const parsed = parseInvokeResult(res);
+        const parsed = await read(
+          "getLoan",
+          [{ type: "Integer", value: String(loanId) }],
+          contract,
+        );
         const details = buildLoanDetails(parsed, loanId);
         if (!details) {
           loanDetails.value = null;
@@ -265,7 +268,7 @@ export function useFlashloanCore() {
   ) => {
     if (!address.value) {
       try {
-        await connect();
+        await ensureWallet();
       } catch (e: unknown) {
         handleError(e, { operation: "connectBeforeRequestLoan" });
         setStatus(formatErrorMessage(e, t("error")), "error");
@@ -294,16 +297,16 @@ export function useFlashloanCore() {
       const contract = await ensureContractAddress();
       const amountInt = toFixed8(data.amount);
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "requestLoan",
-        args: [
+      await invokeDirectly(
+        "requestLoan",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: amountInt },
           { type: "Hash160", value: data.callbackContract },
           { type: "String", value: data.callbackMethod },
         ],
-      });
+        contract,
+      );
 
       setStatus(t("loanRequested"), "success");
       await loadData();
@@ -322,7 +325,7 @@ export function useFlashloanCore() {
 
   return {
     address,
-    connect,
+    connect: ensureWallet,
     chainType,
     contractAddress,
     poolBalance,

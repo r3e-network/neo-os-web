@@ -118,7 +118,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
       "https://oracle.meshmini.app/mainnet",
       "https://edge.meshmini.app/mainnet",
     ],
-    morpheusEdgeUrl: "https://oracle.meshmini.app/mainnet",
+    morpheusEdgeUrl: "https://edge.meshmini.app/mainnet",
     morpheusControlPlaneUrl: "https://control.meshmini.app/mainnet",
     morpheusOracleCvmId: "ddff154546fe22d15b65667156dd4b7c611e6093",
     morpheusOracleCvmName: "oracle-morpheus-neo-r3e",
@@ -165,7 +165,7 @@ export const EXTERNAL_INTEGRATIONS: Record<NeoNetwork, ExternalIntegrationConfig
       "https://oracle.meshmini.app/testnet",
       "https://edge.meshmini.app/testnet",
     ],
-    morpheusEdgeUrl: "https://oracle.meshmini.app/testnet",
+    morpheusEdgeUrl: "https://edge.meshmini.app/testnet",
     morpheusControlPlaneUrl: "https://control.meshmini.app/testnet",
     morpheusOracleCvmId: "ddff154546fe22d15b65667156dd4b7c611e6093",
     morpheusOracleCvmName: "oracle-morpheus-neo-r3e",
@@ -230,14 +230,21 @@ export function getAAFrontendBaseUrl(network?: NeoNetwork): string {
   return getExternalIntegrationConfig(network).aaFrontendBaseUrl.replace(/\/$/, "");
 }
 
+function buildAAWorkspaceUrl(pathname: string, network?: NeoNetwork): string {
+  const resolvedNetwork = network ?? getNetwork();
+  const url = new URL(pathname, `${getAAFrontendBaseUrl(resolvedNetwork)}/`);
+  url.searchParams.set("network", resolvedNetwork);
+  return url.toString();
+}
+
 export function getAAIdentityWorkspaceUrl(network?: NeoNetwork): string {
-  return `${getAAFrontendBaseUrl(network)}/identity`;
+  return buildAAWorkspaceUrl("/identity", network);
 }
 
 export function getAAAppWorkspaceUrl(network?: NeoNetwork): string {
-  return `${getAAFrontendBaseUrl(network)}/app`;
+  return buildAAWorkspaceUrl("/app", network);
 }
 
 export function getAADocsUrl(network?: NeoNetwork): string {
-  return `${getAAFrontendBaseUrl(network)}/docs`;
+  return buildAAWorkspaceUrl("/docs", network);
 }

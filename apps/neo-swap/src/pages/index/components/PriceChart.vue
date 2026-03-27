@@ -57,6 +57,9 @@ const emit = defineEmits<{
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
 .rate-card {
   background: var(--swap-card-soft);
   border: 1px solid var(--swap-panel-border);

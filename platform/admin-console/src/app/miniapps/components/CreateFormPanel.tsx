@@ -5,6 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { type ContractInitSchemaField, extractContractInitSchemaFields } from "../lib/contract-init-schema";
+import {
+  buildModularPlanFilename,
+  buildModularPlanPathHint,
+  buildModularPreview,
+  buildModularRegistrationDraft,
+  buildModularValidateOnlyCommand,
+} from "../lib/modular-preview";
+import { downloadJsonFile } from "../lib/download-utils";
 import type { MiniAppMediaAssetKind, MiniAppMediaUploadVariant, MediaUploadOptions } from "@/lib/hooks/useMiniApps";
 import { BasicTab } from "./create-form-tabs/BasicTab";
 import { ContentTab } from "./create-form-tabs/ContentTab";
@@ -106,6 +114,7 @@ export function CreateFormPanel({
   parseJSONObjectText,
 }: CreateFormPanelProps) {
   const [tab, setTab] = useState("basic");
+  const [modularCommandInfo, setModularCommandInfo] = useState("");
   const [assetFiles, setAssetFiles] = useState<Partial<Record<MiniAppMediaAssetKind, File>>>({});
   const [assetVariantSettings, setAssetVariantSettings] = useState<Record<"logo" | "banner", AssetVariantSettings>>({
     logo: { theme: "", density: "", locale: "", applyAsPrimary: true },
@@ -146,6 +155,20 @@ export function CreateFormPanel({
       return {} as Record<string, unknown>;
     }
   }, [form.contract_template_init_params_json]);
+  const modularPreview = useMemo(() => buildModularPreview(form, toConfig), [form, toConfig]);
+  const modularPlanDraft = useMemo(() => buildModularRegistrationDraft(form, toConfig), [form, toConfig]);
+  const modularPlanFilename = useMemo(
+    () => buildModularPlanFilename(String(form.app_id || "").trim()),
+    [form.app_id],
+  );
+  const modularPlanPathHint = useMemo(
+    () => (modularPlanDraft ? buildModularPlanPathHint(modularPlanDraft, modularPlanFilename) : ""),
+    [modularPlanDraft, modularPlanFilename],
+  );
+  const modularValidateOnlyCommand = useMemo(
+    () => (modularPlanDraft ? buildModularValidateOnlyCommand(modularPlanDraft, modularPlanPathHint) : ""),
+    [modularPlanDraft, modularPlanPathHint],
+  );
 
   const updateContractInitParamField = (field: ContractInitSchemaField, rawValue: string | boolean) => {
     const next = {
@@ -242,6 +265,16 @@ export function CreateFormPanel({
       }
     }
     setTab(v);
+  };
+
+  const copyValidateOnlyCommand = async () => {
+    const command = modularValidateOnlyCommand;
+    try {
+      await navigator.clipboard.writeText(command);
+      setModularCommandInfo("Copied validate-only command.");
+    } catch (_e: unknown) {
+      setModularCommandInfo(command);
+    }
   };
 
   return (
@@ -343,6 +376,7 @@ export function CreateFormPanel({
             addComponent={addComponent}
             removeComponent={removeComponent}
             updateComponent={updateComponent}
+            modularPreview={modularPreview}
           />
         )}
 
@@ -368,6 +402,35 @@ export function CreateFormPanel({
         )}
 
         {formError && <p role="alert" className="text-sm text-danger-600 dark:text-danger-400">{formError}</p>}
+        {modularPlanDraft && modularPreview.valid && !formError && (
+          <details className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
+            <summary className="cursor-pointer list-none font-semibold text-gray-900 dark:text-gray-100 focus-visible:outline-none">
+              Modular thin plan usage
+            </summary>
+            <div className="mt-3 space-y-2">
+              <p>
+                Suggested plan path:
+                {" "}
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularPlanPathHint}</code>
+              </p>
+              {modularPlanDraft.definition_path && (
+                <p>
+                  Definition source:
+                  {" "}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularPlanDraft.definition_path}</code>
+                </p>
+              )}
+              <p>
+                Validate-only usage:
+                {" "}
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularValidateOnlyCommand}</code>
+              </p>
+            </div>
+          </details>
+        )}
+        {modularCommandInfo && !formError && (
+          <p className="text-xs text-gray-500 dark:text-gray-400">{modularCommandInfo}</p>
+        )}
         {tab !== "json" && (
           <div className="flex gap-2">
             <Button onClick={onSubmit} disabled={loading}>{loading ? (mode === "edit" ? "Saving..." : "Creating...") : (mode === "edit" ? "Save Changes" : "Create MiniApp")}</Button>
@@ -378,6 +441,22 @@ export function CreateFormPanel({
                 disabled={loading}
               >
                 {loading ? "Publishing..." : "Save & Publish"}
+              </Button>
+            )}
+            {modularPlanDraft && modularPreview.valid && (
+              <Button
+                variant="secondary"
+                onClick={() => downloadJsonFile(
+                  modularPlanDraft,
+                  modularPlanFilename,
+                )}
+              >
+                Download Thin Plan
+              </Button>
+            )}
+            {modularPlanDraft && modularPreview.valid && (
+              <Button variant="secondary" onClick={copyValidateOnlyCommand}>
+                Copy Validate-Only Command
               </Button>
             )}
             <Button variant="secondary" onClick={onCancel}>Cancel</Button>

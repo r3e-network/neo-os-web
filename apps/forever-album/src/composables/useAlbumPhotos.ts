@@ -1,17 +1,21 @@
 import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { parseInvokeResult } from "@shared/utils/neo";
-import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { decryptPayload } from "../utils/crypto";
 import type { PhotoItem } from "@/types";
 
 export function useAlbumPhotos(t: (key: string) => string) {
-  const { address, invokeRead } = useWallet() as WalletSDK;
-  const { contractAddress, ensure: ensureContractAddress } = useContractAddress(t);
+  const wallet = useWallet() as WalletSDK;
+  const { address } = wallet;
   const { status, setStatus } = useStatusMessage(5000);
+  const { read, ensureSafe } = useContractInteraction({
+    appId: "miniapp-forever-album",
+    t,
+    wallet,
+  });
 
   const loadingPhotos = ref(false);
   const photos = ref<PhotoItem[]>([]);
@@ -42,37 +46,36 @@ export function useAlbumPhotos(t: (key: string) => string) {
     }
     loadingPhotos.value = true;
     try {
-      const contract = await ensureContractAddress();
-      const countRes = await invokeRead({
-        scriptHash: contract,
-        operation: "getUserPhotoCount",
-        args: [{ type: "Hash160", value: address.value }],
-      });
-      const count = Number(parseInvokeResult(countRes) || 0);
+      const contractReady = await ensureSafe({ silentChainCheck: true });
+      if (!contractReady) {
+        photos.value = [];
+        return;
+      }
+
+      const count = Number(
+        (await read(
+          "getUserPhotoCount",
+          [{ type: "Hash160", value: address.value }],
+        )) || 0,
+      );
       if (!count) {
         photos.value = [];
         return;
       }
       const limit = Math.min(count, 50);
-      const idsRes = await invokeRead({
-        scriptHash: contract,
-        operation: "getUserPhotoIds",
-        args: [
+      const idsRaw = await read(
+        "getUserPhotoIds",
+        [
           { type: "Hash160", value: address.value },
           { type: "Integer", value: "0" },
           { type: "Integer", value: String(limit) },
         ],
-      });
-      const idsRaw = parseInvokeResult(idsRes);
+      );
       const ids = Array.isArray(idsRaw) ? idsRaw.map((id) => String(id)).filter(Boolean) : [];
       const entries = await Promise.all(
         ids.map(async (id) => {
-          const detailRes = await invokeRead({
-            scriptHash: contract,
-            operation: "getPhoto",
-            args: [{ type: "ByteArray", value: id }],
-          });
-          return parsePhotoInfo(parseInvokeResult(detailRes));
+          const detail = await read("getPhoto", [{ type: "ByteArray", value: id }]);
+          return parsePhotoInfo(detail);
         })
       );
       photos.value = entries.filter((entry): entry is PhotoItem => !!entry).sort((a, b) => b.createdAt - a.createdAt);

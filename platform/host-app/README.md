@@ -139,6 +139,45 @@ MiniApps are configuration-driven and rendered by host runtime from manifest spe
 - JSON/YAML/Markdown frontend spec
 - no Vue/uniapp bundle required
 
+### Shared-Mode Definition To Registration Plan
+
+For shared-mode MiniApps, the host-side app definition can also be the source of truth for
+contract recipe/runtime/module wiring. The modular registration helper will enrich omitted
+plan fields from `contract_composition` before any transaction is signed.
+
+Operator-managed values still stay in the plan:
+
+- registry hashes
+- module contract hashes
+- owner / developer / operator identities
+
+Example source definition:
+
+- `platform/host-app/public/miniapp-definitions/neo-pay.shared.json`
+
+Example thin plan that relies on the definition for recipe/runtime/module_bindings while still
+providing operator-managed module hashes:
+
+- `deploy/config/modular-neopay.shared.from-definition.example.json`
+
+Validate the generated plan shape before any dry-run or live registration:
+
+```bash
+go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
+  --plan deploy/config/modular-neopay.shared.from-definition.example.json \
+  --validate-only
+```
+
+If you want to see the guardrails fail before signer/RPC setup, use:
+
+```bash
+go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
+  --plan deploy/config/modular-neopay.shared.bad-plan.example.json \
+  --validate-only
+```
+
+That bad plan is expected to fail on recipe/runtime/binding mismatches before `--dry-run`.
+
 Open a manifest app via:
 
 - `http://localhost:3000/launch/<app_id>`

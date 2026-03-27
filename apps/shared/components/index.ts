@@ -20,6 +20,7 @@ export { default as NeoInput } from "./NeoInput.vue";
 
 // ── Feedback ──
 export { default as ErrorBoundary } from "./ErrorBoundary.vue";
+export { default as ErrorToast } from "./ErrorToast.vue";
 export { default as Fireworks } from "./Fireworks.vue";
 
 // ── Specialized ──
@@ -46,6 +47,7 @@ export type { BadgeStatus } from "./StatusBadge.vue";
 // ── Restored ──
 export { default as FormCard } from "./FormCard.vue";
 export { default as ScrollReveal } from "./ScrollReveal.vue";
+export { default as FlamingoLauncherPage } from "./FlamingoLauncherPage.vue";
 export { default as OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp.vue";
 export { default as ConsoleMiniApp } from "./ConsoleMiniApp.vue";
 export { default as DetailCardGrid } from "./DetailCardGrid.vue";

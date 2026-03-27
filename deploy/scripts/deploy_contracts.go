@@ -32,6 +32,11 @@ const (
 var contractsToDeploy = []string{
 	"Governance",
 	"AppRegistry",
+	"ModuleRegistry",
+	"RecipeRegistry",
+	"MiniAppInstanceRegistry",
+	"FundingVault",
+	"StreamVesting",
 	"AutomationAnchor",
 	"PauseRegistry",
 	"PriceFeed",

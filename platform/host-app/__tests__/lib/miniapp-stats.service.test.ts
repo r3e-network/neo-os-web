@@ -38,4 +38,48 @@ describe("miniapp stats service", () => {
       nextDraw: 86400,
     });
   });
+
+  it("returns shared-mode live status for bundled shared apps", async () => {
+    const sharedLiveStatus = jest.fn().mockResolvedValue({
+      appId: "miniapp-neo-pay-shared-example",
+      tvl: "0",
+      volume24h: "7",
+    });
+
+    jest.doMock("../../lib/chain", () => ({
+      FLAGSHIP_APPS: {},
+      getContractStats: jest.fn(),
+      getLiveStatus: jest.fn(),
+      getSharedModeContractStats: jest.fn(),
+      getSharedModeLiveStatus: sharedLiveStatus,
+    }));
+    jest.doMock("../../lib/miniapp-definitions", () => ({
+      loadBundledMiniAppById: jest.fn().mockResolvedValue({
+        app_id: "miniapp-neo-pay-shared-example",
+        category: "defi",
+        contract_hash: null,
+        manifest: {
+          contract_composition: { mode: "shared" },
+        },
+      }),
+    }));
+    jest.doMock("../../lib/chain/shared-mode", () => ({
+      isSharedModeApp: jest.fn().mockReturnValue(true),
+    }));
+
+    const { getLiveStatus } = require("../../lib/miniapp-stats/service");
+    const status = await getLiveStatus(
+      "miniapp-neo-pay-shared-example",
+      "",
+      "defi",
+      "testnet",
+    );
+
+    expect(sharedLiveStatus).toHaveBeenCalled();
+    expect(status).toEqual({
+      appId: "miniapp-neo-pay-shared-example",
+      tvl: "0",
+      volume24h: "7",
+    });
+  });
 });
