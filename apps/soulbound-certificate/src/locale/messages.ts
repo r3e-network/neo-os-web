@@ -59,6 +59,7 @@ const appMessages = {
   issuedAt: { en: "Generated", zh: "生成时间" },
   createEventTemplatePreset: { en: "Create Event Template Preset", zh: "创建事件模板预设" },
   createIdentityTemplatePreset: { en: "Create Identity Template Preset", zh: "创建身份模板预设" },
+  createRecoveryTemplatePreset: { en: "Create Recovery Template Preset", zh: "创建恢复模板预设" },
   templatePresetReady: { en: "Template preset applied", zh: "模板预设已应用" },
   issueRecipient: { en: "Recipient address", zh: "接收地址" },
   issueRecipientPlaceholder: { en: "Neo N3 address", zh: "Neo N3 地址" },
