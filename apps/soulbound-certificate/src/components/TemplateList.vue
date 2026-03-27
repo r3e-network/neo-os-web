@@ -34,6 +34,8 @@
           :toggling-id="togglingId"
           @issue="$emit('issue', $event)"
           @toggle="$emit('toggle', $event)"
+          @copy-issue-link="$emit('copy-issue-link', $event)"
+          @share-issue-link="$emit('share-issue-link', $event)"
         />
       </template>
     </ItemList>
@@ -59,6 +61,8 @@ defineEmits<{
   connect: [];
   issue: [template: TemplateItem];
   toggle: [template: TemplateItem];
+  "copy-issue-link": [template: TemplateItem];
+  "share-issue-link": [template: TemplateItem];
 }>();
 
 const { t } = createUseI18n(messages)();
