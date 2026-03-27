@@ -131,6 +131,16 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const integration = asObject(obj.integration ?? manifest.integration);
   const contractTemplate = asObject(obj.contract_template ?? template.contract_template ?? manifest.contract_template);
   const frontendTemplate = asObject(obj.frontend_template ?? template.frontend_template ?? manifest.frontend_template);
+  const frontendComposition = asObject(
+    obj.frontend_composition ??
+    template.frontend_composition ??
+    manifest.frontend_composition,
+  );
+  const contractComposition = asObject(
+    obj.contract_composition ??
+    template.contract_composition ??
+    manifest.contract_composition,
+  );
   const logic = asObject(obj.logic ?? manifest.logic);
   const marketplace = asObject(obj.marketplace ?? manifest.marketplace);
 
@@ -175,6 +185,16 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     ...asObject(manifest.template),
     ...template,
     template_type: templateType,
+    frontend_composition: {
+      ...asObject(asObject(manifest.template).frontend_composition),
+      ...asObject(manifest.frontend_composition),
+      ...frontendComposition,
+    },
+    contract_composition: {
+      ...asObject(asObject(manifest.template).contract_composition),
+      ...asObject(manifest.contract_composition),
+      ...contractComposition,
+    },
     contract_template: {
       ...asObject(asObject(manifest.template).contract_template),
       ...asObject(manifest.contract_template),
@@ -219,6 +239,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     stats_display: statsDisplay,
     contract_template: normalizedTemplate.contract_template,
     frontend_template: normalizedTemplate.frontend_template,
+    frontend_composition: frontendComposition,
+    contract_composition: contractComposition,
     i18n: normalizedI18n,
     logic,
     marketplace,
@@ -241,6 +263,8 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
       contract: normalizedContract,
       contract_template: normalizedTemplate.contract_template,
       frontend_template: normalizedTemplate.frontend_template,
+      frontend_composition: Object.keys(frontendComposition).length > 0 ? frontendComposition : manifest.frontend_composition,
+      contract_composition: Object.keys(contractComposition).length > 0 ? contractComposition : manifest.contract_composition,
       template: normalizedTemplate,
       template_type: templateType ?? manifest.template_type,
       media: {
@@ -453,6 +477,12 @@ export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
 export async function loadBundledMiniAppById(appId: string): Promise<MiniAppInfo | null> {
   const normalizedTarget = canonicalizeMiniAppId(appId) || String(appId || "").trim();
   if (!normalizedTarget) return null;
+
+  const definitionApps = await loadMiniAppDefinitions();
+  const definitionMatch = definitionApps.find((app) => app.app_id === normalizedTarget) || null;
+  if (definitionMatch) {
+    return definitionMatch;
+  }
 
   const slugs = await listBundledManifestSlugs();
   for (const slug of slugs) {

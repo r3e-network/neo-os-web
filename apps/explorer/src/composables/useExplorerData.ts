@@ -6,6 +6,7 @@ import { createSidebarItems } from "@shared/utils";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useTicker } from "@shared/composables/useTicker";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { StatsDisplayItem } from "@shared/components";
 
 export interface TransactionRecord {
@@ -135,12 +136,8 @@ export function useExplorerData(t: (key: string) => string) {
   ]);
 
   const loadStats = async () => {
-    try {
-      const cached = uni.getStorageSync(STATS_CACHE_KEY);
-      if (cached) stats.value = JSON.parse(cached);
-    } catch (_e: unknown) {
-      console.warn("[useExplorerData] stats cache read failed:", _e instanceof Error ? _e.message : String(_e));
-    }
+    const cached = readCachedJSON<typeof stats.value>(STATS_CACHE_KEY);
+    if (cached) stats.value = cached;
 
     let freshStats: typeof stats.value | null = null;
 
@@ -164,17 +161,13 @@ export function useExplorerData(t: (key: string) => string) {
 
     if (freshStats && typeof freshStats === "object") {
       stats.value = freshStats as typeof stats.value;
-      uni.setStorageSync(STATS_CACHE_KEY, JSON.stringify(freshStats));
+      writeCachedJSON(STATS_CACHE_KEY, freshStats);
     }
   };
 
   const loadRecentTxs = async () => {
-    try {
-      const cached = uni.getStorageSync(TXS_CACHE_KEY);
-      if (cached) recentTxs.value = JSON.parse(cached);
-    } catch (_e: unknown) {
-      console.warn("[useExplorerData] txs cache read failed:", _e instanceof Error ? _e.message : String(_e));
-    }
+    const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
+    if (cached) recentTxs.value = cached;
 
     let freshTxs: TransactionRecord[] = [];
     let hasFreshTxs = false;
@@ -202,7 +195,7 @@ export function useExplorerData(t: (key: string) => string) {
 
     if (hasFreshTxs) {
       recentTxs.value = freshTxs;
-      uni.setStorageSync(TXS_CACHE_KEY, JSON.stringify(freshTxs));
+      writeCachedJSON(TXS_CACHE_KEY, freshTxs);
     }
   };
 

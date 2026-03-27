@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getLiveStatus } from "../../../../lib/miniapp-stats";
 import { FLAGSHIP_APPS } from "../../../../lib/chain";
+import { loadBundledMiniAppById } from "../../../../lib/miniapp-definitions";
+import { isSharedModeApp } from "../../../../lib/chain/shared-mode";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
@@ -20,11 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // Auto-resolve contract hash from app ID (whitelist only)
-  const contractHash = FLAGSHIP_APPS[appId]?.contract;
-  const category = (req.query.category as string) || FLAGSHIP_APPS[appId]?.category || "gaming";
+  const bundledApp = await loadBundledMiniAppById(appId).catch(() => null);
+  const sharedMode = bundledApp ? isSharedModeApp(bundledApp) : false;
+  const contractHash = FLAGSHIP_APPS[appId]?.contract || bundledApp?.contract_hash || "";
+  const category = (req.query.category as string) || FLAGSHIP_APPS[appId]?.category || bundledApp?.category || "gaming";
   const network = (req.query.network as "testnet" | "mainnet") || "testnet";
 
-  if (!contractHash) {
+  if (!contractHash && !sharedMode) {
     return apiError.badRequest(res, "contract hash required or unknown app");
   }
 

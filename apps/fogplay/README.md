@@ -12,7 +12,7 @@ Every flip is provably fair at the contract boundary. The bet is stored on-chain
 
 ## How to Play
 
-1. **Connect** — Open FogPlay and connect your wallet or sign in with a social account.
+1. **Connect** — Open FogPlay and connect your Neo N3 wallet.
 2. **Choose Your Side** — Tap Heads or Tails.
 3. **Set Your Bet** — Enter an amount between 0.05 and 100 GAS.
 4. **Flip!** — Hit the Flip button. The coin spins with a satisfying animation.

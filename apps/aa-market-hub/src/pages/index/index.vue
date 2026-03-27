@@ -211,6 +211,7 @@ import {
 import { messages } from "@/locale/messages";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 
 const MARKET_HASH_STORAGE_KEY = "aa-market-hub:market-hash";
@@ -273,9 +274,13 @@ function selectListing(listing: MarketListing) {
 }
 
 function persistConfig() {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(MARKET_HASH_STORAGE_KEY, marketHash.value.trim());
-  window.localStorage.setItem(AA_HASH_STORAGE_KEY, aaContractHash.value.trim());
+  writeCachedJSON(MARKET_HASH_STORAGE_KEY, marketHash.value.trim());
+  writeCachedJSON(AA_HASH_STORAGE_KEY, aaContractHash.value.trim());
+}
+
+function readCachedString(key: string): string {
+  const cached = readCachedJSON<string>(key);
+  return typeof cached === "string" ? cached : "";
 }
 
 async function connectWallet() {
@@ -390,9 +395,8 @@ const stopConfigWatch = watch([marketHash, aaContractHash], persistConfig);
 onUnmounted(() => stopConfigWatch());
 
 onMounted(() => {
-  if (typeof window === "undefined") return;
-  marketHash.value = window.localStorage.getItem(MARKET_HASH_STORAGE_KEY) || "";
-  aaContractHash.value = window.localStorage.getItem(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash();
+  marketHash.value = readCachedString(MARKET_HASH_STORAGE_KEY);
+  aaContractHash.value = readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash();
   newBackupOwner.value = walletAddress.value;
   if (marketHash.value.trim()) {
     loadListings().catch((e: unknown) => { console.warn("[aa-market-hub] loadListings failed:", e instanceof Error ? e.message : String(e)); });

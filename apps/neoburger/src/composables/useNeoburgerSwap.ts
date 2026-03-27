@@ -1,6 +1,7 @@
 import { ref, computed, type Ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -19,7 +20,13 @@ export function useNeoburgerSwap(
   loadBalances: () => Promise<void>
 ) {
   const { t } = createUseI18n(messages)();
-  const { getAddress, invokeContract, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { chainType } = wallet;
+  const { ensureWallet, invokeDirectly } = useContractInteraction({
+    appId: "miniapp-neoburger",
+    t,
+    wallet,
+  });
 
   const stakeAmount = ref("");
   const unstakeAmount = ref("");
@@ -118,16 +125,13 @@ export function useNeoburgerSwap(
     }
 
     try {
-      await invokeContract({
-        scriptHash: NEO_CONTRACT,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: await getAddress() },
-          { type: "Hash160", value: bneoContract },
-          { type: "Integer", value: Math.floor(amount) },
-          { type: "Any", value: null },
-        ],
-      });
+      const walletAddress = await ensureWallet();
+      await invokeDirectly("transfer", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Hash160", value: bneoContract },
+        { type: "Integer", value: Math.floor(amount) },
+        { type: "Any", value: null },
+      ], NEO_CONTRACT);
       showStatus(`${t("stakeSuccess")} ${amount} ${t("tokenNeo")}!`, "success");
       stakeAmount.value = "";
       await loadBalances();
@@ -151,16 +155,13 @@ export function useNeoburgerSwap(
     }
 
     try {
-      await invokeContract({
-        scriptHash: bneoContract,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: await getAddress() },
-          { type: "Hash160", value: bneoContract },
-          { type: "Integer", value: integerAmount },
-          { type: "ByteArray", value: "" },
-        ],
-      });
+      const walletAddress = await ensureWallet();
+      await invokeDirectly("transfer", [
+        { type: "Hash160", value: walletAddress },
+        { type: "Hash160", value: bneoContract },
+        { type: "Integer", value: integerAmount },
+        { type: "ByteArray", value: "" },
+      ], bneoContract);
       showStatus(`${t("unstakeSuccess")} ${amount} ${t("tokenBneo")}!`, "success");
       unstakeAmount.value = "";
       await loadBalances();

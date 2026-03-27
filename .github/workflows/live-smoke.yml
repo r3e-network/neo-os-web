@@ -1,0 +1,297 @@
+name: Live Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: Which live smoke stages to run
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - flagship
+          - selected
+      flagship_targets:
+        description: Optional comma-separated flagship target filter
+        required: false
+        type: string
+      selected_targets:
+        description: Optional comma-separated selected-miniapps target filter
+        required: false
+        type: string
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-smoke-${{ github.workflow }}-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Preflight secrets and scope
+        id: preflight
+        shell: bash
+        env:
+          INPUT_SCOPE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.scope || '' }}
+          INPUT_FLAGSHIP_TARGETS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.flagship_targets || '' }}
+          INPUT_SELECTED_TARGETS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.selected_targets || '' }}
+          FLAGSHIP_LIVE_WIF: ${{ secrets.FLAGSHIP_LIVE_WIF }}
+          TEST_SMOKE_ADMIN_WIF: ${{ secrets.TEST_SMOKE_ADMIN_WIF }}
+          TEST_SMOKE_USER_WIF: ${{ secrets.TEST_SMOKE_USER_WIF }}
+        run: |
+          set -euo pipefail
+
+          scope="${INPUT_SCOPE:-all}"
+          [[ -n "$scope" ]] || scope="all"
+
+          run_flagship=1
+          run_selected=1
+          smoke_args=""
+          case "$scope" in
+            all)
+              ;;
+            flagship)
+              run_selected=0
+              smoke_args="--flagship-only"
+              ;;
+            selected)
+              run_flagship=0
+              smoke_args="--selected-only"
+              ;;
+            *)
+              echo "Unsupported scope: $scope" >&2
+              exit 1
+              ;;
+          esac
+
+          mkdir -p docs/reports/live-smoke
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "smoke_args=$smoke_args" >> "$GITHUB_OUTPUT"
+
+          missing=()
+          if [[ $run_flagship -eq 1 && -z "${FLAGSHIP_LIVE_WIF:-}" ]]; then
+            missing+=("FLAGSHIP_LIVE_WIF")
+          fi
+          if [[ $run_selected -eq 1 && -z "${TEST_SMOKE_ADMIN_WIF:-}" ]]; then
+            missing+=("TEST_SMOKE_ADMIN_WIF")
+          fi
+          if [[ $run_selected -eq 1 && -z "${TEST_SMOKE_USER_WIF:-}" ]]; then
+            missing+=("TEST_SMOKE_USER_WIF")
+          fi
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            report_dir="docs/reports/live-smoke/skip-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            mkdir -p "$report_dir"
+            summary_path="$report_dir/summary.json"
+            printf '%s\n' "{"
+            printf '  "generatedAt": "%s",\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            printf '  "status": "skipped",\n'
+            printf '  "scope": "%s",\n' "$scope"
+            printf '  "reason": "missing required secrets",\n'
+            printf '  "missingSecrets": ['
+            for i in "${!missing[@]}"; do
+              [[ $i -gt 0 ]] && printf ', '
+              printf '"%s"' "${missing[$i]}"
+            done
+            printf '],\n'
+            printf '  "requestedTargets": {\n'
+            printf '    "flagship": "%s",\n' "${INPUT_FLAGSHIP_TARGETS:-}"
+            printf '    "selected": "%s"\n' "${INPUT_SELECTED_TARGETS:-}"
+            printf '  }\n'
+            printf '}\n'
+            > "$summary_path"
+
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "report_dir=$report_dir" >> "$GITHUB_OUTPUT"
+            echo "skip_reason=missing required secrets: ${missing[*]}" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Live Smoke"
+              echo ""
+              echo "Skipped because required secrets are missing:"
+              for item in "${missing[@]}"; do
+                echo "- \`$item\`"
+              done
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Live Smoke"
+              echo ""
+              echo "Running scope: \`$scope\`"
+              [[ -n "${INPUT_FLAGSHIP_TARGETS:-}" ]] && echo "- Flagship targets: \`${INPUT_FLAGSHIP_TARGETS}\`"
+              [[ -n "${INPUT_SELECTED_TARGETS:-}" ]] && echo "- Selected targets: \`${INPUT_SELECTED_TARGETS}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Set up Node
+        if: steps.preflight.outputs.should_run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.preflight.outputs.should_run == 'true'
+        run: npm ci
+
+      - name: Run full live smoke
+        if: steps.preflight.outputs.should_run == 'true'
+        shell: bash
+        env:
+          NEO_RPC_URL: ${{ secrets.NEO_RPC_URL }}
+          FLAGSHIP_LIVE_WIF: ${{ secrets.FLAGSHIP_LIVE_WIF }}
+          TEST_SMOKE_ADMIN_WIF: ${{ secrets.TEST_SMOKE_ADMIN_WIF }}
+          TEST_SMOKE_USER_WIF: ${{ secrets.TEST_SMOKE_USER_WIF }}
+          LIVE_SMOKE_FLAGSHIP_ADMIN_WIF: ${{ secrets.LIVE_SMOKE_FLAGSHIP_ADMIN_WIF }}
+          MORPHEUS_ORACLE_HASH: ${{ secrets.MORPHEUS_ORACLE_HASH }}
+          MORPHEUS_ORACLE_UPDATER_WIF: ${{ secrets.MORPHEUS_ORACLE_UPDATER_WIF }}
+          MORPHEUS_RUNTIME_URL: ${{ secrets.MORPHEUS_RUNTIME_URL }}
+          MORPHEUS_RUNTIME_TOKEN: ${{ secrets.MORPHEUS_RUNTIME_TOKEN }}
+          FLAGSHIP_LIVE_TARGETS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.flagship_targets || '' }}
+          SELECTED_MINIAPP_SMOKE_TARGETS: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.selected_targets || '' }}
+        run: |
+          set -euo pipefail
+          bash deploy/scripts/run_full_live_smoke.sh ${{ steps.preflight.outputs.smoke_args }}
+
+      - name: Render live smoke summary
+        if: always()
+        shell: bash
+        env:
+          PREFLIGHT_REPORT_DIR: ${{ steps.preflight.outputs.report_dir }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+
+          const root = process.cwd();
+          const reportsRoot = path.join(root, "docs", "reports", "live-smoke");
+          const preflightDir = String(process.env.PREFLIGHT_REPORT_DIR || "").trim();
+          const summaryFile = process.env.GITHUB_STEP_SUMMARY;
+
+          function exists(p) {
+            return !!p && fs.existsSync(p);
+          }
+
+          function loadJson(p) {
+            if (!exists(p)) return null;
+            return JSON.parse(fs.readFileSync(p, "utf8"));
+          }
+
+          function latestReportDir() {
+            if (!exists(reportsRoot)) return "";
+            const dirs = fs.readdirSync(reportsRoot, { withFileTypes: true })
+              .filter((entry) => entry.isDirectory())
+              .map((entry) => entry.name)
+              .sort();
+            return dirs.length ? path.join(reportsRoot, dirs[dirs.length - 1]) : "";
+          }
+
+          function append(lines) {
+            fs.appendFileSync(summaryFile, `${lines.join("\n")}\n`);
+          }
+
+          const reportDir = preflightDir || latestReportDir();
+          const summaryPath = reportDir ? path.join(reportDir, "summary.json") : "";
+          const flagshipPath = reportDir ? path.join(reportDir, "flagship.json") : "";
+          const selectedPath = reportDir ? path.join(reportDir, "selected.json") : "";
+
+          append(["## Live Smoke Report"]);
+
+          if (!reportDir || !exists(summaryPath)) {
+            append([
+              "",
+              "No live smoke summary artifact was produced in this run.",
+            ]);
+            process.exit(0);
+          }
+
+          const summary = loadJson(summaryPath) || {};
+          const flagship = loadJson(flagshipPath) || {};
+          const selected = loadJson(selectedPath) || {};
+
+          append([
+            "",
+            `- Report directory: \`${path.relative(root, reportDir)}\``,
+            `- Generated at: \`${summary.generatedAt || "unknown"}\``,
+            `- Requested stages: flagship=\`${summary.requestedStages?.flagship ?? "?"}\`, selected=\`${summary.requestedStages?.selected ?? "?"}\``,
+          ]);
+
+          if (summary.status === "skipped") {
+            append([
+              `- Status: **skipped**`,
+              `- Reason: ${summary.reason || "missing required secrets"}`,
+            ]);
+            const missing = Array.isArray(summary.missingSecrets) ? summary.missingSecrets : [];
+            if (missing.length) {
+              append([
+                "- Missing secrets:",
+                ...missing.map((item) => `  - \`${item}\``),
+              ]);
+            }
+            process.exit(0);
+          }
+
+          append([
+            `- Flagship exit code: \`${summary.flagshipStatus ?? "?"}\``,
+            `- Selected exit code: \`${summary.selectedStatus ?? "?"}\``,
+            `- Flagship counts: pass=${summary.flagshipCounts?.pass ?? 0}, fail=${summary.flagshipCounts?.fail ?? 0}, skipped=${summary.flagshipCounts?.skipped ?? 0}`,
+            `- Selected counts: pass=${summary.selectedCounts?.pass ?? 0}, fail=${summary.selectedCounts?.fail ?? 0}, skipped=${summary.selectedCounts?.skipped ?? 0}`,
+          ]);
+
+          const warnings = Array.isArray(summary.warnings) ? summary.warnings : [];
+          if (warnings.length) {
+            append([
+              "",
+              "### Warnings",
+              ...warnings.map((warning) => `- ${warning}`),
+            ]);
+          }
+
+          const flagshipFailures = flagship.results && typeof flagship.results === "object"
+            ? Object.entries(flagship.results)
+                .filter(([, value]) => value && value.ok !== true && !value.skipped)
+                .map(([name, value]) => `- ${name}: ${value.error || value.failure || "failed"}`)
+            : [];
+
+          if (flagshipFailures.length) {
+            append([
+              "",
+              "### Flagship Failures",
+              ...flagshipFailures,
+            ]);
+          }
+
+          const selectedFailures = selected.results && typeof selected.results === "object"
+            ? Object.entries(selected.results)
+                .filter(([, value]) => value && value.status === "fail")
+                .map(([name, value]) => `- ${name}: ${value.error || "failed"}`)
+            : [];
+
+          if (selectedFailures.length) {
+            append([
+              "",
+              "### Selected Failures",
+              ...selectedFailures,
+            ]);
+          }
+          NODE
+
+      - name: Upload live smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: docs/reports/live-smoke
+          if-no-files-found: warn
+          retention-days: 14

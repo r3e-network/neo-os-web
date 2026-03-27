@@ -20,6 +20,13 @@ type Props = {
   addComponent: () => void;
   removeComponent: (i: number) => void;
   updateComponent: (i: number, field: "type" | "display" | "props", val: string) => void;
+  modularPreview?: {
+    visible: boolean;
+    valid: boolean;
+    mode: string;
+    message: string;
+    preview: string;
+  };
 };
 
 export function ContractsTab({
@@ -35,6 +42,7 @@ export function ContractsTab({
   addComponent,
   removeComponent,
   updateComponent,
+  modularPreview,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -102,6 +110,31 @@ export function ContractsTab({
         <Input label="Callback Contract" placeholder="0x..." value={form.callback_contract} onChange={e => update("callback_contract", e.target.value)} />
         <Input label="Callback Method" placeholder="onCallback" value={form.callback_method} onChange={e => update("callback_method", e.target.value)} />
       </div>
+      {modularPreview?.visible && (
+        <div className={`rounded-xl border p-4 ${modularPreview.valid ? "border-emerald-200 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20" : "border-amber-200 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Modular Plan Preview{modularPreview.mode ? ` · ${modularPreview.mode}` : ""}
+              </div>
+              <p className={`mt-1 text-xs ${modularPreview.valid ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>
+                {modularPreview.message}
+              </p>
+            </div>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${modularPreview.valid ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}>
+              {modularPreview.valid ? "Valid" : "Needs Fixes"}
+            </span>
+          </div>
+          <p className="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+            Shared/router fields are currently driven by imported JSON or installed template drafts. Use this preview to validate recipe, binding, registry, and instance wiring before save.
+          </p>
+          {modularPreview.preview && (
+            <pre className="mt-3 max-h-80 overflow-auto rounded-lg border border-gray-200 bg-white/80 p-3 text-[11px] leading-5 text-gray-700 dark:border-gray-700 dark:bg-gray-900/60 dark:text-gray-200">
+              {modularPreview.preview}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }

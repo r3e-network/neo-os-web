@@ -196,7 +196,7 @@ describe("LaunchDock", () => {
 
       const appNameElement = screen.getByText(longName);
       expect(appNameElement.className).toContain("truncate");
-      expect(appNameElement.className).toContain("max-w-[200px]");
+      expect(appNameElement.className).toContain("max-w-[320px]");
     });
 
     it("should handle empty app name", () => {
@@ -225,6 +225,13 @@ describe("LaunchDock", () => {
 
       const buttons = screen.getAllByRole("button");
       expect(buttons).toHaveLength(2);
+    });
+  });
+
+  describe("Runtime Label", () => {
+    it("should render a provided runtime label", () => {
+      render(<LaunchDock {...baseProps} runtimeLabel="Shared Runtime" />);
+      expect(screen.getByText("Shared Runtime")).toBeInTheDocument();
     });
   });
 

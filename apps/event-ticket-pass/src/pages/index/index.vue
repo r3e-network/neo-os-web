@@ -131,6 +131,7 @@ import { MiniAppPage, HeroSection, ContractAvailabilityCard } from "@shared/comp
 import { useContractAddress } from "@shared/composables/useContractAddress";
 import { createMiniApp } from "@shared/utils/createMiniApp";
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
+import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
 import { useEventTicketContract } from "@/composables/useEventTicketContract";
 import EventList from "./components/EventList.vue";
 
@@ -168,7 +169,6 @@ const { ensure: ensureContractAddress, ensureSafe: ensureContractSafe } = useCon
 
 const contract = useEventTicketContract(wallet, ensureContractAddress, setStatus, t);
 const contractReady = ref(false);
-const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 const badgeTemplateId = ref("");
 const attendanceCredential = CREDENTIAL_REGISTRY.event_attendance;
 
@@ -239,7 +239,7 @@ function buildAttendanceBadgeUrl() {
   if (badgeTemplateId.value.trim()) {
     params.set("issueTemplateId", badgeTemplateId.value.trim());
   }
-  return `${soulboundAppUrl}?${params.toString()}`;
+  return buildMiniAppLaunchUrl("miniapp-soulbound-certificate", Object.fromEntries(params.entries()));
 }
 
 function openAttendanceBadgeDraft() {

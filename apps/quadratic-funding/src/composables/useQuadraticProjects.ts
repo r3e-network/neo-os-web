@@ -3,10 +3,10 @@ import { ref, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
+import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { parseInvokeResult } from "@shared/utils/neo";
 import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
 import type { RoundItem } from "../pages/index/components/RoundList.vue";
 
@@ -16,7 +16,13 @@ export function useQuadraticProjects(
   setStatus: (msg: string, type: "success" | "error") => void
 ) {
   const { t } = createUseI18n(messages)();
-  const { address, connect, invokeContract, invokeRead, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { address, chainType } = wallet;
+  const { read, invokeDirectly, ensureWallet } = useContractInteraction({
+    appId: "miniapp-quadratic-funding",
+    t,
+    wallet,
+  });
 
   const projects = ref<ProjectItem[]>([]);
   const isRefreshingProjects = ref(false);
@@ -53,16 +59,11 @@ export function useQuadraticProjects(
 
   const fetchProjectIds = async (roundId: string) => {
     const contract = await ensureContractAddress();
-    const result = await invokeRead({
-      scriptHash: contract,
-      operation: "getRoundProjects",
-      args: [
-        { type: "Integer", value: roundId },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: "50" },
-      ],
-    });
-    const parsed = parseInvokeResult(result);
+    const parsed = await read("getRoundProjects", [
+      { type: "Integer", value: roundId },
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: "50" },
+    ], contract);
     if (!Array.isArray(parsed)) return [] as string[];
     return parsed
       .map((value) => Number.parseInt(String(value || "0"), 10))
@@ -72,12 +73,7 @@ export function useQuadraticProjects(
 
   const fetchProjectDetails = async (projectId: string) => {
     const contract = await ensureContractAddress();
-    const details = await invokeRead({
-      scriptHash: contract,
-      operation: "getProjectDetails",
-      args: [{ type: "Integer", value: projectId }],
-    });
-    const parsed = parseInvokeResult(details);
+    const parsed = await read("getProjectDetails", [{ type: "Integer", value: projectId }], contract);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
     return parseProject(parsed as Record<string, unknown>, projectId);
   };
@@ -113,24 +109,24 @@ export function useQuadraticProjects(
 
     try {
       isRegisteringProject.value = true;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const description = data.description.trim().slice(0, 300);
       const link = data.link.trim().slice(0, 200);
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "registerProject",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "registerProject",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: selectedRound.value.id },
           { type: "String", value: name },
           { type: "String", value: description },
           { type: "String", value: link },
         ],
-      });
+        contract,
+      );
 
       setStatus(t("projectRegistered"), "success");
       await refreshProjects();
@@ -157,18 +153,18 @@ export function useQuadraticProjects(
 
     try {
       claimingProjectId.value = project.id;
-      if (!address.value) await connect();
+      await ensureWallet();
       if (!address.value) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "claimProject",
-        args: [
-          { type: "Hash160", value: address.value },
+      await invokeDirectly(
+        "claimProject",
+        [
+          { type: "Hash160", value: address.value as string },
           { type: "Integer", value: project.id },
         ],
-      });
+        contract,
+      );
 
       setStatus(t("projectClaimed"), "success");
       await refreshProjects();

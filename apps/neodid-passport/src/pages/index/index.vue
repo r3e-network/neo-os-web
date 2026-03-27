@@ -52,6 +52,7 @@ import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
 import { messages } from "@/locale/messages";
 
 const oracle = useOracle({ appId: "miniapp-neodid-passport" });
@@ -63,7 +64,6 @@ const credentialRecipient = ref("");
 const credentialTemplateId = ref("");
 const ciphertext = ref("");
 const latestPayload = ref<Record<string, unknown> | null>(null);
-const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 const identityCredential = CREDENTIAL_REGISTRY.identity_passport;
 
 const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, setStatus, handleBoundaryError } = createConsolePage({
@@ -150,7 +150,7 @@ function buildIdentityCredentialUrl() {
   if (credentialTemplateId.value.trim()) {
     params.set("issueTemplateId", credentialTemplateId.value.trim());
   }
-  return `${soulboundAppUrl}?${params.toString()}`;
+  return buildMiniAppLaunchUrl("miniapp-soulbound-certificate", Object.fromEntries(params.entries()));
 }
 
 function openIdentityCredentialDraft() {

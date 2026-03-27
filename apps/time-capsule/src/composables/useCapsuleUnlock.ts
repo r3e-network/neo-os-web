@@ -4,6 +4,7 @@ import { createUseI18n } from "@shared/composables/useI18n";
 import { useAllEvents } from "@shared/composables/useAllEvents";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { messages } from "@/locale/messages";
+import { readCachedJSON } from "@shared/utils/runtime-cache";
 import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -38,9 +39,7 @@ export function useCapsuleUnlock() {
 
   const loadLocalContent = () => {
     try {
-      const raw = uni.getStorageSync(CONTENT_STORE_KEY);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
+      const parsed = readCachedJSON<Record<string, string | { hash?: string; content?: string }>>(CONTENT_STORE_KEY);
       if (!parsed || typeof parsed !== "object") return {};
       const normalized: Record<string, string> = {};
       for (const [key, value] of Object.entries(parsed)) {

@@ -6,7 +6,7 @@
 
     <div v-if="createdEnvelopes.length === 0" class="empty-state">
       <AppIcon name="envelope_red" :size="40" class="empty-icon" aria-hidden="true" />
-      <span class="empty-text">{{ t("noEnvelopesHeld") }}</span>
+      <span class="empty-text">{{ t("noPoolsCreated") }}</span>
     </div>
 
     <div v-else class="envelope-grid">

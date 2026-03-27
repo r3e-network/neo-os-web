@@ -21,6 +21,7 @@ const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF 
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+const ORACLE_UPDATER_MIN_GAS = 10000000n;
 const ROOT = path.resolve(__dirname, "../..");
 const siblingOraclePhalaEnvPath = path.resolve(
   ROOT,
@@ -30,13 +31,34 @@ const siblingOraclePhalaEnvPath = path.resolve(
   "phala",
   "morpheus.testnet.env"
 );
-const OUTPUT_PATH = path.join(ROOT, "docs", "reports", "2026-03-19-selected-miniapp-live-smoke.json");
+const OUTPUT_PATH = String(
+  process.env.SELECTED_MINIAPP_SMOKE_REPORT_PATH
+    || path.join(ROOT, "docs", "reports", "2026-03-19-selected-miniapp-live-smoke.json")
+).trim();
+const MILLION_PIECE_CLAIM_FUNDING = 10000000n;
+const MILLION_PIECE_BUY_PRICE = 11000000n;
+const GRAVEYARD_MEMORY_FUNDING = 110000000n;
+const HERITAGE_TRUST_PRINCIPAL = 1n;
+const HERITAGE_TRUST_HEARTBEAT_DAYS = 7n;
+const TURTLE_MATCH_BOX_COUNT = 3n;
+const TURTLE_MATCH_FUNDING = 30000000n;
 const TARGET_FILTER = new Set(
   String(process.env.SELECTED_MINIAPP_SMOKE_TARGETS || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean),
 );
+const SELECTED_TASKS = [
+  ["flashloan", runFlashLoanBasic],
+  ["exfiles", runExFiles],
+  ["masqueradedao", runMasqueradeDAO],
+  ["millionpiecemap", runMillionPieceMap],
+  ["graveyard", runGraveyard],
+  ["heritagetrust", runHeritageTrust],
+  ["dicegame", runDiceGame],
+  ["gascircle", runGasCircle],
+  ["turtlematch", runTurtleMatch],
+];
 
 if (!ADMIN_WIF || !USER_WIF) {
   console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF (or equivalent env fallbacks) are required");
@@ -137,6 +159,37 @@ async function invokeRaw(scriptHash, operation, args = []) {
   return res;
 }
 
+async function assertReadMethodReady(appLabel, contractHash, operation, args = []) {
+  try {
+    return await invokeRead(contractHash, operation, args);
+  } catch (error) {
+    throw new Error(`${appLabel}: required read ${operation} failed before flow start: ${String(error?.message || error)}`);
+  }
+}
+
+async function assertMiniAppNotPaused(appLabel, contractHash) {
+  const paused = await tryInvokeOptional(contractHash, "isPaused");
+  if (!paused.ok) {
+    return { checked: false, paused: null, reason: paused.error || "isPaused unavailable" };
+  }
+  if (paused.value === true) {
+    throw new Error(`${appLabel}: contract is paused`);
+  }
+  return { checked: true, paused: false };
+}
+
+async function tryInvokeOptional(scriptHash, operation, args = []) {
+  try {
+    const res = await rpcClient.invokeFunction(scriptHash, operation, args);
+    if (String(res?.state || "").toUpperCase() === "FAULT") {
+      return { ok: false, error: res.exception || `${operation} faulted`, value: null };
+    }
+    return { ok: true, value: res.stack?.[0] ? stackValue(res.stack[0]) : null, raw: res };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error), value: null };
+  }
+}
+
 async function getOracleRequest(requestId) {
   return invokeRead(ORACLE_HASH, "getRequest", [{ type: "Integer", value: String(requestId) }]);
 }
@@ -155,7 +208,214 @@ async function getGasBalance(addressOrHash) {
   return BigInt(String(res.stack[0].value || "0"));
 }
 
+async function getNeoBalance(addressOrHash) {
+  const res = await rpcClient.invokeFunction(NEO_HASH, "balanceOf", [Neon.sc.ContractParam.hash160(addressOrHash)]);
+  return BigInt(String(res.stack[0].value || "0"));
+}
+
+function requireObjectKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`${label} returned invalid payload`);
+  }
+  for (const key of keys) {
+    if (!(key in value)) {
+      throw new Error(`${label} missing field "${key}"`);
+    }
+  }
+  return value;
+}
+
+function resolveTargetSelection(tasks, filterSet) {
+  const available = tasks.map(([label]) => label);
+  const requested = [...filterSet];
+  const unknown = requested.filter((label) => !available.includes(label));
+  const selected = requested.length > 0
+    ? available.filter((label) => filterSet.has(label))
+    : available;
+  return { available, requested, selected, unknown };
+}
+
+async function buildPreflightSummary(targets) {
+  const [adminGasBalance, adminNeoBalance, userGasBalance, userNeoBalance, updaterGasBalance] = await Promise.all([
+    getGasBalance(`0x${admin.scriptHash}`),
+    getNeoBalance(`0x${admin.scriptHash}`),
+    getGasBalance(`0x${user.scriptHash}`),
+    getNeoBalance(`0x${user.scriptHash}`),
+    getGasBalance(`0x${oracleUpdater.scriptHash}`),
+  ]);
+  const requestFeeResult = await tryInvokeOptional(ORACLE_HASH, "requestFee");
+  const updaterInfo = await readOracleUpdaterAlignment();
+  return {
+    files: {
+      siblingOraclePhalaEnvPath,
+      siblingOraclePhalaEnvExists: fs.existsSync(siblingOraclePhalaEnvPath),
+      outputPath: OUTPUT_PATH,
+    },
+    targets,
+    runtime: {
+      oracleHash: ORACLE_HASH,
+      oracleUpdaterWifConfigured: Boolean(ORACLE_UPDATER_WIF),
+      oracleRequestFee: requestFeeResult.ok ? String(requestFeeResult.value ?? "0") : null,
+      oracleRequestFeeError: requestFeeResult.ok ? null : requestFeeResult.error,
+      oracleUpdaterMethod: updaterInfo.method,
+      oracleUpdaterOnChain: updaterInfo.value || null,
+      oracleUpdaterLocal: normalizeHash160(`0x${oracleUpdater.scriptHash}`),
+      oracleUpdaterMinGas: ORACLE_UPDATER_MIN_GAS.toString(),
+    },
+    wallets: {
+      admin: {
+        address: admin.address,
+        scriptHash: normalizeHash160(`0x${admin.scriptHash}`),
+        gas: adminGasBalance.toString(),
+        neo: adminNeoBalance.toString(),
+      },
+      user: {
+        address: user.address,
+        scriptHash: normalizeHash160(`0x${user.scriptHash}`),
+        gas: userGasBalance.toString(),
+        neo: userNeoBalance.toString(),
+      },
+      oracleUpdater: {
+        address: oracleUpdater.address,
+        scriptHash: normalizeHash160(`0x${oracleUpdater.scriptHash}`),
+        gas: updaterGasBalance.toString(),
+      },
+    },
+    actorConstraints: {
+      gascircleRequiresDistinctActors: true,
+      adminUserDistinct: admin.address !== user.address,
+      adminAddress: admin.address,
+      userAddress: user.address,
+    },
+  };
+}
+
+function assertDistinctActors(appLabel) {
+  if (admin.address === user.address) {
+    throw new Error(
+      `${appLabel}: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address ${admin.address}. Configure two distinct funded Neo N3 testnet wallets before rerunning.`
+    );
+  }
+  return {
+    adminAddress: admin.address,
+    userAddress: user.address,
+    distinct: true,
+  };
+}
+
+async function ensureAccountHasGas(account, required, label) {
+  const need = BigInt(String(required));
+  const available = await getGasBalance(`0x${account.scriptHash}`);
+  if (available < need) {
+    throw new Error(
+      `${label}: insufficient GAS for ${account.address}; need ${need.toString()}, have ${available.toString()}, short ${(
+        need - available
+      ).toString()}`
+    );
+  }
+  return available;
+}
+
+function normalizeHash160(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.startsWith("0x")) return text;
+  return text.length === 40 ? `0x${text}` : text;
+}
+
+async function getOracleRequestFee() {
+  const fee = BigInt(String(await invokeRead(ORACLE_HASH, "requestFee") || "0"));
+  if (fee <= 0n) {
+    throw new Error(`oracle requestFee is invalid: ${fee.toString()}`);
+  }
+  return fee;
+}
+
+async function readOracleUpdaterAlignment() {
+  const candidateMethods = ["updater", "operator"];
+  for (const method of candidateMethods) {
+    const result = await tryInvokeOptional(ORACLE_HASH, method);
+    if (!result.ok) continue;
+    const value = normalizeHash160(result.value);
+    return { method, value };
+  }
+  return { method: null, value: "" };
+}
+
+async function assertOracleBackedAppReady(appLabel, contractHash) {
+  const normalizedOracle = normalizeHash160(ORACLE_HASH);
+  if (!/^0x[a-f0-9]{40}$/.test(normalizedOracle)) {
+    throw new Error(`${appLabel}: ORACLE_HASH is invalid: ${ORACLE_HASH}`);
+  }
+
+  const configuredOracle = normalizeHash160(await invokeRead(contractHash, "oracle"));
+  if (configuredOracle !== normalizedOracle) {
+    throw new Error(
+      `${appLabel}: oracle mismatch; contract expects ${configuredOracle || "unset"} but script is using ${normalizedOracle}`
+    );
+  }
+
+  const callbackAllowed = Boolean(
+    await invokeRead(ORACLE_HASH, "isAllowedCallback", [{ type: "Hash160", value: contractHash }])
+  );
+  if (!callbackAllowed) {
+    throw new Error(`${appLabel}: callback contract ${contractHash} is not allowlisted in oracle`);
+  }
+
+  const requestFee = await getOracleRequestFee();
+  const feeCredit = BigInt(String(await invokeRead(ORACLE_HASH, "feeCreditOf", [{ type: "Hash160", value: contractHash }]) || "0"));
+  const deficit = requestFee > feeCredit ? requestFee - feeCredit : 0n;
+  if (deficit > 0n) {
+    const adminBalance = await getGasBalance(`0x${admin.scriptHash}`);
+    if (adminBalance < deficit) {
+      throw new Error(
+        `${appLabel}: oracle fee credit ${feeCredit.toString()} is below requestFee ${requestFee.toString()} and admin GAS balance ${adminBalance.toString()} cannot cover the deficit ${deficit.toString()}`
+      );
+    }
+  }
+
+  const updaterInfo = await readOracleUpdaterAlignment();
+  const expectedUpdater = normalizeHash160(`0x${oracleUpdater.scriptHash}`);
+  const updaterGas = await getGasBalance(`0x${oracleUpdater.scriptHash}`);
+  if (updaterInfo.method) {
+    if (!/^0x[a-f0-9]{40}$/.test(updaterInfo.value) || /^0x0{40}$/.test(updaterInfo.value)) {
+      throw new Error(`${appLabel}: oracle ${updaterInfo.method} is unset or invalid (${updaterInfo.value || "empty"})`);
+    }
+    if (updaterInfo.value !== expectedUpdater) {
+      throw new Error(
+        `${appLabel}: oracle ${updaterInfo.method} ${updaterInfo.value} does not match updater wallet ${expectedUpdater}`
+      );
+    }
+  }
+  if (updaterGas < ORACLE_UPDATER_MIN_GAS) {
+    throw new Error(
+      `${appLabel}: oracle updater ${oracleUpdater.address} has insufficient GAS for fulfillment fallback; need at least ${ORACLE_UPDATER_MIN_GAS.toString()}, have ${updaterGas.toString()}`
+    );
+  }
+
+  return {
+    configuredOracle,
+    callbackAllowed,
+    requestFee: requestFee.toString(),
+    feeCredit: feeCredit.toString(),
+    feeCreditDeficit: deficit.toString(),
+    updaterMethod: updaterInfo.method,
+    updater: updaterInfo.value || null,
+    expectedUpdater,
+    updaterGas: updaterGas.toString(),
+  };
+}
+
 async function transferGAS(accountContract, fromAccount, toHash, amount, memo) {
+  const required = BigInt(String(amount));
+  const available = await getGasBalance(`0x${fromAccount.scriptHash}`);
+  if (available < required) {
+    throw new Error(
+      `insufficient GAS for ${fromAccount.address}: need ${required.toString()}, have ${available.toString()}, short ${(
+        required - available
+      ).toString()}`
+    );
+  }
   const txid = await accountContract.invoke("transfer", [
     Neon.sc.ContractParam.hash160(`0x${fromAccount.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
@@ -191,10 +451,10 @@ async function transferNEO(fromAccount, toHash, amount, memo) {
 }
 
 async function topUpOracleCallbackCredit(callbackContractHash) {
-  const fee = await invokeRead(ORACLE_HASH, "requestFee");
+  const fee = await getOracleRequestFee();
   const cleanHash = String(callbackContractHash).replace(/^0x/i, "");
   const callbackBytes = Buffer.from(cleanHash, "hex").reverse();
-  return transferGAS(adminGas, admin, ORACLE_HASH, String(fee || "1000000"), callbackBytes);
+  return transferGAS(adminGas, admin, ORACLE_HASH, String(fee), callbackBytes);
 }
 
 function sha256Buffer(value) {
@@ -279,7 +539,15 @@ async function runFlashLoanBasic() {
   const contractHash = ADDRESSES.flashloan;
   const contract = appContract(contractHash, admin);
   const depositAmount = "3000000";
-  const before = BigInt(String(await invokeRead(contractHash, "getPoolBalance") || "0"));
+  const pauseState = await assertMiniAppNotPaused("flashloan", contractHash);
+  await ensureAccountHasGas(admin, BigInt(depositAmount), "flashloan admin");
+  const before = BigInt(String(await assertReadMethodReady("flashloan", contractHash, "getPoolBalance") || "0"));
+  const contractGasBefore = await getGasBalance(contractHash);
+  if (contractGasBefore < before) {
+    throw new Error(
+      `flashloan: contract GAS backing ${contractGasBefore.toString()} is below reported pool balance ${before.toString()}`
+    );
+  }
   const transferTx = await transferGAS(adminGas, admin, contractHash, depositAmount, "miniapp-flashloan:deposit");
   const depositTx = await contract.invoke("deposit", [
     Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
@@ -297,13 +565,28 @@ async function runFlashLoanBasic() {
   const afterWithdraw = BigInt(String(await invokeRead(contractHash, "getPoolBalance") || "0"));
   if (afterDeposit - before !== BigInt(depositAmount)) throw new Error("pool balance did not increase by deposit amount");
   if (afterWithdraw !== before) throw new Error("pool balance did not return to baseline after withdraw");
-  return { contractHash, transferTx, depositTx: asTxid(depositTx), withdrawTx: asTxid(withdrawTx), before: before.toString(), afterDeposit: afterDeposit.toString(), afterWithdraw: afterWithdraw.toString() };
+  return {
+    contractHash,
+    pauseState,
+    transferTx,
+    depositTx: asTxid(depositTx),
+    withdrawTx: asTxid(withdrawTx),
+    before: before.toString(),
+    contractGasBefore: contractGasBefore.toString(),
+    afterDeposit: afterDeposit.toString(),
+    afterWithdraw: afterWithdraw.toString(),
+  };
 }
 
 async function runExFiles() {
   const contractHash = ADDRESSES.exfiles;
   const adminContract = appContract(contractHash, admin);
   const userContract = appContract(contractHash, user);
+  const actorCheck = assertDistinctActors("exfiles");
+  const pauseState = await assertMiniAppNotPaused("exfiles", contractHash);
+  await ensureAccountHasGas(admin, 15000000n, "exfiles admin");
+  await ensureAccountHasGas(user, 35000000n, "exfiles user");
+  const totalRecordsBefore = BigInt(String(await assertReadMethodReady("exfiles", contractHash, "totalRecords") || "0"));
   const dataHash = crypto.createHash("sha256").update(uniqueLabel("exfiles-record")).digest();
 
   await transferGAS(adminGas, admin, contractHash, "15000000", "miniapp-exfiles:create");
@@ -361,13 +644,30 @@ async function runExFiles() {
   const details = await invokeRead(contractHash, "getRecordDetails", [{ type: "Integer", value: recordId }]);
   if (details.active !== false) throw new Error("record should be inactive after delete");
   if (String(details.verifier || "").toLowerCase() !== `0x${user.scriptHash}`.toLowerCase()) throw new Error("record verifier mismatch");
-  return { contractHash, recordId, createTx: asTxid(createTx), queryTx: asTxid(queryTx), verifyTx: asTxid(verifyTx), reportTx: asTxid(reportTx), updateTx: asTxid(updateTx), deleteTx: asTxid(deleteTx) };
+  return {
+    contractHash,
+    actorCheck,
+    pauseState,
+    totalRecordsBefore: totalRecordsBefore.toString(),
+    recordId,
+    createTx: asTxid(createTx),
+    queryTx: asTxid(queryTx),
+    verifyTx: asTxid(verifyTx),
+    reportTx: asTxid(reportTx),
+    updateTx: asTxid(updateTx),
+    deleteTx: asTxid(deleteTx),
+  };
 }
 
 async function runMasqueradeDAO() {
   const contractHash = ADDRESSES.masqueradedao;
   const adminContract = appContract(contractHash, admin);
   const userContract = appContract(contractHash, user);
+  const pauseState = await assertMiniAppNotPaused("masqueradedao", contractHash);
+  await ensureAccountHasGas(admin, 40000000n, "masqueradedao admin");
+  await ensureAccountHasGas(user, 20000000n, "masqueradedao user");
+  const totalMasksBefore = BigInt(String(await assertReadMethodReady("masqueradedao", contractHash, "totalMasks") || "0"));
+  const totalProposalsBefore = BigInt(String(await assertReadMethodReady("masqueradedao", contractHash, "totalProposals") || "0"));
   await transferGAS(adminGas, admin, contractHash, "40000000", "miniapp-masqueradedao:admin");
   await transferGAS(userGas, user, contractHash, "20000000", "miniapp-masqueradedao:user");
 
@@ -408,7 +708,19 @@ async function runMasqueradeDAO() {
   if (voteLog.execution.vmstate !== "HALT") throw new Error(voteLog.execution.exception || "submitVote failed");
   const proposal = await invokeRead(contractHash, "getProposalDetails", [{ type: "Integer", value: proposalId }]);
   if (BigInt(String(proposal.yesVotes || "0")) <= 0n) throw new Error("proposal yesVotes did not increase");
-  return { contractHash, maskA, maskB, proposalId, createMaskAdminTx: asTxid(createMaskAdminTx), createMaskUserTx: asTxid(createMaskUserTx), proposalTx: asTxid(proposalTx), voteTx: asTxid(voteTx) };
+  return {
+    contractHash,
+    pauseState,
+    totalMasksBefore: totalMasksBefore.toString(),
+    totalProposalsBefore: totalProposalsBefore.toString(),
+    maskA,
+    maskB,
+    proposalId,
+    createMaskAdminTx: asTxid(createMaskAdminTx),
+    createMaskUserTx: asTxid(createMaskUserTx),
+    proposalTx: asTxid(proposalTx),
+    voteTx: asTxid(voteTx),
+  };
 }
 
 async function pickUnclaimedPiece(contractHash) {
@@ -430,9 +742,32 @@ async function runMillionPieceMap() {
   const contractHash = ADDRESSES.millionpiecemap;
   const adminContract = appContract(contractHash, admin);
   const userContract = appContract(contractHash, user);
+  const pauseState = await assertMiniAppNotPaused("millionpiecemap", contractHash);
+  const actorPrecheck = assertDistinctActors("millionpiecemap");
+  await ensureAccountHasGas(admin, MILLION_PIECE_CLAIM_FUNDING, "millionpiecemap admin");
+  await ensureAccountHasGas(user, MILLION_PIECE_BUY_PRICE, "millionpiecemap user");
+  const mapOverview = requireObjectKeys(await assertReadMethodReady("millionpiecemap", contractHash, "getMapOverview"), [
+    "totalPieces",
+    "claimed",
+    "available",
+  ], "getMapOverview");
+  const platformStats = requireObjectKeys(await assertReadMethodReady("millionpiecemap", contractHash, "getPlatformStats"), [
+    "piecePrice",
+  ], "getPlatformStats");
+  const piecePrice = BigInt(String(platformStats.piecePrice || "0"));
+  if (piecePrice !== MILLION_PIECE_CLAIM_FUNDING) {
+    throw new Error(
+      `millionpiecemap: on-chain piecePrice ${piecePrice.toString()} does not match scripted funding ${MILLION_PIECE_CLAIM_FUNDING.toString()}`
+    );
+  }
+  if (BigInt(String(mapOverview.available || "0")) <= 0n) {
+    throw new Error(
+      `millionpiecemap: no unclaimed pieces remain (claimed=${String(mapOverview.claimed || "0")}, total=${String(mapOverview.totalPieces || "0")})`
+    );
+  }
   const { x, y } = await pickUnclaimedPiece(contractHash);
 
-  await transferGAS(adminGas, admin, contractHash, "10000000", "miniapp-millionpiecemap:claim");
+  await transferGAS(adminGas, admin, contractHash, String(MILLION_PIECE_CLAIM_FUNDING), "miniapp-millionpiecemap:claim");
   const claimTx = await adminContract.invoke("claimPiece", [
     Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
     Neon.sc.ContractParam.integer(String(x)),
@@ -441,7 +776,7 @@ async function runMillionPieceMap() {
   const claimLog = await waitForLog(claimTx);
   if (claimLog.execution.vmstate !== "HALT") throw new Error(claimLog.execution.exception || "claimPiece failed");
 
-  const price = "11000000";
+  const price = String(MILLION_PIECE_BUY_PRICE);
   const listTx = await adminContract.invoke("listForSale", [
     Neon.sc.ContractParam.integer(String(x)),
     Neon.sc.ContractParam.integer(String(y)),
@@ -467,13 +802,41 @@ async function runMillionPieceMap() {
   ]);
   if (String(piece.owner || "").toLowerCase() !== `0x${user.scriptHash}`.toLowerCase()) throw new Error("piece owner did not transfer to buyer");
   if (contractBalanceAfterBuy !== contractBalanceBeforeBuy) throw new Error("contract retained traded GAS instead of forwarding to seller");
-  return { contractHash, x, y, claimTx: asTxid(claimTx), listTx: asTxid(listTx), buyTx: asTxid(buyTx) };
+  return {
+    contractHash,
+    pauseState,
+    actorPrecheck,
+    mapPrecheck: {
+      mapOverview,
+      piecePrice: piecePrice.toString(),
+      scriptedBuyPrice: price,
+    },
+    x,
+    y,
+    claimTx: asTxid(claimTx),
+    listTx: asTxid(listTx),
+    buyTx: asTxid(buyTx),
+  };
 }
 
 async function runGraveyard() {
   const contractHash = ADDRESSES.graveyard;
   const contract = appContract(contractHash, admin);
-  await transferGAS(adminGas, admin, contractHash, "110000000", "miniapp-graveyard:memory");
+  const pauseState = await assertMiniAppNotPaused("graveyard", contractHash);
+  await ensureAccountHasGas(admin, GRAVEYARD_MEMORY_FUNDING, "graveyard admin");
+  const stats = requireObjectKeys(await assertReadMethodReady("graveyard", contractHash, "getPlatformStats"), [
+    "buryFee",
+    "forgetFee",
+  ], "getPlatformStats");
+  const buryFee = BigInt(String(stats.buryFee || "0"));
+  const forgetFee = BigInt(String(stats.forgetFee || "0"));
+  const requiredFunding = buryFee + forgetFee;
+  if (requiredFunding > GRAVEYARD_MEMORY_FUNDING) {
+    throw new Error(
+      `graveyard: scripted funding ${GRAVEYARD_MEMORY_FUNDING.toString()} is below current bury+forget fees ${requiredFunding.toString()}`
+    );
+  }
+  await transferGAS(adminGas, admin, contractHash, String(GRAVEYARD_MEMORY_FUNDING), "miniapp-graveyard:memory");
   const contentHash = crypto.createHash("sha256").update(uniqueLabel("graveyard-memory")).digest("hex");
 
   const buryTx = await contract.invoke("buryMemory", [
@@ -501,19 +864,58 @@ async function runGraveyard() {
 
   const memory = await invokeRead(contractHash, "getMemoryDetails", [{ type: "Integer", value: memoryId }]);
   if (memory.forgotten !== true) throw new Error("memory not marked forgotten");
-  return { contractHash, memoryId, buryTx: asTxid(buryTx), epitaphTx: asTxid(epitaphTx), forgetTx: asTxid(forgetTx) };
+  return {
+    contractHash,
+    pauseState,
+    fundingPrecheck: {
+      buryFee: buryFee.toString(),
+      forgetFee: forgetFee.toString(),
+      scriptedFunding: GRAVEYARD_MEMORY_FUNDING.toString(),
+    },
+    memoryId,
+    buryTx: asTxid(buryTx),
+    epitaphTx: asTxid(epitaphTx),
+    forgetTx: asTxid(forgetTx),
+  };
 }
 
 async function runHeritageTrust() {
   const contractHash = ADDRESSES.heritagetrust;
   const contract = appContract(contractHash, admin);
-  await transferNEO(admin, contractHash, "1", "miniapp-heritage-trust:create");
+  const pauseState = await assertMiniAppNotPaused("heritagetrust", contractHash);
+  const actorPrecheck = assertDistinctActors("heritagetrust");
+  const platformStats = requireObjectKeys(await assertReadMethodReady("heritagetrust", contractHash, "getPlatformStats"), [
+    "minPrincipal",
+    "minHeartbeatSeconds",
+    "maxHeartbeatSeconds",
+  ], "getPlatformStats");
+  const minPrincipal = BigInt(String(platformStats.minPrincipal || "0"));
+  const minHeartbeatSeconds = BigInt(String(platformStats.minHeartbeatSeconds || "0"));
+  const maxHeartbeatSeconds = BigInt(String(platformStats.maxHeartbeatSeconds || "0"));
+  const scriptedHeartbeatSeconds = HERITAGE_TRUST_HEARTBEAT_DAYS * 86400n;
+  if (HERITAGE_TRUST_PRINCIPAL < minPrincipal) {
+    throw new Error(
+      `heritagetrust: scripted principal ${HERITAGE_TRUST_PRINCIPAL.toString()} is below current minPrincipal ${minPrincipal.toString()}`
+    );
+  }
+  if (scriptedHeartbeatSeconds < minHeartbeatSeconds || scriptedHeartbeatSeconds > maxHeartbeatSeconds) {
+    throw new Error(
+      `heritagetrust: scripted heartbeat ${scriptedHeartbeatSeconds.toString()}s is outside current range ${minHeartbeatSeconds.toString()}-${maxHeartbeatSeconds.toString()}`
+    );
+  }
+  const adminNeoBalance = await getNeoBalance(`0x${admin.scriptHash}`);
+  if (adminNeoBalance < HERITAGE_TRUST_PRINCIPAL) {
+    throw new Error(
+      `heritagetrust: admin ${admin.address} needs at least ${HERITAGE_TRUST_PRINCIPAL.toString()} NEO for principal deposit, but only has ${adminNeoBalance.toString()}`
+    );
+  }
+  await transferNEO(admin, contractHash, HERITAGE_TRUST_PRINCIPAL.toString(), "miniapp-heritage-trust:create");
 
   const createTx = await contract.invoke("createTrust", [
     Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
     Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
-    Neon.sc.ContractParam.integer("1"),
-    Neon.sc.ContractParam.integer("7"),
+    Neon.sc.ContractParam.integer(HERITAGE_TRUST_PRINCIPAL.toString()),
+    Neon.sc.ContractParam.integer(HERITAGE_TRUST_HEARTBEAT_DAYS.toString()),
     Neon.sc.ContractParam.string(uniqueLabel("Heritage")),
     Neon.sc.ContractParam.string("Codex smoke trust"),
   ]);
@@ -542,12 +944,33 @@ async function runHeritageTrust() {
 
   const details = await invokeRead(contractHash, "getTrustDetails", [{ type: "Integer", value: trustId }]);
   if (details.active !== false || details.cancelled !== true) throw new Error("trust not cancelled as expected");
-  return { contractHash, trustId, createTx: asTxid(createTx), guardianTx: asTxid(guardianTx), heartbeatTx: asTxid(heartbeatTx), cancelTx: asTxid(cancelTx) };
+  return {
+    contractHash,
+    pauseState,
+    actorPrecheck,
+    trustPrecheck: {
+      minPrincipal: minPrincipal.toString(),
+      scriptedPrincipal: HERITAGE_TRUST_PRINCIPAL.toString(),
+      minHeartbeatSeconds: minHeartbeatSeconds.toString(),
+      maxHeartbeatSeconds: maxHeartbeatSeconds.toString(),
+      scriptedHeartbeatSeconds: scriptedHeartbeatSeconds.toString(),
+      adminNeoBalance: adminNeoBalance.toString(),
+    },
+    trustId,
+    createTx: asTxid(createTx),
+    guardianTx: asTxid(guardianTx),
+    heartbeatTx: asTxid(heartbeatTx),
+    cancelTx: asTxid(cancelTx),
+  };
 }
 
 async function runDiceGame() {
   const contractHash = ADDRESSES.dicegame;
   const contract = appContract(contractHash, admin);
+  const oraclePrecheck = await assertOracleBackedAppReady("dicegame", contractHash);
+  const requestFee = BigInt(oraclePrecheck.requestFee || "0");
+  const minimumAdminFunding = 100000000n + 5000000n + requestFee;
+  await ensureAccountHasGas(admin, minimumAdminFunding, "dicegame");
   const houseBalance = await getGasBalance(contractHash);
   if (houseBalance < 100000000n) {
     await transferGAS(adminGas, admin, contractHash, "100000000", null);
@@ -577,13 +1000,27 @@ async function runDiceGame() {
   if (bet[4] !== true) throw new Error("bet not resolved after oracle fulfillment");
   const rolled = (BigInt(resultBytes[0]) % 6n) + 1n;
   const expectedPayout = rolled === 3n ? (BigInt(betAmount) * 6n * 95n) / 100n : 0n;
-  return { contractHash, betId, requestId, placeTx: asTxid(placeTx), fulfillTx, rolled: rolled.toString(), expectedPayout: expectedPayout.toString() };
+  return {
+    contractHash,
+    oraclePrecheck,
+    betId,
+    requestId,
+    placeTx: asTxid(placeTx),
+    fulfillTx,
+    rolled: rolled.toString(),
+    expectedPayout: expectedPayout.toString(),
+  };
 }
 
 async function runGasCircle() {
   const contractHash = ADDRESSES.gascircle;
   const adminContract = appContract(contractHash, admin);
   const userContract = appContract(contractHash, user);
+  const oraclePrecheck = await assertOracleBackedAppReady("gascircle", contractHash);
+  const actorPrecheck = assertDistinctActors("gascircle");
+  const requestFee = BigInt(oraclePrecheck.requestFee || "0");
+  await ensureAccountHasGas(admin, 20000000n + requestFee*2n, "gascircle admin");
+  await ensureAccountHasGas(user, 20000000n, "gascircle user");
   const daily = "10000000";
 
   const createTx = await adminContract.invoke("createCircle", [
@@ -668,6 +1105,8 @@ async function runGasCircle() {
   if (circle[6] !== false) throw new Error("circle should be inactive after second payout");
   return {
     contractHash,
+    oraclePrecheck,
+    actorPrecheck,
     circleId,
     createTx: asTxid(createTx),
     joinAdminTx: asTxid(joinAdminTx),
@@ -683,25 +1122,64 @@ async function runTurtleMatch() {
   const contractHash = ADDRESSES.turtlematch;
   const contract = appContract(contractHash, admin);
   const scriptName = "turtle-match-logic";
-  const scriptHash = crypto.createHash("sha256").update("codex-turtle-match-v1").digest();
+  const defaultScriptHash = crypto.createHash("sha256").update("codex-turtle-match-v1").digest();
+  let activeScriptHash = defaultScriptHash;
+  const pauseState = await assertMiniAppNotPaused("turtlematch", contractHash);
+  await ensureAccountHasGas(admin, TURTLE_MATCH_FUNDING, "turtlematch admin");
+  const stats = requireObjectKeys(await assertReadMethodReady("turtlematch", contractHash, "getPlatformStats"), [
+    "blindboxPrice",
+  ], "getPlatformStats");
+  const blindboxPrice = BigInt(String(stats.blindboxPrice || "0"));
+  const scriptedFundingFloor = blindboxPrice * TURTLE_MATCH_BOX_COUNT;
+  if (scriptedFundingFloor > TURTLE_MATCH_FUNDING) {
+    throw new Error(
+      `turtlematch: scripted funding ${TURTLE_MATCH_FUNDING.toString()} is below blindboxPrice*boxCount ${scriptedFundingFloor.toString()}`
+    );
+  }
 
-  const scriptInfo = await invokeRead(contractHash, "getScriptInfo", [{ type: "String", value: scriptName }]).catch((e) => {
+  const rawScriptInfo = await invokeRaw(contractHash, "getScriptInfo", [{ type: "String", value: scriptName }]).catch((e) => {
     console.warn(`[warn] getScriptInfo(${scriptName}) failed: ${e.message} — treating as not registered`);
-    return { exists: false };
+    return null;
   });
-  if (!scriptInfo.exists) {
+  if (rawScriptInfo && rawScriptInfo?.stack?.[0]?.type !== "Map") {
+    throw new Error(`turtlematch: getScriptInfo returned unexpected stack type ${String(rawScriptInfo?.stack?.[0]?.type || "missing")}`);
+  }
+  const scriptInfo = {
+    exists: false,
+    enabled: false,
+    hashHex: "",
+  };
+  if (rawScriptInfo?.stack?.[0]?.type === "Map" && Array.isArray(rawScriptInfo.stack[0].value)) {
+    for (const entry of rawScriptInfo.stack[0].value) {
+      const key = stackValue(entry.key);
+      if (key === "exists") scriptInfo.exists = entry.value?.value === true;
+      if (key === "enabled") scriptInfo.enabled = entry.value?.value === true;
+      if (key === "hash") scriptInfo.hashHex = stackBytes(entry.value).toString("hex");
+    }
+  }
+  if (scriptInfo.exists) {
+    if (scriptInfo.enabled !== true) {
+      throw new Error(`turtlematch: script ${scriptName} is registered but disabled`);
+    }
+    if (!scriptInfo.hashHex) {
+      throw new Error(`turtlematch: script ${scriptName} is registered but returned no hash`);
+    }
+    if (scriptInfo.hashHex) {
+      activeScriptHash = Buffer.from(scriptInfo.hashHex, "hex");
+    }
+  } else {
     const registerTx = await contract.invoke("registerScript", [
       Neon.sc.ContractParam.string(scriptName),
-      Neon.sc.ContractParam.byteArray(scriptHash.toString("base64")),
+      Neon.sc.ContractParam.byteArray(defaultScriptHash.toString("base64")),
     ]);
     const registerLog = await waitForLog(registerTx);
     if (registerLog.execution.vmstate !== "HALT") throw new Error(registerLog.execution.exception || "registerScript failed");
   }
 
-  await transferGAS(adminGas, admin, contractHash, "30000000", "miniapp-turtle-match:play");
+  await transferGAS(adminGas, admin, contractHash, String(TURTLE_MATCH_FUNDING), "miniapp-turtle-match:play");
   const startTx = await contract.invoke("startGame", [
     Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
-    Neon.sc.ContractParam.integer("3"),
+    Neon.sc.ContractParam.integer(TURTLE_MATCH_BOX_COUNT.toString()),
   ]);
   const startLog = await waitForLog(startTx);
   if (startLog.execution.vmstate !== "HALT") throw new Error(startLog.execution.exception || "startGame failed");
@@ -743,31 +1221,53 @@ async function runTurtleMatch() {
     Neon.sc.ContractParam.integer(sessionId),
     Neon.sc.ContractParam.integer(matches.toString()),
     Neon.sc.ContractParam.integer(reward.toString()),
-    Neon.sc.ContractParam.byteArray(scriptHash.toString("base64")),
+    Neon.sc.ContractParam.byteArray(activeScriptHash.toString("base64")),
   ]);
   const settleLog = await waitForLog(settleTx);
   if (settleLog.execution.vmstate !== "HALT") throw new Error(settleLog.execution.exception || "settleGame failed");
   const session = await invokeRead(contractHash, "getSession", [{ type: "Integer", value: sessionId }]);
   if (session[6] !== true) throw new Error("session not settled");
-  return { contractHash, sessionId, matches: matches.toString(), reward: reward.toString(), startTx: asTxid(startTx), settleTx: asTxid(settleTx) };
+  return {
+    contractHash,
+    pauseState,
+    scriptPrecheck: {
+      scriptName,
+      scriptExists: scriptInfo.exists === true,
+      scriptEnabled: scriptInfo.exists === true ? scriptInfo.enabled === true : null,
+      onChainScriptHash: scriptInfo.hashHex || null,
+      expectedScriptHash: activeScriptHash.toString("hex"),
+      defaultScriptHash: defaultScriptHash.toString("hex"),
+      blindboxPrice: blindboxPrice.toString(),
+      boxCount: TURTLE_MATCH_BOX_COUNT.toString(),
+      scriptedFunding: TURTLE_MATCH_FUNDING.toString(),
+    },
+    sessionId,
+    matches: matches.toString(),
+    reward: reward.toString(),
+    startTx: asTxid(startTx),
+    settleTx: asTxid(settleTx),
+  };
 }
 
 async function runAll() {
   await initNeon();
+  const targets = resolveTargetSelection(SELECTED_TASKS, TARGET_FILTER);
+  if (targets.unknown.length > 0) {
+    throw new Error(
+      `unknown SELECTED_MINIAPP_SMOKE_TARGETS entries: ${targets.unknown.join(", ")}; valid targets: ${targets.available.join(", ")}`
+    );
+  }
+  const preflight = await buildPreflightSummary(targets);
   const results = {};
-  const tasks = [
-    ["flashloan", runFlashLoanBasic],
-    ["exfiles", runExFiles],
-    ["masqueradedao", runMasqueradeDAO],
-    ["millionpiecemap", runMillionPieceMap],
-    ["graveyard", runGraveyard],
-    ["heritagetrust", runHeritageTrust],
-    ["dicegame", runDiceGame],
-    ["gascircle", runGasCircle],
-    ["turtlematch", runTurtleMatch],
-  ];
+  console.error(`[targets] selected=${targets.selected.join(", ")}`);
+  if (targets.requested.length > 0) {
+    console.error(`[targets] requested=${targets.requested.join(", ")}`);
+  }
+  console.error(
+    `[preflight] adminGas=${preflight.wallets.admin.gas} adminNEO=${preflight.wallets.admin.neo} userGas=${preflight.wallets.user.gas} userNEO=${preflight.wallets.user.neo} updaterGas=${preflight.wallets.oracleUpdater.gas}`
+  );
 
-  for (const [name, fn] of tasks) {
+  for (const [name, fn] of SELECTED_TASKS) {
     if (TARGET_FILTER.size > 0 && !TARGET_FILTER.has(name)) continue;
     process.stdout.write(`\n=== ${name} ===\n`);
     try {
@@ -779,9 +1279,12 @@ async function runAll() {
     }
   }
 
+  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify({
     generatedAt: new Date().toISOString(),
     rpcUrl: RPC_URL,
+    targetInfo: targets,
+    preflight,
     adminAddress: admin.address,
     userAddress: user.address,
     oracle: ORACLE_HASH,

@@ -52,8 +52,14 @@
         "frontend_template": {
           "$ref": "#/definitions/template_binding"
         },
+        "frontend_composition": {
+          "$ref": "#/definitions/frontend_composition"
+        },
         "contract_template": {
           "$ref": "#/definitions/contract_template_binding"
+        },
+        "contract_composition": {
+          "$ref": "#/definitions/contract_composition"
         }
       },
       "additionalProperties": true
@@ -116,6 +122,10 @@
       "description": "Contract template descriptor for template marketplace usage",
       "$ref": "#/definitions/contract_template_binding"
     },
+    "contract_composition": {
+      "description": "Shared/router/custom modular contract composition metadata",
+      "$ref": "#/definitions/contract_composition"
+    },
     "entry_url": {
       "type": "string",
       "description": "External entry URL for the MiniApp. Supports https://, mf://, or bare .matrix/.neo hostnames that will be normalized to https://.",
@@ -151,6 +161,10 @@
     "frontend_template": {
       "description": "Frontend template descriptor for template marketplace usage",
       "$ref": "#/definitions/template_binding"
+    },
+    "frontend_composition": {
+      "description": "Composable frontend runtime metadata for shared shell/slots/data recipes",
+      "$ref": "#/definitions/frontend_composition"
     },
     "permissions": {
       "type": "object",
@@ -345,6 +359,86 @@
         }
       ]
     },
+    "contract_module_config": {
+      "type": "object",
+      "properties": {
+        "module_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "depends_on": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "binding": { "type": "string" },
+        "contract_hash": {
+          "type": "string",
+          "pattern": "^0x[a-fA-F0-9]{40}$"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["module_id"],
+      "additionalProperties": true
+    },
+    "contract_recipe_ref": {
+      "type": "object",
+      "properties": {
+        "recipe_id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" }
+      },
+      "required": ["recipe_id"],
+      "additionalProperties": true
+    },
+    "contract_composition": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["template", "shared", "router", "custom"]
+        },
+        "instance_id": { "type": "string", "minLength": 1 },
+        "recipe": {
+          "$ref": "#/definitions/contract_recipe_ref"
+        },
+        "modules": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/contract_module_config" }
+        },
+        "router_template_ref": { "type": "string" },
+        "registries": {
+          "type": "object",
+          "properties": {
+            "module_registry": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "recipe_registry": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            },
+            "instance_registry": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          "additionalProperties": true
+        },
+        "module_bindings": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "instance_permissions": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
     "contract_security_profile": {
       "type": "object",
       "properties": {
@@ -353,6 +447,40 @@
         "audit_provider": { "type": "string", "maxLength": 128 },
         "audit_hash": { "type": "string", "maxLength": 256 },
         "audit_date": { "type": "string", "description": "Audit publish date in YYYY-MM-DD" }
+      },
+      "additionalProperties": true
+    },
+    "frontend_composition": {
+      "type": "object",
+      "properties": {
+        "shell_recipe": { "type": "string", "maxLength": 128 },
+        "shell_version": { "type": "string", "maxLength": 64 },
+        "surface_slots": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "data_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "operation_recipes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "style_profile": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "capability_bindings": {
+          "type": "object",
+          "additionalProperties": true
+        }
       },
       "additionalProperties": true
     },

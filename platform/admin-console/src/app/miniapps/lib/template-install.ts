@@ -20,6 +20,14 @@ export type MiniAppBuilderInstallDraft = {
   requires_host_capability?: string[];
   min_factory_version?: string;
   max_factory_version?: string;
+  contract_mode?: "template" | "shared" | "router" | "custom";
+  contract_instance_id?: string;
+  contract_recipe?: Record<string, unknown>;
+  contract_modules?: unknown[];
+  router_template_ref?: string;
+  registries?: Record<string, unknown>;
+  module_bindings?: Record<string, unknown>;
+  instance_permissions?: Record<string, unknown>;
   manifest?: Record<string, unknown>;
 };
 
@@ -53,6 +61,15 @@ export type InstallDraftFormPatch = Partial<{
   contract_template_requires_capabilities: string;
   contract_template_min_factory_version: string;
   contract_template_max_factory_version: string;
+  contract_composition_mode: string;
+  contract_instance_id: string;
+  contract_recipe_id: string;
+  contract_recipe_version: string;
+  contract_router_template_ref: string;
+  contract_registries_json: string;
+  contract_modules_json: string;
+  contract_module_bindings_json: string;
+  contract_instance_permissions_json: string;
 }>;
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -109,6 +126,25 @@ export function normalizeInstallDraft(input: unknown): MiniAppBuilderInstallDraf
     manifest: asObject(row.manifest),
   };
 
+  const manifest = payload.manifest || {};
+  const composition = asObject(row.contract_composition ?? manifest.contract_composition);
+  const recipe = asObject(composition.recipe);
+  const modules = Array.isArray(composition.modules) ? composition.modules : [];
+
+  payload.contract_mode = (() => {
+    const mode = asString(composition.mode).toLowerCase();
+    return mode === "template" || mode === "shared" || mode === "router" || mode === "custom"
+      ? mode
+      : undefined;
+  })();
+  payload.contract_instance_id = asString(composition.instance_id) || undefined;
+  payload.contract_recipe = Object.keys(recipe).length > 0 ? recipe : undefined;
+  payload.contract_modules = modules.length > 0 ? modules : undefined;
+  payload.router_template_ref = asString(composition.router_template_ref) || undefined;
+  payload.registries = asObject(composition.registries);
+  payload.module_bindings = asObject(composition.module_bindings);
+  payload.instance_permissions = asObject(composition.instance_permissions);
+
   return payload;
 }
 
@@ -161,6 +197,24 @@ export function buildInstallDraftFormPatch(
   }
   if (draft.max_factory_version) {
     patch.contract_template_max_factory_version = draft.max_factory_version;
+  }
+
+  patch.contract_composition_mode = draft.contract_mode || "";
+  patch.contract_instance_id = draft.contract_instance_id || "";
+  patch.contract_recipe_id = asString(draft.contract_recipe?.recipe_id);
+  patch.contract_recipe_version = asString(draft.contract_recipe?.version);
+  patch.contract_router_template_ref = draft.router_template_ref || "";
+  if (draft.registries && Object.keys(draft.registries).length > 0) {
+    patch.contract_registries_json = stringifyOrFallback(draft.registries, "{}");
+  }
+  if (draft.contract_modules?.length) {
+    patch.contract_modules_json = stringifyOrFallback(draft.contract_modules, "[]");
+  }
+  if (draft.module_bindings && Object.keys(draft.module_bindings).length > 0) {
+    patch.contract_module_bindings_json = stringifyOrFallback(draft.module_bindings, "{}");
+  }
+  if (draft.instance_permissions && Object.keys(draft.instance_permissions).length > 0) {
+    patch.contract_instance_permissions_json = stringifyOrFallback(draft.instance_permissions, "{}");
   }
 
   return patch;

@@ -60,6 +60,7 @@ import { NeoCard } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { api } from "../../services/api";
 import { useWallet } from "@shared/utils/wallet-sdk";
@@ -255,20 +256,12 @@ const broadcast = async () => {
     const updated = await api.updateStatus(request.value.id, "broadcasted", txid);
     request.value = updated;
 
-    let history: Array<{ id: string; status?: string }> = [];
-    try {
-      const stored = uni.getStorageSync("multisig_history");
-      if (stored) {
-        history = JSON.parse(stored);
-      }
-    } catch (_e: unknown) {
-      console.warn("[neo-multisig] history load failed:", _e instanceof Error ? _e.message : String(_e));
-      history = [];
-    }
+    const cachedHistory = readCachedJSON<Array<{ id: string; status?: string }>>("multisig_history");
+    const history = Array.isArray(cachedHistory) ? cachedHistory : [];
     const index = history.findIndex((item: { id: string; status?: string }) => item.id === request.value?.id);
     if (index >= 0) {
       history[index].status = "broadcasted";
-      uni.setStorageSync("multisig_history", JSON.stringify(history));
+      writeCachedJSON("multisig_history", history);
     }
 
     setStatus(t("toastBroadcastSuccess"), "success");

@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 import yaml from "js-yaml";
 import { miniAppConfigSchema } from "@/lib/schemas";
+import type { ZodError } from "zod";
 import type {
   MiniAppMediaAssetKind,
   MiniAppMediaUploadUrlResult,
@@ -66,6 +67,16 @@ export function useMiniAppEditorController({
     setMediaUploadInfo("");
   };
 
+  const formatValidationError = (error: ZodError): string => {
+    const messages = error.errors
+      .map((issue) => {
+        const path = issue.path.filter(Boolean).join(".");
+        return path ? `${path}: ${issue.message}` : issue.message;
+      })
+      .filter(Boolean);
+    return Array.from(new Set(messages)).join("; ") || "Validation failed";
+  };
+
   const handleCreate = async (): Promise<boolean> => {
     setFormError("");
     let payload: Record<string, unknown>;
@@ -78,7 +89,7 @@ export function useMiniAppEditorController({
 
     const result = miniAppConfigSchema.safeParse(payload);
     if (!result.success) {
-      setFormError(result.error.errors[0]?.message || "Validation failed");
+      setFormError(formatValidationError(result.error));
       return false;
     }
 
@@ -116,7 +127,7 @@ export function useMiniAppEditorController({
 
     const result = miniAppConfigSchema.safeParse(parsed);
     if (!result.success) {
-      setFormError(result.error.errors.map((error) => `${error.path.join(".")}: ${error.message}`).join("; "));
+      setFormError(formatValidationError(result.error));
       return false;
     }
 
@@ -149,7 +160,7 @@ export function useMiniAppEditorController({
 
     const result = miniAppConfigSchema.safeParse(payload);
     if (!result.success) {
-      setFormError(result.error.errors[0]?.message || "Validation failed");
+      setFormError(formatValidationError(result.error));
       return false;
     }
 

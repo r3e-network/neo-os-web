@@ -5,6 +5,7 @@ import { toFixedDecimals } from "@shared/utils/format";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { useContractAddress } from "@shared/composables/useContractAddress";
+import { useWalletBalanceReader } from "@shared/composables/useWalletBalanceReader";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Token } from "@/types";
@@ -17,7 +18,9 @@ const SWAP_DEADLINE_SECONDS = 600;
 
 /** Manages token swap operations, balance tracking, and price estimation. */
 export function useSwapEngine(t: Ref<(key: string) => string>) {
-  const { getAddress, invokeContract, balances, chainType } = useWallet() as WalletSDK;
+  const wallet = useWallet() as WalletSDK;
+  const { getAddress, invokeContract } = wallet;
+  const { address, chainType, readBalance } = useWalletBalanceReader();
   const {
     contractAddress: SWAP_ROUTER,
     ensure: ensureRouterAddress,
@@ -40,19 +43,35 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   const isSwapping = ref(false);
   let swapAnimTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const stopBalancesWatch = watch(
-    balances,
-    (newVal) => {
-      const neo = Number(newVal["NEO"] || 0);
-      const gas = Number(newVal["GAS"] || 0);
-      // Update token balances directly on the reactive refs (not a shared module array)
-      if (fromToken.value.symbol === "NEO") fromToken.value.balance = neo;
-      if (fromToken.value.symbol === "GAS") fromToken.value.balance = gas;
-      if (toToken.value.symbol === "NEO") toToken.value.balance = neo;
-      if (toToken.value.symbol === "GAS") toToken.value.balance = gas;
-    },
-    { deep: true, immediate: true }
-  );
+  function applyTokenBalances(neo: number, gas: number) {
+    if (fromToken.value.symbol === "NEO") fromToken.value.balance = neo;
+    if (fromToken.value.symbol === "GAS") fromToken.value.balance = gas;
+    if (toToken.value.symbol === "NEO") toToken.value.balance = neo;
+    if (toToken.value.symbol === "GAS") toToken.value.balance = gas;
+  }
+
+  async function refreshBalances() {
+    if (!address.value) {
+      applyTokenBalances(0, 0);
+      return;
+    }
+
+    try {
+      const [neo, gas] = await Promise.all([
+        readBalance("NEO", { decimals: 0 }),
+        readBalance("GAS", { decimals: 8 }),
+      ]);
+      applyTokenBalances(neo, gas);
+    } catch (e: unknown) {
+      console.warn("[useSwapEngine] refreshBalances failed:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const stopWalletWatch = watch([address, chainType], () => {
+    refreshBalances().catch((e: unknown) => {
+      console.warn("[useSwapEngine] refreshBalances watch failed:", e instanceof Error ? e.message : String(e));
+    });
+  }, { immediate: true });
 
   const availableTokens = computed<Token[]>(() => [
     { ...NEO_TOKEN_TEMPLATE, balance: fromToken.value.symbol === "NEO" ? fromToken.value.balance : toToken.value.symbol === "NEO" ? toToken.value.balance : 0 },
@@ -205,6 +224,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
       showStatus(`${t.value("swapSuccess")}: ${amount} ${fromToken.value.symbol}`, "success");
       fromAmount.value = "";
       toAmount.value = "";
+      await refreshBalances();
     } catch (e: unknown) {
       showStatus(formatErrorMessage(e, t.value("swapFailed")), "error");
     } finally {
@@ -219,7 +239,7 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
 
   onUnmounted(() => {
     if (swapAnimTimer) clearTimeout(swapAnimTimer);
-    stopBalancesWatch();
+    stopWalletWatch();
   });
 
   return {

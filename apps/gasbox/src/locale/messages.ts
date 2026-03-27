@@ -79,7 +79,36 @@ const appMessages = {
     playLabel: { en: "Play", zh: "游玩" },
     rolling: { en: "Rolling...", zh: "抽取中..." },
     playNow: { en: "Play Now", zh: "立即游玩" },
+    chooseAnotherMachine: { en: "Choose Another Machine", zh: "选择其他机器" },
     backToMarket: { en: "Back to Market", zh: "返回市场" },
+    marketActionTitle: { en: "Play This Machine", zh: "游玩当前机器" },
+    marketPromptTitle: { en: "Select a Machine to Play", zh: "选择一台机器开始游玩" },
+    marketPromptSubtitle: {
+        en: "Pick a machine from the market list to inspect prizes, odds, and play cost.",
+        zh: "从市场列表中选择机器，查看奖品、概率和游玩成本。",
+    },
+    marketPromptHint: {
+        en: "The market tab is for players first. Creator tooling only appears in Studio.",
+        zh: "市场页优先服务玩家。创作者工具仅在工作室中显示。",
+    },
+    discoverPanelTitle: { en: "Discover Machines", zh: "发现机器" },
+    discoverPanelSubtitle: {
+        en: "Compare machines in the center panel, then return to Market when you are ready to play.",
+        zh: "在中间面板中比较机器，准备游玩时再返回市场。",
+    },
+    discoverPanelHint: {
+        en: "Use Discover to browse. Use Market to play or buy.",
+        zh: "发现页用于浏览，市场页用于游玩或购买。",
+    },
+    managePanelTitle: { en: "Manage Your Machines", zh: "管理你的机器" },
+    managePanelSubtitle: {
+        en: "Update pricing, listings, and prize inventory from the management panel.",
+        zh: "在管理面板中更新价格、上架状态和奖品库存。",
+    },
+    managePanelHint: {
+        en: "Creator actions stay here so the player path remains focused.",
+        zh: "创作者操作集中在这里，保持玩家路径简洁明确。",
+    },
     machineContents: { en: "Machine Contents", zh: "机器内容" },
     noPrizes: { en: "No prizes configured yet.", zh: "暂无配置奖品。" },
     collect: { en: "Collect", zh: "领取" },

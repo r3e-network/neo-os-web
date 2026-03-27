@@ -79,6 +79,7 @@ import {
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
 import { messages } from "@/locale/messages";
 
 const network = getNetwork();
@@ -87,7 +88,6 @@ const aaCore = integration.contracts.aaCore;
 const identityWorkspaceUrl = getAAIdentityWorkspaceUrl(network);
 const aaWorkspaceUrl = getAAAppWorkspaceUrl(network);
 const recoveryDocsUrl = getAADocsUrl(network);
-const soulboundAppUrl = "/miniapps/soulbound-certificate/index.html";
 const recoveryCredential = CREDENTIAL_REGISTRY.recovery_audit;
 
 const accountAddress = ref("");
@@ -342,7 +342,7 @@ function buildRecoveryCredentialUrl() {
   if (recoveryTemplateId.value.trim()) {
     params.set("issueTemplateId", recoveryTemplateId.value.trim());
   }
-  return `${soulboundAppUrl}?${params.toString()}`;
+  return buildMiniAppLaunchUrl("miniapp-soulbound-certificate", Object.fromEntries(params.entries()));
 }
 
 const previewUrl = computed(() => {
