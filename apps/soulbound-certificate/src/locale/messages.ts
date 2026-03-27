@@ -42,6 +42,9 @@ const appMessages = {
   activate: { en: "Activate", zh: "启用" },
 
   issueTitle: { en: "Issue Certificate", zh: "签发证书" },
+  registryTitle: { en: "Credential Registry", zh: "凭证注册表" },
+  registryText: { en: "These are the credential classes currently standardized across the miniapp credential system.", zh: "这些是当前在小程序凭证系统中已经标准化的凭证类别。" },
+  registryKey: { en: "Registry Key", zh: "注册键" },
   draftReadyTitle: { en: "Draft Ready", zh: "草稿已就绪" },
   draftReadyText: { en: "A credential draft was passed in from another miniapp. Select a template below to issue it.", zh: "来自其他小程序的证书草稿已带入。请选择下方模板完成签发。" },
   draftCredentialType: { en: "Credential Type", zh: "凭证类型" },
