@@ -38,6 +38,25 @@
         </HeroSection>
       </div>
 
+      <div class="issue-draft-card">
+        <p class="issue-draft-title">{{ t("credentialTypeFilterTitle") }}</p>
+        <div class="issue-draft-filter-actions">
+          <NeoButton size="sm" :variant="!selectedCredentialType ? 'primary' : 'secondary'" type="button" @click="selectedCredentialType = ''">
+            {{ t("allCredentialTypes") }}
+          </NeoButton>
+          <NeoButton
+            v-for="entry in credentialRegistryEntries"
+            :key="`credential-filter-${entry.credentialType}`"
+            size="sm"
+            :variant="selectedCredentialType === entry.credentialType ? 'primary' : 'secondary'"
+            type="button"
+            @click="selectedCredentialType = entry.credentialType"
+          >
+            {{ entry.credentialType }}
+          </NeoButton>
+        </div>
+      </div>
+
       <TemplateList
         :templates="displayTemplates"
         :refreshing="isRefreshing"
@@ -241,6 +260,7 @@ const isRefreshing = ref(false);
 const issueModalOpen = ref(false);
 const issueTemplateId = ref("");
 const showRecommendedOnly = ref(false);
+const selectedCredentialType = ref("");
 const templateFormPrefillKey = ref(0);
 const recentTemplateIds = ref<string[]>([]);
 const issueLinkHistory = ref<Array<{ templateId: string; url: string; createdAt: string; credentialType?: string; issuerPolicy?: string }>>([]);
@@ -273,6 +293,7 @@ const appState = computed(() => ({
   certificatesCount: certificates.value.length,
   issueDraft: issueDraft.value,
   showRecommendedOnly: showRecommendedOnly.value,
+  selectedCredentialType: selectedCredentialType.value,
   recentTemplatesCount: recentTemplateItems.value.length,
   recentLinksCount: issueLinkHistory.value.length,
 }));
@@ -440,17 +461,32 @@ const recommendedTemplates = computed(() => {
   return templates.value.filter((template) => template.active && String(template.category || "").trim().toLowerCase() === draftCategory.value);
 });
 
+const filteredTemplatesByCredentialType = computed(() => {
+  if (!selectedCredentialType.value) return templates.value;
+  const registryEntry = credentialRegistryEntries.find((entry) => entry.credentialType === selectedCredentialType.value);
+  if (!registryEntry) return templates.value;
+  return templates.value.filter((template) => String(template.category || "").trim().toLowerCase() === String(registryEntry.category || "").trim().toLowerCase());
+});
+
+const filteredRecommendedTemplates = computed(() => {
+  if (!selectedCredentialType.value) return recommendedTemplates.value;
+  const allowedTemplateIds = new Set(filteredTemplatesByCredentialType.value.map((template) => template.id));
+  return recommendedTemplates.value.filter((template) => allowedTemplateIds.has(template.id));
+});
+
 const displayTemplates = computed(() => {
-  if (!issueDraft.value || !draftCategory.value || recommendedTemplates.value.length === 0) {
-    return templates.value;
+  const baseTemplates = filteredTemplatesByCredentialType.value;
+  const recommended = filteredRecommendedTemplates.value;
+  if (!issueDraft.value || !draftCategory.value || recommended.length === 0) {
+    return baseTemplates;
   }
   if (showRecommendedOnly.value) {
-    return recommendedTemplates.value;
+    return recommended;
   }
-  const recommendedIds = new Set(recommendedTemplates.value.map((template) => template.id));
+  const recommendedIds = new Set(recommended.map((template) => template.id));
   return [
-    ...recommendedTemplates.value,
-    ...templates.value.filter((template) => !recommendedIds.has(template.id)),
+    ...recommended,
+    ...baseTemplates.filter((template) => !recommendedIds.has(template.id)),
   ];
 });
 
@@ -541,6 +577,9 @@ onMounted(async () => {
     const autoIssueDraft = ["1", "true", "yes"].includes(String(params.get("autoIssueDraft") || "").trim().toLowerCase());
     if (recipient || recipientName || achievement || memo) {
       issueDraft.value = { recipient, recipientName, achievement, memo, category, credentialType, issuerPolicy, source };
+      if (credentialType) {
+        selectedCredentialType.value = credentialType;
+      }
       if (templateId) {
         issueTemplateId.value = templateId;
       }
