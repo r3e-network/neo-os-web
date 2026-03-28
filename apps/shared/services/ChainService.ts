@@ -25,8 +25,9 @@ import type { ComputedRef, Ref } from "vue";
 import { useContractInteraction } from "../composables/useContractInteraction";
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
-import { useEvents } from "../utils/wallet-sdk";
+import { useEvents, useWallet } from "../utils/wallet-sdk";
 import type { EventsListParams } from "../utils/wallet-sdk";
+import type { WalletSDK } from "../utils/wallet-sdk";
 import { useAllEvents } from "../composables/useAllEvents";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
 
@@ -65,6 +66,8 @@ export interface TxResult {
   success: boolean;
 }
 
+export type SignedMessageResult = string | { publicKey?: string; data?: string } | null;
+
 export interface EventListOptions {
   limit?: number;
   offset?: number;
@@ -84,9 +87,11 @@ interface WalletSigner {
 
 export class ChainService {
   private interaction: ReturnType<typeof useContractInteraction>;
+  private wallet: WalletSDK;
   private cache: CacheService;
   private events: EventBus;
   private appId: string;
+  private t: (key: string) => string;
   private listEventsComposable: ReturnType<typeof useEvents>;
   private allEvents: ReturnType<typeof useAllEvents>;
 
@@ -100,9 +105,11 @@ export class ChainService {
     events: EventBus,
   ) {
     this.appId = appId;
+    this.t = t;
     this.cache = cache;
     this.events = events;
 
+    this.wallet = useWallet() as WalletSDK;
     this.interaction = useContractInteraction({ appId, t });
     this.listEventsComposable = useEvents();
     this.allEvents = useAllEvents(this.listEventsComposable.list, appId);
@@ -143,6 +150,23 @@ export class ChainService {
   /** Whether a write operation is currently in flight. */
   get isProcessing(): Ref<boolean> {
     return this.interaction.isProcessing;
+  }
+
+  /**
+   * Sign an arbitrary message with the connected wallet.
+   * This keeps wallet-level signing inside the shared chain layer rather than
+   * forcing miniapps to talk to the wallet SDK directly.
+   */
+  async signMessage(message: string): Promise<SignedMessageResult> {
+    if (!message) return null;
+
+    await this.ensureWallet();
+
+    if (!this.wallet.signMessage) {
+      throw new Error(this.t("signNotSupported"));
+    }
+
+    return this.wallet.signMessage(message);
   }
 
   // -- Read operations ------------------------------------------------------

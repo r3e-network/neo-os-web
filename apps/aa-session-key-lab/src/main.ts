@@ -5,7 +5,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,9 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-aa-session-key-lab", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const lab = useAASessionKeyLab({
       aa: platformServices.aa,
@@ -31,28 +28,53 @@ defineMiniApp({
 
     ctx.registerAction("generateKey", async () => {
       const result = await platformServices.notify.guard(
-        async () => { lab.generateSessionKey(); return { publicKey: lab.form.sessionPublicKey }; },
-        "sessionKeyGenerated", "sessionKeyGenerateFailed",
+        async () => {
+          lab.generateSessionKey();
+          return { publicKey: lab.form.sessionPublicKey };
+        },
+        "sessionKeyGenerated",
+        "sessionKeyGenerateFailed",
       );
       return result;
     });
 
     ctx.registerAction("checkSponsor", () =>
-      platformServices.notify.guard(() => lab.checkSponsor(), "sponsorCheckComplete", "sponsorCheckFailed"),
+      platformServices.notify.guard(
+        () => lab.checkSponsor(),
+        "sponsorCheckComplete",
+        "sponsorCheckFailed",
+      ),
     );
 
     ctx.registerAction("requestSponsor", () =>
-      platformServices.notify.guard(() => lab.requestSponsor(), "sponsorRequestComplete", "sponsorRequestFailed"),
+      platformServices.notify.guard(
+        () => lab.requestSponsor(),
+        "sponsorRequestComplete",
+        "sponsorRequestFailed",
+      ),
     );
 
-    ctx.registerAction("configureSessionKey", async (accountSeed: string, sessionPublicKey: string, targetContract: string, allowedMethod: string, expiresAt: string) => {
-      lab.form.accountSeed = accountSeed;
-      lab.form.sessionPublicKey = sessionPublicKey;
-      lab.form.targetContract = targetContract;
-      lab.form.allowedMethod = allowedMethod;
-      lab.form.expiresAt = expiresAt;
-      await platformServices.notify.guard(() => lab.configureSessionKey(), "sessionConfigured", "sessionConfigureFailed");
-    });
+    ctx.registerAction(
+      "configureSessionKey",
+      async (
+        accountSeed: string,
+        sessionPublicKey: string,
+        targetContract: string,
+        allowedMethod: string,
+        expiresAt: string,
+      ) => {
+        lab.form.accountSeed = accountSeed;
+        lab.form.sessionPublicKey = sessionPublicKey;
+        lab.form.targetContract = targetContract;
+        lab.form.allowedMethod = allowedMethod;
+        lab.form.expiresAt = expiresAt;
+        await platformServices.notify.guard(
+          () => lab.configureSessionKey(),
+          "sessionConfigured",
+          "sessionConfigureFailed",
+        );
+      },
+    );
 
     return {
       state: {
@@ -69,7 +91,6 @@ defineMiniApp({
         sponsorStatusDisplay: lab.sponsorStatusDisplay,
       },
       loadData: lab.loadAll,
-      cleanup: () => platformServices.destroy(),
     };
   },
 });

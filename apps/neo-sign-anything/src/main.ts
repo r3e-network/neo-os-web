@@ -3,7 +3,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -16,9 +15,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-sign-anything", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { notify } = platformServices;
 
@@ -34,7 +31,10 @@ defineMiniApp({
     });
 
     ctx.registerAction("broadcastMessage", async (msg: string) => {
-      await notify.guard(() => signAnything.broadcastMessage(msg), "broadcastSuccess");
+      await notify.guard(
+        () => signAnything.broadcastMessage(msg),
+        "broadcastSuccess",
+      );
     });
 
     ctx.registerAction("copyToClipboard", async (text: string) => {
@@ -52,7 +52,6 @@ defineMiniApp({
         broadcastCount: signAnything.broadcastCount,
       },
       loadData: signAnything.loadData,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

@@ -56,14 +56,24 @@
  * - Manages fireworks, status messages, and error boundary
  */
 
-import { ref, reactive, computed, provide, watch, onMounted, onUnmounted } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  provide,
+  watch,
+  onMounted,
+  onUnmounted,
+} from "vue";
 import type { Component, Ref } from "vue";
-import type { MiniAppManifest, SidebarItemDefinition } from "@shared/types/miniapp-manifest";
+import type {
+  MiniAppManifest,
+  SidebarItemDefinition,
+} from "@shared/types/miniapp-manifest";
 import type { MiniAppTemplateConfig } from "@shared/types/template-config";
 import type {
   MiniAppContext,
   MiniAppSetupResult,
-  PlatformServices,
 } from "@shared/types/miniapp-context";
 import {
   MINIAPP_CONTEXT_KEY,
@@ -71,6 +81,8 @@ import {
   MINIAPP_ACTIONS_KEY,
   MINIAPP_STATE_KEY,
 } from "@shared/types/miniapp-context";
+import { EventBus, NOTIFICATION_EVENT, PlatformServices } from "@shared/services";
+import type { Notification } from "@shared/services";
 import { manifestToTemplateConfig } from "@shared/utils/manifestToTemplateConfig";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
@@ -93,10 +105,10 @@ const props = defineProps<{
   manifest: MiniAppManifest;
   /** i18n messages keyed by locale */
   messages: Record<string, Record<string, string>>;
-  /** Platform services instance */
-  services: PlatformServices;
   /** Optional setup function from the miniapp definition */
-  setupFn?: (ctx: MiniAppContext) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
+  setupFn?: (
+    ctx: MiniAppContext,
+  ) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
 }>();
 
 // ============================================================================
@@ -104,13 +116,19 @@ const props = defineProps<{
 // ============================================================================
 
 const { t } = createUseI18n(props.messages)();
-const tFn = t as (key: string, params?: Record<string, string | number>) => string;
+const tFn = t as (
+  key: string,
+  params?: Record<string, string | number>,
+) => string;
+const services = PlatformServices.create(props.appId, { t: tFn });
 
 // ============================================================================
 // Template Config
 // ============================================================================
 
-const templateConfig: MiniAppTemplateConfig = manifestToTemplateConfig(props.manifest);
+const templateConfig: MiniAppTemplateConfig = manifestToTemplateConfig(
+  props.manifest,
+);
 
 // ============================================================================
 // Status & Fireworks
@@ -138,7 +156,10 @@ const actionHandlers = new Map<string, (...args: unknown[]) => Promise<void>>();
 
 const loadError = ref<Error | null>(null);
 
-const registerAction = (key: string, handler: (...args: unknown[]) => Promise<void>) => {
+const registerAction = (
+  key: string,
+  handler: (...args: unknown[]) => Promise<void>,
+) => {
   actionHandlers.set(key, handler);
 };
 
@@ -161,7 +182,9 @@ const FORMAT_MAP: Record<string, FormatFn> = {
   },
   gas: (v) => {
     const n = Number(v);
-    return isNaN(n) ? String(v ?? "") : `${n.toLocaleString(undefined, { maximumFractionDigits: 8 })} GAS`;
+    return isNaN(n)
+      ? String(v ?? "")
+      : `${n.toLocaleString(undefined, { maximumFractionDigits: 8 })} GAS`;
   },
   percent: (v) => {
     const n = Number(v);
@@ -221,7 +244,7 @@ const fallbackMessage = tFn("errorFallback");
 // ============================================================================
 
 const ctx: MiniAppContext = {
-  services: props.services,
+  services,
   t: tFn,
   state: appState,
   setStatus: (msg: string, type: StatusType) => {
@@ -239,12 +262,46 @@ provide(MINIAPP_MANIFEST_KEY, props.manifest);
 provide(MINIAPP_ACTIONS_KEY, actionHandlers);
 provide(MINIAPP_STATE_KEY, appState);
 
+const stopNotificationEvents = services.events.on(NOTIFICATION_EVENT, (payload) => {
+  const notification = payload as Notification | null;
+  if (!notification?.message) return;
+  setStatus(notification.message, notification.type);
+});
+
+const stopPlatformErrors = services.events.on(EventBus.ERROR, (payload) => {
+  const errorPayload = payload as { error?: unknown } | null;
+  const error = errorPayload?.error;
+  if (error instanceof Error) {
+    setStatus(error.message, "error");
+    return;
+  }
+  if (typeof error === "string" && error.length > 0) {
+    setStatus(error, "error");
+  }
+});
+
+services.lifecycle.registerCleanup(stopNotificationEvents);
+services.lifecycle.registerCleanup(stopPlatformErrors);
+
 // ============================================================================
 // Setup Hook Execution
 // ============================================================================
 
 let loadDataFn: (() => Promise<void>) | undefined;
-let cleanupFn: (() => void) | undefined;
+
+const executeLoadData = async () => {
+  if (!loadDataFn) return;
+
+  try {
+    loadError.value = null;
+    await loadDataFn();
+  } catch (err) {
+    console.error(`[${props.appId}] loadData error:`, err);
+    loadError.value =
+      err instanceof Error ? err : new Error("Failed to load data");
+    setStatus(loadError.value.message, "error");
+  }
+};
 
 const setupPromise = (async () => {
   if (!props.setupFn) return;
@@ -256,13 +313,15 @@ const setupPromise = (async () => {
       }
     }
     loadDataFn = result?.loadData;
-    cleanupFn = result?.cleanup;
+    if (loadDataFn) {
+      services.lifecycle.onDataLoad(executeLoadData);
+    }
+    if (result?.cleanup) {
+      services.lifecycle.registerCleanup(result.cleanup);
+    }
   } catch (err) {
     console.error(`[${props.appId}] setup error:`, err);
-    setStatus(
-      err instanceof Error ? err.message : "Setup failed",
-      "error",
-    );
+    setStatus(err instanceof Error ? err.message : "Setup failed", "error");
   }
 })();
 
@@ -272,88 +331,76 @@ const setupPromise = (async () => {
 
 onMounted(async () => {
   await setupPromise;
-  if (loadDataFn) {
-    try {
-      loadError.value = null;
-      await loadDataFn();
-    } catch (err) {
-      console.error(`[${props.appId}] loadData error:`, err);
-      loadError.value = err instanceof Error ? err : new Error("Failed to load data");
-      setStatus(
-        loadError.value.message,
-        "error",
-      );
-    }
-  }
 
   // Watch for wallet address changes and reload data automatically.
   // The chain service exposes `address` as a Ref<string | null>.
-  const chainService = props.services.chain as { address?: Ref<string | null> } | undefined;
+  const chainService = services.chain as
+    | { address?: Ref<string | null> }
+    | undefined;
   if (chainService?.address && loadDataFn) {
-    const addressRef = chainService.address;
-    watch(addressRef, () => {
-      reloadData();
+    const stopWatchingAddress = watch(chainService.address, () => {
+      void reloadData();
     });
+    services.lifecycle.registerCleanup(stopWatchingAddress);
   }
+
+  await services.lifecycle.mount();
 });
 
 onUnmounted(() => {
   if (fireworksTimer !== null) clearTimeout(fireworksTimer);
-  cleanupFn?.();
+  services.destroy();
 });
 
 // ============================================================================
 // Action Handling
 // ============================================================================
 
-const handleAction = async (operationKey: string, formData: Record<string, unknown>) => {
+const handleAction = async (
+  operationKey: string,
+  formData: Record<string, unknown>,
+) => {
   const op = props.manifest.operations?.find((o) => o.key === operationKey);
   const methodKey = op?.actionMethod ?? operationKey;
   const handler = actionHandlers.get(methodKey);
   if (!handler) {
-    console.warn(`[${props.appId}] No action handler registered for "${methodKey}"`);
+    console.warn(
+      `[${props.appId}] No action handler registered for "${methodKey}"`,
+    );
     return;
   }
   try {
     await handler(formData);
   } catch (err) {
     console.error(`[${props.appId}] action "${methodKey}" error:`, err);
-    setStatus(
-      err instanceof Error ? err.message : "Action failed",
-      "error",
-    );
+    setStatus(err instanceof Error ? err.message : "Action failed", "error");
   }
 };
 
 const reloadData = async () => {
-  if (loadDataFn) {
-    try {
-      loadError.value = null;
-      clearStatus();
-      await loadDataFn();
-    } catch (err) {
-      console.error(`[${props.appId}] reload error:`, err);
-      loadError.value = err instanceof Error ? err : new Error("Failed to load data");
-      setStatus(
-        loadError.value.message,
-        "error",
-      );
-    }
-  }
+  if (!loadDataFn) return;
+
+  loadError.value = null;
+  clearStatus();
+  await services.lifecycle.reloadData();
 };
 
 // ============================================================================
 // Computed Props
 // ============================================================================
 
-const hasOperations = computed(() => (props.manifest.operations?.length ?? 0) > 0);
-const additionalTabs = computed(() => (props.manifest.tabs ?? []).filter((tab) => !tab.default));
+const hasOperations = computed(
+  () => (props.manifest.operations?.length ?? 0) > 0,
+);
+const additionalTabs = computed(() =>
+  (props.manifest.tabs ?? []).filter((tab) => !tab.default),
+);
 
 /** Props passed down to the play area component */
 const playAreaProps = computed(() => ({
   t: tFn,
   state: appState,
-  services: props.services,
+  services,
   status: status.value,
   setStatus: ctx.setStatus,
   clearStatus,

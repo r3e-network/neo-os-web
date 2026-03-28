@@ -1,5 +1,4 @@
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -12,9 +11,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-event-ticket-pass", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const ticket = useEventTicket({
       chain: platformServices.chain,
@@ -22,9 +19,15 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("refreshEvents", async () => { await ticket.refreshEvents(); });
-    ctx.registerAction("connectWallet", async () => { await ticket.connectWallet(); });
-    ctx.registerAction("openIssueModal", async (event: unknown) => { ticket.openIssueModal(event); });
+    ctx.registerAction("refreshEvents", async () => {
+      await ticket.refreshEvents();
+    });
+    ctx.registerAction("connectWallet", async () => {
+      await ticket.connectWallet();
+    });
+    ctx.registerAction("openIssueModal", async (event: unknown) => {
+      ticket.openIssueModal(event);
+    });
     ctx.registerAction("toggleEvent", (event: unknown) =>
       platformServices.notify.guard(() => ticket.toggleEvent(event)),
     );
@@ -42,7 +45,6 @@ defineMiniApp({
         isLoading: ticket.isLoading,
       },
       loadData: ticket.loadAll,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

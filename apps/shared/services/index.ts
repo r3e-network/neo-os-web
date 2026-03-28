@@ -14,7 +14,7 @@ export { PlatformServices, usePlatformServices, providePlatformServices } from "
 export type { PlatformServicesOptions } from "./PlatformServices";
 
 export { ChainService } from "./ChainService";
-export type { ContractArg, ReadOptions, InvokeOptions, TxResult, EventListOptions } from "./ChainService";
+export type { ContractArg, ReadOptions, InvokeOptions, TxResult, EventListOptions, SignedMessageResult } from "./ChainService";
 
 export { BalanceService } from "./BalanceService";
 

@@ -12,7 +12,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -26,9 +25,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-ns", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const ns = useNeoNS({
       chain: platformServices.chain,
@@ -73,7 +70,10 @@ defineMiniApp({
       handleTransfer: {
         handler: async (transferAddress: unknown) => {
           if (!transferAddress || !ns.managingDomain.value) return;
-          await ns.transferDomain(ns.managingDomain.value, String(transferAddress));
+          await ns.transferDomain(
+            ns.managingDomain.value,
+            String(transferAddress),
+          );
           ns.cancelManage();
         },
         successKey: "transferred",
@@ -116,7 +116,6 @@ defineMiniApp({
       // ── Cleanup ───────────────────────────────────────────────────
       cleanup: () => {
         ns.cleanup();
-        platformServices.destroy();
       },
     };
   },

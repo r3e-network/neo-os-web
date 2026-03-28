@@ -1,5 +1,4 @@
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -12,9 +11,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-forever-album", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const album = useForeverAlbum({
       chain: platformServices.chain,
@@ -25,21 +22,46 @@ defineMiniApp({
     const { notify } = platformServices;
 
     ctx.registerAction("viewPhoto", async (photo: unknown) => {
-      album.viewPhoto(photo as { id: string; data: string; encrypted: boolean; createdAt: number });
+      album.viewPhoto(
+        photo as {
+          id: string;
+          data: string;
+          encrypted: boolean;
+          createdAt: number;
+        },
+      );
     });
 
-    ctx.registerAction("openUpload", async () => { album.openUpload(); });
-    ctx.registerAction("closeUpload", async () => { album.closeUpload(); });
-    ctx.registerAction("closeViewer", async () => { album.closeViewer(); });
-    ctx.registerAction("openDecrypt", async () => { album.openDecrypt(); });
-    ctx.registerAction("closeDecrypt", async () => { album.closeDecrypt(); });
+    ctx.registerAction("openUpload", async () => {
+      album.openUpload();
+    });
+    ctx.registerAction("closeUpload", async () => {
+      album.closeUpload();
+    });
+    ctx.registerAction("closeViewer", async () => {
+      album.closeViewer();
+    });
+    ctx.registerAction("openDecrypt", async () => {
+      album.openDecrypt();
+    });
+    ctx.registerAction("closeDecrypt", async () => {
+      album.closeDecrypt();
+    });
 
     ctx.registerAction("handleDecrypt", async (pwd: unknown) => {
-      await notify.guard(() => album.handleDecrypt(pwd as string), undefined, "decryptFailed");
+      await notify.guard(
+        () => album.handleDecrypt(pwd as string),
+        undefined,
+        "decryptFailed",
+      );
     });
 
     ctx.registerAction("uploadPhotos", async () => {
-      await notify.guard(() => album.uploadPhotos(), "uploadSuccess", "uploadFailed");
+      await notify.guard(
+        () => album.uploadPhotos(),
+        "uploadSuccess",
+        "uploadFailed",
+      );
     });
 
     ctx.registerAction("removeImage", async (id: unknown) => {
@@ -67,7 +89,6 @@ defineMiniApp({
         totalPayloadSize: album.totalPayloadSize,
       },
       loadData: album.loadPhotos,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

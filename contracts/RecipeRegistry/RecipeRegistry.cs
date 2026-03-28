@@ -138,6 +138,37 @@ namespace NeoMiniAppPlatform.Contracts
             return value ?? (ByteString)"";
         }
 
+        private static string ReadJsonString(Map<string, object> source, string key)
+        {
+            if (!source.HasKey(key))
+            {
+                return "";
+            }
+
+            object value = source[key];
+            if (value is string text)
+            {
+                return text;
+            }
+
+            if (value is ByteString bytes)
+            {
+                return (string)bytes;
+            }
+
+            return value?.ToString() ?? "";
+        }
+
+        private static bool ContainsValue(string[] values, string value)
+        {
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (values[i] == value) return true;
+            }
+
+            return false;
+        }
+
         private static UInt160 NormalizeOptionalAddress(UInt160 value)
         {
             if (value == UInt160.Zero) return UInt160.Zero;
@@ -183,6 +214,42 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         [Safe]
+        public static string[] ResolveRecipeBinding(string recipeId, string version, string binding)
+        {
+            ValidateIdentifier(recipeId, "recipe id");
+            ValidateIdentifier(version, "version");
+            ValidateIdentifier(binding, "binding");
+
+            RecipeInfo info = GetRecipe(recipeId, version);
+            if (info.RecipeId.Length == 0 || info.ModuleRefs.Length == 0)
+            {
+                return new string[0];
+            }
+
+            object[] refs = (object[])StdLib.JsonDeserialize((string)info.ModuleRefs);
+            for (int i = 0; i < refs.Length; i++)
+            {
+                Map<string, object> entry = (Map<string, object>)refs[i];
+                string declaredBinding = ReadJsonString(entry, "binding");
+                if (declaredBinding != binding)
+                {
+                    continue;
+                }
+
+                string moduleId = ReadJsonString(entry, "module_id");
+                string declaredVersion = ReadJsonString(entry, "version");
+                if (moduleId.Length == 0 || declaredVersion.Length == 0)
+                {
+                    return new string[0];
+                }
+
+                return new string[] { moduleId, declaredVersion };
+            }
+
+            return new string[0];
+        }
+
+        [Safe]
         public static string[] GetRecipeVersions(string recipeId)
         {
             return ReadStringList(VersionMap(), RecipeVersionKey(recipeId));
@@ -209,11 +276,45 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(normalizedMode.Length <= 64, "mode too long");
             ExecutionEngine.Assert(normalizedRouterTemplateId.Length <= 128, "router template id too long");
 
+            UInt160 moduleRegistry = ModuleRegistry();
+            if (moduleRefs != null && moduleRefs.Length > 0)
+            {
+                object[] refs = (object[])StdLib.JsonDeserialize((string)moduleRefs);
+                string[] seenBindings = new string[0];
+                for (int i = 0; i < refs.Length; i++)
+                {
+                    Map<string, object> entry = (Map<string, object>)refs[i];
+                    string binding = ReadJsonString(entry, "binding");
+                    string moduleId = ReadJsonString(entry, "module_id");
+                    string moduleVersion = ReadJsonString(entry, "version");
+
+                    ExecutionEngine.Assert(moduleId.Length > 0 && moduleVersion.Length > 0, "recipe binding requires module_id/version");
+                    ExecutionEngine.Assert(binding.Length > 0, "recipe binding requires binding");
+                    ExecutionEngine.Assert(!ContainsValue(seenBindings, binding), "duplicate recipe binding");
+                    seenBindings = AppendUnique(seenBindings, binding);
+
+                    if (moduleRegistry != UInt160.Zero && moduleRegistry.IsValid)
+                    {
+                        ByteString? moduleRaw = (ByteString?)Contract.Call(
+                            moduleRegistry, "getModule", CallFlags.ReadOnly,
+                            new object[] { moduleId, moduleVersion });
+                        ExecutionEngine.Assert(moduleRaw != null, "recipe references unknown module");
+
+                        object[] moduleFields = (object[])StdLib.Deserialize((ByteString)moduleRaw!);
+                        string storedModuleId = (string)(ByteString)moduleFields[0];
+                        ExecutionEngine.Assert(storedModuleId.Length > 0, "recipe references unknown module");
+
+                        bool moduleActive = (bool)moduleFields[7];
+                        ExecutionEngine.Assert(moduleActive, "recipe references inactive module");
+                    }
+                }
+            }
+
             RecipeInfo info = new RecipeInfo
             {
                 RecipeId = recipeId,
                 Version = version,
-                ModuleRefs = NormalizeBlob(moduleRefs),
+                ModuleRefs = NormalizeBlob(moduleRefs!),
                 RequiredFields = NormalizeBlob(requiredFields),
                 OperationSchema = NormalizeBlob(operationSchema),
                 AllowedRuntimeMode = normalizedMode,

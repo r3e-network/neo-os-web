@@ -7,7 +7,6 @@
 
 import { computed, watch } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -25,9 +24,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-gasbox", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { chain, events: eventBus } = platformServices;
 
@@ -43,10 +40,21 @@ defineMiniApp({
       contractAddress,
     } = useGachaMachines({ chain, t: ctx.t });
 
-    const { isPlaying, showResult, resultItem, playError, showFireworks, resetResult, playMachine, buyMachine } =
-      useGachaPlay({ chain, eventBus, t: ctx.t });
+    const {
+      isPlaying,
+      showResult,
+      resultItem,
+      playError,
+      showFireworks,
+      resetResult,
+      playMachine,
+      buyMachine,
+    } = useGachaPlay({ chain, eventBus, t: ctx.t });
 
-    const { address, requestWallet, handleWalletConnect } = useGachaWallet({ chain, t: ctx.t });
+    const { address, requestWallet, handleWalletConnect } = useGachaWallet({
+      chain,
+      t: ctx.t,
+    });
 
     const {
       updateMachinePrice,
@@ -58,12 +66,20 @@ defineMiniApp({
       withdrawItem,
     } = useGachaManagement({ chain, t: ctx.t });
 
-    const { isPublishing, publishMachine } = useGachaPublish({ chain, eventBus, t: ctx.t });
+    const { isPublishing, publishMachine } = useGachaPublish({
+      chain,
+      eventBus,
+      t: ctx.t,
+    });
 
     // Derived display values for manifest bindings
     const machineCount = computed(() => machines.value.length);
-    const isPlayingDisplay = computed(() => (isPlaying.value ? ctx.t("yes") : ctx.t("no")));
-    const selectedMachineName = computed(() => selectedMachine.value?.name || ctx.t("none"));
+    const isPlayingDisplay = computed(() =>
+      isPlaying.value ? ctx.t("yes") : ctx.t("no"),
+    );
+    const selectedMachineName = computed(
+      () => selectedMachine.value?.name || ctx.t("none"),
+    );
 
     const requireAddress = async () => {
       if (!address.value) {
@@ -111,30 +127,34 @@ defineMiniApp({
       });
     });
 
-    ctx.registerAction("publish", async (machineData: {
-      name: string;
-      description: string;
-      category: string;
-      tags: string;
-      price: string;
-      items: {
+    ctx.registerAction(
+      "publish",
+      async (machineData: {
         name: string;
-        probability: number;
-        icon: string;
-        rarity: string;
-        assetType: string;
-        assetHash: string;
-        amount: string;
-        tokenId: string;
-      }[];
-    }) => {
-      if (!(await requireAddress())) return;
-      await publishMachine(machineData, {
-        requireAddress,
-        setStatus: (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-        onSuccess: loadMachines,
-      });
-    });
+        description: string;
+        category: string;
+        tags: string;
+        price: string;
+        items: {
+          name: string;
+          probability: number;
+          icon: string;
+          rarity: string;
+          assetType: string;
+          assetHash: string;
+          amount: string;
+          tokenId: string;
+        }[];
+      }) => {
+        if (!(await requireAddress())) return;
+        await publishMachine(machineData, {
+          requireAddress,
+          setStatus: (msg: string, type: string) =>
+            ctx.setStatus(msg, type as "success" | "error" | "loading"),
+          onSuccess: loadMachines,
+        });
+      },
+    );
 
     ctx.registerAction("connectWallet", async () => {
       await handleWalletConnect();
@@ -143,7 +163,9 @@ defineMiniApp({
     // Auto-load when address changes
     const stopAddressWatch = watch(
       address,
-      () => { loadMachines(); },
+      () => {
+        loadMachines();
+      },
       { immediate: true },
     );
 
@@ -173,7 +195,6 @@ defineMiniApp({
 
       cleanup: () => {
         stopAddressWatch();
-        platformServices.destroy();
       },
     };
   },

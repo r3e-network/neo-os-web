@@ -46,12 +46,25 @@
 import { createApp, h } from "vue";
 import type { Component, App as VueApp } from "vue";
 import type { MiniAppManifest } from "../types/miniapp-manifest";
-import type { MiniAppContext, MiniAppSetupResult, PlatformServices } from "../types/miniapp-context";
+import type {
+  MiniAppContext,
+  MiniAppSetupResult,
+  PlatformServices,
+} from "../types/miniapp-context";
 import MiniAppRoot from "../components/MiniAppRoot.vue";
 
 // Re-export shared types and injection keys so consumers can import from one place
-export type { PlatformServices, MiniAppContext, MiniAppSetupResult } from "../types/miniapp-context";
-export { MINIAPP_CONTEXT_KEY, MINIAPP_MANIFEST_KEY, MINIAPP_ACTIONS_KEY, MINIAPP_STATE_KEY } from "../types/miniapp-context";
+export type {
+  PlatformServices,
+  MiniAppContext,
+  MiniAppSetupResult,
+} from "../types/miniapp-context";
+export {
+  MINIAPP_CONTEXT_KEY,
+  MINIAPP_MANIFEST_KEY,
+  MINIAPP_ACTIONS_KEY,
+  MINIAPP_STATE_KEY,
+} from "../types/miniapp-context";
 export { manifestToTemplateConfig } from "./manifestToTemplateConfig";
 
 // ============================================================================
@@ -73,58 +86,13 @@ export interface MiniAppDefinition {
   messages?: Record<string, Record<string, string>>;
 
   /** Optional setup hook called after services are initialized */
-  setup?: (ctx: MiniAppContext) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
+  setup?: (
+    ctx: MiniAppContext,
+  ) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
 
   /** Optional mount target selector — defaults to "#app" */
   mountTo?: string;
 }
-
-// ============================================================================
-// Stub Platform Services
-// ============================================================================
-
-/**
- * Create stub PlatformServices for use until the real service layer
- * is initialized. Sub-services are null stubs that log warnings.
- *
- * In practice, miniapps should create a real PlatformServices instance
- * via PlatformServices.create() in their setup function and pass
- * sub-services directly to composables.
- */
-function createStubServices(appId: string): PlatformServices {
-  const stubService = new Proxy({} as Record<string, unknown>, {
-    get(_target, prop) {
-      if (typeof prop === "string") {
-        return (..._args: unknown[]) => {
-          const msg = `[defineMiniApp] Stub service method "${prop}" called on "${appId}". Create real PlatformServices via PlatformServices.create().`;
-          if (import.meta.env?.DEV) {
-            throw new Error(msg);
-          }
-          console.warn(msg);
-          return Promise.resolve(null);
-        };
-      }
-      return undefined;
-    },
-  });
-
-  return {
-    appId,
-    chain: stubService,
-    balance: stubService,
-    transfer: stubService,
-    oracle: stubService,
-    aa: stubService,
-    events: stubService,
-    cache: stubService,
-    lifecycle: stubService,
-    destroy: () => {},
-  };
-}
-
-// ============================================================================
-// defineMiniApp()
-// ============================================================================
 
 /**
  * Create and mount a complete miniapp from a single definition object.
@@ -147,9 +115,6 @@ export function defineMiniApp(definition: MiniAppDefinition): VueApp {
     mountTo = "#app",
   } = definition;
 
-  // Build platform services (stub until real service layer)
-  const services = createStubServices(definition.appId);
-
   // Create the root component that renders MiniAppRoot with all props
   const RootApp = {
     name: `MiniApp_${appId}`,
@@ -159,7 +124,6 @@ export function defineMiniApp(definition: MiniAppDefinition): VueApp {
         playArea,
         manifest,
         messages: messages as Record<string, Record<string, string>>,
-        services,
         setupFn,
       });
     },
