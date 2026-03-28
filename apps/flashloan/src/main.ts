@@ -22,6 +22,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const flash = useFlashloanCore({
       chain: platformServices.chain,
       eventBus: platformServices.events,
@@ -29,29 +31,15 @@ defineMiniApp({
     });
 
     ctx.registerAction("lookupLoan", async (loanId: string) => {
-      try {
-        await flash.lookupLoan(loanId);
-        ctx.setStatus(ctx.t("loanStatusLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => flash.lookupLoan(loanId), "loanStatusLoaded");
     });
 
     ctx.registerAction("requestLoan", async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
-      try {
-        await flash.requestLoan(data);
-        ctx.setStatus(ctx.t("loanRequested"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => flash.requestLoan(data), "loanRequested");
     });
 
     ctx.registerAction("connect", async () => {
-      try {
-        await flash.connect();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => flash.connect());
     });
 
     return {

@@ -10,6 +10,7 @@ import {
   getPublicKey,
   getPrivateKeyFromWIF,
 } from "@/services/neo";
+import type { ClipboardService } from "@shared/services";
 import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
@@ -30,7 +31,7 @@ const EMPTY_RESULT: ConversionResult = {
 };
 
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
-export function useConverter(t: (key: string) => string) {
+export function useConverter(t: (key: string) => string, clipboard?: ClipboardService) {
   const { status: copyStatus, setStatus: setCopyStatus } = useStatusMessage(3000);
 
   const inputKey = ref("");
@@ -39,11 +40,16 @@ export function useConverter(t: (key: string) => string) {
   const showSecrets = ref(false);
   const result = ref<ConversionResult>({ ...EMPTY_RESULT });
 
-  function copy(text: string) {
-    uni.setClipboardData({
-      data: text,
-      success: () => setCopyStatus(t("copied"), "success"),
-    });
+  async function copy(text: string) {
+    if (clipboard) {
+      await clipboard.copy(text, "copied");
+    } else {
+      // Legacy fallback for uni-app context
+      uni.setClipboardData({
+        data: text,
+        success: () => setCopyStatus(t("copied"), "success"),
+      });
+    }
   }
 
   function clearResult() {

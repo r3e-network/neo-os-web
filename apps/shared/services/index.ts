@@ -39,3 +39,10 @@ export { CacheService } from "./CacheService";
 
 export { LifecycleService } from "./LifecycleService";
 export type { AppState } from "./LifecycleService";
+
+export { NotificationService, NOTIFICATION_EVENT } from "./NotificationService";
+export type { NotificationType, Notification } from "./NotificationService";
+
+export { ClipboardService } from "./ClipboardService";
+
+export { FormattingService } from "./FormattingService";

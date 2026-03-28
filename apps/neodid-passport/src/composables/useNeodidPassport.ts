@@ -7,7 +7,7 @@
  */
 
 import { ref, computed } from "vue";
-import type { OracleService } from "@shared/services";
+import type { OracleService, ClipboardService } from "@shared/services";
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -15,10 +15,11 @@ import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
 
 export interface UseNeodidPassportOptions {
   oracle: OracleService;
+  clipboard: ClipboardService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useNeodidPassport({ oracle, t }: UseNeodidPassportOptions) {
+export function useNeodidPassport({ oracle, clipboard, t }: UseNeodidPassportOptions) {
   const wallet = useWallet() as WalletSDK;
   const identityCredential = CREDENTIAL_REGISTRY.identity_passport;
 
@@ -120,7 +121,7 @@ export function useNeodidPassport({ oracle, t }: UseNeodidPassportOptions) {
 
   async function copyIdentityCredentialLink() {
     const url = buildIdentityCredentialUrl();
-    await navigator.clipboard.writeText(url);
+    await clipboard.copy(url, "identityCredentialCopied");
     return { success: true };
   }
 
@@ -140,7 +141,7 @@ export function useNeodidPassport({ oracle, t }: UseNeodidPassportOptions) {
         }
       }
     }
-    await navigator.clipboard.writeText(url);
+    await clipboard.copy(url, "identityCredentialShared");
     return { success: true, method: "clipboard" };
   }
 

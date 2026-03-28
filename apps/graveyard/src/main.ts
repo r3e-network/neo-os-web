@@ -16,6 +16,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const graveyard = useGraveyard({
       chain: platformServices.chain,
       eventBus: platformServices.events,
@@ -23,21 +25,14 @@ defineMiniApp({
     });
 
     ctx.registerAction("executeDestroy", async () => {
-      try {
-        await graveyard.executeDestroy();
-        ctx.setStatus(ctx.t("memoryBuried"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => graveyard.executeDestroy(), "memoryBuried");
     });
 
     ctx.registerAction("forgetMemory", async (item: unknown) => {
-      try {
-        await graveyard.forgetMemory(item as { id: string; forgotten: boolean });
-        ctx.setStatus(ctx.t("forgetSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(
+        () => graveyard.forgetMemory(item as { id: string; forgotten: boolean }),
+        "forgetSuccess",
+      );
     });
 
     return {
