@@ -5,17 +5,18 @@
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { ChainService, EventBus, ClipboardService } from "@shared/services";
 import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
 import type { TemplateItem, CertificateItem } from "../types";
 
 export interface UseSoulboundOptions {
   chain: ChainService;
   eventBus: EventBus;
+  clipboard: ClipboardService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
+export function useSoulbound({ chain, eventBus, clipboard, t }: UseSoulboundOptions) {
   const templates = ref<TemplateItem[]>([]);
   const certificates = ref<CertificateItem[]>([]);
   const isRefreshing = ref(false);
@@ -121,12 +122,10 @@ export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
 
   const copyIssueLink = async (template: unknown) => {
     const tpl = template as { id: string };
-    try {
-      const url = buildMiniAppLaunchUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
-      await navigator.clipboard.writeText(url);
+    const url = buildMiniAppLaunchUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
+    const ok = await clipboard.copy(url, "issueLinkCopied");
+    if (ok) {
       eventBus.emit("soulbound:linkCopied", { action: t("issueLinkCopied") });
-    } catch (e) {
-      console.warn("[useSoulbound] copy failed:", e instanceof Error ? e.message : String(e));
     }
   };
 

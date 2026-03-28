@@ -22,6 +22,8 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    const { notify } = platformServices;
+
     ctx.registerAction("viewPhoto", async (photo: unknown) => {
       album.viewPhoto(photo as { id: string; data: string; encrypted: boolean; createdAt: number });
     });
@@ -33,20 +35,11 @@ defineMiniApp({
     ctx.registerAction("closeDecrypt", async () => { album.closeDecrypt(); });
 
     ctx.registerAction("handleDecrypt", async (pwd: unknown) => {
-      try {
-        await album.handleDecrypt(pwd as string);
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("decryptFailed"), "error");
-      }
+      await notify.guard(() => album.handleDecrypt(pwd as string), undefined, "decryptFailed");
     });
 
     ctx.registerAction("uploadPhotos", async () => {
-      try {
-        await album.uploadPhotos();
-        ctx.setStatus(ctx.t("uploadSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("uploadFailed"), "error");
-      }
+      await notify.guard(() => album.uploadPhotos(), "uploadSuccess", "uploadFailed");
     });
 
     ctx.registerAction("removeImage", async (id: unknown) => {

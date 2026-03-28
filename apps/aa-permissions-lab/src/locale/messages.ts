@@ -24,6 +24,7 @@ const appMessages = {
   notAvailable: { en: "N/A", zh: "不可用" },
   notConnected: { en: "not connected", zh: "未连接" },
   configured: { en: "configured", zh: "已配置" },
+  inspectComplete: { en: "Refresh State complete", zh: "刷新状态完成" },
   inspectFailed: { en: "Inspect failed", zh: "查询失败" },
   updateVerifierFailed: { en: "Update verifier failed", zh: "更新 Verifier 失败" },
   updateHookFailed: { en: "Update hook failed", zh: "更新 Hook 失败" },

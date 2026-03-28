@@ -6,6 +6,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -29,67 +30,14 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("resolveDidDocument", async () => {
-      try {
-        await passport.resolveDidDocument();
-        ctx.setStatus(ctx.t("resultLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("loadProviders", async () => {
-      try {
-        await passport.loadProviders();
-        ctx.setStatus(ctx.t("providersLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadProvidersFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("fetchOracleKey", async () => {
-      try {
-        await passport.fetchOracleKey();
-        ctx.setStatus(ctx.t("keyLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("keyFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("storeRef", async () => {
-      try {
-        await passport.storeRef();
-        ctx.setStatus(ctx.t("refStored"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("storeFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("openIdentityCredentialDraft", async () => {
-      try {
-        passport.openIdentityCredentialDraft();
-        ctx.setStatus(ctx.t("identityCredentialReady"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("copyIdentityCredentialLink", async () => {
-      try {
-        await passport.copyIdentityCredentialLink();
-        ctx.setStatus(ctx.t("identityCredentialCopied"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("shareIdentityCredentialLink", async () => {
-      try {
-        await passport.shareIdentityCredentialLink();
-        ctx.setStatus(ctx.t("identityCredentialShared"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
-      }
+    registerActions(ctx, {
+      resolveDidDocument: { handler: () => passport.resolveDidDocument(), successKey: "resultLoaded", errorKey: "resolveFailed" },
+      loadProviders: { handler: () => passport.loadProviders(), successKey: "providersLoaded", errorKey: "loadProvidersFailed" },
+      fetchOracleKey: { handler: () => passport.fetchOracleKey(), successKey: "keyLoaded", errorKey: "keyFailed" },
+      storeRef: { handler: () => passport.storeRef(), successKey: "refStored", errorKey: "storeFailed" },
+      openIdentityCredentialDraft: { handler: async () => passport.openIdentityCredentialDraft(), successKey: "identityCredentialReady", errorKey: "resolveFailed" },
+      copyIdentityCredentialLink: { handler: () => passport.copyIdentityCredentialLink(), successKey: "identityCredentialCopied", errorKey: "resolveFailed" },
+      shareIdentityCredentialLink: { handler: () => passport.shareIdentityCredentialLink(), successKey: "identityCredentialShared", errorKey: "resolveFailed" },
     });
 
     return {

@@ -28,35 +28,20 @@ defineMiniApp({
 
     ctx.registerAction("refresh", async (accountIdHash: string) => {
       lab.form.accountIdHash = accountIdHash;
-      try {
-        await lab.refreshState();
-        ctx.setStatus(ctx.t("inspect") + " complete", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("inspectFailed"), "error");
-      }
+      await platformServices.notify.guard(() => lab.refreshState(), "inspectComplete", "inspectFailed");
     });
 
     ctx.registerAction("submitVerifier", async (accountIdHash: string, verifierHash: string, verifierParamsHex: string) => {
       lab.form.accountIdHash = accountIdHash;
       lab.form.verifierHash = verifierHash;
       lab.form.verifierParamsHex = verifierParamsHex;
-      try {
-        await lab.submitVerifier();
-        ctx.setStatus(ctx.t("successVerifier"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("updateVerifierFailed"), "error");
-      }
+      await platformServices.notify.guard(() => lab.submitVerifier(), "successVerifier", "updateVerifierFailed");
     });
 
     ctx.registerAction("submitHook", async (accountIdHash: string, hookHash: string) => {
       lab.form.accountIdHash = accountIdHash;
       lab.form.hookHash = hookHash;
-      try {
-        await lab.submitHook();
-        ctx.setStatus(ctx.t("successHook"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("updateHookFailed"), "error");
-      }
+      await platformServices.notify.guard(() => lab.submitHook(), "successHook", "updateHookFailed");
     });
 
     return {

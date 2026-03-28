@@ -23,18 +23,15 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const httpConsole = useHttpConsole({
       oracle: platformServices.oracle,
       t: ctx.t,
     });
 
     ctx.registerAction("runQuery", async () => {
-      try {
-        await httpConsole.runQuery();
-        ctx.setStatus(ctx.t("queryCompleted"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("queryFailed"), "error");
-      }
+      await notify.guard(() => httpConsole.runQuery(), "queryCompleted");
     });
 
     ctx.registerAction("updateField", (field: string, value: string) => {
