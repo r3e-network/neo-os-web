@@ -12,6 +12,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -38,13 +39,12 @@ defineMiniApp({
     });
 
     // Register actions for PlayArea and operation panel dispatch
-    ctx.registerAction("generate", () => {
-      try {
-        convert.generateNewAccount();
-        ctx.setStatus(ctx.t("btnGenerate"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("invalidFormat"), "error");
-      }
+    registerActions(ctx, {
+      generate: {
+        handler: async () => convert.generateNewAccount(),
+        successKey: "btnGenerate",
+        errorKey: "invalidFormat",
+      },
     });
 
     ctx.registerAction("convert", () => {
