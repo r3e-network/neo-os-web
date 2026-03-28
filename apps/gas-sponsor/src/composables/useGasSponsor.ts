@@ -3,19 +3,18 @@
  *
  * Encapsulates gas sponsorship, donate, and send logic.
  * Receives ChainService + EventBus from PlatformServices.
+ *
+ * Replaces the legacy pattern that wired useContractInteraction + useWallet
+ * directly. Now uses ChainService for GAS transfers and EventBus for
+ * cross-component notifications.
  */
 
 import { ref, computed } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
-import { useWallet, useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
-const APP_ID = "miniapp-gas-sponsor";
 const SPONSOR_POOL_ADDRESS = "NhWxcoEc9qtmnjsTLF1fVF6myJ5MZZhSMK";
 const ELIGIBILITY_THRESHOLD = 0.1;
 
@@ -26,10 +25,7 @@ export interface UseGasSponsorAppOptions {
 }
 
 export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions) {
-  const wallet = useWallet() as WalletSDK;
-  const { address, connect, chainType } = wallet;
   const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsorship: apiRequest } = useGasSponsorSDK();
-  const { ensureWallet, invokeDirectly } = useContractInteraction({ appId: APP_ID, t: t as (key: string) => string, wallet });
 
   const userAddress = ref("");
   const gasBalance = ref("0");
@@ -77,12 +73,24 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   const remainingQuotaDisplay = computed(() => remainingQuota.value.toFixed(4));
   const eligibleDisplay = computed(() => isEligible.value ? t("eligible") : t("notEligible"));
 
+  // -- Helpers --
+
+  /**
+   * Scale a display-unit GAS amount to Fixed8 base units.
+   * E.g. "0.1" -> "10000000"
+   */
+  const toFixed8 = (displayAmount: string): string => {
+    const parsed = parseFloat(displayAmount);
+    if (!Number.isFinite(parsed)) return "0";
+    return String(Math.round(parsed * 1e8));
+  };
+
   // -- Actions --
   const loadUserData = async () => {
     loading.value = true;
     try {
-      await connect();
-      userAddress.value = address.value || "";
+      await chain.ensureWallet();
+      userAddress.value = chain.address.value || "";
 
       const statusData = await checkEligibility();
       gasBalance.value = statusData.gas_balance;
@@ -90,7 +98,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       dailyLimit.value = statusData.daily_limit;
       resetsAt.value = statusData.resets_at;
       eventBus.emit("userData:loaded", {});
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("userData:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {
@@ -112,7 +120,7 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       requestAmount.value = "0.01";
       await loadUserData();
       return result;
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("sponsorship:error", { message: formatErrorMessage(e, t("requestFailed")) });
       throw e;
     }
@@ -120,28 +128,28 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
   const handleDonate = async () => {
     if (isDonating.value) return;
-    if (!requireNeoChain(chainType, t as (key: string) => string)) return;
     const amount = parseFloat(donateAmount.value);
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
     isDonating.value = true;
     try {
-      const sender = await ensureWallet();
-      await invokeDirectly(
+      await chain.ensureWallet();
+      const sender = chain.address.value as string;
+      await chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },
           { type: "Hash160", value: SPONSOR_POOL_ADDRESS },
           { type: "Integer", value: toFixed8(donateAmount.value) },
-          { type: "Any", value: null },
-        ] as unknown as Parameters<typeof invokeDirectly>[1],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+          { type: "String", value: "" },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
       eventBus.emit("donate:success", {});
       donateAmount.value = "0.1";
       await loadUserData();
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("donate:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {
@@ -151,7 +159,6 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
   const handleSend = async () => {
     if (isSending.value) return;
-    if (!requireNeoChain(chainType, t as (key: string) => string)) return;
     if (!recipientAddress.value || recipientAddress.value.length < 30) {
       throw new Error(t("invalidAddress"));
     }
@@ -161,22 +168,23 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
     }
     isSending.value = true;
     try {
-      const sender = await ensureWallet();
-      await invokeDirectly(
+      await chain.ensureWallet();
+      const sender = chain.address.value as string;
+      await chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },
           { type: "Hash160", value: recipientAddress.value },
           { type: "Integer", value: toFixed8(sendAmount.value) },
-          { type: "Any", value: null },
-        ] as unknown as Parameters<typeof invokeDirectly>[1],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+          { type: "String", value: "" },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
       eventBus.emit("send:success", {});
       sendAmount.value = "0.1";
       recipientAddress.value = "";
       await loadUserData();
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("send:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {

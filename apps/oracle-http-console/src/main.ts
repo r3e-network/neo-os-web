@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         await httpConsole.runQuery();
         ctx.setStatus(ctx.t("queryCompleted"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("queryFailed"), "error");
       }
     });

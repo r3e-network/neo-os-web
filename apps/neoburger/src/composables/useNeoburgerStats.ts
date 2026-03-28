@@ -2,11 +2,8 @@ import { ref, computed } from "vue";
 import type { PriceData } from "@shared/utils/price";
 import { getPrices } from "@shared/utils/price";
 import { formatCompactNumber } from "@shared/utils/format";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { useTicker } from "@shared/composables/useTicker";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { readTimedCacheValue, writeTimedCache } from "@shared/utils/runtime-cache";
-import { messages } from "@/locale/messages";
 
 const APY_CACHE_KEY = "neoburger_apy_cache";
 const STATS_ENDPOINTS = ["/api/neoburger-stats", "/api/neoburger/stats"];
@@ -20,9 +17,7 @@ const APY_ANIMATION_STEPS = 60;
 const APY_ANIMATION_INTERVAL_MS = APY_ANIMATION_DURATION_MS / APY_ANIMATION_STEPS;
 const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
-export function useNeoburgerStats() {
-  const { t } = createUseI18n(messages)();
-  const { setStatus } = useStatusMessage();
+export function useNeoburgerStats(t: (key: string, params?: Record<string, string | number>) => string) {
 
   const apy = ref(0);
   const animatedApy = ref("0.0");
@@ -79,7 +74,7 @@ export function useNeoburgerStats() {
         const response = await fetch(endpoint);
         if (!response.ok) continue;
         return await response.json();
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[useNeoburgerStats] endpoint failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }
@@ -92,7 +87,7 @@ export function useNeoburgerStats() {
       const raw = g?.uni?.getStorageSync?.(APY_CACHE_KEY) ?? (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
       const value = Number(raw);
       return Number.isFinite(value) && value >= 0 ? value : null;
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useNeoburgerStats] readLegacyCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
       return null;
     }
@@ -118,9 +113,9 @@ export function useNeoburgerStats() {
         const formatted = data.total_staked_formatted ?? data.totalStakedFormatted;
         if (typeof formatted === "string") totalStakedFormatted.value = formatted;
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useNeoburgerStats] loadApy failed:", _e instanceof Error ? _e.message : String(_e));
-      setStatus("APY data unavailable", "error");
+      console.warn("[useNeoburgerStats] APY data unavailable");
     } finally {
       loadingApy.value = false;
       animateApy();
@@ -130,9 +125,9 @@ export function useNeoburgerStats() {
   async function loadPrices() {
     try {
       priceData.value = await getPrices();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useNeoburgerStats] loadPrices failed:", _e instanceof Error ? _e.message : String(_e));
-      setStatus("Price data unavailable", "error");
+      console.warn("[useNeoburgerStats] Price data unavailable");
     }
   }
 

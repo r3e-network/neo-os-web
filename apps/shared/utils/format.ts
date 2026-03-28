@@ -8,7 +8,7 @@ export function formatNumber(value: number | string, decimals = 2): string {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     }).format(num);
-  } catch (_e: unknown) {
+  } catch (_e) {
     return num.toFixed(decimals);
   }
 }
@@ -21,7 +21,7 @@ export function formatGas(amount: bigint | number | string, decimals = 4): strin
   let value: bigint;
   try {
     value = typeof amount === "bigint" ? amount : BigInt(amount || 0);
-  } catch (_e: unknown) {
+  } catch (_e) {
     value = 0n;
   }
   // Reject negative values — modulo on negative bigint is implementation-defined

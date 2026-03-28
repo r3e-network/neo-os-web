@@ -199,7 +199,7 @@ const onTabChange = async (tab: string) => {
     if (tab === "create") {
       await contract.refreshEvents();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] tab change handler failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -216,7 +216,7 @@ const resetAndReload = async () => {
       await contract.refreshEvents();
       await contract.refreshTickets();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -249,7 +249,7 @@ function openAttendanceBadgeDraft() {
       window.open(url, "_blank", "noopener,noreferrer");
     }
     setStatus(t("issueAttendanceBadge"), "success");
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] attendance badge handoff failed:", _e instanceof Error ? _e.message : String(_e));
     setStatus(t("ticketNotFound"), "error");
   }
@@ -260,7 +260,7 @@ async function copyAttendanceBadgeLink() {
     const url = buildAttendanceBadgeUrl();
     await navigator.clipboard.writeText(url);
     setStatus(t("attendanceLinkCopied"), "success");
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] attendance badge copy failed:", _e instanceof Error ? _e.message : String(_e));
     setStatus(t("ticketNotFound"), "error");
   }
@@ -279,7 +279,7 @@ async function shareAttendanceBadgeLink() {
       return;
     }
     await copyAttendanceBadgeLink();
-  } catch (_e: unknown) {
+  } catch (_e) {
     if (_e instanceof Error && /abort|cancel/i.test(_e.message)) return;
     await copyAttendanceBadgeLink();
   }
@@ -296,7 +296,7 @@ onMounted(async () => {
       await contract.refreshEvents();
       await contract.refreshTickets();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -317,7 +317,7 @@ const stopAddressWatch = watch(address, async (newAddr) => {
       contract.tickets.value = [];
       contract.lookup.value = null;
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[event-ticket-pass] address change handler failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

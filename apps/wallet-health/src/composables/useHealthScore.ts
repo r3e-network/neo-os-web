@@ -94,7 +94,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
           checklistState[key] = Boolean(parsed[key]);
         });
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useHealthScore] loadChecklist failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -102,7 +102,7 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
   const saveChecklist = () => {
     try {
       writeCachedJSON(checklistStorageKey, { ...checklistState });
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useHealthScore] saveChecklist failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };

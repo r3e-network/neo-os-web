@@ -107,7 +107,7 @@ async function apiFetch<T>(path: string, params?: Record<string, string | number
   try {
     const text = await res.text();
     return JSON.parse(text) as T;
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error("Failed to parse indexer response.");
   }
 }
@@ -234,7 +234,7 @@ export async function waitForTransaction(
     try {
       const events = await getContractEvents(network, "", { tx_hash: txid, limit: 10 });
       if (events.length > 0) return events;
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[n3index] waitForTransaction poll failed:", e);
     }
     await new Promise((r) => setTimeout(r, 3000));

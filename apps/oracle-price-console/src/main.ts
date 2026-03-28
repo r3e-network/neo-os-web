@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         await price.fetchPrice();
         ctx.setStatus(ctx.t("priceLoaded"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("fetchFailed"), "error");
       }
     });

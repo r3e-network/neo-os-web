@@ -22,6 +22,9 @@ defineMiniApp({
     });
 
     const health = useWalletHealth({
+      chain: platformServices.chain,
+      balance: platformServices.balance,
+      eventBus: platformServices.events,
       t: ctx.t,
     });
 

@@ -35,7 +35,7 @@ function readStoredProofs(): TimestampProof[] {
       .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
       .sort((a, b) => b.id - a.id)
       .slice(0, MAX_PROOFS);
-  } catch (_e: unknown) {
+  } catch (_e) {
     return [];
   }
 }
@@ -110,7 +110,7 @@ export function useTimestampProofContract(t: (key: string) => string) {
       verifyError.value = false;
       setStatus(t("createSuccess"), "success");
       onSuccess();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isCreating.value = false;
@@ -137,7 +137,7 @@ export function useTimestampProofContract(t: (key: string) => string) {
 
       proofs.value = readStoredProofs();
       verifiedProof.value = matched;
-    } catch (_e: unknown) {
+    } catch (_e) {
       verifyError.value = true;
     } finally {
       isVerifying.value = false;

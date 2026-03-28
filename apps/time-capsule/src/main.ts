@@ -1,13 +1,16 @@
 /**
  * Time Capsule — Entry Point (New Pattern)
+ *
+ * Uses defineMiniApp() to wire the time capsule domain logic to the platform.
  */
 
-import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+import { useTimeCapsule } from "./composables/useTimeCapsule";
 
 defineMiniApp({
   appId: "miniapp-time-capsule",
@@ -20,20 +23,48 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const capsules = ref<Array<{ locked: boolean; revealed: boolean }>>([]);
-    const totalCapsules = computed(() => capsules.value.length);
-    const lockedCount = computed(() => capsules.value.filter((c) => c.locked).length);
-    const revealedCount = computed(() => capsules.value.filter((c) => c.revealed).length);
+    const capsule = useTimeCapsule({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t,
+    });
+
+    // Register actions for PlayArea dispatch
+    registerActions(ctx, {
+      createCapsule: {
+        handler: () => capsule.createCapsule(),
+        successKey: "capsuleCreated",
+        errorKey: "error",
+      },
+      fishCapsule: {
+        handler: () => capsule.fishCapsule(),
+        errorKey: "error",
+      },
+    });
+
+    ctx.registerAction("openCapsule", async (cap: unknown) => {
+      try {
+        await capsule.openCapsule(cap as Parameters<typeof capsule.openCapsule>[0]);
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
+    });
 
     return {
       state: {
         address: platformServices.chain.address,
-        totalCapsules,
-        lockedCount,
-        revealedCount,
-        capsules,
+        capsules: capsule.capsules,
+        totalCapsules: capsule.totalCapsules,
+        lockedCount: capsule.lockedCount,
+        revealedCount: capsule.revealedCount,
+        isLoading: capsule.isLoading,
+        isCreating: capsule.isCreating,
+        isProcessing: capsule.isProcessing,
+        isBusy: capsule.isBusy,
+        newCapsule: capsule.newCapsule,
+        canCreate: capsule.canCreate,
       },
-      loadData: async () => {},
+      loadData: capsule.loadAll,
       cleanup: () => { platformServices.destroy(); },
     };
   },

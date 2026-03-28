@@ -24,8 +24,16 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const stats = useDevTippingStats();
-    const wallet = useDevTippingWallet(APP_ID);
+    const stats = useDevTippingStats({
+      chain: platformServices.chain,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+    });
+
+    const wallet = useDevTippingWallet({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+    });
 
     const developerCount = computed(() => stats.developers.value.length);
     const totalDonatedDisplay = computed(() => stats.formatNum(stats.totalDonated.value));
@@ -37,12 +45,17 @@ defineMiniApp({
       const message = args[2] as string;
       const tipperName = args[3] as string;
       const anonymous = args[4] as boolean;
-      await wallet.sendTip(devId, amount, message, tipperName, anonymous);
+      try {
+        await wallet.sendTip(devId, amount, message, tipperName, anonymous);
+        ctx.setStatus(ctx.t("tipSent"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     ctx.registerAction("selectDev", async (...args: unknown[]) => {
       const dev = args[0] as { id: number; name: string };
-      wallet.setStatus(`${ctx.t("selected")} ${dev.name}`, "success");
+      ctx.setStatus(`${ctx.t("selected")} ${dev.name}`, "success");
     });
 
     return {
@@ -51,7 +64,6 @@ defineMiniApp({
         recentTips: stats.recentTips,
         totalDonated: stats.totalDonated,
         isLoading: wallet.isLoading,
-        status: wallet.status,
         address: wallet.address,
         developerCount,
         totalDonatedDisplay,
@@ -60,7 +72,7 @@ defineMiniApp({
 
       loadData: async () => {
         await stats.loadDevelopers();
-        await stats.loadRecentTips(APP_ID);
+        await stats.loadRecentTips();
       },
 
       cleanup: () => {

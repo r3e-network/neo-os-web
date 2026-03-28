@@ -1,19 +1,18 @@
 /**
  * useNeoPayApp — Domain logic for Neo Pay miniapp (new pattern)
  *
- * Wraps the existing useNeoPay composable, adapting it for the
- * defineMiniApp pattern with ChainService + EventBus.
+ * Receives ChainService + EventBus from PlatformServices.
+ * Handles payment stream creation, claiming, and cancellation.
+ *
+ * Replaces the legacy useNeoPay composable which wired useWallet +
+ * useContractAddress + useStatusMessage directly.
  */
 
 import { ref, computed } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useContractAddress } from "@shared/composables/useContractAddress";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { requireNeoChain } from "@shared/utils/chain";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
-import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
+import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "../types";
@@ -28,10 +27,6 @@ export interface UseNeoPayAppOptions {
 }
 
 export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
-  const wallet = useWallet() as WalletSDK;
-  const { address, connect, invokeContract, invokeRead, chainType } = wallet;
-  const { ensure: ensureContractAddress } = useContractAddress(t as (key: string) => string);
-
   const isLoading = ref(false);
   const isRefreshing = ref(false);
   const claimingId = ref<string | null>(null);
@@ -82,30 +77,21 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
   };
 
   const fetchStreamDetails = async (streamId: string) => {
-    const contract = await ensureContractAddress();
-    const details = await invokeRead({
-      scriptHash: contract,
-      operation: "GetStreamDetails",
-      args: [{ type: "Integer", value: streamId }],
-    });
-    const parsed = parseInvokeResult(details) as Record<string, unknown>;
+    const details = await chain.read("GetStreamDetails", [
+      { type: "Integer", value: streamId },
+    ]);
+    const parsed = details as Record<string, unknown>;
     return parseStream(parsed, streamId);
   };
 
   const fetchStreamIds = async (operation: string, walletAddress: string) => {
-    const contract = await ensureContractAddress();
-    const result = await invokeRead({
-      scriptHash: contract,
-      operation,
-      args: [
-        { type: "Hash160", value: walletAddress },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: "20" },
-      ],
-    });
-    const parsed = parseInvokeResult(result);
-    if (!Array.isArray(parsed)) return [] as string[];
-    return parsed
+    const result = await chain.read(operation, [
+      { type: "Hash160", value: walletAddress },
+      { type: "Integer", value: "0" },
+      { type: "Integer", value: "20" },
+    ]);
+    if (!Array.isArray(result)) return [] as string[];
+    return result
       .map((value) => String(value || ""))
       .map((value) => Number.parseInt(value, 10))
       .filter((value) => Number.isFinite(value) && value > 0)
@@ -114,12 +100,12 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
   // -- Actions --
   const refreshStreams = async () => {
-    if (!address.value) return;
+    if (!chain.address.value) return;
     if (isRefreshing.value) return;
     try {
       isRefreshing.value = true;
-      const createdIds = await fetchStreamIds("getUserStreams", address.value);
-      const beneficiaryIds = await fetchStreamIds("getBeneficiaryStreams", address.value);
+      const createdIds = await fetchStreamIds("getUserStreams", chain.address.value);
+      const beneficiaryIds = await fetchStreamIds("getBeneficiaryStreams", chain.address.value);
 
       const created = await Promise.all(createdIds.map(fetchStreamDetails));
       const beneficiary = await Promise.all(beneficiaryIds.map(fetchStreamDetails));
@@ -127,7 +113,7 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
       createdStreams.value = created.filter(Boolean) as StreamItem[];
       beneficiaryStreams.value = beneficiary.filter(Boolean) as StreamItem[];
       eventBus.emit("streams:refreshed", { count: allStreams.value.length });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("streams:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
@@ -137,12 +123,12 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
   const connectWallet = async () => {
     try {
-      await connect();
-      if (address.value) {
+      await chain.ensureWallet();
+      if (chain.address.value) {
         await refreshStreams();
       }
-      eventBus.emit("wallet:connected", { address: address.value });
-    } catch (e: unknown) {
+      eventBus.emit("wallet:connected", { address: chain.address.value });
+    } catch (e) {
       eventBus.emit("wallet:error", { message: formatErrorMessage(e, t("walletNotConnected")) });
       throw e;
     }
@@ -158,7 +144,6 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
     notes: string;
   }) => {
     if (isLoading.value) return;
-    if (!requireNeoChain(chainType, t as (key: string) => string)) return;
 
     const beneficiary = formData.beneficiary.trim();
     if (!beneficiary || !addressToScriptHash(beneficiary)) {
@@ -186,32 +171,35 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
     try {
       isLoading.value = true;
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      await chain.ensureWallet();
+      if (!chain.address.value) throw new Error(t("walletNotConnected"));
 
-      const contract = await ensureContractAddress();
       const assetHash = formData.asset === "NEO" ? BLOCKCHAIN_CONSTANTS.NEO_HASH : BLOCKCHAIN_CONSTANTS.GAS_HASH;
       const title = formData.name.trim().slice(0, 60);
       const notes = formData.notes.trim().slice(0, 240);
+      const contractHash = chain.contractAddress.value;
+      if (!contractHash) throw new Error(t("contractMissing"));
 
-      await invokeContract({
-        scriptHash: assetHash,
-        operation: "transfer",
-        args: [
-          { type: "Hash160", value: address.value },
-          { type: "Hash160", value: contract },
+      // Step 1: Transfer asset to contract
+      await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: chain.address.value },
+          { type: "Hash160", value: contractHash },
           { type: "Integer", value: totalFixed },
-          { type: "Any", value: null },
+          { type: "String", value: "" },
         ],
-      });
+        { scriptHash: assetHash },
+      );
 
+      // Wait for transfer to settle
       await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
 
-      await invokeContract({
-        scriptHash: contract,
-        operation: "CreateStream",
-        args: [
-          { type: "Hash160", value: address.value },
+      // Step 2: Create the stream
+      await chain.invoke(
+        "CreateStream",
+        [
+          { type: "Hash160", value: chain.address.value },
           { type: "Hash160", value: beneficiary },
           { type: "Hash160", value: assetHash },
           { type: "Integer", value: totalFixed },
@@ -220,11 +208,12 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
           { type: "String", value: title },
           { type: "String", value: notes },
         ],
-      });
+        { waitForEvent: "StreamCreated" },
+      );
 
       eventBus.emit("vault:created", {});
       await refreshStreams();
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("vault:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
@@ -234,22 +223,23 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
   const claimStream = async (stream: StreamItem) => {
     if (claimingId.value) return;
-    if (!requireNeoChain(chainType, t as (key: string) => string)) return;
     try {
       claimingId.value = stream.id;
-      if (!address.value) throw new Error(t("walletNotConnected"));
-      const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "ClaimStream",
-        args: [
-          { type: "Hash160", value: address.value },
+      await chain.ensureWallet();
+      if (!chain.address.value) throw new Error(t("walletNotConnected"));
+
+      await chain.invoke(
+        "ClaimStream",
+        [
+          { type: "Hash160", value: chain.address.value },
           { type: "Integer", value: stream.id },
         ],
-      });
+        { waitForEvent: "StreamClaimed" },
+      );
+
       await refreshStreams();
       eventBus.emit("stream:claimed", { id: stream.id });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("stream:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
@@ -259,22 +249,23 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
   const cancelStream = async (stream: StreamItem) => {
     if (cancellingId.value) return;
-    if (!requireNeoChain(chainType, t as (key: string) => string)) return;
     try {
       cancellingId.value = stream.id;
-      if (!address.value) throw new Error(t("walletNotConnected"));
-      const contract = await ensureContractAddress();
-      await invokeContract({
-        scriptHash: contract,
-        operation: "CancelStream",
-        args: [
-          { type: "Hash160", value: address.value },
+      await chain.ensureWallet();
+      if (!chain.address.value) throw new Error(t("walletNotConnected"));
+
+      await chain.invoke(
+        "CancelStream",
+        [
+          { type: "Hash160", value: chain.address.value },
           { type: "Integer", value: stream.id },
         ],
-      });
+        { waitForEvent: "StreamCancelled" },
+      );
+
       await refreshStreams();
       eventBus.emit("stream:cancelled", { id: stream.id });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("stream:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
@@ -283,14 +274,14 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
   };
 
   const loadAll = async () => {
-    if (address.value) {
+    if (chain.address.value) {
       await refreshStreams();
     }
   };
 
   return {
     // -- Wallet --
-    address,
+    address: chain.address,
 
     // -- State --
     createdStreams,

@@ -54,7 +54,7 @@ export function useEnvelopeActions(deps: EnvelopeActionsDeps) {
   const handleConnect = async () => {
     try {
       await ensureWallet();
-    } catch (e: unknown) {
+    } catch (e) {
       // Wallet rejection or connection failure — user already declined or UX failure.
       // Intentionally silent: user feedback is handled by the wallet prompt itself.
       console.warn("[red-envelope] handleConnect wallet error:", e instanceof Error ? e.message : String(e));

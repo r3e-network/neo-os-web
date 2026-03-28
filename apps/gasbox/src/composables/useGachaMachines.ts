@@ -1,27 +1,29 @@
+/**
+ * useGachaMachines — Machine loading and display for the GasBox miniapp
+ *
+ * Receives ChainService from PlatformServices.
+ */
+
 import { ref, computed } from "vue";
+import type { ChainService } from "@shared/services";
 import { formatGas, toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { messages } from "@/locale/messages";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import type { Machine, MachineItem } from "@/types";
 
-const APP_ID = "miniapp-gasbox";
+export interface UseGachaMachinesOptions {
+  chain: ChainService;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
 
-export function useGachaMachines() {
-  const { t } = createUseI18n(messages)();
-  const { setStatus } = useStatusMessage();
-  const { address, contractAddress, ensureContractAddress, read } = useContractInteraction({ appId: APP_ID, t });
-
+export function useGachaMachines({ chain, t }: UseGachaMachinesOptions) {
   const machines = ref<Machine[]>([]);
   const selectedMachine = ref<Machine | null>(null);
   const isLoadingMachines = ref(false);
   const actionLoading = ref<Record<string, boolean>>({});
 
   const walletHash = computed(() => {
-    if (!address.value) return "";
-    const scriptHash = addressToScriptHash(address.value as string);
+    if (!chain.address.value) return "";
+    const scriptHash = addressToScriptHash(chain.address.value as string);
     return normalizeScriptHash(scriptHash);
   });
 
@@ -55,25 +57,25 @@ export function useGachaMachines() {
 
   const getItemIcon = (item: MachineItem) => {
     const rarity = String(item.rarity || "").toUpperCase();
-    if (rarity === "LEGENDARY") return "👑";
-    if (rarity === "EPIC") return "💎";
-    if (rarity === "RARE") return "🎁";
+    if (rarity === "LEGENDARY") return "crown";
+    if (rarity === "EPIC") return "gem";
+    if (rarity === "RARE") return "gift";
     const assetType = Number(item.assetType || 0);
-    if (assetType === 2) return "🖼️";
-    if (assetType === 1) return "🪙";
-    return "📦";
+    if (assetType === 2) return "image";
+    if (assetType === 1) return "coin";
+    return "package";
   };
 
   const fetchMachineItems = async (contract: string, machineId: number, itemCount: number) => {
     const items: MachineItem[] = [];
     for (let index = 1; index <= itemCount; index++) {
-      const itemMap = (await read(
+      const itemMap = (await chain.read(
         "GetMachineItem",
         [
           { type: "Integer", value: String(machineId) },
           { type: "Integer", value: String(index) },
         ],
-        contract
+        { scriptHash: contract },
       )) as Record<string, unknown> | null;
       if (!itemMap || typeof itemMap !== "object") continue;
       const decimals = numberFrom(itemMap.decimals);
@@ -104,18 +106,18 @@ export function useGachaMachines() {
   const loadMachines = async () => {
     isLoadingMachines.value = true;
     try {
-      const contract = await ensureContractAddress();
+      const contract = chain.contractAddress.value;
       if (!contract) {
         machines.value = [];
         return;
       }
-      const total = numberFrom(await read("TotalMachines", [], contract));
+      const total = numberFrom(await chain.read("TotalMachines", [], { scriptHash: contract }));
       const loaded: Machine[] = [];
       for (let machineId = 1; machineId <= total; machineId++) {
-        const machineMap = (await read(
+        const machineMap = (await chain.read(
           "GetMachine",
           [{ type: "Integer", value: String(machineId) }],
-          contract
+          { scriptHash: contract },
         )) as Record<string, unknown> | null;
         if (!machineMap || typeof machineMap !== "object" || !machineMap.name) continue;
         const itemCount = numberFrom(machineMap.itemCount);
@@ -131,7 +133,7 @@ export function useGachaMachines() {
         const topItem = availableItems.length
           ? availableItems.reduce(
               (prev, curr) => (curr.probability < prev.probability ? curr : prev),
-              availableItems[0]
+              availableItems[0],
             )
           : items.length
             ? items[0]
@@ -183,8 +185,8 @@ export function useGachaMachines() {
         const updated = loaded.find((machine) => machine.id === selectedMachine.value?.id) || null;
         selectedMachine.value = updated;
       }
-    } catch (e: unknown) {
-      setStatus(t("machinesLoadFailed") || "Machines unavailable", "error");
+    } catch (e) {
+      console.warn("[useGachaMachines] loadMachines failed:", e instanceof Error ? e.message : String(e));
     } finally {
       isLoadingMachines.value = false;
     }
@@ -202,10 +204,8 @@ export function useGachaMachines() {
     machines,
     selectedMachine,
     isLoadingMachines,
-    contractAddress,
     actionLoading,
     walletHash,
-    ensureContractAddress,
     loadMachines,
     selectMachine,
     setActionLoading,
@@ -215,8 +215,10 @@ export function useGachaMachines() {
     toFixedDecimals,
     parseTags,
     isItemAvailable,
-    read,
-    address,
+    address: chain.address,
+    contractAddress: chain.contractAddress,
     t,
   };
 }
+
+export type UseGachaMachinesReturn = ReturnType<typeof useGachaMachines>;

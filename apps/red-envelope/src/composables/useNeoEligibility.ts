@@ -64,7 +64,7 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
       reason.value = String(data.reason ?? "");
 
       return isEligible.value;
-    } catch (e: unknown) {
+    } catch (e) {
       isEligible.value = false;
       reason.value = t("checkFailed");
       return false;
@@ -82,7 +82,7 @@ export function useNeoEligibility(): UseNeoEligibilityReturn {
       const balance = Number((await read("balanceOf", [{ type: "Hash160", value: address.value }], NEO_HASH)) ?? 0);
       neoBalance.value = balance;
       return balance;
-    } catch (_e: unknown) {
+    } catch (_e) {
       // non-critical: NEO balance check
       return 0;
     }

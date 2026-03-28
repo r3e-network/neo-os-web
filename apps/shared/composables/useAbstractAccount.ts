@@ -137,7 +137,7 @@ async function requestJson<T>(
 
   try {
     return JSON.parse(text) as T;
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error(`invalid JSON response from ${url}`);
   }
 }
@@ -171,7 +171,7 @@ export function useAbstractAccount(config: AAConfig = {}) {
         method: "GET",
         getAuthToken: config.getAuthToken,
       });
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Gas sponsorship check failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_CHECK, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_CHECK);
@@ -193,7 +193,7 @@ export function useAbstractAccount(config: AAConfig = {}) {
         body: { amount },
         getAuthToken: config.getAuthToken,
       });
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Gas sponsorship request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_REQUEST, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_REQUEST);
@@ -230,7 +230,7 @@ export function useAbstractAccount(config: AAConfig = {}) {
 
       lastRelayResponse.value = response;
       return response;
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "AA relay submission failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_RELAY_SUBMISSION, undefined, undefined, undefined, ERROR_CODE_RELAY_SUBMISSION);

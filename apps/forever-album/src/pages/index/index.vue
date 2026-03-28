@@ -177,7 +177,7 @@ const handleConnect = async () => {
   try {
     await connect();
     showWalletPrompt.value = false;
-  } catch (e: unknown) {
+  } catch (e) {
     showWalletPrompt.value = false;
     setStatus(formatErrorMessage(e, t("connectFailed")), "error");
   }

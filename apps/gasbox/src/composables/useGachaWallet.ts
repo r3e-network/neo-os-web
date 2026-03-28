@@ -1,16 +1,23 @@
+/**
+ * useGachaWallet — Wallet state for the GasBox miniapp
+ *
+ * Receives ChainService from PlatformServices.
+ */
+
 import { ref, computed } from "vue";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import type { ChainService } from "@shared/services";
 import { normalizeScriptHash, addressToScriptHash } from "@shared/utils/neo";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { messages } from "@/locale/messages";
 
-export function useGachaWallet() {
-  const { t } = createUseI18n(messages)();
-  const { address, connect } = useWallet() as WalletSDK;
+export interface UseGachaWalletOptions {
+  chain: ChainService;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
 
+export function useGachaWallet({ chain, t }: UseGachaWalletOptions) {
   const showWalletPrompt = ref(false);
   const walletMessage = ref<string | null>(null);
+
+  const address = chain.address;
 
   const walletHash = computed(() => {
     if (!address.value) return "";
@@ -24,7 +31,7 @@ export function useGachaWallet() {
   };
 
   const handleWalletConnect = async () => {
-    await connect();
+    await chain.ensureWallet();
     showWalletPrompt.value = false;
   };
 

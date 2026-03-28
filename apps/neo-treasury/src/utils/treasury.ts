@@ -122,7 +122,7 @@ async function rpcCall(method: string, params: unknown[]): Promise<unknown> {
         const sanitized = typeof errMsg === "string" && errMsg.length < 100 ? errMsg : "RPC request failed";
         throw new Error(sanitized);
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       /* RPC endpoint unreachable — try next */
     }
   }
@@ -175,7 +175,7 @@ async function fetchAddressBalances(
       });
       totalNeo += balance.neo;
       totalGas += balance.gas;
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       throw new Error(`Failed to fetch balance for ${address}: ${msg}`);
     }

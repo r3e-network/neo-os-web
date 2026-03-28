@@ -52,7 +52,7 @@ const loadPrices = async () => {
   try {
     const prices = await getPrices();
     priceData.value = { neo: prices.neo, neoBurger: prices.neoBurger };
-  } catch (e: unknown) {
+  } catch (e) {
     console.warn("[neo-swap] pool price load failed:", e instanceof Error ? e.message : String(e));
   }
 };
@@ -89,7 +89,7 @@ onMounted(async () => {
   try {
     routerAddress.value = (await getContractAddress()) || "";
     await loadPrices();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[neo-swap] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

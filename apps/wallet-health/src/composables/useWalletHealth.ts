@@ -4,9 +4,13 @@
  * Combines useWalletAnalysis (chain data, balances) and useHealthScore
  * (security checklist, safety score) into a single API surface, including
  * all derived/formatted state that PlayArea.vue needs.
+ *
+ * Receives ChainService + BalanceService + EventBus from PlatformServices
+ * instead of relying on legacy useWallet/useContractInteraction.
  */
 
 import { computed } from "vue";
+import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import { useWalletAnalysis } from "./useWalletAnalysis";
 import { useHealthScore } from "./useHealthScore";
 
@@ -15,12 +19,15 @@ export interface HealthStat {
   value: string;
 }
 
-export function useWalletHealth(deps: {
+export interface UseWalletHealthOptions {
+  chain: ChainService;
+  balance: BalanceService;
+  eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
-}) {
-  const { t } = deps;
+}
 
-  const analysis = useWalletAnalysis();
+export function useWalletHealth({ chain, balance, eventBus, t }: UseWalletHealthOptions) {
+  const analysis = useWalletAnalysis({ chain, balance, eventBus, t });
   const health = useHealthScore(analysis.gasOk);
 
   // ── Formatted display values ─────────────────────────────────────────
@@ -47,8 +54,6 @@ export function useWalletHealth(deps: {
     gasDisplay: analysis.gasDisplay,
     refreshBalances: analysis.refreshBalances,
     connectWallet: analysis.connectWallet,
-    status: analysis.status,
-    setStatus: analysis.setStatus,
 
     // From useHealthScore
     safetyScore: health.safetyScore,

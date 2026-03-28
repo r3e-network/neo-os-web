@@ -63,9 +63,9 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 const aa = useAbstractAccount({ network: "testnet", aaAddress: aaAddress.value, paymasterDappId: dappId.value || undefined });
 const stopAddressWatch = watch(aaAddress, (next) => aa.setAAAddress(next));
 onUnmounted(() => stopAddressWatch());
-async function checkSponsor() { try { sponsorResult.value = await aa.checkGasSponsorship(); setStatus(t("sponsorCheckComplete"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("sponsorCheckError")), "error"); } }
-async function requestSponsor() { try { sponsorResult.value = await aa.requestGasSponsorship("0.1"); setStatus(t("sponsorRequestComplete"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("sponsorRequestError")), "error"); } }
-async function submitRelay() { try { const payload = JSON.parse(payloadJson.value); const response = await aa.submitRelayTransaction(payload); sponsorResult.value = response; setStatus(t("relaySubmitted"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("relayError")), "error"); } }
+async function checkSponsor() { try { sponsorResult.value = await aa.checkGasSponsorship(); setStatus(t("sponsorCheckComplete"), "success"); } catch (e) { setStatus(formatErrorMessage(e, t("sponsorCheckError")), "error"); } }
+async function requestSponsor() { try { sponsorResult.value = await aa.requestGasSponsorship("0.1"); setStatus(t("sponsorRequestComplete"), "success"); } catch (e) { setStatus(formatErrorMessage(e, t("sponsorRequestError")), "error"); } }
+async function submitRelay() { try { const payload = JSON.parse(payloadJson.value); const response = await aa.submitRelayTransaction(payload); sponsorResult.value = response; setStatus(t("relaySubmitted"), "success"); } catch (e) { setStatus(formatErrorMessage(e, t("relayError")), "error"); } }
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildAAHeroStats({
     aaCore: aa.AA_MASTER_CONTRACT_TESTNET,

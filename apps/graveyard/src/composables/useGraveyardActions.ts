@@ -112,7 +112,7 @@ export function useGraveyardActions() {
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
       setStatus(t("memoryBuried"), "success");
       assetHash.value = "";
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isDestroying.value = false;
@@ -141,7 +141,7 @@ export function useGraveyardActions() {
       const totalResult = await read("totalMemories");
       totalDestroyed.value = Number(totalResult || 0);
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useGraveyardActions] stats fetch failed:", _e instanceof Error ? _e.message : String(_e));
       setStatus(t("loadFailed") || "Failed to load stats", "error");
     }
@@ -168,7 +168,7 @@ export function useGraveyardActions() {
                   contentHash = String(detail.contentHash);
                 }
               }
-            } catch (_e: unknown) {
+            } catch (_e) {
               console.warn("[useGraveyardActions] memory detail fetch failed, skipping enrichment:", _e instanceof Error ? _e.message : String(_e));
             }
           }
@@ -181,7 +181,7 @@ export function useGraveyardActions() {
         })
       );
       history.value = entries;
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useGraveyardActions] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
       setStatus(t("loadFailed") || "Failed to load history", "error");
     }
@@ -239,7 +239,7 @@ export function useGraveyardActions() {
 
       history.value = history.value.map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry));
       setStatus(t("forgetSuccess"), "success");
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       forgettingId.value = null;

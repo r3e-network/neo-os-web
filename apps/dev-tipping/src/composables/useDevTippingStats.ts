@@ -1,9 +1,12 @@
+/**
+ * useDevTippingStats — Domain logic for loading developer stats and recent tips
+ *
+ * Receives ChainService from PlatformServices instead of instantiating
+ * its own useContractInteraction / useStatusMessage / useEvents.
+ */
+
 import { ref } from "vue";
-import { useEvents } from "@shared/utils/wallet-sdk";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { createUseI18n } from "@shared/composables";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { messages } from "@/locale/messages";
+import type { ChainService } from "@shared/services";
 import { parseGas, formatNum } from "@shared/utils/format";
 import { parseStackItem } from "@shared/utils/neo";
 
@@ -25,12 +28,12 @@ export interface RecentTip {
   time: string;
 }
 
-export function useDevTippingStats() {
-  const { t } = createUseI18n(messages)();
-  const { setStatus } = useStatusMessage();
-  const { read, ensureContractAddress } = useContractInteraction({ appId: "miniapp-dev-tipping", t });
-  const { list: listEvents } = useEvents();
+export interface UseDevTippingStatsOptions {
+  chain: ChainService;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
 
+export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
   const developers = ref<Developer[]>([]);
   const recentTips = ref<RecentTip[]>([]);
   const totalDonated = ref(0);
@@ -44,7 +47,7 @@ export function useDevTippingStats() {
   const loadDevelopers = async () => {
     isLoading.value = true;
     try {
-      const total = toNumber(await read("totalDevelopers"));
+      const total = toNumber(await chain.read("totalDevelopers"));
 
       if (!total) {
         developers.value = [];
@@ -55,7 +58,7 @@ export function useDevTippingStats() {
       const ids = Array.from({ length: total }, (_, i) => i + 1);
       const devs = await Promise.all(
         ids.map(async (id) => {
-          const parsed = await read("getDeveloperDetails", [{ type: "Integer", value: id }]);
+          const parsed = await chain.read("getDeveloperDetails", [{ type: "Integer", value: id }]);
           const details =
             parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
           const name = String(details.name || "").trim();
@@ -77,10 +80,10 @@ export function useDevTippingStats() {
             balance,
             rank: "",
           };
-        })
+        }),
       );
 
-      totalDonated.value = parseGas(await read("totalDonated"));
+      totalDonated.value = parseGas(await chain.read("totalDonated"));
 
       const validDevs = devs.filter((d): d is Developer => d !== null);
       validDevs.sort((a, b) => b.totalTips - a.totalTips);
@@ -88,20 +91,19 @@ export function useDevTippingStats() {
         dev.rank = `#${idx + 1}`;
       });
       developers.value = validDevs;
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useDevTippingStats] stats load failed:", _e instanceof Error ? _e.message : String(_e));
-      setStatus("Developer list unavailable", "error");
     } finally {
       isLoading.value = false;
     }
   };
 
-  const loadRecentTips = async (APP_ID: string) => {
+  const loadRecentTips = async () => {
     try {
-      const res = await listEvents({ app_id: APP_ID, event_name: "TipSent", limit: 20 });
+      const events = await chain.listEvents("TipSent", { limit: 20 });
       const devMap = new Map(developers.value.map((dev) => [dev.id, dev.name]));
 
-      recentTips.value = res.events.map((evt) => {
+      recentTips.value = events.map((evt) => {
         const evtRecord = evt as unknown as Record<string, unknown>;
         const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
         const devId = toNumber(values[1] ?? 0);
@@ -109,15 +111,14 @@ export function useDevTippingStats() {
         const to = devMap.get(devId) || t("defaultDevName", { id: devId });
 
         return {
-          id: evt.id,
+          id: String(evtRecord.id ?? ""),
           to,
           amount: amount.toFixed(2),
-          time: new Intl.DateTimeFormat(undefined).format(new Date(evt.created_at || Date.now())),
+          time: new Intl.DateTimeFormat(undefined).format(new Date((evtRecord.created_at as string) || Date.now())),
         };
       });
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useDevTippingStats] loadRecentTips failed:", _e instanceof Error ? _e.message : String(_e));
-      setStatus("Recent tips unavailable", "error");
     }
   };
 
@@ -129,6 +130,5 @@ export function useDevTippingStats() {
     formatNum,
     loadDevelopers,
     loadRecentTips,
-    ensureContractAddress,
   };
 }

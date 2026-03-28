@@ -62,7 +62,7 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
   const connectWallet = async () => {
     try {
       await ensureWallet();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "connectWallet" });
       setErrorStatus(formatErrorMessage(e, t("error")), "error");
     }
@@ -96,7 +96,7 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
 
     try {
       await ensureWallet();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "connectBeforeFlip" });
       setErrorStatus(t("connectWalletToPlay"), "error");
       return;
@@ -219,7 +219,7 @@ export function useFogPlayGame(wallet: WalletSDK, t: (key: string) => string) {
         audioManager.play("lose");
         recordLoss();
       }
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "flip", metadata: { betAmount: betAmount.value, choice: choice.value } });
       const userMsg = formatErrorMessage(e, t("flipFailed"));
       const retryable = canRetry(e);

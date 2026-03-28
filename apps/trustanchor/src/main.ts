@@ -2,14 +2,14 @@
  * TrustAnchor — Entry Point (New Pattern)
  */
 
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { PlatformServices } from "@shared/services";
 import { formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useTrustAnchor } from "./pages/index/composables/useTrustAnchor";
+import { useTrustAnchor } from "./composables/useTrustAnchor";
 import { TRUSTANCHOR_AGENT_ACCOUNTS } from "./pages/index/data/agentAccounts";
 
 defineMiniApp({
@@ -25,7 +25,12 @@ defineMiniApp({
 
     const formatNum = (n: number | string) => formatNumber(n, 2);
 
-    const anchor = useTrustAnchor(ctx.t as (key: string) => string);
+    const anchor = useTrustAnchor({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t,
+    });
+
     const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
 
     const myStakeDisplay = computed(() => `${formatNum(anchor.myStake.value)} ${ctx.t("tokenNeo")}`);
@@ -39,7 +44,7 @@ defineMiniApp({
       try {
         await anchor.stake(amount);
         ctx.setStatus(ctx.t("stakeSuccess") || "Staked successfully", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
       }
     });
@@ -50,7 +55,7 @@ defineMiniApp({
       try {
         await anchor.unstake(amount);
         ctx.setStatus(ctx.t("unstakeSuccess") || "Unstaked successfully", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
       }
     });
@@ -59,7 +64,7 @@ defineMiniApp({
       try {
         await anchor.claimRewards();
         ctx.setStatus(ctx.t("claimSuccess") || "Rewards claimed", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
       }
     });
@@ -68,7 +73,7 @@ defineMiniApp({
       try {
         await anchor.claimPendingWithdraw();
         ctx.setStatus(ctx.t("withdrawSuccess") || "Withdrawal claimed", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
       }
     });
