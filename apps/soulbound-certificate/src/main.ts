@@ -1,5 +1,4 @@
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -12,9 +11,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-soulbound-certificate", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const soulbound = useSoulbound({
       chain: platformServices.chain,
@@ -23,14 +20,24 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("refreshTemplates", async () => { await soulbound.refreshTemplates(); });
-    ctx.registerAction("connectWallet", async () => { await soulbound.connectWallet(); });
-    ctx.registerAction("openIssueModal", async (template: unknown) => { soulbound.openIssueModal(template); });
+    ctx.registerAction("refreshTemplates", async () => {
+      await soulbound.refreshTemplates();
+    });
+    ctx.registerAction("connectWallet", async () => {
+      await soulbound.connectWallet();
+    });
+    ctx.registerAction("openIssueModal", async (template: unknown) => {
+      soulbound.openIssueModal(template);
+    });
     ctx.registerAction("toggleTemplate", (template: unknown) =>
       platformServices.notify.guard(() => soulbound.toggleTemplate(template)),
     );
-    ctx.registerAction("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
-    ctx.registerAction("shareIssueLink", async (template: unknown) => { await soulbound.shareIssueLink(template); });
+    ctx.registerAction("copyIssueLink", async (template: unknown) => {
+      await soulbound.copyIssueLink(template);
+    });
+    ctx.registerAction("shareIssueLink", async (template: unknown) => {
+      await soulbound.shareIssueLink(template);
+    });
 
     return {
       state: {
@@ -45,7 +52,6 @@ defineMiniApp({
         isLoading: soulbound.isLoading,
       },
       loadData: soulbound.loadAll,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

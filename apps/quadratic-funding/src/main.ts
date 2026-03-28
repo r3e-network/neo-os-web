@@ -4,7 +4,6 @@
 
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -17,17 +16,19 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-quadratic-funding", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const qf = useQuadraticFundingPage(ctx.t as (key: string) => string);
 
     const roundCount = computed(() => qf.rounds.value.length);
     const projectCount = computed(() => qf.projects.value.length);
-    const selectedRoundDisplay = computed(() => qf.selectedRoundId.value ?? ctx.t("notAvailable"));
+    const selectedRoundDisplay = computed(
+      () => qf.selectedRoundId.value ?? ctx.t("notAvailable"),
+    );
     const matchingPoolDisplay = computed(() =>
-      qf.selectedRound.value ? qf.formatAmount(qf.selectedRound.value.matchingPool) : ctx.t("notAvailable"),
+      qf.selectedRound.value
+        ? qf.formatAmount(qf.selectedRound.value.matchingPool)
+        : ctx.t("notAvailable"),
     );
 
     ctx.registerAction("createRound", async (...args: unknown[]) => {
@@ -70,10 +71,6 @@ defineMiniApp({
       },
 
       loadData: qf.refreshRounds,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

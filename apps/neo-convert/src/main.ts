@@ -13,7 +13,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -26,9 +25,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-convert", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const convert = useNeoConvert({
       chain: platformServices.chain,
@@ -105,7 +102,6 @@ defineMiniApp({
       // ── Cleanup ───────────────────────────────────────────────────
       cleanup: () => {
         convert.destroy();
-        platformServices.destroy();
       },
     };
   },

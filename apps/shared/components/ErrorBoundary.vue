@@ -42,7 +42,7 @@ const emit = defineEmits<{
   error: [error: Error];
 }>();
 
-const { t: i18nT } = useI18n()();
+const { t: i18nT } = useI18n();
 
 const hasError = ref(false);
 const error = ref<Error | null>(null);

@@ -302,7 +302,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>
         /// Validate that a module contract hash is registered and active in ModuleRegistry.
         /// </summary>
-        private static void ValidateModuleRegistered(UInt160 moduleHash)
+        private static void ValidateModuleRegistered(string instanceId, string binding, UInt160 moduleHash)
         {
             UInt160 moduleRegistry = ModuleRegistryAddress();
             if (moduleRegistry == UInt160.Zero || !moduleRegistry.IsValid)
@@ -312,11 +312,63 @@ namespace NeoMiniAppPlatform.Contracts
                 return;
             }
 
-            // We verify the module hash is a valid deployed contract.
-            // The ModuleRegistry stores modules by moduleId+version, not by hash,
-            // so we check the contract exists via ContractManagement as a baseline.
-            Contract state = ContractManagement.GetContract(moduleHash);
-            ExecutionEngine.Assert(state != null, "module contract not deployed");
+            bool isModuleActive = (bool)Contract.Call(
+                moduleRegistry, "isModuleActive", CallFlags.ReadOnly,
+                new object[] { moduleHash });
+
+            ExecutionEngine.Assert(isModuleActive, "module not active in registry");
+
+            UInt160 instanceRegistry = InstanceRegistry();
+            if (instanceRegistry == UInt160.Zero || !instanceRegistry.IsValid)
+            {
+                return;
+            }
+
+            string[] bindingRef = (string[])Contract.Call(
+                instanceRegistry, "resolveModuleBinding", CallFlags.ReadOnly,
+                new object[] { instanceId, binding });
+
+            ExecutionEngine.Assert(bindingRef != null && bindingRef.Length == 2,
+                "binding not declared in instance");
+
+            string moduleId = bindingRef[0] ?? "";
+            string version = bindingRef[1] ?? "";
+            ExecutionEngine.Assert(moduleId.Length > 0 && version.Length > 0,
+                "binding not declared in instance");
+
+            ByteString? instanceRaw = (ByteString?)Contract.Call(
+                instanceRegistry, "getInstance", CallFlags.ReadOnly,
+                new object[] { instanceId });
+            ExecutionEngine.Assert(instanceRaw != null, "instance not found in registry");
+
+            object[] instanceFields = (object[])StdLib.Deserialize(instanceRaw);
+            string recipeId = (string)(ByteString)instanceFields[2];
+            string recipeVersion = (string)(ByteString)instanceFields[3];
+
+            UInt160 recipeRegistry = (UInt160)Contract.Call(
+                instanceRegistry, "recipeRegistry", CallFlags.ReadOnly,
+                new object[] { });
+
+            if (recipeRegistry != UInt160.Zero && recipeRegistry.IsValid)
+            {
+                string[] recipeBindingRef = (string[])Contract.Call(
+                    recipeRegistry, "resolveRecipeBinding", CallFlags.ReadOnly,
+                    new object[] { recipeId, recipeVersion, binding });
+
+                ExecutionEngine.Assert(recipeBindingRef != null && recipeBindingRef.Length == 2,
+                    "binding not declared in recipe");
+                ExecutionEngine.Assert(recipeBindingRef[0] == moduleId && recipeBindingRef[1] == version,
+                    "binding not approved by recipe");
+            }
+
+            UInt160 expectedModuleHash = (UInt160)Contract.Call(
+                moduleRegistry, "resolveModuleHash", CallFlags.ReadOnly,
+                new object[] { moduleId, version });
+
+            ExecutionEngine.Assert(expectedModuleHash != UInt160.Zero && expectedModuleHash.IsValid,
+                "binding resolves to unknown module");
+            ExecutionEngine.Assert(expectedModuleHash == moduleHash,
+                "binding hash mismatch");
         }
 
         #endregion
@@ -526,7 +578,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(IsInstanceController(instanceId), "unauthorized: not instance controller");
 
             // Validate the module contract is deployed
-            ValidateModuleRegistered(moduleContractHash);
+            ValidateModuleRegistered(instanceId, binding, moduleContractHash);
 
             // Store the binding
             BindingMap().Put(BindingKey(instanceId, binding), moduleContractHash);
@@ -584,7 +636,7 @@ namespace NeoMiniAppPlatform.Contracts
 
                 ValidateIdentifier(name, "binding name");
                 ValidateAddress(hash, "module hash");
-                ValidateModuleRegistered(hash);
+                ValidateModuleRegistered(instanceId, name, hash);
 
                 BindingMap().Put(BindingKey(instanceId, name), hash);
                 allNames[i] = name;

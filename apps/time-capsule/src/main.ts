@@ -6,7 +6,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -19,9 +18,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-time-capsule", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const capsule = useTimeCapsule({
       chain: platformServices.chain,
@@ -44,7 +41,9 @@ defineMiniApp({
 
     ctx.registerAction("openCapsule", async (cap: unknown) => {
       try {
-        await capsule.openCapsule(cap as Parameters<typeof capsule.openCapsule>[0]);
+        await capsule.openCapsule(
+          cap as Parameters<typeof capsule.openCapsule>[0],
+        );
       } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
       }
@@ -65,7 +64,6 @@ defineMiniApp({
         canCreate: capsule.canCreate,
       },
       loadData: capsule.loadAll,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

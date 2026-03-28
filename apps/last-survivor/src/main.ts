@@ -3,7 +3,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import { useTicker } from "@shared/composables/useTicker";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -17,9 +16,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-last-survivor", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const game = useLastSurvivor({
       chain: platformServices.chain,
@@ -72,7 +69,6 @@ defineMiniApp({
 
       cleanup: () => {
         timerTicker.stop();
-        platformServices.destroy();
       },
     };
   },

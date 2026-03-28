@@ -31,7 +31,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -48,7 +47,7 @@ defineMiniApp({
    *
    * Called once when the miniapp mounts. The platform provides:
    *   ctx.t         — i18n translation function
-   *   ctx.services  — platform services (stub until full integration)
+   *   ctx.services  — platform-owned chain/event/notification services
    *   ctx.setStatus — show a toast/status message
    *   ctx.registerAction — register operation panel action handlers
    *
@@ -57,15 +56,11 @@ defineMiniApp({
    *   loadData — called by the platform on mount and wallet reconnect
    */
   setup(ctx) {
-    // Create the real PlatformServices with the i18n function.
-    // This gives the composable access to ChainService, EventBus, etc.
-    const platformServices = PlatformServices.create("miniapp-dailycheckin", {
-      t: ctx.t as (key: string) => string,
-    });
+    const services = ctx.services;
 
     const checkin = useCheckin({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: services.chain,
+      eventBus: services.events,
       t: ctx.t,
     });
 
@@ -76,7 +71,10 @@ defineMiniApp({
     // from the PlayArea via the injected action registry.
     registerActions(ctx, {
       doCheckIn: { handler: checkin.doCheckIn, successKey: "checkinSuccess" },
-      claimRewards: { handler: checkin.claimRewards, successKey: "claimSuccess" },
+      claimRewards: {
+        handler: checkin.claimRewards,
+        successKey: "claimSuccess",
+      },
     });
 
     return {
@@ -110,12 +108,6 @@ defineMiniApp({
       // ── Lifecycle ─────────────────────────────────────────────────
       // Called by the platform on mount and when the wallet reconnects.
       loadData: checkin.loadAll,
-
-      // ── Cleanup ───────────────────────────────────────────────────
-      // Called by the platform on unmount.
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

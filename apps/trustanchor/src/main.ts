@@ -4,7 +4,6 @@
 
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import { formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -19,9 +18,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-trustanchor", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { notify } = platformServices;
 
@@ -35,8 +32,12 @@ defineMiniApp({
 
     const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
 
-    const myStakeDisplay = computed(() => `${formatNum(anchor.myStake.value)} ${ctx.t("tokenNeo")}`);
-    const pendingRewardsDisplay = computed(() => `${formatNum(anchor.pendingRewards.value)} ${ctx.t("tokenGas")}`);
+    const myStakeDisplay = computed(
+      () => `${formatNum(anchor.myStake.value)} ${ctx.t("tokenNeo")}`,
+    );
+    const pendingRewardsDisplay = computed(
+      () => `${formatNum(anchor.pendingRewards.value)} ${ctx.t("tokenGas")}`,
+    );
     const agentCount = computed(() => agentAccounts.length);
     const ingressCount = computed(() => 21);
 
@@ -57,7 +58,10 @@ defineMiniApp({
     });
 
     ctx.registerAction("claimPendingWithdraw", async () => {
-      await notify.guard(() => anchor.claimPendingWithdraw(), "withdrawSuccess");
+      await notify.guard(
+        () => anchor.claimPendingWithdraw(),
+        "withdrawSuccess",
+      );
     });
 
     return {
@@ -74,10 +78,6 @@ defineMiniApp({
       },
 
       loadData: anchor.loadAll,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

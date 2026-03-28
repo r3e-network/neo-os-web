@@ -16,6 +16,16 @@ function hasAcceptedLayout(filePath) {
   return ACCEPTED_MARKERS.some((marker) => source.includes(marker));
 }
 
+function hasCurrentRuntimeLayout(appRoot) {
+  const mainPath = path.join(appRoot, "src", "main.ts");
+  const playAreaPath = path.join(appRoot, "src", "PlayArea.vue");
+  if (!fs.existsSync(mainPath)) return false;
+  if (!fs.existsSync(playAreaPath)) return false;
+
+  const mainSource = fs.readFileSync(mainPath, "utf8");
+  return mainSource.includes("defineMiniApp(");
+}
+
 function main() {
   const entries = fs.readdirSync(APPS_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -27,9 +37,25 @@ function main() {
   const failed = [];
 
   for (const app of entries) {
-    const pagePath = path.join(APPS_DIR, app, "src/pages/index/index.vue");
-    if (!fs.existsSync(pagePath)) continue;
+    const appRoot = path.join(APPS_DIR, app);
+    const srcRoot = path.join(appRoot, "src");
+    const pagePath = path.join(appRoot, "src/pages/index/index.vue");
+
+    if (!fs.existsSync(srcRoot)) {
+      continue;
+    }
+
     checked.push(app);
+
+    if (hasCurrentRuntimeLayout(appRoot)) {
+      continue;
+    }
+
+    if (!fs.existsSync(pagePath)) {
+      failed.push(app);
+      continue;
+    }
+
     if (!hasAcceptedLayout(pagePath)) {
       failed.push(app);
     }

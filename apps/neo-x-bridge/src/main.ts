@@ -4,7 +4,6 @@
 
 import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -55,14 +54,14 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-x-bridge", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { notify } = platformServices;
 
     const selectedKey = ref<"mainnet" | "testnet">("mainnet");
-    const selectedBridge = computed(() => selectedKey.value === "testnet" ? testnetBridge : mainnetBridge);
+    const selectedBridge = computed(() =>
+      selectedKey.value === "testnet" ? testnetBridge : mainnetBridge,
+    );
 
     ctx.registerAction("selectNetwork", async (key: string) => {
       selectedKey.value = key as "mainnet" | "testnet";
@@ -74,14 +73,29 @@ defineMiniApp({
 
     ctx.registerAction("addWallet", async () => {
       await notify.guard(async () => {
-        const ethereum = (globalThis as { ethereum?: { request: (args: unknown) => Promise<unknown> } }).ethereum;
+        const ethereum = (
+          globalThis as {
+            ethereum?: { request: (args: unknown) => Promise<unknown> };
+          }
+        ).ethereum;
         if (!ethereum) throw new Error(ctx.t("addWalletMissing"));
         try {
-          await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: selectedBridge.value.chainIdHex }] });
+          await ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: selectedBridge.value.chainIdHex }],
+          });
         } catch (_e) {
           await ethereum.request({
             method: "wallet_addEthereumChain",
-            params: [{ chainId: selectedBridge.value.chainIdHex, chainName: selectedBridge.value.networkName, nativeCurrency: { name: "GAS", symbol: "GAS", decimals: 18 }, rpcUrls: [selectedBridge.value.rpcUrl], blockExplorerUrls: [selectedBridge.value.explorer] }],
+            params: [
+              {
+                chainId: selectedBridge.value.chainIdHex,
+                chainName: selectedBridge.value.networkName,
+                nativeCurrency: { name: "GAS", symbol: "GAS", decimals: 18 },
+                rpcUrls: [selectedBridge.value.rpcUrl],
+                blockExplorerUrls: [selectedBridge.value.explorer],
+              },
+            ],
           });
         }
       }, "addWalletSuccess");
@@ -104,7 +118,6 @@ defineMiniApp({
         chainId: computed(() => selectedBridge.value.chainIdDecimal),
       },
       loadData: async () => {},
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

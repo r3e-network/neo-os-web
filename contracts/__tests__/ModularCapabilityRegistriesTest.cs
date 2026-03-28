@@ -22,6 +22,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ContractSourceAssertions.AssertHasPublicField(code, "bool", "Active");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "ModuleInfo", "GetModule");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "UInt160", "ResolveModuleHash");
+            ContractSourceAssertions.AssertHasPublicStaticMethod(code, "bool", "IsModuleActive");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "UpsertModule");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "SetModuleActive");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "SetAdmin");
@@ -44,6 +45,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ContractSourceAssertions.AssertHasPublicField(code, "string", "RouterTemplateId");
             ContractSourceAssertions.AssertHasPublicField(code, "bool", "Active");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "RecipeInfo", "GetRecipe");
+            ContractSourceAssertions.AssertHasPublicStaticMethod(code, "string[]", "ResolveRecipeBinding");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "UpsertRecipe");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "SetRecipeActive");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "SetModuleRegistry");
@@ -69,6 +71,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             ContractSourceAssertions.AssertHasPublicField(code, "MiniAppInstanceStatus", "Status");
             ContractSourceAssertions.AssertHasPublicField(code, "bool", "UpgradePending");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "InstanceInfo", "GetInstance");
+            ContractSourceAssertions.AssertHasPublicStaticMethod(code, "string[]", "ResolveModuleBinding");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "RegisterInstance");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "SetInstanceStatus");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "BindRouterContract");
