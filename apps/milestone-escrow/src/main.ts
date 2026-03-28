@@ -8,7 +8,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -21,9 +20,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-milestone-escrow", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const escrow = useMilestoneEscrow({
       chain: platformServices.chain,
@@ -43,22 +40,34 @@ defineMiniApp({
         errorKey: "walletNotConnected",
       },
       createEscrow: {
-        handler: (data: unknown) => escrow.createEscrow(data as Parameters<typeof escrow.createEscrow>[0]),
+        handler: (data: unknown) =>
+          escrow.createEscrow(
+            data as Parameters<typeof escrow.createEscrow>[0],
+          ),
         successKey: "escrowCreated",
         errorKey: "error",
       },
       approveMilestone: {
-        handler: (escrowItem: unknown) => escrow.approveMilestone(escrowItem as Parameters<typeof escrow.approveMilestone>[0]),
+        handler: (escrowItem: unknown) =>
+          escrow.approveMilestone(
+            escrowItem as Parameters<typeof escrow.approveMilestone>[0],
+          ),
         successKey: "milestoneApproved",
         errorKey: "error",
       },
       claimMilestone: {
-        handler: (escrowItem: unknown) => escrow.claimMilestone(escrowItem as Parameters<typeof escrow.claimMilestone>[0]),
+        handler: (escrowItem: unknown) =>
+          escrow.claimMilestone(
+            escrowItem as Parameters<typeof escrow.claimMilestone>[0],
+          ),
         successKey: "claimSuccess",
         errorKey: "error",
       },
       cancelEscrow: {
-        handler: (escrowItem: unknown) => escrow.cancelEscrow(escrowItem as Parameters<typeof escrow.cancelEscrow>[0]),
+        handler: (escrowItem: unknown) =>
+          escrow.cancelEscrow(
+            escrowItem as Parameters<typeof escrow.cancelEscrow>[0],
+          ),
         successKey: "escrowCancelled",
         errorKey: "error",
       },
@@ -98,7 +107,6 @@ defineMiniApp({
       // ── Cleanup ───────────────────────────────────────────────────
       cleanup: () => {
         escrow.cleanup();
-        platformServices.destroy();
       },
     };
   },

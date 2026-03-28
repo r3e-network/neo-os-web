@@ -5,7 +5,6 @@
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,18 +17,24 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-gov-merc", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const pool = useGovMercPool({
       chain: platformServices.chain,
       eventBus: platformServices.events,
-      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      t: ctx.t as (
+        key: string,
+        params?: Record<string, string | number>,
+      ) => string,
     });
 
-    const totalPoolDisplay = computed(() => `${pool.formatNum(pool.totalPool.value, 0)} ${ctx.t("tokenNeo")}`);
-    const userDepositsDisplay = computed(() => `${pool.formatNum(pool.userDeposits.value, 0)} ${ctx.t("tokenNeo")}`);
+    const totalPoolDisplay = computed(
+      () => `${pool.formatNum(pool.totalPool.value, 0)} ${ctx.t("tokenNeo")}`,
+    );
+    const userDepositsDisplay = computed(
+      () =>
+        `${pool.formatNum(pool.userDeposits.value, 0)} ${ctx.t("tokenNeo")}`,
+    );
     const bidCount = computed(() => pool.bids.value.length);
 
     registerActions(ctx, {
@@ -57,10 +62,6 @@ defineMiniApp({
       },
 
       loadData: pool.loadData,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

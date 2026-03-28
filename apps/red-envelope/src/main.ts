@@ -7,26 +7,22 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useRedEnvelope } from "./composables/useRedEnvelope";
 
 defineMiniApp({
-  appId: "miniapp-red-envelope",
+  appId: "miniapp-redenvelope",
   playArea: PlayArea,
   manifest,
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-redenvelope", {
-      t: ctx.t as (key: string) => string,
-    });
-
+    const services = ctx.services;
     const envelope = useRedEnvelope({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: services.chain,
+      eventBus: services.events,
       t: ctx.t,
     });
 
@@ -40,7 +36,9 @@ defineMiniApp({
     });
 
     ctx.registerAction("openFromList", async (envelopeItem: unknown) => {
-      envelope.openFromList(envelopeItem as Parameters<typeof envelope.openFromList>[0]);
+      envelope.openFromList(
+        envelopeItem as Parameters<typeof envelope.openFromList>[0],
+      );
     });
 
     // Register async actions with standardized error handling
@@ -60,9 +58,14 @@ defineMiniApp({
       create: {
         handler: async (formData: unknown) => {
           const fd = formData as {
-            name: string; description: string; amount: string;
-            count: string; expiryHours: string; minNeoRequired: string;
-            minHoldDays: string; envelopeType: string;
+            name: string;
+            description: string;
+            amount: string;
+            count: string;
+            expiryHours: string;
+            minNeoRequired: string;
+            minHoldDays: string;
+            envelopeType: string;
           };
           await envelope.create({
             amount: fd.amount,
@@ -74,7 +77,8 @@ defineMiniApp({
         errorKey: "error",
       },
       claimFromPool: {
-        handler: (poolId: unknown) => envelope.handleClaimFromPool(poolId as string),
+        handler: (poolId: unknown) =>
+          envelope.handleClaimFromPool(poolId as string),
         errorKey: "error",
       },
     });
@@ -96,7 +100,10 @@ defineMiniApp({
           }
         }
       } catch (_e) {
-        console.warn("[red-envelope] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
+        console.warn(
+          "[red-envelope] initial data load failed:",
+          _e instanceof Error ? _e.message : String(_e),
+        );
       }
     };
 
@@ -117,14 +124,10 @@ defineMiniApp({
         envelopes: envelope.envelopes,
         claims: envelope.claims,
         pools: envelope.pools,
-        address: platformServices.chain.address,
+        address: services.chain.address,
       },
 
       loadData: initialLoad,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

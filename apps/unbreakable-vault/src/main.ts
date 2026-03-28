@@ -8,7 +8,6 @@
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -23,13 +22,7 @@ defineMiniApp({
 
   setup(ctx) {
     const t = ctx.t as (key: string) => string;
-    const platformServices = PlatformServices.create("miniapp-unbreakablevault", { t });
-
-    const breaker = useVaultBreaker({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
-      t,
-    });
+    const platformServices = ctx.services;
 
     const creator = useVaultCreator({
       chain: platformServices.chain,
@@ -69,10 +62,7 @@ defineMiniApp({
     });
 
     const loadData = async () => {
-      await Promise.all([
-        breaker.loadRecentVaults(),
-        creator.loadMyVaults(),
-      ]);
+      await Promise.all([breaker.loadRecentVaults(), creator.loadMyVaults()]);
     };
 
     return {
@@ -80,7 +70,9 @@ defineMiniApp({
         address: platformServices.chain.address,
         myVaultCount: computed(() => creator.myVaults.value.length),
         recentVaultCount: computed(() => breaker.recentVaults.value.length),
-        vaultDifficulty: computed(() => breaker.vaultDetails.value?.difficultyName ?? "1"),
+        vaultDifficulty: computed(
+          () => breaker.vaultDetails.value?.difficultyName ?? "1",
+        ),
         attemptFeeDisplay: breaker.attemptFeeDisplay,
         createdVaultId: creator.createdVaultId,
         vaultDetails: breaker.vaultDetails,
@@ -91,10 +83,6 @@ defineMiniApp({
       },
 
       loadData,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

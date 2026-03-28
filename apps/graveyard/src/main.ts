@@ -1,5 +1,4 @@
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -12,9 +11,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-graveyard", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { notify } = platformServices;
 
@@ -30,7 +27,8 @@ defineMiniApp({
 
     ctx.registerAction("forgetMemory", async (item: unknown) => {
       await notify.guard(
-        () => graveyard.forgetMemory(item as { id: string; forgotten: boolean }),
+        () =>
+          graveyard.forgetMemory(item as { id: string; forgotten: boolean }),
         "forgetSuccess",
       );
     });
@@ -54,7 +52,6 @@ defineMiniApp({
       loadData: graveyard.loadAll,
       cleanup: () => {
         graveyard.cleanupTimers();
-        platformServices.destroy();
       },
     };
   },

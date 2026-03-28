@@ -4,7 +4,6 @@
 
 import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -20,9 +19,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neoburger", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const core = useNeoburgerCore({
       chain: platformServices.chain,
@@ -51,8 +48,12 @@ defineMiniApp({
       ctx.t,
     );
 
-    const neoBalanceDisplay = computed(() => String(core.neoBalance.value ?? ctx.t("notAvailable")));
-    const bNeoBalanceDisplay = computed(() => String(core.bNeoBalance.value ?? ctx.t("notAvailable")));
+    const neoBalanceDisplay = computed(() =>
+      String(core.neoBalance.value ?? ctx.t("notAvailable")),
+    );
+    const bNeoBalanceDisplay = computed(() =>
+      String(core.bNeoBalance.value ?? ctx.t("notAvailable")),
+    );
     const loading = ref(false);
 
     const { notify } = platformServices;
@@ -60,7 +61,11 @@ defineMiniApp({
     ctx.registerAction("swap", async () => {
       loading.value = true;
       try {
-        const success = await notify.guard(() => swap.executeSwap(), undefined, "actionFailed");
+        const success = await notify.guard(
+          () => swap.executeSwap(),
+          undefined,
+          "actionFailed",
+        );
         if (success === false) {
           notify.error("actionFailed");
         }
@@ -72,7 +77,11 @@ defineMiniApp({
     ctx.registerAction("claimRewards", async () => {
       loading.value = true;
       try {
-        const success = await notify.guard(() => core.handleClaimRewards(), undefined, "claimFailed");
+        const success = await notify.guard(
+          () => core.handleClaimRewards(),
+          undefined,
+          "claimFailed",
+        );
         if (success) {
           notify.success("claimSuccess");
           await core.loadBalances(false);
@@ -121,7 +130,6 @@ defineMiniApp({
 
       cleanup: () => {
         stats.cleanup();
-        platformServices.destroy();
       },
     };
   },

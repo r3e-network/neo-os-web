@@ -4,7 +4,6 @@
 
 import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -16,14 +15,14 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-timestamp-proof", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const totalProofs = ref(0);
     const yourProofs = ref(0);
     const isCreating = ref(false);
-    const latestId = computed(() => totalProofs.value > 0 ? `#${totalProofs.value}` : ctx.t("notAvailable"));
+    const latestId = computed(() =>
+      totalProofs.value > 0 ? `#${totalProofs.value}` : ctx.t("notAvailable"),
+    );
 
     ctx.registerAction("createProof", async (content: string) => {
       isCreating.value = true;
@@ -41,7 +40,6 @@ defineMiniApp({
     return {
       state: { totalProofs, yourProofs, isCreating, latestId },
       loadData: async () => {},
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

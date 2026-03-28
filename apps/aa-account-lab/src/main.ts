@@ -5,7 +5,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,9 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-aa-account-lab", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const lab = useAAAccountLab({
       chain: platformServices.chain,
@@ -31,28 +28,43 @@ defineMiniApp({
     // Register actions for PlayArea to invoke
     ctx.registerAction("inspect", async (accountIdInput: string) => {
       lab.inspectForm.accountIdInput = accountIdInput;
-      await platformServices.notify.guard(() => lab.inspectAccount(), "inspectSuccess", "invalidAccountId");
+      await platformServices.notify.guard(
+        () => lab.inspectAccount(),
+        "inspectSuccess",
+        "invalidAccountId",
+      );
     });
 
-    ctx.registerAction("register", async (
-      accountIdInput: string,
-      verifierHash: string,
-      verifierParamsHex: string,
-      hookHash: string,
-      backupOwner: string,
-      escapeTimelock: string,
-    ) => {
-      lab.registerForm.accountIdInput = accountIdInput;
-      lab.registerForm.verifierHash = verifierHash;
-      lab.registerForm.verifierParamsHex = verifierParamsHex;
-      lab.registerForm.hookHash = hookHash;
-      lab.registerForm.backupOwner = backupOwner;
-      lab.registerForm.escapeTimelock = escapeTimelock;
-      await platformServices.notify.guard(() => lab.submitRegister(), "registerSuccess", "invalidAccountId");
-    });
+    ctx.registerAction(
+      "register",
+      async (
+        accountIdInput: string,
+        verifierHash: string,
+        verifierParamsHex: string,
+        hookHash: string,
+        backupOwner: string,
+        escapeTimelock: string,
+      ) => {
+        lab.registerForm.accountIdInput = accountIdInput;
+        lab.registerForm.verifierHash = verifierHash;
+        lab.registerForm.verifierParamsHex = verifierParamsHex;
+        lab.registerForm.hookHash = hookHash;
+        lab.registerForm.backupOwner = backupOwner;
+        lab.registerForm.escapeTimelock = escapeTimelock;
+        await platformServices.notify.guard(
+          () => lab.submitRegister(),
+          "registerSuccess",
+          "invalidAccountId",
+        );
+      },
+    );
 
     ctx.registerAction("connect", () =>
-      platformServices.notify.guard(() => platformServices.chain.ensureWallet(), "walletConnected", "connectFailed"),
+      platformServices.notify.guard(
+        () => platformServices.chain.ensureWallet(),
+        "walletConnected",
+        "connectFailed",
+      ),
     );
 
     return {
@@ -67,7 +79,6 @@ defineMiniApp({
         isSubmitting: lab.isSubmitting,
       },
       loadData: lab.loadAll,
-      cleanup: () => platformServices.destroy(),
     };
   },
 });

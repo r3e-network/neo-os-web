@@ -19,7 +19,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -47,9 +46,7 @@ defineMiniApp({
   setup(ctx) {
     // Create the real PlatformServices with the i18n function.
     // This gives the composable access to ChainService, EventBus, etc.
-    const platformServices = PlatformServices.create("miniapp-burn-league", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const league = useBurnLeague({
       chain: platformServices.chain,
@@ -103,9 +100,6 @@ defineMiniApp({
 
       // ── Cleanup ───────────────────────────────────────────────────
       // Called by the platform on unmount.
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

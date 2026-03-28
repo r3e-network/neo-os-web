@@ -126,6 +126,128 @@ namespace NeoMiniAppPlatform.Contracts
             return value ?? (ByteString)"";
         }
 
+        private static Map<string, object> ParseJsonObject(ByteString raw)
+        {
+            if (raw == null || raw.Length == 0)
+            {
+                return new Map<string, object>();
+            }
+
+            return (Map<string, object>)StdLib.JsonDeserialize((string)raw);
+        }
+
+        private static string ReadJsonString(Map<string, object> source, string key)
+        {
+            if (!source.HasKey(key))
+            {
+                return "";
+            }
+
+            object value = source[key];
+            if (value is string text)
+            {
+                return text;
+            }
+
+            if (value is ByteString bytes)
+            {
+                return (string)bytes;
+            }
+
+            return value?.ToString() ?? "";
+        }
+
+        private static string[] ReadJsonStringArray(Map<string, object> source, string key)
+        {
+            if (!source.HasKey(key))
+            {
+                return new string[0];
+            }
+
+            object[] raw = (object[])source[key];
+            string[] values = new string[raw.Length];
+            for (int i = 0; i < raw.Length; i++)
+            {
+                object value = raw[i];
+                if (value is string text)
+                {
+                    values[i] = text;
+                }
+                else if (value is ByteString bytes)
+                {
+                    values[i] = (string)bytes;
+                }
+                else
+                {
+                    values[i] = value?.ToString() ?? "";
+                }
+            }
+
+            return values;
+        }
+
+        private static string[] AppendUnique(string[] values, string value)
+        {
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (values[i] == value) return values;
+            }
+
+            string[] next = new string[values.Length + 1];
+            for (int i = 0; i < values.Length; i++)
+            {
+                next[i] = values[i];
+            }
+
+            next[values.Length] = value;
+            return next;
+        }
+
+        private static bool ContainsValue(string[] values, string value)
+        {
+            for (int i = 0; i < values.Length; i++)
+            {
+                if (values[i] == value) return true;
+            }
+
+            return false;
+        }
+
+        private static string[] CollectRequiredBindings(ByteString moduleRefsRaw, ByteString requiredFieldsRaw)
+        {
+            string[] requiredBindings = new string[0];
+
+            if (moduleRefsRaw != null && moduleRefsRaw.Length > 0)
+            {
+                object[] refs = (object[])StdLib.JsonDeserialize((string)moduleRefsRaw);
+                for (int i = 0; i < refs.Length; i++)
+                {
+                    Map<string, object> entry = (Map<string, object>)refs[i];
+                    string binding = ReadJsonString(entry, "binding");
+                    if (binding.Length > 0)
+                    {
+                        requiredBindings = AppendUnique(requiredBindings, binding);
+                    }
+                }
+            }
+
+            if (requiredFieldsRaw != null && requiredFieldsRaw.Length > 0)
+            {
+                Map<string, object> requiredFields = ParseJsonObject(requiredFieldsRaw);
+                string[] explicitBindings = ReadJsonStringArray(requiredFields, "module_bindings");
+                for (int i = 0; i < explicitBindings.Length; i++)
+                {
+                    string binding = explicitBindings[i];
+                    if (binding.Length > 0)
+                    {
+                        requiredBindings = AppendUnique(requiredBindings, binding);
+                    }
+                }
+            }
+
+            return requiredBindings;
+        }
+
         private static ByteString InstanceKey(string instanceId)
         {
             ValidateIdentifier(instanceId, "instance id");
@@ -185,6 +307,36 @@ namespace NeoMiniAppPlatform.Contracts
             return raw == null ? EmptyInstance() : (InstanceInfo)StdLib.Deserialize(raw);
         }
 
+        [Safe]
+        public static string[] ResolveModuleBinding(string instanceId, string binding)
+        {
+            ValidateIdentifier(instanceId, "instance id");
+            ValidateIdentifier(binding, "binding");
+
+            InstanceInfo info = GetInstance(instanceId);
+            if (info.InstanceId.Length == 0 || info.ModuleBindings.Length == 0)
+            {
+                return new string[0];
+            }
+
+            Map<string, object> bindings = ParseJsonObject(info.ModuleBindings);
+            if (!bindings.HasKey(binding))
+            {
+                return new string[0];
+            }
+
+            Map<string, object> entry = (Map<string, object>)bindings[binding];
+            string moduleId = ReadJsonString(entry, "module_id");
+            string version = ReadJsonString(entry, "version");
+
+            if (moduleId.Length == 0 || version.Length == 0)
+            {
+                return new string[0];
+            }
+
+            return new string[] { moduleId, version };
+        }
+
         public static void RegisterInstance(
             string instanceId,
             string appId,
@@ -220,6 +372,90 @@ namespace NeoMiniAppPlatform.Contracts
 
             string normalizedFrontendRef = frontendRef ?? "";
             ExecutionEngine.Assert(normalizedFrontendRef.Length <= 512, "frontend ref too long");
+
+            Map<string, object> instanceBindings = ParseJsonObject(NormalizeBlob(moduleBindings));
+
+            UInt160 recipeRegistry = RecipeRegistry();
+            if (recipeRegistry != UInt160.Zero && recipeRegistry.IsValid)
+            {
+                ByteString? recipeRaw = (ByteString?)Contract.Call(
+                    recipeRegistry, "getRecipe", CallFlags.ReadOnly,
+                    new object[] { recipeId, recipeVersion });
+                ExecutionEngine.Assert(recipeRaw != null, "recipe not found");
+
+                ByteString recipeBytes = (ByteString)recipeRaw!;
+                object[] recipeFields = (object[])StdLib.Deserialize(recipeBytes);
+                string storedRecipeId = (string)(ByteString)recipeFields[0];
+                ExecutionEngine.Assert(storedRecipeId.Length > 0, "recipe not found");
+
+                bool recipeActive = (bool)recipeFields[8];
+                ExecutionEngine.Assert(recipeActive, "recipe not active");
+
+                string allowedRuntimeMode = (string)(ByteString)recipeFields[5];
+                if (allowedRuntimeMode.Length > 0)
+                {
+                    ExecutionEngine.Assert(allowedRuntimeMode == runtimeMode, "runtime mode not allowed");
+                }
+
+                string[] requiredBindings = CollectRequiredBindings(
+                    (ByteString)recipeFields[2],
+                    (ByteString)recipeFields[3]);
+
+                for (int i = 0; i < requiredBindings.Length; i++)
+                {
+                    ExecutionEngine.Assert(instanceBindings.HasKey(requiredBindings[i]), "missing required binding");
+                }
+
+                string[] declaredBindings = instanceBindings.Keys;
+                for (int i = 0; i < declaredBindings.Length; i++)
+                {
+                    string binding = declaredBindings[i];
+                    ExecutionEngine.Assert(ContainsValue(requiredBindings, binding), "unexpected binding");
+
+                    Map<string, object> entry = (Map<string, object>)instanceBindings[binding];
+                    string moduleId = ReadJsonString(entry, "module_id");
+                    string version = ReadJsonString(entry, "version");
+                    ExecutionEngine.Assert(moduleId.Length > 0 && version.Length > 0, "binding requires module_id/version");
+
+                    string[] recipeBindingRef = (string[])Contract.Call(
+                        recipeRegistry, "resolveRecipeBinding", CallFlags.ReadOnly,
+                        new object[] { recipeId, recipeVersion, binding });
+
+                    ExecutionEngine.Assert(recipeBindingRef != null && recipeBindingRef.Length == 2, "binding not approved by recipe");
+                    string[] approvedBinding = recipeBindingRef!;
+                    ExecutionEngine.Assert(approvedBinding[0] == moduleId && approvedBinding[1] == version, "binding not approved by recipe");
+                }
+            }
+
+            UInt160 moduleRegistry = ModuleRegistry();
+            if (moduleRegistry != UInt160.Zero && moduleRegistry.IsValid)
+            {
+                string[] declaredBindings = instanceBindings.Keys;
+                for (int i = 0; i < declaredBindings.Length; i++)
+                {
+                    string binding = declaredBindings[i];
+                    Map<string, object> entry = (Map<string, object>)instanceBindings[binding];
+                    string moduleId = ReadJsonString(entry, "module_id");
+                    string version = ReadJsonString(entry, "version");
+                    if (moduleId.Length == 0 || version.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    ByteString? moduleRaw = (ByteString?)Contract.Call(
+                        moduleRegistry, "getModule", CallFlags.ReadOnly,
+                        new object[] { moduleId, version });
+                    ExecutionEngine.Assert(moduleRaw != null, "binding references unknown module");
+
+                    ByteString moduleBytes = (ByteString)moduleRaw!;
+                    object[] moduleFields = (object[])StdLib.Deserialize(moduleBytes);
+                    string storedModuleId = (string)(ByteString)moduleFields[0];
+                    ExecutionEngine.Assert(storedModuleId.Length > 0, "binding references unknown module");
+
+                    bool moduleActive = (bool)moduleFields[7];
+                    ExecutionEngine.Assert(moduleActive, "binding references inactive module");
+                }
+            }
 
             InstanceInfo info = new InstanceInfo
             {

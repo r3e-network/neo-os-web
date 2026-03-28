@@ -81,22 +81,10 @@ export function useNeoburgerStats(t: (key: string, params?: Record<string, strin
     return null;
   };
 
-  const readLegacyCachedApy = () => {
-    try {
-      const g = globalThis as { uni?: { getStorageSync?: (key: string) => unknown } };
-      const raw = g?.uni?.getStorageSync?.(APY_CACHE_KEY) ?? (typeof localStorage !== "undefined" ? localStorage.getItem(APY_CACHE_KEY) : null);
-      const value = Number(raw);
-      return Number.isFinite(value) && value >= 0 ? value : null;
-    } catch (_e) {
-      console.warn("[useNeoburgerStats] readLegacyCachedApy failed:", _e instanceof Error ? _e.message : String(_e));
-      return null;
-    }
-  };
-
   async function loadApy() {
     try {
       loadingApy.value = true;
-      const cached = readTimedCacheValue<number>(APY_CACHE_KEY) ?? readLegacyCachedApy();
+      const cached = readTimedCacheValue<number>(APY_CACHE_KEY);
       if (cached !== null) {
         apy.value = cached;
         writeTimedCache(APY_CACHE_KEY, cached);

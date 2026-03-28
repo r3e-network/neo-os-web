@@ -6,7 +6,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -19,9 +18,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-oracle-neodid-console", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const { notify } = platformServices;
 
@@ -64,9 +61,6 @@ defineMiniApp({
         isRequesting: neodid.isRequesting,
       },
       loadData: neodid.loadAll,
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });
