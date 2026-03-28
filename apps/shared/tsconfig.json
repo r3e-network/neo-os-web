@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.miniapp.json",
+  "compilerOptions": {
+    "paths": {
+      "@shared/*": ["./*"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
