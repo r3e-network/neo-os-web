@@ -105,7 +105,7 @@ const isSubmitting = ref(false);
 function deriveAccountIdHash(input: string): string {
   try {
     return deriveAAAccountIdHash(input);
-  } catch (e: unknown) {
+  } catch (e) {
     throw new Error(t("invalidAccountId"));
   }
 }

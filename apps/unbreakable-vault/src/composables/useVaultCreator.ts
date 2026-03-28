@@ -1,47 +1,65 @@
+/**
+ * useVaultCreator — Vault creation with password hashing and GAS deposit
+ *
+ * Migrated to PlatformServices pattern:
+ *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
+ *   - useEvents().list -> chain.listEvents()
+ *   - waitForListedEventByTransaction -> chain.waitForEvent()
+ */
+
 import { ref } from "vue";
-import { useEvents } from "@shared/utils/wallet-sdk";
+import type { ChainService, EventBus } from "@shared/services";
 import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
 import { toFixed8 } from "@shared/utils/format";
 import { sha256Hex } from "@shared/utils/hash";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { waitForListedEventByTransaction } from "@shared/utils";
 
-// Blockchain confirm timing constants
-const WAIT_AFTER_TRANSFER_MS = 4000;
-const DEFAULT_TIMEOUT_MS = 30000;
-const POLL_INTERVAL_MS = 1500;
+// ============================================================================
+// Types
+// ============================================================================
 
-/** Handles vault creation with password hashing and GAS deposit. */
-export function useVaultCreator(
-  APP_ID: string,
-  t: (key: string) => string,
-  setStatus: (msg: string, type: string) => void
-) {
-  const {
-    address,
-    ensureWallet,
-    ensureContractAddress,
-    invokeDirectly,
-    isProcessing: isCreating,
-  } = useContractInteraction({ appId: APP_ID, t });
-  const { list: listEvents } = useEvents();
+export interface MyVault {
+  id: string;
+  bounty: number;
+  created: number;
+}
 
-  const myVaults = ref<{ id: string; bounty: number; created: number }[]>([]);
+export interface VaultCreateForm {
+  bounty: string;
+  title: string;
+  description: string;
+  difficulty: number;
+  secret: string;
+  secretHash: string;
+}
+
+export interface UseVaultCreatorOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string) => string;
+}
+
+// ============================================================================
+// Composable
+// ============================================================================
+
+export function useVaultCreator({ chain, eventBus, t }: UseVaultCreatorOptions) {
+  const myVaults = ref<MyVault[]>([]);
   const createdVaultId = ref<string | null>(null);
 
   const loadMyVaults = async () => {
-    if (!address.value) {
+    if (!chain.address.value) {
       myVaults.value = [];
       return;
     }
     try {
-      const res = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 50 });
-      const myHash = normalizeScriptHash(addressToScriptHash(address.value));
-      const vaults = res.events
-        .map((evt: Record<string, unknown>) => {
-          const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
+      const events = await chain.listEvents("VaultCreated", { limit: 50 });
+      const myHash = normalizeScriptHash(addressToScriptHash(chain.address.value));
+      const vaults = (events as { state?: unknown[]; created_at?: string }[])
+        .map((evt) => {
+          const values = Array.isArray(evt?.state)
+            ? (evt.state as unknown[]).map(parseStackItem)
+            : [];
           const id = String(values[0] ?? "");
           const creator = String(values[1] ?? "");
           const bountyValue = Number(values[2] ?? 0);
@@ -50,91 +68,87 @@ export function useVaultCreator(
           return {
             id,
             bounty: bountyValue,
-            created: evt.created_at ? new Date(evt.created_at as string).getTime() : Date.now(),
+            created: evt.created_at ? new Date(evt.created_at).getTime() : Date.now(),
           };
         })
-        .filter(Boolean) as { id: string; bounty: number; created: number }[];
+        .filter(Boolean) as MyVault[];
       myVaults.value = vaults.sort((a, b) => b.created - a.created);
-    } catch (e: unknown) {
-      // Non-critical: user sees empty vault list, can retry
-      console.error("[unbreakable-vault] loadMyVaults error:", e instanceof Error ? e.message : String(e));
-      setStatus("My vaults unavailable", "error");
+    } catch (e) {
+      console.error(
+        "[unbreakable-vault] loadMyVaults error:",
+        e instanceof Error ? e.message : String(e),
+      );
+      eventBus.emit("vault:error", { message: "My vaults unavailable" });
     }
   };
 
   const createVault = async (
-    form: {
-      bounty: string;
-      title: string;
-      description: string;
-      difficulty: number;
-      secret: string;
-      secretHash: string;
-    },
+    form: VaultCreateForm,
     onSuccess: (vaultId: string) => void,
-    loadRecentVaults: () => Promise<void>
+    loadRecentVaults: () => Promise<void>,
   ) => {
-    if (isCreating.value) return;
+    if (chain.isProcessing.value) return;
     try {
-      await ensureWallet();
-      const contract = await ensureContractAddress();
+      await chain.ensureWallet();
       const amount = Number.parseFloat(form.bounty);
       const bountyInt = toFixed8(amount);
       const hash = form.secretHash || (await sha256Hex(form.secret));
 
-      await invokeDirectly(
+      // Step 1: Transfer GAS bounty to the contract
+      await chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Hash160", value: contract },
+          { type: "Hash160", value: chain.address.value as string },
+          { type: "Hash160", value: chain.contractAddress.value as string },
           { type: "Integer", value: bountyInt },
-          { type: "String", value: `${APP_ID}:create:${hash.slice(0, 10)}` },
+          { type: "String", value: `miniapp-unbreakablevault:create:${hash.slice(0, 10)}` },
         ],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
 
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      const res = await invokeDirectly(
+      // Step 2: Create the vault
+      const result = await chain.invoke(
         "createVault",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "ByteArray", value: hash },
           { type: "Integer", value: bountyInt },
           { type: "Integer", value: String(form.difficulty) },
           { type: "String", value: form.title.trim().slice(0, 100) },
           { type: "String", value: form.description.trim().slice(0, 300) },
         ],
-        contract
+        { waitForEvent: "VaultCreated", waitTimeoutMs: 30000 },
       );
 
-      const createdEvt = await waitForListedEventByTransaction<{ state?: unknown[]; tx_hash?: string }>(res.tx, {
-        listEvents: async () => {
-          const events = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 20 });
-          return events.events || [];
-        },
-        timeoutMs: DEFAULT_TIMEOUT_MS,
-        pollIntervalMs: POLL_INTERVAL_MS,
-        errorMessage: t("vaultCreateFailed"),
-      });
-      const values = Array.isArray(createdEvt?.state) ? createdEvt.state.map(parseStackItem) : [];
+      const evtRecord = result.event as { state?: unknown[] } | undefined;
+      const values = Array.isArray(evtRecord?.state)
+        ? evtRecord!.state.map(parseStackItem)
+        : [];
       const vaultId = String(values[0] ?? "");
       createdVaultId.value = vaultId || createdVaultId.value;
-      setStatus(t("vaultCreated"), "success");
+
+      eventBus.emit("vault:created", { action: t("vaultCreated") });
       onSuccess(vaultId);
       await loadRecentVaults();
       await loadMyVaults();
-    } catch (e: unknown) {
-      setStatus(formatErrorMessage(e, t("vaultCreateFailed")), "error");
+    } catch (e) {
+      eventBus.emit("vault:error", {
+        message: e instanceof Error ? e.message : t("vaultCreateFailed"),
+      });
+      throw e;
     }
   };
 
   return {
-    address,
-    isCreating,
+    address: chain.address,
+    isCreating: chain.isProcessing,
     myVaults,
     createdVaultId,
     loadMyVaults,
     createVault,
   };
 }
+
+export type UseVaultCreatorReturn = ReturnType<typeof useVaultCreator>;

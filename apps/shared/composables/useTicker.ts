@@ -23,7 +23,7 @@ export function useTicker(onTick: () => void, intervalMs = 1000, options: UseTic
     if (options.immediate) {
       try {
         onTick();
-      } catch (_e: unknown) {
+      } catch (_e) {
         // Immediate tick failed — interval still running, will retry
       }
     }

@@ -38,7 +38,7 @@ import { computed } from "vue";
 import type { Ref } from "vue";
 import { StatsDisplay, NeoCard } from "@shared/components";
 import type { StatsDisplayItem } from "@shared/components";
-import type { TrustAnchorStats } from "./pages/index/composables/useTrustAnchor";
+import type { TrustAnchorStats } from "./composables/useTrustAnchor";
 import AnchorGaugeHero from "./components/AnchorGaugeHero.vue";
 import StakeOperationPanel from "./components/StakeOperationPanel.vue";
 

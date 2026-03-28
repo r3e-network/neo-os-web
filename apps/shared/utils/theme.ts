@@ -56,7 +56,7 @@ export function listenForThemeChanges(): () => void {
       if (window.parent !== window && document.referrer) {
         return new URL(document.referrer).origin;
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[theme] getOrigin failed:", _e instanceof Error ? _e.message : String(_e));
     }
     return window.location.origin;

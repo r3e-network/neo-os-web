@@ -1,22 +1,24 @@
+/**
+ * useDevTippingWallet — Wallet interaction logic for the Dev Tipping miniapp
+ *
+ * Receives ChainService + EventBus from PlatformServices instead of
+ * instantiating its own useContractInteraction / useStatusMessage.
+ */
+
+import { ref } from "vue";
+import type { ChainService, EventBus } from "@shared/services";
 import { toFixed8 } from "@shared/utils/format";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { createUseI18n } from "@shared/composables";
-import { messages } from "@/locale/messages";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 
-export function useDevTippingWallet(APP_ID: string) {
-  const { t } = createUseI18n(messages)();
-  const {
-    address,
-    ensureWallet,
-    invokeWithDirectPrepaidGas,
-    isProcessing: isLoading,
-    ensureContractAddress,
-  } = useContractInteraction({ appId: APP_ID, t });
+const MIN_TIP = 0.001;
 
-  const MIN_TIP = 0.001;
-  const { status, setStatus, clearStatus } = useStatusMessage();
+export interface UseDevTippingWalletOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletOptions) {
+  const isLoading = ref(false);
 
   const sendTip = async (
     selectedDevId: number,
@@ -24,12 +26,13 @@ export function useDevTippingWallet(APP_ID: string) {
     tipMessage: string,
     tipperName: string,
     anonymous: boolean,
-    onSuccess?: () => void
+    onSuccess?: () => void,
   ) => {
     if (!selectedDevId || !tipAmount) return false;
 
+    isLoading.value = true;
     try {
-      await ensureWallet();
+      await chain.ensureWallet();
 
       const amount = Number.parseFloat(tipAmount);
 
@@ -41,39 +44,35 @@ export function useDevTippingWallet(APP_ID: string) {
       }
 
       const amountInt = toFixed8(tipAmount);
-      const contract = await ensureContractAddress();
 
-      await invokeWithDirectPrepaidGas(
+      await chain.invokeWithPayment(
         amountInt,
-        `${APP_ID}:tip:${selectedDevId}`,
+        `miniapp-dev-tipping:tip:${selectedDevId}`,
         "Tip",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "Integer", value: String(selectedDevId) },
           { type: "Integer", value: amountInt },
           { type: "String", value: tipMessage || "" },
           { type: "String", value: tipperName || "" },
           { type: "Boolean", value: anonymous },
         ],
-        contract,
       );
 
-      setStatus(t("tipSent"), "success");
+      eventBus.emit("devtipping:tipsent", { devId: selectedDevId, amount });
       if (onSuccess) onSuccess();
       return true;
-    } catch (e: unknown) {
-      setStatus(formatErrorMessage(e, t("error")), "error");
-      return false;
+    } catch (e) {
+      eventBus.emit("devtipping:error", { message: e instanceof Error ? e.message : t("error") });
+      throw e;
+    } finally {
+      isLoading.value = false;
     }
   };
 
   return {
-    address,
+    address: chain.address,
     isLoading,
-    status,
-    setStatus,
-    clearStatus,
     sendTip,
-    ensureContractAddress,
   };
 }

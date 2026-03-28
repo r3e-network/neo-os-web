@@ -23,6 +23,7 @@ defineMiniApp({
     });
 
     const lab = useAASessionKeyLab({
+      aa: platformServices.aa,
       chain: platformServices.chain,
       eventBus: platformServices.events,
       t: ctx.t,
@@ -33,7 +34,7 @@ defineMiniApp({
         lab.generateSessionKey();
         ctx.setStatus(ctx.t("sessionKeyGenerated"), "success");
         return { publicKey: lab.form.sessionPublicKey };
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sessionKeyGenerateFailed"), "error");
       }
     });
@@ -42,7 +43,7 @@ defineMiniApp({
       try {
         await lab.checkSponsor();
         ctx.setStatus(ctx.t("sponsorCheckComplete"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorCheckFailed"), "error");
       }
     });
@@ -51,7 +52,7 @@ defineMiniApp({
       try {
         await lab.requestSponsor();
         ctx.setStatus(ctx.t("sponsorRequestComplete"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorRequestFailed"), "error");
       }
     });
@@ -65,7 +66,7 @@ defineMiniApp({
         lab.form.expiresAt = expiresAt;
         await lab.configureSessionKey();
         ctx.setStatus(ctx.t("sessionConfigured"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sessionConfigureFailed"), "error");
       }
     });
@@ -73,7 +74,7 @@ defineMiniApp({
     return {
       state: {
         isSubmitting: lab.isSubmitting,
-        isCheckingSponsorship: lab.aa.isCheckingSponsorship,
+        isCheckingSponsorship: lab.isCheckingSponsorship,
         detailItems: lab.detailItems,
         derivedAccountIdHash: lab.derivedAccountIdHash,
         normalizedTargetContract: lab.normalizedTargetContract,

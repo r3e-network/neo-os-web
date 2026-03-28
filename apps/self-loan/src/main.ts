@@ -1,7 +1,8 @@
 /**
  * self-loan — Entry Point (New Pattern)
  *
- * Uses defineMiniApp() to wire manifest, PlayArea, and domain logic.
+ * Uses defineMiniApp() + PlatformServices to wire manifest, PlayArea,
+ * and domain logic. All business logic lives in useSelfLoan.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -24,6 +25,8 @@ defineMiniApp({
     });
 
     const loan = useSelfLoan({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 

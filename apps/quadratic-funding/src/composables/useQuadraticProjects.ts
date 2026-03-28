@@ -32,7 +32,7 @@ export function useQuadraticProjects(
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch (_e: unknown) {
+    } catch (_e) {
       return 0n;
     }
   };
@@ -86,7 +86,7 @@ export function useQuadraticProjects(
       const ids = await fetchProjectIds(selectedRound.value.id);
       const details = await Promise.all(ids.map(fetchProjectDetails));
       projects.value = details.filter(Boolean) as ProjectItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshingProjects.value = false;
@@ -130,7 +130,7 @@ export function useQuadraticProjects(
 
       setStatus(t("projectRegistered"), "success");
       await refreshProjects();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRegisteringProject.value = false;
@@ -168,7 +168,7 @@ export function useQuadraticProjects(
 
       setStatus(t("projectClaimed"), "success");
       await refreshProjects();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       claimingProjectId.value = null;
@@ -194,7 +194,7 @@ export function useQuadraticProjects(
       if (roundId) {
         try {
           await refreshProjects();
-        } catch (_e: unknown) {
+        } catch (_e) {
           console.warn("[useQuadraticProjects] refreshProjects failed:", _e instanceof Error ? _e.message : String(_e));
         }
       }
@@ -206,7 +206,7 @@ export function useQuadraticProjects(
     if (!newAddr) {
       try {
         claimingProjectId.value = null;
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[useQuadraticProjects] address change failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }

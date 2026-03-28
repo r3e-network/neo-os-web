@@ -54,7 +54,7 @@ defineMiniApp({
         if (cached) {
           data.value = cached;
         }
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[neo-treasury] cache read failed:", _e instanceof Error ? _e.message : String(_e));
       }
 
@@ -62,7 +62,7 @@ defineMiniApp({
         const freshData = await fetchTreasuryData();
         data.value = freshData;
         writeCachedJSON(CACHE_KEY, freshData);
-      } catch (e: unknown) {
+      } catch (e) {
         if (!data.value) {
           error.value = formatErrorMessage(e, ctx.t("loadFailed"));
         } else {

@@ -45,7 +45,7 @@ export function useComputeLab({ oracle, eventBus, t }: UseComputeLabOptions) {
         result: result.raw,
       };
       return { success: true };
-    } catch (e: unknown) {
+    } catch (e) {
       throw e;
     } finally {
       isRequesting.value = false;

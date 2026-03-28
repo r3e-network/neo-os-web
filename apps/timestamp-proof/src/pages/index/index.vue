@@ -128,7 +128,7 @@ onMounted(async () => {
   if (!isMounted.value) return;
   try {
     await loadProofs();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[timestamp-proof] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         await neodid.resolveDid();
         ctx.setStatus(ctx.t("resultLoaded"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
       }
     });
@@ -41,7 +41,7 @@ defineMiniApp({
       try {
         await neodid.loadProviders();
         ctx.setStatus(ctx.t("resultLoaded"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadProvidersFailed"), "error");
       }
     });

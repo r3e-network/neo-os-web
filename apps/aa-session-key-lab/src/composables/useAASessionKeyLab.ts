@@ -2,13 +2,12 @@
  * useAASessionKeyLab — Domain logic for AA Session Key Lab
  *
  * Encapsulates session key generation, configuration, and sponsorship logic.
- * Receives ChainService + EventBus from PlatformServices.
+ * Receives AAService + ChainService + EventBus from PlatformServices instead
+ * of using useAbstractAccount directly.
  */
 
 import { ref, reactive, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
-import type { GasSponsorCheckResponse } from "@shared/composables/useAbstractAccount";
+import type { AAService, ChainService, EventBus } from "@shared/services";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
@@ -26,20 +25,17 @@ type SessionConfiguration = {
 };
 
 export interface UseAASessionKeyLabOptions {
+  aa: AAService;
   chain: ChainService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOptions) {
+export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLabOptions) {
   const wallet = useWallet() as WalletSDK;
   const { address, connect, invokeContract } = wallet;
   const integration = getExternalIntegrationConfig("testnet");
   const aaCore = integration.contracts.aaCore;
-  const aa = useAbstractAccount({
-    network: "testnet",
-    paymasterDappId: "miniapp-aa-session-key-lab",
-  });
 
   const form = reactive({
     accountSeed: "",
@@ -49,7 +45,7 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
     expiresAt: String(Math.floor(Date.now() / 1000) + 3600),
   });
 
-  const sponsorState = ref<GasSponsorCheckResponse | null>(null);
+  const sponsorState = ref<Record<string, unknown> | null>(null);
   const generatedPrivateKey = ref("");
   const lastConfigured = ref<SessionConfiguration | null>(null);
   const isSubmitting = ref(false);
@@ -58,7 +54,7 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
   const derivedAccountIdHash = computed(() => {
     try {
       return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[aa-session-key-lab] deriveAAAccountIdHash failed:", _e instanceof Error ? _e.message : String(_e));
       return "";
     }
@@ -69,7 +65,7 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
   const normalizedTargetContract = computed(() => {
     try {
       return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[aa-session-key-lab] normalizeHashOrAddress failed:", _e instanceof Error ? _e.message : String(_e));
       return "";
     }
@@ -127,7 +123,8 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
 
   async function checkSponsor() {
     try {
-      sponsorState.value = await aa.checkGasSponsorship();
+      const result = await aa.checkSponsorship();
+      sponsorState.value = result as unknown as Record<string, unknown>;
       eventBus.emit("sponsor:checked", {});
     } catch (error: unknown) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorCheckFailed")) });
@@ -137,7 +134,8 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
 
   async function requestSponsor() {
     try {
-      sponsorState.value = await aa.requestGasSponsorship("0.1");
+      const result = await aa.requestSponsorship("0.1");
+      sponsorState.value = result as unknown as Record<string, unknown>;
       eventBus.emit("sponsor:requested", {});
     } catch (error: unknown) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorRequestFailed")) });
@@ -204,9 +202,6 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
     isSubmitting,
     sponsorState,
 
-    // -- AA instance --
-    aa,
-
     // -- Derived --
     derivedAccountIdHash,
     normalizedAllowedMethod,
@@ -220,6 +215,7 @@ export function useAASessionKeyLab({ chain, eventBus, t }: UseAASessionKeyLabOpt
     walletDisplay,
     sponsorStatusDisplay,
     detailItems,
+    isCheckingSponsorship: aa.isCheckingSponsorship,
 
     // -- Constants --
     aaCore,

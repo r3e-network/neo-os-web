@@ -242,7 +242,7 @@ async function requestEdgeJSON<T>(
 
   try {
     return JSON.parse(text) as T;
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error(`invalid JSON response from ${path}`);
   }
 }
@@ -267,7 +267,7 @@ async function requestExternalJson<T>(url: string): Promise<T> {
 
   try {
     return JSON.parse(text) as T;
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error(`invalid JSON response from ${url}`);
   }
 }
@@ -310,7 +310,7 @@ async function requestJson<T>(
 
   try {
     return JSON.parse(text) as T;
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error(`invalid JSON response from ${url}`);
   }
 }
@@ -358,7 +358,7 @@ export function useOracle(config: OracleConfig = {}) {
       };
       lastRandom.value = result;
       return result;
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "RNG request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_RNG_FAILED, undefined, undefined, undefined, ERROR_CODE_RNG_FAILED);
@@ -384,7 +384,7 @@ export function useOracle(config: OracleConfig = {}) {
         throw new Error(`invalid price response for ${symbol}`);
       }
       return price;
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "DataFeed request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_DATA_FEED_FAILED, undefined, undefined, undefined, ERROR_CODE_DATA_FEED_FAILED);
@@ -413,7 +413,7 @@ export function useOracle(config: OracleConfig = {}) {
         getAuthToken: config.getAuthToken,
         getAPIKey: config.getAPIKey,
       });
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Oracle query failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_ORACLE_QUERY_FAILED, undefined, undefined, undefined, ERROR_CODE_ORACLE_QUERY_FAILED);
@@ -449,7 +449,7 @@ export function useOracle(config: OracleConfig = {}) {
         verified: Boolean(response.attestation || response.signature || response.output_hash),
         raw: response,
       };
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Compute execution failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_COMPUTE_EXECUTION_FAILED, undefined, undefined, undefined, ERROR_CODE_COMPUTE_EXECUTION_FAILED);
@@ -487,7 +487,7 @@ export function useOracle(config: OracleConfig = {}) {
         verified: Boolean(response.attestation || response.signature || response.output_hash),
         raw: response,
       };
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Registered compute execution failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_REGISTERED_COMPUTE_FAILED, undefined, undefined, undefined, ERROR_CODE_REGISTERED_COMPUTE_FAILED);
@@ -511,7 +511,7 @@ export function useOracle(config: OracleConfig = {}) {
       params.set("network", network);
       if (format === "document") params.set("format", "document");
       return await requestExternalJson<NeoDidResolveResponse>(`/api/morpheus/neodid/resolve?${params.toString()}`);
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "NeoDID resolution failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_NEODID_RESOLUTION_FAILED, undefined, undefined, undefined, ERROR_CODE_NEODID_RESOLUTION_FAILED);
@@ -526,7 +526,7 @@ export function useOracle(config: OracleConfig = {}) {
     error.value = null;
     try {
       return await requestExternalJson<NeoDidProvidersResponse>(`/api/morpheus/neodid/providers?network=${encodeURIComponent(network)}`);
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "NeoDID providers request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_NEODID_PROVIDERS_FAILED, undefined, undefined, undefined, ERROR_CODE_NEODID_PROVIDERS_FAILED);
@@ -543,7 +543,7 @@ export function useOracle(config: OracleConfig = {}) {
       return await requestExternalJson<OraclePublicKeyResponse>(
         `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
       );
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Oracle public key request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_ORACLE_PUBLIC_KEY_FAILED, undefined, undefined, undefined, ERROR_CODE_ORACLE_PUBLIC_KEY_FAILED);
@@ -572,7 +572,7 @@ export function useOracle(config: OracleConfig = {}) {
         getAuthToken: config.getAuthToken,
         getAPIKey: config.getAPIKey,
       });
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Confidential store request failed";
       error.value = msg;
       throw new MiniAppError(msg, ERROR_CODE_CONFIDENTIAL_STORE_FAILED, undefined, undefined, undefined, ERROR_CODE_CONFIDENTIAL_STORE_FAILED);

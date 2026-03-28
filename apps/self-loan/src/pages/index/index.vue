@@ -220,7 +220,7 @@ const handleTakeLoan = async () => {
 const connectWallet = async () => {
   try {
     await core.connect();
-  } catch (e: unknown) {
+  } catch (e) {
     handleError(e, { operation: "connectWallet" });
     setStatus(formatErrorMessage(e, t("error")), "error");
   }
@@ -242,7 +242,7 @@ const loadData = async () => {
     await core.loadBalance();
     await core.loadPlatformStats();
     await history.loadHistory();
-  } catch (e: unknown) {
+  } catch (e) {
     handleError(e, { operation: "loadData" });
     setStatus(formatErrorMessage(e, t("error")), "error");
     canRetryError.value = canRetry(e);

@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         const addr = await hub.connectWallet();
         ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("connectFailed"), "error");
       }
     });
@@ -42,7 +42,7 @@ defineMiniApp({
         hub.marketHash.value = marketHashInput;
         await hub.loadListings();
         ctx.setStatus(ctx.t("marketLoaded"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadListingsFailed"), "error");
       }
     });
@@ -61,7 +61,7 @@ defineMiniApp({
         hub.metadataUri.value = metadataUri;
         const result = await hub.submitCreateListing();
         ctx.setStatus(`${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`, "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
       }
     });
@@ -71,7 +71,7 @@ defineMiniApp({
         hub.nextPriceGas.value = nextPriceGas;
         await hub.submitUpdatePrice();
         ctx.setStatus(ctx.t("updatePriceSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
       }
     });
@@ -80,7 +80,7 @@ defineMiniApp({
       try {
         await hub.submitCancelSelected();
         ctx.setStatus(ctx.t("cancelListingSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
       }
     });
@@ -90,7 +90,7 @@ defineMiniApp({
         hub.newBackupOwner.value = newBackupOwner;
         await hub.submitBuySelected();
         ctx.setStatus(ctx.t("buyListingSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
       }
     });
@@ -99,7 +99,7 @@ defineMiniApp({
       try {
         await hub.submitRefundSelected();
         ctx.setStatus(ctx.t("refundPendingSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
       }
     });

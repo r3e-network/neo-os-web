@@ -44,7 +44,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   sidebarItems: [{ labelKey: "latestResult", value: () => oracle.lastRandom.value?.requestId || t("notAvailable") }],
 });
 const lastRandom = oracle.lastRandom;
-async function requestRandom() { try { await oracle.requestRandomness(); setStatus(t("randomnessRequested"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("requestFailed")), "error"); } }
+async function requestRandom() { try { await oracle.requestRandomness(); setStatus(t("randomnessRequested"), "success"); } catch (e) { setStatus(formatErrorMessage(e, t("requestFailed")), "error"); } }
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildOracleHeroStats({
     oracleHash: oracle.integration.contracts.morpheusOracle,

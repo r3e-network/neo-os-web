@@ -40,7 +40,7 @@ export function useMemorialContract(t: (key: string) => string) {
       ]);
       setStatus(t("createSuccess"), "success");
       onSuccess();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isSubmitting.value = false;
@@ -82,7 +82,7 @@ export function useMemorialContract(t: (key: string) => string) {
       ]);
 
       setStatus(t("tributeSuccess"), "success");
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isPaying.value = false;

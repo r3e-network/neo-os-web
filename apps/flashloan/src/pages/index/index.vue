@@ -154,7 +154,7 @@ const canRetryError = ref(false);
 const connectWallet = async () => {
   try {
     await connect();
-  } catch (e: unknown) {
+  } catch (e) {
     handleError(e, { operation: "connectWallet" });
     setErrorStatus(formatErrorMessage(e, t("error")), "error");
   }
@@ -171,7 +171,7 @@ const resetAndReload = async () => {
     clearErrorStatus();
     canRetryError.value = false;
     await loadData();
-  } catch (e: unknown) {
+  } catch (e) {
     // loadData handles errors internally; this catches only truly unexpected exceptions
     console.error("[flashloan] resetAndReload unexpected error:", e instanceof Error ? e.message : String(e));
   }
@@ -179,7 +179,7 @@ const resetAndReload = async () => {
 const handleLookup = async () => {
   try {
     await lookupLoan(loanIdInput.value, setStatus, setErrorStatus);
-  } catch (e: unknown) {
+  } catch (e) {
     // lookupLoan handles errors internally; this catches only truly unexpected exceptions
     console.error("[flashloan] handleLookup unexpected error:", e instanceof Error ? e.message : String(e));
   }
@@ -188,7 +188,7 @@ const handleLookup = async () => {
 const handleRequestLoan = async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
   try {
     await requestLoan(data, setStatus, clearStatus, setErrorStatus);
-  } catch (e: unknown) {
+  } catch (e) {
     // requestLoan handles errors internally via callbacks; this catches only truly unexpected exceptions
     console.error("[flashloan] handleRequestLoan unexpected error:", e instanceof Error ? e.message : String(e));
   }
@@ -199,7 +199,7 @@ const stopChainTypeWatch = watch(chainType, async () => {
   if (!isMounted.value) return;
   try {
     await loadData();
-  } catch (e: unknown) {
+  } catch (e) {
     console.warn("[flashloan] chain type change reload failed:", e instanceof Error ? e.message : String(e));
   }
 }, { immediate: true });

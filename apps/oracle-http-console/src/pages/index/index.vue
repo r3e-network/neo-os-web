@@ -64,7 +64,7 @@ async function runQuery() {
       body: form.body || undefined,
     });
     setStatus(t("queryCompleted"), "success");
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(formatErrorMessage(e, t("queryFailed")), "error");
   }
 }

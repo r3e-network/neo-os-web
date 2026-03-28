@@ -1,3 +1,12 @@
+/**
+ * useCertificateActions — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All certificate action logic has been migrated to useSoulbound.ts which receives
+ * ChainService + EventBus from PlatformServices.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
+
 import { ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -30,7 +39,7 @@ export function useCertificateActions(
         await refreshTemplates();
         await refreshCertificates();
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     }
   };
@@ -64,7 +73,7 @@ export function useCertificateActions(
       });
       setStatus(t("templateCreated"), "success");
       await refreshTemplates();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isCreating.value = false;
@@ -101,7 +110,7 @@ export function useCertificateActions(
       await refreshTemplates();
       await refreshCertificates();
       return true;
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
       return false;
     } finally {
@@ -127,7 +136,7 @@ export function useCertificateActions(
         ],
       });
       await refreshTemplates();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       togglingId.value = null;
@@ -153,7 +162,7 @@ export function useCertificateActions(
         return;
       }
       lookup.value = detailParsed;
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isLookingUp.value = false;
@@ -179,7 +188,7 @@ export function useCertificateActions(
       });
       setStatus(t("revokeSuccess"), "success");
       await lookupCertificate(tokenId);
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRevoking.value = false;

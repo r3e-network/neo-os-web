@@ -1,13 +1,16 @@
 /**
- * automation-copilot — Entry Point (New Pattern)
+ * Automation Copilot — Entry Point (New Pattern)
+ *
+ * Uses defineMiniApp() to wire the automation recipe builder with manifest-driven
+ * platform sections and a composable for domain logic.
  */
 
-import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
+import { useAutomationCopilot } from "./composables/useAutomationCopilot";
 
 defineMiniApp({
   appId: "miniapp-automation-copilot",
@@ -20,34 +23,65 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const latestPayload = ref<Record<string, unknown> | null>(null);
-    const isLoading = ref(false);
-    const asset = ref("NEO");
-    const targetPrice = ref("20");
-    const schedule = ref("0 */6 * * *");
-    const latestPrice = ref<number | null>(null);
+    const copilot = useAutomationCopilot({
+      oracle: platformServices.oracle,
+      t: ctx.t,
+    });
 
-    const renderedPayload = computed(() =>
-      latestPayload.value ? JSON.stringify(latestPayload.value, null, 2) : ctx.t("notAvailable"),
-    );
+    ctx.registerAction("fetchCurrentPrice", async () => {
+      try {
+        await copilot.fetchCurrentPrice();
+        ctx.setStatus(ctx.t("priceLoaded"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("fetchFailed"), "error");
+      }
+    });
 
-    const currentPrice = computed(() =>
-      latestPrice.value == null ? ctx.t("notAvailable") : `$${latestPrice.value.toFixed(4)}`,
-    );
+    ctx.registerAction("previewRecipePayload", async () => {
+      try {
+        copilot.previewRecipePayload();
+        ctx.setStatus(ctx.t("recipeBuilt"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("recipeFailed"), "error");
+      }
+    });
+
+    ctx.registerAction("loadRandomness", async () => {
+      try {
+        await copilot.loadRandomness();
+        ctx.setStatus(ctx.t("randomnessReady"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("randomnessFailed"), "error");
+      }
+    });
+
+    ctx.registerAction("fetchOracleKey", async () => {
+      try {
+        await copilot.fetchOracleKey();
+        ctx.setStatus(ctx.t("keyLoaded"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("keyFailed"), "error");
+      }
+    });
 
     return {
       state: {
-        renderedPayload,
-        isLoading,
-        latestPayload,
-        asset,
-        currentPrice,
-        targetPrice,
-        schedule,
-        availableActions: ref([]),
+        asset: copilot.asset,
+        targetPrice: copilot.targetPrice,
+        schedule: copilot.schedule,
+        actionName: copilot.actionName,
+        currentPrice: copilot.priceDisplay,
+        renderedPayload: copilot.renderedPayload,
+        isRequesting: copilot.isRequesting,
+        oracleHash: copilot.oracleHash,
+        networkDisplay: copilot.networkDisplay,
+        datafeedHash: copilot.datafeedHash,
+        publicApiUrl: copilot.publicApiUrl,
       },
-      loadData: async () => {},
-      cleanup: () => { platformServices.destroy(); },
+      loadData: copilot.loadAll,
+      cleanup: () => {
+        platformServices.destroy();
+      },
     };
   },
 });

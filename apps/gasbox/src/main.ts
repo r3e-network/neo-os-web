@@ -2,6 +2,7 @@
  * GasBox — Entry Point (New Pattern)
  *
  * Uses defineMiniApp() to wire the gacha composables to the platform.
+ * All composables receive ChainService/EventBus from PlatformServices.
  */
 
 import { computed, watch } from "vue";
@@ -28,6 +29,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { chain, events: eventBus } = platformServices;
+
     const {
       machines,
       selectedMachine,
@@ -36,14 +39,14 @@ defineMiniApp({
       selectMachine,
       setActionLoading,
       actionLoading,
-      ensureContractAddress,
       walletHash,
-    } = useGachaMachines();
+      contractAddress,
+    } = useGachaMachines({ chain, t: ctx.t });
 
     const { isPlaying, showResult, resultItem, playError, showFireworks, resetResult, playMachine, buyMachine } =
-      useGachaPlay();
+      useGachaPlay({ chain, eventBus, t: ctx.t });
 
-    const { address, requestWallet, handleWalletConnect } = useGachaWallet();
+    const { address, requestWallet, handleWalletConnect } = useGachaWallet({ chain, t: ctx.t });
 
     const {
       updateMachinePrice,
@@ -53,9 +56,9 @@ defineMiniApp({
       cancelMachineSale,
       depositItem,
       withdrawItem,
-    } = useGachaManagement();
+    } = useGachaManagement({ chain, t: ctx.t });
 
-    const { isPublishing, publishMachine } = useGachaPublish();
+    const { isPublishing, publishMachine } = useGachaPublish({ chain, eventBus, t: ctx.t });
 
     // Derived display values for manifest bindings
     const machineCount = computed(() => machines.value.length);
@@ -69,6 +72,8 @@ defineMiniApp({
       }
       return true;
     };
+
+    const ensureContract = () => contractAddress.value;
 
     // Register actions
     ctx.registerAction("selectMachine", (machine: Machine) => {
@@ -87,7 +92,7 @@ defineMiniApp({
       if (!selectedMachine.value) return;
       await playMachine(selectedMachine.value, {
         requireAddress,
-        ensureContract: ensureContractAddress,
+        ensureContract,
         onSuccess: loadMachines,
       });
     });
@@ -100,7 +105,7 @@ defineMiniApp({
       if (!selectedMachine.value) return;
       await buyMachine(selectedMachine.value, {
         requireAddress,
-        ensureContract: ensureContractAddress,
+        ensureContract,
         setLoading: setActionLoading,
         onSuccess: loadMachines,
       });

@@ -1,33 +1,29 @@
+/**
+ * useGachaPlay — Gacha play and buy machine logic for the GasBox miniapp
+ *
+ * Receives ChainService + EventBus from PlatformServices.
+ */
+
 import { ref } from "vue";
+import type { ChainService, EventBus } from "@shared/services";
 import { parseStackItem } from "@shared/utils/neo";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { messages } from "@/locale/messages";
-import { useErrorHandler } from "@shared/composables/useErrorHandler";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { useEvents } from "@shared/utils/wallet-sdk";
-import { waitForEventByTransaction } from "@shared/utils/transaction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Machine, MachineItem } from "@/types";
 
 const APP_ID = "miniapp-gasbox";
 
-export function useGachaPlay() {
-  const { t } = createUseI18n(messages)();
-  const { handleError } = useErrorHandler();
-  const { address, invokeDirectly } = useContractInteraction({ appId: APP_ID, t });
-  const { list: listEvents } = useEvents();
+export interface UseGachaPlayOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
 
+export function useGachaPlay({ chain, eventBus, t }: UseGachaPlayOptions) {
   const isPlaying = ref(false);
   const showResult = ref(false);
   const resultItem = ref<MachineItem | null>(null);
   const playError = ref<string | null>(null);
   const showFireworks = ref(false);
-  const gasInputFromRaw = (raw: number) => {
-    if (!Number.isFinite(raw) || raw <= 0) return "0";
-    const value = (raw / 1e8).toFixed(8);
-    return value.replace(/\.?0+$/, "");
-  };
 
   const hexToBigInt = (hex: string): bigint => {
     const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
@@ -67,9 +63,9 @@ export function useGachaPlay() {
     machine: Machine,
     options: {
       requireAddress: () => Promise<boolean>;
-      ensureContract: () => Promise<string>;
+      ensureContract: () => string | null;
       onSuccess?: () => Promise<void>;
-    }
+    },
   ) => {
     if (isPlaying.value) return;
     if (!machine.active || !machine.inventoryReady) {
@@ -85,53 +81,38 @@ export function useGachaPlay() {
       playError.value = null;
       resetResult();
 
-      const contract = await options.ensureContract();
+      const contract = options.ensureContract();
       if (!contract) return;
 
-      await invokeDirectly(
+      // Step 1: Transfer GAS payment
+      await chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "Hash160", value: contract },
           { type: "Integer", value: String(machine.priceRaw) },
           { type: "String", value: `${APP_ID}:play:${machine.id}` },
         ],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      const initiateTx = await invokeDirectly(
+      // Step 2: Initiate play
+      const initiateTx = await chain.invoke(
         "initiatePlay",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "Integer", value: machine.id },
         ],
-        contract
+        { waitForEvent: "PlayInitiated" },
       );
 
-      const initiatedEvent = await waitForEventByTransaction(
-        initiateTx,
-        "PlayInitiated",
-        async (txid: string, eventName: string, timeoutMs = 30000) => {
-          const deadline = Date.now() + timeoutMs;
-          while (Date.now() < deadline) {
-            const resultEvents = await listEvents({
-              app_id: APP_ID,
-              event_name: eventName,
-              limit: 20,
-              tx_hash: txid,
-            });
-            if (resultEvents.events.length > 0) return resultEvents.events[0] as unknown as Record<string, unknown>;
-            await new Promise((resolve) => setTimeout(resolve, 2500));
-          }
-          throw new Error(t("playPending"));
-        }
-      );
+      const initiatedEvent = initiateTx.event;
       if (!initiatedEvent) {
         throw new Error(t("playPending"));
       }
 
-      const evtRecord = initiatedEvent as unknown as Record<string, unknown> | null;
+      const evtRecord = initiatedEvent as Record<string, unknown> | null;
       const rawValues = Array.isArray(evtRecord?.state) ? (evtRecord.state as Record<string, unknown>[]) : [];
       const initiatedValues = rawValues.map(parseStackItem);
       const playId = String(initiatedValues[2] ?? "");
@@ -167,46 +148,28 @@ export function useGachaPlay() {
         tokenCount: 0,
         decimals: 0,
         available: false,
-        icon: "🎁",
+        icon: "gift",
       };
       showResult.value = true;
       showFireworks.value = true;
 
-      const settleTx = await invokeDirectly(
+      // Step 3: Settle play
+      await chain.invoke(
         "settlePlay",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "Integer", value: playId },
           { type: "Integer", value: String(selectedIndex) },
         ],
-        contract
+        { waitForEvent: "PlayResolved" },
       );
 
-      await waitForEventByTransaction(
-        settleTx,
-        "PlayResolved",
-        async (txid: string, eventName: string, timeoutMs = 30000) => {
-          const deadline = Date.now() + timeoutMs;
-          while (Date.now() < deadline) {
-            const resultEvents = await listEvents({
-              app_id: APP_ID,
-              event_name: eventName,
-              limit: 20,
-              tx_hash: txid,
-            });
-            if (resultEvents.events.length > 0) return resultEvents.events[0] as unknown as Record<string, unknown>;
-            await new Promise((resolve) => setTimeout(resolve, 2500));
-          }
-          throw new Error(t("playPending"));
-        }
-      );
-
+      eventBus.emit("play:resolved", { machineId: machine.id, selectedIndex });
       if (options.onSuccess) await options.onSuccess();
-    } catch (e: unknown) {
-      playError.value = formatErrorMessage(e, t("error"));
+    } catch (e) {
+      playError.value = e instanceof Error ? e.message : t("error");
     } finally {
       isPlaying.value = false;
-      playError.value = null;
     }
   };
 
@@ -214,10 +177,10 @@ export function useGachaPlay() {
     machine: Machine,
     options: {
       requireAddress: () => Promise<boolean>;
-      ensureContract: () => Promise<string>;
+      ensureContract: () => string | null;
       setLoading: (key: string, value: boolean) => void;
       onSuccess?: () => Promise<void>;
-    }
+    },
   ) => {
     if (!machine.forSale || machine.salePriceRaw <= 0) return;
 
@@ -225,38 +188,34 @@ export function useGachaPlay() {
     if (!hasAddress) return;
 
     const key = `buy:${machine.id}`;
-    if (options.setLoading(key, true)) return;
+    options.setLoading(key, true);
 
     try {
-      const contract = await options.ensureContract();
+      const contract = options.ensureContract();
       if (!contract) return;
 
-      await invokeDirectly(
+      // Step 1: Transfer GAS payment for purchase
+      await chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: chain.address.value as string },
           { type: "Hash160", value: contract },
           { type: "Integer", value: String(machine.salePriceRaw) },
           { type: "String", value: `${APP_ID}:sale:${machine.id}` },
         ],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
 
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      await invokeDirectly(
-        "buyMachine",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: machine.id },
-        ],
-        contract
-      );
+      // Step 2: Execute buy
+      await chain.invoke("buyMachine", [
+        { type: "Hash160", value: chain.address.value as string },
+        { type: "Integer", value: machine.id },
+      ]);
 
+      eventBus.emit("machine:bought", { machineId: machine.id });
       if (options.onSuccess) await options.onSuccess();
-    } catch (e: unknown) {
-      handleError(e, { operation: "buyMachine" });
-      throw new Error(formatErrorMessage(e, t("error")));
     } finally {
       options.setLoading(key, false);
     }
@@ -276,3 +235,5 @@ export function useGachaPlay() {
     t,
   };
 }
+
+export type UseGachaPlayReturn = ReturnType<typeof useGachaPlay>;

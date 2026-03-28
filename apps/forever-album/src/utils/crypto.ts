@@ -65,7 +65,7 @@ export async function decryptPayload(payload: string, password: string): Promise
   let parsed: unknown;
   try {
     parsed = JSON.parse(payload);
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error("Invalid payload format: failed to parse JSON");
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

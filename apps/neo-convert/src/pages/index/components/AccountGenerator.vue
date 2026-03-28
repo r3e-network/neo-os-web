@@ -104,7 +104,7 @@ const generateNew = async () => {
       try {
         addressQr.value = await QRCode.toDataURL(account.value.address, { margin: 1 });
         wifQr.value = await QRCode.toDataURL(account.value.wif, { margin: 1 });
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[neo-convert] QR code generation failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }

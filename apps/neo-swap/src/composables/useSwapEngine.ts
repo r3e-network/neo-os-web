@@ -1,35 +1,32 @@
-import { ref, computed, onMounted, onUnmounted, watch, type Ref } from "vue";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useWallet } from "@shared/utils/wallet-sdk";
+/**
+ * useSwapEngine — Token swap operations, balance tracking, and price estimation.
+ *
+ * Receives ChainService + BalanceService + EventBus from PlatformServices.
+ * Replaces the legacy version that wired useWallet + useStatusMessage +
+ * useWalletBalanceReader + useContractAddress directly.
+ */
+
+import { ref, computed } from "vue";
+import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import { toFixedDecimals } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { useContractAddress } from "@shared/composables/useContractAddress";
-import { useWalletBalanceReader } from "@shared/composables/useWalletBalanceReader";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Token } from "@/types";
 
-const NEO_TOKEN_TEMPLATE = { symbol: "NEO" as const, hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
-const GAS_TOKEN_TEMPLATE = { symbol: "GAS" as const, hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
+const NEO_TOKEN_TEMPLATE: Token = { symbol: "NEO", hash: BLOCKCHAIN_CONSTANTS.NEO_HASH, balance: 0, decimals: 0 };
+const GAS_TOKEN_TEMPLATE: Token = { symbol: "GAS", hash: BLOCKCHAIN_CONSTANTS.GAS_HASH, balance: 0, decimals: 8 };
 
 /** Swap transaction deadline in seconds (10 minutes). */
 const SWAP_DEADLINE_SECONDS = 600;
 
-/** Manages token swap operations, balance tracking, and price estimation. */
-export function useSwapEngine(t: Ref<(key: string) => string>) {
-  const wallet = useWallet() as WalletSDK;
-  const { getAddress, invokeContract } = wallet;
-  const { address, chainType, readBalance } = useWalletBalanceReader();
-  const {
-    contractAddress: SWAP_ROUTER,
-    ensure: ensureRouterAddress,
-    ensureSafe: ensureRouterAddressSafe,
-  } = useContractAddress((key: string) =>
-    key === "contractUnavailable" ? t.value("swapRouterUnavailable") : t.value(key)
-  );
+export interface UseSwapEngineOptions {
+  chain: ChainService;
+  balance: BalanceService;
+  eventBus: EventBus;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
 
-  // Instance-level token state — avoid shared module-level mutation
+export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOptions) {
+  // Instance-level token state
   const fromToken = ref<Token>({ ...NEO_TOKEN_TEMPLATE });
   const toToken = ref<Token>({ ...GAS_TOKEN_TEMPLATE });
   const fromAmount = ref("");
@@ -37,7 +34,6 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   const exchangeRate = ref("");
   const rateLoading = ref(false);
   const loading = ref(false);
-  const { status, setStatus: showStatus } = useStatusMessage();
   const showSelector = ref(false);
   const selectorTarget = ref<"from" | "to">("from");
   const isSwapping = ref(false);
@@ -51,27 +47,21 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
   }
 
   async function refreshBalances() {
-    if (!address.value) {
+    if (!chain.address.value) {
       applyTokenBalances(0, 0);
       return;
     }
 
     try {
       const [neo, gas] = await Promise.all([
-        readBalance("NEO", { decimals: 0 }),
-        readBalance("GAS", { decimals: 8 }),
+        balance.getNeoBalance(),
+        balance.getGasBalance(),
       ]);
       applyTokenBalances(neo, gas);
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useSwapEngine] refreshBalances failed:", e instanceof Error ? e.message : String(e));
     }
   }
-
-  const stopWalletWatch = watch([address, chainType], () => {
-    refreshBalances().catch((e: unknown) => {
-      console.warn("[useSwapEngine] refreshBalances watch failed:", e instanceof Error ? e.message : String(e));
-    });
-  }, { immediate: true });
 
   const availableTokens = computed<Token[]>(() => [
     { ...NEO_TOKEN_TEMPLATE, balance: fromToken.value.symbol === "NEO" ? fromToken.value.balance : toToken.value.symbol === "NEO" ? toToken.value.balance : 0 },
@@ -86,12 +76,12 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     return hasRate.value && amount > 0 && amount <= fromToken.value.balance;
   });
   const swapButtonText = computed(() => {
-    if (loading.value) return t.value("swapping");
-    if (!fromAmount.value) return t.value("enterAmount");
-    if (rateLoading.value) return t.value("loadingRate");
-    if (!hasRate.value) return t.value("rateUnavailable");
-    if (parseFloat(fromAmount.value) > fromToken.value.balance) return t.value("insufficientBalance");
-    return `${t.value("tabSwap")} ${fromToken.value.symbol} ${t.value("swapArrow")} ${toToken.value.symbol}`;
+    if (loading.value) return t("swapping");
+    if (!fromAmount.value) return t("enterAmount");
+    if (rateLoading.value) return t("loadingRate");
+    if (!hasRate.value) return t("rateUnavailable");
+    if (parseFloat(fromAmount.value) > fromToken.value.balance) return t("insufficientBalance");
+    return `${t("tabSwap")} ${fromToken.value.symbol} ${t("swapArrow")} ${toToken.value.symbol}`;
   });
   const slippage = computed(() => "0.5%");
   const minReceived = computed(() => {
@@ -122,16 +112,11 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
           }
         }
       }
-    } catch (_e: unknown) {
-      console.warn("[useSwapEngine] exchange rate load failed:", _e instanceof Error ? _e.message : String(_e));
+    } catch (e) {
+      console.warn("[useSwapEngine] exchange rate load failed:", e instanceof Error ? e.message : String(e));
     } finally {
       rateLoading.value = false;
     }
-  }
-
-  async function loadRouter() {
-    if (SWAP_ROUTER.value) return;
-    await ensureRouterAddressSafe({ silentChainCheck: true });
   }
 
   function onFromAmountChange() {
@@ -151,7 +136,9 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     toToken.value = temp;
     fromAmount.value = "";
     toAmount.value = "";
-    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed after swapTokens:", e instanceof Error ? e.message : String(e)); });
+    loadExchangeRate().catch((e: unknown) => {
+      console.warn("[useSwapEngine] loadExchangeRate failed after swapTokens:", e instanceof Error ? e.message : String(e));
+    });
     if (swapAnimTimer) clearTimeout(swapAnimTimer);
     swapAnimTimer = setTimeout(() => {
       isSwapping.value = false;
@@ -182,65 +169,79 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
       else toToken.value = { ...token };
     }
     closeSelector();
-    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed after selectToken:", e instanceof Error ? e.message : String(e)); });
+    loadExchangeRate().catch((e: unknown) => {
+      console.warn("[useSwapEngine] loadExchangeRate failed after selectToken:", e instanceof Error ? e.message : String(e));
+    });
   }
 
   async function executeSwap() {
     if (!canSwap.value || loading.value) return;
-    if (!requireNeoChain(chainType, t.value)) return;
     loading.value = true;
     try {
-      const amount = parseFloat(fromAmount.value);
-      const decimals = fromToken.value.decimals;
-      const amountInt = toFixedDecimals(fromAmount.value, decimals);
+      await chain.ensureWallet();
+      const sender = chain.address.value as string;
+      const amountInt = toFixedDecimals(fromAmount.value, fromToken.value.decimals);
       const expectedOutput = parseFloat(toAmount.value) || 0;
       const slippageTolerance = 0.005;
       const minOutputAmount = expectedOutput * (1 - slippageTolerance);
       const toDecimals = toToken.value.decimals;
       const minOutputInt = toFixedDecimals(minOutputAmount.toString(), toDecimals);
-      const routerAddress =
-        SWAP_ROUTER.value ||
-        (await ensureRouterAddress({
-          silentChainCheck: true,
-          contractUnavailableMessage: t.value("swapRouterUnavailable"),
-        }));
-      const sender = await getAddress();
+      const routerAddress = chain.contractAddress.value;
+      if (!routerAddress) throw new Error(t("swapRouterUnavailable"));
+
       const deadline = Math.floor(Date.now() / 1000) + SWAP_DEADLINE_SECONDS;
       const path = [
-        { type: "Hash160", value: fromToken.value.hash },
-        { type: "Hash160", value: toToken.value.hash },
+        { type: "Hash160" as const, value: fromToken.value.hash },
+        { type: "Hash160" as const, value: toToken.value.hash },
       ];
-      await invokeContract({
-        scriptHash: routerAddress,
-        operation: "swapTokenInForTokenOut",
-        args: [
+
+      await chain.invoke(
+        "swapTokenInForTokenOut",
+        [
           { type: "Hash160", value: sender },
           { type: "Integer", value: amountInt },
           { type: "Integer", value: minOutputInt },
-          { type: "Array", value: path },
-          { type: "Integer", value: deadline },
+          { type: "Array", value: path } as unknown as { type: "Array"; value: string },
+          { type: "Integer", value: String(deadline) },
         ],
+        { waitForEvent: "SwapExecuted" },
+      );
+
+      eventBus.emit("swap:success", {
+        message: `${t("swapSuccess")}: ${parseFloat(fromAmount.value)} ${fromToken.value.symbol}`,
       });
-      showStatus(`${t.value("swapSuccess")}: ${amount} ${fromToken.value.symbol}`, "success");
       fromAmount.value = "";
       toAmount.value = "";
       await refreshBalances();
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t.value("swapFailed")), "error");
+    } catch (e) {
+      eventBus.emit("swap:error", {
+        message: e instanceof Error ? e.message : t("swapFailed"),
+      });
+      throw e;
     } finally {
       loading.value = false;
     }
   }
 
-  onMounted(() => {
-    loadRouter().catch((e: unknown) => { console.warn("[useSwapEngine] loadRouter failed:", e instanceof Error ? e.message : String(e)); });
-    loadExchangeRate().catch((e: unknown) => { console.warn("[useSwapEngine] loadExchangeRate failed:", e instanceof Error ? e.message : String(e)); });
-  });
+  /**
+   * Load all data — called by defineMiniApp on mount.
+   */
+  const loadAll = async () => {
+    await Promise.all([
+      refreshBalances(),
+      loadExchangeRate(),
+    ]);
+  };
 
-  onUnmounted(() => {
-    if (swapAnimTimer) clearTimeout(swapAnimTimer);
-    stopWalletWatch();
-  });
+  /**
+   * Cleanup — stop timers.
+   */
+  const cleanup = () => {
+    if (swapAnimTimer) {
+      clearTimeout(swapAnimTimer);
+      swapAnimTimer = null;
+    }
+  };
 
   return {
     fromToken,
@@ -250,7 +251,6 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     exchangeRate,
     rateLoading,
     loading,
-    status,
     showSelector,
     selectorTarget,
     isSwapping,
@@ -267,5 +267,8 @@ export function useSwapEngine(t: Ref<(key: string) => string>) {
     closeSelector,
     selectToken,
     executeSwap,
+    refreshBalances,
+    loadAll,
+    cleanup,
   };
 }

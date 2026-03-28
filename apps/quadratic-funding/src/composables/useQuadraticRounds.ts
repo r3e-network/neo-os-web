@@ -66,7 +66,7 @@ export function useQuadraticRounds() {
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch (_e: unknown) {
+    } catch (_e) {
       return 0n;
     }
   };
@@ -142,7 +142,7 @@ export function useQuadraticRounds() {
       if (!selectedRoundId.value && rounds.value.length > 0) {
         selectedRoundId.value = rounds.value[0].id;
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshingRounds.value = false;
@@ -216,7 +216,7 @@ export function useQuadraticRounds() {
 
       setStatus(t("roundCreated"), "success");
       await refreshRounds();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isCreatingRound.value = false;
@@ -259,7 +259,7 @@ export function useQuadraticRounds() {
 
       setStatus(t("matchingAdded"), "success");
       await refreshRounds();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isAddingMatching.value = false;
@@ -270,7 +270,7 @@ export function useQuadraticRounds() {
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? parsed : null;
-    } catch (_e: unknown) {
+    } catch (_e) {
       return null;
     }
   };
@@ -323,7 +323,7 @@ export function useQuadraticRounds() {
 
       setStatus(t("roundFinalized"), "success");
       await refreshRounds();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isFinalizing.value = false;
@@ -351,7 +351,7 @@ export function useQuadraticRounds() {
 
       setStatus(t("unusedClaimed"), "success");
       await refreshRounds();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isClaimingUnused.value = false;
@@ -397,7 +397,7 @@ export function useQuadraticRounds() {
     if (newAddr) {
       try {
         await refreshRounds();
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[useQuadraticRounds] refreshRounds failed:", _e instanceof Error ? _e.message : String(_e));
       }
     }

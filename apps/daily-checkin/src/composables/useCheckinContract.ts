@@ -60,7 +60,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
     try {
       await waitForEvent(txid, eventName);
       return { pending: false };
-    } catch (e: unknown) {
+    } catch (e) {
       if (isTxEventPendingError(e, eventName)) {
         return { pending: true };
       }
@@ -80,7 +80,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
         totalClaimed.value = Number(data[4] ?? 0);
         totalUserCheckins.value = Number(data[5] ?? 0);
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
@@ -95,7 +95,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
           totalRewarded: Number(data[2] ?? 0),
         };
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useCheckinContract] loadGlobalStats failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -120,7 +120,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
             reward: Number(values[2] ?? 0),
           };
         });
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useCheckinContract] loadHistory failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -169,7 +169,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
       await loadUserStats();
       await loadGlobalStats();
       await loadHistory();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
@@ -210,7 +210,7 @@ export function useCheckinContract(t: (key: string, params?: Record<string, stri
 
       await loadUserStats();
       await loadGlobalStats();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isClaiming.value = false;

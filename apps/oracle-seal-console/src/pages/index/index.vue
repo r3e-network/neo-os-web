@@ -213,7 +213,7 @@ async function copyText(value: string, key: "cipher" | "wrapper" | "ref") {
       if (copiedKey.value === key) copiedKey.value = null;
       copyTimer = undefined;
     }, 1500);
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[oracle-seal-console] clipboard copy failed:", _e instanceof Error ? _e.message : String(_e));
   }
 }

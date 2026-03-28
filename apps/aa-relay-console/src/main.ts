@@ -23,7 +23,7 @@ defineMiniApp({
     });
 
     const relay = useAARelayConsole({
-      chain: platformServices.chain,
+      aa: platformServices.aa,
       eventBus: platformServices.events,
       t: ctx.t,
     });
@@ -34,7 +34,7 @@ defineMiniApp({
         relay.dappId.value = dappId;
         await relay.checkSponsor();
         ctx.setStatus(ctx.t("sponsorCheckComplete"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorCheckError"), "error");
       }
     });
@@ -45,7 +45,7 @@ defineMiniApp({
         relay.dappId.value = dappId;
         await relay.requestSponsor();
         ctx.setStatus(ctx.t("sponsorRequestComplete"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorRequestError"), "error");
       }
     });
@@ -57,7 +57,7 @@ defineMiniApp({
         relay.payloadJson.value = payloadJson;
         await relay.submitRelay();
         ctx.setStatus(ctx.t("relaySubmitted"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("relayError"), "error");
       }
     });
@@ -71,11 +71,11 @@ defineMiniApp({
         aaCoreDisplay: relay.aaCoreDisplay,
         relayUrlDisplay: relay.relayUrlDisplay,
         networkDisplay: relay.networkDisplay,
-        isCheckingSponsorship: relay.aa.isCheckingSponsorship,
-        isRelaying: relay.aa.isRelaying,
+        isCheckingSponsorship: relay.isCheckingSponsorship,
+        isRelaying: relay.isRelaying,
       },
       loadData: relay.loadAll,
-      cleanup: () => { relay.cleanup(); platformServices.destroy(); },
+      cleanup: () => { platformServices.destroy(); },
     };
   },
 });
