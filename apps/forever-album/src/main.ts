@@ -27,6 +27,31 @@ defineMiniApp({
     });
 
     ctx.registerAction("openUpload", async () => { album.openUpload(); });
+    ctx.registerAction("closeUpload", async () => { album.closeUpload(); });
+    ctx.registerAction("closeViewer", async () => { album.closeViewer(); });
+    ctx.registerAction("openDecrypt", async () => { album.openDecrypt(); });
+    ctx.registerAction("closeDecrypt", async () => { album.closeDecrypt(); });
+
+    ctx.registerAction("handleDecrypt", async (pwd: unknown) => {
+      try {
+        await album.handleDecrypt(pwd as string);
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("decryptFailed"), "error");
+      }
+    });
+
+    ctx.registerAction("uploadPhotos", async () => {
+      try {
+        await album.uploadPhotos();
+        ctx.setStatus(ctx.t("uploadSuccess"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("uploadFailed"), "error");
+      }
+    });
+
+    ctx.registerAction("removeImage", async (id: unknown) => {
+      album.removeImage(id as string);
+    });
 
     return {
       state: {
@@ -36,6 +61,17 @@ defineMiniApp({
         publicCount: album.publicCount,
         loadingPhotos: album.loadingPhotos,
         uploading: album.uploading,
+        showViewer: album.showViewer,
+        viewingPhoto: album.viewingPhoto,
+        showDecrypt: album.showDecrypt,
+        decryptTarget: album.decryptTarget,
+        decrypting: album.decrypting,
+        decryptedPreview: album.decryptedPreview,
+        showUpload: album.showUpload,
+        selectedImages: album.selectedImages,
+        isEncrypted: album.isEncrypted,
+        password: album.password,
+        totalPayloadSize: album.totalPayloadSize,
       },
       loadData: album.loadPhotos,
       cleanup: () => { platformServices.destroy(); },

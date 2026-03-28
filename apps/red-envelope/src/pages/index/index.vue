@@ -230,7 +230,7 @@ onMounted(async () => {
         }
       }
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[red-envelope] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -239,13 +239,13 @@ const stopActiveTabWatch = watch(activeTab, async (tab) => {
   if (tab === "myEnvelopes") {
     try {
       await loadEnvelopes();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[red-envelope] envelopes load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else if (tab === "claim") {
     try {
       await loadEnvelopes();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[red-envelope] envelopes load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }

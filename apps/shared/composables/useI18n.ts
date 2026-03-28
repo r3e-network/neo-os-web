@@ -62,7 +62,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
           if (window.parent !== window && document.referrer) {
             return new URL(document.referrer).origin;
           }
-        } catch (_e: unknown) {
+        } catch (_e) {
           // ignore parsing errors
         }
         return window.location.origin;

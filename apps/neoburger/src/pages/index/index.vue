@@ -173,7 +173,7 @@ async function handlePrimaryAction() {
     } else {
       await connectWallet();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(t("actionFailed"), "error");
   } finally {
     loading.value = false;
@@ -194,7 +194,7 @@ async function handleJazzAction() {
     } else {
       await connectWallet();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(t("claimFailed"), "error");
   } finally {
     loading.value = false;
@@ -214,7 +214,7 @@ async function copyToClipboard(value: string) {
       return;
     }
     showStatus(t("copySuccess"), "success");
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(t("copyFailed"), "error");
   }
 }

@@ -11,6 +11,7 @@ import { messages } from "./locale/messages";
 import { useNeoburgerCore } from "./composables/useNeoburgerCore";
 import { useNeoburgerSwap } from "./composables/useNeoburgerSwap";
 import { useNeoburgerStats } from "./composables/useNeoburgerStats";
+import { useNeoburgerRewards } from "./composables/useNeoburgerRewards";
 
 defineMiniApp({
   appId: "miniapp-neoburger",
@@ -23,18 +24,31 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const showStatus = (msg: string, type: string) =>
-      ctx.setStatus(msg, type as "success" | "error" | "loading");
+    const core = useNeoburgerCore({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      balance: platformServices.balance,
+      t: ctx.t,
+    });
 
-    const core = useNeoburgerCore();
-    const stats = useNeoburgerStats();
-    const swap = useNeoburgerSwap(
-      core.neoBalance,
+    const stats = useNeoburgerStats(ctx.t);
+
+    const swap = useNeoburgerSwap({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      neoBalance: core.neoBalance,
+      bNeoBalance: core.bNeoBalance,
+      BNEO_CONTRACT: core.BNEO_CONTRACT,
+      priceData: stats.priceData,
+      t: ctx.t,
+      loadBalances: core.loadBalances,
+    });
+
+    const rewards = useNeoburgerRewards(
       core.bNeoBalance,
-      core.BNEO_CONTRACT,
+      stats.apy,
       stats.priceData,
-      showStatus,
-      core.loadBalances,
+      ctx.t,
     );
 
     const neoBalanceDisplay = computed(() => String(core.neoBalance.value ?? ctx.t("notAvailable")));
@@ -48,8 +62,8 @@ defineMiniApp({
         if (!success) {
           ctx.setStatus(ctx.t("actionFailed"), "error");
         }
-      } catch (_e: unknown) {
-        ctx.setStatus(ctx.t("actionFailed"), "error");
+      } catch (_e) {
+        ctx.setStatus(_e instanceof Error ? _e.message : ctx.t("actionFailed"), "error");
       } finally {
         loading.value = false;
       }
@@ -65,8 +79,8 @@ defineMiniApp({
         } else {
           ctx.setStatus(ctx.t("claimFailed"), "error");
         }
-      } catch (_e: unknown) {
-        ctx.setStatus(ctx.t("claimFailed"), "error");
+      } catch (_e) {
+        ctx.setStatus(_e instanceof Error ? _e.message : ctx.t("claimFailed"), "error");
       } finally {
         loading.value = false;
       }
@@ -94,11 +108,11 @@ defineMiniApp({
         swapUsdText: swap.swapUsdText,
         swapCanSubmit: swap.swapCanSubmit,
         // Rewards sub-state
-        dailyRewards: computed(() => swap.dailyRewards ?? 0),
-        weeklyRewards: computed(() => swap.weeklyRewards ?? 0),
-        monthlyRewards: computed(() => swap.monthlyRewards ?? 0),
-        totalRewards: computed(() => swap.totalRewards ?? 0),
-        totalRewardsUsdText: computed(() => swap.totalRewardsUsdText ?? ""),
+        dailyRewards: rewards.dailyRewards,
+        weeklyRewards: rewards.weeklyRewards,
+        monthlyRewards: rewards.monthlyRewards,
+        totalRewards: rewards.totalRewards,
+        totalRewardsUsdText: rewards.totalRewardsUsdText,
       },
 
       loadData: async () => {

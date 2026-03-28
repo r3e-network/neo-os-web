@@ -173,7 +173,7 @@ onMounted(async () => {
   if (!isMounted.value) return;
   try {
     await init();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[council-governance] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -182,7 +182,7 @@ const stopAddressWatch = watch(address, async () => {
   try {
     await refreshCandidateStatus();
     await refreshHasVoted();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[council-governance] status refresh failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

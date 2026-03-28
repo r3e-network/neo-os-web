@@ -197,7 +197,7 @@ async function fetchEvents(params: EventsListParams): Promise<EventsListResponse
   if (!res.ok) return { events: [], total: 0 };
   try {
     return await res.json();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[wallet-sdk] fetchEvents failed to parse JSON:", _e instanceof Error ? _e.message : String(_e));
     return { events: [], total: 0 };
   }
@@ -272,7 +272,7 @@ async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
     cachedManifest = JSON.parse(text) as MiniAppManifest;
     cachedManifestTimestamp = now;
     return cachedManifest;
-  } catch (_e: unknown) {
+  } catch (_e) {
     cachedManifest = null;
     cachedManifestTimestamp = now;
     return null;
@@ -460,7 +460,7 @@ export function useGasSponsor() {
       const res = await fetch(`${PLATFORM_API}/api/gas-sponsor/eligibility?address=${addr}`);
       if (!res.ok) throw new MiniAppError("Failed to check eligibility", ERROR_CODE_ELIGIBILITY_CHECK_FAILED, undefined, undefined, undefined, ERROR_CODE_ELIGIBILITY_CHECK_FAILED);
       return res.json();
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       eligibilityError.value = msg;
       return { gas_balance: "0", used_today: "0", daily_limit: "0.1", resets_at: "" };
@@ -484,7 +484,7 @@ export function useGasSponsor() {
       });
       if (!res.ok) throw new MiniAppError("Sponsorship request failed", ERROR_CODE_SPONSORSHIP_REQUEST_FAILED, undefined, undefined, undefined, ERROR_CODE_SPONSORSHIP_REQUEST_FAILED);
       return res.json();
-    } catch (e: unknown) {
+    } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       sponsorshipError.value = msg;
       return { success: false };
@@ -615,7 +615,7 @@ export function useEvents() {
             };
           }
         }
-      } catch (e: unknown) {
+      } catch (e) {
         console.warn("[useEvents] N3Index fetch failed, falling back to platform API:", e);
       }
     }

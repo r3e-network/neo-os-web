@@ -59,7 +59,7 @@ export function useDomainRegister(nnsContract: string, t: (key: string) => strin
               });
               const owner = String(parseInvokeResult(ownerResult) || "");
               return { available: false as const, owner };
-            } catch (_e: unknown) {
+            } catch (_e) {
               return { available: false as const, owner: t("unknownOwner") };
             }
           },

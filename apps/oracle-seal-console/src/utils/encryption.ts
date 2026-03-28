@@ -119,7 +119,7 @@ export async function encryptJsonWithOraclePublicKey(publicKeyBase64: string, js
   let parsed: unknown;
   try {
     parsed = JSON.parse(jsonText);
-  } catch (_e: unknown) {
+  } catch (_e) {
     throw new Error(`encryptJsonWithOraclePublicKey: invalid JSON provided for encryption — ${jsonText.slice(0, 50)}...`);
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

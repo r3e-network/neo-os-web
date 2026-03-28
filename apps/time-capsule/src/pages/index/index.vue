@@ -167,7 +167,7 @@ const loadData = async () => {
   isLoadingData.value = true;
   try {
     capsules.value = await loadCapsules();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[time-capsule] capsule data fetch failed:", _e instanceof Error ? _e.message : String(_e));
   } finally {
     isLoadingData.value = false;

@@ -1,7 +1,7 @@
 export const parseBigInt = (value: unknown): bigint => {
   try {
     return BigInt(String(value ?? "0"));
-  } catch (_e: unknown) {
+  } catch (_e) {
     return 0n;
   }
 };
@@ -13,7 +13,7 @@ export const encodeTokenId = (tokenId: string): string => {
   try {
     const bytes = new TextEncoder().encode(tokenId);
     return btoa(String.fromCharCode(...bytes));
-  } catch (_e: unknown) {
+  } catch (_e) {
     return tokenId;
   }
 };

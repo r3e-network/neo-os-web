@@ -120,7 +120,7 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
               active,
               collateral,
             } as ContractLoanEntry;
-          } catch (e: unknown) {
+          } catch (e) {
             handleError(e, { operation: "loadLoanDetail", metadata: { loanId } });
             return null;
           }
@@ -174,7 +174,7 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
       if (latest > 0) {
         await deps.loadLoanPosition(latest);
       }
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadHistoryFromContract" });
       stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
       loanHistory.value = [];
@@ -274,7 +274,7 @@ export function useSelfLoanHistory(deps: SelfLoanHistoryDeps) {
         const latest = created.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
         await deps.loadLoanPosition(latest);
       }
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadHistory" });
       await loadHistoryFromContract();
     }

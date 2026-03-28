@@ -479,7 +479,7 @@ export async function safeAsync<T>(
 ): Promise<T> {
   try {
     return await operation();
-  } catch (_e: unknown) {
+  } catch (_e) {
     return defaultValue;
   }
 }

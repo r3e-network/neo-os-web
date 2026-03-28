@@ -18,7 +18,7 @@ class AudioManager {
     private releaseContext(context: uni.InnerAudioContext) {
         const idx = this.activeContexts.indexOf(context);
         if (idx !== -1) this.activeContexts.splice(idx, 1);
-        try { context.destroy(); } catch (_e: unknown) { console.warn("[fogplay] audio context already destroyed:", _e instanceof Error ? _e.message : String(_e)); }
+        try { context.destroy(); } catch (_e) { console.warn("[fogplay] audio context already destroyed:", _e instanceof Error ? _e.message : String(_e)); }
     }
 
     play(name: string) {

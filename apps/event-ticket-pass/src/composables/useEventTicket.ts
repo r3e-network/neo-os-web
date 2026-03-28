@@ -54,7 +54,7 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         return parseEvent(detail as Record<string, unknown>, id);
       }));
       events.value = details.filter(Boolean) as EventItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useEventTicket] refreshEvents failed:", e instanceof Error ? e.message : String(e));
     } finally {
       isRefreshing.value = false;
@@ -80,7 +80,7 @@ export function useEventTicket({ chain, eventBus, t }: UseEventTicketOptions) {
         } as TicketItem;
       }));
       tickets.value = details.filter(Boolean) as TicketItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useEventTicket] refreshTickets failed:", e instanceof Error ? e.message : String(e));
     } finally {
       isRefreshingTickets.value = false;

@@ -125,7 +125,7 @@ export function useNeoPay(t: (key: string) => string) {
 
       createdStreams.value = created.filter(Boolean) as StreamItem[];
       beneficiaryStreams.value = beneficiary.filter(Boolean) as StreamItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshing.value = false;
@@ -138,7 +138,7 @@ export function useNeoPay(t: (key: string) => string) {
       if (address.value) {
         await refreshStreams();
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     }
   };
@@ -224,7 +224,7 @@ export function useNeoPay(t: (key: string) => string) {
       });
 
       await refreshStreams();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isLoading.value = false;
@@ -247,7 +247,7 @@ export function useNeoPay(t: (key: string) => string) {
         ],
       });
       await refreshStreams();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       claimingId.value = null;
@@ -270,7 +270,7 @@ export function useNeoPay(t: (key: string) => string) {
         ],
       });
       await refreshStreams();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       cancellingId.value = null;

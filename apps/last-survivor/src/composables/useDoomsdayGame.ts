@@ -92,7 +92,7 @@ export function useDoomsdayGame() {
         return Number(statusMap.remainingTime || 0);
       }
       return 0;
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadRoundData" });
       setStatus(formatErrorMessage(e, t("error")), "error");
       throw new Error(formatErrorMessage(e, t("error")));
@@ -110,7 +110,7 @@ export function useDoomsdayGame() {
         { type: "Integer", value: roundId.value },
       ]);
       userKeys.value = Number(parsed || 0);
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadUserKeys", metadata: { roundId: roundId.value } });
       setStatus(formatErrorMessage(e, t("error")), "error");
       userKeys.value = 0;
@@ -173,7 +173,7 @@ export function useDoomsdayGame() {
       });
 
       history.value = items.sort((a, b) => Number(b.id) - Number(a.id));
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadHistory" });
       setStatus(formatErrorMessage(e, t("error")), "error");
       history.value = [];

@@ -1,3 +1,11 @@
+/**
+ * useExplorerData — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All explorer data logic has been migrated to useExplorer.ts which receives
+ * ChainService + EventBus from PlatformServices.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
 import { ref, computed, watch, onUnmounted } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -24,7 +32,7 @@ const getApiBase = () => {
       const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
       if (parentOrigin) return `${parentOrigin}/api/explorer`;
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[useExplorerData] getApiBase failed:", _e instanceof Error ? _e.message : String(_e));
   }
   return "/api/explorer";
@@ -91,7 +99,7 @@ const parseResponseData = (payload: unknown) => {
   if (typeof payload === "string") {
     try {
       return JSON.parse(payload);
-    } catch (_e: unknown) {
+    } catch (_e) {
       return null;
     }
   }
@@ -154,7 +162,7 @@ export function useExplorerData(t: (key: string) => string) {
         if (res.statusCode === 200 && res.data) {
           freshStats = parseResponseData(res.data);
         }
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[useExplorerData] fetch stats failed, using cached:", _e instanceof Error ? _e.message : String(_e));
       }
     }
@@ -188,7 +196,7 @@ export function useExplorerData(t: (key: string) => string) {
           freshTxs = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
           hasFreshTxs = true;
         }
-      } catch (_e: unknown) {
+      } catch (_e) {
         console.warn("[useExplorerData] fetch txs failed, using cached:", _e instanceof Error ? _e.message : String(_e));
       }
     }
@@ -248,7 +256,7 @@ export function useExplorerData(t: (key: string) => string) {
       } else {
         setStatus(t("noResults"), "error");
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("searchFailed")), "error");
     } finally {
       isLoading.value = false;

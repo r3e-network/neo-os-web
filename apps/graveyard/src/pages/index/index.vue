@@ -123,7 +123,7 @@ onMounted(async () => {
   try {
     await loadStats();
     await loadHistory();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[graveyard] initial load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -133,7 +133,7 @@ const stopActiveTabWatch = watch(activeTab, async (tab) => {
   if (tab === "history") {
     try {
       await loadHistory();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[graveyard] history tab load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }

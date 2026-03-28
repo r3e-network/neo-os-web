@@ -98,7 +98,7 @@ function cancelManage() {
 async function handleRenew(domain: Domain) {
   try {
     await ns.handleRenew(domain, showStatus);
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
@@ -107,7 +107,7 @@ async function handleSetTarget(targetAddress: string) {
   if (!managingDomain.value) return;
   try {
     await ns.handleSetTarget(managingDomain.value, targetAddress, showStatus);
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
@@ -119,7 +119,7 @@ async function handleTransfer(transferAddress: string) {
     if (transferred) {
       managingDomain.value = null;
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     showStatus(_e instanceof Error ? _e.message : String(_e), "error");
   }
 }
@@ -133,7 +133,7 @@ onMounted(async () => {
     if (address.value) {
       await loadMyDomains();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[neo-ns] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -142,7 +142,7 @@ const stopAddressWatch = watch(address, async (newAddr) => {
   if (newAddr) {
     try {
       await loadMyDomains();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[neo-ns] domains load failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else {

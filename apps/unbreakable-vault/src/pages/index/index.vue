@@ -181,7 +181,7 @@ const stopSecretWatch = watch(secret, async (value) => {
   if (!isMounted.value) return;
   try {
     secretHash.value = value ? await sha256Hex(value) : "";
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[unbreakable-vault] sha256 hash failed:", _e instanceof Error ? _e.message : String(_e));
     secretHash.value = "";
   }

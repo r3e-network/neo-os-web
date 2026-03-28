@@ -100,7 +100,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
 const derivedAccountIdHash = computed(() => {
   try {
     return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[aa-session-key-lab] deriveAAAccountIdHash failed:", _e instanceof Error ? _e.message : String(_e));
     return "";
   }
@@ -111,7 +111,7 @@ const normalizedAllowedMethod = computed(() => String(form.allowedMethod || "").
 const normalizedTargetContract = computed(() => {
   try {
     return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[aa-session-key-lab] normalizeHashOrAddress failed:", _e instanceof Error ? _e.message : String(_e));
     return "";
   }

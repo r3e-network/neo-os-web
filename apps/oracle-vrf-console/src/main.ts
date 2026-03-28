@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         await vrf.requestRandom();
         ctx.setStatus(ctx.t("randomnessRequested"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("requestFailed"), "error");
       }
     });

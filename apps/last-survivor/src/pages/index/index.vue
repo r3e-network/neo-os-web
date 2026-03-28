@@ -171,7 +171,7 @@ onMounted(async () => {
   try {
     await refreshData();
     timerTicker.start();
-  } catch (e: unknown) {
+  } catch (e) {
     // refreshData handles errors internally; this catches only truly unexpected exceptions
     console.error("[last-survivor] onMounted unexpected error:", e instanceof Error ? e.message : String(e));
   }
@@ -187,7 +187,7 @@ const stopGameAddressWatch = watch(game.address, async () => {
   if (!isMounted.value) return;
   try {
     await game.loadUserKeys();
-  } catch (e: unknown) {
+  } catch (e) {
     // loadUserKeys handles errors internally (sets keys to 0); this catches only truly unexpected exceptions
     console.error("[last-survivor] loadUserKeys unexpected error:", e instanceof Error ? e.message : String(e));
   }

@@ -77,7 +77,7 @@ defineMiniApp({
         if (!ethereum) throw new Error(ctx.t("addWalletMissing"));
         try {
           await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: selectedBridge.value.chainIdHex }] });
-        } catch (_e: unknown) {
+        } catch (_e) {
           await ethereum.request({
             method: "wallet_addEthereumChain",
             params: [{ chainId: selectedBridge.value.chainIdHex, chainName: selectedBridge.value.networkName, nativeCurrency: { name: "GAS", symbol: "GAS", decimals: 18 }, rpcUrls: [selectedBridge.value.rpcUrl], blockExplorerUrls: [selectedBridge.value.explorer] }],

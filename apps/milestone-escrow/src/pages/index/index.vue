@@ -175,7 +175,7 @@ const resetAndReload = async () => {
     if (address.value) {
       await refreshEscrows();
     }
-  } catch (e: unknown) {
+  } catch (e) {
     console.error("[milestone-escrow] resetAndReload unexpected error:", e instanceof Error ? e.message : String(e));
   }
 };
@@ -189,7 +189,7 @@ onMounted(async () => {
     if (address.value) {
       await refreshEscrows();
     }
-  } catch (e: unknown) {
+  } catch (e) {
     console.error("[milestone-escrow] onMounted unexpected error:", e instanceof Error ? e.message : String(e));
   }
 });

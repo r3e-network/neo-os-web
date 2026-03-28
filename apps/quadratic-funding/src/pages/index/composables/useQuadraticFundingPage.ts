@@ -131,7 +131,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
     if (!mountedRef.value) return;
     try {
       await refreshRounds();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useQuadraticFundingPage] initial load error:", _e instanceof Error ? _e.message : String(_e));
     }
   });
@@ -143,7 +143,7 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
       contributeForm.roundId = roundId;
       await refreshProjects();
       if (!mountedRef.value) return;
-    } catch (_e: unknown) {
+    } catch (_e) {
       if (mountedRef.value) setStatus(t("projectLoadFailed") || "Failed to load projects", "error");
     }
   });

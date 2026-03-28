@@ -22,27 +22,36 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const flash = useFlashloanCore();
+    const flash = useFlashloanCore({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+    });
 
     ctx.registerAction("lookupLoan", async (loanId: string) => {
-      await flash.lookupLoan(
-        loanId,
-        (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-        (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-      );
+      try {
+        await flash.lookupLoan(loanId);
+        ctx.setStatus(ctx.t("loanStatusLoaded"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     ctx.registerAction("requestLoan", async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
-      await flash.requestLoan(
-        data,
-        (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-        () => {},
-        (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-      );
+      try {
+        await flash.requestLoan(data);
+        ctx.setStatus(ctx.t("loanRequested"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     ctx.registerAction("connect", async () => {
-      await flash.connect();
+      try {
+        await flash.connect();
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     return {

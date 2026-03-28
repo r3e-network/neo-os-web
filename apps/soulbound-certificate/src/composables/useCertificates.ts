@@ -1,3 +1,12 @@
+/**
+ * useCertificates — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All certificate logic has been migrated to useSoulbound.ts which receives
+ * ChainService + EventBus from PlatformServices.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
+
 import { ref, reactive } from "vue";
 import QRCode from "qrcode";
 import { useWallet } from "@shared/utils/wallet-sdk";
@@ -37,7 +46,7 @@ export function useCertificates(): UseCertificatesReturn {
   const parseBigInt = (value: unknown) => {
     try {
       return BigInt(String(value ?? "0"));
-    } catch (_e: unknown) {
+    } catch (_e) {
       return 0n;
     }
   };
@@ -48,7 +57,7 @@ export function useCertificates(): UseCertificatesReturn {
     try {
       const bytes = new TextEncoder().encode(tokenId);
       return btoa(String.fromCharCode(...bytes));
-    } catch (_e: unknown) {
+    } catch (_e) {
       return tokenId;
     }
   };
@@ -125,7 +134,7 @@ export function useCertificates(): UseCertificatesReturn {
       const ids = await fetchTemplateIds(address.value);
       const details = await Promise.all(ids.map(fetchTemplateDetails));
       templates.value = details.filter(Boolean) as TemplateItem[];
-    } catch (_e: unknown) {
+    } catch (_e) {
       // non-critical: template refresh
       templates.value = [];
     }
@@ -166,13 +175,13 @@ export function useCertificates(): UseCertificatesReturn {
           if (!certQrs[cert.tokenId]) {
             try {
               certQrs[cert.tokenId] = await QRCode.toDataURL(cert.tokenId, { margin: 1 });
-            } catch (_e: unknown) {
+            } catch (_e) {
               console.warn("[useCertificates] QR generation failed:", _e instanceof Error ? _e.message : String(_e));
             }
           }
         })
       );
-    } catch (_e: unknown) {
+    } catch (_e) {
       // non-critical: certificate refresh
       certificates.value = [];
     }

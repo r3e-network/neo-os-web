@@ -1,3 +1,11 @@
+/**
+ * useCapsuleUnlock — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All capsule unlock/fish logic has been migrated to useTimeCapsule.ts which receives
+ * ChainService + EventBus from PlatformServices.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
 import { ref, computed } from "vue";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -54,7 +62,7 @@ export function useCapsuleUnlock() {
         }
       }
       return normalized;
-    } catch (_e: unknown) {
+    } catch (_e) {
       /* Local storage parse failure — start with empty content map */
       return {};
     }
@@ -92,7 +100,7 @@ export function useCapsuleUnlock() {
       } else {
         onStatus?.(t("capsuleRevealed"), "success");
       }
-    } catch (e: unknown) {
+    } catch (e) {
       onStatus?.(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;
@@ -141,7 +149,7 @@ export function useCapsuleUnlock() {
       } else {
         onStatus?.(t("fishNone"), "success");
       }
-    } catch (e: unknown) {
+    } catch (e) {
       onStatus?.(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;
@@ -200,7 +208,7 @@ export function useCapsuleUnlock() {
               const data = parsed as Record<string, unknown>;
               return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
             }
-          } catch (_e: unknown) {
+          } catch (_e) {
             console.warn("[useCapsuleUnlock] buildCapsuleFromDetails failed, falling back to event values:", _e instanceof Error ? _e.message : String(_e));
           }
 
@@ -228,7 +236,7 @@ export function useCapsuleUnlock() {
       }
 
       return resolvedCapsules.sort((a, b) => Number(b.id) - Number(a.id));
-    } catch (_e: unknown) {
+    } catch (_e) {
       return [];
     }
   };

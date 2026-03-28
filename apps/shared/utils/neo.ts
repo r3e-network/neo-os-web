@@ -32,7 +32,7 @@ export function parseStackItem(item: unknown): unknown {
           if (typed.value.startsWith("0x")) {
             try {
               return BigInt(parseInt(typed.value.slice(2), 16)).toString();
-            } catch (_e: unknown) {
+            } catch (_e) {
               return "0";
             }
           }
@@ -178,7 +178,7 @@ export function addressToScriptHash(address: string): string {
     // Reverse byte order for little-endian
     const reversed = scriptHashHex.match(/.{2}/g)?.reverse().join("") ?? "";
     return `0x${reversed}`;
-  } catch (_e: unknown) {
+  } catch (_e) {
     return "";
   }
 }

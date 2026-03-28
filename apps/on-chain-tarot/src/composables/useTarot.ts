@@ -127,7 +127,7 @@ export function useTarot({ chain, eventBus, t }: UseTarotOptions) {
   const loadReadingCount = async () => {
     try {
       readingsCount.value = (await listEventRecords("ReadingCompleted")).length;
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
       readingsCount.value = Math.max(readingsCount.value, 0);
     }

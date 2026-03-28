@@ -32,7 +32,7 @@ defineMiniApp({
       try {
         await seal.loadKey();
         ctx.setStatus(ctx.t("loaded"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadKeyFailed"), "error");
       }
     });
@@ -41,7 +41,7 @@ defineMiniApp({
       try {
         await seal.sealPayload();
         ctx.setStatus(ctx.t("sealed"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("sealFailed"), "error");
       }
     });
@@ -50,7 +50,7 @@ defineMiniApp({
       try {
         await seal.storeCiphertextRef();
         ctx.setStatus(ctx.t("stored"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("storeRefFailed"), "error");
       }
     });

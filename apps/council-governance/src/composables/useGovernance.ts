@@ -1,14 +1,28 @@
-import { ref, computed, watch } from "vue";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
-import { messages } from "@/locale/messages";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+/**
+ * useGovernance — Domain composable for Council Governance miniapp
+ *
+ * Migrated to PlatformServices pattern:
+ *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
+ *   - useWallet() -> chain.ensureWallet() / chain.address
+ *   - useStatusMessage() -> eventBus.emit()
+ *
+ * The API call for council member lookup is preserved as-is since it
+ * queries the platform backend, not the blockchain.
+ */
+
+import { ref, computed } from "vue";
+import type { ChainService, EventBus } from "@shared/services";
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 const STATUS_ACTIVE = 1;
 const STATUS_EXPIRED = 5;
-const CACHE_KEY_PREFIX = "council_proposals_cache";
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface Proposal {
   id: number;
@@ -25,6 +39,17 @@ export interface Proposal {
 
 export type VoteChoice = "for" | "against";
 
+export interface UseGovernanceOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  currentChainId: { value: string };
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
 const parseProposal = (data: Record<string, unknown>): Proposal => {
   const policyByteString = String(data.policyData || "");
   let policyMethod: string | undefined;
@@ -34,7 +59,7 @@ const parseProposal = (data: Record<string, unknown>): Proposal => {
       const parsed = JSON.parse(policyByteString);
       policyMethod = parsed.method;
       policyValue = parsed.value;
-    } catch (_e: unknown) {
+    } catch (_e) {
       policyValue = policyByteString;
     }
   }
@@ -60,22 +85,12 @@ export const resolveStatus = (proposal: Proposal) => {
   return proposal.status;
 };
 
-export function useGovernance(showStatus: (msg: string, type: string) => void, currentChainId: { value: string }) {
-  const { t } = createUseI18n(messages)();
-  const wallet = useWallet() as WalletSDK;
-  const { address } = wallet;
-  const {
-    read,
-    invokeDirectly,
-    ensureWallet,
-    contractAddress,
-    ensureContractAddress: ensureAddress,
-  } = useContractInteraction({
-    appId: "miniapp-council-governance",
-    t,
-    wallet,
-  });
+// ============================================================================
+// Composable
+// ============================================================================
 
+export function useGovernance({ chain, eventBus, t, currentChainId }: UseGovernanceOptions) {
+  // ── State ────────────────────────────────────────────────────────────
   const proposals = ref<Proposal[]>([]);
   const selectedProposal = ref<Proposal | null>(null);
   const loadingProposals = ref(false);
@@ -85,116 +100,89 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
   const hasVotedMap = ref<Record<number, boolean>>({});
   const isVoting = ref(false);
 
-  const activeProposals = computed(() => proposals.value.filter((p) => resolveStatus(p) === STATUS_ACTIVE));
-  const historyProposals = computed(() => proposals.value.filter((p) => resolveStatus(p) !== STATUS_ACTIVE));
-  const cacheKey = computed(() => {
-    const chain = String(currentChainId.value || "unknown");
-    const contract = String(contractAddress.value || "unresolved");
-    return `${CACHE_KEY_PREFIX}:${chain}:${contract}`;
-  });
+  // ── Computed ─────────────────────────────────────────────────────────
+  const activeProposals = computed(() =>
+    proposals.value.filter((p) => resolveStatus(p) === STATUS_ACTIVE),
+  );
+  const historyProposals = computed(() =>
+    proposals.value.filter((p) => resolveStatus(p) !== STATUS_ACTIVE),
+  );
 
+  // ── API Base (for council member lookup) ─────────────────────────────
   const getApiBase = () => {
     try {
       if (window.parent !== window) {
         const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
         if (parentOrigin) return parentOrigin;
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useGovernance] getApiBase failed:", _e instanceof Error ? _e.message : String(_e));
     }
     return "";
   };
   const API_HOST = getApiBase();
 
-  const ensureContractAddress = async (showMessage = true) => {
-    try {
-      await ensureAddress({ silentChainCheck: !showMessage });
-      return true;
-    } catch (e: unknown) {
-      if (showMessage) {
-        const message = formatErrorMessage(e, t("contractUnavailable"));
-        showStatus(message === t("wrongChain") ? t("wrongChain") : t("contractUnavailable"), "error");
-      }
-      return false;
-    }
+  // ── Contract Read Helper ────────────────────────────────────────────
+
+  const readMethod = async (
+    operation: string,
+    args: { type: string; value: unknown }[] = [],
+  ) => {
+    return chain.read(
+      operation,
+      args as { type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array"; value: string | number | boolean }[],
+    );
   };
 
-  const readMethod = async (operation: string, args: { type: string; value: unknown }[] = []) => {
-    const hasHash = await ensureContractAddress(false);
-    if (!hasHash) throw new Error(t("contractUnavailable"));
-    return read(operation, args, contractAddress.value as string);
-  };
-
-  const readCachedProposals = (): Proposal[] | null => {
-    try {
-      const storage = (globalThis as { uni?: { getStorageSync?: (key: string) => string } }).uni;
-      if (!storage?.getStorageSync) return null;
-      const cached = storage.getStorageSync(cacheKey.value);
-      if (!cached) return null;
-      const parsed = JSON.parse(cached);
-      return Array.isArray(parsed) ? (parsed as Proposal[]) : null;
-    } catch (_e: unknown) {
-      return null;
-    }
-  };
-
-  const writeCachedProposals = (next: Proposal[]) => {
-    try {
-      const storage = (globalThis as { uni?: { setStorageSync?: (key: string, value: string) => void } }).uni;
-      if (!storage?.setStorageSync) return;
-      storage.setStorageSync(cacheKey.value, JSON.stringify(next));
-    } catch (_e: unknown) {
-      // non-critical cache write path
-    }
-  };
+  // ── Proposal Selection ──────────────────────────────────────────────
 
   const selectProposal = async (p: Proposal) => {
     selectedProposal.value = p;
-    if (address.value) await refreshHasVoted([p.id]);
+    if (chain.address.value) await refreshHasVoted([p.id]);
   };
+
+  // ── Voting ──────────────────────────────────────────────────────────
 
   const castVote = async (proposalId: number, voteType: VoteChoice) => {
     if (isVoting.value) return;
     const proposal = activeProposals.value.find((p) => p.id === proposalId);
     if (!proposal || resolveStatus(proposal) !== STATUS_ACTIVE) return;
-    const voter = address.value;
+    const voter = chain.address.value;
     if (!voter) {
-      showStatus(t("connectWallet"), "error");
+      eventBus.emit("governance:error", { message: t("connectWallet") });
       return;
     }
     if (!isCandidate.value) {
-      showStatus(t("notCandidate"), "error");
+      eventBus.emit("governance:error", { message: t("notCandidate") });
       return;
     }
     if (hasVotedMap.value[proposalId]) {
-      showStatus(t("alreadyVoted"), "error");
+      eventBus.emit("governance:error", { message: t("alreadyVoted") });
       return;
     }
-    const hasHash = await ensureContractAddress();
-    if (!hasHash) return;
 
     try {
       isVoting.value = true;
-      await ensureWallet();
-      await invokeDirectly(
-        "vote",
-        [
-          { type: "Hash160", value: voter },
-          { type: "Integer", value: proposalId },
-          { type: "Boolean", value: voteType === "for" },
-        ],
-        contractAddress.value as string,
-      );
-      showStatus(t("voteRecorded"), "success");
+      await chain.ensureWallet();
+      await chain.invoke("vote", [
+        { type: "Hash160", value: voter },
+        { type: "Integer", value: proposalId },
+        { type: "Boolean", value: voteType === "for" },
+      ]);
+      eventBus.emit("governance:voted", { action: t("voteRecorded") });
       await loadProposals();
       await refreshHasVoted([proposalId]);
       selectedProposal.value = null;
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t("error")), "error");
+    } catch (e) {
+      eventBus.emit("governance:error", {
+        message: e instanceof Error ? e.message : t("error"),
+      });
     } finally {
       isVoting.value = false;
     }
   };
+
+  // ── Proposal Creation ───────────────────────────────────────────────
 
   const createProposal = async (proposalData: {
     type: number;
@@ -207,7 +195,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     const title = proposalData.title.trim();
     const description = proposalData.description.trim();
     if (!title || !description) {
-      showStatus(t("fillAllFields"), "error");
+      eventBus.emit("governance:error", { message: t("fillAllFields") });
       return false;
     }
 
@@ -215,99 +203,92 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     if (proposalData.type === 1) {
       const rawPolicyValue = String(proposalData.policyValue).trim();
       if (!proposalData.policyMethod || !rawPolicyValue) {
-        showStatus(t("policyFieldsRequired"), "error");
+        eventBus.emit("governance:error", { message: t("policyFieldsRequired") });
         return false;
       }
       const parsed = Number(rawPolicyValue);
       if (!Number.isFinite(parsed)) {
-        showStatus(t("invalidPolicyValue"), "error");
+        eventBus.emit("governance:error", { message: t("invalidPolicyValue") });
         return false;
       }
       policyValueNumber = parsed;
     }
-    if (!address.value) {
-      showStatus(t("connectWallet"), "error");
+    if (!chain.address.value) {
+      eventBus.emit("governance:error", { message: t("connectWallet") });
       return false;
     }
     if (!isCandidate.value) {
-      showStatus(t("notCandidate"), "error");
+      eventBus.emit("governance:error", { message: t("notCandidate") });
       return false;
     }
-    const hasHash = await ensureContractAddress();
-    if (!hasHash) return false;
 
     const policyDataS =
-      proposalData.type === 1 ? JSON.stringify({ method: proposalData.policyMethod, value: policyValueNumber }) : "";
+      proposalData.type === 1
+        ? JSON.stringify({ method: proposalData.policyMethod, value: policyValueNumber })
+        : "";
 
     try {
-      await ensureWallet();
-      await invokeDirectly(
-        "createProposal",
-        [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: proposalData.type },
-          { type: "String", value: title },
-          { type: "String", value: description },
-          { type: "ByteString", value: policyDataS },
-          { type: "Integer", value: proposalData.duration },
-        ],
-        contractAddress.value as string,
-      );
-      showStatus(t("proposalSubmitted"), "success");
+      await chain.ensureWallet();
+      await chain.invoke("createProposal", [
+        { type: "Hash160", value: chain.address.value as string },
+        { type: "Integer", value: proposalData.type },
+        { type: "String", value: title },
+        { type: "String", value: description },
+        { type: "ByteArray", value: policyDataS },
+        { type: "Integer", value: proposalData.duration },
+      ]);
+      eventBus.emit("governance:proposalCreated", { action: t("proposalSubmitted") });
       await loadProposals();
       return true;
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t("error")), "error");
+    } catch (e) {
+      eventBus.emit("governance:error", {
+        message: e instanceof Error ? e.message : t("error"),
+      });
       return false;
     }
   };
 
+  // ── Proposal Execution ──────────────────────────────────────────────
+
   const executeProposal = async (proposalId: number) => {
-    if (!address.value) {
-      showStatus(t("connectWallet"), "error");
+    if (!chain.address.value) {
+      eventBus.emit("governance:error", { message: t("connectWallet") });
       return;
     }
-    const hasHash = await ensureContractAddress();
-    if (!hasHash) return;
 
     try {
-      await ensureWallet();
-      await invokeDirectly(
-        "executeProposal",
-        [{ type: "Integer", value: proposalId }],
-        contractAddress.value as string,
-      );
-      showStatus(t("executed"), "success");
+      await chain.ensureWallet();
+      await chain.invoke("executeProposal", [
+        { type: "Integer", value: proposalId },
+      ]);
+      eventBus.emit("governance:executed", { action: t("executed") });
       await loadProposals();
       selectedProposal.value = null;
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t("error")), "error");
+    } catch (e) {
+      eventBus.emit("governance:error", {
+        message: e instanceof Error ? e.message : t("error"),
+      });
     }
   };
 
+  // ── Data Loading ────────────────────────────────────────────────────
+
   const loadProposals = async () => {
-    const hasHash = await ensureContractAddress();
-    if (!hasHash) return;
-
-    try {
-      const cached = readCachedProposals();
-      if (cached) proposals.value = cached;
-    } catch (_e: unknown) { /* non-critical */ }
-
     try {
       loadingProposals.value = true;
       const count = Number((await readMethod("getProposalCount")) || 0);
       const results = await Promise.all(
         Array.from({ length: count }, (_, i) => i + 1).map(async (id) => {
           const data = await readMethod("getProposal", [{ type: "Integer", value: id }]);
-          return data ? parseProposal(data) : null;
-        })
+          return data ? parseProposal(data as Record<string, unknown>) : null;
+        }),
       );
       proposals.value = (results.filter(Boolean) as Proposal[]).sort((a, b) => b.id - a.id);
-      writeCachedProposals(proposals.value);
-    } catch (e: unknown) {
+    } catch (e) {
       if (proposals.value.length === 0) {
-        showStatus(formatErrorMessage(e, t("failedToLoadProposals")), "error");
+        eventBus.emit("governance:error", {
+          message: e instanceof Error ? e.message : t("failedToLoadProposals"),
+        });
       }
     } finally {
       loadingProposals.value = false;
@@ -315,7 +296,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
   };
 
   const refreshCandidateStatus = async () => {
-    if (!address.value) {
+    if (!chain.address.value) {
       isCandidate.value = false;
       votingPower.value = 0;
       candidateLoaded.value = true;
@@ -323,7 +304,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     }
     try {
       const res = await uni.request({
-        url: `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.value}&address=${address.value}`,
+        url: `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.value}&address=${chain.address.value}`,
         method: "GET",
       });
       if (res.statusCode === 200 && res.data) {
@@ -334,7 +315,7 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
         isCandidate.value = false;
         votingPower.value = 0;
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       isCandidate.value = false;
       votingPower.value = 0;
     } finally {
@@ -343,29 +324,26 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
   };
 
   const refreshHasVoted = async (proposalIds?: number[]) => {
-    if (!address.value) return;
-    const hasHash = await ensureContractAddress(false);
-    if (!hasHash) return;
-    const currentAddress = address.value;
+    if (!chain.address.value) return;
+    const currentAddress = chain.address.value;
     const ids = proposalIds ?? proposals.value.map((p) => p.id);
     const updates: Record<number, boolean> = { ...hasVotedMap.value };
     await Promise.all(
       ids.map(async (id) => {
-        updates[id] = Boolean(await read(
-          "hasVoted",
-          [
+        updates[id] = Boolean(
+          await chain.read("hasVoted", [
             { type: "Hash160", value: currentAddress },
             { type: "Integer", value: id },
-          ],
-          contractAddress.value as string,
-        ));
-      })
+          ]),
+        );
+      }),
     );
     hasVotedMap.value = updates;
   };
 
+  // ── Lifecycle ───────────────────────────────────────────────────────
+
   const init = async () => {
-    await ensureContractAddress(false);
     await loadProposals();
     await refreshCandidateStatus();
     await refreshHasVoted();
@@ -392,3 +370,5 @@ export function useGovernance(showStatus: (msg: string, type: string) => void, c
     init,
   };
 }
+
+export type UseGovernanceReturn = ReturnType<typeof useGovernance>;

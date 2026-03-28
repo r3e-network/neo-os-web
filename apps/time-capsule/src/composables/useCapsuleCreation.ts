@@ -1,3 +1,11 @@
+/**
+ * useCapsuleCreation — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All capsule creation logic has been migrated to useTimeCapsule.ts which receives
+ * ChainService + EventBus from PlatformServices.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
 import { ref, computed } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
@@ -67,7 +75,7 @@ export function useCapsuleCreation() {
       const store = readCachedJSON<Record<string, string>>(CONTENT_STORE_KEY) ?? {};
       store[hash] = content;
       writeCachedJSON(CONTENT_STORE_KEY, store);
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useCapsuleCreation] local storage write failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -120,7 +128,7 @@ export function useCapsuleCreation() {
       setStatus(t("capsuleCreated"), "success");
       newCapsule.value = { title: "", content: "", days: "30", isPublic: false, category: 1 };
       onSuccess?.();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
       isProcessing.value = false;

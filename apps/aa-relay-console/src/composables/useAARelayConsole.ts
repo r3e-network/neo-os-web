@@ -2,52 +2,48 @@
  * useAARelayConsole — Domain logic for AA Relay Console
  *
  * Encapsulates AA relay, sponsorship check, and sponsorship request logic.
- * Receives ChainService + EventBus from PlatformServices.
+ * Receives AAService + EventBus from PlatformServices instead of
+ * using useAbstractAccount directly.
  */
 
-import { ref, computed, watch } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { useAbstractAccount } from "@shared/composables/useAbstractAccount";
-import type { GasSponsorCheckResponse, GasSponsorRequestResponse, AARelayResponse } from "@shared/composables/useAbstractAccount";
+import { ref, computed } from "vue";
+import type { AAService, EventBus } from "@shared/services";
+import type { SponsorshipStatus, RelayResult } from "@shared/services";
+import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 
 export interface UseAARelayConsoleOptions {
-  chain: ChainService;
+  aa: AAService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-type SponsorResult = GasSponsorCheckResponse | GasSponsorRequestResponse | AARelayResponse | null;
+type SponsorResult = SponsorshipStatus | RelayResult | null;
 
-export function useAARelayConsole({ chain, eventBus, t }: UseAARelayConsoleOptions) {
+export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions) {
+  const integration = getExternalIntegrationConfig("testnet");
+
   const aaAddress = ref("");
   const dappId = ref("");
   const payloadJson = ref("{\n  \"metaInvocation\": {\n    \"scriptHash\": \"0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38\"\n  }\n}");
   const sponsorResult = ref<SponsorResult>(null);
-
-  const aa = useAbstractAccount({
-    network: "testnet",
-    aaAddress: aaAddress.value,
-    paymasterDappId: dappId.value || undefined,
-  });
-
-  const stopAddressWatch = watch(aaAddress, (next) => aa.setAAAddress(next));
+  const lastRelayResult = ref<RelayResult | null>(null);
 
   // -- Display values --
   const aaAddressDisplay = computed(() => aaAddress.value || t("notAvailable"));
   const paymasterDisplay = computed(() => dappId.value || t("unset"));
   const sponsorState = computed(() => JSON.stringify(sponsorResult.value ?? {}, null, 2));
-  const relayResponse = computed(() => JSON.stringify(aa.lastRelayResponse.value ?? {}, null, 2));
-  const aaCoreDisplay = computed(() => aa.AA_MASTER_CONTRACT_TESTNET);
-  const relayUrlDisplay = computed(() => aa.relayUrl);
-  const networkDisplay = computed(() => aa.network);
+  const relayResponse = computed(() => JSON.stringify(lastRelayResult.value ?? {}, null, 2));
+  const aaCoreDisplay = computed(() => integration.contracts.aaCore);
+  const relayUrlDisplay = computed(() => "/api/aa/relay");
+  const networkDisplay = computed(() => "testnet");
 
   // -- Actions --
   async function checkSponsor() {
     try {
-      sponsorResult.value = await aa.checkGasSponsorship();
+      sponsorResult.value = await aa.checkSponsorship();
       eventBus.emit("sponsor:checked", {});
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorCheckError")) });
       throw e;
     }
@@ -55,9 +51,9 @@ export function useAARelayConsole({ chain, eventBus, t }: UseAARelayConsoleOptio
 
   async function requestSponsor() {
     try {
-      sponsorResult.value = await aa.requestGasSponsorship("0.1");
+      sponsorResult.value = await aa.requestSponsorship("0.1");
       eventBus.emit("sponsor:requested", {});
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorRequestError")) });
       throw e;
     }
@@ -66,10 +62,12 @@ export function useAARelayConsole({ chain, eventBus, t }: UseAARelayConsoleOptio
   async function submitRelay() {
     try {
       const payload = JSON.parse(payloadJson.value);
-      const response = await aa.submitRelayTransaction(payload);
-      sponsorResult.value = response;
+      aa.setAddress(aaAddress.value || null);
+      const result = await aa.submitRelay(payload);
+      lastRelayResult.value = result;
+      sponsorResult.value = result;
       eventBus.emit("relay:submitted", {});
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("relay:error", { message: formatErrorMessage(e, t("relayError")) });
       throw e;
     }
@@ -79,18 +77,11 @@ export function useAARelayConsole({ chain, eventBus, t }: UseAARelayConsoleOptio
     // No initial data to load — relay is user-triggered
   };
 
-  const cleanup = () => {
-    stopAddressWatch();
-  };
-
   return {
     // -- Form state --
     aaAddress,
     dappId,
     payloadJson,
-
-    // -- AA instance --
-    aa,
 
     // -- Display values --
     aaAddressDisplay,
@@ -100,13 +91,14 @@ export function useAARelayConsole({ chain, eventBus, t }: UseAARelayConsoleOptio
     aaCoreDisplay,
     relayUrlDisplay,
     networkDisplay,
+    isCheckingSponsorship: aa.isCheckingSponsorship,
+    isRelaying: aa.isRelaying,
 
     // -- Actions --
     checkSponsor,
     requestSponsor,
     submitRelay,
     loadAll,
-    cleanup,
   };
 }
 

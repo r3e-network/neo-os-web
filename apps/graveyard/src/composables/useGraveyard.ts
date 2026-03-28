@@ -100,7 +100,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
       eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
       assetHash.value = "";
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
@@ -126,7 +126,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
       const totalResult = await chain.read("totalMemories");
       totalDestroyed.value = Number(totalResult || 0);
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useGraveyard] stats fetch failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -149,7 +149,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
                 forgotten = Boolean(detail.forgotten);
                 if (!forgotten && detail.contentHash) contentHash = String(detail.contentHash);
               }
-            } catch (_e: unknown) {
+            } catch (_e) {
               // non-critical enrichment
             }
           }
@@ -162,7 +162,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
         })
       );
       history.value = entries;
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[useGraveyard] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
@@ -198,7 +198,7 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
 
       history.value = history.value.map((entry) => entry.id === item.id ? { ...entry, forgotten: true } : entry);
       eventBus.emit("graveyard:forgotten", { action: t("forgetSuccess") });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {

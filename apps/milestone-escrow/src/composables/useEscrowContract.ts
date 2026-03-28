@@ -1,3 +1,12 @@
+/**
+ * useEscrowContract — DEPRECATED: Legacy composable preserved for backward compatibility.
+ *
+ * All escrow logic has been migrated to useMilestoneEscrow.ts which receives
+ * ChainService + EventBus from PlatformServices instead of wiring
+ * useContractInteraction + useStatusMessage + useWallet directly.
+ *
+ * This file is no longer imported by main.ts. It will be removed in a future cleanup.
+ */
 import { ref } from "vue";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
@@ -124,7 +133,7 @@ export function useEscrowContract() {
 
       creatorEscrows.value = creator.filter(Boolean) as EscrowItem[];
       beneficiaryEscrows.value = beneficiary.filter(Boolean) as EscrowItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshing.value = false;
@@ -137,7 +146,7 @@ export function useEscrowContract() {
       if (address.value) {
         await refreshEscrows();
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     }
   };
@@ -226,7 +235,7 @@ export function useEscrowContract() {
       setStatus(t("escrowCreated"), "success");
       escrowFormRef?.reset();
       await refreshEscrows();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isLoading.value = false;
@@ -252,7 +261,7 @@ export function useEscrowContract() {
         globalSignerForCurrentWallet(),
       );
       await refreshEscrows();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       approvingId.value = null;
@@ -277,7 +286,7 @@ export function useEscrowContract() {
         globalSignerForCurrentWallet(),
       );
       await refreshEscrows();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       claimingId.value = null;
@@ -301,7 +310,7 @@ export function useEscrowContract() {
         globalSignerForCurrentWallet(),
       );
       await refreshEscrows();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       cancellingId.value = null;
