@@ -18,6 +18,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -58,18 +59,12 @@ defineMiniApp({
 
     // Register actions so they can be called from operation panels or
     // from the PlayArea via the injected action registry.
-    // burnTokens now uses the composable's burnAmount ref by default.
-    ctx.registerAction("burnTokens", async () => {
-      try {
-        const result = await league.burnTokens();
-        ctx.setStatus(
-          `${ctx.t("burned")} ${result} ${ctx.t("tokenGas")} ${ctx.t("success")}`,
-          "success",
-        );
-        return result;
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadFailed"), "error");
-      }
+    registerActions(ctx, {
+      burnTokens: {
+        handler: () => league.burnTokens(),
+        successKey: "burnSuccess",
+        errorKey: "loadFailed",
+      },
     });
 
     return {
