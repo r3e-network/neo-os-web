@@ -28,7 +28,7 @@ onMounted(async () => {
   if (!isMounted.value) return;
   try {
     contractAddress.value = await getContractAddress();
-  } catch (e: unknown) {
+  } catch (e) {
     // Contract address fetch failed — docs page works without it; contractAddress
     // being null is handled by FlashloanDocs component showing "not available"
     console.warn("[flashloan-docs] contract address fetch failed:", e instanceof Error ? e.message : String(e));

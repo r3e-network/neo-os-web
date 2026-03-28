@@ -1,33 +1,38 @@
+/**
+ * useNeoburgerSwap — Swap UI logic for the NeoBurger miniapp
+ *
+ * Receives ChainService + EventBus from PlatformServices.
+ * Manages stake/unstake swap interface state and execution.
+ */
+
 import { ref, computed, type Ref } from "vue";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
+import type { ChainService, EventBus } from "@shared/services";
 import { toFixedDecimals, toFixed8 } from "@shared/utils/format";
-import { requireNeoChain } from "@shared/utils/chain";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { createUseI18n } from "@shared/composables/useI18n";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { messages } from "@/locale/messages";
 
 const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 
-export function useNeoburgerSwap(
-  neoBalance: Ref<number>,
-  bNeoBalance: Ref<number>,
-  BNEO_CONTRACT: Ref<string | null>,
-  priceData: Ref<{ neo: { usd: number } } | null>,
-  showStatus: (msg: string, type: "success" | "error") => void,
-  loadBalances: () => Promise<void>
-) {
-  const { t } = createUseI18n(messages)();
-  const wallet = useWallet() as WalletSDK;
-  const { chainType } = wallet;
-  const { ensureWallet, invokeDirectly } = useContractInteraction({
-    appId: "miniapp-neoburger",
-    t,
-    wallet,
-  });
+export interface UseNeoburgerSwapOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  neoBalance: Ref<number>;
+  bNeoBalance: Ref<number>;
+  BNEO_CONTRACT: Ref<string | null>;
+  priceData: Ref<{ neo: { usd: number } } | null>;
+  t: (key: string, params?: Record<string, string | number>) => string;
+  loadBalances: () => Promise<void>;
+}
 
+export function useNeoburgerSwap({
+  chain,
+  eventBus,
+  neoBalance,
+  bNeoBalance,
+  BNEO_CONTRACT,
+  priceData,
+  t,
+  loadBalances,
+}: UseNeoburgerSwapOptions) {
   const stakeAmount = ref("");
   const unstakeAmount = ref("");
   const swapMode = ref<"stake" | "unstake">("stake");
@@ -115,61 +120,42 @@ export function useNeoburgerSwap(
 
   async function executeStake() {
     if (!canStake.value) return false;
-    if (!requireNeoChain(chainType, t)) return false;
 
     const amount = Number(toFixedDecimals(stakeAmount.value, 0));
     const bneoContract = BNEO_CONTRACT.value;
-    if (!bneoContract) {
-      showStatus(t("contractUnavailable"), "error");
-      return false;
-    }
+    if (!bneoContract) return false;
 
-    try {
-      const walletAddress = await ensureWallet();
-      await invokeDirectly("transfer", [
-        { type: "Hash160", value: walletAddress },
-        { type: "Hash160", value: bneoContract },
-        { type: "Integer", value: Math.floor(amount) },
-        { type: "Any", value: null },
-      ], NEO_CONTRACT);
-      showStatus(`${t("stakeSuccess")} ${amount} ${t("tokenNeo")}!`, "success");
-      stakeAmount.value = "";
-      await loadBalances();
-      return true;
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t("stakeFailed")), "error");
-      return false;
-    }
+    const addr = await chain.ensureWallet();
+    await chain.invoke("transfer", [
+      { type: "Hash160", value: addr },
+      { type: "Hash160", value: bneoContract },
+      { type: "Integer", value: Math.floor(amount) },
+    ], { scriptHash: NEO_CONTRACT });
+
+    eventBus.emit("stake:completed", { amount });
+    stakeAmount.value = "";
+    await loadBalances();
+    return true;
   }
 
   async function executeUnstake() {
     if (!canUnstake.value) return false;
-    if (!requireNeoChain(chainType, t)) return false;
 
-    const amount = Number.parseFloat(unstakeAmount.value);
     const integerAmount = toFixed8(unstakeAmount.value);
     const bneoContract = BNEO_CONTRACT.value;
-    if (!bneoContract) {
-      showStatus(t("contractUnavailable"), "error");
-      return false;
-    }
+    if (!bneoContract) return false;
 
-    try {
-      const walletAddress = await ensureWallet();
-      await invokeDirectly("transfer", [
-        { type: "Hash160", value: walletAddress },
-        { type: "Hash160", value: bneoContract },
-        { type: "Integer", value: integerAmount },
-        { type: "ByteArray", value: "" },
-      ], bneoContract);
-      showStatus(`${t("unstakeSuccess")} ${amount} ${t("tokenBneo")}!`, "success");
-      unstakeAmount.value = "";
-      await loadBalances();
-      return true;
-    } catch (e: unknown) {
-      showStatus(formatErrorMessage(e, t("unstakeFailed")), "error");
-      return false;
-    }
+    const addr = await chain.ensureWallet();
+    await chain.invoke("transfer", [
+      { type: "Hash160", value: addr },
+      { type: "Hash160", value: bneoContract },
+      { type: "Integer", value: integerAmount },
+    ], { scriptHash: bneoContract });
+
+    eventBus.emit("unstake:completed", {});
+    unstakeAmount.value = "";
+    await loadBalances();
+    return true;
   }
 
   async function executeSwap() {
@@ -201,3 +187,5 @@ export function useNeoburgerSwap(
     executeUnstake,
   };
 }
+
+export type UseNeoburgerSwapReturn = ReturnType<typeof useNeoburgerSwap>;

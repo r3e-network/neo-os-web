@@ -143,7 +143,7 @@ export function useBreakupContract(t: (key: string) => string) {
         if (view) contractViews.push(view);
       }
       contracts.value = contractViews;
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("loadFailed")), "error");
     }
   };
@@ -215,7 +215,7 @@ export function useBreakupContract(t: (key: string) => string) {
       contractTitle.value = "";
       contractTerms.value = "";
       await loadContracts();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
@@ -244,7 +244,7 @@ export function useBreakupContract(t: (key: string) => string) {
       ], contractHash);
       setStatus(t("contractSigned"), "success");
       await loadContracts();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };
@@ -261,7 +261,7 @@ export function useBreakupContract(t: (key: string) => string) {
       ]);
       setStatus(t("contractBroken"), "warning");
       await loadContracts();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     }
   };

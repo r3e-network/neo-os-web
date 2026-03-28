@@ -1,52 +1,65 @@
+/**
+ * useVaultBreaker — Vault break attempts, listing, and claiming
+ *
+ * Migrated to PlatformServices pattern:
+ *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
+ *   - useStatusMessage() -> eventBus.emit()
+ *   - useEvents().list -> chain.listEvents()
+ *   - waitForListedEventByTransaction -> chain.waitForEvent()
+ */
+
 import { ref, computed } from "vue";
-import { useEvents } from "@shared/utils/wallet-sdk";
+import type { ChainService, EventBus } from "@shared/services";
 import { parseStackItem, normalizeScriptHash } from "@shared/utils/neo";
 import { bytesToHex, formatGas, toFixed8 } from "@shared/utils/format";
-import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
-import { waitForListedEventByTransaction } from "@shared/utils";
 
-// Blockchain confirm timing constants
-const WAIT_AFTER_TRANSFER_MS = 4000;
-const DEFAULT_TIMEOUT_MS = 30000;
-const POLL_INTERVAL_MS = 1500;
+// ============================================================================
+// Constants
+// ============================================================================
 
 const ATTEMPT_FEE = 0.1;
 
-/** Handles vault break attempts, listing vaults, and claiming rewards. */
-export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
-  const {
-    address,
-    ensureWallet,
-    ensureContractAddress,
-    contractAddress,
-    read,
-    invokeDirectly,
-    isProcessing: isLoading,
-  } = useContractInteraction({ appId: APP_ID, t });
-  const { list: listEvents } = useEvents();
-  const { status, setStatus, clearStatus } = useStatusMessage();
+// ============================================================================
+// Types
+// ============================================================================
 
+export interface VaultDetails {
+  id: string;
+  creator: string;
+  bounty: number;
+  attempts: number;
+  broken: boolean;
+  expired: boolean;
+  status: string;
+  winner: string;
+  attemptFee: number;
+  difficultyName: string;
+  expiryTime: number;
+  remainingDays: number;
+}
+
+export interface RecentVault {
+  id: string;
+  creator: string;
+  bounty: number;
+}
+
+export interface UseVaultBreakerOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string) => string;
+}
+
+// ============================================================================
+// Composable
+// ============================================================================
+
+export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) {
   const vaultIdInput = ref("");
   const attemptSecret = ref("");
-  const vaultDetails = ref<{
-    id: string;
-    creator: string;
-    bounty: number;
-    attempts: number;
-    broken: boolean;
-    expired: boolean;
-    status: string;
-    winner: string;
-    attemptFee: number;
-    difficultyName: string;
-    expiryTime: number;
-    remainingDays: number;
-  } | null>(null);
-
-  const recentVaults = ref<{ id: string; creator: string; bounty: number }[]>([]);
+  const vaultDetails = ref<VaultDetails | null>(null);
+  const recentVaults = ref<RecentVault[]>([]);
 
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);
@@ -57,10 +70,10 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     const st = vaultDetails.value?.status;
     return Boolean(
       vaultIdInput.value &&
-      attemptSecret.value.trim() &&
-      vaultDetails.value &&
-      String(vaultDetails.value.id) === String(vaultIdInput.value) &&
-      st === "active"
+        attemptSecret.value.trim() &&
+        vaultDetails.value &&
+        String(vaultDetails.value.id) === String(vaultIdInput.value) &&
+        st === "active",
     );
   });
 
@@ -82,31 +95,37 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
 
   const loadRecentVaults = async () => {
     try {
-      const res = await listEvents({ app_id: APP_ID, event_name: "VaultCreated", limit: 12 });
-      const vaults = res.events
+      const events = await chain.listEvents("VaultCreated", { limit: 12 });
+      const vaults = (events as { state?: unknown[] }[])
         .map((evt) => {
-          const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
+          const values = Array.isArray(evt?.state)
+            ? (evt.state as unknown[]).map(parseStackItem)
+            : [];
           const id = String(values[0] ?? "");
           const creator = String(values[1] ?? "");
           const bountyValue = Number(values[2] ?? 0);
           if (!id) return null;
           return { id, creator, bounty: bountyValue };
         })
-        .filter(Boolean) as { id: string; creator: string; bounty: number }[];
+        .filter(Boolean) as RecentVault[];
       recentVaults.value = vaults;
-    } catch (e: unknown) {
-      // Non-critical: recent vault list unavailable, can retry
-      console.error("[unbreakable-vault] loadRecentVaults error:", e instanceof Error ? e.message : String(e));
-      setStatus("Recent vaults unavailable", "error");
+    } catch (e) {
+      console.error(
+        "[unbreakable-vault] loadRecentVaults error:",
+        e instanceof Error ? e.message : String(e),
+      );
+      eventBus.emit("vault:error", { message: "Recent vaults unavailable" });
     }
   };
 
   const loadVault = async () => {
     if (!vaultIdInput.value) return;
-    clearStatus();
     try {
-      const parsed = await read("getVaultDetails", [{ type: "Integer", value: vaultIdInput.value }]);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(t("vaultNotFound"));
+      const parsed = await chain.read("getVaultDetails", [
+        { type: "Integer", value: vaultIdInput.value },
+      ]);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+        throw new Error(t("vaultNotFound"));
       const data = parsed as Record<string, unknown>;
       const creator = String(data.creator || "");
       const creatorHash = normalizeScriptHash(creator);
@@ -128,55 +147,65 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
         expiryTime: toNumber(data.expiryTime),
         remainingDays: toNumber(data.remainingDays),
       };
-    } catch (e: unknown) {
-      setStatus(formatErrorMessage(e, t("loadFailed")), "error");
+    } catch (e) {
+      eventBus.emit("vault:error", {
+        message: e instanceof Error ? e.message : t("loadFailed"),
+      });
       vaultDetails.value = null;
     }
   };
 
   const attemptBreak = async () => {
-    if (!canAttempt.value || isLoading.value) return;
-    clearStatus();
+    if (!canAttempt.value || chain.isProcessing.value) return;
     try {
-      await ensureWallet();
-      const contract = await ensureContractAddress();
+      await chain.ensureWallet();
       const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
-      await invokeDirectly(
+
+      // Step 1: Pay the attempt fee
+      await chain.invoke(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Hash160", value: contract },
+          { type: "Hash160", value: chain.address.value as string },
+          { type: "Hash160", value: chain.contractAddress.value as string },
           { type: "Integer", value: String(feeBase) },
-          { type: "String", value: `${APP_ID}:attempt:${vaultIdInput.value}` },
+          { type: "String", value: `miniapp-unbreakablevault:attempt:${vaultIdInput.value}` },
         ],
-        BLOCKCHAIN_CONSTANTS.GAS_HASH,
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
 
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      const result = await invokeDirectly("attemptBreak", [
-        { type: "Integer", value: vaultIdInput.value },
-        { type: "Hash160", value: address.value as string },
-        { type: "ByteArray", value: toHex(attemptSecret.value) },
-      ], contract);
+      // Step 2: Attempt the break
+      const result = await chain.invoke(
+        "attemptBreak",
+        [
+          { type: "Integer", value: vaultIdInput.value },
+          { type: "Hash160", value: chain.address.value as string },
+          { type: "ByteArray", value: toHex(attemptSecret.value) },
+        ],
+        { waitForEvent: "AttemptMade", waitTimeoutMs: 30000 },
+      );
 
-      const attemptEvt = await waitForListedEventByTransaction<{ state?: unknown[]; tx_hash?: string }>(result.tx, {
-        listEvents: async () => {
-          const events = await listEvents({ app_id: APP_ID, event_name: "AttemptMade", limit: 20 });
-          return events.events || [];
-        },
-        timeoutMs: DEFAULT_TIMEOUT_MS,
-        pollIntervalMs: POLL_INTERVAL_MS,
-        errorMessage: t("vaultAttemptFailed"),
-      });
-      const values = Array.isArray(attemptEvt?.state) ? attemptEvt.state.map(parseStackItem) : [];
+      const evtRecord = result.event as { state?: unknown[] } | undefined;
+      const values = Array.isArray(evtRecord?.state)
+        ? evtRecord!.state.map(parseStackItem)
+        : [];
       const success = Boolean(values[2] ?? false);
-      setStatus(success ? t("broken") : t("vaultAttemptFailed"), success ? "success" : "error");
+
+      if (success) {
+        eventBus.emit("vault:broken", { action: t("broken") });
+      } else {
+        eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
+      }
+
       attemptSecret.value = "";
       await loadVault();
       await loadRecentVaults();
-    } catch (e: unknown) {
-      setStatus(formatErrorMessage(e, t("vaultAttemptFailed")), "error");
+    } catch (e) {
+      eventBus.emit("vault:error", {
+        message: e instanceof Error ? e.message : t("vaultAttemptFailed"),
+      });
+      throw e;
     }
   };
 
@@ -192,13 +221,12 @@ export function useVaultBreaker(APP_ID: string, t: (key: string) => string) {
     recentVaults,
     canAttempt,
     attemptFeeDisplay,
-    isLoading,
-    status,
-    setStatus,
-    clearStatus,
+    isLoading: chain.isProcessing,
     loadRecentVaults,
     loadVault,
     attemptBreak,
     selectVault,
   };
 }
+
+export type UseVaultBreakerReturn = ReturnType<typeof useVaultBreaker>;

@@ -213,7 +213,7 @@ const draw = async () => {
     readingsCount.value += 1;
     question.value = "";
     setStatus(t("cardsDrawn"), "success");
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(formatErrorMessage(e, t("error")), "error");
   } finally {
     isLoading.value = false;
@@ -240,7 +240,7 @@ const getReading = () => {
 const loadReadingCount = async () => {
   try {
     readingsCount.value = (await listEventRecords("ReadingCompleted")).length;
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
     readingsCount.value = Math.max(readingsCount.value, 0);
   }
@@ -252,7 +252,7 @@ onMounted(async () => {
   if (!isMounted.value) return;
   try {
     await loadReadingCount();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[on-chain-tarot] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

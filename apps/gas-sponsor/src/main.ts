@@ -36,7 +36,7 @@ defineMiniApp({
         if (result) {
           ctx.setStatus(ctx.t("requestSubmitted", { id: `${result.request_id.slice(0, 8)}...` }), "success");
         }
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("requestFailed"), "error");
       }
     });
@@ -46,7 +46,7 @@ defineMiniApp({
         sponsor.donateAmount.value = amount;
         await sponsor.handleDonate();
         ctx.setStatus(ctx.t("donateSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadFailed"), "error");
       }
     });
@@ -57,7 +57,7 @@ defineMiniApp({
         sponsor.sendAmount.value = amount;
         await sponsor.handleSend();
         ctx.setStatus(ctx.t("sendSuccess"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadFailed"), "error");
       }
     });

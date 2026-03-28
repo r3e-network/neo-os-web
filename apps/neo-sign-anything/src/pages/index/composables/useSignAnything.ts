@@ -76,11 +76,11 @@ export function useSignAnything(t: (key: string) => string) {
           signature.value = String(resultRecord.signature);
         } else {
           try { signature.value = JSON.stringify(result); }
-          catch (_e: unknown) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
+          catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
         }
       } else {
         try { signature.value = JSON.stringify(result); }
-        catch (_e: unknown) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
+        catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
       }
     } catch (err: unknown) {
       setStatus(formatErrorMessage(err, t("signFailed")), "error");

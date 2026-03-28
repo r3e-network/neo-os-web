@@ -106,7 +106,7 @@ const loadRequest = async (id: string) => {
   try {
     request.value = await api.get(id);
     broadcastTxId.value = request.value?.broadcast_txid || "";
-  } catch (e: unknown) {
+  } catch (e) {
     error.value = formatErrorMessage(e, t("toastLoadFailed"));
   } finally {
     loading.value = false;
@@ -128,7 +128,7 @@ const orderedSigners = computed(() => {
       publicKey: key,
       address: getPublicKeyAddress(key),
     }));
-  } catch (e: unknown) {
+  } catch (e) {
     console.warn("[neo-multisig] verification script parse failed:", e instanceof Error ? e.message : String(e));
     return [];
   }
@@ -209,7 +209,7 @@ const sign = async () => {
     const updated = await api.addSignature(request.value.id, pubKey, signature);
     request.value = updated;
     setStatus(t("toastSignSuccess"), "success");
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(formatErrorMessage(e, t("toastSignFailed")), "error");
   } finally {
     isProcessing.value = false;
@@ -265,7 +265,7 @@ const broadcast = async () => {
     }
 
     setStatus(t("toastBroadcastSuccess"), "success");
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(formatErrorMessage(e, t("toastBroadcastFailed")), "error");
   } finally {
     isProcessing.value = false;

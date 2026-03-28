@@ -1,7 +1,8 @@
 /**
  * Council Governance — Entry Point (New Pattern)
  *
- * Uses defineMiniApp() to wire the governance composable to the platform.
+ * Uses defineMiniApp() + PlatformServices to wire the governance
+ * composable to the platform.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -22,10 +23,12 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const gov = useGovernance(
-      (msg: string, type: string) => ctx.setStatus(msg, type as "success" | "error" | "loading"),
-      { value: "neo-n3-testnet" },
-    );
+    const gov = useGovernance({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      currentChainId: { value: "neo-n3-testnet" },
+    });
 
     ctx.registerAction("createProposal", async (...args: unknown[]) => {
       const proposalData = args[0] as {
@@ -68,6 +71,7 @@ defineMiniApp({
         isCandidate: gov.isCandidate,
         hasVotedMap: gov.hasVotedMap,
         isVoting: gov.isVoting,
+        address: platformServices.chain.address,
       },
 
       loadData: gov.init,

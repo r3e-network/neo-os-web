@@ -104,7 +104,7 @@ export function useConverter(t: (key: string) => string) {
       statusMsg.value = "unknownFormat";
       statusType.value = "error";
       result.value = { ...EMPTY_RESULT };
-    } catch (e: unknown) {
+    } catch (e) {
       statusMsg.value = formatErrorMessage(e, t("invalidFormat"));
       statusType.value = "error";
     }

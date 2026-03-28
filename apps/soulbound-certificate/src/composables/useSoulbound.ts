@@ -56,7 +56,7 @@ export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
         return parseTemplate(detail as Record<string, unknown>, id);
       }));
       templates.value = details.filter(Boolean) as TemplateItem[];
-    } catch (_e: unknown) {
+    } catch (_e) {
       templates.value = [];
     } finally {
       isRefreshing.value = false;
@@ -83,7 +83,7 @@ export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
         } as CertificateItem;
       }));
       certificates.value = details.filter(Boolean) as CertificateItem[];
-    } catch (_e: unknown) {
+    } catch (_e) {
       certificates.value = [];
     } finally {
       isRefreshingCertificates.value = false;
@@ -125,7 +125,7 @@ export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
       const url = buildMiniAppLaunchUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
       await navigator.clipboard.writeText(url);
       eventBus.emit("soulbound:linkCopied", { action: t("issueLinkCopied") });
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useSoulbound] copy failed:", e instanceof Error ? e.message : String(e));
     }
   };
@@ -140,7 +140,7 @@ export function useSoulbound({ chain, eventBus, t }: UseSoulboundOptions) {
         return;
       }
       await copyIssueLink(template);
-    } catch (e: unknown) {
+    } catch (e) {
       if (e instanceof Error && /abort|cancel/i.test(e.message)) return;
       await copyIssueLink(template);
     }

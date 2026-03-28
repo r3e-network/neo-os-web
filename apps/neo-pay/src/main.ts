@@ -31,7 +31,7 @@ defineMiniApp({
     ctx.registerAction("refreshStreams", async () => {
       try {
         await pay.refreshStreams();
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
       }
     });
@@ -40,7 +40,7 @@ defineMiniApp({
       try {
         await pay.connectWallet();
         ctx.setStatus("Wallet connected", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("walletNotConnected"), "error");
       }
     });
@@ -49,7 +49,7 @@ defineMiniApp({
       try {
         await pay.handleCreateVault(formData);
         ctx.setStatus(ctx.t("vaultCreated"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
       }
     });
@@ -58,7 +58,7 @@ defineMiniApp({
       try {
         await pay.claimStream(stream as any);
         ctx.setStatus("Stream claimed", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
       }
     });
@@ -67,7 +67,7 @@ defineMiniApp({
       try {
         await pay.cancelStream(stream as any);
         ctx.setStatus("Stream cancelled", "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
       }
     });

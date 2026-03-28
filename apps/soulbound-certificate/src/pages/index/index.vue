@@ -307,7 +307,7 @@ const resetAndReload = async () => {
       await refreshTemplates();
       await refreshCertificates();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[soulbound-certificate] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -558,7 +558,7 @@ const onTabChange = async (tab: string) => {
   try {
     if (tab === "templates") await refreshTemplates();
     if (tab === "certificates") await refreshCertificates();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[soulbound-certificate] tab change failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -611,7 +611,7 @@ onMounted(async () => {
         issueModalOpen.value = true;
       }
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[soulbound-certificate] initial data load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });
@@ -626,7 +626,7 @@ const stopAddressWatch = watch(address, async (newAddr) => {
         issueTemplateId.value = targetTemplateId;
         issueModalOpen.value = true;
       }
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[soulbound-certificate] address change failed:", _e instanceof Error ? _e.message : String(_e));
     }
   } else {

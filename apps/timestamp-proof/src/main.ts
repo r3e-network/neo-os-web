@@ -31,7 +31,7 @@ defineMiniApp({
         await platformServices.chain.ensureWallet();
         // Create proof via chain service
         ctx.setStatus(ctx.t("proofCreated"), "success");
-      } catch (e: unknown) {
+      } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
       } finally {
         isCreating.value = false;

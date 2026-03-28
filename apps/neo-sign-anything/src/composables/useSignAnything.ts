@@ -2,11 +2,15 @@
  * useSignAnything — Domain logic for the Neo Sign Anything miniapp
  *
  * Receives ChainService + EventBus from PlatformServices.
+ * Uses the wallet SDK's signMessage for off-chain message signing,
+ * and ChainService for on-chain broadcast via 0-GAS self-transfer.
  */
 
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import { useWallet } from "@shared/utils/wallet-sdk";
+import type { WalletSDK } from "@shared/utils/wallet-sdk";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const MAX_MESSAGE_BYTES = 1024;
 
@@ -24,6 +28,9 @@ export interface UseSignAnythingOptions {
 }
 
 export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) {
+  // Use wallet SDK for off-chain signing (signMessage is not on ChainService)
+  const wallet = useWallet() as WalletSDK;
+
   const message = ref("");
   const signature = ref("");
   const txHash = ref("");
@@ -35,13 +42,38 @@ export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) 
   const signMessage = async (msg: string) => {
     if (!msg) return;
     isSigning.value = true;
+    signature.value = "";
+    txHash.value = "";
     try {
       await chain.ensureWallet();
-      const result = await chain.signMessage(msg);
-      signature.value = result;
+
+      if (!wallet.signMessage) {
+        throw new Error(t("signNotSupported"));
+      }
+
+      const result = await wallet.signMessage(msg);
+
+      // Parse the result — may be an object { signature, publicKey, data } or string
+      if (typeof result === "string") {
+        signature.value = result;
+      } else if (result && typeof result === "object") {
+        const resultRecord = result as Record<string, unknown>;
+        if (resultRecord.signature) {
+          signature.value = String(resultRecord.signature);
+        } else if (resultRecord.data) {
+          signature.value = String(resultRecord.data);
+        } else {
+          try { signature.value = JSON.stringify(result); }
+          catch { signature.value = String(result); }
+        }
+      } else {
+        try { signature.value = JSON.stringify(result); }
+        catch { signature.value = String(result); }
+      }
+
       signCount.value += 1;
       eventBus.emit("sign:success", { action: t("signBtn") });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("sign:error", {
         message: e instanceof Error ? e.message : t("error"),
       });
@@ -51,21 +83,36 @@ export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) 
     }
   };
 
+  /**
+   * Broadcast a message on-chain via a 0-GAS self-transfer with message data.
+   */
   const broadcastMessage = async (msg: string) => {
     if (!msg) return;
     if (getMessageBytes(msg) > MAX_MESSAGE_BYTES) {
       throw new Error(t("messageTooLong"));
     }
     isBroadcasting.value = true;
+    txHash.value = "";
+    signature.value = "";
     try {
       await chain.ensureWallet();
-      const result = await chain.invoke("broadcastMessage", [
-        { type: "String", value: msg },
-      ]);
-      txHash.value = result.txid || "";
+      const walletAddress = chain.address.value as string;
+
+      const result = await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: walletAddress },
+          { type: "Hash160", value: walletAddress },
+          { type: "Integer", value: "0" },
+          { type: "String", value: msg },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      );
+
+      txHash.value = result.txid || t("txPending");
       broadcastCount.value += 1;
       eventBus.emit("broadcast:success", { action: t("broadcastBtn") });
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("broadcast:error", {
         message: e instanceof Error ? e.message : t("error"),
       });
@@ -79,7 +126,7 @@ export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) 
     try {
       await navigator.clipboard.writeText(text);
       eventBus.emit("copy:success", { action: t("copySuccess") });
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useSignAnything] clipboard copy failed:", e instanceof Error ? e.message : String(e));
     }
   };

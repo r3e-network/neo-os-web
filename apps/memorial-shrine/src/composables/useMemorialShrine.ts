@@ -2,12 +2,24 @@
  * useMemorialShrine — Domain logic for the Memorial Shrine miniapp
  *
  * Receives ChainService + EventBus from PlatformServices.
+ * Contains memorial browsing, creation, and tribute payment logic.
  */
 
 import { ref, computed, onUnmounted } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
+import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import { readQueryParam } from "@shared/utils/url";
 import type { Memorial } from "../types";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const WAIT_AFTER_TRANSFER_MS = 4000;
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface UseMemorialShrineOptions {
   chain: ChainService;
@@ -15,17 +27,27 @@ export interface UseMemorialShrineOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
+// ============================================================================
+// Composable
+// ============================================================================
+
 export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptions) {
   const memorials = ref<Memorial[]>([]);
   const visitedMemorials = ref<Memorial[]>([]);
   const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
   const selectedMemorial = ref<Memorial | null>(null);
   const shareStatus = ref<string | null>(null);
+  const isSubmitting = ref(false);
+  const isPaying = ref(false);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const memorialCount = computed(() => memorials.value.length);
   const tributeCount = computed(() => visitedMemorials.value.length);
   const obituaryCount = computed(() => recentObituaries.value.length);
+
+  // ------------------------------------------
+  // Read: load memorials
+  // ------------------------------------------
 
   const loadMemorials = async () => {
     // Placeholder: In production this would call chain.read or chain.listEvents
@@ -43,6 +65,10 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
   const loadVisitedMemorials = async () => {
     visitedMemorials.value = memorials.value.slice(0, 2);
   };
+
+  // ------------------------------------------
+  // Navigation
+  // ------------------------------------------
 
   const openMemorial = (id: number) => {
     const memorial = memorials.value.find((m) => m.id === id);
@@ -87,16 +113,96 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
     }
   };
 
-  const onMemorialCreated = async (_data: Record<string, unknown>) => {
-    await loadMemorials();
-  };
+  // ------------------------------------------
+  // Write: create memorial
+  // ------------------------------------------
 
-  const onTributePaid = async (memorialId: number, _offeringType: number) => {
-    await loadMemorials();
-    if (selectedMemorial.value?.id === memorialId) {
-      selectedMemorial.value = memorials.value.find((m) => m.id === memorialId) || null;
+  const createMemorial = async (form: {
+    name: string;
+    photoHash: string;
+    relationship: string;
+    birthYear: number;
+    deathYear: number;
+    biography: string;
+    obituary: string;
+  }) => {
+    if (isSubmitting.value) return;
+    isSubmitting.value = true;
+    try {
+      const addr = await chain.ensureWallet();
+      await chain.invoke("createMemorial", [
+        { type: "Hash160", value: addr },
+        { type: "String", value: form.name },
+        { type: "String", value: form.photoHash },
+        { type: "String", value: form.relationship },
+        { type: "Integer", value: String(form.birthYear || 0) },
+        { type: "Integer", value: String(form.deathYear || 0) },
+        { type: "String", value: form.biography },
+        { type: "String", value: form.obituary },
+      ]);
+      eventBus.emit("memorial:created", { name: form.name });
+      await loadMemorials();
+    } finally {
+      isSubmitting.value = false;
     }
   };
+
+  // ------------------------------------------
+  // Write: pay tribute (GAS transfer + contract call)
+  // ------------------------------------------
+
+  const payTribute = async (
+    memorialId: number,
+    offeringType: number,
+    offeringCost: number,
+    message: string,
+  ) => {
+    if (isPaying.value) return;
+    isPaying.value = true;
+    try {
+      const addr = await chain.ensureWallet();
+      const contractAddr = chain.contractAddress.value;
+      if (!contractAddr) throw new Error(t("contractUnavailable"));
+
+      const offeringAmount = String(Math.round(Number(offeringCost) * 1e8));
+
+      // Step 1: Transfer GAS to the contract with a memo
+      await chain.invoke(
+        "transfer",
+        [
+          { type: "Hash160", value: addr },
+          { type: "Hash160", value: contractAddr },
+          { type: "Integer", value: offeringAmount },
+          { type: "String", value: `miniapp-memorial-shrine:tribute:${memorialId}:${offeringType}` },
+        ],
+        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
+
+      // Step 2: Call PayTribute on the contract
+      await chain.invoke("PayTribute", [
+        { type: "Hash160", value: addr },
+        { type: "Integer", value: String(memorialId) },
+        { type: "Integer", value: String(offeringType) },
+        { type: "String", value: message },
+      ]);
+
+      eventBus.emit("tribute:paid", { memorialId, offeringType });
+
+      // Reload and update selected memorial
+      await loadMemorials();
+      if (selectedMemorial.value?.id === memorialId) {
+        selectedMemorial.value = memorials.value.find((m) => m.id === memorialId) || null;
+      }
+    } finally {
+      isPaying.value = false;
+    }
+  };
+
+  // ------------------------------------------
+  // Load all
+  // ------------------------------------------
 
   const loadAll = async () => {
     await loadMemorials();
@@ -111,10 +217,19 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
   onUnmounted(() => cleanupTimers());
 
   return {
+    // State
     memorials, visitedMemorials, recentObituaries, selectedMemorial, shareStatus,
+    isSubmitting, isPaying,
     memorialCount, tributeCount, obituaryCount,
+
+    // Navigation
     loadMemorials, loadVisitedMemorials, openMemorial, closeMemorial,
-    shareMemorial, checkUrlForMemorial, onMemorialCreated, onTributePaid,
+    shareMemorial, checkUrlForMemorial,
+
+    // Write actions
+    createMemorial, payTribute,
+
+    // Lifecycle
     loadAll, cleanupTimers,
   };
 }

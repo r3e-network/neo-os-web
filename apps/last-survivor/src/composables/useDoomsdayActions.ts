@@ -32,7 +32,7 @@ export function useDoomsdayActions() {
   const connectWallet = async () => {
     try {
       await game.ensureWallet();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "connectWallet" });
       setErrorStatus(formatErrorMessage(e, t("error")), "error");
     }
@@ -72,7 +72,7 @@ export function useDoomsdayActions() {
     if (!game.address.value) {
       try {
         await game.ensureWallet();
-      } catch (e: unknown) {
+      } catch (e) {
         handleError(e, { operation: "connectBeforeBuyKeys" });
         setErrorStatus(formatErrorMessage(e, t("error")), "error");
         return;
@@ -110,7 +110,7 @@ export function useDoomsdayActions() {
       game.keyCount.value = "1";
       showStatus(t("keysPurchased"), "success");
       await refreshData();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "buyKeys", metadata: { count, roundId: game.roundId.value } });
       const userMsg = formatErrorMessage(e, t("error"));
       const retryable = canRetry(e);
@@ -127,7 +127,7 @@ export function useDoomsdayActions() {
     if (!game.address.value) {
       try {
         await game.ensureWallet();
-      } catch (e: unknown) {
+      } catch (e) {
         handleError(e, { operation: "connectBeforeClaim" });
         setErrorStatus(formatErrorMessage(e, t("error")), "error");
         return;
@@ -144,7 +144,7 @@ export function useDoomsdayActions() {
       await game.invokeDirectly("checkAndEndRound", []);
       showStatus(t("prizeClaimed"), "success");
       await refreshData();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "claimPrize" });
       const userMsg = formatErrorMessage(e, t("error"));
       const retryable = canRetry(e);
@@ -167,7 +167,7 @@ export function useDoomsdayActions() {
       timer.isRoundActive.value = game.isRoundActive.value;
       await game.loadUserKeys();
       await game.loadHistory();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "refreshData" });
       showStatus(formatErrorMessage(e, t("error")), "error");
     } finally {

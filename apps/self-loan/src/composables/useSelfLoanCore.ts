@@ -160,7 +160,7 @@ export function useSelfLoanCore() {
         id: loanId,
         ltvPercent,
       };
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadLoanPosition", metadata: { loanId } });
       loan.value = { borrowed: 0, collateralLocked: 0, active: false };
     }
@@ -181,7 +181,7 @@ export function useSelfLoanCore() {
           platformFeeBps: feeBps > 0 ? feeBps : platformStats.value.platformFeeBps,
         };
       }
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadPlatformStats" });
       // Non-critical: retain previous platform stats values
     }
@@ -191,7 +191,7 @@ export function useSelfLoanCore() {
     if (!address.value) return;
     try {
       neoBalance.value = await readNeoBalance();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "loadBalance" });
       // Non-critical: retain previous balance
     }
@@ -216,7 +216,7 @@ export function useSelfLoanCore() {
     if (!address.value) {
       try {
         await ensureWallet();
-      } catch (e: unknown) {
+      } catch (e) {
         handleError(e, { operation: "connectBeforeTakeLoan" });
         setStatus(formatErrorMessage(e, t("error")), "error");
         return;
@@ -259,7 +259,7 @@ export function useSelfLoanCore() {
       setStatus(t("loanApproved", { amount: fmt(netBorrow, 2), tokenGas: t("tokenGas") }), "success");
       collateralAmount.value = "";
       await onFetchData();
-    } catch (e: unknown) {
+    } catch (e) {
       handleError(e, { operation: "takeLoan", metadata: { collateral, tier: selectedTier.value } });
       const userMsg = formatErrorMessage(e, t("error"));
       const retryable = canRetry(e);

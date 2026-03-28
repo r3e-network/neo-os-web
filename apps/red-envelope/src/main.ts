@@ -1,19 +1,17 @@
 /**
  * Red Envelope — Entry Point (New Pattern)
  *
- * Uses defineMiniApp() to wire the red envelope composables to the platform.
+ * Uses defineMiniApp() + PlatformServices to wire the red envelope
+ * composable to the platform. All domain logic lives in useRedEnvelope.
  */
 
-import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useRedEnvelopeCreation } from "./composables/useRedEnvelopeCreation";
-import { useRedEnvelopeOpen } from "./composables/useRedEnvelopeOpen";
-import { useEnvelopeActions } from "./pages/index/composables/useEnvelopeActions";
+import { useRedEnvelope } from "./composables/useRedEnvelope";
 
 defineMiniApp({
   appId: "miniapp-red-envelope",
@@ -22,84 +20,39 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-red-envelope", {
+    const platformServices = PlatformServices.create("miniapp-redenvelope", {
       t: ctx.t as (key: string) => string,
     });
 
-    const {
-      name,
-      amount,
-      count,
-      expiryHours,
-      status,
-      setStatus,
-      clearStatus,
-      isLoading,
-      ensureContractAddress: ensureCreationContract,
-    } = useRedEnvelopeCreation();
-
-    const {
-      envelopes,
-      loadEnvelopes,
-      claims,
-      pools,
-      claimEnvelope,
-    } = useRedEnvelopeOpen();
-
-    const {
-      luckyMessage,
-      openingId,
-      showOpeningModal,
-      openingEnvelope,
-      handleConnect,
-      create,
-      openEnvelope,
-      openFromList,
-      handleClaimFromPool,
-      address,
-    } = useEnvelopeActions({
-      status,
-      setStatus,
-      clearStatus,
-      isLoading,
-      ensureCreationContract,
-      loadEnvelopes,
-      claimEnvelope,
-      amount,
-      count,
-      expiryHours,
+    const envelope = useRedEnvelope({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t,
     });
 
-    // Derived display values for manifest bindings
-    const envelopeCount = computed(() => envelopes.value.length);
-    const claimCount = computed(() => claims.value.length);
-    const poolCount = computed(() => pools.value.length);
-    const isConnected = computed(() => !!address.value);
-    const isOpening = computed(() => !!openingId.value);
-
-    // Register sync actions manually (no try/catch needed)
-    ctx.registerAction("closeLucky", () => {
-      luckyMessage.value = null;
+    // Register sync actions
+    ctx.registerAction("closeLucky", async () => {
+      envelope.luckyMessage.value = null;
     });
 
-    ctx.registerAction("closeModal", () => {
-      showOpeningModal.value = false;
+    ctx.registerAction("closeModal", async () => {
+      envelope.showOpeningModal.value = false;
     });
 
-    ctx.registerAction("openFromList", (envelope: unknown) => {
-      openFromList(envelope as Parameters<typeof openFromList>[0]);
+    ctx.registerAction("openFromList", async (envelopeItem: unknown) => {
+      envelope.openFromList(envelopeItem as Parameters<typeof envelope.openFromList>[0]);
     });
 
     // Register async actions with standardized error handling
     registerActions(ctx, {
       connect: {
-        handler: () => handleConnect(),
+        handler: () => envelope.handleConnect(),
         errorKey: "error",
       },
       openEnvelope: {
         handler: async () => {
-          if (openingEnvelope.value) {
-            await openEnvelope(openingEnvelope.value);
+          if (envelope.openingEnvelope.value) {
+            await envelope.openEnvelope(envelope.openingEnvelope.value);
           }
         },
         errorKey: "error",
@@ -111,18 +64,17 @@ defineMiniApp({
             count: string; expiryHours: string; minNeoRequired: string;
             minHoldDays: string; envelopeType: string;
           };
-          name.value = fd.name;
-          amount.value = fd.amount;
-          count.value = fd.count;
-          expiryHours.value = fd.expiryHours;
-          await create();
-          if (status.value) throw new Error(status.value);
+          await envelope.create({
+            amount: fd.amount,
+            count: fd.count,
+            expiryHours: fd.expiryHours,
+          });
         },
         successKey: "envelopeCreated",
         errorKey: "error",
       },
       claimFromPool: {
-        handler: (poolId: unknown) => handleClaimFromPool(poolId as string),
+        handler: (poolId: unknown) => envelope.handleClaimFromPool(poolId as string),
         errorKey: "error",
       },
     });
@@ -130,16 +82,16 @@ defineMiniApp({
     // Load envelopes on mount
     const initialLoad = async () => {
       try {
-        await loadEnvelopes();
+        await envelope.loadEnvelopes();
 
         // Handle deep link
         if (typeof window !== "undefined") {
           const params = new URLSearchParams(window.location.search);
           const id = params.get("id");
           if (id) {
-            const found = envelopes.value.find((e) => e.id === id);
+            const found = envelope.envelopes.value.find((e) => e.id === id);
             if (found) {
-              openFromList(found);
+              envelope.openFromList(found);
             }
           }
         }
@@ -151,21 +103,21 @@ defineMiniApp({
     return {
       state: {
         // Manifest-bound stats/sidebar values
-        envelopeCount,
-        claimCount,
-        poolCount,
+        envelopeCount: envelope.envelopeCount,
+        claimCount: envelope.claimCount,
+        poolCount: envelope.poolCount,
 
         // PlayArea state
-        luckyMessage,
-        showOpeningModal,
-        openingEnvelope,
-        isConnected,
-        isOpening,
-        isLoading,
-        envelopes,
-        claims,
-        pools,
-        address,
+        luckyMessage: envelope.luckyMessage,
+        showOpeningModal: envelope.showOpeningModal,
+        openingEnvelope: envelope.openingEnvelope,
+        isConnected: envelope.isConnected,
+        isOpening: envelope.isOpening,
+        isLoading: envelope.isLoading,
+        envelopes: envelope.envelopes,
+        claims: envelope.claims,
+        pools: envelope.pools,
+        address: platformServices.chain.address,
       },
 
       loadData: initialLoad,

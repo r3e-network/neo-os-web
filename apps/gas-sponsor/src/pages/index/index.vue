@@ -156,7 +156,7 @@ const loadUserData = async () => {
     usedQuota.value = statusData.used_today;
     dailyLimit.value = statusData.daily_limit;
     resetsAt.value = statusData.resets_at;
-  } catch (e: unknown) {
+  } catch (e) {
     showStatus(formatErrorMessage(e, t("loadFailed")), "error");
   } finally {
     loading.value = false;
@@ -178,7 +178,7 @@ const requestSponsorship = async () => {
     showStatus(t("requestSubmitted", { id: `${result.request_id.slice(0, 8)}...` }), "success");
     requestAmount.value = "0.01";
     await loadUserData();
-  } catch (e: unknown) {
+  } catch (e) {
     showStatus(formatErrorMessage(e, t("requestFailed")), "error");
   }
 };

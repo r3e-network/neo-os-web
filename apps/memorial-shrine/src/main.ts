@@ -26,18 +26,31 @@ defineMiniApp({
       shrine.openMemorial(id);
     });
 
-    ctx.registerAction("createMemorial", async (data: unknown) => {
+    ctx.registerAction("createMemorial", async (form: {
+      name: string;
+      photoHash: string;
+      relationship: string;
+      birthYear: number;
+      deathYear: number;
+      biography: string;
+      obituary: string;
+    }) => {
       try {
-        await shrine.onMemorialCreated(data as Record<string, unknown>);
+        await shrine.createMemorial(form);
         ctx.setStatus(ctx.t("createSuccess"), "success");
       } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
       }
     });
 
-    ctx.registerAction("payTribute", async (memorialId: number, offeringType: number) => {
+    ctx.registerAction("payTribute", async (
+      memorialId: number,
+      offeringType: number,
+      offeringCost: number,
+      message: string,
+    ) => {
       try {
-        await shrine.onTributePaid(memorialId, offeringType);
+        await shrine.payTribute(memorialId, offeringType, offeringCost, message);
         ctx.setStatus(ctx.t("tributeSuccess"), "success");
       } catch (e) {
         ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
@@ -53,6 +66,8 @@ defineMiniApp({
         memorialCount: shrine.memorialCount,
         tributeCount: shrine.tributeCount,
         obituaryCount: shrine.obituaryCount,
+        isSubmitting: shrine.isSubmitting,
+        isPaying: shrine.isPaying,
       },
       loadData: shrine.loadAll,
       cleanup: () => { shrine.cleanupTimers(); platformServices.destroy(); },

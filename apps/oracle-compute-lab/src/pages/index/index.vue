@@ -55,7 +55,7 @@ async function runJob() {
   try {
     await oracle.executeRegisteredScript({ scriptName: scriptName.value, input: JSON.parse(inputJson.value) });
     setStatus(t("computeSubmitted"), "success");
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(formatErrorMessage(e, t("executeFailed")), "error");
   }
 }

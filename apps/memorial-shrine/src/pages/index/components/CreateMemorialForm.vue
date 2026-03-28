@@ -106,7 +106,7 @@ const uploadPhoto = async () => {
       // In production, upload to IPFS and get hash
       form.photoHash = "demo-" + Date.now();
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[memorial-shrine] image picker failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };

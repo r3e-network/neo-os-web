@@ -278,7 +278,7 @@ const handleClaimPendingWithdraw = async () => {
   if (pendingWithdraw.value <= 0) return;
   try {
     await claimPendingWithdraw();
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "error");
   }
 };
@@ -287,7 +287,7 @@ const resetAndReload = async () => {
   try {
     if (!(await ensureContractReady())) return;
     await loadAll();
-  } catch (e: unknown) {
+  } catch (e) {
     setStatus(e instanceof Error ? e.message : String(e), "error");
   }
 };
@@ -298,7 +298,7 @@ onMounted(async () => {
   if (!isMounted.value) return;
   try {
     await resetAndReload();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[trustanchor] onMounted error:", _e instanceof Error ? _e.message : String(_e));
   }
 });

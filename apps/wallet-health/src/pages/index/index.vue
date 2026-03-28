@@ -180,7 +180,7 @@ const onTabChange = async (tabId: string) => {
   if (tabId === "health") {
     try {
       await refreshBalances();
-    } catch (_e: unknown) {
+    } catch (_e) {
       console.warn("[wallet-health] tab change handler failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }

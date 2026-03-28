@@ -47,7 +47,7 @@ const { t, templateConfig, sidebarItems, sidebarTitle, fallbackMessage, status, 
   tab: { key: "price", labelKey: "latestPrice", icon: "📈" },
   sidebarItems: [{ labelKey: "asset", value: () => asset.value }, { labelKey: "latestPrice", value: () => priceDisplay.value }],
 });
-async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus(t("priceLoaded"), "success"); } catch (e: unknown) { setStatus(formatErrorMessage(e, t("fetchFailed")), "error"); } }
+async function fetchPrice() { try { latestPrice.value = await oracle.getPrice(asset.value); setStatus(t("priceLoaded"), "success"); } catch (e) { setStatus(formatErrorMessage(e, t("fetchFailed")), "error"); } }
 const priceDisplay = computed(() => latestPrice.value == null ? t("notAvailable") : `$${latestPrice.value.toFixed(4)}`);
 const heroStats = computed<HeroStatsStripItem[]>(() =>
   buildOracleHeroStats({

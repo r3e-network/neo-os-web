@@ -144,7 +144,7 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
         return Number(statusMap.remainingTime || 0);
       }
       return 0;
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useLastSurvivor] loadRoundData failed:", e instanceof Error ? e.message : String(e));
       throw e;
     }
@@ -161,7 +161,7 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
         { type: "Integer", value: roundId.value },
       ]);
       userKeys.value = Number(parsed || 0);
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useLastSurvivor] loadUserKeys failed:", e instanceof Error ? e.message : String(e));
       userKeys.value = 0;
     }
@@ -226,7 +226,7 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
       });
 
       history.value = items.sort((a, b) => Number(b.id) - Number(a.id));
-    } catch (e: unknown) {
+    } catch (e) {
       console.warn("[useLastSurvivor] loadHistory failed:", e instanceof Error ? e.message : String(e));
       history.value = [];
     }
@@ -294,7 +294,7 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
       eventBus.emit("keys:purchased", { action: t("keysPurchased") });
       await loadAll();
       return numKeys;
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("keys:error", {
         message: e instanceof Error ? e.message : t("error"),
       });
@@ -313,7 +313,7 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
 
       eventBus.emit("prize:claimed", { action: t("prizeClaimed") });
       await loadAll();
-    } catch (e: unknown) {
+    } catch (e) {
       eventBus.emit("prize:error", {
         message: e instanceof Error ? e.message : t("error"),
       });

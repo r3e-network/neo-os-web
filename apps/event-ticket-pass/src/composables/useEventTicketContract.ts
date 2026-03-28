@@ -121,7 +121,7 @@ export function useEventTicketContract(
       const ids = await loadEventIds(address.value);
       const details = await Promise.all(ids.map(loadEventDetails));
       events.value = details.filter(Boolean) as EventItem[];
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshing.value = false;
@@ -162,13 +162,13 @@ export function useEventTicketContract(
           if (!ticketQrs[ticket.tokenId]) {
             try {
               ticketQrs[ticket.tokenId] = await QRCode.toDataURL(ticket.tokenId, { margin: 1 });
-            } catch (_e: unknown) {
+            } catch (_e) {
               console.warn("[useEventTicketContract] QR generation failed:", _e instanceof Error ? _e.message : String(_e));
             }
           }
         })
       );
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isRefreshingTickets.value = false;
@@ -182,7 +182,7 @@ export function useEventTicketContract(
         await refreshEvents();
         await refreshTickets();
       }
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("walletNotConnected")), "error");
     }
   };
@@ -232,7 +232,7 @@ export function useEventTicketContract(
       form.maxSupply = "100";
       form.notes = "";
       await refreshEvents();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isCreating.value = false;
@@ -279,7 +279,7 @@ export function useEventTicketContract(
       issueModalOpen.value = false;
       await refreshEvents();
       await refreshTickets();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isIssuing.value = false;
@@ -304,7 +304,7 @@ export function useEventTicketContract(
         ],
       });
       await refreshEvents();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       togglingId.value = null;
@@ -335,7 +335,7 @@ export function useEventTicketContract(
         return;
       }
       lookup.value = parsed;
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isLookingUp.value = false;
@@ -365,7 +365,7 @@ export function useEventTicketContract(
       });
       setStatus(t("checkinSuccess"), "success");
       await lookupTicket();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isCheckingIn.value = false;

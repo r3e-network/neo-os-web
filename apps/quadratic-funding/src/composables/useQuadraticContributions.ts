@@ -104,7 +104,7 @@ export function useQuadraticContributions(
       setStatus(t("contributionSent"), "success");
       await refreshProjects();
       await refreshRounds();
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
       isContributing.value = false;

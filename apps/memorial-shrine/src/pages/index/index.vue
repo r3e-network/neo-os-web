@@ -184,7 +184,7 @@ const resetAndReload = async () => {
   try {
     await checkUrlForMemorial();
     await loadVisitedMemorials();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[memorial-shrine] reload failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -199,7 +199,7 @@ const onMemorialCreated = async (data: Record<string, unknown>) => {
   try {
     await handleMemorialCreated(data);
     activeTab.value = "memorials";
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[memorial-shrine] memorial creation failed:", _e instanceof Error ? _e.message : String(_e));
   }
 };
@@ -217,7 +217,7 @@ onMounted(async () => {
     await loadMemorials();
     await checkUrlForMemorial();
     await loadVisitedMemorials();
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[memorial-shrine] initial load failed:", _e instanceof Error ? _e.message : String(_e));
   }
 });

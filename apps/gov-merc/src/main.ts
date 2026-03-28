@@ -2,7 +2,7 @@
  * Gov Merc — Entry Point (New Pattern)
  */
 
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
@@ -21,22 +21,41 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
-    const pool = useGovMercPool(ctx.t as (key: string) => string);
+    const pool = useGovMercPool({
+      chain: platformServices.chain,
+      eventBus: platformServices.events,
+      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+    });
 
     const totalPoolDisplay = computed(() => `${pool.formatNum(pool.totalPool.value, 0)} ${ctx.t("tokenNeo")}`);
     const userDepositsDisplay = computed(() => `${pool.formatNum(pool.userDeposits.value, 0)} ${ctx.t("tokenNeo")}`);
     const bidCount = computed(() => pool.bids.value.length);
 
     ctx.registerAction("depositNeo", async () => {
-      await pool.depositNeo();
+      try {
+        await pool.depositNeo();
+        ctx.setStatus(ctx.t("depositSuccess"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     ctx.registerAction("withdrawNeo", async () => {
-      await pool.withdrawNeo();
+      try {
+        await pool.withdrawNeo();
+        ctx.setStatus(ctx.t("withdrawSuccess"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     ctx.registerAction("placeBid", async () => {
-      await pool.placeBid();
+      try {
+        await pool.placeBid();
+        ctx.setStatus(ctx.t("bidSuccess"), "success");
+      } catch (e) {
+        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
+      }
     });
 
     return {
@@ -50,7 +69,6 @@ defineMiniApp({
         bidAmount: pool.bidAmount,
         isBusy: pool.isBusy,
         dataLoading: pool.dataLoading,
-        status: pool.status,
         address: pool.address,
         poolStats: pool.poolStats,
         totalPoolDisplay,

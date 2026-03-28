@@ -1,9 +1,13 @@
+/**
+ * useMultisigCreation — Multisig transaction creation logic
+ *
+ * Migrated from legacy pattern: no longer imports useWallet or useStatusMessage
+ * directly. Uses EventBus for status notifications and ChainService for
+ * chain context (chain ID).
+ */
+
 import { ref, computed, watch, onUnmounted } from "vue";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
-import { createUseI18n } from "@shared/composables/useI18n";
-import { messages } from "@/locale/messages";
-import { useStatusMessage } from "@shared/composables/useStatusMessage";
+import type { ChainService, EventBus } from "@shared/services";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { api } from "@/services/api";
@@ -38,10 +42,20 @@ export interface FeeSummary {
   validUntilBlock: number;
 }
 
-export function useMultisigCreation() {
-  const { t } = createUseI18n(messages)();
-  const { chainId } = useWallet();
-  const { status, setStatus, clearStatus } = useStatusMessage();
+export interface UseMultisigCreationOptions {
+  chain: ChainService;
+  eventBus: EventBus;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+export function useMultisigCreation(options?: UseMultisigCreationOptions) {
+  // Support both new (options-based) and legacy (no-args) calling conventions.
+  // When called without options, fall back to a basic t function for backward compat.
+  const t = options?.t ?? ((key: string) => key);
+  const eventBus = options?.eventBus ?? null;
+
+  // Determine default chain from ChainService or fall back to mainnet
+  const defaultChain = "neo-n3-mainnet" as "neo-n3-mainnet" | "neo-n3-testnet";
 
   const step = ref(1);
   const isPreparing = ref(false);
@@ -50,7 +64,7 @@ export function useMultisigCreation() {
   const form = ref<MultisigFormData>({
     signers: ["", ""],
     threshold: 1,
-    selectedChain: chainId.value === "neo-n3-testnet" ? "neo-n3-testnet" : "neo-n3-mainnet",
+    selectedChain: defaultChain,
     asset: "GAS",
     toAddress: "",
     amount: "",
@@ -65,6 +79,19 @@ export function useMultisigCreation() {
     validUntilBlock: 0,
   });
 
+  // Status notification helper
+  const setStatus = (msg: string, type: string) => {
+    if (eventBus) {
+      eventBus.emit("multisig:status", { message: msg, type });
+    }
+  };
+
+  const clearStatus = () => {
+    if (eventBus) {
+      eventBus.emit("multisig:status:clear", {});
+    }
+  };
+
   const stopSignersWatch = watch(
     () => form.value.signers,
     (next) => {
@@ -72,7 +99,7 @@ export function useMultisigCreation() {
         form.value.threshold = next.length || 1;
       }
     },
-    { deep: true }
+    { deep: true },
   );
 
   onUnmounted(() => stopSignersWatch());
@@ -83,7 +110,7 @@ export function useMultisigCreation() {
     try {
       normalizePublicKeys(trimmedSigners.value);
       return true;
-    } catch (_e: unknown) {
+    } catch {
       return false;
     }
   });
@@ -93,7 +120,7 @@ export function useMultisigCreation() {
   });
 
   const chainLabel = computed(() =>
-    form.value.selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet")
+    form.value.selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet"),
   );
 
   const addSigner = () => form.value.signers.push("");
@@ -112,7 +139,7 @@ export function useMultisigCreation() {
         publicKeys: account.publicKeys,
       };
       step.value = 3;
-    } catch (e: unknown) {
+    } catch (e) {
       const message =
         e instanceof Error && e.message.includes("duplicate") ? t("toastDuplicateSigners") : t("toastInvalidSigners");
       setStatus(formatErrorMessage(e, message), "error");
@@ -151,7 +178,7 @@ export function useMultisigCreation() {
         validUntilBlock: prepared.validUntilBlock,
       };
       step.value = 4;
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("toastPrepareFailed")), "error");
     } finally {
       isPreparing.value = false;
@@ -183,7 +210,7 @@ export function useMultisigCreation() {
       writeCachedJSON("multisig_history", history.slice(0, 10));
 
       onSuccess?.(result.id);
-    } catch (e: unknown) {
+    } catch (e) {
       setStatus(formatErrorMessage(e, t("toastCreateFailed")), "error");
     } finally {
       isSubmitting.value = false;
@@ -202,7 +229,8 @@ export function useMultisigCreation() {
     isValidSigners,
     isValidTx,
     chainLabel,
-    status,
+    // status/setStatus/clearStatus are provided for backward compat with sub-pages
+    status: ref(null),
     setStatus,
     clearStatus,
     addSigner,

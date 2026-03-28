@@ -169,7 +169,7 @@ async function loadData() {
       data.value = cached;
       // If we have cache, we can stop "hard" loading but keep "soft" loading in background
     }
-  } catch (_e: unknown) {
+  } catch (_e) {
     console.warn("[neo-treasury] cache read failed:", _e instanceof Error ? _e.message : String(_e));
   }
 
@@ -178,7 +178,7 @@ async function loadData() {
     data.value = freshData;
     // 2. Save to cache
     writeCachedJSON(CACHE_KEY, freshData);
-  } catch (e: unknown) {
+  } catch (e) {
     if (!data.value) {
       error.value = formatErrorMessage(e, t("loadFailed"));
     } else {
