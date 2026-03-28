@@ -19,16 +19,16 @@ defineMiniApp({
     const soulbound = useSoulbound({
       chain: platformServices.chain,
       eventBus: platformServices.events,
+      clipboard: platformServices.clipboard,
       t: ctx.t,
     });
 
     ctx.registerAction("refreshTemplates", async () => { await soulbound.refreshTemplates(); });
     ctx.registerAction("connectWallet", async () => { await soulbound.connectWallet(); });
     ctx.registerAction("openIssueModal", async (template: unknown) => { soulbound.openIssueModal(template); });
-    ctx.registerAction("toggleTemplate", async (template: unknown) => {
-      try { await soulbound.toggleTemplate(template); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("toggleTemplate", (template: unknown) =>
+      platformServices.notify.guard(() => soulbound.toggleTemplate(template)),
+    );
     ctx.registerAction("copyIssueLink", async (template: unknown) => { await soulbound.copyIssueLink(template); });
     ctx.registerAction("shareIssueLink", async (template: unknown) => { await soulbound.shareIssueLink(template); });
 

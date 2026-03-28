@@ -6,6 +6,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -28,40 +29,11 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("fetchCurrentPrice", async () => {
-      try {
-        await copilot.fetchCurrentPrice();
-        ctx.setStatus(ctx.t("priceLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("fetchFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("previewRecipePayload", async () => {
-      try {
-        copilot.previewRecipePayload();
-        ctx.setStatus(ctx.t("recipeBuilt"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("recipeFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("loadRandomness", async () => {
-      try {
-        await copilot.loadRandomness();
-        ctx.setStatus(ctx.t("randomnessReady"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("randomnessFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("fetchOracleKey", async () => {
-      try {
-        await copilot.fetchOracleKey();
-        ctx.setStatus(ctx.t("keyLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("keyFailed"), "error");
-      }
+    registerActions(ctx, {
+      fetchCurrentPrice: { handler: () => copilot.fetchCurrentPrice(), successKey: "priceLoaded", errorKey: "fetchFailed" },
+      previewRecipePayload: { handler: () => copilot.previewRecipePayload(), successKey: "recipeBuilt", errorKey: "recipeFailed" },
+      loadRandomness: { handler: () => copilot.loadRandomness(), successKey: "randomnessReady", errorKey: "randomnessFailed" },
+      fetchOracleKey: { handler: () => copilot.fetchOracleKey(), successKey: "keyLoaded", errorKey: "keyFailed" },
     });
 
     return {

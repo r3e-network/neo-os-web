@@ -4,6 +4,7 @@
 
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -31,31 +32,10 @@ defineMiniApp({
     const userDepositsDisplay = computed(() => `${pool.formatNum(pool.userDeposits.value, 0)} ${ctx.t("tokenNeo")}`);
     const bidCount = computed(() => pool.bids.value.length);
 
-    ctx.registerAction("depositNeo", async () => {
-      try {
-        await pool.depositNeo();
-        ctx.setStatus(ctx.t("depositSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("withdrawNeo", async () => {
-      try {
-        await pool.withdrawNeo();
-        ctx.setStatus(ctx.t("withdrawSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("placeBid", async () => {
-      try {
-        await pool.placeBid();
-        ctx.setStatus(ctx.t("bidSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+    registerActions(ctx, {
+      depositNeo: { handler: pool.depositNeo, successKey: "depositSuccess" },
+      withdrawNeo: { handler: pool.withdrawNeo, successKey: "withdrawSuccess" },
+      placeBid: { handler: pool.placeBid, successKey: "bidSuccess" },
     });
 
     return {

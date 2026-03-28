@@ -55,32 +55,30 @@ defineMiniApp({
     const bNeoBalanceDisplay = computed(() => String(core.bNeoBalance.value ?? ctx.t("notAvailable")));
     const loading = ref(false);
 
+    const { notify } = platformServices;
+
     ctx.registerAction("swap", async () => {
+      loading.value = true;
       try {
-        loading.value = true;
-        const success = await swap.executeSwap();
-        if (!success) {
-          ctx.setStatus(ctx.t("actionFailed"), "error");
+        const success = await notify.guard(() => swap.executeSwap(), undefined, "actionFailed");
+        if (success === false) {
+          notify.error("actionFailed");
         }
-      } catch (_e) {
-        ctx.setStatus(_e instanceof Error ? _e.message : ctx.t("actionFailed"), "error");
       } finally {
         loading.value = false;
       }
     });
 
     ctx.registerAction("claimRewards", async () => {
+      loading.value = true;
       try {
-        loading.value = true;
-        const success = await core.handleClaimRewards();
+        const success = await notify.guard(() => core.handleClaimRewards(), undefined, "claimFailed");
         if (success) {
-          ctx.setStatus(ctx.t("claimSuccess"), "success");
+          notify.success("claimSuccess");
           await core.loadBalances(false);
-        } else {
-          ctx.setStatus(ctx.t("claimFailed"), "error");
+        } else if (success === false) {
+          notify.error("claimFailed");
         }
-      } catch (_e) {
-        ctx.setStatus(_e instanceof Error ? _e.message : ctx.t("claimFailed"), "error");
       } finally {
         loading.value = false;
       }

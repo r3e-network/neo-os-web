@@ -22,6 +22,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const swap = useSwapEngine({
       chain: platformServices.chain,
       balance: platformServices.balance,
@@ -30,12 +32,7 @@ defineMiniApp({
     });
 
     ctx.registerAction("executeSwap", async () => {
-      try {
-        await swap.executeSwap();
-        ctx.setStatus(ctx.t("swapSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("swapFailed"), "error");
-      }
+      await notify.guard(() => swap.executeSwap(), "swapSuccess");
     });
 
     ctx.registerAction("swapTokens", async () => { swap.swapTokens(); });

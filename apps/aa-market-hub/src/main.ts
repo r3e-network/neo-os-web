@@ -29,22 +29,13 @@ defineMiniApp({
     });
 
     ctx.registerAction("connectWallet", async () => {
-      try {
-        const addr = await hub.connectWallet();
-        ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("connectFailed"), "error");
-      }
+      const addr = await platformServices.notify.guard(() => hub.connectWallet(), undefined, "connectFailed");
+      if (addr) ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
     });
 
     ctx.registerAction("loadListings", async (marketHashInput: string) => {
-      try {
-        hub.marketHash.value = marketHashInput;
-        await hub.loadListings();
-        ctx.setStatus(ctx.t("marketLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadListingsFailed"), "error");
-      }
+      hub.marketHash.value = marketHashInput;
+      await platformServices.notify.guard(() => hub.loadListings(), "marketLoaded", "loadListingsFailed");
     });
 
     ctx.registerAction("selectListing", (listingId: string) => {
@@ -53,56 +44,32 @@ defineMiniApp({
     });
 
     ctx.registerAction("createListing", async (aaContractHash: string, accountIdHash: string, priceGas: string, title: string, metadataUri: string) => {
-      try {
-        hub.aaContractHash.value = aaContractHash;
-        hub.accountIdHash.value = accountIdHash;
-        hub.priceGas.value = priceGas;
-        hub.listingTitle.value = title;
-        hub.metadataUri.value = metadataUri;
-        const result = await hub.submitCreateListing();
-        ctx.setStatus(`${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`, "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
-      }
+      hub.aaContractHash.value = aaContractHash;
+      hub.accountIdHash.value = accountIdHash;
+      hub.priceGas.value = priceGas;
+      hub.listingTitle.value = title;
+      hub.metadataUri.value = metadataUri;
+      const result = await platformServices.notify.guard(() => hub.submitCreateListing(), undefined, "actionFailed");
+      if (result) ctx.setStatus(`${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`, "success");
     });
 
     ctx.registerAction("updatePrice", async (nextPriceGas: string) => {
-      try {
-        hub.nextPriceGas.value = nextPriceGas;
-        await hub.submitUpdatePrice();
-        ctx.setStatus(ctx.t("updatePriceSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
-      }
+      hub.nextPriceGas.value = nextPriceGas;
+      await platformServices.notify.guard(() => hub.submitUpdatePrice(), "updatePriceSuccess", "actionFailed");
     });
 
-    ctx.registerAction("cancelSelected", async () => {
-      try {
-        await hub.submitCancelSelected();
-        ctx.setStatus(ctx.t("cancelListingSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
-      }
-    });
+    ctx.registerAction("cancelSelected", () =>
+      platformServices.notify.guard(() => hub.submitCancelSelected(), "cancelListingSuccess", "actionFailed"),
+    );
 
     ctx.registerAction("buySelected", async (newBackupOwner: string) => {
-      try {
-        hub.newBackupOwner.value = newBackupOwner;
-        await hub.submitBuySelected();
-        ctx.setStatus(ctx.t("buyListingSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
-      }
+      hub.newBackupOwner.value = newBackupOwner;
+      await platformServices.notify.guard(() => hub.submitBuySelected(), "buyListingSuccess", "actionFailed");
     });
 
-    ctx.registerAction("refundSelected", async () => {
-      try {
-        await hub.submitRefundSelected();
-        ctx.setStatus(ctx.t("refundPendingSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("actionFailed"), "error");
-      }
-    });
+    ctx.registerAction("refundSelected", () =>
+      platformServices.notify.guard(() => hub.submitRefundSelected(), "refundPendingSuccess", "actionFailed"),
+    );
 
     return {
       state: {
