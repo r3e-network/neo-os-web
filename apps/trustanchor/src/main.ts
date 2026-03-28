@@ -23,6 +23,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const formatNum = (n: number | string) => formatNumber(n, 2);
 
     const anchor = useTrustAnchor({
@@ -41,41 +43,21 @@ defineMiniApp({
     ctx.registerAction("stake", async (...args: unknown[]) => {
       const amount = args[0] as number;
       if (!amount || amount <= 0) return;
-      try {
-        await anchor.stake(amount);
-        ctx.setStatus(ctx.t("stakeSuccess") || "Staked successfully", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
-      }
+      await notify.guard(() => anchor.stake(amount), "stakeSuccess");
     });
 
     ctx.registerAction("unstake", async (...args: unknown[]) => {
       const amount = args[0] as number;
       if (!amount || amount <= 0) return;
-      try {
-        await anchor.unstake(amount);
-        ctx.setStatus(ctx.t("unstakeSuccess") || "Unstaked successfully", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
-      }
+      await notify.guard(() => anchor.unstake(amount), "unstakeSuccess");
     });
 
     ctx.registerAction("claimRewards", async () => {
-      try {
-        await anchor.claimRewards();
-        ctx.setStatus(ctx.t("claimSuccess") || "Rewards claimed", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
-      }
+      await notify.guard(() => anchor.claimRewards(), "claimSuccess");
     });
 
     ctx.registerAction("claimPendingWithdraw", async () => {
-      try {
-        await anchor.claimPendingWithdraw();
-        ctx.setStatus(ctx.t("withdrawSuccess") || "Withdrawal claimed", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : String(e), "error");
-      }
+      await notify.guard(() => anchor.claimPendingWithdraw(), "withdrawSuccess");
     });
 
     return {

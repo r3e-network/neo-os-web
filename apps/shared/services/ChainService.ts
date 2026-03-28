@@ -28,7 +28,7 @@ import { EventBus } from "./EventBus";
 import { useEvents } from "../utils/wallet-sdk";
 import type { EventsListParams } from "../utils/wallet-sdk";
 import { useAllEvents } from "../composables/useAllEvents";
-import { TIME_CONSTANTS } from "../constants";
+import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -299,6 +299,120 @@ export class ChainService {
    */
   async listAllEvents(eventName: string): Promise<unknown[]> {
     return this.allEvents.listAllEvents(eventName);
+  }
+
+  // -- Convenience methods --------------------------------------------------
+
+  /**
+   * Read a contract method and parse the result with a transform function.
+   *
+   * @example
+   * ```ts
+   * const balance = await chain.readParsed(
+   *   "getBalance",
+   *   [{ type: "Hash160", value: addr }],
+   *   (raw) => fromFixed8(Number(raw)),
+   * );
+   * ```
+   */
+  async readParsed<T>(
+    operation: string,
+    args: ContractArg[] | undefined,
+    transform: (raw: unknown) => T,
+    options?: ReadOptions,
+  ): Promise<T> {
+    const raw = await this.read(operation, args, options);
+    return transform(raw);
+  }
+
+  /**
+   * Invoke a contract method, wait for confirmation, then call a reload
+   * function to refresh local state. Skips reload if the invoke failed.
+   *
+   * @example
+   * ```ts
+   * await chain.invokeAndReload("claim", claimArgs, loadAll, {
+   *   waitForEvent: "Claimed",
+   * });
+   * ```
+   */
+  async invokeAndReload(
+    operation: string,
+    args: ContractArg[],
+    reloadFn: () => Promise<void>,
+    options?: InvokeOptions,
+  ): Promise<TxResult> {
+    const result = await this.invoke(operation, args, options);
+    if (result.success) {
+      await reloadFn();
+    }
+    return result;
+  }
+
+  /**
+   * Two-step prepaid pattern: transfer GAS to the contract with a memo,
+   * wait for the credit to settle, then invoke an operation.
+   *
+   * Prefer {@link invokeWithPayment} when the underlying SDK handles both
+   * steps atomically. Use this method when you need explicit control over
+   * the GAS transfer and the follow-up invocation as separate transactions.
+   *
+   * @example
+   * ```ts
+   * await chain.prepayAndInvoke(
+   *   "100000000",
+   *   "stake",
+   *   "lockStake",
+   *   [{ type: "Integer", value: "100000000" }],
+   * );
+   * ```
+   */
+  async prepayAndInvoke(
+    gasAmount: string,
+    memo: string,
+    operation: string,
+    args: ContractArg[],
+    options?: InvokeOptions,
+  ): Promise<TxResult> {
+    await this.ensureWallet();
+
+    // Step 1: Transfer GAS to contract
+    await this.invoke(
+      "transfer",
+      [
+        { type: "Hash160", value: this.address.value! },
+        { type: "Hash160", value: this.contractAddress.value! },
+        { type: "Integer", value: gasAmount },
+        { type: "String", value: memo },
+      ],
+      { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+    );
+
+    // Step 2: Wait for credit to settle
+    await new Promise((r) => setTimeout(r, TIME_CONSTANTS.SECOND_MS * 4));
+
+    // Step 3: Invoke the target operation
+    return this.invoke(operation, args, options);
+  }
+
+  /**
+   * List all events matching a name and parse each with a transform.
+   * Events for which the transform returns `null` are filtered out.
+   *
+   * @example
+   * ```ts
+   * const bids = await chain.listEventsParsed("BidPlaced", (evt: any) => ({
+   *   bidder: evt.state[0]?.value,
+   *   amount: Number(evt.state[1]?.value),
+   * }));
+   * ```
+   */
+  async listEventsParsed<T>(
+    eventName: string,
+    transform: (evt: unknown) => T | null,
+  ): Promise<T[]> {
+    const events = await this.listAllEvents(eventName);
+    return events.map(transform).filter((x): x is T => x !== null);
   }
 
   // -- Helpers --------------------------------------------------------------
