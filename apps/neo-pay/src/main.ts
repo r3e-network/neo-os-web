@@ -28,48 +28,26 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    const { notify } = platformServices;
+
     ctx.registerAction("refreshStreams", async () => {
-      try {
-        await pay.refreshStreams();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
-      }
+      await notify.guard(() => pay.refreshStreams(), undefined, "contractMissing");
     });
 
     ctx.registerAction("connectWallet", async () => {
-      try {
-        await pay.connectWallet();
-        ctx.setStatus("Wallet connected", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("walletNotConnected"), "error");
-      }
+      await notify.guard(() => pay.connectWallet(), "walletConnected", "walletNotConnected");
     });
 
     ctx.registerAction("createVault", async (formData: { name: string; beneficiary: string; asset: string; total: string; rate: string; intervalDays: string; notes: string }) => {
-      try {
-        await pay.handleCreateVault(formData);
-        ctx.setStatus(ctx.t("vaultCreated"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
-      }
+      await notify.guard(() => pay.handleCreateVault(formData), "vaultCreated", "contractMissing");
     });
 
     ctx.registerAction("claimStream", async (stream: { id: string; creator: string; beneficiary: string; asset: string; assetSymbol: string; totalAmount: bigint; releasedAmount: bigint; remainingAmount: bigint; rateAmount: bigint; intervalSeconds: bigint; intervalDays: number; status: string; claimable: bigint; title: string; notes: string }) => {
-      try {
-        await pay.claimStream(stream as any);
-        ctx.setStatus("Stream claimed", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
-      }
+      await notify.guard(() => pay.claimStream(stream as any), "streamClaimed", "contractMissing");
     });
 
     ctx.registerAction("cancelStream", async (stream: { id: string; creator: string; beneficiary: string; asset: string; assetSymbol: string; totalAmount: bigint; releasedAmount: bigint; remainingAmount: bigint; rateAmount: bigint; intervalSeconds: bigint; intervalDays: number; status: string; claimable: bigint; title: string; notes: string }) => {
-      try {
-        await pay.cancelStream(stream as any);
-        ctx.setStatus("Stream cancelled", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("contractMissing"), "error");
-      }
+      await notify.guard(() => pay.cancelStream(stream as any), "streamCancelled", "contractMissing");
     });
 
     return {

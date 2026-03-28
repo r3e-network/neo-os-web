@@ -39,23 +39,20 @@ defineMiniApp({
     const totalDonatedDisplay = computed(() => stats.formatNum(stats.totalDonated.value));
     const recentTipCount = computed(() => stats.recentTips.value.length);
 
+    const { notify } = platformServices;
+
     ctx.registerAction("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
       const amount = args[1] as string;
       const message = args[2] as string;
       const tipperName = args[3] as string;
       const anonymous = args[4] as boolean;
-      try {
-        await wallet.sendTip(devId, amount, message, tipperName, anonymous);
-        ctx.setStatus(ctx.t("tipSent"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => wallet.sendTip(devId, amount, message, tipperName, anonymous), "tipSent");
     });
 
     ctx.registerAction("selectDev", async (...args: unknown[]) => {
       const dev = args[0] as { id: number; name: string };
-      ctx.setStatus(`${ctx.t("selected")} ${dev.name}`, "success");
+      notify.success("selected");
     });
 
     return {

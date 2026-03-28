@@ -31,12 +31,7 @@ defineMiniApp({
     // Register actions for PlayArea to invoke
     ctx.registerAction("inspect", async (accountIdInput: string) => {
       lab.inspectForm.accountIdInput = accountIdInput;
-      try {
-        await lab.inspectAccount();
-        ctx.setStatus(ctx.t("inspectSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("invalidAccountId"), "error");
-      }
+      await platformServices.notify.guard(() => lab.inspectAccount(), "inspectSuccess", "invalidAccountId");
     });
 
     ctx.registerAction("register", async (
@@ -53,22 +48,12 @@ defineMiniApp({
       lab.registerForm.hookHash = hookHash;
       lab.registerForm.backupOwner = backupOwner;
       lab.registerForm.escapeTimelock = escapeTimelock;
-      try {
-        await lab.submitRegister();
-        ctx.setStatus(ctx.t("registerSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("invalidAccountId"), "error");
-      }
+      await platformServices.notify.guard(() => lab.submitRegister(), "registerSuccess", "invalidAccountId");
     });
 
-    ctx.registerAction("connect", async () => {
-      try {
-        await platformServices.chain.ensureWallet();
-        ctx.setStatus("Wallet connected", "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : "Connect failed", "error");
-      }
-    });
+    ctx.registerAction("connect", () =>
+      platformServices.notify.guard(() => platformServices.chain.ensureWallet(), "walletConnected", "connectFailed"),
+    );
 
     return {
       state: {

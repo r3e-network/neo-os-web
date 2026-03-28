@@ -62,15 +62,12 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    const { notify } = platformServices;
+
     // Register actions so they can be called from the PlayArea via the
     // injected action registry, or from operation panels.
     ctx.registerAction("placeBet", async () => {
-      try {
-        await coinFlip.placeBet();
-        ctx.setStatus(ctx.t("youWon"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("flipFailed"), "error");
-      }
+      await notify.guard(() => coinFlip.placeBet(), "youWon", "flipFailed");
     });
 
     ctx.registerAction("dismissOverlay", () => {

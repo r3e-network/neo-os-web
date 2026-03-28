@@ -31,24 +31,15 @@ defineMiniApp({
     const timerTicker = useTicker(() => game.updateNow(), 1000);
     timerTicker.start();
 
+    const { notify } = platformServices;
+
     // Register actions
     ctx.registerAction("buyKeys", async (keyCount: string) => {
-      try {
-        const result = await game.buyKeys(keyCount);
-        ctx.setStatus(ctx.t("keysPurchased"), "success");
-        return result;
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      return await notify.guard(() => game.buyKeys(keyCount), "keysPurchased");
     });
 
     ctx.registerAction("claimPrize", async () => {
-      try {
-        await game.claimPrize();
-        ctx.setStatus(ctx.t("prizeClaimed"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => game.claimPrize(), "prizeClaimed");
     });
 
     return {

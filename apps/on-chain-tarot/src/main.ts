@@ -18,32 +18,27 @@ defineMiniApp({
 
     const tarot = useTarot({
       chain: platformServices.chain,
-      oracle: platformServices.oracle,
       eventBus: platformServices.events,
       t: ctx.t,
     });
 
-    ctx.registerAction("draw", async (question: string) => {
-      try { await tarot.draw(question); ctx.setStatus(ctx.t("cardsDrawn"), "success"); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("draw", () =>
+      platformServices.notify.guard(() => tarot.draw(), "cardsDrawn"),
+    );
 
     ctx.registerAction("reset", async () => { tarot.reset(); });
-    ctx.registerAction("flipCard", async (index: number) => { tarot.flipCard(index); });
+    ctx.registerAction("flipCard", async (index?: unknown) => { tarot.flipCard(Number(index ?? 0)); });
 
     return {
       state: {
         readingsCount: tarot.readingsCount,
         drawn: tarot.drawn,
-        drawnCount: tarot.drawnCount,
         hasDrawn: tarot.hasDrawn,
         allFlipped: tarot.allFlipped,
-        allRevealedDisplay: tarot.allRevealedDisplay,
         isLoading: tarot.isLoading,
-        reading: tarot.reading,
         question: tarot.question,
       },
-      loadData: tarot.loadReadingCount,
+      loadData: tarot.loadAll,
       cleanup: () => { platformServices.destroy(); },
     };
   },

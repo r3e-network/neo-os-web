@@ -23,18 +23,15 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const price = usePriceConsole({
       oracle: platformServices.oracle,
       t: ctx.t,
     });
 
     ctx.registerAction("fetchPrice", async () => {
-      try {
-        await price.fetchPrice();
-        ctx.setStatus(ctx.t("priceLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("fetchFailed"), "error");
-      }
+      await notify.guard(() => price.fetchPrice(), "priceLoaded");
     });
 
     ctx.registerAction("updateAsset", (val: string) => {

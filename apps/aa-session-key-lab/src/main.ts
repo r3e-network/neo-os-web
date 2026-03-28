@@ -29,46 +29,29 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("generateKey", () => {
-      try {
-        lab.generateSessionKey();
-        ctx.setStatus(ctx.t("sessionKeyGenerated"), "success");
-        return { publicKey: lab.form.sessionPublicKey };
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sessionKeyGenerateFailed"), "error");
-      }
+    ctx.registerAction("generateKey", async () => {
+      const result = await platformServices.notify.guard(
+        async () => { lab.generateSessionKey(); return { publicKey: lab.form.sessionPublicKey }; },
+        "sessionKeyGenerated", "sessionKeyGenerateFailed",
+      );
+      return result;
     });
 
-    ctx.registerAction("checkSponsor", async () => {
-      try {
-        await lab.checkSponsor();
-        ctx.setStatus(ctx.t("sponsorCheckComplete"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorCheckFailed"), "error");
-      }
-    });
+    ctx.registerAction("checkSponsor", () =>
+      platformServices.notify.guard(() => lab.checkSponsor(), "sponsorCheckComplete", "sponsorCheckFailed"),
+    );
 
-    ctx.registerAction("requestSponsor", async () => {
-      try {
-        await lab.requestSponsor();
-        ctx.setStatus(ctx.t("sponsorRequestComplete"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorRequestFailed"), "error");
-      }
-    });
+    ctx.registerAction("requestSponsor", () =>
+      platformServices.notify.guard(() => lab.requestSponsor(), "sponsorRequestComplete", "sponsorRequestFailed"),
+    );
 
     ctx.registerAction("configureSessionKey", async (accountSeed: string, sessionPublicKey: string, targetContract: string, allowedMethod: string, expiresAt: string) => {
-      try {
-        lab.form.accountSeed = accountSeed;
-        lab.form.sessionPublicKey = sessionPublicKey;
-        lab.form.targetContract = targetContract;
-        lab.form.allowedMethod = allowedMethod;
-        lab.form.expiresAt = expiresAt;
-        await lab.configureSessionKey();
-        ctx.setStatus(ctx.t("sessionConfigured"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sessionConfigureFailed"), "error");
-      }
+      lab.form.accountSeed = accountSeed;
+      lab.form.sessionPublicKey = sessionPublicKey;
+      lab.form.targetContract = targetContract;
+      lab.form.allowedMethod = allowedMethod;
+      lab.form.expiresAt = expiresAt;
+      await platformServices.notify.guard(() => lab.configureSessionKey(), "sessionConfigured", "sessionConfigureFailed");
     });
 
     return {

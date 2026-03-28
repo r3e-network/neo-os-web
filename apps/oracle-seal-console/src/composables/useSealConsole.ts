@@ -7,15 +7,16 @@
  */
 
 import { ref, computed } from "vue";
-import type { OracleService, OraclePublicKeyResponse, ConfidentialStoreResponse } from "@shared/services";
+import type { OracleService, ClipboardService, OraclePublicKeyResponse, ConfidentialStoreResponse } from "@shared/services";
 import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "../utils/encryption";
 
 export interface UseSealConsoleOptions {
   oracle: OracleService;
+  clipboard: ClipboardService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSealConsole({ oracle, t }: UseSealConsoleOptions) {
+export function useSealConsole({ oracle, clipboard, t }: UseSealConsoleOptions) {
   const keyMeta = ref<OraclePublicKeyResponse | null>(null);
   const inputMode = ref<"json" | "text">("json");
   const fieldName = ref<"encrypted_payload" | "encrypted_params" | "encrypted_token">("encrypted_payload");
@@ -103,8 +104,8 @@ export function useSealConsole({ oracle, t }: UseSealConsoleOptions) {
 
   async function copyText(value: string, key: "cipher" | "wrapper" | "ref") {
     if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
+    const ok = await clipboard.copy(value, "copied");
+    if (ok) {
       if (copyTimer !== undefined) {
         clearTimeout(copyTimer);
         copyTimer = undefined;
@@ -114,8 +115,6 @@ export function useSealConsole({ oracle, t }: UseSealConsoleOptions) {
         if (copiedKey.value === key) copiedKey.value = null;
         copyTimer = undefined;
       }, 1500);
-    } catch (_e) {
-      console.warn("[oracle-seal-console] clipboard copy failed:", _e instanceof Error ? _e.message : String(_e));
     }
   }
 

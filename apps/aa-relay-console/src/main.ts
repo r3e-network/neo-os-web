@@ -29,37 +29,22 @@ defineMiniApp({
     });
 
     ctx.registerAction("checkSponsor", async (aaAddress: string, dappId: string) => {
-      try {
-        relay.aaAddress.value = aaAddress;
-        relay.dappId.value = dappId;
-        await relay.checkSponsor();
-        ctx.setStatus(ctx.t("sponsorCheckComplete"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorCheckError"), "error");
-      }
+      relay.aaAddress.value = aaAddress;
+      relay.dappId.value = dappId;
+      await platformServices.notify.guard(() => relay.checkSponsor(), "sponsorCheckComplete", "sponsorCheckError");
     });
 
     ctx.registerAction("requestSponsor", async (aaAddress: string, dappId: string) => {
-      try {
-        relay.aaAddress.value = aaAddress;
-        relay.dappId.value = dappId;
-        await relay.requestSponsor();
-        ctx.setStatus(ctx.t("sponsorRequestComplete"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sponsorRequestError"), "error");
-      }
+      relay.aaAddress.value = aaAddress;
+      relay.dappId.value = dappId;
+      await platformServices.notify.guard(() => relay.requestSponsor(), "sponsorRequestComplete", "sponsorRequestError");
     });
 
     ctx.registerAction("submitRelay", async (aaAddress: string, dappId: string, payloadJson: string) => {
-      try {
-        relay.aaAddress.value = aaAddress;
-        relay.dappId.value = dappId;
-        relay.payloadJson.value = payloadJson;
-        await relay.submitRelay();
-        ctx.setStatus(ctx.t("relaySubmitted"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("relayError"), "error");
-      }
+      relay.aaAddress.value = aaAddress;
+      relay.dappId.value = dappId;
+      relay.payloadJson.value = payloadJson;
+      await platformServices.notify.guard(() => relay.submitRelay(), "relaySubmitted", "relayError");
     });
 
     return {
