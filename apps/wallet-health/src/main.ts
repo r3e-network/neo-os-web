@@ -3,6 +3,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -28,20 +29,9 @@ defineMiniApp({
     health.loadChecklist();
 
     // Register actions for PlayArea dispatch
-    ctx.registerAction("connectWallet", async () => {
-      try {
-        await health.connectWallet();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("walletNotConnected"), "error");
-      }
-    });
-
-    ctx.registerAction("refreshBalances", async () => {
-      try {
-        await health.refreshBalances();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("refreshFailed"), "error");
-      }
+    registerActions(ctx, {
+      connectWallet: { handler: health.connectWallet, errorKey: "walletNotConnected" },
+      refreshBalances: { handler: health.refreshBalances, errorKey: "refreshFailed" },
     });
 
     return {
