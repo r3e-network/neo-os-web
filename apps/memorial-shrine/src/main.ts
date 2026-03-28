@@ -22,6 +22,8 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    const { notify } = platformServices;
+
     ctx.registerAction("openMemorial", async (id: number) => {
       shrine.openMemorial(id);
     });
@@ -35,12 +37,7 @@ defineMiniApp({
       biography: string;
       obituary: string;
     }) => {
-      try {
-        await shrine.createMemorial(form);
-        ctx.setStatus(ctx.t("createSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => shrine.createMemorial(form), "createSuccess");
     });
 
     ctx.registerAction("payTribute", async (
@@ -49,12 +46,7 @@ defineMiniApp({
       offeringCost: number,
       message: string,
     ) => {
-      try {
-        await shrine.payTribute(memorialId, offeringType, offeringCost, message);
-        ctx.setStatus(ctx.t("tributeSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => shrine.payTribute(memorialId, offeringType, offeringCost, message), "tributeSuccess");
     });
 
     return {

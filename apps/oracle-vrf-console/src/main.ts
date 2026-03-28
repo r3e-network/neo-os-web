@@ -23,18 +23,15 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const vrf = useVrfConsole({
       oracle: platformServices.oracle,
       t: ctx.t,
     });
 
     ctx.registerAction("requestRandom", async () => {
-      try {
-        await vrf.requestRandom();
-        ctx.setStatus(ctx.t("randomnessRequested"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("requestFailed"), "error");
-      }
+      await notify.guard(() => vrf.requestRandom(), "randomnessRequested");
     });
 
     return {

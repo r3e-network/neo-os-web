@@ -25,10 +25,9 @@ defineMiniApp({
     ctx.registerAction("refreshEvents", async () => { await ticket.refreshEvents(); });
     ctx.registerAction("connectWallet", async () => { await ticket.connectWallet(); });
     ctx.registerAction("openIssueModal", async (event: unknown) => { ticket.openIssueModal(event); });
-    ctx.registerAction("toggleEvent", async (event: unknown) => {
-      try { await ticket.toggleEvent(event); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("toggleEvent", (event: unknown) =>
+      platformServices.notify.guard(() => ticket.toggleEvent(event)),
+    );
 
     return {
       state: {

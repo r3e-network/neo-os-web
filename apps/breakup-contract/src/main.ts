@@ -22,20 +22,17 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("createContract", async () => {
-      try { await breakup.createContract(); ctx.setStatus(ctx.t("contractCreated"), "success"); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("createContract", () =>
+      platformServices.notify.guard(() => breakup.createContract(), "contractCreated"),
+    );
 
-    ctx.registerAction("signContract", async (contract: unknown) => {
-      try { await breakup.signContract(contract as { id: number; stake: number }); ctx.setStatus(ctx.t("contractSigned"), "success"); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("signContract", (contract: unknown) =>
+      platformServices.notify.guard(() => breakup.signContract(contract as { id: number; stake: number }), "contractSigned"),
+    );
 
-    ctx.registerAction("breakContract", async (contract: unknown) => {
-      try { await breakup.breakContract(contract as { id: number }); ctx.setStatus(ctx.t("contractBroken"), "success"); }
-      catch (e) { ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error"); }
-    });
+    ctx.registerAction("breakContract", (contract: unknown) =>
+      platformServices.notify.guard(() => breakup.breakContract(contract as { id: number }), "contractBroken"),
+    );
 
     return {
       state: {

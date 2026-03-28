@@ -23,27 +23,19 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const neodid = useNeodidConsole({
       oracle: platformServices.oracle,
       t: ctx.t,
     });
 
     ctx.registerAction("resolveDid", async () => {
-      try {
-        await neodid.resolveDid();
-        ctx.setStatus(ctx.t("resultLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("resolveFailed"), "error");
-      }
+      await notify.guard(() => neodid.resolveDid(), "resultLoaded");
     });
 
     ctx.registerAction("loadProviders", async () => {
-      try {
-        await neodid.loadProviders();
-        ctx.setStatus(ctx.t("resultLoaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadProvidersFailed"), "error");
-      }
+      await notify.guard(() => neodid.loadProviders(), "resultLoaded");
     });
 
     ctx.registerAction("applyExample", (kind: string) => {

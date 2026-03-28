@@ -20,6 +20,8 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const signAnything = useSignAnything({
       chain: platformServices.chain,
       eventBus: platformServices.events,
@@ -28,21 +30,11 @@ defineMiniApp({
     });
 
     ctx.registerAction("signMessage", async (msg: string) => {
-      try {
-        await signAnything.signMessage(msg);
-        ctx.setStatus(ctx.t("copySuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => signAnything.signMessage(msg), "copySuccess");
     });
 
     ctx.registerAction("broadcastMessage", async (msg: string) => {
-      try {
-        await signAnything.broadcastMessage(msg);
-        ctx.setStatus(ctx.t("broadcastSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+      await notify.guard(() => signAnything.broadcastMessage(msg), "broadcastSuccess");
     });
 
     ctx.registerAction("copyToClipboard", async (text: string) => {

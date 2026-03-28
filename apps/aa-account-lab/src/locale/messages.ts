@@ -39,6 +39,8 @@ const appMessages = {
   notAvailable: { en: "N/A", zh: "不可用" },
   defaultVerifier: { en: "Default Verifier", zh: "默认 Verifier" },
   aaCore: { en: "AA Core", zh: "AA Core" },
+  walletConnected: { en: "Wallet connected", zh: "钱包已连接" },
+  connectFailed: { en: "Connect failed", zh: "连接失败" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

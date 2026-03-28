@@ -28,38 +28,26 @@ defineMiniApp({
       t: ctx.t,
     });
 
+    const { notify } = platformServices;
+
     ctx.registerAction("requestSponsorship", async (amount: string) => {
-      try {
-        sponsor.requestAmount.value = amount;
-        ctx.setStatus(ctx.t("requestingSponsorship"), "loading");
-        const result = await sponsor.requestSponsorship();
-        if (result) {
-          ctx.setStatus(ctx.t("requestSubmitted", { id: `${result.request_id.slice(0, 8)}...` }), "success");
-        }
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("requestFailed"), "error");
+      sponsor.requestAmount.value = amount;
+      notify.info("requestingSponsorship");
+      const result = await notify.guard(() => sponsor.requestSponsorship(), undefined, "requestFailed");
+      if (result) {
+        notify.success("requestSubmitted", { id: `${result.request_id.slice(0, 8)}...` });
       }
     });
 
     ctx.registerAction("donate", async (amount: string) => {
-      try {
-        sponsor.donateAmount.value = amount;
-        await sponsor.handleDonate();
-        ctx.setStatus(ctx.t("donateSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadFailed"), "error");
-      }
+      sponsor.donateAmount.value = amount;
+      await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "loadFailed");
     });
 
     ctx.registerAction("send", async (recipient: string, amount: string) => {
-      try {
-        sponsor.recipientAddress.value = recipient;
-        sponsor.sendAmount.value = amount;
-        await sponsor.handleSend();
-        ctx.setStatus(ctx.t("sendSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadFailed"), "error");
-      }
+      sponsor.recipientAddress.value = recipient;
+      sponsor.sendAmount.value = amount;
+      await notify.guard(() => sponsor.handleSend(), "sendSuccess", "loadFailed");
     });
 
     return {

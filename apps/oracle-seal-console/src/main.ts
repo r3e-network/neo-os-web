@@ -23,36 +23,24 @@ defineMiniApp({
       t: ctx.t as (key: string) => string,
     });
 
+    const { notify } = platformServices;
+
     const seal = useSealConsole({
       oracle: platformServices.oracle,
+      clipboard: platformServices.clipboard,
       t: ctx.t,
     });
 
     ctx.registerAction("loadKey", async () => {
-      try {
-        await seal.loadKey();
-        ctx.setStatus(ctx.t("loaded"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("loadKeyFailed"), "error");
-      }
+      await notify.guard(() => seal.loadKey(), "loaded");
     });
 
     ctx.registerAction("sealPayload", async () => {
-      try {
-        await seal.sealPayload();
-        ctx.setStatus(ctx.t("sealed"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("sealFailed"), "error");
-      }
+      await notify.guard(() => seal.sealPayload(), "sealed");
     });
 
     ctx.registerAction("storeCiphertextRef", async () => {
-      try {
-        await seal.storeCiphertextRef();
-        ctx.setStatus(ctx.t("stored"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("storeRefFailed"), "error");
-      }
+      await notify.guard(() => seal.storeCiphertextRef(), "stored");
     });
 
     ctx.registerAction("copyText", async (value: string, key: string) => {
