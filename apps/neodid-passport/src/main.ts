@@ -25,6 +25,7 @@ defineMiniApp({
 
     const passport = useNeodidPassport({
       oracle: platformServices.oracle,
+      clipboard: platformServices.clipboard,
       t: ctx.t,
     });
 

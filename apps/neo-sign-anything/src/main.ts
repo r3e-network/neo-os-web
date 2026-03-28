@@ -23,6 +23,7 @@ defineMiniApp({
     const signAnything = useSignAnything({
       chain: platformServices.chain,
       eventBus: platformServices.events,
+      clipboard: platformServices.clipboard,
       t: ctx.t,
     });
 

@@ -35,6 +35,7 @@ defineMiniApp({
       balance: platformServices.balance,
       transfer: platformServices.transfer,
       eventBus: platformServices.events,
+      clipboard: platformServices.clipboard,
       t: ctx.t,
     });
 

@@ -34,6 +34,9 @@ import { TransferService } from "./TransferService";
 import { OracleService } from "./OracleService";
 import { AAService } from "./AAService";
 import { LifecycleService } from "./LifecycleService";
+import { NotificationService } from "./NotificationService";
+import { ClipboardService } from "./ClipboardService";
+import { FormattingService } from "./FormattingService";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -68,6 +71,9 @@ export class PlatformServices {
   readonly oracle: OracleService;
   readonly aa: AAService;
   readonly lifecycle: LifecycleService;
+  readonly notify: NotificationService;
+  readonly clipboard: ClipboardService;
+  readonly fmt: FormattingService;
 
   private constructor(appId: string, options: PlatformServicesOptions) {
     this.appId = appId;
@@ -92,6 +98,15 @@ export class PlatformServices {
 
     // Lifecycle (depends on events)
     this.lifecycle = new LifecycleService(appId, this.events);
+
+    // Notification service (depends on events + t)
+    this.notify = new NotificationService(this.events, t as (key: string, params?: Record<string, string | number>) => string);
+
+    // Clipboard service (depends on events + t)
+    this.clipboard = new ClipboardService(this.events, t);
+
+    // Formatting service (stateless utility wrapper)
+    this.fmt = new FormattingService();
   }
 
   /**
