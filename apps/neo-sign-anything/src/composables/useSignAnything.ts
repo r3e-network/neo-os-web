@@ -2,14 +2,12 @@
  * useSignAnything — Domain logic for the Neo Sign Anything miniapp
  *
  * Receives ChainService + EventBus from PlatformServices.
- * Uses the wallet SDK's signMessage for off-chain message signing,
- * and ChainService for on-chain broadcast via 0-GAS self-transfer.
+ * Uses ChainService for both off-chain message signing and on-chain
+ * broadcast via 0-GAS self-transfer.
  */
 
 import { ref } from "vue";
 import type { ChainService, EventBus, ClipboardService } from "@shared/services";
-import { useWallet } from "@shared/utils/wallet-sdk";
-import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const MAX_MESSAGE_BYTES = 1024;
@@ -29,9 +27,6 @@ export interface UseSignAnythingOptions {
 }
 
 export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythingOptions) {
-  // Use wallet SDK for off-chain signing (signMessage is not on ChainService)
-  const wallet = useWallet() as WalletSDK;
-
   const message = ref("");
   const signature = ref("");
   const txHash = ref("");
@@ -46,13 +41,7 @@ export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythi
     signature.value = "";
     txHash.value = "";
     try {
-      await chain.ensureWallet();
-
-      if (!wallet.signMessage) {
-        throw new Error(t("signNotSupported"));
-      }
-
-      const result = await wallet.signMessage(msg);
+      const result = await chain.signMessage(msg);
 
       // Parse the result — may be an object { signature, publicKey, data } or string
       if (typeof result === "string") {

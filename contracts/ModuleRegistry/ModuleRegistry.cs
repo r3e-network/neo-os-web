@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Numerics;
 using Neo;
 using Neo.SmartContract;
 using Neo.SmartContract.Framework;
@@ -23,6 +24,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_MODULE = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_MODULE_VERSIONS = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_ACTIVE_MODULE_HASH = new byte[] { 0x04 };
 
         public struct ModuleInfo
         {
@@ -55,6 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static StorageMap ModuleMap() => new StorageMap(Storage.CurrentContext, PREFIX_MODULE);
         private static StorageMap VersionMap() => new StorageMap(Storage.CurrentContext, PREFIX_MODULE_VERSIONS);
+        private static StorageMap ActiveHashMap() => new StorageMap(Storage.CurrentContext, PREFIX_ACTIVE_MODULE_HASH);
 
         private static UInt160 ReadAddress(byte[] key)
         {
@@ -128,6 +131,12 @@ namespace NeoMiniAppPlatform.Contracts
             return (ByteString)(moduleId ?? "");
         }
 
+        private static ByteString ModuleHashKey(UInt160 contractHash)
+        {
+            ExecutionEngine.Assert(contractHash != UInt160.Zero && contractHash.IsValid, "invalid contract hash");
+            return (ByteString)contractHash;
+        }
+
         private static ByteString NormalizeBlob(ByteString value)
         {
             return value ?? (ByteString)"";
@@ -176,6 +185,18 @@ namespace NeoMiniAppPlatform.Contracts
             return info.ContractHash;
         }
 
+        [Safe]
+        public static bool IsModuleActive(UInt160 contractHash)
+        {
+            if (contractHash == UInt160.Zero || !contractHash.IsValid)
+            {
+                return false;
+            }
+
+            ByteString? raw = ActiveHashMap().Get(ModuleHashKey(contractHash));
+            return raw != null && raw.Length > 0 && (BigInteger)raw == 1;
+        }
+
         public static void UpsertModule(
             string moduleId,
             string version,
@@ -190,6 +211,12 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateIdentifier(moduleId, "module id");
             ValidateIdentifier(version, "version");
             ExecutionEngine.Assert(contractHash != UInt160.Zero && contractHash.IsValid, "invalid contract hash");
+
+            ModuleInfo existing = GetModule(moduleId, version);
+            if (existing.ModuleId.Length > 0 && existing.Active)
+            {
+                ActiveHashMap().Delete(ModuleHashKey(existing.ContractHash));
+            }
 
             string normalizedRiskProfile = riskProfile ?? "";
             ExecutionEngine.Assert(normalizedRiskProfile.Length <= 64, "risk profile too long");
@@ -210,6 +237,11 @@ namespace NeoMiniAppPlatform.Contracts
 
             ModuleMap().Put(ModuleKey(moduleId, version), StdLib.Serialize(info));
 
+            if (active)
+            {
+                ActiveHashMap().Put(ModuleHashKey(contractHash), 1);
+            }
+
             string[] versions = ReadStringList(VersionMap(), ModuleVersionKey(moduleId));
             WriteStringList(VersionMap(), ModuleVersionKey(moduleId), AppendUnique(versions, version));
 
@@ -225,10 +257,20 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (info.Active == active) return;
 
+            if (info.Active)
+            {
+                ActiveHashMap().Delete(ModuleHashKey(info.ContractHash));
+            }
+
             info.Active = active;
             info.UpdatedAt = Runtime.Time;
             info.UpdatedBy = Runtime.Transaction.Sender;
             ModuleMap().Put(ModuleKey(moduleId, version), StdLib.Serialize(info));
+
+            if (active)
+            {
+                ActiveHashMap().Put(ModuleHashKey(info.ContractHash), 1);
+            }
 
             OnModuleStatusChanged(moduleId, version, active);
         }

@@ -4,7 +4,6 @@
 
 import { computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -20,23 +19,29 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create(APP_ID, {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const stats = useDevTippingStats({
       chain: platformServices.chain,
-      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      t: ctx.t as (
+        key: string,
+        params?: Record<string, string | number>,
+      ) => string,
     });
 
     const wallet = useDevTippingWallet({
       chain: platformServices.chain,
       eventBus: platformServices.events,
-      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      t: ctx.t as (
+        key: string,
+        params?: Record<string, string | number>,
+      ) => string,
     });
 
     const developerCount = computed(() => stats.developers.value.length);
-    const totalDonatedDisplay = computed(() => stats.formatNum(stats.totalDonated.value));
+    const totalDonatedDisplay = computed(() =>
+      stats.formatNum(stats.totalDonated.value),
+    );
     const recentTipCount = computed(() => stats.recentTips.value.length);
 
     const { notify } = platformServices;
@@ -47,7 +52,10 @@ defineMiniApp({
       const message = args[2] as string;
       const tipperName = args[3] as string;
       const anonymous = args[4] as boolean;
-      await notify.guard(() => wallet.sendTip(devId, amount, message, tipperName, anonymous), "tipSent");
+      await notify.guard(
+        () => wallet.sendTip(devId, amount, message, tipperName, anonymous),
+        "tipSent",
+      );
     });
 
     ctx.registerAction("selectDev", async (...args: unknown[]) => {
@@ -70,10 +78,6 @@ defineMiniApp({
       loadData: async () => {
         await stats.loadDevelopers();
         await stats.loadRecentTips();
-      },
-
-      cleanup: () => {
-        platformServices.destroy();
       },
     };
   },

@@ -5,7 +5,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,9 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-pay", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const pay = useNeoPayApp({
       chain: platformServices.chain,
@@ -31,24 +28,93 @@ defineMiniApp({
     const { notify } = platformServices;
 
     ctx.registerAction("refreshStreams", async () => {
-      await notify.guard(() => pay.refreshStreams(), undefined, "contractMissing");
+      await notify.guard(
+        () => pay.refreshStreams(),
+        undefined,
+        "contractMissing",
+      );
     });
 
     ctx.registerAction("connectWallet", async () => {
-      await notify.guard(() => pay.connectWallet(), "walletConnected", "walletNotConnected");
+      await notify.guard(
+        () => pay.connectWallet(),
+        "walletConnected",
+        "walletNotConnected",
+      );
     });
 
-    ctx.registerAction("createVault", async (formData: { name: string; beneficiary: string; asset: string; total: string; rate: string; intervalDays: string; notes: string }) => {
-      await notify.guard(() => pay.handleCreateVault(formData), "vaultCreated", "contractMissing");
-    });
+    ctx.registerAction(
+      "createVault",
+      async (formData: {
+        name: string;
+        beneficiary: string;
+        asset: string;
+        total: string;
+        rate: string;
+        intervalDays: string;
+        notes: string;
+      }) => {
+        await notify.guard(
+          () => pay.handleCreateVault(formData),
+          "vaultCreated",
+          "contractMissing",
+        );
+      },
+    );
 
-    ctx.registerAction("claimStream", async (stream: { id: string; creator: string; beneficiary: string; asset: string; assetSymbol: string; totalAmount: bigint; releasedAmount: bigint; remainingAmount: bigint; rateAmount: bigint; intervalSeconds: bigint; intervalDays: number; status: string; claimable: bigint; title: string; notes: string }) => {
-      await notify.guard(() => pay.claimStream(stream as any), "streamClaimed", "contractMissing");
-    });
+    ctx.registerAction(
+      "claimStream",
+      async (stream: {
+        id: string;
+        creator: string;
+        beneficiary: string;
+        asset: string;
+        assetSymbol: string;
+        totalAmount: bigint;
+        releasedAmount: bigint;
+        remainingAmount: bigint;
+        rateAmount: bigint;
+        intervalSeconds: bigint;
+        intervalDays: number;
+        status: string;
+        claimable: bigint;
+        title: string;
+        notes: string;
+      }) => {
+        await notify.guard(
+          () => pay.claimStream(stream as any),
+          "streamClaimed",
+          "contractMissing",
+        );
+      },
+    );
 
-    ctx.registerAction("cancelStream", async (stream: { id: string; creator: string; beneficiary: string; asset: string; assetSymbol: string; totalAmount: bigint; releasedAmount: bigint; remainingAmount: bigint; rateAmount: bigint; intervalSeconds: bigint; intervalDays: number; status: string; claimable: bigint; title: string; notes: string }) => {
-      await notify.guard(() => pay.cancelStream(stream as any), "streamCancelled", "contractMissing");
-    });
+    ctx.registerAction(
+      "cancelStream",
+      async (stream: {
+        id: string;
+        creator: string;
+        beneficiary: string;
+        asset: string;
+        assetSymbol: string;
+        totalAmount: bigint;
+        releasedAmount: bigint;
+        remainingAmount: bigint;
+        rateAmount: bigint;
+        intervalSeconds: bigint;
+        intervalDays: number;
+        status: string;
+        claimable: bigint;
+        title: string;
+        notes: string;
+      }) => {
+        await notify.guard(
+          () => pay.cancelStream(stream as any),
+          "streamCancelled",
+          "contractMissing",
+        );
+      },
+    );
 
     return {
       state: {
@@ -65,7 +131,6 @@ defineMiniApp({
         totalStreamCount: pay.totalStreamCount,
       },
       loadData: pay.loadAll,
-      cleanup: () => platformServices.destroy(),
     };
   },
 });

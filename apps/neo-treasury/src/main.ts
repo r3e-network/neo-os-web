@@ -4,7 +4,6 @@
 
 import { ref, computed } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -30,19 +29,23 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neo-treasury", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const loading = ref(true);
     const error = ref("");
     const data = ref<TreasuryData | null>(null);
 
     const totalUsdDisplay = computed(() =>
-      data.value?.totalUsd ? `${ctx.t("currencySymbol")}${data.value.totalUsd.toLocaleString()}` : ctx.t("notAvailable"),
+      data.value?.totalUsd
+        ? `${ctx.t("currencySymbol")}${data.value.totalUsd.toLocaleString()}`
+        : ctx.t("notAvailable"),
     );
-    const totalNeoDisplay = computed(() => data.value?.totalNeo?.toLocaleString() ?? ctx.t("notAvailable"));
-    const totalGasDisplay = computed(() => data.value?.totalGas?.toLocaleString() ?? ctx.t("notAvailable"));
+    const totalNeoDisplay = computed(
+      () => data.value?.totalNeo?.toLocaleString() ?? ctx.t("notAvailable"),
+    );
+    const totalGasDisplay = computed(
+      () => data.value?.totalGas?.toLocaleString() ?? ctx.t("notAvailable"),
+    );
     const founderCount = computed(() => data.value?.categories?.length ?? 0);
 
     const loadData = async () => {
@@ -55,7 +58,10 @@ defineMiniApp({
           data.value = cached;
         }
       } catch (_e) {
-        console.warn("[neo-treasury] cache read failed:", _e instanceof Error ? _e.message : String(_e));
+        console.warn(
+          "[neo-treasury] cache read failed:",
+          _e instanceof Error ? _e.message : String(_e),
+        );
       }
 
       try {
@@ -66,7 +72,10 @@ defineMiniApp({
         if (!data.value) {
           error.value = formatErrorMessage(e, ctx.t("loadFailed"));
         } else {
-          console.warn("[neo-treasury] using cached data:", e instanceof Error ? e.message : String(e));
+          console.warn(
+            "[neo-treasury] using cached data:",
+            e instanceof Error ? e.message : String(e),
+          );
         }
       } finally {
         loading.value = false;
@@ -89,10 +98,6 @@ defineMiniApp({
       },
 
       loadData,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

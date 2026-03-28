@@ -7,7 +7,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -20,14 +19,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-self-loan", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const loan = useSelfLoan({
       chain: platformServices.chain,
       eventBus: platformServices.events,
-      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      t: ctx.t as (
+        key: string,
+        params?: Record<string, string | number>,
+      ) => string,
     });
 
     // Register wallet connect action for PlayArea dispatch
@@ -68,10 +68,6 @@ defineMiniApp({
       },
 
       loadData: loan.loadAll,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

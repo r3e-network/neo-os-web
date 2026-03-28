@@ -7,7 +7,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -20,9 +19,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-neodid-passport", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const passport = useNeodidPassport({
       oracle: platformServices.oracle,
@@ -31,13 +28,41 @@ defineMiniApp({
     });
 
     registerActions(ctx, {
-      resolveDidDocument: { handler: () => passport.resolveDidDocument(), successKey: "resultLoaded", errorKey: "resolveFailed" },
-      loadProviders: { handler: () => passport.loadProviders(), successKey: "providersLoaded", errorKey: "loadProvidersFailed" },
-      fetchOracleKey: { handler: () => passport.fetchOracleKey(), successKey: "keyLoaded", errorKey: "keyFailed" },
-      storeRef: { handler: () => passport.storeRef(), successKey: "refStored", errorKey: "storeFailed" },
-      openIdentityCredentialDraft: { handler: async () => passport.openIdentityCredentialDraft(), successKey: "identityCredentialReady", errorKey: "resolveFailed" },
-      copyIdentityCredentialLink: { handler: () => passport.copyIdentityCredentialLink(), successKey: "identityCredentialCopied", errorKey: "resolveFailed" },
-      shareIdentityCredentialLink: { handler: () => passport.shareIdentityCredentialLink(), successKey: "identityCredentialShared", errorKey: "resolveFailed" },
+      resolveDidDocument: {
+        handler: () => passport.resolveDidDocument(),
+        successKey: "resultLoaded",
+        errorKey: "resolveFailed",
+      },
+      loadProviders: {
+        handler: () => passport.loadProviders(),
+        successKey: "providersLoaded",
+        errorKey: "loadProvidersFailed",
+      },
+      fetchOracleKey: {
+        handler: () => passport.fetchOracleKey(),
+        successKey: "keyLoaded",
+        errorKey: "keyFailed",
+      },
+      storeRef: {
+        handler: () => passport.storeRef(),
+        successKey: "refStored",
+        errorKey: "storeFailed",
+      },
+      openIdentityCredentialDraft: {
+        handler: async () => passport.openIdentityCredentialDraft(),
+        successKey: "identityCredentialReady",
+        errorKey: "resolveFailed",
+      },
+      copyIdentityCredentialLink: {
+        handler: () => passport.copyIdentityCredentialLink(),
+        successKey: "identityCredentialCopied",
+        errorKey: "resolveFailed",
+      },
+      shareIdentityCredentialLink: {
+        handler: () => passport.shareIdentityCredentialLink(),
+        successKey: "identityCredentialShared",
+        errorKey: "resolveFailed",
+      },
     });
 
     return {
@@ -58,9 +83,6 @@ defineMiniApp({
         neodidContract: passport.neodidContract,
       },
       loadData: passport.loadAll,
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

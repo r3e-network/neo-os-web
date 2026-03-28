@@ -7,7 +7,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -20,9 +19,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-automation-copilot", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const copilot = useAutomationCopilot({
       oracle: platformServices.oracle,
@@ -30,10 +27,26 @@ defineMiniApp({
     });
 
     registerActions(ctx, {
-      fetchCurrentPrice: { handler: () => copilot.fetchCurrentPrice(), successKey: "priceLoaded", errorKey: "fetchFailed" },
-      previewRecipePayload: { handler: () => copilot.previewRecipePayload(), successKey: "recipeBuilt", errorKey: "recipeFailed" },
-      loadRandomness: { handler: () => copilot.loadRandomness(), successKey: "randomnessReady", errorKey: "randomnessFailed" },
-      fetchOracleKey: { handler: () => copilot.fetchOracleKey(), successKey: "keyLoaded", errorKey: "keyFailed" },
+      fetchCurrentPrice: {
+        handler: () => copilot.fetchCurrentPrice(),
+        successKey: "priceLoaded",
+        errorKey: "fetchFailed",
+      },
+      previewRecipePayload: {
+        handler: () => copilot.previewRecipePayload(),
+        successKey: "recipeBuilt",
+        errorKey: "recipeFailed",
+      },
+      loadRandomness: {
+        handler: () => copilot.loadRandomness(),
+        successKey: "randomnessReady",
+        errorKey: "randomnessFailed",
+      },
+      fetchOracleKey: {
+        handler: () => copilot.fetchOracleKey(),
+        successKey: "keyLoaded",
+        errorKey: "keyFailed",
+      },
     });
 
     return {
@@ -51,9 +64,6 @@ defineMiniApp({
         publicApiUrl: copilot.publicApiUrl,
       },
       loadData: copilot.loadAll,
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });

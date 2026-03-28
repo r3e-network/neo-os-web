@@ -46,7 +46,7 @@ export interface PlatformServicesOptions {
   /** Locale string for i18n. */
   locale?: string;
   /** Translation function. Falls back to identity function if not provided. */
-  t?: (key: string) => string;
+  t?: (key: string, params?: Record<string, string | number>) => string;
   /** Permission flags for this miniapp (future capability gating). */
   permissions?: string[];
 }

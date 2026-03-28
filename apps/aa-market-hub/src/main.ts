@@ -5,7 +5,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,9 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-aa-market-hub", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const hub = useAAMarketHub({
       chain: platformServices.chain,
@@ -29,13 +26,22 @@ defineMiniApp({
     });
 
     ctx.registerAction("connectWallet", async () => {
-      const addr = await platformServices.notify.guard(() => hub.connectWallet(), undefined, "connectFailed");
-      if (addr) ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
+      const addr = await platformServices.notify.guard(
+        () => hub.connectWallet(),
+        undefined,
+        "connectFailed",
+      );
+      if (addr)
+        ctx.setStatus(`${ctx.t("walletConnected")}: ${addr}`, "success");
     });
 
     ctx.registerAction("loadListings", async (marketHashInput: string) => {
       hub.marketHash.value = marketHashInput;
-      await platformServices.notify.guard(() => hub.loadListings(), "marketLoaded", "loadListingsFailed");
+      await platformServices.notify.guard(
+        () => hub.loadListings(),
+        "marketLoaded",
+        "loadListingsFailed",
+      );
     });
 
     ctx.registerAction("selectListing", (listingId: string) => {
@@ -43,32 +49,65 @@ defineMiniApp({
       if (listing) hub.selectListing(listing);
     });
 
-    ctx.registerAction("createListing", async (aaContractHash: string, accountIdHash: string, priceGas: string, title: string, metadataUri: string) => {
-      hub.aaContractHash.value = aaContractHash;
-      hub.accountIdHash.value = accountIdHash;
-      hub.priceGas.value = priceGas;
-      hub.listingTitle.value = title;
-      hub.metadataUri.value = metadataUri;
-      const result = await platformServices.notify.guard(() => hub.submitCreateListing(), undefined, "actionFailed");
-      if (result) ctx.setStatus(`${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`, "success");
-    });
+    ctx.registerAction(
+      "createListing",
+      async (
+        aaContractHash: string,
+        accountIdHash: string,
+        priceGas: string,
+        title: string,
+        metadataUri: string,
+      ) => {
+        hub.aaContractHash.value = aaContractHash;
+        hub.accountIdHash.value = accountIdHash;
+        hub.priceGas.value = priceGas;
+        hub.listingTitle.value = title;
+        hub.metadataUri.value = metadataUri;
+        const result = await platformServices.notify.guard(
+          () => hub.submitCreateListing(),
+          undefined,
+          "actionFailed",
+        );
+        if (result)
+          ctx.setStatus(
+            `${ctx.t("createListingSuccess")}${result?.txid ? `: ${result.txid}` : ""}`,
+            "success",
+          );
+      },
+    );
 
     ctx.registerAction("updatePrice", async (nextPriceGas: string) => {
       hub.nextPriceGas.value = nextPriceGas;
-      await platformServices.notify.guard(() => hub.submitUpdatePrice(), "updatePriceSuccess", "actionFailed");
+      await platformServices.notify.guard(
+        () => hub.submitUpdatePrice(),
+        "updatePriceSuccess",
+        "actionFailed",
+      );
     });
 
     ctx.registerAction("cancelSelected", () =>
-      platformServices.notify.guard(() => hub.submitCancelSelected(), "cancelListingSuccess", "actionFailed"),
+      platformServices.notify.guard(
+        () => hub.submitCancelSelected(),
+        "cancelListingSuccess",
+        "actionFailed",
+      ),
     );
 
     ctx.registerAction("buySelected", async (newBackupOwner: string) => {
       hub.newBackupOwner.value = newBackupOwner;
-      await platformServices.notify.guard(() => hub.submitBuySelected(), "buyListingSuccess", "actionFailed");
+      await platformServices.notify.guard(
+        () => hub.submitBuySelected(),
+        "buyListingSuccess",
+        "actionFailed",
+      );
     });
 
     ctx.registerAction("refundSelected", () =>
-      platformServices.notify.guard(() => hub.submitRefundSelected(), "refundPendingSuccess", "actionFailed"),
+      platformServices.notify.guard(
+        () => hub.submitRefundSelected(),
+        "refundPendingSuccess",
+        "actionFailed",
+      ),
     );
 
     return {
@@ -91,7 +130,9 @@ defineMiniApp({
         selectedListingDisplay: hub.selectedListingDisplay,
       },
       loadData: hub.loadAll,
-      cleanup: () => { hub.cleanup(); platformServices.destroy(); },
+      cleanup: () => {
+        hub.cleanup();
+      },
     };
   },
 });

@@ -4,7 +4,6 @@
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import { registerActions } from "@shared/utils/createActionHandlers";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -17,9 +16,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-wallet-health", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const health = useWalletHealth({
       chain: platformServices.chain,
@@ -33,8 +30,14 @@ defineMiniApp({
 
     // Register actions for PlayArea dispatch
     registerActions(ctx, {
-      connectWallet: { handler: health.connectWallet, errorKey: "walletNotConnected" },
-      refreshBalances: { handler: health.refreshBalances, errorKey: "refreshFailed" },
+      connectWallet: {
+        handler: health.connectWallet,
+        errorKey: "walletNotConnected",
+      },
+      refreshBalances: {
+        handler: health.refreshBalances,
+        errorKey: "refreshFailed",
+      },
     });
 
     return {
@@ -64,10 +67,6 @@ defineMiniApp({
         if (health.address.value) {
           await health.refreshBalances();
         }
-      },
-
-      cleanup: () => {
-        platformServices.destroy();
       },
     };
   },

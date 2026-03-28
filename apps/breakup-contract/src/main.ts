@@ -1,5 +1,4 @@
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -12,9 +11,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-breakupcontract", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const breakup = useBreakup({
       chain: platformServices.chain,
@@ -23,15 +20,24 @@ defineMiniApp({
     });
 
     ctx.registerAction("createContract", () =>
-      platformServices.notify.guard(() => breakup.createContract(), "contractCreated"),
+      platformServices.notify.guard(
+        () => breakup.createContract(),
+        "contractCreated",
+      ),
     );
 
     ctx.registerAction("signContract", (contract: unknown) =>
-      platformServices.notify.guard(() => breakup.signContract(contract as { id: number; stake: number }), "contractSigned"),
+      platformServices.notify.guard(
+        () => breakup.signContract(contract as { id: number; stake: number }),
+        "contractSigned",
+      ),
     );
 
     ctx.registerAction("breakContract", (contract: unknown) =>
-      platformServices.notify.guard(() => breakup.breakContract(contract as { id: number }), "contractBroken"),
+      platformServices.notify.guard(
+        () => breakup.breakContract(contract as { id: number }),
+        "contractBroken",
+      ),
     );
 
     return {
@@ -45,7 +51,6 @@ defineMiniApp({
         isLoading: breakup.isLoading,
       },
       loadData: breakup.loadContracts,
-      cleanup: () => { platformServices.destroy(); },
     };
   },
 });

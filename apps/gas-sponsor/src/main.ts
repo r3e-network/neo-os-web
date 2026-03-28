@@ -5,7 +5,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -18,9 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-gas-sponsor", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const sponsor = useGasSponsorApp({
       chain: platformServices.chain,
@@ -33,21 +30,35 @@ defineMiniApp({
     ctx.registerAction("requestSponsorship", async (amount: string) => {
       sponsor.requestAmount.value = amount;
       notify.info("requestingSponsorship");
-      const result = await notify.guard(() => sponsor.requestSponsorship(), undefined, "requestFailed");
+      const result = await notify.guard(
+        () => sponsor.requestSponsorship(),
+        undefined,
+        "requestFailed",
+      );
       if (result) {
-        notify.success("requestSubmitted", { id: `${result.request_id.slice(0, 8)}...` });
+        notify.success("requestSubmitted", {
+          id: `${result.request_id.slice(0, 8)}...`,
+        });
       }
     });
 
     ctx.registerAction("donate", async (amount: string) => {
       sponsor.donateAmount.value = amount;
-      await notify.guard(() => sponsor.handleDonate(), "donateSuccess", "loadFailed");
+      await notify.guard(
+        () => sponsor.handleDonate(),
+        "donateSuccess",
+        "loadFailed",
+      );
     });
 
     ctx.registerAction("send", async (recipient: string, amount: string) => {
       sponsor.recipientAddress.value = recipient;
       sponsor.sendAmount.value = amount;
-      await notify.guard(() => sponsor.handleSend(), "sendSuccess", "loadFailed");
+      await notify.guard(
+        () => sponsor.handleSend(),
+        "sendSuccess",
+        "loadFailed",
+      );
     });
 
     return {
@@ -77,7 +88,6 @@ defineMiniApp({
         eligibleDisplay: sponsor.eligibleDisplay,
       },
       loadData: sponsor.loadAll,
-      cleanup: () => platformServices.destroy(),
     };
   },
 });

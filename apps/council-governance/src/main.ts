@@ -6,7 +6,6 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
-import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -19,14 +18,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = PlatformServices.create("miniapp-council-governance", {
-      t: ctx.t as (key: string) => string,
-    });
+    const platformServices = ctx.services;
 
     const gov = useGovernance({
       chain: platformServices.chain,
       eventBus: platformServices.events,
-      t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
+      t: ctx.t as (
+        key: string,
+        params?: Record<string, string | number>,
+      ) => string,
       currentChainId: { value: "neo-n3-testnet" },
     });
 
@@ -75,10 +75,6 @@ defineMiniApp({
       },
 
       loadData: gov.init,
-
-      cleanup: () => {
-        platformServices.destroy();
-      },
     };
   },
 });
