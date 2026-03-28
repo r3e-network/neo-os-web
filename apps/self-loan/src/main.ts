@@ -5,6 +5,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -27,13 +28,13 @@ defineMiniApp({
     });
 
     // Register wallet connect action for PlayArea dispatch
-    ctx.registerAction("connectWallet", async () => {
-      try {
-        await loan.connect();
-        await loan.loadAll();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+    registerActions(ctx, {
+      connectWallet: {
+        handler: async () => {
+          await loan.connect();
+          await loan.loadAll();
+        },
+      },
     });
 
     return {

@@ -11,6 +11,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -46,45 +47,38 @@ defineMiniApp({
       ns.searchDomain();
     });
 
-    ctx.registerAction("registerDomain", async () => {
-      try {
-        await ns.registerDomain();
-        ctx.setStatus(ctx.t("registered"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("registrationFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("handleRenew", async (domain?: unknown) => {
-      if (!domain) return;
-      try {
-        await ns.renewDomain(domain as Domain);
-        ctx.setStatus(`${(domain as Domain).name} ${ctx.t("renewed")}`, "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("renewalFailed"), "error");
-      }
-    });
-
-    ctx.registerAction("handleSetTarget", async (targetAddress?: unknown) => {
-      if (!targetAddress || !ns.managingDomain.value) return;
-      try {
-        await ns.setRecord(ns.managingDomain.value, String(targetAddress));
-        ctx.setStatus(ctx.t("targetSet"), "success");
-        ns.cancelManage();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("handleTransfer", async (transferAddress?: unknown) => {
-      if (!transferAddress || !ns.managingDomain.value) return;
-      try {
-        await ns.transferDomain(ns.managingDomain.value, String(transferAddress));
-        ctx.setStatus(ctx.t("transferred"), "success");
-        ns.cancelManage();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+    registerActions(ctx, {
+      registerDomain: {
+        handler: () => ns.registerDomain(),
+        successKey: "registered",
+        errorKey: "registrationFailed",
+      },
+      handleRenew: {
+        handler: async (domain: unknown) => {
+          if (!domain) return;
+          await ns.renewDomain(domain as Domain);
+        },
+        successKey: "renewed",
+        errorKey: "renewalFailed",
+      },
+      handleSetTarget: {
+        handler: async (targetAddress: unknown) => {
+          if (!targetAddress || !ns.managingDomain.value) return;
+          await ns.setRecord(ns.managingDomain.value, String(targetAddress));
+          ns.cancelManage();
+        },
+        successKey: "targetSet",
+        errorKey: "error",
+      },
+      handleTransfer: {
+        handler: async (transferAddress: unknown) => {
+          if (!transferAddress || !ns.managingDomain.value) return;
+          await ns.transferDomain(ns.managingDomain.value, String(transferAddress));
+          ns.cancelManage();
+        },
+        successKey: "transferred",
+        errorKey: "error",
+      },
     });
 
     ctx.registerAction("showManage", (domain?: unknown) => {

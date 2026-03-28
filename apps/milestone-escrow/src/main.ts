@@ -7,6 +7,7 @@
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import { PlatformServices } from "@shared/services";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -31,57 +32,36 @@ defineMiniApp({
     });
 
     // ── Register actions for PlayArea dispatch ────────────────────────
-    ctx.registerAction("refreshEscrows", async () => {
-      try {
-        await escrow.refreshEscrows();
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("connectWallet", async () => {
-      try {
-        await escrow.connectWallet();
-        ctx.setStatus(ctx.t("walletConnected"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("walletNotConnected"), "error");
-      }
-    });
-
-    ctx.registerAction("createEscrow", async (data?: unknown) => {
-      try {
-        await escrow.createEscrow(data as Parameters<typeof escrow.createEscrow>[0]);
-        ctx.setStatus(ctx.t("escrowCreated"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("approveMilestone", async (escrowItem?: unknown) => {
-      try {
-        await escrow.approveMilestone(escrowItem as Parameters<typeof escrow.approveMilestone>[0]);
-        ctx.setStatus(ctx.t("milestoneApproved"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("claimMilestone", async (escrowItem?: unknown) => {
-      try {
-        await escrow.claimMilestone(escrowItem as Parameters<typeof escrow.claimMilestone>[0]);
-        ctx.setStatus(ctx.t("claimSuccess"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
-    });
-
-    ctx.registerAction("cancelEscrow", async (escrowItem?: unknown) => {
-      try {
-        await escrow.cancelEscrow(escrowItem as Parameters<typeof escrow.cancelEscrow>[0]);
-        ctx.setStatus(ctx.t("escrowCancelled"), "success");
-      } catch (e) {
-        ctx.setStatus(e instanceof Error ? e.message : ctx.t("error"), "error");
-      }
+    registerActions(ctx, {
+      refreshEscrows: {
+        handler: () => escrow.refreshEscrows(),
+        errorKey: "error",
+      },
+      connectWallet: {
+        handler: () => escrow.connectWallet(),
+        successKey: "walletConnected",
+        errorKey: "walletNotConnected",
+      },
+      createEscrow: {
+        handler: (data: unknown) => escrow.createEscrow(data as Parameters<typeof escrow.createEscrow>[0]),
+        successKey: "escrowCreated",
+        errorKey: "error",
+      },
+      approveMilestone: {
+        handler: (escrowItem: unknown) => escrow.approveMilestone(escrowItem as Parameters<typeof escrow.approveMilestone>[0]),
+        successKey: "milestoneApproved",
+        errorKey: "error",
+      },
+      claimMilestone: {
+        handler: (escrowItem: unknown) => escrow.claimMilestone(escrowItem as Parameters<typeof escrow.claimMilestone>[0]),
+        successKey: "claimSuccess",
+        errorKey: "error",
+      },
+      cancelEscrow: {
+        handler: (escrowItem: unknown) => escrow.cancelEscrow(escrowItem as Parameters<typeof escrow.cancelEscrow>[0]),
+        successKey: "escrowCancelled",
+        errorKey: "error",
+      },
     });
 
     return {
