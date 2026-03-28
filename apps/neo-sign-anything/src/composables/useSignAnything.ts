@@ -7,7 +7,7 @@
  */
 
 import { ref } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { ChainService, EventBus, ClipboardService } from "@shared/services";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -24,10 +24,11 @@ const getMessageBytes = (value: string): number => {
 export interface UseSignAnythingOptions {
   chain: ChainService;
   eventBus: EventBus;
+  clipboard: ClipboardService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) {
+export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythingOptions) {
   // Use wallet SDK for off-chain signing (signMessage is not on ChainService)
   const wallet = useWallet() as WalletSDK;
 
@@ -123,12 +124,7 @@ export function useSignAnything({ chain, eventBus, t }: UseSignAnythingOptions) 
   };
 
   const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      eventBus.emit("copy:success", { action: t("copySuccess") });
-    } catch (e) {
-      console.warn("[useSignAnything] clipboard copy failed:", e instanceof Error ? e.message : String(e));
-    }
+    await clipboard.copy(text, "copySuccess");
   };
 
   const loadData = async () => {

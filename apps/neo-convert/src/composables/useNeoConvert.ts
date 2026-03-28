@@ -18,7 +18,7 @@
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, BalanceService, TransferService, EventBus } from "@shared/services";
+import type { ChainService, BalanceService, TransferService, EventBus, ClipboardService } from "@shared/services";
 import { generateAccount } from "@/services/neo";
 import type { NeoAccount } from "@/services/neo";
 import { useConverter } from "./useConverter";
@@ -42,6 +42,8 @@ export interface UseNeoConvertOptions {
   transfer: TransferService;
   /** EventBus instance from PlatformServices */
   eventBus: EventBus;
+  /** ClipboardService instance from PlatformServices */
+  clipboard: ClipboardService;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -50,7 +52,7 @@ export interface UseNeoConvertOptions {
 // Composable
 // ============================================================================
 
-export function useNeoConvert({ chain, balance, eventBus, t }: UseNeoConvertOptions) {
+export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
   // ── Tab & UI State ──────────────────────────────────────────────────
   const activeTab = ref("generate");
   const isMobile = ref(typeof window !== "undefined" ? window.innerWidth < 768 : false);
@@ -62,7 +64,7 @@ export function useNeoConvert({ chain, balance, eventBus, t }: UseNeoConvertOpti
   const showSecrets = ref(false);
 
   // ── Converter (delegates to existing useConverter) ──────────────────
-  const converter = useConverter(t as (key: string) => string);
+  const converter = useConverter(t as (key: string) => string, clipboard);
 
   // ── Wallet Balances (reactive, auto-refresh on wallet connect) ──────
   const neoBalance = ref(0);
