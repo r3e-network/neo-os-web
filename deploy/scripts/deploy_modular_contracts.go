@@ -169,13 +169,13 @@ type DeployContractInfo struct {
 }
 
 type DeployConfig struct {
-	Network         string                        `json:"network"`
-	UpdatedAt       string                        `json:"updated_at"`
-	RPCEndpoints    []string                      `json:"rpc_endpoints,omitempty"`
-	NetworkMagic    int                           `json:"network_magic,omitempty"`
+	Network         string                         `json:"network"`
+	UpdatedAt       string                         `json:"updated_at"`
+	RPCEndpoints    []string                       `json:"rpc_endpoints,omitempty"`
+	NetworkMagic    int                            `json:"network_magic,omitempty"`
 	Contracts       map[string]*DeployContractInfo `json:"contracts"`
-	LegacyContracts map[string]interface{}        `json:"legacy_contracts,omitempty"`
-	Deployer        map[string]string             `json:"deployer,omitempty"`
+	LegacyContracts map[string]interface{}         `json:"legacy_contracts,omitempty"`
+	Deployer        map[string]string              `json:"deployer,omitempty"`
 }
 
 func loadDeployConfig(path string) *DeployConfig {
