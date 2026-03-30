@@ -133,6 +133,14 @@ namespace NeoMiniAppPlatform.Contracts.OS
             ExecutionEngine.Assert(false, "unauthorized: no valid app caller");
         }
 
+        private static void WriteBigInteger(byte[] key, BigInteger value)
+        {
+            if (value == 0)
+                Storage.Delete(Storage.CurrentContext, key);
+            else
+                Storage.Put(Storage.CurrentContext, key, value);
+        }
+
         // ── Storage key construction ───────────────────────────────
 
         private static ByteString DataKey(string appId, string key)
