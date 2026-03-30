@@ -1,5 +1,9 @@
 /**
- * TrustAnchor — Entry Point (New Pattern)
+ * TrustAnchor — Entry Point (OS Services Pattern)
+ *
+ * User stake/reward reads and contract mutations (withdraw, claim) use
+ * OS services (ctx.os.storage for reads, ctx.os.payment for deposits).
+ * NEO native transfer for staking stays on ctx.services.chain (external).
  */
 
 import { computed } from "vue";
@@ -18,15 +22,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     const formatNum = (n: number | string) => formatNumber(n, 2);
 
     const anchor = useTrustAnchor({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
+      storage: ctx.os.storage,
+      payment: ctx.os.payment,
       t: ctx.t,
     });
 
