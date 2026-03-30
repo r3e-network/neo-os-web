@@ -11,6 +11,7 @@ import type { MiniAppManifest } from "./miniapp-manifest";
 import type { StatusType } from "../composables/useStatusMessage";
 import type { PlatformServices } from "../services";
 export type { PlatformServices } from "../services";
+import type { OSServices } from "../services/os/types";
 
 // ============================================================================
 // Platform Services
@@ -20,6 +21,8 @@ export type { PlatformServices } from "../services";
 export interface MiniAppContext {
   /** Platform services (chain, balance, transfer, oracle, AA, events, cache, notify, clipboard, fmt) */
   services: PlatformServices;
+  /** OS system service proxies (storage, payment, game, badge, etc.) */
+  os: OSServices;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
   /** Reactive state that the platform reads for stats/sidebar display */

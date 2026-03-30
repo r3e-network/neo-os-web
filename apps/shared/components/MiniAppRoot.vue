@@ -245,6 +245,7 @@ const fallbackMessage = tFn("errorFallback");
 
 const ctx: MiniAppContext = {
   services,
+  os: services.os,
   t: tFn,
   state: appState,
   setStatus: (msg: string, type: StatusType) => {
