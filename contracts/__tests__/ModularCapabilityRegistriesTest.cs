@@ -1,3 +1,8 @@
+// DEPRECATED: These tests validate the v1 ModuleRegistry/RecipeRegistry/InstanceRegistry
+// chain which was replaced by direct OS service contracts in MiniApp-OS v2 (2026-03-31).
+// See _archive/deprecated-contracts/ for the archived contract source.
+// These tests are retained for reference but the contracts are no longer in active development.
+
 using Xunit;
 
 namespace NeoMiniAppPlatform.Contracts.Tests

@@ -1,3 +1,7 @@
+// DEPRECATED: This script registers module/recipe/instance entries in the v1 registry
+// contracts which have been replaced by direct OS service contracts in MiniApp-OS v2.
+// Retained for reference; new registrations should use the v2 OS service contract tooling.
+
 //go:build scripts
 
 package main
