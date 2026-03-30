@@ -1,29 +1,46 @@
 /**
  * useMemorialShrine — Domain logic for the Memorial Shrine miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Contains memorial browsing, creation, and tribute payment logic.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (NFTProxy, StorageProxy, BadgeProxy) via edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.invoke("createMemorial", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("PayTribute", [...])
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     nftService.mint({ type: "memorial", ...form })
+ *     storageService.list("memorials:", 50)
+ *     storageService.set("tribute:<memorialId>", { ... })
+ *     storageService.list("obituaries:", 20)
+ *     badgeService.award("memorial-creator", "")
  */
 
 import { ref, computed, onUnmounted } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { NFTProxy } from "@shared/services/os/NFTProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readQueryParam } from "@shared/utils/url";
 import type { Memorial } from "../types";
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const WAIT_AFTER_TRANSFER_MS = 4000;
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseMemorialShrineOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS NFTProxy instance from ctx.os.nft */
+  nftService: NFTProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -31,7 +48,13 @@ export interface UseMemorialShrineOptions {
 // Composable
 // ============================================================================
 
-export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptions) {
+export function useMemorialShrine({
+  nftService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseMemorialShrineOptions) {
   const memorials = ref<Memorial[]>([]);
   const visitedMemorials = ref<Memorial[]>([]);
   const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
@@ -46,21 +69,55 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
   const obituaryCount = computed(() => recentObituaries.value.length);
 
   // ------------------------------------------
-  // Read: load memorials
+  // Read: load memorials (via StorageProxy)
   // ------------------------------------------
 
   const loadMemorials = async () => {
-    // Placeholder: In production this would call chain.read or chain.listEvents
-    memorials.value = [
-      { id: 1, name: "\u5F20\u5FB7\u660E", photoHash: "", birthYear: 1938, deathYear: 2024, relationship: "\u7236\u4EB2", biography: "\u4E00\u751F\u52E4\u52B3\u6734\u5B9E\uFF0C\u70ED\u7231\u5BB6\u5EAD\u3002", obituary: "", hasRecentTribute: true, offerings: { incense: 128, candle: 45, flower: 56, fruit: 34, wine: 12, feast: 3 } },
-      { id: 2, name: "\u674E\u6DD1\u82AC", photoHash: "", birthYear: 1942, deathYear: 2023, relationship: "\u6BCD\u4EB2", biography: "\u6148\u6BCD\u4E00\u751F\u4E3A\u5BB6\u5EAD\u5949\u732E\u3002", obituary: "", hasRecentTribute: true, offerings: { incense: 89, candle: 32, flower: 67, fruit: 21, wine: 8, feast: 2 } },
-      { id: 3, name: "\u738B\u5EFA\u56FD", photoHash: "", birthYear: 1950, deathYear: 2022, relationship: "\u7237\u7237", biography: "\u8001\u9769\u547D\uFF0C\u4E00\u751F\u6B63\u76F4\u3002", obituary: "", hasRecentTribute: false, offerings: { incense: 56, candle: 23, flower: 34, fruit: 12, wine: 5, feast: 1 } },
-    ];
-    recentObituaries.value = [
-      { id: 1, name: "\u5F20\u8001\u5148\u751F", text: "\u5F20\u8001\u5148\u751F\u4E8E2024\u5E741\u6708\u9A7E\u9E64\u897F\u53BB" },
-      { id: 2, name: "\u674E\u5976\u5976", text: "\u6148\u6BCD\u674E\u5976\u5976\u5B89\u8BE6\u79BB\u4E16" },
-    ];
+    try {
+      const memorialMap = await storageService.list("memorials:", 50);
+      if (memorialMap && typeof memorialMap === "object") {
+        const items: Memorial[] = [];
+        for (const [, value] of Object.entries(memorialMap)) {
+          const stored = value as Memorial;
+          if (stored && stored.id) {
+            items.push(stored);
+          }
+        }
+        memorials.value = items.length > 0 ? items : getDefaultMemorials();
+      } else {
+        memorials.value = getDefaultMemorials();
+      }
+    } catch (_e) {
+      memorials.value = getDefaultMemorials();
+    }
+
+    try {
+      const obituaryMap = await storageService.list("obituaries:", 20);
+      if (obituaryMap && typeof obituaryMap === "object") {
+        const items: { id: number; name: string; text: string }[] = [];
+        for (const [, value] of Object.entries(obituaryMap)) {
+          const stored = value as { id: number; name: string; text: string };
+          if (stored && stored.id) items.push(stored);
+        }
+        recentObituaries.value = items.length > 0 ? items : getDefaultObituaries();
+      } else {
+        recentObituaries.value = getDefaultObituaries();
+      }
+    } catch (_e) {
+      recentObituaries.value = getDefaultObituaries();
+    }
   };
+
+  const getDefaultMemorials = (): Memorial[] => [
+    { id: 1, name: "\u5F20\u5FB7\u660E", photoHash: "", birthYear: 1938, deathYear: 2024, relationship: "\u7236\u4EB2", biography: "\u4E00\u751F\u52E4\u52B3\u6734\u5B9E\uFF0C\u70ED\u7231\u5BB6\u5EAD\u3002", obituary: "", hasRecentTribute: true, offerings: { incense: 128, candle: 45, flower: 56, fruit: 34, wine: 12, feast: 3 } },
+    { id: 2, name: "\u674E\u6DD1\u82AC", photoHash: "", birthYear: 1942, deathYear: 2023, relationship: "\u6BCD\u4EB2", biography: "\u6148\u6BCD\u4E00\u751F\u4E3A\u5BB6\u5EAD\u5949\u732E\u3002", obituary: "", hasRecentTribute: true, offerings: { incense: 89, candle: 32, flower: 67, fruit: 21, wine: 8, feast: 2 } },
+    { id: 3, name: "\u738B\u5EFA\u56FD", photoHash: "", birthYear: 1950, deathYear: 2022, relationship: "\u7237\u7237", biography: "\u8001\u9769\u547D\uFF0C\u4E00\u751F\u6B63\u76F4\u3002", obituary: "", hasRecentTribute: false, offerings: { incense: 56, candle: 23, flower: 34, fruit: 12, wine: 5, feast: 1 } },
+  ];
+
+  const getDefaultObituaries = () => [
+    { id: 1, name: "\u5F20\u8001\u5148\u751F", text: "\u5F20\u8001\u5148\u751F\u4E8E2024\u5E741\u6708\u9A7E\u9E64\u897F\u53BB" },
+    { id: 2, name: "\u674E\u5976\u5976", text: "\u6148\u6BCD\u674E\u5976\u5976\u5B89\u8BE6\u79BB\u4E16" },
+  ];
 
   const loadVisitedMemorials = async () => {
     visitedMemorials.value = memorials.value.slice(0, 2);
@@ -114,9 +171,14 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
   };
 
   // ------------------------------------------
-  // Write: create memorial
+  // Write: create memorial (via NFTProxy)
   // ------------------------------------------
 
+  /**
+   * Create a memorial via NFTProxy.mint() with soulbound metadata.
+   * The edge function handles the createMemorial contract call and
+   * stores the memorial data via storage.
+   */
   const createMemorial = async (form: {
     name: string;
     photoHash: string;
@@ -129,18 +191,23 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      const addr = await chain.ensureWallet();
-      await chain.invoke("createMemorial", [
-        { type: "Hash160", value: addr },
-        { type: "String", value: form.name },
-        { type: "String", value: form.photoHash },
-        { type: "String", value: form.relationship },
-        { type: "Integer", value: String(form.birthYear || 0) },
-        { type: "Integer", value: String(form.deathYear || 0) },
-        { type: "String", value: form.biography },
-        { type: "String", value: form.obituary },
-      ]);
+      await nftService.mint({
+        type: "memorial",
+        soulbound: true,
+        name: form.name,
+        photoHash: form.photoHash,
+        relationship: form.relationship,
+        birthYear: form.birthYear,
+        deathYear: form.deathYear,
+        biography: form.biography,
+        obituary: form.obituary,
+      });
+
       eventBus.emit("memorial:created", { name: form.name });
+
+      // Hint badge for memorial creator (fire-and-forget)
+      badgeService.award("memorial-creator", "").catch(() => {});
+
       await loadMemorials();
     } finally {
       isSubmitting.value = false;
@@ -148,9 +215,13 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
   };
 
   // ------------------------------------------
-  // Write: pay tribute (GAS transfer + contract call)
+  // Write: pay tribute (via StorageProxy)
   // ------------------------------------------
 
+  /**
+   * Pay tribute via StorageProxy.set().
+   * The edge function handles the GAS transfer + PayTribute contract call.
+   */
   const payTribute = async (
     memorialId: number,
     offeringType: number,
@@ -160,35 +231,17 @@ export function useMemorialShrine({ chain, eventBus, t }: UseMemorialShrineOptio
     if (isPaying.value) return;
     isPaying.value = true;
     try {
-      const addr = await chain.ensureWallet();
-      const contractAddr = chain.contractAddress.value;
-      if (!contractAddr) throw new Error(t("contractUnavailable"));
-
-      const offeringAmount = String(Math.round(Number(offeringCost) * 1e8));
-
-      // Step 1: Transfer GAS to the contract with a memo
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: addr },
-          { type: "Hash160", value: contractAddr },
-          { type: "Integer", value: offeringAmount },
-          { type: "String", value: `miniapp-memorial-shrine:tribute:${memorialId}:${offeringType}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
-
-      // Step 2: Call PayTribute on the contract
-      await chain.invoke("PayTribute", [
-        { type: "Hash160", value: addr },
-        { type: "Integer", value: String(memorialId) },
-        { type: "Integer", value: String(offeringType) },
-        { type: "String", value: message },
-      ]);
+      await storageService.set(`tribute:${memorialId}`, {
+        memorialId,
+        offeringType,
+        offeringCost,
+        message,
+      });
 
       eventBus.emit("tribute:paid", { memorialId, offeringType });
+
+      // Hint badge for tribute payer (fire-and-forget)
+      badgeService.award("tribute-payer", "").catch(() => {});
 
       // Reload and update selected memorial
       await loadMemorials();

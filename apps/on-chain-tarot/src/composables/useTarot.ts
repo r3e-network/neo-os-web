@@ -1,29 +1,65 @@
 /**
- * useTarot -- Domain logic for On-Chain Tarot
+ * useTarot — Domain logic for On-Chain Tarot (OS Services)
  *
- * Receives ChainService + EventBus from PlatformServices instead of
- * using Vue composables directly. No onMounted/onUnmounted -- lifecycle
- * is managed by defineMiniApp.
+ * Migrated to OS service proxies. Contract interaction is delegated to
+ * OS services (GameProxy, StorageProxy, BadgeProxy) via edge functions.
+ * The oracle service (ctx.services.oracle) is preserved as-is since
+ * oracle callbacks require the platform service layer.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.ensureWallet()
+ *     chain.invokeWithPayment(fee, memo, "requestReading", [...])
+ *     chain.listAllEvents("ReadingRequested")
+ *     chain.listAllEvents("ReadingCompleted")
+ *
+ *   AFTER (OS proxy):
+ *     gameService.placeBet("tarot", "reading")       — request reading (includes payment)
+ *     storageService.get(`reading:${readingId}`)      — poll for completed reading
+ *     storageService.list("reading:")                 — load reading count
+ *     badgeService.award(badgeId, user)               — award tarot badges
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Card deck mapping and flip logic
+ *   - Loading UI flags
+ *   - Question input state
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { parseStackItem } from "@shared/utils/neo";
-import { toFixed8 } from "@shared/utils/format";
-import { pollForEvent } from "@shared/utils/errorHandling";
-import { waitForListedEventByTransaction } from "@shared/utils";
+import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { Card } from "../pages/index/components/TarotCard.vue";
 import { TAROT_DECK } from "../pages/index/components/tarot-data";
 
 export interface UseTarotOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS GameProxy instance from ctx.os.game */
+  gameService: GameProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-const APP_ID = "miniapp-onchaintarot";
+/**
+ * Shape of a completed reading returned by the edge function.
+ */
+interface ReadingResult {
+  readingId: string;
+  cards: number[];
+  status: "completed" | "pending";
+}
 
-export function useTarot({ chain, eventBus, t }: UseTarotOptions) {
+export function useTarot({
+  gameService,
+  storageService,
+  badgeService,
+  t,
+}: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
   const drawn = ref<Card[]>([]);
   const hasDrawn = computed(() => drawn.value.length === 3);
@@ -32,80 +68,85 @@ export function useTarot({ chain, eventBus, t }: UseTarotOptions) {
   const question = ref("");
   const isLoading = ref(false);
 
-  const listEventRecords = async (eventName: string) => {
-    return (await chain.listAllEvents(eventName)) as Record<string, unknown>[];
+  /**
+   * Poll for a completed reading via StorageProxy.
+   * The edge function returns the reading result once the oracle has
+   * completed the VRF callback and the ReadingCompleted event fires.
+   */
+  const waitForReading = async (readingId: string): Promise<ReadingResult | null> => {
+    const maxAttempts = 30;
+    const pollIntervalMs = 1500;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const result = await storageService.get(`reading:${readingId}`);
+        if (result && typeof result === "object") {
+          const data = result as Record<string, unknown>;
+          if (data.status === "completed" && Array.isArray(data.cards)) {
+            return {
+              readingId: String(data.readingId || readingId),
+              cards: (data.cards as unknown[]).map(Number),
+              status: "completed",
+            };
+          }
+        }
+      } catch {
+        // Continue polling
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+    return null;
   };
 
-  const waitForEventByTx = async (tx: unknown, eventName: string) => {
-    return waitForListedEventByTransaction(tx, {
-      listEvents: async () => listEventRecords(eventName),
-      timeoutMs: 30000,
-      pollIntervalMs: 1500,
-      errorMessage: t("readingPending"),
-    });
-  };
-
-  const waitForReading = async (readingId: string) => {
-    return pollForEvent(
-      async () => listEventRecords("ReadingCompleted"),
-      (evt: Record<string, unknown>) => {
-        const values = Array.isArray(evt?.state) ? (evt.state as unknown[]).map(parseStackItem) : [];
-        return String(values[0] ?? "") === String(readingId);
-      },
-      {
-        timeoutMs: 45000,
-        pollIntervalMs: 1500,
-        errorMessage: t("readingPending"),
-      },
-    );
-  };
-
+  /**
+   * Draw tarot cards via OS services.
+   *
+   * Flow:
+   * 1. Place a "bet" via GameProxy (includes GAS payment via edge function)
+   * 2. Poll StorageProxy for the completed reading (oracle VRF callback)
+   * 3. Map returned card IDs to the tarot deck
+   */
   const draw = async () => {
     if (isLoading.value) return;
     isLoading.value = true;
 
-    const walletAddress = await chain.ensureWallet();
+    try {
+      const prompt = question.value.trim() || t("defaultQuestion");
 
-    const prompt = question.value.trim() || t("defaultQuestion");
-    // Contract signature: RequestReading(user, question, spreadType, category)
-    const result = await chain.invokeWithPayment(
-      toFixed8("0.1"),
-      `${APP_ID}:reading:${Date.now()}`,
-      "requestReading",
-      [
-        { type: "Hash160", value: walletAddress },
-        { type: "String", value: prompt.slice(0, 200) },
-        { type: "Integer", value: "2" }, // spreadType: 2 = three-card
-        { type: "Integer", value: "1" }, // category: 1 = general/default
-      ],
-    );
-    const requestedEvt = await waitForEventByTx(result.txid, "ReadingRequested");
-    if (!requestedEvt) throw new Error(t("readingPending"));
-    const requestedRecord = requestedEvt as unknown as Record<string, unknown>;
-    const requestedValues = Array.isArray(requestedRecord?.state)
-      ? (requestedRecord.state as unknown[]).map(parseStackItem)
-      : [];
-    const readingId = String(requestedValues[0] ?? "");
-    if (!readingId) throw new Error(t("readingPending"));
+      // Step 1: Request reading via GameProxy — the edge function handles
+      // wallet connection, GAS payment, and requestReading contract invocation
+      const result = await gameService.placeBet("tarot", prompt.slice(0, 200)) as unknown as Record<string, unknown>;
 
-    const completedEvt = await waitForReading(readingId);
-    if (!completedEvt) throw new Error(t("readingPending"));
-    const completedRecord = completedEvt as unknown as Record<string, unknown>;
-    const values = Array.isArray(completedRecord?.state)
-      ? (completedRecord.state as unknown[]).map(parseStackItem)
-      : [];
-    const cards = Array.isArray(values[2]) ? values[2].map((v) => Number(v)) : [];
-    drawn.value = cards.map((cardId: number) => {
-      const card = tarotDeck.find((item) => item.id === cardId);
-      if (!card) {
-        return { id: cardId, name: `Card ${cardId}`, icon: "\uD83C\uDCA0", flipped: false };
+      // Extract reading ID from the response
+      const readingId = String(result?.readingId || result?.poolId || Date.now());
+
+      // Step 2: Poll for completed reading via StorageProxy
+      const reading = await waitForReading(readingId);
+      if (!reading) throw new Error(t("readingPending"));
+
+      // Step 3: Map card IDs to deck entries
+      drawn.value = reading.cards.map((cardId: number) => {
+        const card = tarotDeck.find((item) => item.id === cardId);
+        if (!card) {
+          return { id: cardId, name: `Card ${cardId}`, icon: "\uD83C\uDCA0", flipped: false };
+        }
+        return { ...card, flipped: false };
+      });
+
+      readingsCount.value += 1;
+      question.value = "";
+
+      // Award first-reading badge (fire-and-forget)
+      if (readingsCount.value === 1) {
+        badgeService.award("first-reading", "").catch(() => {});
       }
-      return { ...card, flipped: false };
-    });
-    readingsCount.value += 1;
-    question.value = "";
-    isLoading.value = false;
-    return { success: true };
+
+      isLoading.value = false;
+      return { success: true };
+    } catch (e) {
+      isLoading.value = false;
+      throw e;
+    }
   };
 
   const flipCard = (index: number) => {
@@ -124,9 +165,16 @@ export function useTarot({ chain, eventBus, t }: UseTarotOptions) {
     return `${t("past")}: ${past.name} \u00B7 ${t("present")}: ${present.name} \u00B7 ${t("future")}: ${future.name}`;
   };
 
+  /**
+   * Load reading count via StorageProxy.
+   * The edge function aggregates ReadingCompleted events.
+   */
   const loadReadingCount = async () => {
     try {
-      readingsCount.value = (await listEventRecords("ReadingCompleted")).length;
+      const raw = await storageService.list("reading:");
+      if (raw && typeof raw === "object") {
+        readingsCount.value = Object.keys(raw).length;
+      }
     } catch (_e) {
       console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
       readingsCount.value = Math.max(readingsCount.value, 0);

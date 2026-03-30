@@ -1,5 +1,23 @@
 /**
- * AA Permissions Lab — Entry Point (New Pattern)
+ * AA Permissions Lab — Entry Point (OS Services Pattern)
+ *
+ * This miniapp primarily uses the AA platform service for account
+ * abstraction operations. The chain service is retained for aaCore
+ * contract reads/writes since there is no OS-level AA proxy.
+ *
+ * StorageProxy (ctx.os.storage) is used for caching inspected
+ * permissions state so results persist across sessions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useAAPermissionsLab({ chain, storageService, t })
+ *
+ * The composable calls:
+ *   ctx.services.chain.invokeRead(aaCore, method, params)   — read AA state
+ *   ctx.services.chain.invokeWrite(aaCore, method, params)  — write AA state
+ *   ctx.os.storage.set(`permissions:${hash}`, data)         — cache results
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -14,18 +32,22 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires AA platform service + OS storage to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.services.chain for AA
+   * contract reads/writes and ctx.os.storage for caching permissions state.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const lab = useAAPermissionsLab({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      storageService: ctx.os.storage,
       t: ctx.t,
     });
 
     ctx.registerAction("refresh", async (accountIdHash: string) => {
       lab.form.accountIdHash = accountIdHash;
-      await platformServices.notify.guard(
+      await ctx.services.notify.guard(
         () => lab.refreshState(),
         "inspectComplete",
         "inspectFailed",
@@ -42,7 +64,7 @@ defineMiniApp({
         lab.form.accountIdHash = accountIdHash;
         lab.form.verifierHash = verifierHash;
         lab.form.verifierParamsHex = verifierParamsHex;
-        await platformServices.notify.guard(
+        await ctx.services.notify.guard(
           () => lab.submitVerifier(),
           "successVerifier",
           "updateVerifierFailed",
@@ -55,7 +77,7 @@ defineMiniApp({
       async (accountIdHash: string, hookHash: string) => {
         lab.form.accountIdHash = accountIdHash;
         lab.form.hookHash = hookHash;
-        await platformServices.notify.guard(
+        await ctx.services.notify.guard(
           () => lab.submitHook(),
           "successHook",
           "updateHookFailed",

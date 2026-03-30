@@ -1,15 +1,30 @@
 /**
  * useForeverAlbum — Domain logic for the Forever Album miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Includes photo browsing, decryption, and upload functionality.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (NFTProxy, StorageProxy, BadgeProxy) via edge functions.
  *
- * Replaces the legacy useAlbumPhotos.ts and usePhotoUpload.ts which
- * manually wired useContractInteraction + useStatusMessage + useWallet.
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("getUserPhotoCount", [...])
+ *     chain.read("getUserPhotoIds", [...])
+ *     chain.read("getPhoto", [...])
+ *     chain.invoke("uploadPhotos", [...])
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.list("photos:", 50)
+ *     storageService.get("photo:<id>")
+ *     nftService.mint({ type: "photo", ... })
+ *     storageService.set("upload:batch", { payloads, encrypted })
+ *     badgeService.award("album-creator", "")
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { NFTProxy } from "@shared/services/os/NFTProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { decryptPayload, encryptPayload } from "../utils/crypto";
 import type { PhotoItem, UploadItem } from "../types";
 
@@ -26,16 +41,40 @@ const MAX_TOTAL_BYTES = 60000;
 // ============================================================================
 
 export interface UseForeverAlbumOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS NFTProxy instance from ctx.os.nft */
+  nftService: NFTProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredPhoto {
+  id: string;
+  data: string;
+  encrypted: boolean;
+  createdAt: number;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) {
+export function useForeverAlbum({
+  nftService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseForeverAlbumOptions) {
   // ── Photo browsing state ─────────────────────────────────────────────
   const loadingPhotos = ref(false);
   const photos = ref<PhotoItem[]>([]);
@@ -61,54 +100,31 @@ export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) 
   const publicCount = computed(() => photos.value.filter((p) => !p.encrypted).length);
   const totalPayloadSize = computed(() => selectedImages.value.reduce((sum, item) => sum + item.size, 0));
 
-  // ── Helpers ───────────────────────────────────────────────────────────
+  // ── Photo loading (via StorageProxy) ────────────────────────────────
 
-  const parsePhotoInfo = (raw: unknown): PhotoItem | null => {
-    if (!Array.isArray(raw) || raw.length < 5) return null;
-    const [photoId, _owner, encrypted, data, createdAt] = raw;
-    if (!photoId || !data) return null;
-    return {
-      id: String(photoId),
-      data: String(data),
-      encrypted: Boolean(encrypted),
-      createdAt: Number(createdAt || 0),
-    };
-  };
-
-  // ── Photo loading ────────────────────────────────────────────────────
-
+  /**
+   * Load all photos via StorageProxy.list().
+   * The edge function handles the contract reads and returns normalized data.
+   */
   const loadPhotos = async () => {
-    if (!chain.address.value) {
-      photos.value = [];
-      return;
-    }
     loadingPhotos.value = true;
     try {
-      const count = Number(
-        (await chain.read("getUserPhotoCount", [
-          { type: "Hash160", value: chain.address.value },
-        ])) || 0,
-      );
-      if (!count) {
-        photos.value = [];
-        return;
+      const photoMap = await storageService.list("photos:", 50);
+      const entries: PhotoItem[] = [];
+      if (photoMap && typeof photoMap === "object") {
+        for (const [, value] of Object.entries(photoMap)) {
+          const stored = value as StoredPhoto;
+          if (stored && stored.id && stored.data) {
+            entries.push({
+              id: String(stored.id),
+              data: String(stored.data),
+              encrypted: Boolean(stored.encrypted),
+              createdAt: Number(stored.createdAt || 0),
+            });
+          }
+        }
       }
-      const limit = Math.min(count, 50);
-      const idsRaw = await chain.read("getUserPhotoIds", [
-        { type: "Hash160", value: chain.address.value },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(limit) },
-      ]);
-      const ids = Array.isArray(idsRaw) ? idsRaw.map((id) => String(id)).filter(Boolean) : [];
-      const entries = await Promise.all(
-        ids.map(async (id) => {
-          const detail = await chain.read("getPhoto", [{ type: "ByteArray", value: id }]);
-          return parsePhotoInfo(detail);
-        }),
-      );
-      photos.value = entries
-        .filter((entry): entry is PhotoItem => !!entry)
-        .sort((a, b) => b.createdAt - a.createdAt);
+      photos.value = entries.sort((a, b) => b.createdAt - a.createdAt);
     } catch (e) {
       console.warn("[useForeverAlbum] loadPhotos failed:", e instanceof Error ? e.message : String(e));
     } finally {
@@ -166,10 +182,9 @@ export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) 
     }
   };
 
-  // ── Upload ───────────────────────────────────────────────────────────
+  // ── Upload (via NFTProxy + StorageProxy) ────────────────────────────
 
   const openUpload = () => {
-    if (!chain.address.value) return;
     showUpload.value = true;
     selectedImages.value = [];
     isEncrypted.value = false;
@@ -184,9 +199,12 @@ export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) 
     selectedImages.value = selectedImages.value.filter((item) => item.id !== id);
   };
 
+  /**
+   * Upload photos via NFTProxy.mint() for each photo.
+   * The edge function handles the contract call for storing photo data on-chain.
+   */
   const uploadPhotos = async () => {
     if (uploading.value || selectedImages.value.length === 0) return;
-    if (!chain.address.value) return;
     if (isEncrypted.value && !password.value) {
       eventBus.emit("album:error", { message: t("passwordRequired") });
       return;
@@ -194,8 +212,6 @@ export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) 
 
     uploading.value = true;
     try {
-      await chain.ensureWallet();
-
       const payloads: string[] = [];
       let totalSize = 0;
       for (const item of selectedImages.value) {
@@ -208,21 +224,20 @@ export function useForeverAlbum({ chain, eventBus, t }: UseForeverAlbumOptions) 
         payloads.push(payload);
       }
 
-      await chain.invoke(
-        "uploadPhotos",
-        [
-          {
-            type: "Array",
-            value: payloads.map((p) => ({ type: "String", value: p })),
-          } as unknown as { type: "Array"; value: string },
-          {
-            type: "Array",
-            value: payloads.map(() => ({ type: "Boolean", value: isEncrypted.value })),
-          } as unknown as { type: "Array"; value: string },
-        ],
-      );
+      // Upload each photo as an NFT via the edge function
+      for (const payload of payloads) {
+        await nftService.mint({
+          type: "photo",
+          data: payload,
+          encrypted: isEncrypted.value,
+        });
+      }
 
       eventBus.emit("album:uploaded", { action: t("uploadSuccess") });
+
+      // Hint badge for album creator (fire-and-forget)
+      badgeService.award("album-creator", "").catch(() => {});
+
       closeUpload();
       selectedImages.value = [];
       await loadPhotos();

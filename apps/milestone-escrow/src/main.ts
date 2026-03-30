@@ -1,9 +1,24 @@
 /**
- * milestone-escrow — Entry Point (New Pattern)
+ * milestone-escrow — Entry Point (OS Services Pattern)
  *
- * Wires the useMilestoneEscrow composable to the platform via defineMiniApp.
- * The composable handles all domain logic; the platform renders stats,
- * sidebar, and shell chrome from manifest.ts configuration.
+ * This miniapp uses OS service proxies (ctx.os.escrow, ctx.os.payment)
+ * instead of direct chain calls. The EscrowProxy was designed to replace
+ * this exact app's pattern — milestone creation, approval, claiming, and
+ * cancellation map directly to EscrowProxy methods.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useMilestoneEscrow({ escrowService, paymentService, t })
+ *
+ * The composable calls:
+ *   ctx.os.escrow.create(params)                       — create escrow
+ *   ctx.os.escrow.completeMilestone(escrowId, index)   — approve milestone
+ *   ctx.os.escrow.fund(escrowId)                       — claim milestone
+ *   ctx.os.escrow.refund(escrowId)                     — cancel escrow
+ *   ctx.os.escrow.get(escrowId)                        — get details
+ *   ctx.os.payment.deposit(amount, memo)               — fund escrow
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -19,14 +34,22 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS escrow and payment services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os.escrow and
+   * ctx.os.payment (OS service proxies) for all data loading and
+   * mutations instead of ctx.services.chain directly.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const escrow = useMilestoneEscrow({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      escrowService: ctx.os.escrow,
+      paymentService: ctx.os.payment,
       t: ctx.t,
     });
+
+    // Track wallet address from the platform's chain service
+    escrow.setAddress(ctx.services.chain.address.value ?? "");
 
     // ── Register actions for PlayArea dispatch ────────────────────────
     registerActions(ctx, {
@@ -35,7 +58,11 @@ defineMiniApp({
         errorKey: "error",
       },
       connectWallet: {
-        handler: () => escrow.connectWallet(),
+        handler: async () => {
+          await ctx.services.chain.ensureWallet();
+          escrow.setAddress(ctx.services.chain.address.value ?? "");
+          await escrow.connectWallet();
+        },
         successKey: "walletConnected",
         errorKey: "walletNotConnected",
       },
@@ -77,7 +104,7 @@ defineMiniApp({
       // ── State bindings ────────────────────────────────────────────
       // Keys match the `valueKey` fields in manifest.ts for stats/sidebar.
       state: {
-        address: platformServices.chain.address,
+        address: ctx.services.chain.address,
         contractReady: escrow.contractReady,
 
         // Manifest stat/sidebar bindings
