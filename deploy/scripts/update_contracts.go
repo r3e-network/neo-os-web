@@ -29,12 +29,19 @@ var contracts = []struct {
 	{"RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH", "RandomnessLog.nef", "RandomnessLog.manifest.json"},
 	{"Governance", "CONTRACT_GOVERNANCE_HASH", "Governance.nef", "Governance.manifest.json"},
 	{"AppRegistry", "CONTRACT_APPREGISTRY_HASH", "AppRegistry.nef", "AppRegistry.manifest.json"},
-	{"ModuleRegistry", "CONTRACT_MODULEREGISTRY_HASH", "ModuleRegistry.nef", "ModuleRegistry.manifest.json"},                             // deprecated - replaced by OS service contracts in v2
-	{"RecipeRegistry", "CONTRACT_RECIPEREGISTRY_HASH", "RecipeRegistry.nef", "RecipeRegistry.manifest.json"},                             // deprecated - replaced by OS service contracts in v2
-	{"MiniAppInstanceRegistry", "CONTRACT_MINIAPPINSTANCEREGISTRY_HASH", "MiniAppInstanceRegistry.nef", "MiniAppInstanceRegistry.manifest.json"}, // deprecated - replaced by OS service contracts in v2
 	{"FundingVault", "CONTRACT_FUNDINGVAULT_HASH", "FundingVault.nef", "FundingVault.manifest.json"},
 	{"StreamVesting", "CONTRACT_STREAMVESTING_HASH", "StreamVesting.nef", "StreamVesting.manifest.json"},
 	{"AutomationAnchor", "CONTRACT_AUTOMATIONANCHOR_HASH", "AutomationAnchor.nef", "AutomationAnchor.manifest.json"},
+	{"StorageService", "CONTRACT_STORAGESERVICE_HASH", "StorageService.nef", "StorageService.manifest.json"},
+	{"PaymentService", "CONTRACT_PAYMENTSERVICE_HASH", "PaymentService.nef", "PaymentService.manifest.json"},
+	{"ScriptEngine", "CONTRACT_SCRIPTENGINE_HASH", "ScriptEngine.nef", "ScriptEngine.manifest.json"},
+	{"CheckinService", "CONTRACT_CHECKINSERVICE_HASH", "CheckinService.nef", "CheckinService.manifest.json"},
+	{"BadgeService", "CONTRACT_BADGESERVICE_HASH", "BadgeService.nef", "BadgeService.manifest.json"},
+	{"LeaderboardService", "CONTRACT_LEADERBOARDSERVICE_HASH", "LeaderboardService.nef", "LeaderboardService.manifest.json"},
+	{"VestingService", "CONTRACT_VESTINGSERVICE_HASH", "VestingService.nef", "VestingService.manifest.json"},
+	{"GameService", "CONTRACT_GAMESERVICE_HASH", "GameService.nef", "GameService.manifest.json"},
+	{"EscrowService", "CONTRACT_ESCROWSERVICE_HASH", "EscrowService.nef", "EscrowService.manifest.json"},
+	{"NFTService", "CONTRACT_NFTSERVICE_HASH", "NFTService.nef", "NFTService.manifest.json"},
 }
 
 func main() {

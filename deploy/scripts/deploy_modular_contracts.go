@@ -1,6 +1,6 @@
-// DEPRECATED: This script deploys the v1 ModuleRegistry/RecipeRegistry/InstanceRegistry
-// contracts which have been replaced by direct OS service contracts in MiniApp-OS v2.
-// Retained for reference; new deployments should use the v2 OS service contract deploy scripts.
+// This script deploys the modular platform contracts (FundingVault, StreamVesting,
+// and OS service contracts for MiniApp-OS v2).
+// The v1 ModuleRegistry/RecipeRegistry/InstanceRegistry have been removed (see _archive/deprecated-contracts/).
 
 //go:build scripts
 
@@ -34,11 +34,18 @@ const (
 )
 
 var modularContracts = []string{
-	"ModuleRegistry",
-	"RecipeRegistry",
-	"MiniAppInstanceRegistry",
 	"FundingVault",
 	"StreamVesting",
+	"StorageService",
+	"PaymentService",
+	"ScriptEngine",
+	"CheckinService",
+	"BadgeService",
+	"LeaderboardService",
+	"VestingService",
+	"GameService",
+	"EscrowService",
+	"NFTService",
 }
 
 func main() {

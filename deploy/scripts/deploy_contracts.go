@@ -32,9 +32,6 @@ const (
 var contractsToDeploy = []string{
 	"Governance",
 	"AppRegistry",
-	"ModuleRegistry",         // deprecated - replaced by OS service contracts in v2
-	"RecipeRegistry",         // deprecated - replaced by OS service contracts in v2
-	"MiniAppInstanceRegistry", // deprecated - replaced by OS service contracts in v2
 	"FundingVault",
 	"StreamVesting",
 	"AutomationAnchor",
@@ -42,6 +39,16 @@ var contractsToDeploy = []string{
 	"PriceFeed",
 	"RandomnessLog",
 	"OracleService",
+	"StorageService",
+	"PaymentService",
+	"ScriptEngine",
+	"CheckinService",
+	"BadgeService",
+	"LeaderboardService",
+	"VestingService",
+	"GameService",
+	"EscrowService",
+	"NFTService",
 }
 
 func main() {
