@@ -1,8 +1,26 @@
 /**
- * Red Envelope — Entry Point (New Pattern)
+ * Red Envelope — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() + PlatformServices to wire the red envelope
- * composable to the platform. All domain logic lives in useRedEnvelope.
+ * This miniapp uses OS service proxies (ctx.os.game, ctx.os.payment,
+ * ctx.os.storage, ctx.os.badge) instead of direct chain calls. The
+ * proxies handle all contract interaction through edge functions, so the
+ * miniapp never touches contract hashes, parameter encoding, or event
+ * parsing.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useRedEnvelope({ gameService, paymentService, ... })
+ *
+ * The composable calls:
+ *   ctx.os.payment.deposit(amount, memo)      — fund envelope
+ *   ctx.os.game.createPool(config)            — create envelope pool
+ *   ctx.os.game.placeBet(poolId, "1")         — claim from envelope
+ *   ctx.os.storage.list("envelopes:", 120)    — load all envelopes
+ *   ctx.os.storage.list("claims:", 120)       — load user claims
+ *   ctx.os.storage.get("eligibility:<id>")    — check NEO eligibility
+ *   ctx.os.badge.award(badgeId, user)         — hint achievements
+ *
+ * Everything else (manifest, PlayArea, i18n) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -18,11 +36,18 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all data loading and mutations instead of ctx.services.chain.
+   */
   setup(ctx) {
-    const services = ctx.services;
     const envelope = useRedEnvelope({
-      chain: services.chain,
-      eventBus: services.events,
+      gameService: ctx.os.game,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
       t: ctx.t,
     });
 
@@ -124,7 +149,6 @@ defineMiniApp({
         envelopes: envelope.envelopes,
         claims: envelope.claims,
         pools: envelope.pools,
-        address: services.chain.address,
       },
 
       loadData: initialLoad,
