@@ -6,11 +6,14 @@
  * all derived/formatted state that PlayArea.vue needs.
  *
  * Receives ChainService + BalanceService + EventBus from PlatformServices
- * instead of relying on legacy useWallet/useContractInteraction.
+ * and StorageProxy from OS services. Chain reads against NEO/GAS native
+ * contracts stay on ChainService (external). Checklist persistence uses
+ * OS storage instead of raw localStorage.
  */
 
 import { computed } from "vue";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { useWalletAnalysis } from "./useWalletAnalysis";
 import { useHealthScore } from "./useHealthScore";
 
@@ -23,12 +26,13 @@ export interface UseWalletHealthOptions {
   chain: ChainService;
   balance: BalanceService;
   eventBus: EventBus;
+  storage: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useWalletHealth({ chain, balance, eventBus, t }: UseWalletHealthOptions) {
+export function useWalletHealth({ chain, balance, eventBus, storage, t }: UseWalletHealthOptions) {
   const analysis = useWalletAnalysis({ chain, balance, eventBus, t });
-  const health = useHealthScore(analysis.gasOk);
+  const health = useHealthScore(analysis.gasOk, storage);
 
   // ── Formatted display values ─────────────────────────────────────────
   const connectionStatus = computed(() =>

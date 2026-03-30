@@ -1,13 +1,15 @@
 /**
  * useSignAnything — Domain logic for the Neo Sign Anything miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Uses ChainService for both off-chain message signing and on-chain
- * broadcast via 0-GAS self-transfer.
+ * Receives ChainService + EventBus + ClipboardService from PlatformServices
+ * and StorageProxy from OS services. Chain calls target the native GAS
+ * contract (external) for broadcast, so they stay on ChainService.
+ * Session sign/broadcast counters are persisted via OS storage.
  */
 
 import { ref } from "vue";
 import type { ChainService, EventBus, ClipboardService } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const MAX_MESSAGE_BYTES = 1024;
@@ -23,10 +25,11 @@ export interface UseSignAnythingOptions {
   chain: ChainService;
   eventBus: EventBus;
   clipboard: ClipboardService;
+  storage: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythingOptions) {
+export function useSignAnything({ chain, eventBus, clipboard, storage, t }: UseSignAnythingOptions) {
   const message = ref("");
   const signature = ref("");
   const txHash = ref("");
@@ -62,6 +65,7 @@ export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythi
       }
 
       signCount.value += 1;
+      storage.set("signCount", signCount.value).catch(() => {});
       eventBus.emit("sign:success", { action: t("signBtn") });
     } catch (e) {
       eventBus.emit("sign:error", {
@@ -101,6 +105,7 @@ export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythi
 
       txHash.value = result.txid || t("txPending");
       broadcastCount.value += 1;
+      storage.set("broadcastCount", broadcastCount.value).catch(() => {});
       eventBus.emit("broadcast:success", { action: t("broadcastBtn") });
     } catch (e) {
       eventBus.emit("broadcast:error", {
@@ -117,7 +122,17 @@ export function useSignAnything({ chain, eventBus, clipboard, t }: UseSignAnythi
   };
 
   const loadData = async () => {
-    // No persistent data to load for sign-anything
+    // Restore persisted counters from OS storage
+    try {
+      const [sc, bc] = await Promise.all([
+        storage.get("signCount"),
+        storage.get("broadcastCount"),
+      ]);
+      if (typeof sc === "number") signCount.value = sc;
+      if (typeof bc === "number") broadcastCount.value = bc;
+    } catch {
+      // Counters are non-critical; ignore load failures
+    }
   };
 
   return {

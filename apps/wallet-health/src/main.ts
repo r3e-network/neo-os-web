@@ -1,5 +1,10 @@
 /**
- * wallet-health — Entry Point (New Pattern)
+ * wallet-health — Entry Point (OS Services Pattern)
+ *
+ * Uses OS storage proxy (ctx.os.storage) for persisting the security
+ * checklist instead of raw localStorage via runtime-cache.
+ * Chain reads against NEO/GAS native contracts remain on ctx.services.chain
+ * since those are external protocol contracts, not app-owned state.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -16,16 +21,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const health = useWalletHealth({
-      chain: platformServices.chain,
-      balance: platformServices.balance,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      balance: ctx.services.balance,
+      eventBus: ctx.services.events,
+      storage: ctx.os.storage,
       t: ctx.t,
     });
 
-    // Load persisted checklist on mount
+    // Load persisted checklist from OS storage on mount
     health.loadChecklist();
 
     // Register actions for PlayArea dispatch

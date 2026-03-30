@@ -1,13 +1,9 @@
 /**
- * Neo NS — Entry Point (New Pattern)
+ * Neo NS — Entry Point (OS Services Pattern)
  *
- * Wires the useNeoNS domain composable into the defineMiniApp platform,
- * following the same structure as daily-checkin and explorer:
- *
- *   1. PlatformServices provides chain, balance, events
- *   2. useNeoNS encapsulates all NNS domain logic
- *   3. Actions are registered for operation panel + PlayArea dispatch
- *   4. State keys match manifest valueKeys for stats/sidebar
+ * All chain calls target the external NNS contract, so they stay on
+ * ctx.services.chain. No app-owned contract state to migrate to OS
+ * services. The composable receives services directly from the context.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -25,11 +21,9 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const ns = useNeoNS({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -94,7 +88,7 @@ defineMiniApp({
       // Keys match the `valueKey` fields in manifest.ts
       state: {
         // Manifest stat/sidebar bindings
-        address: platformServices.chain.address,
+        address: ctx.services.chain.address,
         domainCount: ns.domainCount,
         walletStatus: ns.walletStatus,
         expiringSoon: ns.expiringSoon,
