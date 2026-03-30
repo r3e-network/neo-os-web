@@ -16,8 +16,11 @@ export abstract class OSServiceProxy {
 
   protected call<T = unknown>(
     method: string,
-    params: Record<string, unknown> = {},
+    params: Record<string, unknown> | object = {},
   ): Promise<T> {
-    return this.edge.call<T>(`${this.servicePrefix}-${method}`, params);
+    return this.edge.call<T>(
+      `${this.servicePrefix}-${method}`,
+      params as Record<string, unknown>,
+    );
   }
 }
