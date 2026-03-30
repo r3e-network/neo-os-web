@@ -15,7 +15,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
     public delegate void DataDeletedHandler(string appId, string key);
     public delegate void AccessGrantedHandler(string ownerAppId, string readerAppId, string keyPrefix);
     public delegate void AccessRevokedHandler(string ownerAppId, string readerAppId, string keyPrefix);
-    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void StorageAdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
 
     [DisplayName("StorageService")]
     [ManifestExtra("Author", "R3E Network")]
@@ -50,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
         public static event AccessRevokedHandler OnAccessRevoked = delegate { };
 
         [DisplayName("AdminChanged")]
-        public static event AdminChangedHandler OnAdminChanged = delegate { };
+        public static event StorageAdminChangedHandler OnAdminChanged = delegate { };
 
         // ── Lifecycle ──────────────────────────────────────────────
 

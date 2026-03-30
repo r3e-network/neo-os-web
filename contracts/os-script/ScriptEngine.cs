@@ -16,7 +16,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
     public delegate void ScriptExecutedHandler(string appId, string hookPoint, bool success);
     public delegate void ScriptDisabledHandler(string appId, string hookPoint);
     public delegate void GlobalScriptPauseHandler(bool paused);
-    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void ScriptAdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
 
     /// <summary>
     /// ScriptEngine -- on-chain NeoVM bytecode execution at hook points.
@@ -83,7 +83,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
         public static event GlobalScriptPauseHandler OnGlobalScriptPause = delegate { };
 
         [DisplayName("AdminChanged")]
-        public static event AdminChangedHandler OnAdminChanged = delegate { };
+        public static event ScriptAdminChangedHandler OnAdminChanged = delegate { };
 
         // ----------------------------------------------------------------
         // Lifecycle
