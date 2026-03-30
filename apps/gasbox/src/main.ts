@@ -1,20 +1,36 @@
 /**
- * GasBox — Entry Point (New Pattern)
+ * GasBox — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire the gacha composables to the platform.
- * All composables receive ChainService/EventBus from PlatformServices.
+ * This miniapp uses OS service proxies (ctx.os.game, ctx.os.payment,
+ * ctx.os.storage, ctx.os.badge, ctx.os.escrow) instead of direct chain
+ * calls. The proxies handle all contract interaction through edge
+ * functions, so the miniapp never touches contract hashes, parameter
+ * encoding, or event parsing.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useGasBox({ gameService, paymentService, ... })
+ *
+ * The composable calls:
+ *   ctx.os.game.getPoolState("machines")          — load all machines
+ *   ctx.os.game.placeBet("play", machineId)       — play a machine
+ *   ctx.os.game.placeBet("buy", machineId)        — buy a machine
+ *   ctx.os.game.createPool(config)                — create machine
+ *   ctx.os.payment.deposit(amount, memo)          — GAS payments
+ *   ctx.os.payment.withdraw(amount)               — withdrawals
+ *   ctx.os.storage.get/set(key, value)            — machine config/state
+ *   ctx.os.escrow.create/refund(...)              — sale listings
+ *   ctx.os.badge.award(badgeId, "")               — achievement hints
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
-import { computed, watch } from "vue";
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useGachaMachines } from "./composables/useGachaMachines";
-import { useGachaPlay } from "./composables/useGachaPlay";
-import { useGachaWallet } from "./composables/useGachaWallet";
-import { useGachaManagement } from "./composables/useGachaManagement";
-import { useGachaPublish } from "./composables/useGachaPublish";
+import { useGasBox } from "./composables/useGasBox";
 import type { Machine } from "./types";
 
 defineMiniApp({
@@ -23,179 +39,115 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all data loading and mutations instead of ctx.services.chain.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
-    const { chain, events: eventBus } = platformServices;
-
-    const {
-      machines,
-      selectedMachine,
-      isLoadingMachines,
-      loadMachines,
-      selectMachine,
-      setActionLoading,
-      actionLoading,
-      walletHash,
-      contractAddress,
-    } = useGachaMachines({ chain, t: ctx.t });
-
-    const {
-      isPlaying,
-      showResult,
-      resultItem,
-      playError,
-      showFireworks,
-      resetResult,
-      playMachine,
-      buyMachine,
-    } = useGachaPlay({ chain, eventBus, t: ctx.t });
-
-    const { address, requestWallet, handleWalletConnect } = useGachaWallet({
-      chain,
+    const gasbox = useGasBox({
+      gameService: ctx.os.game,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      escrowService: ctx.os.escrow,
       t: ctx.t,
     });
 
-    const {
-      updateMachinePrice,
-      toggleMachineActive,
-      toggleMachineListed,
-      listMachineForSale,
-      cancelMachineSale,
-      depositItem,
-      withdrawItem,
-    } = useGachaManagement({ chain, t: ctx.t });
-
-    const { isPublishing, publishMachine } = useGachaPublish({
-      chain,
-      eventBus,
-      t: ctx.t,
+    // Register actions so they can be called from operation panels or
+    // from the PlayArea via the injected action registry.
+    registerActions(ctx, {
+      play: {
+        handler: async () => {
+          await gasbox.playMachine();
+        },
+        successKey: "congratulations",
+      },
+      buy: {
+        handler: async () => {
+          await gasbox.buyMachine();
+        },
+        successKey: "buyMachine",
+      },
+      publish: {
+        handler: async (machineData: unknown) => {
+          await gasbox.publishMachine(
+            machineData as {
+              name: string;
+              description: string;
+              category: string;
+              tags: string;
+              price: string;
+              items: {
+                name: string;
+                probability: number;
+                icon: string;
+                rarity: string;
+                assetType: string;
+                assetHash: string;
+                amount: string;
+                tokenId: string;
+              }[];
+            },
+            (msg: string, type: string) =>
+              ctx.setStatus(msg, type as "success" | "error" | "loading"),
+          );
+        },
+        successKey: "publishSuccess",
+      },
     });
 
-    // Derived display values for manifest bindings
-    const machineCount = computed(() => machines.value.length);
-    const isPlayingDisplay = computed(() =>
-      isPlaying.value ? ctx.t("yes") : ctx.t("no"),
-    );
-    const selectedMachineName = computed(
-      () => selectedMachine.value?.name || ctx.t("none"),
-    );
-
-    const requireAddress = async () => {
-      if (!address.value) {
-        requestWallet(ctx.t("connectWallet"));
-        return false;
-      }
-      return true;
-    };
-
-    const ensureContract = () => contractAddress.value;
-
-    // Register actions
+    // Non-async actions registered directly on ctx (no success toast needed)
     ctx.registerAction("selectMachine", (machine: Machine) => {
-      selectMachine(machine);
+      gasbox.selectMachine(machine);
     });
 
     ctx.registerAction("deselectMachine", () => {
-      selectedMachine.value = null;
+      gasbox.deselectMachine();
     });
 
     ctx.registerAction("browseAll", () => {
       // Tab navigation handled by platform
     });
 
-    ctx.registerAction("play", async () => {
-      if (!selectedMachine.value) return;
-      await playMachine(selectedMachine.value, {
-        requireAddress,
-        ensureContract,
-        onSuccess: loadMachines,
-      });
-    });
-
     ctx.registerAction("closeResult", () => {
-      resetResult();
+      gasbox.resetResult();
     });
-
-    ctx.registerAction("buy", async () => {
-      if (!selectedMachine.value) return;
-      await buyMachine(selectedMachine.value, {
-        requireAddress,
-        ensureContract,
-        setLoading: setActionLoading,
-        onSuccess: loadMachines,
-      });
-    });
-
-    ctx.registerAction(
-      "publish",
-      async (machineData: {
-        name: string;
-        description: string;
-        category: string;
-        tags: string;
-        price: string;
-        items: {
-          name: string;
-          probability: number;
-          icon: string;
-          rarity: string;
-          assetType: string;
-          assetHash: string;
-          amount: string;
-          tokenId: string;
-        }[];
-      }) => {
-        if (!(await requireAddress())) return;
-        await publishMachine(machineData, {
-          requireAddress,
-          setStatus: (msg: string, type: string) =>
-            ctx.setStatus(msg, type as "success" | "error" | "loading"),
-          onSuccess: loadMachines,
-        });
-      },
-    );
 
     ctx.registerAction("connectWallet", async () => {
-      await handleWalletConnect();
+      // Wallet connection is handled by the platform OS layer.
+      // After connection, loadData will be called automatically.
     });
 
-    // Auto-load when address changes
-    const stopAddressWatch = watch(
-      address,
-      () => {
-        loadMachines();
-      },
-      { immediate: true },
-    );
-
     return {
+      // ── State bindings ────────────────────────────────────────────
+      // Keys must match the `valueKey` fields in manifest.ts.
+      // The platform reads these to render stats grid, sidebar, etc.
       state: {
         // Manifest-bound stats/sidebar values
-        machineCount,
-        isPlayingDisplay,
-        selectedMachineName,
+        machineCount: gasbox.machineCount,
+        isPlayingDisplay: gasbox.isPlayingDisplay,
+        selectedMachineName: gasbox.selectedMachineName,
 
         // PlayArea state
-        machines,
-        selectedMachine,
-        isLoadingMachines,
-        walletHash,
-        isPlaying,
-        showResult,
-        resultItem,
-        playError,
-        showFireworks,
-        address,
-        actionLoading,
-        isPublishing,
+        machines: gasbox.machines,
+        selectedMachine: gasbox.selectedMachine,
+        isLoadingMachines: gasbox.isLoadingMachines,
+        walletHash: gasbox.walletHash,
+        isPlaying: gasbox.isPlaying,
+        showResult: gasbox.showResult,
+        resultItem: gasbox.resultItem,
+        playError: gasbox.playError,
+        showFireworks: gasbox.showFireworks,
+        address: gasbox.address,
+        actionLoading: gasbox.actionLoading,
+        isPublishing: gasbox.isPublishing,
       },
 
-      loadData: loadMachines,
-
-      cleanup: () => {
-        stopAddressWatch();
-      },
+      // ── Lifecycle ─────────────────────────────────────────────────
+      // Called by the platform on mount and when the wallet reconnects.
+      loadData: gasbox.loadAll,
     };
   },
 });
