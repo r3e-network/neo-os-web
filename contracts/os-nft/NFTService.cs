@@ -27,6 +27,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
     {
         // ── Storage Prefixes ──────────────────────────────────────────────
         private static readonly byte[] PREFIX_ADMIN          = new byte[] { 0x01 };
+        private static readonly byte[] PREFIX_SCRIPT_ENGINE  = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_TOKENS         = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_OWNER_INDEX    = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_SUPPLY         = new byte[] { 0x30 };
@@ -126,13 +127,22 @@ namespace NeoMiniAppPlatform.Contracts.OS
             OnNFTConfigured(appId);
         }
 
+        // ── ScriptEngine Reference ────────────────────────────────────────
+
+        public static void SetScriptEngine(UInt160 engine)
+        {
+            ValidateAdmin();
+            ExecutionEngine.Assert(engine != UInt160.Zero && engine.IsValid, "invalid engine");
+            Storage.Put(Storage.CurrentContext, PREFIX_SCRIPT_ENGINE, (ByteString)engine);
+        }
+
         // ── Mint Operations ───────────────────────────────────────────────
 
         public static BigInteger Mint(string appId, UInt160 owner, ByteString metadata, bool soulbound, BigInteger expiry)
         {
             ValidateAppId(appId);
             ExecutionEngine.Assert(owner != UInt160.Zero && owner.IsValid, "invalid owner");
-            ValidateAdmin();
+            ValidateAppOperator(appId);
             RequireActiveApp(appId);
 
             if (metadata != null)
@@ -162,13 +172,14 @@ namespace NeoMiniAppPlatform.Contracts.OS
             AddToOwnerIndex(appId, owner, tokenId);
 
             OnTokenMinted(appId, tokenId, owner, soulbound);
+            TriggerScriptHook(appId, "onNFTMinted", tokenId, owner);
             return tokenId;
         }
 
         public static BigInteger[] BatchMint(string appId, UInt160[] owners, ByteString[] metadatas, bool[] soulbounds, BigInteger[] expiries)
         {
             ValidateAppId(appId);
-            ValidateAdmin();
+            ValidateAppOperator(appId);
             RequireActiveApp(appId);
 
             ExecutionEngine.Assert(owners != null && owners!.Length > 0, "owners required");
@@ -243,6 +254,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
             AddToOwnerIndex(appId, to, tokenId);
 
             OnTokenTransferred(appId, tokenId, from, to);
+            TriggerScriptHook(appId, "onNFTTransferred", tokenId, to);
         }
 
         // ── Burn ──────────────────────────────────────────────────────────
@@ -250,7 +262,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
         public static void Burn(string appId, BigInteger tokenId)
         {
             ValidateAppId(appId);
-            ValidateAdmin();
+            ValidateAppOperator(appId);
 
             TokenData token = GetTokenInternal(appId, tokenId);
             ExecutionEngine.Assert(token.TokenId > 0, "token not found");
@@ -270,7 +282,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
         {
             ValidateAppId(appId);
             ExecutionEngine.Assert(owner != UInt160.Zero && owner.IsValid, "invalid owner");
-            ValidateAdmin();
+            ValidateAppOperator(appId);
 
             TokenData token = GetTokenInternal(appId, tokenId);
             ExecutionEngine.Assert(token.TokenId > 0, "token not found");
@@ -307,7 +319,37 @@ namespace NeoMiniAppPlatform.Contracts.OS
         }
 
         [Safe]
-        public static BigInteger GetTokensByOwner(string appId, UInt160 owner)
+        public static ByteString GetTokensByOwner(string appId, UInt160 owner, int limit)
+        {
+            ValidateAppId(appId);
+            ExecutionEngine.Assert(owner != UInt160.Zero && owner.IsValid, "invalid owner");
+            ExecutionEngine.Assert(limit >= 1 && limit <= 100, "limit must be 1-100");
+
+            ByteString searchPrefix = (ByteString)Helper.Concat(PREFIX_OWNER_INDEX,
+                (ByteString)((appId ?? "") + "|" + (string)(ByteString)(byte[])owner + "|t:"));
+
+            Iterator iterator = Storage.Find(Storage.CurrentContext, searchPrefix, FindOptions.ValuesOnly | FindOptions.RemovePrefix);
+            BigInteger[] tokenIds = new BigInteger[limit];
+            int count = 0;
+
+            while (iterator.Next() && count < limit)
+            {
+                tokenIds[count] = (BigInteger)(ByteString)iterator.Value;
+                count++;
+            }
+
+            if (count == 0) return (ByteString)"";
+
+            BigInteger[] result = new BigInteger[count];
+            for (int i = 0; i < count; i++)
+            {
+                result[i] = tokenIds[i];
+            }
+            return StdLib.Serialize(result);
+        }
+
+        [Safe]
+        public static BigInteger GetTokenCount(string appId, UInt160 owner)
         {
             ValidateAppId(appId);
             ExecutionEngine.Assert(owner != UInt160.Zero && owner.IsValid, "invalid owner");
@@ -338,6 +380,19 @@ namespace NeoMiniAppPlatform.Contracts.OS
             UInt160 admin = GetAdmin();
             ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
+        }
+
+        private static void ValidateAppOperator(string appId)
+        {
+            // Admin always has operator rights
+            UInt160 admin = GetAdmin();
+            if (admin != UInt160.Zero && admin.IsValid && Runtime.CheckWitness(admin)) return;
+
+            // Accept calls from ScriptEngine (contract-to-contract)
+            UInt160 engine = ReadAddress(PREFIX_SCRIPT_ENGINE);
+            if (engine != UInt160.Zero && engine.IsValid && Runtime.CallingScriptHash == engine) return;
+
+            ExecutionEngine.Assert(false, "unauthorized: not app operator");
         }
 
         private static void ValidateAppId(string appId)
@@ -381,6 +436,12 @@ namespace NeoMiniAppPlatform.Contracts.OS
         {
             return Helper.Concat(PREFIX_OWNER_INDEX,
                 (ByteString)((appId ?? "") + "|" + (string)(ByteString)(byte[])owner + "|count"));
+        }
+
+        private static byte[] OwnerTokenKey(string appId, UInt160 owner, BigInteger tokenId)
+        {
+            return Helper.Concat(PREFIX_OWNER_INDEX,
+                (ByteString)((appId ?? "") + "|" + (string)(ByteString)(byte[])owner + "|t:" + tokenId));
         }
 
         private static byte[] SupplyCounterKey(string appId)
@@ -438,6 +499,9 @@ namespace NeoMiniAppPlatform.Contracts.OS
             byte[] countKey = OwnerCountKey(appId, owner);
             BigInteger count = ReadBigInteger(countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
+
+            // Store per-token entry for enumeration
+            Storage.Put(Storage.CurrentContext, OwnerTokenKey(appId, owner, tokenId), tokenId);
         }
 
         private static void RemoveFromOwnerIndex(string appId, UInt160 owner, BigInteger tokenId)
@@ -447,6 +511,26 @@ namespace NeoMiniAppPlatform.Contracts.OS
             if (count > 0)
             {
                 Storage.Put(Storage.CurrentContext, countKey, count - 1);
+            }
+
+            // Remove per-token entry
+            Storage.Delete(Storage.CurrentContext, OwnerTokenKey(appId, owner, tokenId));
+        }
+
+        // ── ScriptEngine Hook ─────────────────────────────────────────────
+
+        private static void TriggerScriptHook(string appId, string hookName, BigInteger tokenId, UInt160 target)
+        {
+            UInt160 engine = ReadAddress(PREFIX_SCRIPT_ENGINE);
+            if (engine == UInt160.Zero || !engine.IsValid) return;
+
+            try
+            {
+                Contract.Call(engine, "execute", CallFlags.All, appId, hookName, tokenId, target);
+            }
+            catch
+            {
+                // Script failure must not block NFT operations
             }
         }
     }
