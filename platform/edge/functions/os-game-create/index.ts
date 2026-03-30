@@ -6,12 +6,18 @@ const CONTRACT_HASH = getEnv("CONTRACT_GAME_SERVICE_HASH") ?? "";
 export const handler = createOSHandler(
   { scopeName: "os-game-create", permission: "games" },
   async ({ appId, params }) => {
-    const config = params.config;
-    if (!config || typeof config !== "object") throw new Error("config required");
+    const cfg = (params.config && typeof params.config === "object" ? params.config : params) as Record<string, unknown>;
+    const poolType = Number(cfg.poolType ?? cfg.pool_type ?? 0);
+    const maxPlayers = Number(cfg.maxPlayers ?? cfg.max_players ?? 10);
+    const entryFee = String(cfg.entryFee ?? cfg.entry_fee ?? "0");
+    const duration = String(cfg.duration ?? "3600");
 
     return buildInvocationIntent(CONTRACT_HASH, "CreatePool", [
       { type: "String", value: appId },
-      { type: "String", value: JSON.stringify(config) },
+      { type: "Integer", value: String(poolType) },
+      { type: "Integer", value: String(maxPlayers) },
+      { type: "Integer", value: entryFee },
+      { type: "Integer", value: duration },
     ]);
   },
 );

@@ -2,13 +2,13 @@ import { getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getEnv("CONTRACT_GAME_SERVICE_HASH") ?? "";
+const CONTRACT_HASH = getEnv("CONTRACT_ESCROW_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
-  { scopeName: "os-game-bet", permission: "games" },
+  { scopeName: "os-escrow-fund", permission: "escrow" },
   async ({ appId, userId, params }) => {
-    const poolId = String(params.pool_id ?? params.poolId ?? "").trim();
-    if (!poolId) throw new Error("pool_id required");
+    const escrowId = String(params.escrow_id ?? params.escrowId ?? "").trim();
+    if (!escrowId) throw new Error("escrow_id required");
 
     let amount: bigint;
     try {
@@ -18,9 +18,9 @@ export const handler = createOSHandler(
     }
     if (amount <= 0n) throw new Error("amount must be > 0");
 
-    return buildInvocationIntent(CONTRACT_HASH, "PlaceBet", [
+    return buildInvocationIntent(CONTRACT_HASH, "FundEscrow", [
       { type: "String", value: appId },
-      { type: "Integer", value: poolId },
+      { type: "String", value: escrowId },
       { type: "Hash160", value: userId },
       { type: "Integer", value: amount.toString() },
     ]);
