@@ -37,6 +37,18 @@ import { LifecycleService } from "./LifecycleService";
 import { NotificationService } from "./NotificationService";
 import { ClipboardService } from "./ClipboardService";
 import { FormattingService } from "./FormattingService";
+import { EdgeClient } from "./os/EdgeClient";
+import { StorageProxy } from "./os/StorageProxy";
+import { PaymentProxy } from "./os/PaymentProxy";
+import { GameProxy } from "./os/GameProxy";
+import { VestingProxy } from "./os/VestingProxy";
+import { EscrowProxy } from "./os/EscrowProxy";
+import { BadgeProxy } from "./os/BadgeProxy";
+import { LeaderboardProxy } from "./os/LeaderboardProxy";
+import { CheckinProxy } from "./os/CheckinProxy";
+import { NFTProxy } from "./os/NFTProxy";
+import { ScriptProxy } from "./os/ScriptProxy";
+import type { OSServices } from "./os/types";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -74,6 +86,7 @@ export class PlatformServices {
   readonly notify: NotificationService;
   readonly clipboard: ClipboardService;
   readonly fmt: FormattingService;
+  readonly os: OSServices;
 
   private constructor(appId: string, options: PlatformServicesOptions) {
     this.appId = appId;
@@ -107,6 +120,21 @@ export class PlatformServices {
 
     // Formatting service (stateless utility wrapper)
     this.fmt = new FormattingService();
+
+    // OS service proxies (call system contracts through edge functions)
+    const edge = new EdgeClient(appId);
+    this.os = {
+      storage: new StorageProxy(appId, edge),
+      payment: new PaymentProxy(appId, edge),
+      game: new GameProxy(appId, edge),
+      vesting: new VestingProxy(appId, edge),
+      escrow: new EscrowProxy(appId, edge),
+      badge: new BadgeProxy(appId, edge),
+      leaderboard: new LeaderboardProxy(appId, edge),
+      checkin: new CheckinProxy(appId, edge),
+      nft: new NFTProxy(appId, edge),
+      script: new ScriptProxy(appId, edge),
+    };
   }
 
   /**
