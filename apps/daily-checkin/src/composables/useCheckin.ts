@@ -1,48 +1,42 @@
 /**
- * useCheckin — Simplified domain logic for the Daily Check-in miniapp
+ * useCheckin — Domain logic for the Daily Check-in miniapp (OS Services)
  *
- * This composable encapsulates all check-in business logic and provides
- * reactive state for the platform to bind to manifest-driven UI sections.
+ * This composable uses OS service proxies instead of direct chain calls.
+ * All contract interaction is delegated to CheckinProxy via edge functions,
+ * so this file contains zero contract hashes, parameter encoding, or
+ * event parsing logic.
  *
- * Compared with the legacy useCheckinContract.ts:
+ * Migration from direct chain calls to OS services:
  *
- *   BEFORE (legacy):
- *     - Manually wires useContractInteraction + useStatusMessage + useEvents
- *     - Builds sidebar items, formats error messages, polls for events
- *     - Contains ~240 lines of mixed infrastructure + business logic
+ *   BEFORE (chain):
+ *     chain.read("GetUserStats", [{ type: "Hash160", value: addr }])
+ *     chain.invokeWithPayment(fee, memo, "checkIn", [...])
+ *     chain.invoke("claimRewards", [...])
+ *     chain.listEvents("CheckedIn", { limit: 10 })
  *
- *   AFTER (this file):
- *     - Receives ChainService + EventBus from PlatformServices
- *     - Contains ONLY check-in domain logic (load, check-in, claim)
- *     - Sidebar, stats, status messages are all driven by manifest + platform
- *     - Clean separation: business logic only, no infrastructure plumbing
+ *   AFTER (OS proxy):
+ *     ctx.os.checkin.getStreak()
+ *     ctx.os.checkin.checkIn()
+ *     ctx.os.checkin.claimRewards()
  *
- * Key design decisions:
- *   - No onMounted/onUnmounted — lifecycle is managed by defineMiniApp
- *     which calls loadAll via the returned `loadData` callback
- *   - No usePlatformServices() inject — services are passed in explicitly
- *     so this composable works regardless of the component tree setup
- *   - Formatted values are provided as computed refs for manifest bindings
- *     (the platform reads these via the state object returned by setup)
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - UTC countdown timer logic
+ *   - Loading/claiming UI flags
+ *   - Formatted display values
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { CheckinProxy, CheckinData } from "@shared/services/os/CheckinProxy";
 import { formatGas } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
-import { parseStackItem } from "@shared/utils/neo";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const APP_ID = "miniapp-dailycheckin";
-
 /** Milliseconds in one UTC day */
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-/** Check-in fee: 0.001 GAS in base units (Fixed8 format: 1 GAS = 1e8) */
-const CHECK_IN_FEE_BASE_UNITS = String(Math.round(0.001 * 1e8)); // "100000"
 
 /** Reward milestones: day thresholds and their GAS payouts */
 export const MILESTONES = [
@@ -61,10 +55,8 @@ export interface CheckinHistoryItem {
 }
 
 export interface UseCheckinOptions {
-  /** ChainService instance from PlatformServices */
-  chain: ChainService;
-  /** EventBus instance from PlatformServices */
-  eventBus: EventBus;
+  /** OS CheckinProxy instance from ctx.os.checkin */
+  checkinService: CheckinProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -73,7 +65,7 @@ export interface UseCheckinOptions {
 // Composable
 // ============================================================================
 
-export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
+export function useCheckin({ checkinService, t }: UseCheckinOptions) {
   // ── User State ──────────────────────────────────────────────────────
   const currentStreak = ref(0);
   const highestStreak = ref(0);
@@ -85,6 +77,9 @@ export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
   const isClaiming = ref(false);
 
   // ── Global Stats ────────────────────────────────────────────────────
+  // These remain as refs for manifest bindings. The OS proxy returns
+  // user-level data; global stats may be added to the proxy later.
+  // For now they default to 0 (the manifest still renders them).
   const totalGlobalCheckins = ref(0);
   const totalGlobalUsers = ref(0);
   const totalGlobalRewarded = ref(0);
@@ -93,7 +88,6 @@ export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
   const checkinHistory = ref<CheckinHistoryItem[]>([]);
 
   // ── Countdown Timer ─────────────────────────────────────────────────
-  // The ticker automatically unregisters via Vue's onUnmounted.
   const now = ref(Date.now());
   const countdownTicker = useTicker(() => {
     now.value = Date.now();
@@ -116,8 +110,6 @@ export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
   });
 
   // ── Formatted display values ────────────────────────────────────────
-  // These are consumed by the manifest stat/sidebar bindings via the
-  // state object returned from defineMiniApp's setup().
   const formattedCurrentStreak = computed(() => `${currentStreak.value} ${t("days")}`);
   const formattedHighestStreak = computed(() => `${highestStreak.value} ${t("days")}`);
   const formattedUnclaimed = computed(() => `${formatGas(unclaimedRewards.value)} ${t("tokenGas")}`);
@@ -126,78 +118,31 @@ export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
 
   // ── Data Loading ────────────────────────────────────────────────────
 
-  const loadUserStats = async () => {
-    if (!chain.address.value) return;
-    try {
-      const data = await chain.read("GetUserStats", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
-      if (Array.isArray(data)) {
-        currentStreak.value = Number(data[0] ?? 0);
-        highestStreak.value = Number(data[1] ?? 0);
-        lastCheckInDay.value = Number(data[2] ?? 0);
-        unclaimedRewards.value = Number(data[3] ?? 0);
-        totalClaimed.value = Number(data[4] ?? 0);
-        totalUserCheckins.value = Number(data[5] ?? 0);
-      }
-    } catch (e) {
-      console.warn("[useCheckin] loadUserStats failed:", e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const loadGlobalStats = async () => {
-    try {
-      const data = await chain.read("GetPlatformStats", []);
-      if (Array.isArray(data)) {
-        totalGlobalUsers.value = Number(data[0] ?? 0);
-        totalGlobalCheckins.value = Number(data[1] ?? 0);
-        totalGlobalRewarded.value = Number(data[2] ?? 0);
-      }
-    } catch (e) {
-      console.warn("[useCheckin] loadGlobalStats failed:", e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const loadHistory = async () => {
-    if (!chain.address.value) return;
-    try {
-      const rawEvents = await chain.listEvents("CheckedIn", { limit: 10 });
-      const currentAddress = chain.address.value;
-
-      checkinHistory.value = rawEvents
-        .filter((evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          return String(values[0] ?? "") === currentAddress;
-        })
-        .map((evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          return {
-            streak: Number(values[1] ?? 0),
-            time: new Intl.DateTimeFormat(undefined).format(
-              new Date((evtRecord.created_at as string | number | Date) || Date.now()),
-            ),
-            reward: Number(values[2] ?? 0),
-          };
-        });
-    } catch (e) {
-      console.warn("[useCheckin] loadHistory failed:", e instanceof Error ? e.message : String(e));
-    }
+  /**
+   * Apply CheckinData from the OS proxy to local reactive state.
+   */
+  const applyCheckinData = (data: CheckinData) => {
+    currentStreak.value = data.currentStreak;
+    highestStreak.value = data.highestStreak;
+    totalUserCheckins.value = data.totalCheckins;
+    lastCheckInDay.value = data.lastCheckinTime
+      ? Math.floor(data.lastCheckinTime / (MS_PER_DAY / 1000))
+      : 0;
+    unclaimedRewards.value = Number(data.unclaimedRewards ?? 0);
+    totalClaimed.value = Number(data.totalClaimed ?? 0);
   };
 
   /**
-   * Load all data (user stats, global stats, history).
+   * Load all data via the OS checkin proxy.
    * Called by defineMiniApp on mount and when the wallet connects.
    */
   const loadAll = async () => {
     isLoading.value = true;
     try {
-      await Promise.all([loadUserStats(), loadGlobalStats(), loadHistory()]);
+      const data = await checkinService.getStreak();
+      applyCheckinData(data);
+    } catch (e) {
+      console.warn("[useCheckin] loadAll failed:", e instanceof Error ? e.message : String(e));
     } finally {
       isLoading.value = false;
     }
@@ -206,74 +151,31 @@ export function useCheckin({ chain, eventBus, t }: UseCheckinOptions) {
   // ── Actions ─────────────────────────────────────────────────────────
 
   /**
-   * Perform a daily check-in.
-   *
-   * Flow:
-   * 1. Ensure wallet is connected
-   * 2. Transfer 0.001 GAS to the contract with memo "miniapp-dailycheckin:checkin"
-   * 3. Wait for the CheckedIn event
-   * 4. Emit success event (triggers fireworks via platform)
-   * 5. Reload all data
+   * Perform a daily check-in via the OS proxy.
+   * The proxy handles wallet connection, payment, and event waiting.
    */
   const doCheckIn = async () => {
     if (!canCheckIn.value || isLoading.value) return;
 
     isLoading.value = true;
     try {
-      await chain.ensureWallet();
-
-      const result = await chain.invokeWithPayment(
-        CHECK_IN_FEE_BASE_UNITS,
-        `${APP_ID}:checkin`,
-        "checkIn",
-        [{ type: "Hash160", value: chain.address.value as string }],
-        { waitForEvent: "CheckedIn" },
-      );
-
-      if (result.success) {
-        eventBus.emit("checkin:success", { action: t("checkinSuccess") });
-      }
-
+      await checkinService.checkIn();
       await loadAll();
-    } catch (e) {
-      eventBus.emit("checkin:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isLoading.value = false;
     }
   };
 
   /**
-   * Claim accumulated GAS rewards.
-   *
-   * This is a direct invoke (no payment required) — the contract
-   * distributes the accumulated rewards to the caller's address.
+   * Claim accumulated GAS rewards via the OS proxy.
    */
   const claimRewards = async () => {
     if (unclaimedRewards.value <= 0 || isClaiming.value) return;
 
     isClaiming.value = true;
     try {
-      await chain.ensureWallet();
-
-      const result = await chain.invoke(
-        "claimRewards",
-        [{ type: "Hash160", value: chain.address.value as string }],
-        { waitForEvent: "RewardsClaimed" },
-      );
-
-      if (result.success) {
-        eventBus.emit("checkin:claimed", { action: t("claimSuccess") });
-      }
-
+      await checkinService.claimRewards();
       await loadAll();
-    } catch (e) {
-      eventBus.emit("checkin:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      throw e;
     } finally {
       isClaiming.value = false;
     }
