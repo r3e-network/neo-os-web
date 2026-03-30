@@ -1,10 +1,28 @@
 /**
- * Neo Pay — Entry Point (New Pattern)
+ * Neo Pay — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire PlayArea, manifest, messages, and domain logic.
+ * This miniapp uses OS service proxies (ctx.os.vesting, ctx.os.payment)
+ * instead of direct chain calls. The VestingProxy handles all stream
+ * contract interaction through edge functions, so the miniapp never
+ * touches contract hashes, parameter encoding, or event parsing.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useNeoPayApp({ vestingService, paymentService, t })
+ *
+ * The composable calls:
+ *   ctx.os.vesting.listStreams("creator")      — load created streams
+ *   ctx.os.vesting.listStreams("beneficiary")   — load beneficiary streams
+ *   ctx.os.vesting.createStream(params)         — create a payment stream
+ *   ctx.os.vesting.claim(streamId)              — claim vested amounts
+ *   ctx.os.vesting.cancel(streamId)             — cancel stream
+ *   ctx.os.payment.deposit(amount, memo)        — fund stream deposit
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -16,109 +34,71 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS vesting + payment services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os.vesting and
+   * ctx.os.payment (OS service proxies) for all data loading and
+   * mutations instead of ctx.services.chain directly.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const pay = useNeoPayApp({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      vestingService: ctx.os.vesting,
+      paymentService: ctx.os.payment,
       t: ctx.t,
     });
 
-    const { notify } = platformServices;
-
-    ctx.registerAction("refreshStreams", async () => {
-      await notify.guard(
-        () => pay.refreshStreams(),
-        undefined,
-        "contractMissing",
-      );
+    // Register actions so they can be called from operation panels or
+    // from the PlayArea via the injected action registry.
+    registerActions(ctx, {
+      refreshStreams: {
+        handler: () => pay.refreshStreams(),
+      },
+      connectWallet: {
+        handler: async () => {
+          await ctx.services.chain.ensureWallet();
+          await pay.refreshStreams();
+        },
+      },
+      createVault: {
+        handler: async (formData: unknown) => {
+          await pay.handleCreateVault(formData as {
+            name: string;
+            beneficiary: string;
+            asset: string;
+            total: string;
+            rate: string;
+            intervalDays: string;
+            notes: string;
+          });
+        },
+        successKey: "vaultCreated",
+      },
+      claimStream: {
+        handler: async (stream: unknown) => {
+          const s = stream as { id: string };
+          await pay.claimStream(s as any);
+        },
+        successKey: "streamClaimed",
+      },
+      cancelStream: {
+        handler: async (stream: unknown) => {
+          const s = stream as { id: string };
+          await pay.cancelStream(s as any);
+        },
+        successKey: "streamCancelled",
+      },
     });
-
-    ctx.registerAction("connectWallet", async () => {
-      await notify.guard(
-        () => pay.connectWallet(),
-        "walletConnected",
-        "walletNotConnected",
-      );
-    });
-
-    ctx.registerAction(
-      "createVault",
-      async (formData: {
-        name: string;
-        beneficiary: string;
-        asset: string;
-        total: string;
-        rate: string;
-        intervalDays: string;
-        notes: string;
-      }) => {
-        await notify.guard(
-          () => pay.handleCreateVault(formData),
-          "vaultCreated",
-          "contractMissing",
-        );
-      },
-    );
-
-    ctx.registerAction(
-      "claimStream",
-      async (stream: {
-        id: string;
-        creator: string;
-        beneficiary: string;
-        asset: string;
-        assetSymbol: string;
-        totalAmount: bigint;
-        releasedAmount: bigint;
-        remainingAmount: bigint;
-        rateAmount: bigint;
-        intervalSeconds: bigint;
-        intervalDays: number;
-        status: string;
-        claimable: bigint;
-        title: string;
-        notes: string;
-      }) => {
-        await notify.guard(
-          () => pay.claimStream(stream as any),
-          "streamClaimed",
-          "contractMissing",
-        );
-      },
-    );
-
-    ctx.registerAction(
-      "cancelStream",
-      async (stream: {
-        id: string;
-        creator: string;
-        beneficiary: string;
-        asset: string;
-        assetSymbol: string;
-        totalAmount: bigint;
-        releasedAmount: bigint;
-        remainingAmount: bigint;
-        rateAmount: bigint;
-        intervalSeconds: bigint;
-        intervalDays: number;
-        status: string;
-        claimable: bigint;
-        title: string;
-        notes: string;
-      }) => {
-        await notify.guard(
-          () => pay.cancelStream(stream as any),
-          "streamCancelled",
-          "contractMissing",
-        );
-      },
-    );
 
     return {
+      // ── State bindings ────────────────────────────────────────────
+      // Keys must match the `valueKey` fields in manifest.ts.
+      // The platform reads these to render stats grid, sidebar, etc.
       state: {
-        address: pay.address,
+        // Wallet address — read by PlayArea for connect-wallet gating.
+        // The platform manages wallet connection; we just forward the ref.
+        address: ctx.services.chain.address,
+
         createdStreams: pay.createdStreams,
         beneficiaryStreams: pay.beneficiaryStreams,
         isLoading: pay.isLoading,
@@ -130,6 +110,9 @@ defineMiniApp({
         beneficiaryStreamCount: pay.beneficiaryStreamCount,
         totalStreamCount: pay.totalStreamCount,
       },
+
+      // ── Lifecycle ─────────────────────────────────────────────────
+      // Called by the platform on mount and when the wallet reconnects.
       loadData: pay.loadAll,
     };
   },
