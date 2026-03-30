@@ -95,7 +95,7 @@ namespace NeoMiniAppPlatform.Contracts
     // =========================================================================
     //
     // These constants define the standard module IDs registered in the
-    // ModuleRegistry and the canonical method signatures that miniapp instances
+    // ModuleRegistry (deprecated - see OS service contracts) and the canonical method signatures that miniapp instances
     // (and routers) use to interact with shared capability modules.
     //
     // USAGE:
@@ -107,7 +107,7 @@ namespace NeoMiniAppPlatform.Contracts
 
     /// <summary>
     /// Standard module identifiers for the composable miniapp platform.
-    /// These match the module IDs registered in ModuleRegistry.
+    /// These match the module IDs registered in ModuleRegistry (deprecated - see OS service contracts).
     /// </summary>
     public static class ModuleIds
     {
