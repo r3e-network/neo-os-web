@@ -32,9 +32,9 @@ const (
 var contractsToDeploy = []string{
 	"Governance",
 	"AppRegistry",
-	"ModuleRegistry",
-	"RecipeRegistry",
-	"MiniAppInstanceRegistry",
+	"ModuleRegistry",         // deprecated - replaced by OS service contracts in v2
+	"RecipeRegistry",         // deprecated - replaced by OS service contracts in v2
+	"MiniAppInstanceRegistry", // deprecated - replaced by OS service contracts in v2
 	"FundingVault",
 	"StreamVesting",
 	"AutomationAnchor",

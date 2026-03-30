@@ -29,9 +29,9 @@ var contracts = []struct {
 	{"RandomnessLog", "CONTRACT_RANDOMNESSLOG_HASH", "RandomnessLog.nef", "RandomnessLog.manifest.json"},
 	{"Governance", "CONTRACT_GOVERNANCE_HASH", "Governance.nef", "Governance.manifest.json"},
 	{"AppRegistry", "CONTRACT_APPREGISTRY_HASH", "AppRegistry.nef", "AppRegistry.manifest.json"},
-	{"ModuleRegistry", "CONTRACT_MODULEREGISTRY_HASH", "ModuleRegistry.nef", "ModuleRegistry.manifest.json"},
-	{"RecipeRegistry", "CONTRACT_RECIPEREGISTRY_HASH", "RecipeRegistry.nef", "RecipeRegistry.manifest.json"},
-	{"MiniAppInstanceRegistry", "CONTRACT_MINIAPPINSTANCEREGISTRY_HASH", "MiniAppInstanceRegistry.nef", "MiniAppInstanceRegistry.manifest.json"},
+	{"ModuleRegistry", "CONTRACT_MODULEREGISTRY_HASH", "ModuleRegistry.nef", "ModuleRegistry.manifest.json"},                             // deprecated - replaced by OS service contracts in v2
+	{"RecipeRegistry", "CONTRACT_RECIPEREGISTRY_HASH", "RecipeRegistry.nef", "RecipeRegistry.manifest.json"},                             // deprecated - replaced by OS service contracts in v2
+	{"MiniAppInstanceRegistry", "CONTRACT_MINIAPPINSTANCEREGISTRY_HASH", "MiniAppInstanceRegistry.nef", "MiniAppInstanceRegistry.manifest.json"}, // deprecated - replaced by OS service contracts in v2
 	{"FundingVault", "CONTRACT_FUNDINGVAULT_HASH", "FundingVault.nef", "FundingVault.manifest.json"},
 	{"StreamVesting", "CONTRACT_STREAMVESTING_HASH", "StreamVesting.nef", "StreamVesting.manifest.json"},
 	{"AutomationAnchor", "CONTRACT_AUTOMATIONANCHOR_HASH", "AutomationAnchor.nef", "AutomationAnchor.manifest.json"},

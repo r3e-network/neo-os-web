@@ -1,3 +1,5 @@
+> **DEPRECATED (2026-03-31):** This document describes the v1 composable module architecture which has been replaced by MiniApp-OS v2 direct system service contracts. See `docs/superpowers/specs/2026-03-31-miniapp-os-v2-design.md` for the current architecture.
+
 # Service Gateway Module Registry Enforcement Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
