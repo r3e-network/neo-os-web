@@ -1,21 +1,35 @@
 /**
- * useCoinFlip -- Simplified domain logic for the FogPlay (coin flip) miniapp
+ * useCoinFlip -- Domain logic for the FogPlay (coin flip) miniapp
  *
- * This composable encapsulates all coin-flip business logic and provides
- * reactive state for the platform to bind to manifest-driven UI sections.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (GameProxy, PaymentProxy, StorageProxy, BadgeProxy) via edge
+ * functions, so this file contains zero contract hashes, parameter encoding,
+ * or event parsing logic. Oracle VRF randomness is still accessed through
+ * ctx.services.oracle (a platform service, not an OS contract).
  *
- * Compared with the legacy useFogPlayGame.ts:
+ * Migration from direct chain calls to OS services:
  *
- *   BEFORE (legacy):
- *     - Manually wires useContractInteraction + useStatusMessage + useErrorHandler
- *     - Takes a raw WalletSDK, builds sidebar items, formats errors
- *     - Contains ~230 lines of mixed infrastructure + business logic
+ *   BEFORE (chain):
+ *     chain.read("GetPlayerStats", [{ type: "Hash160", value: addr }])
+ *     chain.invokeWithPayment(amount, memo, "placeBet", [...])
+ *     chain.listEvents("BetResolved", { limit: 20 })
+ *     chain.ensureWallet()
  *
- *   AFTER (this file):
- *     - Receives ChainService + OracleService + EventBus from PlatformServices
- *     - Contains ONLY coin-flip domain logic (place bet, oracle RNG, settle)
- *     - Sidebar, stats, status messages are all driven by manifest + platform
- *     - Clean separation: business logic only, no infrastructure plumbing
+ *   AFTER (OS proxy + oracle):
+ *     ctx.os.storage.get("playerStats")              — load player stats
+ *     ctx.os.payment.deposit(amount, "fogplay:bet")   — prepay GAS
+ *     ctx.os.game.placeBet("current", betParams)      — place bet on contract
+ *     ctx.os.game.getPoolState("resolve:<betId>")     — poll for settlement
+ *     ctx.os.storage.list("history:", 20)              — load game history
+ *     ctx.os.badge.award("first-flip", "")             — hint achievements
+ *     ctx.services.oracle.requestRandom(context)       — VRF randomness
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Bet validation logic (min/max, decimals)
+ *   - Win/loss UI updates (overlay, amounts, counters)
+ *   - Loading/flipping UI flags
+ *   - Formatted display values
  *
  * Key design decisions:
  *   - No onMounted/onUnmounted -- lifecycle is managed by defineMiniApp
@@ -27,9 +41,12 @@
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus, OracleService } from "@shared/services";
+import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { OracleService, EventBus } from "@shared/services";
 import { formatNum, toFixed8 } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
 
 // ============================================================================
 // Constants
@@ -66,21 +83,71 @@ export interface GameHistoryItem {
 }
 
 export interface UseCoinFlipOptions {
-  /** ChainService instance from PlatformServices */
-  chain: ChainService;
-  /** OracleService instance from PlatformServices (VRF randomness) */
+  /** OS GameProxy instance from ctx.os.game */
+  gameService: GameProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** OracleService instance from ctx.services.oracle (VRF randomness) */
   oracle: OracleService;
-  /** EventBus instance from PlatformServices */
+  /** EventBus instance from ctx.services.events */
   eventBus: EventBus;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+/**
+ * Shape of the pool state returned by GameProxy for FogPlay.
+ * The edge function translates getPoolState("resolve:<betId>") into
+ * a BetResolved event lookup and returns normalized data.
+ */
+interface ResolvedBetState {
+  poolId: string;
+  appId: string;
+  status: "open" | "active" | "settled" | "cancelled";
+  playerCount: number;
+  totalBets: string;
+  // Game-specific extensions from the edge function
+  betId?: string;
+  payout?: number;
+  won?: boolean;
+  outcome?: string;
+}
+
+/** Shape of a stored history entry from StorageProxy. */
+interface StoredHistoryEntry {
+  betId: string;
+  amount: number;
+  choice: "heads" | "tails";
+  outcome: "heads" | "tails";
+  won: boolean;
+  payout: number;
+  time: string;
+}
+
+/** Shape of player stats from StorageProxy. */
+interface StoredPlayerStats {
+  wins: number;
+  losses: number;
+  totalWon: number;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) {
+export function useCoinFlip({
+  gameService,
+  paymentService,
+  storageService,
+  badgeService,
+  oracle,
+  eventBus,
+  t,
+}: UseCoinFlipOptions) {
   // -- Game State -------------------------------------------------------------
   const betAmount = ref("1");
   const choice = ref<"heads" | "tails">("heads");
@@ -121,59 +188,50 @@ export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) 
     return null;
   };
 
-  // -- Data Loading -----------------------------------------------------------
+  // -- Data Loading (via OS services) -----------------------------------------
 
+  /**
+   * Load player stats via StorageProxy.
+   * The edge function reads GetPlayerStats from the contract and returns
+   * normalized { wins, losses, totalWon } data.
+   */
   const loadStats = async () => {
-    if (!chain.address.value) return;
     try {
-      const data = await chain.read("GetPlayerStats", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
-      if (Array.isArray(data)) {
-        wins.value = Number(data[0] ?? 0);
-        losses.value = Number(data[1] ?? 0);
-        totalWon.value = Number(data[2] ?? 0) / 1e8;
+      const data = await storageService.get("playerStats") as StoredPlayerStats | null;
+      if (data && typeof data === "object") {
+        wins.value = Number(data.wins ?? 0);
+        losses.value = Number(data.losses ?? 0);
+        totalWon.value = Number(data.totalWon ?? 0);
       }
     } catch (e) {
       console.warn("[useCoinFlip] loadStats failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
+  /**
+   * Load game history from StorageProxy.
+   * The edge function reads BetResolved events and returns normalized
+   * history entries filtered to the current user.
+   */
   const loadHistory = async () => {
-    if (!chain.address.value) return;
     try {
-      const rawEvents = await chain.listEvents("BetResolved", { limit: 20 });
-      const currentAddress = chain.address.value;
-
-      gameHistory.value = rawEvents
-        .filter((evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          return String(values[0] ?? "") === currentAddress;
-        })
-        .map((evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          const payout = Number(values[1] ?? 0) / 1e8;
-          const won = Boolean(values[2]);
-          const betChoice = Boolean(values[4]) ? "heads" : "tails";
-          const outcome = won ? betChoice : betChoice === "heads" ? "tails" : "heads";
-          return {
-            betId: String(values[3] ?? ""),
-            amount: Number(values[5] ?? 0) / 1e8,
-            choice: betChoice as "heads" | "tails",
-            outcome: outcome as "heads" | "tails",
-            won,
-            payout,
-            time: new Intl.DateTimeFormat(undefined).format(
-              new Date((evtRecord.created_at as string | number | Date) || Date.now()),
-            ),
-          };
-        });
+      const entriesMap = await storageService.list("history:", 20);
+      if (entriesMap && typeof entriesMap === "object") {
+        const items: GameHistoryItem[] = [];
+        for (const [, value] of Object.entries(entriesMap)) {
+          const entry = value as StoredHistoryEntry;
+          items.push({
+            betId: entry.betId ?? "",
+            amount: Number(entry.amount ?? 0),
+            choice: entry.choice ?? "heads",
+            outcome: entry.outcome ?? "heads",
+            won: Boolean(entry.won),
+            payout: Number(entry.payout ?? 0),
+            time: entry.time ?? "",
+          });
+        }
+        gameHistory.value = items;
+      }
     } catch (e) {
       console.warn("[useCoinFlip] loadHistory failed:", e instanceof Error ? e.message : String(e));
     }
@@ -187,7 +245,7 @@ export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) 
     await Promise.all([loadStats(), loadHistory()]);
   };
 
-  // -- Actions ----------------------------------------------------------------
+  // -- Actions (via OS services + Oracle) -------------------------------------
 
   /**
    * Reset the game UI to its initial state.
@@ -204,15 +262,14 @@ export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) 
    *
    * Flow:
    * 1. Validate the bet amount
-   * 2. Ensure wallet is connected
-   * 3. Prepay GAS to the contract with memo "miniapp-fogplay:bet"
-   * 4. Call placeBet on the contract
-   * 5. Wait for the BetPlaced event to confirm bet registration
-   * 6. Request VRF randomness from the Oracle
-   * 7. Poll for the BetResolved event (oracle callback settles the bet)
-   * 8. Parse the result and update the UI
-   * 9. Emit success/failure events (triggers fireworks via platform on win)
-   * 10. Reload all data
+   * 2. Deposit GAS via PaymentProxy (prepay wager)
+   * 3. Place bet via GameProxy (registers bet on contract)
+   * 4. Request VRF randomness from OracleService
+   * 5. Poll for settlement via GameProxy (oracle callback settles the bet)
+   * 6. Parse the result and update the UI
+   * 7. Emit success/failure events (triggers fireworks via platform on win)
+   * 8. Hint badge service about first-flip achievement
+   * 9. Reload all data
    */
   const placeBet = async () => {
     // -- Validate ---
@@ -230,79 +287,61 @@ export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) 
     displayOutcome.value = null;
     showWinOverlay.value = false;
 
-    try {
-      // -- Step 1: Ensure wallet ---
-      await chain.ensureWallet();
+    const isFirstFlip = totalGames.value === 0;
 
+    try {
       const amountBase = toFixed8(betAmount.value);
       if (amountBase === "0") throw new Error(t("invalidBetAmount"));
 
-      // -- Step 2: Prepay GAS + invoke placeBet ---
-      // The contract requires a direct GAS transfer first, then the bet call.
-      const betResult = await chain.invokeWithPayment(
-        amountBase,
-        `${APP_ID}:bet`,
-        "placeBet",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Integer", value: amountBase },
-          { type: "Boolean", value: choice.value === "heads" },
-        ],
-        { waitForEvent: "BetPlaced" },
+      // -- Step 1: Deposit GAS via PaymentProxy ---
+      await paymentService.deposit(amountBase, `${APP_ID}:bet`);
+
+      // -- Step 2: Place bet via GameProxy ---
+      // The edge function handles wallet verification, contract invocation,
+      // and waiting for the BetPlaced event. Returns the betId.
+      const betPoolState = await gameService.placeBet(
+        "current",
+        JSON.stringify({
+          amount: amountBase,
+          choice: choice.value === "heads",
+        }),
       );
-
-      if (!betResult.success) throw new Error(t("betPending"));
-
-      // -- Step 3: Extract betId from BetPlaced event ---
-      const betEvent = betResult.event as Record<string, unknown> | undefined;
-      const placedValues = Array.isArray(betEvent?.state)
-        ? (betEvent.state as unknown[]).map(parseStackItem)
-        : [];
-      const betId = String(placedValues[3] ?? "");
+      const betId = String((betPoolState as unknown as { betId?: string })?.betId ?? "");
       if (!betId) throw new Error(t("betMissing"));
 
-      // -- Step 4: Request oracle VRF randomness ---
+      // -- Step 3: Request oracle VRF randomness ---
       // This triggers the Morpheus Oracle to generate verifiable random bytes.
       // The oracle callback will invoke the contract's resolve function,
       // which emits a BetResolved event with the outcome.
       await oracle.requestRandom(`${APP_ID}:${betId}`);
 
-      // -- Step 5: Wait for oracle callback (BetResolved) ---
-      // The oracle processes the VRF request and calls back the contract,
-      // which settles the bet and emits BetResolved with the result.
+      // -- Step 4: Poll for oracle callback (BetResolved) via GameProxy ---
+      // The edge function translates getPoolState("resolve:<betId>") into
+      // a BetResolved event lookup for the specific betId.
       const deadline = Date.now() + 60000;
-      let resolvedEvent: Record<string, unknown> | null = null;
+      let resolvedState: ResolvedBetState | null = null;
 
       while (Date.now() < deadline) {
-        const resultEvents = await chain.listEvents("BetResolved", { limit: 20 });
-        const match = resultEvents.find((evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          return String(values[3] ?? "") === betId;
-        });
-
-        if (match) {
-          resolvedEvent = match as Record<string, unknown>;
-          break;
+        try {
+          const state = await gameService.getPoolState(`resolve:${betId}`) as ResolvedBetState;
+          if (state && state.status === "settled") {
+            resolvedState = state;
+            break;
+          }
+        } catch {
+          // Not resolved yet, keep polling
         }
-
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
 
-      if (!resolvedEvent) throw new Error(t("betPending"));
+      if (!resolvedState) throw new Error(t("betPending"));
 
-      // -- Step 6: Parse result ---
-      const values = Array.isArray(resolvedEvent.state)
-        ? (resolvedEvent.state as unknown[]).map(parseStackItem)
-        : [];
-      const payoutRaw = values[1];
-      const won = Boolean(values[2]);
-      const payoutValue = Number(payoutRaw || 0) / 1e8;
+      // -- Step 5: Parse result ---
+      const won = Boolean(resolvedState.won);
+      const payoutValue = Number(resolvedState.payout ?? 0);
       const outcome = won ? choice.value : choice.value === "heads" ? "tails" : "heads";
 
-      // -- Step 7: Update UI ---
+      // -- Step 6: Update UI ---
       displayOutcome.value = outcome;
       isFlipping.value = false;
       result.value = { won, outcome: outcome.toUpperCase() };
@@ -316,6 +355,11 @@ export function useCoinFlip({ chain, oracle, eventBus, t }: UseCoinFlipOptions) 
       } else {
         losses.value += 1;
         eventBus.emit("coinflip:loss", { action: t("youLost") });
+      }
+
+      // -- Step 7: Hint badge service about first-flip achievement ---
+      if (isFirstFlip) {
+        badgeService.award("first-flip", "").catch(() => {});
       }
 
       // -- Step 8: Reload data ---
