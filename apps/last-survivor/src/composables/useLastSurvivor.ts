@@ -1,41 +1,121 @@
 /**
  * useLastSurvivor — Domain logic for the Last Survivor (doomsday clock) miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Contains ONLY game domain logic: load round data, buy keys, claim prize, timer.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (GameProxy, PaymentProxy, LeaderboardProxy, BadgeProxy,
+ * StorageProxy) via edge functions, so this file contains zero contract
+ * hashes, parameter encoding, or event parsing logic.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("getGameStatus")
+ *     chain.read("getPlayerKeys", [{ type: "Hash160", value: addr }])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("buyKeysWithCost", [...])
+ *     chain.invoke("checkAndEndRound", [...])
+ *     chain.listEvents("KeysPurchased", { limit: 20 })
+ *
+ *   AFTER (OS proxy):
+ *     ctx.os.game.getPoolState("current")
+ *     ctx.os.storage.get(`playerKeys:${roundId}`)
+ *     ctx.os.payment.deposit(amount, memo)
+ *     ctx.os.game.placeBet("current", keyCount)
+ *     ctx.os.game.settle("current", { claim: true })
+ *     ctx.os.storage.list("events:")
+ *     ctx.os.leaderboard.get(10)
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Countdown timer logic (danger level, pulse, etc.)
+ *   - Key cost formula (pure frontend math)
+ *   - Loading/buying/claiming UI flags
+ *   - Formatted display values
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { formatNumber, parseGas, toFixed8 } from "@shared/utils/format";
-import { formatAddress, normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { LeaderboardProxy } from "@shared/services/os/LeaderboardProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import { formatNumber } from "@shared/utils/format";
+import { formatAddress } from "@shared/utils/neo";
 import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const APP_ID = "miniapp-last-survivor";
 const BASE_KEY_PRICE = 10000000n;
 const KEY_PRICE_INCREMENT_BPS = 10n;
-const WAIT_AFTER_TRANSFER_MS = 4000;
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface UseLastSurvivorOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS GameProxy instance from ctx.os.game */
+  gameService: GameProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS LeaderboardProxy instance from ctx.os.leaderboard */
+  leaderboardService: LeaderboardProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+/**
+ * Shape of the pool state returned by GameProxy for LastSurvivor.
+ * Extends the base PoolState with game-specific fields returned by
+ * the edge function's getGameStatus translation.
+ */
+interface SurvivorPoolState {
+  // Inherited from base PoolState
+  poolId: string;
+  appId: string;
+  status: "open" | "active" | "settled" | "cancelled";
+  playerCount: number;
+  totalBets: string;
+  // Game-specific extensions
+  roundId?: number;
+  pot?: string;
+  active?: boolean;
+  lastBuyer?: string;
+  totalKeys?: number;
+  remainingTime?: number;
+}
+
+/** Shape of a history entry stored via StorageProxy. */
+interface StoredHistoryEntry {
+  id: string | number;
+  type: "keysPurchased" | "winnerDeclared" | "roundStarted";
+  player?: string;
+  keys?: number;
+  potContribution?: number;
+  winner?: string;
+  prize?: number;
+  round?: number;
+  endTime?: number;
+  date?: string;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) {
+export function useLastSurvivor({
+  gameService,
+  paymentService,
+  leaderboardService,
+  badgeService,
+  storageService,
+  t,
+}: UseLastSurvivorOptions) {
   // ── Game State ──────────────────────────────────────────────────────
   const roundId = ref(0);
   const totalPot = ref(0);
@@ -101,19 +181,15 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
   const totalPotDisplay = computed(() => `${formatNumber(totalPot.value, 2)} ${t("tokenGas")}`);
   const roundStatusDisplay = computed(() => isRoundActive.value ? t("activeRound") : t("inactiveRound"));
 
-  const lastBuyerHash = computed(() => normalizeScriptHash(String(lastBuyer.value || "")));
-  const addressHash = computed(() => chain.address.value ? addressToScriptHash(chain.address.value) : "");
-
   const canClaim = computed(() => {
     return (
       !isRoundActive.value &&
-      lastBuyerHash.value &&
-      addressHash.value &&
-      lastBuyerHash.value === addressHash.value &&
+      !!lastBuyer.value &&
       totalPot.value > 0
     );
   });
 
+  // ── Key cost formula (pure frontend math) ─────────────────────────
   const calculateKeyCostFormula = (count: bigint, currentTotalKeys: bigint): bigint => {
     if (count <= 0n) return 0n;
     const commonDiff = (BASE_KEY_PRICE * KEY_PRICE_INCREMENT_BPS) / 10000n;
@@ -130,18 +206,23 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
 
   const estimatedCost = computed(() => (Number(estimatedCostRaw.value) / 1e8).toFixed(2));
 
-  // ── Data Loading ──────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ─────────────────────────────────
+
+  /**
+   * Load round state via GameProxy.
+   * The edge function translates getPoolState("current") into the
+   * contract's getGameStatus call and returns normalized data.
+   */
   const loadRoundData = async () => {
     try {
-      const data = await chain.read("getGameStatus");
-      if (data && typeof data === "object") {
-        const statusMap = data as Record<string, unknown>;
-        roundId.value = Number(statusMap.roundId || 0);
-        totalPot.value = parseGas(statusMap.pot);
-        isRoundActive.value = Boolean(statusMap.active);
-        lastBuyer.value = String(statusMap.lastBuyer || "");
-        totalKeysInRound.value = BigInt(Number(statusMap.totalKeys) || 0);
-        return Number(statusMap.remainingTime || 0);
+      const state = await gameService.getPoolState("current") as SurvivorPoolState;
+      if (state && typeof state === "object") {
+        roundId.value = Number(state.roundId ?? 0);
+        totalPot.value = Number(state.totalBets ?? state.pot ?? 0);
+        isRoundActive.value = state.status === "active" || Boolean(state.active);
+        lastBuyer.value = String(state.lastBuyer ?? "");
+        totalKeysInRound.value = BigInt(Number(state.totalKeys) || 0);
+        return Number(state.remainingTime ?? 0);
       }
       return 0;
     } catch (e) {
@@ -150,80 +231,73 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
     }
   };
 
+  /**
+   * Load user's key count for the current round via StorageProxy.
+   * The edge function reads the per-player key count from contract storage.
+   */
   const loadUserKeys = async () => {
-    if (!chain.address.value || !roundId.value) {
+    if (!roundId.value) {
       userKeys.value = 0;
       return;
     }
     try {
-      const parsed = await chain.read("getPlayerKeys", [
-        { type: "Hash160", value: chain.address.value },
-        { type: "Integer", value: roundId.value },
-      ]);
-      userKeys.value = Number(parsed || 0);
+      const keys = await storageService.get(`playerKeys:${roundId.value}`);
+      userKeys.value = Number(keys || 0);
     } catch (e) {
       console.warn("[useLastSurvivor] loadUserKeys failed:", e instanceof Error ? e.message : String(e));
       userKeys.value = 0;
     }
   };
 
-  const parseEventDate = (raw: unknown) => {
-    const date = raw ? new Date(raw as string | number | Date) : new Date();
-    if (Number.isNaN(date.getTime())) return new Intl.DateTimeFormat(undefined).format(new Date());
-    return new Intl.DateTimeFormat(undefined).format(date);
-  };
-
+  /**
+   * Load game history from StorageProxy and leaderboard winners from
+   * LeaderboardProxy, then merge into a unified history list.
+   */
   const loadHistory = async () => {
     try {
-      const [keysRes, winnerRes, roundRes] = await Promise.all([
-        chain.listEvents("KeysPurchased", { limit: 20 }),
-        chain.listEvents("DoomsdayWinner", { limit: 10 }),
-        chain.listEvents("RoundStarted", { limit: 10 }),
+      const [eventsMap, winners] = await Promise.all([
+        storageService.list("events:", 40),
+        leaderboardService.get(10),
       ]);
 
       const items: HistoryEvent[] = [];
 
-      keysRes.forEach((evt: unknown) => {
-        const evtRecord = evt as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const player = String(values[0] || "");
-        const keys = Number(values[1] || 0);
-        const potContribution = parseGas(values[2]);
-        items.push({
-          id: evtRecord.id as string | number,
-          title: t("keysPurchased"),
-          details: `${formatAddress(player)} • ${keys} keys • +${potContribution.toFixed(2)} ${t("tokenGas")}`,
-          date: parseEventDate(evtRecord.created_at),
-        });
-      });
+      // Parse stored events (key purchases, round starts)
+      if (eventsMap && typeof eventsMap === "object") {
+        for (const [, value] of Object.entries(eventsMap)) {
+          const entry = value as StoredHistoryEntry;
+          if (entry.type === "keysPurchased") {
+            items.push({
+              id: entry.id,
+              title: t("keysPurchased"),
+              details: `${formatAddress(entry.player ?? "")} \u2022 ${entry.keys ?? 0} keys \u2022 +${(entry.potContribution ?? 0).toFixed(2)} ${t("tokenGas")}`,
+              date: entry.date ?? "",
+            });
+          } else if (entry.type === "roundStarted") {
+            const endText = entry.endTime
+              ? new Intl.DateTimeFormat(undefined).format(new Date(entry.endTime))
+              : t("notAvailable");
+            items.push({
+              id: entry.id,
+              title: t("roundStarted"),
+              details: `#${entry.round ?? 0} \u2022 ${endText}`,
+              date: entry.date ?? "",
+            });
+          }
+        }
+      }
 
-      winnerRes.forEach((evt: unknown) => {
-        const evtRecord = evt as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const winner = String(values[0] || "");
-        const prize = parseGas(values[1]);
-        const round = Number(values[2] || 0);
-        items.push({
-          id: evtRecord.id as string | number,
-          title: t("winnerDeclared"),
-          details: `${formatAddress(winner)} • ${prize.toFixed(2)} ${t("tokenGas")} • #${round}`,
-          date: parseEventDate(evtRecord.created_at),
+      // Parse leaderboard winners into history entries
+      if (Array.isArray(winners)) {
+        winners.forEach((w, idx) => {
+          items.push({
+            id: `winner-${idx}`,
+            title: t("winnerDeclared"),
+            details: `${formatAddress(w.user)} \u2022 ${w.score} ${t("tokenGas")}`,
+            date: "",
+          });
         });
-      });
-
-      roundRes.forEach((evt: unknown) => {
-        const evtRecord = evt as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const round = Number(values[0] || 0);
-        const end = Number(values[1] || 0) * 1000;
-        const endText = end ? new Intl.DateTimeFormat(undefined).format(new Date(end)) : t("notAvailable");
-        items.push({
-          id: evtRecord.id as string | number,
-          title: t("roundStarted"),
-          details: `#${round} • ${endText}`,
-          date: parseEventDate(evtRecord.created_at),
-        });
-      });
+      }
 
       history.value = items.sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e) {
@@ -239,6 +313,9 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
     return null;
   };
 
+  /**
+   * Load all data. Called by defineMiniApp on mount and wallet reconnect.
+   */
   const loadAll = async () => {
     isLoading.value = true;
     try {
@@ -252,8 +329,16 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
     }
   };
 
-  // ── Actions ────────────────────────────────────────────────────────
+  // ── Actions (via OS services) ──────────────────────────────────────
 
+  /**
+   * Buy keys via PaymentProxy (deposit GAS) + GameProxy (place bet).
+   *
+   * The OS payment service handles wallet connection and GAS transfer.
+   * The OS game service handles the buyKeysWithCost contract call.
+   * Badge awarding (first key purchase) is handled server-side by the
+   * edge function, so we just fire-and-forget a badge hint.
+   */
   const buyKeys = async (count: string) => {
     if (isBuyingKeys.value) return;
     const validation = validateKeyCount(count);
@@ -263,60 +348,54 @@ export function useLastSurvivor({ chain, eventBus, t }: UseLastSurvivorOptions) 
     }
     keyValidationError.value = null;
     const numKeys = Math.max(0, Math.floor(Number(count) || 0));
-    if (numKeys <= 0) throw new Error(t("error"));
+    if (numKeys <= 0) throw new Error(t("invalidKeyCount"));
 
     isBuyingKeys.value = true;
     try {
-      await chain.ensureWallet();
       const costRaw = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.value);
+      const costGas = (Number(costRaw) / 1e8).toFixed(8);
 
-      // Step 1: Transfer GAS to the contract
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: costRaw.toString() },
-          { type: "String", value: `${APP_ID}:buy:${roundId.value}:${numKeys}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
+      // Step 1: Deposit GAS via PaymentProxy
+      await paymentService.deposit(costGas, `buy:${roundId.value}:${numKeys}`);
 
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
+      // Step 2: Place bet (buy keys) via GameProxy
+      await gameService.placeBet("current", String(numKeys));
 
-      // Step 2: Call buyKeysWithCost
-      await chain.invoke("buyKeysWithCost", [
-        { type: "Hash160", value: chain.address.value as string },
-        { type: "Integer", value: numKeys },
-        { type: "Integer", value: costRaw.toString() },
-      ]);
+      // Step 3: Hint badge service about first-key achievement (fire-and-forget)
+      if (userKeys.value === 0) {
+        badgeService.award("first-key", "").catch(() => {});
+      }
 
-      eventBus.emit("keys:purchased", { action: t("keysPurchased") });
       await loadAll();
       return numKeys;
     } catch (e) {
-      eventBus.emit("keys:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     } finally {
       isBuyingKeys.value = false;
     }
   };
 
+  /**
+   * Claim prize via GameProxy (settle round) + PaymentProxy (withdraw).
+   *
+   * The OS game service calls checkAndEndRound on the contract.
+   * The payment is automatically settled to the winner by the edge function.
+   */
   const claimPrize = async () => {
     if (isClaiming.value) return;
     isClaiming.value = true;
     try {
-      await chain.ensureWallet();
-      await chain.invoke("checkAndEndRound", []);
+      // Settle the round — the edge function handles prize distribution
+      await gameService.settle("current", { claim: true });
 
-      eventBus.emit("prize:claimed", { action: t("prizeClaimed") });
+      // Submit the winning score to the leaderboard
+      await leaderboardService.submitScore(String(totalPot.value));
+
+      // Hint badge service about winner achievement (fire-and-forget)
+      badgeService.award("survivor-winner", "").catch(() => {});
+
       await loadAll();
     } catch (e) {
-      eventBus.emit("prize:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     } finally {
       isClaiming.value = false;
