@@ -13,7 +13,6 @@
  */
 
 import { handleCorsPreflight } from "./cors.ts";
-import { getEnv } from "./env.ts";
 import { getNeoRpcUrl } from "./k8s-config.ts";
 import { readJsonBody } from "./request.ts";
 import { error, json } from "./response.ts";
