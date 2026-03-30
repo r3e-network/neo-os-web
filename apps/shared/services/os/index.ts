@@ -1,0 +1,13 @@
+export { EdgeClient } from "./EdgeClient";
+export { OSServiceProxy } from "./OSServiceProxy";
+export { StorageProxy } from "./StorageProxy";
+export { PaymentProxy } from "./PaymentProxy";
+export { GameProxy } from "./GameProxy";
+export { VestingProxy } from "./VestingProxy";
+export { EscrowProxy } from "./EscrowProxy";
+export { BadgeProxy } from "./BadgeProxy";
+export { LeaderboardProxy } from "./LeaderboardProxy";
+export { CheckinProxy } from "./CheckinProxy";
+export { NFTProxy } from "./NFTProxy";
+export { ScriptProxy } from "./ScriptProxy";
+export type { OSServices } from "./types";
