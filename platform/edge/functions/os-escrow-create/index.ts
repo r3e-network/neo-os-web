@@ -2,13 +2,13 @@ import { getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getEnv("CONTRACT_GAME_SERVICE_HASH") ?? "";
+const CONTRACT_HASH = getEnv("CONTRACT_ESCROW_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
-  { scopeName: "os-game-bet", permission: "games" },
+  { scopeName: "os-escrow-create", permission: "escrow" },
   async ({ appId, userId, params }) => {
-    const poolId = String(params.pool_id ?? params.poolId ?? "").trim();
-    if (!poolId) throw new Error("pool_id required");
+    const counterparty = String(params.counterparty ?? "").trim();
+    if (!counterparty) throw new Error("counterparty required");
 
     let amount: bigint;
     try {
@@ -18,11 +18,15 @@ export const handler = createOSHandler(
     }
     if (amount <= 0n) throw new Error("amount must be > 0");
 
-    return buildInvocationIntent(CONTRACT_HASH, "PlaceBet", [
+    const milestones = Number(params.milestones ?? 1);
+    if (!Number.isFinite(milestones) || milestones < 1) throw new Error("milestones must be >= 1");
+
+    return buildInvocationIntent(CONTRACT_HASH, "CreateEscrow", [
       { type: "String", value: appId },
-      { type: "Integer", value: poolId },
       { type: "Hash160", value: userId },
+      { type: "Hash160", value: counterparty },
       { type: "Integer", value: amount.toString() },
+      { type: "Integer", value: String(Math.floor(milestones)) },
     ]);
   },
 );

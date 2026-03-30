@@ -1,0 +1,22 @@
+import { getEnv } from "../_shared/env.ts";
+import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
+
+const CONTRACT_HASH = getEnv("CONTRACT_VESTING_SERVICE_HASH") ?? "";
+
+export const handler = createOSHandler(
+  { scopeName: "os-vesting-cancel", permission: "vesting" },
+  async ({ appId, userId, params }) => {
+    const streamId = String(params.stream_id ?? params.streamId ?? "").trim();
+    if (!streamId) throw new Error("stream_id required");
+
+    return buildInvocationIntent(CONTRACT_HASH, "Cancel", [
+      { type: "String", value: appId },
+      { type: "String", value: streamId },
+      { type: "Hash160", value: userId },
+    ]);
+  },
+);
+
+if (import.meta.main) {
+  Deno.serve(handler);
+}
