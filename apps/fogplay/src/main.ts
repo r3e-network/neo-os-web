@@ -1,27 +1,33 @@
 /**
- * FogPlay (Coin Flip) -- Entry Point (New Pattern)
+ * FogPlay (Coin Flip) -- Entry Point (OS Services Pattern)
  *
- * This miniapp demonstrates OracleService integration with the
- * defineMiniApp() pattern. The oracle.requestRandom() call provides
- * verifiable randomness (VRF) for provably fair coin-flip results.
+ * This miniapp uses OS service proxies (ctx.os.game, ctx.os.payment,
+ * ctx.os.storage, ctx.os.badge) instead of direct chain calls. The proxies
+ * handle all contract interaction through edge functions, so the miniapp
+ * never touches contract hashes, parameter encoding, or event parsing.
  *
- * Structure:
- *   1. Import the play area component (the only custom UI)
- *   2. Import the manifest (declarative config for platform sections)
- *   3. Import i18n messages
- *   4. Import the domain composable
- *   5. Call defineMiniApp() with a setup function that wires them together
+ * Oracle VRF randomness is accessed through ctx.services.oracle, which is
+ * a platform service (not an OS contract proxy).
  *
- * The setup function:
- *   - Receives a MiniAppContext with `t` (i18n), `services`, `setStatus`, etc.
- *   - Creates PlatformServices to get ChainService, OracleService, EventBus
- *   - Instantiates the domain composable (passing services as constructor params)
- *   - Returns `state` whose keys match manifest valueKeys for stats/sidebar
- *   - Returns `loadData` for the platform to call on mount and wallet-connect
- *   - Registers action handlers for placeBet, setChoice, setBetAmount, etc.
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useCoinFlip({ gameService, paymentService, storageService,
+ *                             badgeService, oracle, eventBus, t })
+ *
+ * The composable calls:
+ *   ctx.os.payment.deposit(amount, memo)           -- prepay GAS for bet
+ *   ctx.os.game.placeBet("current", betParams)     -- place bet on contract
+ *   ctx.os.game.getPoolState("resolve:<betId>")    -- poll for settlement
+ *   ctx.os.storage.get("playerStats")              -- load player stats
+ *   ctx.os.storage.list("history:", 20)             -- load game history
+ *   ctx.os.badge.award("first-flip", "")            -- hint achievements
+ *   ctx.services.oracle.requestRandom(context)      -- VRF randomness
+ *
+ * Everything else (manifest, PlayArea, i18n) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
+import { registerActions } from "@shared/utils/createActionHandlers";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -34,34 +40,33 @@ defineMiniApp({
   messages,
 
   /**
-   * Setup function -- the bridge between domain logic and the platform.
+   * Setup function -- wires OS services + oracle to reactive state.
    *
-   * Called once when the miniapp mounts. The platform provides:
-   *   ctx.t         -- i18n translation function
-   *   ctx.services  -- platform-owned Chain/Oracle/Event/Notification services
-   *   ctx.setStatus -- show a toast/status message
-   *   ctx.registerAction -- register operation panel action handlers
-   *
-   * Returns:
-   *   state    -- reactive values matching manifest valueKey entries
-   *   loadData -- called by the platform on mount and wallet reconnect
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all contract interaction and ctx.services.oracle for VRF randomness
+   * instead of ctx.services.chain directly.
    */
   setup(ctx) {
-    const services = ctx.services;
-
     const coinFlip = useCoinFlip({
-      chain: services.chain,
-      oracle: services.oracle,
-      eventBus: services.events,
+      gameService: ctx.os.game,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      oracle: ctx.services.oracle,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    const { notify } = services;
-
     // Register actions so they can be called from the PlayArea via the
     // injected action registry, or from operation panels.
-    ctx.registerAction("placeBet", async () => {
-      await notify.guard(() => coinFlip.placeBet(), "youWon", "flipFailed");
+    registerActions(ctx, {
+      placeBet: {
+        handler: async () => {
+          await coinFlip.placeBet();
+        },
+        successKey: "youWon",
+        errorKey: "flipFailed",
+      },
     });
 
     ctx.registerAction("dismissOverlay", () => {
