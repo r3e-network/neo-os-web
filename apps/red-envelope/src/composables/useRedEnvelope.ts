@@ -1,27 +1,56 @@
 /**
- * useRedEnvelope — Unified domain composable for Red Envelope miniapp
+ * useRedEnvelope — Domain logic for the Red Envelope miniapp
  *
- * Replaces the legacy 4-file pattern:
- *   useRedEnvelopeCreation.ts + useRedEnvelopeOpen.ts + useNeoEligibility.ts + useEnvelopeActions.ts
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (GameProxy, PaymentProxy, StorageProxy, BadgeProxy) via edge
+ * functions, so this file contains zero contract hashes, parameter encoding,
+ * or event parsing logic.
  *
- * Uses PlatformServices (ChainService + EventBus) instead of:
- *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
- *   - useStatusMessage() -> eventBus.emit()
- *   - useEvents() -> chain.listEvents() / chain.waitForEvent()
- *   - useWallet() -> chain.ensureWallet()
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("getEnvelope", [{ type: "Integer", value: id }])
+ *     chain.read("hasClaimed", [...])
+ *     chain.listEvents("EnvelopeCreated", { limit: 120 })
+ *     chain.listEvents("EnvelopeClaimed", { limit: 120 })
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("createEnvelope", [...])
+ *     chain.invoke("claim", [...])
+ *     chain.read("checkEligibility", [...])
+ *     chain.read("balanceOf", [...], { scriptHash: NEO_HASH })
+ *     chain.ensureWallet()
+ *     eventBus.emit("envelope:created", ...)
+ *
+ *   AFTER (OS proxy):
+ *     storageService.get("envelope:<id>")
+ *     storageService.get("claimed:<envelopeId>:<user>")
+ *     storageService.list("envelopes:", 120)
+ *     storageService.list("claims:", 120)
+ *     paymentService.deposit(amount, memo)
+ *     gameService.createPool(config)
+ *     gameService.placeBet(poolId, "1")
+ *     storageService.get("eligibility:<envelopeId>")
+ *     paymentService.getBalance()
+ *     badgeService.award(badgeId, user)
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Preview distribution (pure frontend math)
+ *   - Loading/opening UI flags
+ *   - Formatted display values
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { toFixed8, fromFixed8, formatHash } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const APP_ID = "miniapp-redenvelope";
 const MIN_AMOUNT = 10000000n; // 0.1 GAS in fixed8
 const MAX_PACKETS = 100;
 const MIN_PER_PACKET = 1000000n; // 0.01 GAS in fixed8
@@ -67,8 +96,15 @@ export interface ClaimItem {
 }
 
 export interface UseRedEnvelopeOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS GameProxy instance from ctx.os.game */
+  gameService: GameProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -76,15 +112,40 @@ export interface UseRedEnvelopeOptions {
 // Helpers
 // ============================================================================
 
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+/** Shape of an envelope record returned by StorageProxy. */
+interface StoredEnvelope {
+  id: string;
+  creator: string;
+  totalAmount: number;
+  packetCount: number;
+  openedCount: number;
+  remainingAmount: number;
+  bestLuckAddress?: string;
+  bestLuckAmount?: number;
+  ready: boolean;
+  expiryTime: number;
+  claimedByCurrentUser?: boolean;
+}
+
+/** Shape of a claim record returned by StorageProxy. */
+interface StoredClaim {
+  envelopeId: string;
+  holder: string;
+  amount: number;
+  txHash?: string;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
+export function useRedEnvelope({
+  gameService,
+  paymentService,
+  storageService,
+  badgeService,
+  t,
+}: UseRedEnvelopeOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const envelopes = ref<EnvelopeItem[]>([]);
   const claims = ref<ClaimItem[]>([]);
@@ -109,7 +170,7 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
   const envelopeCount = computed(() => envelopes.value.length);
   const claimCount = computed(() => claims.value.length);
   const poolCount = computed(() => pools.value.length);
-  const isConnected = computed(() => Boolean(chain.address.value));
+  const isConnected = computed(() => true); // OS services handle auth
   const isOpening = computed(() => Boolean(openingId.value));
 
   // ── Preview Distribution (pure computation) ─────────────────────────
@@ -170,40 +231,30 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
     return amounts;
   };
 
-  // ── Envelope Mapping ────────────────────────────────────────────────
+  // ── Envelope Mapping (from StorageProxy data) ──────────────────────
 
-  const mapEnvelope = async (envelopeId: string): Promise<EnvelopeItem | null> => {
-    const decoded = asArray(
-      await chain.read("getEnvelope", [{ type: "Integer", value: envelopeId }]),
-    );
-    if (decoded.length < 9) return null;
-
-    const creator = String(decoded[0] ?? "");
-    if (!creator) return null;
-
-    const totalAmountRaw = Number(decoded[1] ?? 0);
-    const packetCount = Number(decoded[2] ?? 0);
-    const openedCount = Number(decoded[3] ?? 0);
-    const remainingAmountRaw = Number(decoded[4] ?? 0);
-    const bestLuckAddress = String(decoded[5] ?? "");
-    const bestLuckAmountRaw = Number(decoded[6] ?? 0);
-    const ready = Boolean(decoded[7]);
-    const expiryTime = Number(decoded[8] ?? 0);
+  /**
+   * Map a stored envelope record into the EnvelopeItem shape used by the UI.
+   * The edge function behind StorageProxy handles contract reads and returns
+   * normalized envelope data, so no contract hashes or parameter encoding here.
+   */
+  const mapStoredEnvelope = (data: StoredEnvelope): EnvelopeItem => {
+    const creator = String(data.creator ?? "");
+    const totalAmountRaw = Number(data.totalAmount ?? 0);
+    const packetCount = Number(data.packetCount ?? 0);
+    const openedCount = Number(data.openedCount ?? 0);
+    const remainingAmountRaw = Number(data.remainingAmount ?? 0);
+    const bestLuckAddress = String(data.bestLuckAddress ?? "");
+    const bestLuckAmountRaw = Number(data.bestLuckAmount ?? 0);
+    const ready = Boolean(data.ready);
+    const expiryTime = Number(data.expiryTime ?? 0);
     const now = Math.floor(Date.now() / 1000);
     const expired = expiryTime > 0 && now > expiryTime;
     const depleted = openedCount >= packetCount || remainingAmountRaw <= 0;
-
-    const claimedByMe = chain.address.value
-      ? Boolean(
-          await chain.read("hasClaimed", [
-            { type: "Integer", value: envelopeId },
-            { type: "Hash160", value: chain.address.value },
-          ]),
-        )
-      : false;
+    const claimedByMe = Boolean(data.claimedByCurrentUser);
 
     return {
-      id: envelopeId,
+      id: String(data.id),
       type: "lucky",
       creator,
       from: formatHash(creator),
@@ -231,76 +282,80 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
     };
   };
 
-  // ── Data Loading ────────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ─────────────────────────────────
 
+  /**
+   * Load all envelopes and claims via StorageProxy.
+   * The edge function translates storage reads into the appropriate
+   * contract queries and returns normalized data.
+   */
   const loadEnvelopes = async () => {
     loadingEnvelopes.value = true;
     try {
-      const createdEvents = await chain.listEvents("EnvelopeCreated", { limit: 120 });
+      // Load all envelopes from storage
+      const envelopeMap = await storageService.list("envelopes:", 120);
 
-      const seen = new Set<string>();
-      const rows = await Promise.all(
-        (createdEvents as { state?: unknown[]; tx_hash?: string }[]).map(
-          async (evt) => {
-            const values = Array.isArray(evt?.state)
-              ? (evt.state as unknown[]).map(parseStackItem)
-              : [];
-            const envelopeId = String(values[0] ?? "");
-            if (!envelopeId || seen.has(envelopeId)) return null;
-            seen.add(envelopeId);
-            return mapEnvelope(envelopeId);
-          },
-        ),
-      );
+      const allEnvelopes: EnvelopeItem[] = [];
+      if (envelopeMap && typeof envelopeMap === "object") {
+        for (const [, value] of Object.entries(envelopeMap)) {
+          const stored = value as StoredEnvelope;
+          if (stored && stored.id) {
+            allEnvelopes.push(mapStoredEnvelope(stored));
+          }
+        }
+      }
 
-      const allEnvelopes = (rows.filter(Boolean) as EnvelopeItem[]).sort(
-        (a, b) => Number(b.id) - Number(a.id),
-      );
+      allEnvelopes.sort((a, b) => Number(b.id) - Number(a.id));
       envelopes.value = allEnvelopes;
       pools.value = allEnvelopes.filter((item) => item.active && item.canOpen);
 
       // Load claims for current user
-      const currentAddress = String(chain.address.value || "");
-      if (!currentAddress) {
-        claims.value = [];
-      } else {
-        const claimEvents = await chain.listEvents("EnvelopeClaimed", { limit: 120 });
-        claims.value = (claimEvents as { state?: unknown[]; tx_hash?: string }[])
-          .map((evt) => {
-            const values = Array.isArray(evt?.state)
-              ? (evt.state as unknown[]).map(parseStackItem)
-              : [];
-            const holder = String(values[1] ?? "");
-            if (holder !== currentAddress) return null;
-            return {
-              id: `${String(values[0] ?? "")}:${String(evt.tx_hash || "")}`,
-              poolId: String(values[0] ?? ""),
-              holder,
-              amount: fromFixed8(Number(values[2] ?? 0)),
+      const claimMap = await storageService.list("claims:", 120);
+      const claimItems: ClaimItem[] = [];
+
+      if (claimMap && typeof claimMap === "object") {
+        for (const [, value] of Object.entries(claimMap)) {
+          const stored = value as StoredClaim;
+          if (stored && stored.holder) {
+            claimItems.push({
+              id: `${stored.envelopeId}:${stored.txHash ?? ""}`,
+              poolId: String(stored.envelopeId),
+              holder: stored.holder,
+              amount: fromFixed8(Number(stored.amount ?? 0)),
               opened: true,
               message: "",
-            } as ClaimItem;
-          })
-          .filter(Boolean) as ClaimItem[];
+            });
+          }
+        }
       }
+
+      claims.value = claimItems;
+    } catch (e) {
+      console.warn("[useRedEnvelope] loadEnvelopes failed:", e instanceof Error ? e.message : String(e));
     } finally {
       loadingEnvelopes.value = false;
     }
   };
 
-  // ── Actions ─────────────────────────────────────────────────────────
+  // ── Actions (via OS services) ──────────────────────────────────────
 
+  /**
+   * Connect wallet — a no-op in the OS services pattern.
+   * OS services handle auth transparently through the edge functions.
+   * Kept for API compatibility with PlayArea action dispatch.
+   */
   const handleConnect = async () => {
-    try {
-      await chain.ensureWallet();
-    } catch (e) {
-      console.warn(
-        "[red-envelope] handleConnect wallet error:",
-        e instanceof Error ? e.message : String(e),
-      );
-    }
+    // OS services handle wallet/auth transparently
   };
 
+  /**
+   * Create an envelope via PaymentProxy (deposit GAS) + GameProxy (create pool).
+   *
+   * The OS payment service handles wallet connection and GAS transfer.
+   * The OS game service handles pool creation with random distribution.
+   * Badge awarding (first envelope) is handled server-side by the edge
+   * function, so we just fire-and-forget a badge hint.
+   */
   const create = async (formData: {
     amount: string;
     count: string;
@@ -310,9 +365,6 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
 
     isLoading.value = true;
     try {
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("connectWallet"));
-
       const totalValue = Number(formData.amount);
       const packetCount = Number(formData.count);
       const expiryValue = Number(formData.expiryHours);
@@ -323,94 +375,73 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
       if (totalValue < packetCount * 0.01) throw new Error(t("invalidPerPacket"));
       if (!Number.isFinite(expiryValue) || expiryValue <= 0) throw new Error(t("invalidExpiry"));
 
-      // Step 1: Transfer GAS to the contract
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: toFixed8(formData.amount) },
-          { type: "String", value: `${APP_ID}:create` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      // Step 1: Deposit GAS via PaymentProxy
+      await paymentService.deposit(
+        formData.amount,
+        `redenvelope:create:${packetCount}`,
       );
 
-      // Give the GAS credit transfer a short head start
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      // Step 2: Create envelope pool via GameProxy
+      await gameService.createPool({
+        poolType: 2, // lottery (random distribution)
+        maxPlayers: packetCount,
+        entryFee: "0",
+        duration: Math.round(expiryValue * 3600),
+      });
 
-      // Step 2: Create the envelope
-      const result = await chain.invoke(
-        "createEnvelope",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Integer", value: toFixed8(formData.amount) },
-          { type: "Integer", value: String(packetCount) },
-          { type: "Integer", value: String(Math.round(expiryValue * 3600)) },
-        ],
-        { waitForEvent: "EnvelopeCreated", waitTimeoutMs: 45000 },
-      );
-
-      if (result.success) {
-        eventBus.emit("envelope:created", { action: t("envelopeSent") });
-      }
+      // Step 3: Hint badge service about first-envelope achievement (fire-and-forget)
+      badgeService.award("first-envelope", "").catch(() => {});
 
       await loadEnvelopes();
     } catch (e) {
-      eventBus.emit("envelope:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     } finally {
       isLoading.value = false;
     }
   };
 
-  const claimEnvelope = async (envelopeId: string): Promise<{ txid: string }> => {
-    await chain.ensureWallet();
-    if (!chain.address.value) throw new Error(t("connectWallet"));
+  /**
+   * Claim an envelope via GameProxy (place bet = draw from pool).
+   *
+   * The OS game service handles the claim contract call.
+   * The edge function returns the claim result including the random amount.
+   */
+  const claimEnvelope = async (envelopeId: string): Promise<{ amount: number }> => {
+    // placeBet with "1" means "claim one packet from this envelope pool"
+    await gameService.placeBet(envelopeId, "1");
 
-    const result = await chain.invoke("claim", [
-      { type: "Integer", value: envelopeId },
-      { type: "Hash160", value: chain.address.value },
-    ]);
-    return { txid: result.txid };
+    // Read the claim result from storage (set by the edge function post-claim)
+    const result = await storageService.get(`claimResult:${envelopeId}`);
+    const claimData = result as { amount?: number } | null;
+    return { amount: Number(claimData?.amount ?? 0) };
   };
 
+  /**
+   * Open an envelope — claims it and shows the lucky message overlay.
+   */
   const openEnvelope = async (envelope: EnvelopeItem) => {
     if (openingId.value) return;
 
     try {
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("connectWallet"));
-
       openingId.value = envelope.id;
 
       const result = await claimEnvelope(envelope.id);
 
-      // Wait for the claim event
-      const claimEvt = result.txid
-        ? await chain.waitForEvent(result.txid, "EnvelopeClaimed", 45000)
-        : null;
-
-      if (claimEvt) {
-        const evtRecord = claimEvt as { state?: unknown[] };
-        const values = Array.isArray(evtRecord?.state)
-          ? evtRecord.state.map(parseStackItem)
-          : [];
+      if (result.amount > 0) {
         luckyMessage.value = {
-          amount: Number(fromFixed8(Number(values[2] ?? 0)).toFixed(4)),
+          amount: Number(fromFixed8(result.amount).toFixed(4)),
           from: envelope.from,
         };
       }
 
       showOpeningModal.value = false;
       openingEnvelope.value = null;
-      eventBus.emit("envelope:opened", { action: t("openedFrom", { sender: envelope.from }) });
+
+      // Hint badge for lucky draw (fire-and-forget)
+      badgeService.award("lucky-draw", "").catch(() => {});
+
       await loadEnvelopes();
     } catch (e) {
-      eventBus.emit("envelope:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     } finally {
       openingId.value = null;
@@ -422,51 +453,40 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
     showOpeningModal.value = true;
   };
 
+  /**
+   * Claim from a pool by envelope ID — same as openEnvelope but
+   * without requiring the full EnvelopeItem object.
+   */
   const handleClaimFromPool = async (envelopeId: string) => {
     try {
-      await chain.ensureWallet();
       const result = await claimEnvelope(envelopeId);
 
-      const claimEvt = result.txid
-        ? await chain.waitForEvent(result.txid, "EnvelopeClaimed", 45000)
-        : null;
-
-      if (claimEvt) {
-        const evtRecord = claimEvt as { state?: unknown[] };
-        const values = Array.isArray(evtRecord?.state)
-          ? evtRecord.state.map(parseStackItem)
-          : [];
+      if (result.amount > 0) {
         luckyMessage.value = {
-          amount: Number(fromFixed8(Number(values[2] ?? 0)).toFixed(4)),
+          amount: Number(fromFixed8(result.amount).toFixed(4)),
           from: `#${envelopeId}`,
         };
       }
 
-      eventBus.emit("envelope:claimed", { action: t("claimSuccess") });
+      // Hint badge for pool claim (fire-and-forget)
+      badgeService.award("pool-claimer", "").catch(() => {});
+
       await loadEnvelopes();
     } catch (e) {
-      eventBus.emit("envelope:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     }
   };
 
-  // ── NEO Eligibility ─────────────────────────────────────────────────
+  // ── NEO Eligibility (via OS services) ──────────────────────────────
 
+  /**
+   * Check eligibility for an envelope via StorageProxy.
+   * The edge function reads the eligibility data from the contract.
+   */
   const checkEligibility = async (envelopeId: string): Promise<boolean> => {
-    if (!chain.address.value) {
-      isEligible.value = false;
-      eligibilityReason.value = t("walletNotConnected");
-      return false;
-    }
-
     checkingEligibility.value = true;
     try {
-      const data = (await chain.read("checkEligibility", [
-        { type: "Integer", value: envelopeId },
-        { type: "Hash160", value: chain.address.value },
-      ])) as Record<string, unknown> | null;
+      const data = await storageService.get(`eligibility:${envelopeId}`) as Record<string, unknown> | null;
 
       if (!data) {
         isEligible.value = false;
@@ -488,16 +508,13 @@ export function useRedEnvelope({ chain, eventBus, t }: UseRedEnvelopeOptions) {
     }
   };
 
+  /**
+   * Check NEO balance via PaymentProxy.
+   * The edge function reads the balance from the NEO token contract.
+   */
   const checkNeoBalance = async (): Promise<number> => {
-    if (!chain.address.value) return 0;
     try {
-      const balance = Number(
-        (await chain.read(
-          "balanceOf",
-          [{ type: "Hash160", value: chain.address.value }],
-          { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
-        )) ?? 0,
-      );
+      const balance = Number(await paymentService.getBalance() ?? 0);
       neoBalance.value = balance;
       return balance;
     } catch (_e) {
