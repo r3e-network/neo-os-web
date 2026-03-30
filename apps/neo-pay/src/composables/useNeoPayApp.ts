@@ -1,32 +1,58 @@
 /**
- * useNeoPayApp — Domain logic for Neo Pay miniapp (new pattern)
+ * useNeoPayApp — Domain logic for Neo Pay miniapp (OS Services Pattern)
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Handles payment stream creation, claiming, and cancellation.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (VestingProxy, PaymentProxy) via edge functions, so this file
+ * contains zero contract hashes, parameter encoding, or event parsing logic.
  *
- * Replaces the legacy useNeoPay composable which wired useWallet +
- * useContractAddress + useStatusMessage directly.
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("GetStreamDetails", [{ type: "Integer", value: id }])
+ *     chain.read("getUserStreams", [{ type: "Hash160", value: addr }, ...])
+ *     chain.read("getBeneficiaryStreams", [{ type: "Hash160", value: addr }, ...])
+ *     chain.invoke("transfer", [...], { scriptHash: assetHash })
+ *     chain.invoke("CreateStream", [...], { waitForEvent: "StreamCreated" })
+ *     chain.invoke("ClaimStream", [...], { waitForEvent: "StreamClaimed" })
+ *     chain.invoke("CancelStream", [...], { waitForEvent: "StreamCancelled" })
+ *
+ *   AFTER (OS proxy):
+ *     vestingService.listStreams("creator")
+ *     vestingService.listStreams("beneficiary")
+ *     vestingService.getStream(streamId)
+ *     paymentService.deposit(amount, memo)
+ *     vestingService.createStream(params)
+ *     vestingService.claim(streamId)
+ *     vestingService.cancel(streamId)
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Form validation (pure frontend checks)
+ *   - Loading/claiming/cancelling UI flags
+ *   - Stream parsing and display formatting
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
+import type { VestingProxy } from "@shared/services/os/VestingProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { StreamItem, StreamStatus } from "../types";
 
-const WAIT_AFTER_TRANSFER_MS = 4000;
 const NEO_HASH_NORMALIZED = normalizeScriptHash(BLOCKCHAIN_CONSTANTS.NEO_HASH);
 
 export interface UseNeoPayAppOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS VestingProxy instance from ctx.os.vesting */
+  vestingService: VestingProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
+export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayAppOptions) {
   const isLoading = ref(false);
   const isRefreshing = ref(false);
   const claimingId = ref<string | null>(null);
@@ -42,6 +68,10 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
   const totalStreamCount = computed(() => createdStreams.value.length + beneficiaryStreams.value.length);
 
   // -- Helpers --
+
+  /**
+   * Parse a raw stream record (returned by VestingProxy) into a typed StreamItem.
+   */
   const parseStream = (raw: unknown, id: string): StreamItem | null => {
     if (!raw || typeof raw !== "object") return null;
     const record = raw as Record<string, unknown>;
@@ -76,64 +106,54 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
     };
   };
 
-  const fetchStreamDetails = async (streamId: string) => {
-    const details = await chain.read("GetStreamDetails", [
-      { type: "Integer", value: streamId },
-    ]);
-    const parsed = details as Record<string, unknown>;
-    return parseStream(parsed, streamId);
-  };
+  // -- Data Loading (via OS services) --
 
-  const fetchStreamIds = async (operation: string, walletAddress: string) => {
-    const result = await chain.read(operation, [
-      { type: "Hash160", value: walletAddress },
-      { type: "Integer", value: "0" },
-      { type: "Integer", value: "20" },
-    ]);
-    if (!Array.isArray(result)) return [] as string[];
-    return result
-      .map((value) => String(value || ""))
-      .map((value) => Number.parseInt(value, 10))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .map((value) => String(value));
-  };
-
-  // -- Actions --
+  /**
+   * Load all streams for the current user via VestingProxy.
+   * The edge function translates listStreams into the contract's
+   * getUserStreams / getBeneficiaryStreams calls and returns normalized data.
+   */
   const refreshStreams = async () => {
-    if (!chain.address.value) return;
     if (isRefreshing.value) return;
     try {
       isRefreshing.value = true;
-      const createdIds = await fetchStreamIds("getUserStreams", chain.address.value);
-      const beneficiaryIds = await fetchStreamIds("getBeneficiaryStreams", chain.address.value);
 
-      const created = await Promise.all(createdIds.map(fetchStreamDetails));
-      const beneficiary = await Promise.all(beneficiaryIds.map(fetchStreamDetails));
+      const [creatorRaw, beneficiaryRaw] = await Promise.all([
+        vestingService.listStreams("creator"),
+        vestingService.listStreams("beneficiary"),
+      ]);
 
-      createdStreams.value = created.filter(Boolean) as StreamItem[];
-      beneficiaryStreams.value = beneficiary.filter(Boolean) as StreamItem[];
-      eventBus.emit("streams:refreshed", { count: allStreams.value.length });
+      const created = (creatorRaw ?? []).map((entry: unknown) => {
+        const record = entry as Record<string, unknown>;
+        const id = String(record.id ?? record.streamId ?? "");
+        return parseStream(record, id);
+      }).filter(Boolean) as StreamItem[];
+
+      const beneficiary = (beneficiaryRaw ?? []).map((entry: unknown) => {
+        const record = entry as Record<string, unknown>;
+        const id = String(record.id ?? record.streamId ?? "");
+        return parseStream(record, id);
+      }).filter(Boolean) as StreamItem[];
+
+      createdStreams.value = created;
+      beneficiaryStreams.value = beneficiary;
     } catch (e) {
-      eventBus.emit("streams:error", { message: formatErrorMessage(e, t("contractMissing")) });
+      console.warn("[useNeoPayApp] refreshStreams failed:", e instanceof Error ? e.message : String(e));
       throw e;
     } finally {
       isRefreshing.value = false;
     }
   };
 
-  const connectWallet = async () => {
-    try {
-      await chain.ensureWallet();
-      if (chain.address.value) {
-        await refreshStreams();
-      }
-      eventBus.emit("wallet:connected", { address: chain.address.value });
-    } catch (e) {
-      eventBus.emit("wallet:error", { message: formatErrorMessage(e, t("walletNotConnected")) });
-      throw e;
-    }
-  };
+  // -- Actions (via OS services) --
 
+  /**
+   * Create a payment stream via PaymentProxy (deposit funds) + VestingProxy
+   * (create stream).
+   *
+   * The OS payment service handles wallet connection and asset transfer.
+   * The OS vesting service handles the CreateStream contract call.
+   */
   const handleCreateVault = async (formData: {
     name: string;
     beneficiary: string;
@@ -171,118 +191,73 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
     try {
       isLoading.value = true;
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("walletNotConnected"));
-
-      const assetHash = formData.asset === "NEO" ? BLOCKCHAIN_CONSTANTS.NEO_HASH : BLOCKCHAIN_CONSTANTS.GAS_HASH;
       const title = formData.name.trim().slice(0, 60);
       const notes = formData.notes.trim().slice(0, 240);
-      const contractHash = chain.contractAddress.value;
-      if (!contractHash) throw new Error(t("contractMissing"));
 
-      // Step 1: Transfer asset to contract
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: totalFixed },
-          { type: "String", value: "" },
-        ],
-        { scriptHash: assetHash },
-      );
+      // Step 1: Deposit funds via PaymentProxy
+      await paymentService.deposit(totalFixed, `stream:${formData.asset}:${totalFixed}`);
 
-      // Wait for transfer to settle
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
+      // Step 2: Create the stream via VestingProxy
+      await vestingService.createStream({
+        beneficiary,
+        totalAmount: totalFixed,
+        rateAmount: rateFixed,
+        intervalSeconds: intervalDays * 86400,
+        title,
+        notes,
+      });
 
-      // Step 2: Create the stream
-      await chain.invoke(
-        "CreateStream",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Hash160", value: beneficiary },
-          { type: "Hash160", value: assetHash },
-          { type: "Integer", value: totalFixed },
-          { type: "Integer", value: rateFixed },
-          { type: "Integer", value: String(intervalDays * 86400) },
-          { type: "String", value: title },
-          { type: "String", value: notes },
-        ],
-        { waitForEvent: "StreamCreated" },
-      );
-
-      eventBus.emit("vault:created", {});
       await refreshStreams();
     } catch (e) {
-      eventBus.emit("vault:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
       isLoading.value = false;
     }
   };
 
+  /**
+   * Claim vested amounts from a stream via VestingProxy.
+   * The edge function handles the ClaimStream contract call.
+   */
   const claimStream = async (stream: StreamItem) => {
     if (claimingId.value) return;
     try {
       claimingId.value = stream.id;
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("walletNotConnected"));
-
-      await chain.invoke(
-        "ClaimStream",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Integer", value: stream.id },
-        ],
-        { waitForEvent: "StreamClaimed" },
-      );
-
+      await vestingService.claim(stream.id);
       await refreshStreams();
-      eventBus.emit("stream:claimed", { id: stream.id });
     } catch (e) {
-      eventBus.emit("stream:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
       claimingId.value = null;
     }
   };
 
+  /**
+   * Cancel a stream via VestingProxy.
+   * The edge function handles the CancelStream contract call and
+   * returns unvested funds to the creator.
+   */
   const cancelStream = async (stream: StreamItem) => {
     if (cancellingId.value) return;
     try {
       cancellingId.value = stream.id;
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("walletNotConnected"));
-
-      await chain.invoke(
-        "CancelStream",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Integer", value: stream.id },
-        ],
-        { waitForEvent: "StreamCancelled" },
-      );
-
+      await vestingService.cancel(stream.id);
       await refreshStreams();
-      eventBus.emit("stream:cancelled", { id: stream.id });
     } catch (e) {
-      eventBus.emit("stream:error", { message: formatErrorMessage(e, t("contractMissing")) });
       throw e;
     } finally {
       cancellingId.value = null;
     }
   };
 
+  /**
+   * Load all data. Called by defineMiniApp on mount and wallet reconnect.
+   */
   const loadAll = async () => {
-    if (chain.address.value) {
-      await refreshStreams();
-    }
+    await refreshStreams();
   };
 
   return {
-    // -- Wallet --
-    address: chain.address,
-
     // -- State --
     createdStreams,
     beneficiaryStreams,
@@ -300,7 +275,6 @@ export function useNeoPayApp({ chain, eventBus, t }: UseNeoPayAppOptions) {
 
     // -- Actions --
     refreshStreams,
-    connectWallet,
     handleCreateVault,
     claimStream,
     cancelStream,
