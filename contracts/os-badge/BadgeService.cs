@@ -350,6 +350,14 @@ namespace NeoMiniAppPlatform.Contracts.OS
             return value == null ? 0 : (BigInteger)value;
         }
 
+        private static void WriteBigInteger(byte[] key, BigInteger value)
+        {
+            if (value == 0)
+                Storage.Delete(Storage.CurrentContext, key);
+            else
+                Storage.Put(Storage.CurrentContext, key, value);
+        }
+
         // ── Key Builders ──────────────────────────────────────────────────
 
         private static byte[] AppConfigKey(string appId)
