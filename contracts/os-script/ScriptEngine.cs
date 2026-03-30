@@ -175,6 +175,14 @@ namespace NeoMiniAppPlatform.Contracts.OS
             return val != null;
         }
 
+        private static void WriteBigInteger(byte[] key, BigInteger value)
+        {
+            if (value == 0)
+                Storage.Delete(Storage.CurrentContext, key);
+            else
+                Storage.Put(Storage.CurrentContext, key, value);
+        }
+
         // ----------------------------------------------------------------
         // Storage maps and key helpers
         // ----------------------------------------------------------------

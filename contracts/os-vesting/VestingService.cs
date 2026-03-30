@@ -185,6 +185,10 @@ namespace NeoMiniAppPlatform.Contracts.OS
 
             StoreStream(appId, streamId, stream);
             OnStreamCreated(appId, streamId, creator, beneficiary, totalAmount);
+
+            // ScriptEngine hook
+            TriggerScriptHook(appId, "onStreamCreated", streamId, totalAmount);
+
             return streamId;
         }
 
@@ -214,6 +218,9 @@ namespace NeoMiniAppPlatform.Contracts.OS
             ExecutionEngine.Assert(transferred, "claim transfer failed");
 
             OnStreamClaimed(appId, streamId, beneficiary, claimable, stream.ReleasedAmount);
+
+            // ScriptEngine hook
+            TriggerScriptHook(appId, "onStreamClaimed", streamId, claimable);
         }
 
         public static void Cancel(string appId, UInt160 creator, BigInteger streamId)
@@ -258,6 +265,9 @@ namespace NeoMiniAppPlatform.Contracts.OS
             }
 
             OnStreamCancelled(appId, streamId, creator, refundAmount, unlockedAmount);
+
+            // ScriptEngine hook
+            TriggerScriptHook(appId, "onStreamCancelled", streamId, refundAmount);
         }
 
         // ── Safe Queries ──────────────────────────────────────────────────
@@ -322,6 +332,14 @@ namespace NeoMiniAppPlatform.Contracts.OS
         {
             ByteString? value = Storage.Get(Storage.CurrentContext, key);
             return value == null ? 0 : (BigInteger)value;
+        }
+
+        private static void WriteBigInteger(byte[] key, BigInteger value)
+        {
+            if (value == 0)
+                Storage.Delete(Storage.CurrentContext, key);
+            else
+                Storage.Put(Storage.CurrentContext, key, value);
         }
 
         // ── Key Builders ──────────────────────────────────────────────────
@@ -406,6 +424,23 @@ namespace NeoMiniAppPlatform.Contracts.OS
             BigInteger unlockedAmount = GetUnlockedAmount(stream);
             BigInteger claimable = unlockedAmount - stream.ReleasedAmount;
             return claimable > 0 ? claimable : 0;
+        }
+
+        // ── ScriptEngine Hook ─────────────────────────────────────────────
+
+        private static void TriggerScriptHook(string appId, string hookName, BigInteger streamId, BigInteger amount)
+        {
+            UInt160 engine = ReadAddress(PREFIX_SCRIPT_ENGINE);
+            if (engine == UInt160.Zero || !engine.IsValid) return;
+
+            try
+            {
+                Contract.Call(engine, "execute", CallFlags.All, appId, hookName, streamId, amount);
+            }
+            catch
+            {
+                // Script failure must not block vesting operations
+            }
         }
     }
 }
