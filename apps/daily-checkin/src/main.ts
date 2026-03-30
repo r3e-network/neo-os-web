@@ -1,32 +1,21 @@
 /**
- * Daily Check-in — Entry Point (New Pattern)
+ * Daily Check-in — Entry Point (OS Services Pattern)
  *
- * This is the REFERENCE implementation of the defineMiniApp() pattern.
- * Every miniapp should follow this structure:
+ * This miniapp uses OS service proxies (ctx.os.checkin) instead of
+ * direct chain calls. The CheckinProxy handles all contract interaction
+ * through edge functions, so the miniapp never touches contract hashes,
+ * parameter encoding, or event parsing.
  *
- *   1. Import the play area component (the only custom UI)
- *   2. Import the manifest (declarative config for platform sections)
- *   3. Import i18n messages
- *   4. Import the domain composable
- *   5. Call defineMiniApp() with a setup function that wires them together
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useCheckin({ checkinService: ctx.os.checkin, t })
  *
- * The setup function:
- *   - Receives a MiniAppContext with `t` (i18n), `services`, `setStatus`, etc.
- *   - Instantiates the domain composable (passing chain + events from services)
- *   - Returns `state` whose keys match manifest valueKeys for stats/sidebar
- *   - Returns `loadData` for the platform to call on mount and wallet-connect
- *   - Registers action handlers for any operation panel buttons
+ * The composable calls:
+ *   ctx.os.checkin.getStreak()    — load user stats
+ *   ctx.os.checkin.checkIn()      — perform daily check-in
+ *   ctx.os.checkin.claimRewards() — claim accumulated rewards
  *
- * The platform then:
- *   - Mounts the Vue app with the standard shell
- *   - Renders tabs, sidebar, stats from manifest + state bindings
- *   - Renders PlayArea in the content slot (receiving t, state, services as props)
- *   - Handles wallet connection, error boundaries, fireworks, etc.
- *
- * Compare with the legacy initialization (3 files, ~170 lines, mixed concerns):
- *   Legacy: main.ts -> App.vue -> StandardAppShell -> IndexPage
- *           -> createMiniApp() -> useCheckinPage() -> useCheckinContract()
- *   New:    main.ts -> defineMiniApp({ playArea, manifest, setup })
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -43,24 +32,15 @@ defineMiniApp({
   messages,
 
   /**
-   * Setup function — the bridge between domain logic and the platform.
+   * Setup function — wires OS checkin service to reactive state.
    *
-   * Called once when the miniapp mounts. The platform provides:
-   *   ctx.t         — i18n translation function
-   *   ctx.services  — platform-owned chain/event/notification services
-   *   ctx.setStatus — show a toast/status message
-   *   ctx.registerAction — register operation panel action handlers
-   *
-   * Returns:
-   *   state    — reactive values matching manifest valueKey entries
-   *   loadData — called by the platform on mount and wallet reconnect
+   * Called once when the miniapp mounts. Uses ctx.os.checkin (the OS
+   * CheckinProxy) for all data loading and mutations instead of
+   * ctx.services.chain directly.
    */
   setup(ctx) {
-    const services = ctx.services;
-
     const checkin = useCheckin({
-      chain: services.chain,
-      eventBus: services.events,
+      checkinService: ctx.os.checkin,
       t: ctx.t,
     });
 
