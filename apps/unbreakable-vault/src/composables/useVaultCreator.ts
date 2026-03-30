@@ -1,18 +1,31 @@
 /**
  * useVaultCreator — Vault creation with password hashing and GAS deposit
  *
- * Migrated to PlatformServices pattern:
- *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
- *   - useEvents().list -> chain.listEvents()
- *   - waitForListedEventByTransaction -> chain.waitForEvent()
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (EscrowProxy, PaymentProxy, StorageProxy, BadgeProxy) via
+ * edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.listEvents("VaultCreated", { limit: 50 })
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("createVault", [...], { waitForEvent: "VaultCreated" })
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.list("myVaults:", 50)
+ *     paymentService.deposit(bounty, "create:<hash>")
+ *     escrowService.create({ ... })
+ *     badgeService.award("vault-creator", "")
  */
 
 import { ref } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { normalizeScriptHash, addressToScriptHash, parseStackItem } from "@shared/utils/neo";
-import { toFixed8 } from "@shared/utils/format";
+import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { sha256Hex } from "@shared/utils/hash";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
 // Types
@@ -34,44 +47,66 @@ export interface VaultCreateForm {
 }
 
 export interface UseVaultCreatorOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS EscrowProxy instance from ctx.os.escrow */
+  escrowService: EscrowProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string) => string;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredVault {
+  id: string;
+  creator: string;
+  bounty: number;
+  created: number;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useVaultCreator({ chain, eventBus, t }: UseVaultCreatorOptions) {
+export function useVaultCreator({
+  escrowService,
+  paymentService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseVaultCreatorOptions) {
   const myVaults = ref<MyVault[]>([]);
   const createdVaultId = ref<string | null>(null);
+  const isCreating = ref(false);
 
+  /**
+   * Load vaults created by the current user via StorageProxy.
+   */
   const loadMyVaults = async () => {
-    if (!chain.address.value) {
-      myVaults.value = [];
-      return;
-    }
     try {
-      const events = await chain.listEvents("VaultCreated", { limit: 50 });
-      const myHash = normalizeScriptHash(addressToScriptHash(chain.address.value));
-      const vaults = (events as { state?: unknown[]; created_at?: string }[])
-        .map((evt) => {
-          const values = Array.isArray(evt?.state)
-            ? (evt.state as unknown[]).map(parseStackItem)
-            : [];
-          const id = String(values[0] ?? "");
-          const creator = String(values[1] ?? "");
-          const bountyValue = Number(values[2] ?? 0);
-          const creatorHash = normalizeScriptHash(addressToScriptHash(creator));
-          if (!id || creatorHash !== myHash) return null;
-          return {
-            id,
-            bounty: bountyValue,
-            created: evt.created_at ? new Date(evt.created_at).getTime() : Date.now(),
-          };
-        })
-        .filter(Boolean) as MyVault[];
+      const vaultMap = await storageService.list("myVaults:", 50);
+      const vaults: MyVault[] = [];
+      if (vaultMap && typeof vaultMap === "object") {
+        for (const [, value] of Object.entries(vaultMap)) {
+          const stored = value as StoredVault;
+          if (stored && stored.id) {
+            vaults.push({
+              id: String(stored.id),
+              bounty: Number(stored.bounty ?? 0),
+              created: Number(stored.created ?? Date.now()),
+            });
+          }
+        }
+      }
       myVaults.value = vaults.sort((a, b) => b.created - a.created);
     } catch (e) {
       console.error(
@@ -82,54 +117,52 @@ export function useVaultCreator({ chain, eventBus, t }: UseVaultCreatorOptions) 
     }
   };
 
+  /**
+   * Create a vault via PaymentProxy (deposit bounty) + EscrowProxy (create vault).
+   * The edge functions handle wallet connection, GAS transfer, and vault creation.
+   */
   const createVault = async (
     form: VaultCreateForm,
     onSuccess: (vaultId: string) => void,
     loadRecentVaults: () => Promise<void>,
   ) => {
-    if (chain.isProcessing.value) return;
+    if (isCreating.value) return;
+    isCreating.value = true;
     try {
-      await chain.ensureWallet();
       const amount = Number.parseFloat(form.bounty);
-      const bountyInt = toFixed8(amount);
       const hash = form.secretHash || (await sha256Hex(form.secret));
 
-      // Step 1: Transfer GAS bounty to the contract
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: bountyInt },
-          { type: "String", value: `miniapp-unbreakablevault:create:${hash.slice(0, 10)}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      // Step 1: Deposit GAS bounty via PaymentProxy
+      await paymentService.deposit(
+        form.bounty,
+        `miniapp-unbreakablevault:create:${hash.slice(0, 10)}`,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      // Step 2: Create the vault via EscrowProxy
+      const vaultId = await escrowService.create({
+        beneficiary: "",
+        amount: String(amount),
+        milestones: [{
+          name: "vault",
+          amount: String(amount),
+        }],
+      });
 
-      // Step 2: Create the vault
-      const result = await chain.invoke(
-        "createVault",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "ByteArray", value: hash },
-          { type: "Integer", value: bountyInt },
-          { type: "Integer", value: String(form.difficulty) },
-          { type: "String", value: form.title.trim().slice(0, 100) },
-          { type: "String", value: form.description.trim().slice(0, 300) },
-        ],
-        { waitForEvent: "VaultCreated", waitTimeoutMs: 30000 },
-      );
+      // Store vault metadata
+      await storageService.set(`vault-meta:${vaultId}`, {
+        secretHash: hash,
+        difficulty: form.difficulty,
+        title: form.title.trim().slice(0, 100),
+        description: form.description.trim().slice(0, 300),
+      });
 
-      const evtRecord = result.event as { state?: unknown[] } | undefined;
-      const values = Array.isArray(evtRecord?.state)
-        ? evtRecord!.state.map(parseStackItem)
-        : [];
-      const vaultId = String(values[0] ?? "");
       createdVaultId.value = vaultId || createdVaultId.value;
 
       eventBus.emit("vault:created", { action: t("vaultCreated") });
+
+      // Hint badge for vault creator (fire-and-forget)
+      badgeService.award("vault-creator", "").catch(() => {});
+
       onSuccess(vaultId);
       await loadRecentVaults();
       await loadMyVaults();
@@ -138,12 +171,14 @@ export function useVaultCreator({ chain, eventBus, t }: UseVaultCreatorOptions) 
         message: e instanceof Error ? e.message : t("vaultCreateFailed"),
       });
       throw e;
+    } finally {
+      isCreating.value = false;
     }
   };
 
   return {
-    address: chain.address,
-    isCreating: chain.isProcessing,
+    address: ref(""),
+    isCreating,
     myVaults,
     createdVaultId,
     loadMyVaults,

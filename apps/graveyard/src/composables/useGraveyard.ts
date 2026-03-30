@@ -1,24 +1,81 @@
 /**
  * useGraveyard — Domain logic for the Graveyard miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (NFTProxy, StorageProxy, BadgeProxy) via edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("getPlatformStats")
+ *     chain.read("totalMemories")
+ *     chain.listEvents("MemoryBuried", { limit: 20 })
+ *     chain.read("getMemoryDetails", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("BuryMemory", [...], { waitForEvent: "MemoryBuried" })
+ *     chain.invoke("ForgetMemory", [...], { waitForEvent: "MemoryForgotten" })
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.get("stats")
+ *     storageService.list("history:", 20)
+ *     storageService.get("memory:<id>")
+ *     nftService.burn(assetHash)            — bury memory (fee + destroy)
+ *     storageService.set("forget:<id>", {}) — forget memory (fee + forget)
+ *     badgeService.award("memory-buried", "")
  */
 
 import { ref, computed, onUnmounted } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { NFTProxy } from "@shared/services/os/NFTProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { HistoryItem } from "../types";
 
-const APP_ID = "miniapp-graveyard";
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface UseGraveyardOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS NFTProxy instance from ctx.os.nft */
+  nftService: NFTProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredHistoryItem {
+  id: string;
+  hash: string;
+  time: string;
+  forgotten: boolean;
+}
+
+interface StoredStats {
+  totalBuried?: number;
+  totalMemories?: number;
+  buryFee?: number;
+}
+
+// ============================================================================
+// Composable
+// ============================================================================
+
+export function useGraveyard({
+  nftService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseGraveyardOptions) {
   const totalDestroyed = ref(0);
   const gasReclaimed = ref(0);
   const assetHash = ref("");
@@ -52,53 +109,38 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     showConfirm.value = true;
   };
 
+  // ── Actions (via OS services) ──────────────────────────────────────
+
+  /**
+   * Bury a memory via NFTProxy.burn().
+   * The edge function handles the GAS fee transfer + BuryMemory contract call.
+   */
   const executeDestroy = async () => {
     showConfirm.value = false;
     if (isDestroying.value) return;
     isDestroying.value = true;
 
     try {
-      await chain.ensureWallet();
+      // Burn the asset via NFTProxy — the edge function handles
+      // the fee transfer and BuryMemory contract call
+      await nftService.burn(assetHash.value);
 
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: "10000000" },
-          { type: "String", value: `graveyard:bury:${assetHash.value.slice(0, 10)}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      const result = await chain.invoke(
-        "BuryMemory",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "String", value: assetHash.value },
-          { type: "Integer", value: String(memoryType.value) },
-        ],
-        { waitForEvent: "MemoryBuried" },
-      );
-
-      if (result.event) {
-        const evtRecord = result.event as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const memoryId = String(values[0] ?? "");
-        const contentHash = String(values[2] ?? assetHash.value);
-        history.value.unshift({
-          id: memoryId || String(Date.now()),
-          hash: contentHash,
-          time: new Intl.DateTimeFormat(undefined).format(new Date()),
-          forgotten: false,
-        });
-      }
+      // Record the burial in history
+      const memoryId = String(Date.now());
+      history.value.unshift({
+        id: memoryId,
+        hash: assetHash.value,
+        time: new Intl.DateTimeFormat(undefined).format(new Date()),
+        forgotten: false,
+      });
 
       totalDestroyed.value += 1;
       gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
       eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
+
+      // Hint badge for memory buried (fire-and-forget)
+      badgeService.award("memory-buried", "").catch(() => {});
+
       assetHash.value = "";
     } catch (e) {
       eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
@@ -108,93 +150,68 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
     }
   };
 
+  // ── Data Loading (via StorageProxy) ────────────────────────────────
+
+  /**
+   * Load platform stats via StorageProxy.get().
+   */
   const loadStats = async () => {
     try {
-      const parsed = await chain.read("getPlatformStats");
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const stats = parsed as Record<string, unknown>;
-        const total = Number(stats.totalBuried ?? stats.totalMemories ?? 0);
-        const fee = Number(stats.buryFee ?? 0);
+      const data = await storageService.get("stats") as StoredStats | null;
+      if (data && typeof data === "object") {
+        const total = Number(data.totalBuried ?? data.totalMemories ?? 0);
+        const fee = Number(data.buryFee ?? 0);
         totalDestroyed.value = Number.isFinite(total) ? total : 0;
         if (Number.isFinite(fee) && fee > 0) {
           gasReclaimed.value = Number(((totalDestroyed.value * fee) / 1e8).toFixed(2));
         } else {
           gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
         }
-        return;
       }
-      const totalResult = await chain.read("totalMemories");
-      totalDestroyed.value = Number(totalResult || 0);
-      gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
     } catch (_e) {
       console.warn("[useGraveyard] stats fetch failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
+  /**
+   * Load burial history via StorageProxy.list().
+   */
   const loadHistory = async () => {
     try {
-      const events = await chain.listEvents("MemoryBuried", { limit: 20 });
-      const entries = await Promise.all(
-        events.map(async (evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-          const memoryId = String(values[0] ?? evtRecord.id);
-          let contentHash = String(values[2] ?? "");
-          let forgotten = false;
-          if (memoryId) {
-            try {
-              const parsed = await chain.read("getMemoryDetails", [{ type: "Integer", value: memoryId }]);
-              if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                const detail = parsed as Record<string, unknown>;
-                forgotten = Boolean(detail.forgotten);
-                if (!forgotten && detail.contentHash) contentHash = String(detail.contentHash);
-              }
-            } catch (_e) {
-              // non-critical enrichment
-            }
+      const historyMap = await storageService.list("history:", 20);
+      const entries: HistoryItem[] = [];
+      if (historyMap && typeof historyMap === "object") {
+        for (const [, value] of Object.entries(historyMap)) {
+          const stored = value as StoredHistoryItem;
+          if (stored && stored.id) {
+            entries.push({
+              id: String(stored.id),
+              hash: String(stored.hash || ""),
+              time: String(stored.time || ""),
+              forgotten: Boolean(stored.forgotten),
+            });
           }
-          return {
-            id: memoryId,
-            hash: contentHash,
-            time: new Intl.DateTimeFormat(undefined).format(new Date((evtRecord.created_at as string) || Date.now())),
-            forgotten,
-          };
-        })
-      );
+        }
+      }
       history.value = entries;
     } catch (_e) {
       console.warn("[useGraveyard] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
     }
   };
 
+  /**
+   * Forget a memory via StorageProxy.set().
+   * The edge function handles the GAS fee transfer + ForgetMemory contract call.
+   */
   const forgetMemory = async (item: HistoryItem) => {
     if (!item.id || item.forgotten || forgettingId.value) return;
 
     forgettingId.value = item.id;
     try {
-      await chain.ensureWallet();
-
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: "100000000" },
-          { type: "String", value: `${APP_ID}:forget:${item.id}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      await chain.invoke(
-        "ForgetMemory",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Integer", value: String(item.id) },
-        ],
-        { waitForEvent: "MemoryForgotten" },
-      );
+      await storageService.set(`forget:${item.id}`, {
+        memoryId: item.id,
+        action: "forget",
+      });
 
       history.value = history.value.map((entry) => entry.id === item.id ? { ...entry, forgotten: true } : entry);
       eventBus.emit("graveyard:forgotten", { action: t("forgetSuccess") });
@@ -205,6 +222,8 @@ export function useGraveyard({ chain, eventBus, t }: UseGraveyardOptions) {
       forgettingId.value = null;
     }
   };
+
+  // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
     isLoading.value = true;
