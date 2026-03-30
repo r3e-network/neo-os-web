@@ -1,12 +1,15 @@
 /**
  * useDevTippingWallet — Wallet interaction logic for the Dev Tipping miniapp
  *
- * Receives ChainService + EventBus from PlatformServices instead of
- * instantiating its own useContractInteraction / useStatusMessage.
+ * Uses OS PaymentProxy for tip deposits instead of direct
+ * chain.invokeWithPayment(). The edge function behind PaymentProxy
+ * handles the GAS transfer + contract invocation atomically.
+ * Chain/EventBus are still used for wallet connection and notifications.
  */
 
 import { ref } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { toFixed8 } from "@shared/utils/format";
 
 const MIN_TIP = 0.001;
@@ -14,10 +17,11 @@ const MIN_TIP = 0.001;
 export interface UseDevTippingWalletOptions {
   chain: ChainService;
   eventBus: EventBus;
+  payment: PaymentProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletOptions) {
+export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippingWalletOptions) {
   const isLoading = ref(false);
 
   const sendTip = async (
@@ -45,19 +49,16 @@ export function useDevTippingWallet({ chain, eventBus, t }: UseDevTippingWalletO
 
       const amountInt = toFixed8(tipAmount);
 
-      await chain.invokeWithPayment(
-        amountInt,
-        `miniapp-dev-tipping:tip:${selectedDevId}`,
-        "Tip",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Integer", value: String(selectedDevId) },
-          { type: "Integer", value: amountInt },
-          { type: "String", value: tipMessage || "" },
-          { type: "String", value: tipperName || "" },
-          { type: "Boolean", value: anonymous },
-        ],
-      );
+      // Deposit via OS payment proxy — the edge function handles
+      // GAS transfer + contract Tip invocation atomically
+      const memo = JSON.stringify({
+        action: "tip",
+        devId: selectedDevId,
+        message: tipMessage || "",
+        tipper: tipperName || "",
+        anonymous,
+      });
+      await payment.deposit(amountInt, memo);
 
       eventBus.emit("devtipping:tipsent", { devId: selectedDevId, amount });
       if (onSuccess) onSuccess();

@@ -1,5 +1,9 @@
 /**
- * NeoBurger — Entry Point (New Pattern)
+ * NeoBurger — Entry Point (OS Services Pattern)
+ *
+ * Wrapper around the external NeoBurger (bNEO) and NEO native contracts.
+ * All chain calls target third-party contracts, so they stay on
+ * ctx.services.chain. No app-owned state to migrate to OS services.
  */
 
 import { ref, computed } from "vue";
@@ -19,20 +23,18 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const core = useNeoburgerCore({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
-      balance: platformServices.balance,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
+      balance: ctx.services.balance,
       t: ctx.t,
     });
 
     const stats = useNeoburgerStats(ctx.t);
 
     const swap = useNeoburgerSwap({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
       neoBalance: core.neoBalance,
       bNeoBalance: core.bNeoBalance,
       BNEO_CONTRACT: core.BNEO_CONTRACT,
@@ -56,7 +58,7 @@ defineMiniApp({
     );
     const loading = ref(false);
 
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     ctx.registerAction("swap", async () => {
       loading.value = true;

@@ -1,5 +1,10 @@
 /**
- * Neo Sign Anything — Entry Point (New Pattern)
+ * Neo Sign Anything — Entry Point (OS Services Pattern)
+ *
+ * This app is a thin wrapper around wallet signing and GAS self-transfer
+ * broadcast. All chain calls target the native GAS contract (external),
+ * so they stay on ctx.services.chain. Session counters are persisted
+ * via ctx.os.storage so they survive page reloads.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -15,14 +20,13 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     const signAnything = useSignAnything({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
-      clipboard: platformServices.clipboard,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
+      clipboard: ctx.services.clipboard,
+      storage: ctx.os.storage,
       t: ctx.t,
     });
 

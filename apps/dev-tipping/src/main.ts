@@ -1,5 +1,10 @@
 /**
- * Dev Tipping — Entry Point (New Pattern)
+ * Dev Tipping — Entry Point (OS Services Pattern)
+ *
+ * Developer/tip data is read from OS storage (ctx.os.storage) which
+ * mirrors the on-chain contract state through edge functions.
+ * Tip payments use ctx.os.payment.deposit() instead of direct
+ * chain.invokeWithPayment(). Recent tips are loaded via os.storage.list().
  */
 
 import { computed } from "vue";
@@ -10,19 +15,15 @@ import { messages } from "./locale/messages";
 import { useDevTippingStats } from "./composables/useDevTippingStats";
 import { useDevTippingWallet } from "./composables/useDevTippingWallet";
 
-const APP_ID = "miniapp-dev-tipping";
-
 defineMiniApp({
-  appId: APP_ID,
+  appId: "miniapp-dev-tipping",
   playArea: PlayArea,
   manifest,
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const stats = useDevTippingStats({
-      chain: platformServices.chain,
+      storage: ctx.os.storage,
       t: ctx.t as (
         key: string,
         params?: Record<string, string | number>,
@@ -30,8 +31,9 @@ defineMiniApp({
     });
 
     const wallet = useDevTippingWallet({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
+      payment: ctx.os.payment,
       t: ctx.t as (
         key: string,
         params?: Record<string, string | number>,
@@ -44,7 +46,7 @@ defineMiniApp({
     );
     const recentTipCount = computed(() => stats.recentTips.value.length);
 
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     ctx.registerAction("sendTip", async (...args: unknown[]) => {
       const devId = args[0] as number;
