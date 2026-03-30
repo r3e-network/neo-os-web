@@ -1,3 +1,15 @@
+/**
+ * Soulbound Certificate — Entry Point (OS Services Pattern)
+ *
+ * This miniapp uses OS service proxies (ctx.os.nft, ctx.os.storage,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useSoulbound({ nftService, storageService, ... })
+ */
+
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -11,12 +23,12 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const soulbound = useSoulbound({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
-      clipboard: platformServices.clipboard,
+      nftService: ctx.os.nft,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      clipboard: ctx.services.clipboard,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -30,7 +42,7 @@ defineMiniApp({
       soulbound.openIssueModal(template);
     });
     ctx.registerAction("toggleTemplate", (template: unknown) =>
-      platformServices.notify.guard(() => soulbound.toggleTemplate(template)),
+      ctx.services.notify.guard(() => soulbound.toggleTemplate(template)),
     );
     ctx.registerAction("copyIssueLink", async (template: unknown) => {
       await soulbound.copyIssueLink(template);

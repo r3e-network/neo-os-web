@@ -1,3 +1,15 @@
+/**
+ * Memorial Shrine — Entry Point (OS Services Pattern)
+ *
+ * This miniapp uses OS service proxies (ctx.os.nft, ctx.os.storage,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useMemorialShrine({ nftService, storageService, ... })
+ */
+
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -11,15 +23,13 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const shrine = useMemorialShrine({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      nftService: ctx.os.nft,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
-
-    const { notify } = platformServices;
 
     ctx.registerAction("openMemorial", async (id: number) => {
       shrine.openMemorial(id);
@@ -36,7 +46,7 @@ defineMiniApp({
         biography: string;
         obituary: string;
       }) => {
-        await notify.guard(() => shrine.createMemorial(form), "createSuccess");
+        await ctx.services.notify.guard(() => shrine.createMemorial(form), "createSuccess");
       },
     );
 
@@ -48,7 +58,7 @@ defineMiniApp({
         offeringCost: number,
         message: string,
       ) => {
-        await notify.guard(
+        await ctx.services.notify.guard(
           () =>
             shrine.payTribute(memorialId, offeringType, offeringCost, message),
           "tributeSuccess",

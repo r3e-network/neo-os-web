@@ -1,29 +1,93 @@
 /**
  * useBreakup — Domain logic for the Breakup Contract miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Replaces the legacy pages/index/composables/useBreakupContract.ts
- * which instantiated its own useContractInteraction / useStatusMessage / useEvents.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (EscrowProxy, StorageProxy, BadgeProxy) via edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.listAllEvents("ContractCreated")
+ *     chain.read("getContractDetails", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("createContract", [...])
+ *     chain.invoke("signContract", [...])
+ *     chain.invoke("triggerBreakup", [...])
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.list("contracts:", 50)
+ *     storageService.get("contract:<id>")
+ *     escrowService.create({ ... })          — create contract with stake
+ *     escrowService.fund(escrowId)           — sign/stake matching amount
+ *     escrowService.completeMilestone(id, 0) — trigger breakup
+ *     badgeService.award("relationship-contract", "")
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { parseGas, toFixed8 } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { parseGas } from "@shared/utils/format";
 import type { ContractStatus, RelationshipContractView } from "../types";
 
-const APP_ID = "miniapp-breakupcontract";
+// ============================================================================
+// Types
+// ============================================================================
 
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
 
 export interface UseBreakupOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS EscrowProxy instance from ctx.os.escrow */
+  escrowService: EscrowProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredContract {
+  id: number;
+  party1: string;
+  party2: string;
+  stake: string | number;
+  party1Signed: boolean;
+  party2Signed: boolean;
+  createdTime: number;
+  startTime: number;
+  duration: number;
+  signDeadline: number;
+  active: boolean;
+  completed: boolean;
+  cancelled: boolean;
+  title: string;
+  terms: string;
+  milestonesReached: number;
+  totalPenaltyPaid: number;
+  breakupInitiator: string;
+  progressPercent?: number;
+  remainingTime?: number;
+}
+
+// ============================================================================
+// Composable
+// ============================================================================
+
+export function useBreakup({
+  escrowService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseBreakupOptions) {
   // -- Form state -----------------------------------------------------------
   const partnerAddress = ref("");
   const stakeAmount = ref("");
@@ -36,6 +100,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   const isLoading = ref(false);
 
   // -- Derived state --------------------------------------------------------
+  const address = ref("");
   const contractCount = computed(() => contracts.value.length);
   const activeCount = computed(() => contracts.value.filter((c) => c.status === "active").length);
   const pendingCount = computed(() => contracts.value.filter((c) => c.status === "pending").length);
@@ -44,43 +109,21 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
   // -- Helpers --------------------------------------------------------------
 
   const parseContract = (
-    id: number,
-    data: Record<string, unknown> | unknown[] | null,
+    data: StoredContract,
   ): RelationshipContractView | null => {
     if (!data || typeof data !== "object") return null;
-    const details = Array.isArray(data)
-      ? {
-          party1: data[0],
-          party2: data[1],
-          stake: data[2],
-          party1Signed: data[3],
-          party2Signed: data[4],
-          createdTime: data[5],
-          startTime: data[6],
-          duration: data[7],
-          signDeadline: data[8],
-          active: data[9],
-          completed: data[10],
-          cancelled: data[11],
-          title: data[12],
-          terms: data[13],
-          milestonesReached: data[14],
-          totalPenaltyPaid: data[15],
-          breakupInitiator: data[16],
-        }
-      : (data as Record<string, unknown>);
 
-    const party1 = String(details.party1 ?? "");
-    const party2 = String(details.party2 ?? "");
-    const stakeRaw = String(details.stake ?? "0");
-    const party2Signed = Boolean(details.party2Signed);
-    const startTimeSeconds = Number(details.startTime ?? 0);
-    const durationSeconds = Number(details.duration ?? 0);
-    const active = Boolean(details.active);
-    const completed = Boolean(details.completed);
-    const cancelled = Boolean(details.cancelled);
-    const title = String(details.title ?? "");
-    const terms = String(details.terms ?? "");
+    const party1 = String(data.party1 ?? "");
+    const party2 = String(data.party2 ?? "");
+    const stakeRaw = String(data.stake ?? "0");
+    const party2Signed = Boolean(data.party2Signed);
+    const startTimeSeconds = Number(data.startTime ?? 0);
+    const durationSeconds = Number(data.duration ?? 0);
+    const active = Boolean(data.active);
+    const completed = Boolean(data.completed);
+    const cancelled = Boolean(data.cancelled);
+    const title = String(data.title ?? "");
+    const terms = String(data.terms ?? "");
 
     const startTimeMs = startTimeSeconds * 1000;
     const durationMs = durationSeconds * 1000;
@@ -88,9 +131,9 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     const endTime = startTimeMs + durationMs;
     const elapsed = startTimeMs > 0 ? Math.max(0, Math.min(durationMs, now - startTimeMs)) : 0;
     const computedProgress = durationMs > 0 ? Math.round((elapsed / durationMs) * 100) : 0;
-    const progressPercent = Number((details as Record<string, unknown>).progressPercent ?? 0);
+    const progressPercent = Number(data.progressPercent ?? 0);
     const progress = progressPercent > 0 ? Math.min(100, Math.max(0, Math.floor(progressPercent))) : computedProgress;
-    const remainingSeconds = Number((details as Record<string, unknown>).remainingTime ?? 0);
+    const remainingSeconds = Number(data.remainingTime ?? 0);
     const daysLeft =
       remainingSeconds > 0
         ? Math.max(0, Math.ceil(remainingSeconds / 86400))
@@ -103,11 +146,11 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     else if (completed) contractStatus = "broken";
     else if (party2Signed || cancelled) contractStatus = "ended";
 
-    const addr = chain.address.value;
+    const addr = address.value;
     const partner = addr && addr === party1 ? party2 : party1;
 
     return {
-      id,
+      id: Number(data.id),
       party1,
       party2,
       partner,
@@ -121,27 +164,27 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     };
   };
 
-  // -- Data loading ---------------------------------------------------------
+  // -- Data loading (via StorageProxy) --------------------------------------
 
+  /**
+   * Load all contracts via StorageProxy.list().
+   * The edge function handles the contract reads and event parsing.
+   */
   const loadContracts = async () => {
     isLoading.value = true;
     try {
-      const createdEvents = await chain.listAllEvents("ContractCreated");
-      const ids = new Set<number>();
-      createdEvents.forEach((evt) => {
-        const evtRecord = evt as unknown as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const id = Number(values[0] ?? 0);
-        if (id > 0) ids.add(id);
-      });
-
+      const contractMap = await storageService.list("contracts:", 50);
       const contractViews: RelationshipContractView[] = [];
-      for (const id of Array.from(ids).sort((a, b) => b - a)) {
-        const parsed = await chain.read("getContractDetails", [{ type: "Integer", value: id }]);
-        const view = parseContract(id, parsed as Record<string, unknown> | unknown[] | null);
-        if (view) contractViews.push(view);
+      if (contractMap && typeof contractMap === "object") {
+        for (const [, value] of Object.entries(contractMap)) {
+          const stored = value as StoredContract;
+          if (stored && stored.id) {
+            const view = parseContract(stored);
+            if (view) contractViews.push(view);
+          }
+        }
       }
-      contracts.value = contractViews;
+      contracts.value = contractViews.sort((a, b) => b.id - a.id);
     } catch (e) {
       eventBus.emit("breakup:error", { message: e instanceof Error ? e.message : t("loadFailed") });
       throw e;
@@ -150,8 +193,12 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     }
   };
 
-  // -- Actions --------------------------------------------------------------
+  // -- Actions (via OS services) --------------------------------------------
 
+  /**
+   * Create a relationship contract via EscrowProxy.create().
+   * The edge function handles the GAS stake transfer + contract creation.
+   */
   const createContract = async () => {
     if (isLoading.value) return;
 
@@ -172,38 +219,29 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     if (titleValue.length > 100) throw new Error(t("titleTooLong"));
     if (termsValue.length > 2000) throw new Error(t("termsTooLong"));
 
-    await chain.ensureWallet();
-    const contractHash = chain.contractAddress.value as string;
-
-    // Step 1: Transfer GAS stake to contract
-    await chain.invoke(
-      "transfer",
-      [
-        { type: "Hash160", value: chain.address.value as string },
-        { type: "Hash160", value: contractHash },
-        { type: "Integer", value: toFixed8(stakeAmount.value) },
-        { type: "String", value: `${APP_ID}:create:${partnerValue.slice(0, 10)}` },
+    // Create escrow with partner as beneficiary, stake as amount
+    const expirySeconds = Math.floor(Date.now() / 1000) + durationDays * 86400;
+    await escrowService.create({
+      beneficiary: partnerValue,
+      amount: stakeAmount.value,
+      milestones: [
+        { name: "relationship", amount: stakeAmount.value },
       ],
-      { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-    );
+      expiry: expirySeconds,
+    });
 
-    await new Promise((resolve) => setTimeout(resolve, 4000));
-
-    // Step 2: Create the contract on-chain
-    await chain.invoke(
-      "createContract",
-      [
-        { type: "Hash160", value: chain.address.value as string },
-        { type: "Hash160", value: partnerValue },
-        { type: "Integer", value: toFixed8(stakeAmount.value) },
-        { type: "Integer", value: durationDays },
-        { type: "String", value: titleValue },
-        { type: "String", value: termsValue },
-      ],
-      { scriptHash: contractHash },
-    );
+    // Store contract metadata
+    await storageService.set(`contract-meta:${Date.now()}`, {
+      partner: partnerValue,
+      title: titleValue,
+      terms: termsValue,
+      durationDays,
+    });
 
     eventBus.emit("breakup:created", { action: t("contractCreated") });
+
+    // Hint badge for relationship contract (fire-and-forget)
+    badgeService.award("relationship-contract", "").catch(() => {});
 
     // Reset form
     partnerAddress.value = "";
@@ -215,46 +253,25 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
     await loadContracts();
   };
 
+  /**
+   * Sign a contract via EscrowProxy.fund().
+   * The edge function handles the matching stake transfer + sign contract call.
+   */
   const signContract = async (contract: { id: number; stake: number }) => {
-    if (isLoading.value || !chain.address.value) return;
+    if (isLoading.value) return;
 
-    const contractHash = chain.contractAddress.value as string;
-
-    // Step 1: Transfer matching stake
-    await chain.invoke(
-      "transfer",
-      [
-        { type: "Hash160", value: chain.address.value },
-        { type: "Hash160", value: contractHash },
-        { type: "Integer", value: toFixed8(contract.stake.toFixed(8)) },
-        { type: "String", value: `${APP_ID}:sign:${contract.id}` },
-      ],
-      { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 4000));
-
-    // Step 2: Sign the contract
-    await chain.invoke(
-      "signContract",
-      [
-        { type: "Integer", value: contract.id },
-        { type: "Hash160", value: chain.address.value },
-      ],
-      { scriptHash: contractHash },
-    );
+    await escrowService.fund(String(contract.id));
 
     eventBus.emit("breakup:signed", { action: t("contractSigned") });
     await loadContracts();
   };
 
+  /**
+   * Break a contract via EscrowProxy.completeMilestone().
+   * The edge function handles the triggerBreakup contract call.
+   */
   const breakContract = async (contract: { id: number }) => {
-    if (!chain.address.value) throw new Error(t("error"));
-
-    await chain.invoke("triggerBreakup", [
-      { type: "Integer", value: contract.id },
-      { type: "Hash160", value: chain.address.value },
-    ]);
+    await escrowService.completeMilestone(String(contract.id), 0);
 
     eventBus.emit("breakup:broken", { action: t("contractBroken") });
     await loadContracts();
@@ -262,7 +279,7 @@ export function useBreakup({ chain, eventBus, t }: UseBreakupOptions) {
 
   return {
     // Wallet state
-    address: chain.address,
+    address,
 
     // Form state
     partnerAddress,

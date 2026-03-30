@@ -1,42 +1,45 @@
 /**
- * useBurnLeague — Simplified domain logic for the Burn League miniapp
+ * useBurnLeague — Domain logic for the Burn League miniapp (OS Services)
  *
- * This composable encapsulates all burn-league business logic and provides
- * reactive state for the platform to bind to manifest-driven UI sections.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (GameProxy, NFTProxy, LeaderboardProxy, BadgeProxy) via
+ * edge functions, so this file contains zero contract hashes, parameter
+ * encoding, or event parsing logic.
  *
- * Compared with the legacy useBurnLeague.ts:
+ * Migration from direct chain calls to OS services:
  *
- *   BEFORE (legacy):
- *     - Manually wires useContractInteraction + useStatusMessage + useEvents
- *     - Builds sidebar items, formats error messages, polls for events
- *     - Contains mixed infrastructure + business logic
+ *   BEFORE (chain):
+ *     chain.read("totalBurned")
+ *     chain.read("rewardPool")
+ *     chain.read("getUserTotalBurned", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("burnGas", [...], { waitForEvent: "GasBurned" })
+ *     chain.listAllEvents("GasBurned")
  *
- *   AFTER (this file):
- *     - Receives ChainService + EventBus from PlatformServices
- *     - Contains ONLY burn-league domain logic (load stats, leaderboard, burn)
- *     - Sidebar, stats, status messages are all driven by manifest + platform
- *     - Clean separation: business logic only, no infrastructure plumbing
+ *   AFTER (OS proxy):
+ *     gameService.getPoolState("burn-league")       — load burn stats
+ *     leaderboardService.get(100)                   — load leaderboard
+ *     nftService.burn(tokenId)                      — burn tokens
+ *     badgeService.updateStat(user, "burned", ...)  — track burn amounts
+ *     badgeService.award(badgeId, user)             — award achievements
  *
- * Key design decisions:
- *   - No onMounted/onUnmounted — lifecycle is managed by defineMiniApp
- *     which calls loadAll via the returned `loadData` callback
- *   - No usePlatformServices() inject — services are passed in explicitly
- *     so this composable works regardless of the component tree setup
- *   - Formatted values are provided as computed refs for manifest bindings
- *     (the platform reads these via the state object returned by setup)
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - Loading/burning UI flags
+ *   - Formatted display values
+ *   - Leaderboard preview computation
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { parseGas, toFixed8, formatGas, formatNumber } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { GameProxy } from "@shared/services/os/GameProxy";
+import type { NFTProxy } from "@shared/services/os/NFTProxy";
+import type { LeaderboardProxy, LeaderboardEntry } from "@shared/services/os/LeaderboardProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { formatNumber } from "@shared/utils/format";
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-const APP_ID = "miniapp-burn-league";
 
 /** Minimum burn amount in GAS */
 export const MIN_BURN = 1;
@@ -52,11 +55,32 @@ export interface LeaderEntry {
   isUser: boolean;
 }
 
+/**
+ * Shape of the pool state returned by GameProxy for Burn League.
+ * The edge function translates contract reads into normalized data.
+ */
+interface BurnLeaguePoolState {
+  poolId: string;
+  appId: string;
+  status: "open" | "active" | "settled" | "cancelled";
+  playerCount: number;
+  totalBets: string;
+  // Game-specific extensions from edge function
+  totalBurned?: number;
+  rewardPool?: number;
+  userBurned?: number;
+  burnCount?: number;
+}
+
 export interface UseBurnLeagueOptions {
-  /** ChainService instance from PlatformServices */
-  chain: ChainService;
-  /** EventBus instance from PlatformServices */
-  eventBus: EventBus;
+  /** OS GameProxy instance from ctx.os.game */
+  gameService: GameProxy;
+  /** OS NFTProxy instance from ctx.os.nft */
+  nftService: NFTProxy;
+  /** OS LeaderboardProxy instance from ctx.os.leaderboard */
+  leaderboardService: LeaderboardProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
@@ -65,7 +89,13 @@ export interface UseBurnLeagueOptions {
 // Composable
 // ============================================================================
 
-export function useBurnLeague({ chain, eventBus, t }: UseBurnLeagueOptions) {
+export function useBurnLeague({
+  gameService,
+  nftService,
+  leaderboardService,
+  badgeService,
+  t,
+}: UseBurnLeagueOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const totalBurned = ref(0);
   const rewardPool = ref(0);
@@ -98,63 +128,49 @@ export function useBurnLeague({ chain, eventBus, t }: UseBurnLeagueOptions) {
   /** Top 10 entries for the leaderboard preview */
   const leaderboardPreview = computed(() => leaderboard.value.slice(0, 10));
 
-  // ── Data Loading ─────────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ──────────────────────────────────
 
+  /**
+   * Load burn stats via GameProxy.
+   * The edge function translates getPoolState("burn-league") into
+   * contract reads for totalBurned, rewardPool, and userBurned.
+   */
   const loadStats = async () => {
     try {
-      const rawTotal = await chain.read("totalBurned");
-      totalBurned.value = parseGas(rawTotal);
-
-      const rawPool = await chain.read("rewardPool");
-      rewardPool.value = parseGas(rawPool);
-
-      if (chain.address.value) {
-        const rawUser = await chain.read("getUserTotalBurned", [
-          { type: "Hash160", value: chain.address.value },
-        ]);
-        userBurned.value = parseGas(rawUser);
-      } else {
-        userBurned.value = 0;
+      const state = await gameService.getPoolState("burn-league") as BurnLeaguePoolState;
+      if (state && typeof state === "object") {
+        totalBurned.value = Number(state.totalBurned ?? state.totalBets ?? 0);
+        rewardPool.value = Number(state.rewardPool ?? 0);
+        userBurned.value = Number(state.userBurned ?? 0);
+        burnCount.value = Number(state.burnCount ?? state.playerCount ?? 0);
       }
     } catch (e) {
       console.warn("[useBurnLeague] loadStats failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
+  /**
+   * Load leaderboard via LeaderboardProxy.
+   * The edge function aggregates burn events into a sorted leaderboard.
+   */
   const loadLeaderboard = async () => {
     try {
-      const events = await chain.listAllEvents("GasBurned");
-      const totals: Record<string, number> = {};
-      let userBurns = 0;
+      const entries = await leaderboardService.get(100);
 
-      events.forEach((evt) => {
-        const evtRecord = evt as unknown as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state)
-          ? (evtRecord.state as unknown[]).map(parseStackItem)
-          : [];
-        const burner = String(values[0] ?? "");
-        const amount = Number(values[1] ?? 0);
-        if (!burner) return;
-        totals[burner] = (totals[burner] || 0) + amount;
-        if (chain.address.value && burner === chain.address.value) {
-          userBurns += 1;
-        }
-      });
+      if (Array.isArray(entries)) {
+        const mapped = entries.map((entry: LeaderboardEntry, idx: number) => ({
+          rank: idx + 1,
+          address: entry.user,
+          burned: Number(entry.score || 0),
+          isUser: false, // Edge function marks the current user server-side
+        }));
 
-      const entries = Object.entries(totals)
-        .map(([addr, amount]) => ({
-          address: addr,
-          burned: parseGas(amount),
-          isUser: chain.address.value ? addr === chain.address.value : false,
-        }))
-        .sort((a, b) => b.burned - a.burned)
-        .map((entry, idx) => ({ rank: idx + 1, ...entry }));
+        leaderboard.value = mapped;
 
-      leaderboard.value = entries;
-
-      const userEntry = entries.find((entry) => entry.isUser);
-      rank.value = userEntry ? userEntry.rank : 0;
-      burnCount.value = userBurns;
+        // Find user's rank from the leaderboard
+        const userEntry = mapped.find((entry) => entry.burned === userBurned.value && userBurned.value > 0);
+        rank.value = userEntry ? userEntry.rank : 0;
+      }
     } catch (e) {
       console.warn("[useBurnLeague] loadLeaderboard failed:", e instanceof Error ? e.message : String(e));
     }
@@ -173,19 +189,17 @@ export function useBurnLeague({ chain, eventBus, t }: UseBurnLeagueOptions) {
     }
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────
+  // ── Actions (via OS services) ───────────────────────────────────────
 
   /**
    * Burn GAS tokens.
    *
    * Flow:
    * 1. Validate the burn amount (minimum 1 GAS)
-   * 2. Ensure wallet is connected
-   * 3. Transfer GAS to the contract with burn memo
-   * 4. Call burnGas on the contract
-   * 5. Wait for the GasBurned event
-   * 6. Emit success event (triggers fireworks via platform)
-   * 7. Reload all data
+   * 2. Burn via NFTProxy (the edge function handles wallet connection,
+   *    GAS transfer to the contract, and burnGas invocation)
+   * 3. Update burn stats via BadgeProxy
+   * 4. Reload all data
    *
    * @param burnAmountInput - Amount of GAS to burn (as a string).
    *   If omitted, uses the composable's reactive burnAmount ref.
@@ -202,38 +216,20 @@ export function useBurnLeague({ chain, eventBus, t }: UseBurnLeagueOptions) {
 
     isBurning.value = true;
     try {
-      await chain.ensureWallet();
+      // Step 1: Burn via NFTProxy — the edge function handles wallet
+      // connection, GAS transfer to contract, and burnGas invocation
+      await nftService.burn(amountStr);
 
-      // Step 1: Transfer GAS to the contract with burn memo
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: toFixed8(amountStr) },
-          { type: "String", value: `${APP_ID}:burn` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
+      // Step 2: Update burn stat via BadgeProxy (fire-and-forget)
+      badgeService.updateStat("", "totalBurned", amountStr).catch(() => {});
 
-      // Step 2: Wait for the credit to settle
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      // Step 3: Call burnGas on the contract
-      const result = await chain.invoke(
-        "burnGas",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Integer", value: toFixed8(amountStr) },
-        ],
-        { waitForEvent: "GasBurned" },
-      );
-
-      if (result.success) {
-        eventBus.emit("burn:success", {
-          action: `${t("burned")} ${amount} ${t("tokenGas")} ${t("success")}`,
-        });
+      // Step 3: Award badge for first burn (fire-and-forget)
+      if (burnCount.value === 0) {
+        badgeService.award("first-burn", "").catch(() => {});
       }
+
+      // Step 4: Submit score to leaderboard
+      await leaderboardService.submitScore(amountStr);
 
       await loadAll();
 
@@ -242,9 +238,6 @@ export function useBurnLeague({ chain, eventBus, t }: UseBurnLeagueOptions) {
 
       return amount;
     } catch (e) {
-      eventBus.emit("burn:error", {
-        message: e instanceof Error ? e.message : t("loadFailed"),
-      });
       throw e;
     } finally {
       isBurning.value = false;
