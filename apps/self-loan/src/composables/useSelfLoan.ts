@@ -1,27 +1,49 @@
 /**
- * useSelfLoan — Unified domain composable for the Self-Loan miniapp
+ * useSelfLoan — Domain logic for the Self-Loan miniapp (OS Services Pattern)
  *
- * Replaces the legacy 3-file pattern:
- *   useSelfLoanCore.ts + useSelfLoanHistory.ts + useSelfLoan.ts (orchestrator)
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (PaymentProxy, EscrowProxy, StorageProxy, BadgeProxy) via
+ * edge functions, so this file contains zero contract hashes, parameter
+ * encoding, or event parsing logic.
  *
- * Uses PlatformServices (ChainService + EventBus) instead of:
- *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
- *   - useStatusMessage() -> eventBus.emit()
- *   - useEvents() -> chain.listEvents() / chain.listAllEvents()
- *   - useWalletBalanceReader() -> chain.read() on NEO_HASH
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("balanceOf", [...], { scriptHash: NEO_HASH })
+ *     chain.read("GetPlatformStats")
+ *     chain.read("GetLoanDetails", [...])
+ *     chain.read("GetUserLoanCount", [...])
+ *     chain.read("GetUserLoans", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: NEO_HASH })
+ *     chain.invoke("CreateLoan", [...])
+ *     chain.listAllEvents("LoanCreated" | "LoanRepaid" | "LoanClosed")
+ *
+ *   AFTER (OS proxy):
+ *     paymentService.getBalance()            — NEO balance
+ *     paymentService.deposit(amount, memo)   — lock collateral
+ *     storageService.get("platform-stats")   — platform config
+ *     storageService.get("loan:active")      — current loan position
+ *     storageService.list("loan:")           — loan history & stats
+ *     escrowService.create(params)           — create loan escrow
+ *     escrowService.get(escrowId)            — loan position details
+ *     escrowService.refund(escrowId)         — release collateral on repayment
+ *     badgeService.award(badgeId, user)      — achievement milestones
+ *
+ * The composable still owns:
+ *   - Reactive state (refs + computed) for manifest bindings
+ *   - LTV tier selection and terms calculation
+ *   - Health factor / LTV gauge computeds
+ *   - Validation (pure frontend checks)
+ *   - Loading UI flags
+ *   - Formatted display values
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { formatNumber, parseGas, toFixedDecimals } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-
-// ============================================================================
-// Constants
-// ============================================================================
-
-const APP_ID = "miniapp-self-loan";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { formatNumber, toFixedDecimals } from "@shared/utils/format";
 
 // ============================================================================
 // Types
@@ -57,18 +79,16 @@ export interface LoanStats {
   totalRepaid: number;
 }
 
-export interface ContractLoanEntry {
-  id: number;
-  createdTime: number;
-  netBorrow: number;
-  repaid: number;
-  active: boolean;
-  collateral: number;
-}
-
 export interface UseSelfLoanOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS EscrowProxy instance from ctx.os.escrow */
+  escrowService: EscrowProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -76,7 +96,13 @@ export interface UseSelfLoanOptions {
 // Composable
 // ============================================================================
 
-export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
+export function useSelfLoan({
+  paymentService,
+  escrowService,
+  storageService,
+  badgeService,
+  t,
+}: UseSelfLoanOptions) {
   // ── Helpers ──────────────────────────────────────────────────────────
   const fmt = (n: number, d = 2) => formatNumber(n, d);
   const toNumber = (value: unknown) => {
@@ -162,7 +188,7 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
   });
 
   // ── Computed: Display Values ────────────────────────────────────────
-  const isConnected = computed(() => Boolean(chain.address.value));
+  const isConnected = ref(false);
   const collateralDisplay = computed(() => fmt(loan.value.collateralLocked));
   const borrowedDisplay = computed(() => fmt(loan.value.borrowed));
 
@@ -211,60 +237,31 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
     return null;
   };
 
-  // ── Data Loading ────────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ──────────────────────────────────
 
-  const readNeoBalance = async (): Promise<number> => {
-    if (!chain.address.value) return 0;
-    const raw = await chain.read(
-      "balanceOf",
-      [{ type: "Hash160", value: chain.address.value }],
-      { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
-    );
-    return Number(raw ?? 0);
-  };
-
+  /**
+   * Load NEO balance via PaymentProxy.
+   * The edge function handles the NEP-17 balanceOf call.
+   */
   const loadBalance = async () => {
-    if (!chain.address.value) return;
     try {
-      neoBalance.value = await readNeoBalance();
+      const balanceStr = await paymentService.getBalance();
+      neoBalance.value = toNumber(balanceStr);
     } catch (e) {
       console.warn("[useSelfLoan] loadBalance failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
-  const loadLoanPosition = async (loanId: number) => {
-    try {
-      const parsed = await chain.read("GetLoanDetails", [
-        { type: "Integer", value: String(loanId) },
-      ]);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        loan.value = { borrowed: 0, collateralLocked: 0, active: false };
-        return;
-      }
-      const data = parsed as Record<string, unknown>;
-      const collateral = toNumber(data.collateral);
-      const debt = parseGas(data.debt);
-      const active = Boolean(data.active);
-      const ltvBps = toNumber(data.ltvBps);
-      const ltvPercent = ltvBps ? ltvBps / 100 : selectedLtvPercent.value;
-      loan.value = {
-        borrowed: active ? debt : 0,
-        collateralLocked: active ? collateral : 0,
-        active,
-        id: loanId,
-        ltvPercent,
-      };
-    } catch (e) {
-      console.warn("[useSelfLoan] loadLoanPosition failed:", e instanceof Error ? e.message : String(e));
-      loan.value = { borrowed: 0, collateralLocked: 0, active: false };
-    }
-  };
-
+  /**
+   * Load platform configuration via StorageProxy.
+   * The edge function reads the contract's GetPlatformStats or
+   * returns cached platform config.
+   */
   const loadPlatformStats = async () => {
     try {
-      const parsed = await chain.read("GetPlatformStats");
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        const data = parsed as Record<string, unknown>;
+      const raw = await storageService.get("platform-stats");
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const data = raw as Record<string, unknown>;
         const feeBps = toNumber(data.platformFeeBps);
         platformStats.value = {
           ltvTier1Bps: toNumber(data.ltvTier1Bps) || platformStats.value.ltvTier1Bps,
@@ -280,66 +277,80 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
     }
   };
 
-  // ── History Loading ─────────────────────────────────────────────────
-
-  const ownerMatches = (value: unknown, currentAddress: string) => {
-    return String(value || "") === currentAddress;
+  /**
+   * Load the active loan position via EscrowProxy.
+   * The edge function translates the escrow state to loan position data.
+   */
+  const loadLoanPosition = async (loanId: string) => {
+    try {
+      const raw = await escrowService.get(loanId);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+        loan.value = { borrowed: 0, collateralLocked: 0, active: false };
+        return;
+      }
+      const data = raw as Record<string, unknown>;
+      const collateral = toNumber(data.collateral);
+      const debt = toNumber(data.debt);
+      const active = Boolean(data.active);
+      const ltvBps = toNumber(data.ltvBps);
+      const ltvPercent = ltvBps ? ltvBps / 100 : selectedLtvPercent.value;
+      loan.value = {
+        borrowed: active ? debt : 0,
+        collateralLocked: active ? collateral : 0,
+        active,
+        id: toNumber(data.id) || null,
+        ltvPercent,
+      };
+    } catch (e) {
+      console.warn("[useSelfLoan] loadLoanPosition failed:", e instanceof Error ? e.message : String(e));
+      loan.value = { borrowed: 0, collateralLocked: 0, active: false };
+    }
   };
 
-  const loadHistoryFromContract = async () => {
-    if (!chain.address.value) return;
-
+  /**
+   * Load loan history and stats via StorageProxy.
+   * The edge function aggregates loan events and contract state
+   * into a normalized list of history entries and summary stats.
+   */
+  const loadHistory = async () => {
     try {
-      const countResult = await chain.read("GetUserLoanCount", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
-      const count = Number(countResult || 0);
-      if (!count) {
+      const raw = await storageService.list("loan:");
+      if (!raw || typeof raw !== "object") {
         stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
         loanHistory.value = [];
         return;
       }
 
-      const limit = Math.min(count, 50);
-      const idsResult = await chain.read("GetUserLoans", [
-        { type: "Hash160", value: chain.address.value },
-        { type: "Integer", value: "0" },
-        { type: "Integer", value: String(limit) },
-      ]);
-      const idsRaw = idsResult;
-      const idsList = Array.isArray(idsRaw) ? idsRaw : idsRaw != null ? [idsRaw] : [];
-      const ids = idsList.map((id) => Number(id)).filter((id) => id > 0);
+      const data = raw as Record<string, unknown>;
+      const entries = Object.entries(data)
+        .map(([key, value]) => {
+          if (!value || typeof value !== "object") return null;
+          const entry = value as Record<string, unknown>;
+          return {
+            id: toNumber(entry.id),
+            netBorrow: toNumber(entry.netBorrow),
+            repaid: toNumber(entry.repaid),
+            active: Boolean(entry.active),
+            collateral: toNumber(entry.collateral),
+            createdTime: toNumber(entry.createdTime),
+          };
+        })
+        .filter((entry): entry is {
+          id: number;
+          netBorrow: number;
+          repaid: number;
+          active: boolean;
+          collateral: number;
+          createdTime: number;
+        } => entry !== null && entry.id > 0);
 
-      const entries = await Promise.all(
-        ids.map(async (loanId) => {
-          try {
-            const parsed = await chain.read("GetLoanDetails", [
-              { type: "Integer", value: String(loanId) },
-            ]);
-            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-            const data = parsed as Record<string, unknown>;
-            return {
-              id: loanId,
-              createdTime: Number(data.createdTime || 0),
-              netBorrow: parseGas(data.originalDebt),
-              repaid: parseGas(data.totalRepaid),
-              active: Boolean(data.active),
-              collateral: toNumber(data.collateral),
-            } as ContractLoanEntry;
-          } catch (_e) {
-            return null;
-          }
-        }),
-      );
-
-      const validEntries = entries.filter((entry): entry is ContractLoanEntry => Boolean(entry));
       stats.value = {
-        totalLoans: validEntries.length,
-        totalBorrowed: validEntries.reduce((sum, entry) => sum + entry.netBorrow, 0),
-        totalRepaid: validEntries.reduce((sum, entry) => sum + entry.repaid, 0),
+        totalLoans: entries.length,
+        totalBorrowed: entries.reduce((sum, entry) => sum + entry.netBorrow, 0),
+        totalRepaid: entries.reduce((sum, entry) => sum + entry.repaid, 0),
       };
 
-      const history = validEntries
+      const history = entries
         .flatMap((entry) => {
           const createdLabel = {
             icon: "\uD83D\uDCB0",
@@ -364,119 +375,11 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
                 amount: 0,
                 timestampRaw: entry.createdTime * 1000,
               };
-          return [createdLabel, repaidLabel, closedLabel].filter(Boolean);
+          return [createdLabel, repaidLabel, closedLabel].filter(
+            (x): x is { icon: string; label: string; amount: number; timestampRaw: number } => x !== null,
+          );
         })
-        .sort((a, b) => Number(b?.timestampRaw || 0) - Number(a?.timestampRaw || 0));
-
-      loanHistory.value = history.slice(0, 20).map((item: Record<string, unknown>) => ({
-        icon: item.icon as string,
-        label: item.label as string,
-        amount: item.amount as number,
-        timestamp: new Intl.DateTimeFormat(undefined).format(
-          new Date((item.timestampRaw as number) || Date.now()),
-        ),
-      }));
-
-      const latest = validEntries.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
-      if (latest > 0) {
-        await loadLoanPosition(latest);
-      }
-    } catch (e) {
-      console.warn("[useSelfLoan] loadHistoryFromContract failed:", e instanceof Error ? e.message : String(e));
-      stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
-      loanHistory.value = [];
-    }
-  };
-
-  const loadHistory = async () => {
-    if (!chain.address.value) return;
-
-    try {
-      const [createdEvents, repaidEvents, closedEvents] = await Promise.all([
-        chain.listAllEvents("LoanCreated"),
-        chain.listAllEvents("LoanRepaid"),
-        chain.listAllEvents("LoanClosed"),
-      ]);
-
-      type EventRecord = { state?: unknown[]; created_at?: string; tx_hash?: string };
-
-      const created = (createdEvents as EventRecord[])
-        .map((evt) => {
-          const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-          return {
-            id: Number(values[0] || 0),
-            borrower: values[1],
-            collateral: toNumber(values[2]),
-            borrowed: parseGas(values[3]),
-            timestamp: evt.created_at,
-            tx: evt.tx_hash,
-          };
-        })
-        .filter((entry) => entry.id > 0 && ownerMatches(entry.borrower, chain.address.value as string));
-
-      const loanIds = new Set(created.map((entry) => entry.id));
-
-      const repaid = (repaidEvents as EventRecord[])
-        .map((evt) => {
-          const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-          return {
-            id: Number(values[0] || 0),
-            repaid: parseGas(values[1]),
-            timestamp: evt.created_at,
-            tx: evt.tx_hash,
-          };
-        })
-        .filter((entry) => loanIds.has(entry.id));
-
-      const closed = (closedEvents as EventRecord[])
-        .map((evt) => {
-          const values = Array.isArray(evt?.state) ? evt.state.map(parseStackItem) : [];
-          return {
-            id: Number(values[0] || 0),
-            borrower: values[1],
-            timestamp: evt.created_at,
-            tx: evt.tx_hash,
-          };
-        })
-        .filter(
-          (entry) =>
-            loanIds.has(entry.id) || ownerMatches(entry.borrower, chain.address.value as string),
-        );
-
-      if (created.length === 0) {
-        await loadHistoryFromContract();
-        return;
-      }
-
-      stats.value = {
-        totalLoans: created.length,
-        totalBorrowed: created.reduce((sum, entry) => sum + entry.borrowed, 0),
-        totalRepaid: repaid.reduce((sum, entry) => sum + entry.repaid, 0),
-      };
-
-      const history = [
-        ...created.map((entry) => ({
-          icon: "\uD83D\uDCB0",
-          label: t("borrowedLabel"),
-          amount: entry.borrowed,
-          timestampRaw: entry.timestamp,
-        })),
-        ...repaid.map((entry) => ({
-          icon: "\u21A9\uFE0F",
-          label: t("repaidLabel"),
-          amount: entry.repaid,
-          timestampRaw: entry.timestamp,
-        })),
-        ...closed.map((entry) => ({
-          icon: "\u2705",
-          label: t("closedLabel"),
-          amount: 0,
-          timestampRaw: entry.timestamp,
-        })),
-      ].sort(
-        (a, b) =>
-          new Date(b.timestampRaw || 0).getTime() - new Date(a.timestampRaw || 0).getTime(),
-      );
+        .sort((a, b) => Number(b.timestampRaw || 0) - Number(a.timestampRaw || 0));
 
       loanHistory.value = history.slice(0, 20).map((item) => ({
         icon: item.icon,
@@ -487,24 +390,33 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
         ),
       }));
 
-      if (created.length > 0) {
-        const latest = created.reduce((max, entry) => (entry.id > max ? entry.id : max), 0);
-        await loadLoanPosition(latest);
+      // Load the latest active loan position
+      const activeLoan = entries.find((e) => e.active);
+      if (activeLoan) {
+        await loadLoanPosition(String(activeLoan.id));
       }
     } catch (e) {
       console.warn("[useSelfLoan] loadHistory failed:", e instanceof Error ? e.message : String(e));
-      await loadHistoryFromContract();
+      stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
+      loanHistory.value = [];
     }
   };
 
-  // ── Actions ─────────────────────────────────────────────────────────
+  // ── Actions (via OS services) ───────────────────────────────────────
 
+  /**
+   * Take a self-loan via PaymentProxy (deposit collateral) + EscrowProxy
+   * (create loan escrow).
+   *
+   * The OS payment service handles wallet connection and NEO transfer.
+   * The OS escrow service handles the CreateLoan contract call and
+   * locks collateral until repayment.
+   */
   const takeLoan = async () => {
     if (isLoading.value) return;
 
     const validation = validateCollateral(collateralAmount.value, neoBalance.value);
     if (validation) {
-      eventBus.emit("loan:error", { message: validation });
       throw new Error(validation);
     }
 
@@ -515,41 +427,39 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
     const feeAmount = (grossBorrow * feeBps) / 10000;
     const netBorrow = Math.max(grossBorrow - feeAmount, 0);
 
-    isLoading.value = true;
     try {
-      await chain.ensureWallet();
-      if (!chain.address.value) throw new Error(t("connectWallet"));
+      isLoading.value = true;
 
-      // Step 1: Transfer NEO collateral to the contract
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: collateral },
-          { type: "String", value: `${APP_ID}:collateral` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.NEO_HASH },
+      // Step 1: Deposit NEO collateral via PaymentProxy
+      await paymentService.deposit(
+        String(collateral),
+        `self-loan:collateral:tier${selectedTier.value}`,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      // Step 2: Create the loan
-      await chain.invoke("CreateLoan", [
-        { type: "Hash160", value: chain.address.value },
-        { type: "Integer", value: collateral },
-        { type: "Integer", value: selectedTier.value },
-      ]);
-
-      eventBus.emit("loan:created", {
-        action: t("loanApproved", { amount: fmt(netBorrow, 2), tokenGas: t("tokenGas") }),
+      // Step 2: Create loan escrow via EscrowProxy
+      // The edge function handles the CreateLoan contract call,
+      // locks collateral, and disburses borrowed GAS.
+      await escrowService.create({
+        beneficiary: "self",
+        amount: String(collateral),
+        milestones: [
+          { name: "collateral-locked", amount: String(collateral) },
+          { name: "gas-disbursed", amount: String(netBorrow) },
+        ],
       });
+
+      // Step 3: Award first-loan badge if applicable
+      try {
+        if (stats.value.totalLoans === 0) {
+          await badgeService.award("first-loan", "self");
+        }
+      } catch (_badgeErr) {
+        // Badge award is non-critical; don't block the loan flow
+      }
+
       collateralAmount.value = "";
       await loadAll();
     } catch (e) {
-      eventBus.emit("loan:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
       throw e;
     } finally {
       isLoading.value = false;
@@ -558,22 +468,19 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
 
   // ── Lifecycle ───────────────────────────────────────────────────────
 
+  /**
+   * Load all data. Called by defineMiniApp on mount and wallet reconnect.
+   */
   const loadAll = async () => {
     await loadPlatformStats();
     await loadBalance();
     await loadHistory();
   };
 
-  const connect = async () => {
-    await chain.ensureWallet();
-  };
-
   // ── Public API ──────────────────────────────────────────────────────
 
   return {
     // Core refs
-    address: chain.address,
-    connect,
     isLoading,
     neoBalance,
     loan,
@@ -618,7 +525,6 @@ export function useSelfLoan({ chain, eventBus, t }: UseSelfLoanOptions) {
     loadAll,
     fmt,
     t,
-    APP_ID,
   };
 }
 
