@@ -16,7 +16,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
     public delegate void PrizeDistributedHandler(string appId, int recipientCount, BigInteger totalAmount);
     public delegate void FeeConfigSetHandler(string appId, int platformBps, int devBps, UInt160 devAddress);
     public delegate void PlatformFeesClaimedHandler(UInt160 admin, BigInteger amount);
-    public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
+    public delegate void PaymentAdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
 
     [DisplayName("PaymentService")]
     [ManifestExtra("Author", "R3E Network")]
@@ -68,7 +68,7 @@ namespace NeoMiniAppPlatform.Contracts.OS
         public static event PlatformFeesClaimedHandler OnPlatformFeesClaimed = delegate { };
 
         [DisplayName("AdminChanged")]
-        public static event AdminChangedHandler OnAdminChanged = delegate { };
+        public static event PaymentAdminChangedHandler OnAdminChanged = delegate { };
 
         // ── Lifecycle ─────────────────────────────────────────────────────
 
@@ -167,7 +167,9 @@ namespace NeoMiniAppPlatform.Contracts.OS
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            // Ignore outbound transfer callbacks from this contract
+            // Guard: NEP-17 fires callbacks on both sides of a transfer.
+            // When this contract sends GAS (withdrawals, prizes), ignore the outbound callback
+            // to prevent re-entry accounting.
             if (from == Runtime.ExecutingScriptHash) return;
 
             // Only accept GAS
