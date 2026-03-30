@@ -1,7 +1,13 @@
 /**
- * Time Capsule — Entry Point (New Pattern)
+ * Time Capsule — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire the time capsule domain logic to the platform.
+ * This miniapp uses OS service proxies (ctx.os.escrow, ctx.os.storage,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useTimeCapsule({ escrowService, storageService, ... })
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -18,15 +24,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const capsule = useTimeCapsule({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      escrowService: ctx.os.escrow,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    // Register actions for PlayArea dispatch
+    // Register async actions with standardized error handling
     registerActions(ctx, {
       createCapsule: {
         handler: () => capsule.createCapsule(),
@@ -51,7 +57,7 @@ defineMiniApp({
 
     return {
       state: {
-        address: platformServices.chain.address,
+        address: ctx.services.chain.address,
         capsules: capsule.capsules,
         totalCapsules: capsule.totalCapsules,
         lockedCount: capsule.lockedCount,

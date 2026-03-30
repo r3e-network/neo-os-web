@@ -1,3 +1,15 @@
+/**
+ * Event Ticket Pass — Entry Point (OS Services Pattern)
+ *
+ * This miniapp uses OS service proxies (ctx.os.nft, ctx.os.storage,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useEventTicket({ nftService, storageService, ... })
+ */
+
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -11,11 +23,11 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const ticket = useEventTicket({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      nftService: ctx.os.nft,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
@@ -29,7 +41,7 @@ defineMiniApp({
       ticket.openIssueModal(event);
     });
     ctx.registerAction("toggleEvent", (event: unknown) =>
-      platformServices.notify.guard(() => ticket.toggleEvent(event)),
+      ctx.services.notify.guard(() => ticket.toggleEvent(event)),
     );
 
     return {
