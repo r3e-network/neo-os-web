@@ -24,6 +24,8 @@ namespace NeoMiniAppPlatform.Contracts
     public delegate void AdminChangedHandler(UInt160 oldAdmin, UInt160 newAdmin);
     public delegate void ContractHashUpdatedHandler(string appId, ByteString contractHash);
     public delegate void TeeScriptRegisteredHandler(string appId, string scriptName, ByteString scriptHash);
+    public delegate void PermissionsSetHandler(string appId, string permissionsJson);
+    public delegate void ActionsDeclaredHandler(string appId, string actionsJson);
 
     [DisplayName("AppRegistry")]
     [ManifestExtra("Author", "R3E Network")]
@@ -35,6 +37,8 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_APP = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_TEE_SCRIPT = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_PERMISSIONS = new byte[] { 0x04 };
+        private static readonly byte[] PREFIX_ACTIONS    = new byte[] { 0x05 };
 
         public struct AppInfo
         {
@@ -73,6 +77,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("TeeScriptRegistered")]
         public static event TeeScriptRegisteredHandler OnTeeScriptRegistered = delegate { };
+
+        [DisplayName("PermissionsSet")]
+        public static event PermissionsSetHandler OnPermissionsSet = default!;
+
+        [DisplayName("ActionsDeclared")]
+        public static event ActionsDeclaredHandler OnActionsDeclared = default!;
 
         public static void _deploy(object data, bool update)
         {
@@ -379,6 +389,72 @@ namespace NeoMiniAppPlatform.Contracts
         {
             ValidateAdmin();
             ContractManagement.Update(nefFile, manifest, new object[0]);
+        }
+
+        // ---- OS Permission Management ----
+
+        /// <summary>
+        /// Set which OS services this app is allowed to use.
+        /// Permissions JSON array: ["storage", "payment", "game", "badge", "leaderboard", "checkin", "vesting", "escrow", "nft", "script"]
+        /// </summary>
+        public static void SetPermissions(string appId, string permissionsJson)
+        {
+            ValidateAppOwnerOrAdmin(appId);
+            byte[] key = Helper.Concat(PREFIX_PERMISSIONS, (ByteString)appId);
+            Storage.Put(Storage.CurrentContext, key, permissionsJson);
+            OnPermissionsSet(appId, permissionsJson);
+        }
+
+        [Safe]
+        public static string GetPermissions(string appId)
+        {
+            byte[] key = Helper.Concat(PREFIX_PERMISSIONS, (ByteString)appId);
+            ByteString? val = Storage.Get(Storage.CurrentContext, key);
+            return val == null ? "[]" : (string)val;
+        }
+
+        [Safe]
+        public static bool HasPermission(string appId, string serviceName)
+        {
+            string perms = GetPermissions(appId);
+            return perms.Contains(serviceName);
+        }
+
+        // ---- Action Declarations (Intent system) ----
+
+        /// <summary>
+        /// Declare actions this app can handle (Android intent-filter equivalent).
+        /// actionsJson: [{"name":"SWAP","category":"DEFI","dataTypes":["token-pair"]}]
+        /// </summary>
+        public static void DeclareActions(string appId, string actionsJson)
+        {
+            ValidateAppOwnerOrAdmin(appId);
+            byte[] key = Helper.Concat(PREFIX_ACTIONS, (ByteString)appId);
+            Storage.Put(Storage.CurrentContext, key, actionsJson);
+            OnActionsDeclared(appId, actionsJson);
+        }
+
+        [Safe]
+        public static string GetActions(string appId)
+        {
+            byte[] key = Helper.Concat(PREFIX_ACTIONS, (ByteString)appId);
+            ByteString? val = Storage.Get(Storage.CurrentContext, key);
+            return val == null ? "[]" : (string)val;
+        }
+
+        /// <summary>
+        /// Validate that the caller is the app's developer or the platform admin.
+        /// </summary>
+        private static void ValidateAppOwnerOrAdmin(string appId)
+        {
+            UInt160 admin = (UInt160)Storage.Get(Storage.CurrentContext, PREFIX_ADMIN)!;
+            if (Runtime.CheckWitness(admin)) return;
+
+            byte[] appKey = Helper.Concat(PREFIX_APP, (ByteString)appId);
+            ByteString? raw = Storage.Get(Storage.CurrentContext, appKey);
+            ExecutionEngine.Assert(raw != null, "App not found");
+            AppInfo info = (AppInfo)StdLib.Deserialize(raw!);
+            ExecutionEngine.Assert(Runtime.CheckWitness(info.Developer), "Not app owner or admin");
         }
     }
 }
