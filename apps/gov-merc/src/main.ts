@@ -1,5 +1,25 @@
 /**
- * Gov Merc — Entry Point (New Pattern)
+ * Gov Merc — Entry Point (OS Services Pattern)
+ *
+ * This miniapp uses OS service proxies (ctx.os.payment, ctx.os.storage)
+ * instead of direct chain calls. The proxies handle all contract interaction
+ * through edge functions, so the miniapp never touches contract hashes,
+ * parameter encoding, or event parsing.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useGovMercPool({ paymentService, storageService, t })
+ *
+ * The composable calls:
+ *   ctx.os.storage.get("pool-state")           — pool total + epoch
+ *   ctx.os.storage.get("user-deposits")        — user deposits
+ *   ctx.os.storage.list("bid:")                — epoch bids
+ *   ctx.os.payment.deposit(amount, memo)       — GAS for bids
+ *   ctx.os.storage.set("deposit", data)        — deposit NEO
+ *   ctx.os.storage.set("withdraw", data)       — withdraw NEO
+ *   ctx.os.storage.set("bid", data)            — place bid
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { computed } from "vue";
@@ -16,17 +36,24 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all data loading and mutations instead of ctx.services.chain.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const pool = useGovMercPool({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
       t: ctx.t as (
         key: string,
         params?: Record<string, string | number>,
       ) => string,
     });
+
+    // Track wallet address from the platform's chain service
+    pool.setAddress(ctx.services.chain.address.value ?? "");
 
     const totalPoolDisplay = computed(
       () => `${pool.formatNum(pool.totalPool.value, 0)} ${ctx.t("tokenNeo")}`,

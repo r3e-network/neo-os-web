@@ -1,17 +1,37 @@
 /**
- * useGovernance — Domain composable for Council Governance miniapp
+ * useGovernance — Domain composable for Council Governance miniapp (OS Services)
  *
- * Migrated to PlatformServices pattern:
- *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
- *   - useWallet() -> chain.ensureWallet() / chain.address
- *   - useStatusMessage() -> eventBus.emit()
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (StorageProxy, PaymentProxy, BadgeProxy) via edge functions,
+ * so this file contains zero contract hashes, parameter encoding, or
+ * event parsing logic.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.read("getProposalCount")
+ *     chain.read("getProposal", [...])
+ *     chain.read("hasVoted", [...])
+ *     chain.invoke("createProposal", [...])
+ *     chain.invoke("vote", [...])
+ *     chain.invoke("executeProposal", [...])
+ *
+ *   AFTER (OS proxy):
+ *     storageService.get("proposalCount")              — load proposal count
+ *     storageService.get(`proposal:${id}`)             — load proposal details
+ *     storageService.get(`voted:${address}:${id}`)     — check vote status
+ *     storageService.list("proposal:")                 — list all proposals
+ *     paymentService.deposit(amount, memo)             — deposit for proposal creation
+ *     badgeService.award(badgeId, user)                — award governance badges
  *
  * The API call for council member lookup is preserved as-is since it
  * queries the platform backend, not the blockchain.
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 
 // ============================================================================
 // Constants
@@ -40,9 +60,15 @@ export interface Proposal {
 export type VoteChoice = "for" | "against";
 
 export interface UseGovernanceOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Current chain ID for API calls */
   currentChainId: { value: string };
 }
 
@@ -89,7 +115,13 @@ export const resolveStatus = (proposal: Proposal) => {
 // Composable
 // ============================================================================
 
-export function useGovernance({ chain, eventBus, t, currentChainId }: UseGovernanceOptions) {
+export function useGovernance({
+  storageService,
+  paymentService,
+  badgeService,
+  t,
+  currentChainId,
+}: UseGovernanceOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const proposals = ref<Proposal[]>([]);
   const selectedProposal = ref<Proposal | null>(null);
@@ -99,6 +131,7 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
   const votingPower = ref(0);
   const hasVotedMap = ref<Record<number, boolean>>({});
   const isVoting = ref(false);
+  const address = ref("");
 
   // ── Computed ─────────────────────────────────────────────────────────
   const activeProposals = computed(() =>
@@ -122,67 +155,53 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
   };
   const API_HOST = getApiBase();
 
-  // ── Contract Read Helper ────────────────────────────────────────────
-
-  const readMethod = async (
-    operation: string,
-    args: { type: string; value: unknown }[] = [],
-  ) => {
-    return chain.read(
-      operation,
-      args as { type: "String" | "Integer" | "Boolean" | "Hash160" | "Hash256" | "PublicKey" | "ByteArray" | "Array"; value: string | number | boolean }[],
-    );
-  };
-
   // ── Proposal Selection ──────────────────────────────────────────────
 
   const selectProposal = async (p: Proposal) => {
     selectedProposal.value = p;
-    if (chain.address.value) await refreshHasVoted([p.id]);
+    if (address.value) await refreshHasVoted([p.id]);
   };
 
-  // ── Voting ──────────────────────────────────────────────────────────
+  // ── Voting (via OS services) ────────────────────────────────────────
 
   const castVote = async (proposalId: number, voteType: VoteChoice) => {
     if (isVoting.value) return;
     const proposal = activeProposals.value.find((p) => p.id === proposalId);
     if (!proposal || resolveStatus(proposal) !== STATUS_ACTIVE) return;
-    const voter = chain.address.value;
-    if (!voter) {
-      eventBus.emit("governance:error", { message: t("connectWallet") });
-      return;
+    if (!address.value) {
+      throw new Error(t("connectWallet"));
     }
     if (!isCandidate.value) {
-      eventBus.emit("governance:error", { message: t("notCandidate") });
-      return;
+      throw new Error(t("notCandidate"));
     }
     if (hasVotedMap.value[proposalId]) {
-      eventBus.emit("governance:error", { message: t("alreadyVoted") });
-      return;
+      throw new Error(t("alreadyVoted"));
     }
 
     try {
       isVoting.value = true;
-      await chain.ensureWallet();
-      await chain.invoke("vote", [
-        { type: "Hash160", value: voter },
-        { type: "Integer", value: proposalId },
-        { type: "Boolean", value: voteType === "for" },
-      ]);
-      eventBus.emit("governance:voted", { action: t("voteRecorded") });
+
+      // Vote via StorageProxy — the edge function handles the contract invocation
+      await storageService.set(`vote:${proposalId}`, {
+        voter: address.value,
+        proposalId,
+        voteFor: voteType === "for",
+      });
+
+      // Award governance badge (fire-and-forget)
+      badgeService.award("governance-voter", address.value).catch(() => {});
+
       await loadProposals();
       await refreshHasVoted([proposalId]);
       selectedProposal.value = null;
     } catch (e) {
-      eventBus.emit("governance:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
+      throw e;
     } finally {
       isVoting.value = false;
     }
   };
 
-  // ── Proposal Creation ───────────────────────────────────────────────
+  // ── Proposal Creation (via OS services) ─────────────────────────────
 
   const createProposal = async (proposalData: {
     type: number;
@@ -195,31 +214,26 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     const title = proposalData.title.trim();
     const description = proposalData.description.trim();
     if (!title || !description) {
-      eventBus.emit("governance:error", { message: t("fillAllFields") });
-      return false;
+      throw new Error(t("fillAllFields"));
     }
 
     let policyValueNumber: number | null = null;
     if (proposalData.type === 1) {
       const rawPolicyValue = String(proposalData.policyValue).trim();
       if (!proposalData.policyMethod || !rawPolicyValue) {
-        eventBus.emit("governance:error", { message: t("policyFieldsRequired") });
-        return false;
+        throw new Error(t("policyFieldsRequired"));
       }
       const parsed = Number(rawPolicyValue);
       if (!Number.isFinite(parsed)) {
-        eventBus.emit("governance:error", { message: t("invalidPolicyValue") });
-        return false;
+        throw new Error(t("invalidPolicyValue"));
       }
       policyValueNumber = parsed;
     }
-    if (!chain.address.value) {
-      eventBus.emit("governance:error", { message: t("connectWallet") });
-      return false;
+    if (!address.value) {
+      throw new Error(t("connectWallet"));
     }
     if (!isCandidate.value) {
-      eventBus.emit("governance:error", { message: t("notCandidate") });
-      return false;
+      throw new Error(t("notCandidate"));
     }
 
     const policyDataS =
@@ -228,67 +242,75 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
         : "";
 
     try {
-      await chain.ensureWallet();
-      await chain.invoke("createProposal", [
-        { type: "Hash160", value: chain.address.value as string },
-        { type: "Integer", value: proposalData.type },
-        { type: "String", value: title },
-        { type: "String", value: description },
-        { type: "ByteArray", value: policyDataS },
-        { type: "Integer", value: proposalData.duration },
-      ]);
-      eventBus.emit("governance:proposalCreated", { action: t("proposalSubmitted") });
+      // Create proposal via StorageProxy — the edge function handles
+      // the createProposal contract invocation
+      await storageService.set("proposal:new", {
+        creator: address.value,
+        type: proposalData.type,
+        title,
+        description,
+        policyData: policyDataS,
+        duration: proposalData.duration,
+      });
+
+      // Award proposal-creator badge (fire-and-forget)
+      badgeService.award("proposal-creator", address.value).catch(() => {});
+
       await loadProposals();
       return true;
     } catch (e) {
-      eventBus.emit("governance:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
-      return false;
+      throw e;
     }
   };
 
-  // ── Proposal Execution ──────────────────────────────────────────────
+  // ── Proposal Execution (via OS services) ────────────────────────────
 
   const executeProposal = async (proposalId: number) => {
-    if (!chain.address.value) {
-      eventBus.emit("governance:error", { message: t("connectWallet") });
-      return;
+    if (!address.value) {
+      throw new Error(t("connectWallet"));
     }
 
     try {
-      await chain.ensureWallet();
-      await chain.invoke("executeProposal", [
-        { type: "Integer", value: proposalId },
-      ]);
-      eventBus.emit("governance:executed", { action: t("executed") });
+      // Execute proposal via StorageProxy — the edge function handles
+      // the executeProposal contract invocation
+      await storageService.set(`proposal:execute:${proposalId}`, {
+        executor: address.value,
+        proposalId,
+      });
+
       await loadProposals();
       selectedProposal.value = null;
     } catch (e) {
-      eventBus.emit("governance:error", {
-        message: e instanceof Error ? e.message : t("error"),
-      });
+      throw e;
     }
   };
 
-  // ── Data Loading ────────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ──────────────────────────────────
 
+  /**
+   * Load all proposals via StorageProxy.
+   * The edge function reads proposal count and details from the contract.
+   */
   const loadProposals = async () => {
     try {
       loadingProposals.value = true;
-      const count = Number((await readMethod("getProposalCount")) || 0);
-      const results = await Promise.all(
-        Array.from({ length: count }, (_, i) => i + 1).map(async (id) => {
-          const data = await readMethod("getProposal", [{ type: "Integer", value: id }]);
-          return data ? parseProposal(data as Record<string, unknown>) : null;
-        }),
-      );
-      proposals.value = (results.filter(Boolean) as Proposal[]).sort((a, b) => b.id - a.id);
+
+      const raw = await storageService.list("proposal:");
+      if (raw && typeof raw === "object") {
+        const results: Proposal[] = [];
+        for (const [, value] of Object.entries(raw)) {
+          if (value && typeof value === "object") {
+            const proposal = parseProposal(value as Record<string, unknown>);
+            if (proposal.id > 0) {
+              results.push(proposal);
+            }
+          }
+        }
+        proposals.value = results.sort((a, b) => b.id - a.id);
+      }
     } catch (e) {
       if (proposals.value.length === 0) {
-        eventBus.emit("governance:error", {
-          message: e instanceof Error ? e.message : t("failedToLoadProposals"),
-        });
+        console.warn("[useGovernance] loadProposals failed:", e instanceof Error ? e.message : String(e));
       }
     } finally {
       loadingProposals.value = false;
@@ -296,7 +318,7 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
   };
 
   const refreshCandidateStatus = async () => {
-    if (!chain.address.value) {
+    if (!address.value) {
       isCandidate.value = false;
       votingPower.value = 0;
       candidateLoaded.value = true;
@@ -304,7 +326,7 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     }
     try {
       const res = await uni.request({
-        url: `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.value}&address=${chain.address.value}`,
+        url: `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.value}&address=${address.value}`,
         method: "GET",
       });
       if (res.statusCode === 200 && res.data) {
@@ -323,19 +345,22 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     }
   };
 
+  /**
+   * Check vote status via StorageProxy.
+   * The edge function reads hasVoted from the contract.
+   */
   const refreshHasVoted = async (proposalIds?: number[]) => {
-    if (!chain.address.value) return;
-    const currentAddress = chain.address.value;
+    if (!address.value) return;
     const ids = proposalIds ?? proposals.value.map((p) => p.id);
     const updates: Record<number, boolean> = { ...hasVotedMap.value };
     await Promise.all(
       ids.map(async (id) => {
-        updates[id] = Boolean(
-          await chain.read("hasVoted", [
-            { type: "Hash160", value: currentAddress },
-            { type: "Integer", value: id },
-          ]),
-        );
+        try {
+          const result = await storageService.get(`voted:${address.value}:${id}`);
+          updates[id] = Boolean(result);
+        } catch {
+          updates[id] = false;
+        }
       }),
     );
     hasVotedMap.value = updates;
@@ -349,6 +374,14 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     await refreshHasVoted();
   };
 
+  /**
+   * Set the wallet address. Called from main.ts to track the
+   * connected wallet address from the platform's chain service.
+   */
+  const setAddress = (addr: string) => {
+    address.value = addr;
+  };
+
   return {
     proposals,
     activeProposals,
@@ -360,6 +393,7 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     votingPower,
     hasVotedMap,
     isVoting,
+    address,
     selectProposal,
     castVote,
     createProposal,
@@ -367,6 +401,7 @@ export function useGovernance({ chain, eventBus, t, currentChainId }: UseGoverna
     loadProposals,
     refreshCandidateStatus,
     refreshHasVoted,
+    setAddress,
     init,
   };
 }

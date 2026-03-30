@@ -1,31 +1,46 @@
 /**
  * useTimeCapsule — Unified domain logic for the Time Capsule miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Consolidates capsule creation, listing, unlocking, and fishing into
- * a single composable, replacing the legacy useCapsuleCreation.ts and
- * useCapsuleUnlock.ts which wired useContractInteraction + useStatusMessage +
- * useEvents directly.
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (EscrowProxy, StorageProxy, BadgeProxy) via edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.listAllEvents("CapsuleBuried")
+ *     chain.read("getCapsuleDetails", [...])
+ *     chain.read("totalCapsules")
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("bury", [...], { waitForEvent: "CapsuleBuried" })
+ *     chain.invoke("Reveal", [...])
+ *     chain.invoke("fish", [...])
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.list("capsules:", 50)
+ *     storageService.get("capsule:<id>")
+ *     escrowService.create({ ... })       — bury capsule (fee + content)
+ *     escrowService.completeMilestone()   — reveal capsule
+ *     storageService.set("content:<hash>", content) — save local content
+ *     storageService.get("fished:<user>") — fish result
+ *     badgeService.award("capsule-creator", "")
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
-import { ownerMatchesAddress, parseStackItem } from "@shared/utils/neo";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 import type { Capsule } from "../pages/index/components/CapsuleList.vue";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const BURY_FEE_BASE = String(Math.round(0.2 * 1e8)); // 0.2 GAS in Fixed8
-const FISH_FEE_BASE = "5000000"; // 0.05 GAS in Fixed8
 const MIN_LOCK_DAYS = 1;
 const MAX_LOCK_DAYS = 3650;
 const CONTENT_STORE_KEY = "time-capsule-content";
-const WAIT_AFTER_TRANSFER_MS = 4000;
 
 // ============================================================================
 // Types
@@ -40,16 +55,43 @@ export interface CapsuleFormData {
 }
 
 export interface UseTimeCapsuleOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS EscrowProxy instance from ctx.os.escrow */
+  escrowService: EscrowProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredCapsule {
+  id: string;
+  title: string;
+  contentHash: string;
+  unlockTime: number;
+  isPublic: boolean;
+  isRevealed: boolean;
+  owner: string;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
+export function useTimeCapsule({
+  escrowService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseTimeCapsuleOptions) {
   // ── State ────────────────────────────────────────────────────────────
   const capsules = ref<Capsule[]>([]);
   const isLoading = ref(false);
@@ -71,7 +113,7 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
   const totalCapsules = computed(() => capsules.value.length);
   const lockedCount = computed(() => capsules.value.filter((c) => c.locked).length);
   const revealedCount = computed(() => capsules.value.filter((c) => c.revealed).length);
-  const isBusy = computed(() => isCreating.value || isProcessing.value || chain.isProcessing.value);
+  const isBusy = computed(() => isCreating.value || isProcessing.value);
 
   const canCreate = computed(() => {
     const daysValue = Number.parseInt(newCapsule.value.days, 10);
@@ -84,7 +126,7 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
     );
   });
 
-  // ── Helpers ───────────────────────────────────────────────────────────
+  // ── Local Content Helpers ────────────────────────────────────────────
 
   const loadLocalContent = (): Record<string, string> => {
     try {
@@ -120,28 +162,19 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
   // Initialize local content
   localContent.value = loadLocalContent();
 
-  const ownerMatches = (value: unknown) => ownerMatchesAddress(value, chain.address.value);
+  // ── Capsule Mapping ──────────────────────────────────────────────────
 
-  const toNumber = (value: unknown) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : 0;
-  };
-
-  const buildCapsuleFromDetails = (
-    id: string,
-    data: Record<string, unknown>,
-    fallback?: { unlockTime?: number; isPublic?: boolean },
-  ): Capsule => {
+  const buildCapsuleFromStored = (data: StoredCapsule): Capsule => {
     const contentHash = String(data.contentHash || "");
-    const unlockTime = toNumber(data.unlockTime ?? fallback?.unlockTime ?? 0);
-    const isPublic = typeof data.isPublic === "boolean" ? data.isPublic : Boolean(data.isPublic ?? fallback?.isPublic);
+    const unlockTime = Number(data.unlockTime || 0);
+    const isPublic = Boolean(data.isPublic);
     const revealed = Boolean(data.isRevealed);
     const title = String(data.title || "");
     const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : t("notAvailable");
     const content = contentHash ? localContent.value[contentHash] : "";
 
     return {
-      id,
+      id: String(data.id),
       title,
       contentHash,
       unlockDate,
@@ -153,75 +186,42 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
     } as Capsule;
   };
 
-  // ── Data Loading ─────────────────────────────────────────────────────
+  // ── Data Loading (via OS services) ─────────────────────────────────
 
+  /**
+   * Load all capsules via StorageProxy.list().
+   * The edge function handles the contract reads and event parsing.
+   */
   const loadCapsules = async (): Promise<Capsule[]> => {
-    if (!chain.address.value) return [];
     try {
-      const buriedEvents = await chain.listAllEvents("CapsuleBuried");
-
-      const userCapsules = await Promise.all(
-        buriedEvents.map(async (evt: unknown) => {
-          const evtRecord = evt as Record<string, unknown>;
-          const values = Array.isArray(evtRecord?.state)
-            ? (evtRecord.state as unknown[]).map(parseStackItem)
-            : [];
-          const owner = values[0];
-          const id = String(values[1] || "");
-          const unlockTimeEvent = toNumber(values[2] || 0);
-          const isPublicEvent = Boolean(values[3]);
-          if (!id || !ownerMatches(owner)) return null;
-
-          try {
-            const parsed = await chain.read("getCapsuleDetails", [{ type: "Integer", value: id }]);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-              const data = parsed as Record<string, unknown>;
-              return buildCapsuleFromDetails(id, data, { unlockTime: unlockTimeEvent, isPublic: isPublicEvent });
-            }
-          } catch (e) {
-            console.warn("[useTimeCapsule] getCapsuleDetails failed:", e instanceof Error ? e.message : String(e));
+      const capsuleMap = await storageService.list("capsules:", 50);
+      const items: Capsule[] = [];
+      if (capsuleMap && typeof capsuleMap === "object") {
+        for (const [, value] of Object.entries(capsuleMap)) {
+          const stored = value as StoredCapsule;
+          if (stored && stored.id) {
+            items.push(buildCapsuleFromStored(stored));
           }
-
-          return buildCapsuleFromDetails(
-            id,
-            { contentHash: "", title: "", unlockTime: unlockTimeEvent, isPublic: isPublicEvent, isRevealed: false },
-            { unlockTime: unlockTimeEvent, isPublic: isPublicEvent },
-          );
-        }),
-      );
-
-      let resolved = userCapsules.filter(Boolean) as Capsule[];
-
-      // Fallback: scan capsule IDs if no events found
-      if (resolved.length === 0) {
-        const totalCount = Number((await chain.read("totalCapsules")) || 0);
-        const discovered: Capsule[] = [];
-        for (let i = 1; i <= totalCount; i++) {
-          const parsed = await chain.read("getCapsuleDetails", [{ type: "Integer", value: String(i) }]);
-          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
-          const data = parsed as Record<string, unknown>;
-          if (!ownerMatches(data.owner)) continue;
-          discovered.push(buildCapsuleFromDetails(String(i), data));
         }
-        resolved = discovered;
       }
-
-      return resolved.sort((a, b) => Number(b.id) - Number(a.id));
+      return items.sort((a, b) => Number(b.id) - Number(a.id));
     } catch (e) {
       console.warn("[useTimeCapsule] loadCapsules failed:", e instanceof Error ? e.message : String(e));
       return [];
     }
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────
+  // ── Actions (via OS services) ──────────────────────────────────────
 
+  /**
+   * Create a capsule via EscrowProxy.create().
+   * The edge function handles the GAS transfer + bury contract call.
+   */
   const createCapsule = async () => {
     if (isBusy.value || !canCreate.value) return;
 
     isCreating.value = true;
     try {
-      await chain.ensureWallet();
-
       const daysValue = Number.parseInt(newCapsule.value.days, 10);
       if (!Number.isFinite(daysValue) || daysValue < MIN_LOCK_DAYS || daysValue > MAX_LOCK_DAYS) {
         throw new Error(t("invalidLockDuration"));
@@ -233,41 +233,33 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
       const content = newCapsule.value.content.trim();
       const contentHash = await sha256Hex(content);
 
-      // Step 1: Pay bury fee
-      const contractHash = chain.contractAddress.value;
-      if (!contractHash) throw new Error(t("error"));
+      // Create capsule via EscrowProxy — the edge function handles
+      // the GAS fee transfer and the bury contract call
+      await escrowService.create({
+        beneficiary: "",
+        amount: "0.2",
+        milestones: [{
+          name: "bury",
+          amount: "0.2",
+        }],
+        expiry: unlockTimestamp,
+      });
 
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: BURY_FEE_BASE },
-          { type: "String", value: `time-capsule:bury:${Date.now()}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
-
-      // Step 2: Bury the capsule
-      await chain.invoke(
-        "bury",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "String", value: contentHash },
-          { type: "String", value: newCapsule.value.title.trim().slice(0, 100) },
-          { type: "Integer", value: String(unlockTimestamp) },
-          { type: "Boolean", value: newCapsule.value.isPublic },
-          { type: "Integer", value: String(newCapsule.value.category) },
-        ],
-        { waitForEvent: "CapsuleBuried" },
-      );
-
+      // Store content mapping locally and in StorageProxy
       saveLocalContent(contentHash, content);
+      await storageService.set(`content:${contentHash}`, {
+        title: newCapsule.value.title.trim().slice(0, 100),
+        contentHash,
+        unlockTimestamp,
+        isPublic: newCapsule.value.isPublic,
+        category: newCapsule.value.category,
+      });
 
       eventBus.emit("capsule:created", { action: t("capsuleCreated") });
       newCapsule.value = { title: "", content: "", days: "30", isPublic: false, category: 1 };
+
+      // Hint badge for capsule creator (fire-and-forget)
+      badgeService.award("capsule-creator", "").catch(() => {});
 
       // Reload capsules
       capsules.value = await loadCapsules();
@@ -279,6 +271,10 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
     }
   };
 
+  /**
+   * Open/reveal a capsule via EscrowProxy.completeMilestone().
+   * The edge function handles the Reveal contract call.
+   */
   const openCapsule = async (cap: Capsule) => {
     if (cap.locked) {
       eventBus.emit("capsule:error", { message: t("notUnlocked") });
@@ -288,13 +284,8 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
 
     isProcessing.value = true;
     try {
-      await chain.ensureWallet();
-
       if (!cap.revealed) {
-        await chain.invoke("Reveal", [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Integer", value: cap.id },
-        ]);
+        await escrowService.completeMilestone(cap.id, 0);
       }
 
       const content = cap.contentHash ? localContent.value[cap.contentHash] : "";
@@ -316,57 +307,28 @@ export function useTimeCapsule({ chain, eventBus, t }: UseTimeCapsuleOptions) {
     }
   };
 
+  /**
+   * Fish a random capsule via StorageProxy.
+   * The edge function handles the GAS fee + fish contract call.
+   */
   const fishCapsule = async () => {
     if (isBusy.value) return;
 
     isProcessing.value = true;
     try {
-      const requestStartedAt = Date.now();
-      await chain.ensureWallet();
+      // Trigger fish via escrow fund (which pays the fishing fee)
+      await escrowService.fund("fish");
 
-      const contractHash = chain.contractAddress.value;
-      if (!contractHash) throw new Error(t("error"));
-
-      // Step 1: Pay fishing fee
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: contractHash },
-          { type: "Integer", value: FISH_FEE_BASE },
-          { type: "String", value: `time-capsule:fish:${Date.now()}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, WAIT_AFTER_TRANSFER_MS));
-
-      // Step 2: Fish
-      await chain.invoke("fish", [
-        { type: "Hash160", value: chain.address.value as string },
-      ]);
-
-      // Step 3: Check for CapsuleFished event
-      const fishEvents = await chain.listAllEvents("CapsuleFished");
-      const match = (fishEvents as unknown[]).find((evt: unknown) => {
-        const evtRecord = evt as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state)
-          ? (evtRecord.state as unknown[]).map(parseStackItem)
-          : [];
-        const timestamp = evtRecord?.created_at ? new Date(evtRecord.created_at as string).getTime() : 0;
-        return ownerMatches(values[0]) && timestamp >= requestStartedAt - 1000;
-      });
-
-      if (match) {
-        const evtRecord = match as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state)
-          ? (evtRecord.state as unknown[]).map(parseStackItem)
-          : [];
-        const fishedId = String(values[1] || "");
-        eventBus.emit("capsule:fished", { message: t("fishResult", { id: fishedId || "?" }) });
+      // Read the fish result from storage
+      const result = await storageService.get("fishResult:latest") as { id?: string } | null;
+      if (result && result.id) {
+        eventBus.emit("capsule:fished", { message: t("fishResult", { id: result.id }) });
       } else {
         eventBus.emit("capsule:fished", { message: t("fishNone") });
       }
+
+      // Hint badge for fisher (fire-and-forget)
+      badgeService.award("capsule-fisher", "").catch(() => {});
 
       // Reload capsules
       capsules.value = await loadCapsules();

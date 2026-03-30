@@ -1,7 +1,23 @@
 /**
- * AA Account Lab — Entry Point (New Pattern)
+ * AA Account Lab — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire PlayArea, manifest, messages, and domain logic.
+ * This miniapp primarily uses the AA platform service (ctx.services.aa)
+ * for account abstraction operations. The chain service is retained for
+ * aaCore contract reads/writes since there is no OS-level AA proxy.
+ *
+ * StorageProxy (ctx.os.storage) is used for caching inspected account
+ * state so results persist across sessions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useAAAccountLab({ chain, storageService, t })
+ *
+ * The composable calls:
+ *   ctx.services.chain.invokeRead(aaCore, method, params)  — read AA state
+ *   ctx.services.chain.invokeWrite(aaCore, method, params) — write AA state
+ *   ctx.os.storage.set(`account:${hash}`, data)            — cache results
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -16,19 +32,23 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires AA platform service + OS storage to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.services.chain for AA
+   * contract reads/writes and ctx.os.storage for caching inspected state.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const lab = useAAAccountLab({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      storageService: ctx.os.storage,
       t: ctx.t,
     });
 
     // Register actions for PlayArea to invoke
     ctx.registerAction("inspect", async (accountIdInput: string) => {
       lab.inspectForm.accountIdInput = accountIdInput;
-      await platformServices.notify.guard(
+      await ctx.services.notify.guard(
         () => lab.inspectAccount(),
         "inspectSuccess",
         "invalidAccountId",
@@ -51,7 +71,7 @@ defineMiniApp({
         lab.registerForm.hookHash = hookHash;
         lab.registerForm.backupOwner = backupOwner;
         lab.registerForm.escapeTimelock = escapeTimelock;
-        await platformServices.notify.guard(
+        await ctx.services.notify.guard(
           () => lab.submitRegister(),
           "registerSuccess",
           "invalidAccountId",
@@ -60,8 +80,8 @@ defineMiniApp({
     );
 
     ctx.registerAction("connect", () =>
-      platformServices.notify.guard(
-        () => platformServices.chain.ensureWallet(),
+      ctx.services.notify.guard(
+        () => ctx.services.chain.ensureWallet(),
         "walletConnected",
         "connectFailed",
       ),

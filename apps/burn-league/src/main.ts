@@ -1,20 +1,24 @@
 /**
- * Burn League — Entry Point (New Pattern)
+ * Burn League — Entry Point (OS Services Pattern)
  *
- * Follows the defineMiniApp() pattern established by the daily-checkin reference.
+ * This miniapp uses OS service proxies (ctx.os.game, ctx.os.nft,
+ * ctx.os.leaderboard, ctx.os.badge) instead of direct chain calls.
+ * The proxies handle all contract interaction through edge functions,
+ * so the miniapp never touches contract hashes, parameter encoding,
+ * or event parsing.
  *
- *   1. Import the play area component (the only custom UI)
- *   2. Import the manifest (declarative config for platform sections)
- *   3. Import i18n messages
- *   4. Import the domain composable
- *   5. Call defineMiniApp() with a setup function that wires them together
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useBurnLeague({ gameService, nftService, leaderboardService, badgeService, t })
  *
- * The setup function:
- *   - Receives a MiniAppContext with `t` (i18n), `services`, `setStatus`, etc.
- *   - Instantiates the domain composable (passing chain + events from services)
- *   - Returns `state` whose keys match manifest valueKeys for stats/sidebar
- *   - Returns `loadData` for the platform to call on mount and wallet-connect
- *   - Registers action handlers for any operation panel buttons
+ * The composable calls:
+ *   ctx.os.game.getPoolState("burn-league")   — load burn stats
+ *   ctx.os.leaderboard.get(100)               — load leaderboard
+ *   ctx.os.nft.burn(amount)                   — burn tokens
+ *   ctx.os.leaderboard.submitScore(amount)    — update leaderboard
+ *   ctx.os.badge.award(badgeId, user)         — award achievements
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -31,26 +35,17 @@ defineMiniApp({
   messages,
 
   /**
-   * Setup function — the bridge between domain logic and the platform.
+   * Setup function — wires OS services to reactive state.
    *
-   * Called once when the miniapp mounts. The platform provides:
-   *   ctx.t         — i18n translation function
-   *   ctx.services  — platform services (stub until full integration)
-   *   ctx.setStatus — show a toast/status message
-   *   ctx.registerAction — register operation panel action handlers
-   *
-   * Returns:
-   *   state    — reactive values matching manifest valueKey entries
-   *   loadData — called by the platform on mount and wallet reconnect
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all data loading and mutations instead of ctx.services.chain.
    */
   setup(ctx) {
-    // Create the real PlatformServices with the i18n function.
-    // This gives the composable access to ChainService, EventBus, etc.
-    const platformServices = ctx.services;
-
     const league = useBurnLeague({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      gameService: ctx.os.game,
+      nftService: ctx.os.nft,
+      leaderboardService: ctx.os.leaderboard,
+      badgeService: ctx.os.badge,
       t: ctx.t,
     });
 
@@ -97,9 +92,6 @@ defineMiniApp({
       // ── Lifecycle ─────────────────────────────────────────────────
       // Called by the platform on mount and when the wallet reconnects.
       loadData: league.loadAll,
-
-      // ── Cleanup ───────────────────────────────────────────────────
-      // Called by the platform on unmount.
     };
   },
 });

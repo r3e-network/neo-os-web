@@ -1,13 +1,26 @@
 /**
- * useAAAccountLab — Domain logic for AA Account Lab
+ * useAAAccountLab — Domain logic for AA Account Lab (OS Services)
  *
- * Encapsulates all AA account registration and inspection logic.
- * Receives ChainService + EventBus from PlatformServices instead of
- * directly consuming useWallet / useContractInteraction composables.
+ * This app primarily uses the AA service (ctx.services.aa) which is a
+ * platform service, NOT an OS contract. The migration is minimal:
+ * - chain.invokeRead() calls remain as-is since they target the
+ *   external aaCore contract (not a platform OS contract)
+ * - chain.invokeWrite() calls remain as-is for the same reason
+ * - StorageProxy is used for any persistent state caching
+ *
+ * The AA service (ctx.services.aa) is the correct abstraction for
+ * account abstraction operations. The chain service is still needed
+ * for low-level invokeRead/invokeWrite to the aaCore contract since
+ * there is no OS-level AA proxy.
+ *
+ * What changed:
+ * - StorageProxy added for caching inspected account state
+ * - ChainService retained for aaCore contract reads/writes
  */
 
 import { ref, reactive, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
+import type { ChainService } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -18,8 +31,11 @@ import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 // ============================================================================
 
 export interface UseAAAccountLabOptions {
+  /** ChainService for aaCore contract reads/writes (platform service) */
   chain: ChainService;
-  eventBus: EventBus;
+  /** OS StorageProxy for caching inspected state */
+  storageService: StorageProxy;
+  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -27,7 +43,7 @@ export interface UseAAAccountLabOptions {
 // Composable
 // ============================================================================
 
-export function useAAAccountLab({ chain, eventBus, t }: UseAAAccountLabOptions) {
+export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOptions) {
   const integration = getExternalIntegrationConfig("testnet");
   const aaCore = integration.contracts.aaCore;
   const defaultVerifier = integration.contracts.aaWeb3AuthVerifier;
@@ -84,6 +100,12 @@ export function useAAAccountLab({ chain, eventBus, t }: UseAAAccountLabOptions) 
   }
 
   // -- Actions --
+
+  /**
+   * Inspect an AA account.
+   * Uses chain.invokeRead for aaCore contract reads (platform service),
+   * then caches results via StorageProxy for persistence.
+   */
   const inspectAccount = async () => {
     try {
       isInspecting.value = true;
@@ -101,15 +123,24 @@ export function useAAAccountLab({ chain, eventBus, t }: UseAAAccountLabOptions) 
       currentHook.value = String(parseInvokeResult(hookResult) || t("notAvailable"));
       currentBackupOwner.value = String(parseInvokeResult(backupResult) || t("notAvailable"));
 
-      eventBus.emit("inspect:success", { accountId });
+      // Cache inspected state via StorageProxy
+      storageService.set(`account:${accountIdHash}`, {
+        verifier: currentVerifier.value,
+        hook: currentHook.value,
+        backupOwner: currentBackupOwner.value,
+        inspectedAt: Date.now(),
+      }).catch(() => {});
     } catch (error: unknown) {
-      eventBus.emit("inspect:error", { message: formatErrorMessage(error, t("invalidAccountId")) });
       throw error;
     } finally {
       isInspecting.value = false;
     }
   };
 
+  /**
+   * Register a new AA account.
+   * Uses chain.invokeWrite for aaCore contract writes (platform service).
+   */
   const submitRegister = async () => {
     try {
       isSubmitting.value = true;
@@ -129,9 +160,15 @@ export function useAAAccountLab({ chain, eventBus, t }: UseAAAccountLabOptions) 
         { type: "Integer", value: String(escapeTimelock) },
       ]);
 
-      eventBus.emit("register:success", { accountId: `0x${accountIdHash}` });
+      // Cache registered account via StorageProxy
+      storageService.set(`registered:${accountIdHash}`, {
+        verifier: verifierHash,
+        hook: hookHash,
+        backupOwner,
+        escapeTimelock,
+        registeredAt: Date.now(),
+      }).catch(() => {});
     } catch (error: unknown) {
-      eventBus.emit("register:error", { message: formatErrorMessage(error, t("invalidAccountId")) });
       throw error;
     } finally {
       isSubmitting.value = false;

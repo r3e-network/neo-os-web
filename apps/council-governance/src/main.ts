@@ -1,8 +1,23 @@
 /**
- * Council Governance — Entry Point (New Pattern)
+ * Council Governance — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() + PlatformServices to wire the governance
- * composable to the platform.
+ * This miniapp uses OS service proxies (ctx.os.storage, ctx.os.payment,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions, so the miniapp never
+ * touches contract hashes, parameter encoding, or event parsing.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useGovernance({ storageService, paymentService, badgeService, t })
+ *
+ * The composable calls:
+ *   ctx.os.storage.list("proposal:")              — load proposals
+ *   ctx.os.storage.set("vote:${id}", data)        — cast vote
+ *   ctx.os.storage.set("proposal:new", data)      — create proposal
+ *   ctx.os.storage.get(`voted:${addr}:${id}`)     — check vote status
+ *   ctx.os.badge.award(badgeId, user)             — award governance badges
+ *
+ * Everything else (manifest, PlayArea, i18n, actions) stays the same.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -17,18 +32,26 @@ defineMiniApp({
   manifest,
   messages,
 
+  /**
+   * Setup function — wires OS services to reactive state.
+   *
+   * Called once when the miniapp mounts. Uses ctx.os (OS service proxies)
+   * for all data loading and mutations instead of ctx.services.chain.
+   */
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const gov = useGovernance({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      storageService: ctx.os.storage,
+      paymentService: ctx.os.payment,
+      badgeService: ctx.os.badge,
       t: ctx.t as (
         key: string,
         params?: Record<string, string | number>,
       ) => string,
       currentChainId: { value: "neo-n3-testnet" },
     });
+
+    // Track wallet address from the platform's chain service
+    gov.setAddress(ctx.services.chain.address.value ?? "");
 
     ctx.registerAction("createProposal", async (...args: unknown[]) => {
       const proposalData = args[0] as {
@@ -71,7 +94,7 @@ defineMiniApp({
         isCandidate: gov.isCandidate,
         hasVotedMap: gov.hasVotedMap,
         isVoting: gov.isVoting,
-        address: platformServices.chain.address,
+        address: gov.address,
       },
 
       loadData: gov.init,

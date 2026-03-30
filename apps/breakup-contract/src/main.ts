@@ -1,3 +1,15 @@
+/**
+ * Breakup Contract — Entry Point (OS Services Pattern)
+ *
+ * This miniapp uses OS service proxies (ctx.os.escrow, ctx.os.storage,
+ * ctx.os.badge) instead of direct chain calls. The proxies handle all
+ * contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useBreakup({ escrowService, storageService, ... })
+ */
+
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
 import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
@@ -11,30 +23,30 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const breakup = useBreakup({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      escrowService: ctx.os.escrow,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
     ctx.registerAction("createContract", () =>
-      platformServices.notify.guard(
+      ctx.services.notify.guard(
         () => breakup.createContract(),
         "contractCreated",
       ),
     );
 
     ctx.registerAction("signContract", (contract: unknown) =>
-      platformServices.notify.guard(
+      ctx.services.notify.guard(
         () => breakup.signContract(contract as { id: number; stake: number }),
         "contractSigned",
       ),
     );
 
     ctx.registerAction("breakContract", (contract: unknown) =>
-      platformServices.notify.guard(
+      ctx.services.notify.guard(
         () => breakup.breakContract(contract as { id: number }),
         "contractBroken",
       ),
