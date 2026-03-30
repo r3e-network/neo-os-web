@@ -1,9 +1,16 @@
 import { OSServiceProxy } from "./OSServiceProxy";
 
+export interface EscrowParams {
+  beneficiary: string;
+  amount: string;
+  milestones: Array<{ name: string; amount: string }>;
+  expiry?: number;
+}
+
 export class EscrowProxy extends OSServiceProxy {
   protected readonly servicePrefix = "os-escrow";
 
-  async create(params: Record<string, unknown>): Promise<string> {
+  async create(params: EscrowParams): Promise<string> {
     return this.call("create", params);
   }
 

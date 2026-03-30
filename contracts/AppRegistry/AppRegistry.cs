@@ -443,6 +443,35 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
+        /// Resolve which apps handle a given action name.
+        /// Returns a JSON array of appIds that declared this action.
+        /// This is the implicit intent resolution system (Android analog).
+        /// </summary>
+        [Safe]
+        public static string ResolveAction(string actionName)
+        {
+            // Iterate all apps and check their action declarations
+            // Note: For production scalability, consider an inverted index
+            Iterator iterator = Storage.Find(Storage.CurrentContext, PREFIX_ACTIONS, FindOptions.RemovePrefix);
+            string result = "[";
+            bool first = true;
+            while (iterator.Next())
+            {
+                var kv = (object[])iterator.Value;
+                string appId = (string)(ByteString)kv[0];
+                string actionsJson = (string)(ByteString)kv[1];
+                if (actionsJson.Contains(actionName))
+                {
+                    if (!first) result += ",";
+                    result += "\"" + appId + "\"";
+                    first = false;
+                }
+            }
+            result += "]";
+            return result;
+        }
+
+        /// <summary>
         /// Validate that the caller is the app's developer or the platform admin.
         /// </summary>
         private static void ValidateAppOwnerOrAdmin(string appId)

@@ -1,9 +1,18 @@
 import { OSServiceProxy } from "./OSServiceProxy";
 
+export interface StreamParams {
+  beneficiary: string;
+  totalAmount: string;
+  rateAmount: string;
+  intervalSeconds: number;
+  title?: string;
+  notes?: string;
+}
+
 export class VestingProxy extends OSServiceProxy {
   protected readonly servicePrefix = "os-vesting";
 
-  async createStream(params: Record<string, unknown>): Promise<string> {
+  async createStream(params: StreamParams): Promise<string> {
     return this.call("create", params);
   }
 
