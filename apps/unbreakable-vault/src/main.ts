@@ -1,8 +1,14 @@
 /**
- * unbreakable-vault — Entry Point (New Pattern)
+ * Unbreakable Vault — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() + PlatformServices to wire vault creation
- * and breaking composables to the platform.
+ * This miniapp uses OS service proxies (ctx.os.escrow, ctx.os.payment,
+ * ctx.os.storage, ctx.os.badge) instead of direct chain calls. The
+ * proxies handle all contract interaction through edge functions.
+ *
+ * Architecture:
+ *   main.ts -> defineMiniApp({ playArea, manifest, setup })
+ *   setup() -> useVaultCreator({ escrowService, paymentService, ... })
+ *              useVaultBreaker({ escrowService, paymentService, ... })
  */
 
 import { computed } from "vue";
@@ -22,11 +28,22 @@ defineMiniApp({
 
   setup(ctx) {
     const t = ctx.t as (key: string) => string;
-    const platformServices = ctx.services;
 
     const creator = useVaultCreator({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      escrowService: ctx.os.escrow,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
+      t,
+    });
+
+    const breaker = useVaultBreaker({
+      escrowService: ctx.os.escrow,
+      paymentService: ctx.os.payment,
+      storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
+      eventBus: ctx.services.events,
       t,
     });
 
@@ -67,7 +84,7 @@ defineMiniApp({
 
     return {
       state: {
-        address: platformServices.chain.address,
+        address: ctx.services.chain.address,
         myVaultCount: computed(() => creator.myVaults.value.length),
         recentVaultCount: computed(() => breaker.recentVaults.value.length),
         vaultDifficulty: computed(

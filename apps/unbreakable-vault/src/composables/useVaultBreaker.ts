@@ -1,18 +1,33 @@
 /**
  * useVaultBreaker — Vault break attempts, listing, and claiming
  *
- * Migrated to PlatformServices pattern:
- *   - useContractInteraction(hash) -> chain.read() / chain.invoke()
- *   - useStatusMessage() -> eventBus.emit()
- *   - useEvents().list -> chain.listEvents()
- *   - waitForListedEventByTransaction -> chain.waitForEvent()
+ * Migrated to OS service proxies. All contract interaction is delegated to
+ * OS services (EscrowProxy, PaymentProxy, StorageProxy, BadgeProxy) via
+ * edge functions.
+ *
+ * Migration from direct chain calls to OS services:
+ *
+ *   BEFORE (chain):
+ *     chain.listEvents("VaultCreated", { limit: 12 })
+ *     chain.read("getVaultDetails", [...])
+ *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
+ *     chain.invoke("attemptBreak", [...], { waitForEvent: "AttemptMade" })
+ *     chain.ensureWallet()
+ *
+ *   AFTER (OS proxy):
+ *     storageService.list("recentVaults:", 12)
+ *     storageService.get("vault:<id>")
+ *     paymentService.deposit(fee, "attempt:<vaultId>")
+ *     escrowService.completeMilestone(vaultId, 0)
+ *     badgeService.award("vault-breaker", "")
  */
 
 import { ref, computed } from "vue";
-import type { ChainService, EventBus } from "@shared/services";
-import { parseStackItem, normalizeScriptHash } from "@shared/utils/neo";
-import { bytesToHex, formatGas, toFixed8 } from "@shared/utils/format";
-import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
+import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { formatGas, toFixed8 } from "@shared/utils/format";
 
 // ============================================================================
 // Constants
@@ -46,20 +61,62 @@ export interface RecentVault {
 }
 
 export interface UseVaultBreakerOptions {
-  chain: ChainService;
-  eventBus: EventBus;
+  /** OS EscrowProxy instance from ctx.os.escrow */
+  escrowService: EscrowProxy;
+  /** OS PaymentProxy instance from ctx.os.payment */
+  paymentService: PaymentProxy;
+  /** OS StorageProxy instance from ctx.os.storage */
+  storageService: StorageProxy;
+  /** OS BadgeProxy instance from ctx.os.badge */
+  badgeService: BadgeProxy;
+  /** EventBus for UI events */
+  eventBus: { emit: (event: string, payload?: unknown) => void };
+  /** Translation function */
   t: (key: string) => string;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+interface StoredVaultDetails {
+  id: string;
+  creator: string;
+  bounty: number;
+  attemptCount: number;
+  broken: boolean;
+  expired: boolean;
+  status: string;
+  winner: string;
+  attemptFee: number;
+  difficultyName: string;
+  expiryTime: number;
+  remainingDays: number;
+}
+
+interface StoredRecentVault {
+  id: string;
+  creator: string;
+  bounty: number;
 }
 
 // ============================================================================
 // Composable
 // ============================================================================
 
-export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) {
+export function useVaultBreaker({
+  escrowService,
+  paymentService,
+  storageService,
+  badgeService,
+  eventBus,
+  t,
+}: UseVaultBreakerOptions) {
   const vaultIdInput = ref("");
   const attemptSecret = ref("");
   const vaultDetails = ref<VaultDetails | null>(null);
   const recentVaults = ref<RecentVault[]>([]);
+  const isLoading = ref(false);
 
   const toNumber = (value: unknown) => {
     const num = Number(value ?? 0);
@@ -83,31 +140,27 @@ export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) 
     return formatGas(fee);
   });
 
-  const toHex = (value: string) => {
-    if (!value) return "";
-    if (typeof TextEncoder === "undefined") {
-      return Array.from(value)
-        .map((char) => char.charCodeAt(0).toString(16).padStart(2, "0"))
-        .join("");
-    }
-    return bytesToHex(new TextEncoder().encode(value));
-  };
+  // ── Data Loading (via StorageProxy) ────────────────────────────────
 
+  /**
+   * Load recent vaults via StorageProxy.list().
+   */
   const loadRecentVaults = async () => {
     try {
-      const events = await chain.listEvents("VaultCreated", { limit: 12 });
-      const vaults = (events as { state?: unknown[] }[])
-        .map((evt) => {
-          const values = Array.isArray(evt?.state)
-            ? (evt.state as unknown[]).map(parseStackItem)
-            : [];
-          const id = String(values[0] ?? "");
-          const creator = String(values[1] ?? "");
-          const bountyValue = Number(values[2] ?? 0);
-          if (!id) return null;
-          return { id, creator, bounty: bountyValue };
-        })
-        .filter(Boolean) as RecentVault[];
+      const vaultMap = await storageService.list("recentVaults:", 12);
+      const vaults: RecentVault[] = [];
+      if (vaultMap && typeof vaultMap === "object") {
+        for (const [, value] of Object.entries(vaultMap)) {
+          const stored = value as StoredRecentVault;
+          if (stored && stored.id) {
+            vaults.push({
+              id: String(stored.id),
+              creator: String(stored.creator || ""),
+              bounty: Number(stored.bounty ?? 0),
+            });
+          }
+        }
+      }
       recentVaults.value = vaults;
     } catch (e) {
       console.error(
@@ -118,21 +171,22 @@ export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) 
     }
   };
 
+  /**
+   * Load vault details via StorageProxy.get().
+   */
   const loadVault = async () => {
     if (!vaultIdInput.value) return;
     try {
-      const parsed = await chain.read("getVaultDetails", [
-        { type: "Integer", value: vaultIdInput.value },
-      ]);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
-        throw new Error(t("vaultNotFound"));
-      const data = parsed as Record<string, unknown>;
+      const data = await storageService.get(`vault:${vaultIdInput.value}`) as StoredVaultDetails | null;
+      if (!data || typeof data !== "object") throw new Error(t("vaultNotFound"));
+
       const creator = String(data.creator || "");
-      const creatorHash = normalizeScriptHash(creator);
-      if (!creatorHash || /^0+$/.test(creatorHash)) throw new Error(t("vaultNotFound"));
+      if (!creator || /^0+$/.test(creator)) throw new Error(t("vaultNotFound"));
+
       const st = String(data.status || "");
       const expired = Boolean(data.expired);
       const broken = Boolean(data.broken);
+
       vaultDetails.value = {
         id: vaultIdInput.value,
         creator,
@@ -155,45 +209,36 @@ export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) 
     }
   };
 
+  // ── Actions (via OS services) ──────────────────────────────────────
+
+  /**
+   * Attempt to break a vault via PaymentProxy (fee) + EscrowProxy (attempt).
+   * The edge functions handle wallet connection, fee transfer, and the
+   * attemptBreak contract call.
+   */
   const attemptBreak = async () => {
-    if (!canAttempt.value || chain.isProcessing.value) return;
+    if (!canAttempt.value || isLoading.value) return;
+    isLoading.value = true;
     try {
-      await chain.ensureWallet();
       const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
 
-      // Step 1: Pay the attempt fee
-      await chain.invoke(
-        "transfer",
-        [
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "Hash160", value: chain.contractAddress.value as string },
-          { type: "Integer", value: String(feeBase) },
-          { type: "String", value: `miniapp-unbreakablevault:attempt:${vaultIdInput.value}` },
-        ],
-        { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
+      // Step 1: Pay the attempt fee via PaymentProxy
+      await paymentService.deposit(
+        String(feeBase),
+        `miniapp-unbreakablevault:attempt:${vaultIdInput.value}`,
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 4000));
+      // Step 2: Attempt the break via EscrowProxy
+      await escrowService.completeMilestone(vaultIdInput.value, 0);
 
-      // Step 2: Attempt the break
-      const result = await chain.invoke(
-        "attemptBreak",
-        [
-          { type: "Integer", value: vaultIdInput.value },
-          { type: "Hash160", value: chain.address.value as string },
-          { type: "ByteArray", value: toHex(attemptSecret.value) },
-        ],
-        { waitForEvent: "AttemptMade", waitTimeoutMs: 30000 },
-      );
-
-      const evtRecord = result.event as { state?: unknown[] } | undefined;
-      const values = Array.isArray(evtRecord?.state)
-        ? evtRecord!.state.map(parseStackItem)
-        : [];
-      const success = Boolean(values[2] ?? false);
+      // Check the result from storage
+      const result = await storageService.get(`attemptResult:${vaultIdInput.value}`) as { success?: boolean } | null;
+      const success = Boolean(result?.success);
 
       if (success) {
         eventBus.emit("vault:broken", { action: t("broken") });
+        // Hint badge for vault breaker (fire-and-forget)
+        badgeService.award("vault-breaker", "").catch(() => {});
       } else {
         eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
       }
@@ -206,6 +251,8 @@ export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) 
         message: e instanceof Error ? e.message : t("vaultAttemptFailed"),
       });
       throw e;
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -221,7 +268,7 @@ export function useVaultBreaker({ chain, eventBus, t }: UseVaultBreakerOptions) 
     recentVaults,
     canAttempt,
     attemptFeeDisplay,
-    isLoading: chain.isProcessing,
+    isLoading,
     loadRecentVaults,
     loadVault,
     attemptBreak,
