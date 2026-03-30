@@ -1,3 +1,7 @@
+// DEPRECATED: This script deploys the v1 ModuleRegistry/RecipeRegistry/InstanceRegistry
+// contracts which have been replaced by direct OS service contracts in MiniApp-OS v2.
+// Retained for reference; new deployments should use the v2 OS service contract deploy scripts.
+
 //go:build scripts
 
 package main

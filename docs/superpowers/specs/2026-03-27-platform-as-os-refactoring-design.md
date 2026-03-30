@@ -1,7 +1,7 @@
 # Platform-as-OS Refactoring Design
 
 **Date**: 2026-03-27
-**Status**: Approved (user-directed)
+**Status**: Superseded by 2026-03-31-miniapp-os-v2-design.md
 **Scope**: Full platform refactoring to "Android OS for miniapps" model
 
 ## Vision
