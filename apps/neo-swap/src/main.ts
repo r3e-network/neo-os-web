@@ -1,7 +1,9 @@
 /**
- * Neo Swap — Entry Point (New Pattern)
+ * Neo Swap — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire the swap engine to the platform.
+ * Wrapper around the external Flamingo swap router and NEO/GAS native
+ * contracts. All chain calls target third-party contracts, so they stay
+ * on ctx.services.chain. No app-owned state to migrate to OS services.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -17,14 +19,12 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     const swap = useSwapEngine({
-      chain: platformServices.chain,
-      balance: platformServices.balance,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      balance: ctx.services.balance,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 

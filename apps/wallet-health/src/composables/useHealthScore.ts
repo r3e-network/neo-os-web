@@ -1,7 +1,7 @@
 import { computed, reactive } from "vue";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 
 export interface ChecklistItem {
   id: string;
@@ -25,12 +25,15 @@ export interface UseHealthScoreReturn {
   toggleChecklist: (id: string) => void;
 }
 
-/** Computes wallet health score from a security checklist with persistent state. */
-export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn {
+/**
+ * Computes wallet health score from a security checklist with persistent state.
+ * Uses OS StorageProxy for persistence instead of raw localStorage.
+ */
+export function useHealthScore(gasOk: { value: boolean }, storage: StorageProxy): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
 
   const checklistState = reactive<Record<string, boolean>>({});
-  const checklistStorageKey = "wallet-health-checklist";
+  const checklistStorageKey = "checklist";
 
   const checklistBase = [
     { id: "backup", titleKey: "checklistBackup", descKey: "checklistBackupDesc" },
@@ -87,24 +90,22 @@ export function useHealthScore(gasOk: { value: boolean }): UseHealthScoreReturn 
   });
 
   const loadChecklist = () => {
-    try {
-      const parsed = readCachedJSON<Record<string, unknown>>(checklistStorageKey);
-      if (parsed && typeof parsed === "object") {
+    storage.get(checklistStorageKey).then((result) => {
+      if (result && typeof result === "object") {
+        const parsed = result as Record<string, unknown>;
         Object.keys(parsed).forEach((key) => {
           checklistState[key] = Boolean(parsed[key]);
         });
       }
-    } catch (_e) {
+    }).catch((_e) => {
       console.warn("[useHealthScore] loadChecklist failed:", _e instanceof Error ? _e.message : String(_e));
-    }
+    });
   };
 
   const saveChecklist = () => {
-    try {
-      writeCachedJSON(checklistStorageKey, { ...checklistState });
-    } catch (_e) {
+    storage.set(checklistStorageKey, { ...checklistState }).catch((_e) => {
       console.warn("[useHealthScore] saveChecklist failed:", _e instanceof Error ? _e.message : String(_e));
-    }
+    });
   };
 
   const toggleChecklist = (id: string) => {

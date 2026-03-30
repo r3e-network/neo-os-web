@@ -1,14 +1,15 @@
 /**
  * useDevTippingStats — Domain logic for loading developer stats and recent tips
  *
- * Receives ChainService from PlatformServices instead of instantiating
- * its own useContractInteraction / useStatusMessage / useEvents.
+ * Uses OS StorageProxy to read app state (developers, totals, recent tips)
+ * instead of direct chain.read() / chain.listEvents() against the own
+ * contract. The edge functions behind StorageProxy handle contract
+ * interaction and caching.
  */
 
 import { ref } from "vue";
-import type { ChainService } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { parseGas, formatNum } from "@shared/utils/format";
-import { parseStackItem } from "@shared/utils/neo";
 
 export interface Developer {
   id: number;
@@ -29,11 +30,11 @@ export interface RecentTip {
 }
 
 export interface UseDevTippingStatsOptions {
-  chain: ChainService;
+  storage: StorageProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
+export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
   const developers = ref<Developer[]>([]);
   const recentTips = ref<RecentTip[]>([]);
   const totalDonated = ref(0);
@@ -47,7 +48,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
   const loadDevelopers = async () => {
     isLoading.value = true;
     try {
-      const total = toNumber(await chain.read("totalDevelopers"));
+      const total = toNumber(await storage.get("totalDevelopers"));
 
       if (!total) {
         developers.value = [];
@@ -58,7 +59,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
       const ids = Array.from({ length: total }, (_, i) => i + 1);
       const devs = await Promise.all(
         ids.map(async (id) => {
-          const parsed = await chain.read("getDeveloperDetails", [{ type: "Integer", value: id }]);
+          const parsed = await storage.get(`developer:${id}`);
           const details =
             parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
           const name = String(details.name || "").trim();
@@ -83,7 +84,7 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
         }),
       );
 
-      totalDonated.value = parseGas(await chain.read("totalDonated"));
+      totalDonated.value = parseGas(await storage.get("totalDonated"));
 
       const validDevs = devs.filter((d): d is Developer => d !== null);
       validDevs.sort((a, b) => b.totalTips - a.totalTips);
@@ -100,21 +101,21 @@ export function useDevTippingStats({ chain, t }: UseDevTippingStatsOptions) {
 
   const loadRecentTips = async () => {
     try {
-      const events = await chain.listEvents("TipSent", { limit: 20 });
+      const tipsData = await storage.list("tips:recent") as Record<string, unknown>;
       const devMap = new Map(developers.value.map((dev) => [dev.id, dev.name]));
 
-      recentTips.value = events.map((evt) => {
-        const evtRecord = evt as unknown as Record<string, unknown>;
-        const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
-        const devId = toNumber(values[1] ?? 0);
-        const amount = parseGas(values[2]);
+      const entries = Object.entries(tipsData);
+      recentTips.value = entries.map(([key, raw]) => {
+        const tip = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+        const devId = toNumber(tip.devId ?? 0);
+        const amount = parseGas(tip.amount ?? 0);
         const to = devMap.get(devId) || t("defaultDevName", { id: devId });
 
         return {
-          id: String(evtRecord.id ?? ""),
+          id: String(tip.id ?? key),
           to,
           amount: amount.toFixed(2),
-          time: new Intl.DateTimeFormat(undefined).format(new Date((evtRecord.created_at as string) || Date.now())),
+          time: new Intl.DateTimeFormat(undefined).format(new Date((tip.created_at as string) || Date.now())),
         };
       });
     } catch (_e) {

@@ -1,7 +1,9 @@
 /**
- * Gas Sponsor — Entry Point (New Pattern)
+ * Gas Sponsor — Entry Point (OS Services Pattern)
  *
- * Uses defineMiniApp() to wire PlayArea, manifest, messages, and domain logic.
+ * Donate/send operations transfer GAS to external addresses via the
+ * native GAS contract — those stay on ctx.services.chain. Sponsorship
+ * requests use the SDK API. No app-owned contract state to migrate.
  */
 
 import { defineMiniApp } from "@shared/utils/defineMiniApp";
@@ -17,15 +19,13 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const platformServices = ctx.services;
-
     const sponsor = useGasSponsorApp({
-      chain: platformServices.chain,
-      eventBus: platformServices.events,
+      chain: ctx.services.chain,
+      eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    const { notify } = platformServices;
+    const { notify } = ctx.services;
 
     ctx.registerAction("requestSponsorship", async (amount: string) => {
       sponsor.requestAmount.value = amount;

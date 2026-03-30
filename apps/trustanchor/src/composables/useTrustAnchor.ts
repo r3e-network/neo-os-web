@@ -1,12 +1,17 @@
 /**
  * useTrustAnchor — Domain logic for the TrustAnchor staking miniapp
  *
- * Receives ChainService + EventBus from PlatformServices.
- * Contains ONLY staking domain logic: load stakes, rewards, stats, stake/unstake/claim.
+ * Reads user stake/reward data via OS StorageProxy instead of direct
+ * chain.read() against the own contract. Writes that target the own
+ * contract (withdraw, claimReward, claimWithdraw) also go through OS
+ * services. The NEO native transfer for staking stays on ChainService
+ * since it targets an external contract.
  */
 
 import { ref } from "vue";
 import type { ChainService, EventBus } from "@shared/services";
+import type { StorageProxy } from "@shared/services/os/StorageProxy";
+import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 
 // ============================================================================
@@ -28,6 +33,8 @@ export interface TrustAnchorStats {
 export interface UseTrustAnchorOptions {
   chain: ChainService;
   eventBus: EventBus;
+  storage: StorageProxy;
+  payment: PaymentProxy;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
@@ -35,7 +42,7 @@ export interface UseTrustAnchorOptions {
 // Composable
 // ============================================================================
 
-export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
+export function useTrustAnchor({ chain, eventBus, storage, payment, t }: UseTrustAnchorOptions) {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -53,19 +60,17 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   // ------------------------------------------
-  // Read: user data
+  // Read: user data (via OS storage)
   // ------------------------------------------
 
-  /** Read user's staked NEO via `stakeOf(account)` */
+  /** Read user's staked NEO from OS storage */
   const loadMyStake = async () => {
     if (!chain.address.value) {
       myStake.value = 0;
       return;
     }
     try {
-      const result = await chain.read("stakeOf", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
+      const result = await storage.get(`stake:${chain.address.value}`);
       if (result != null) {
         myStake.value = Number(result);
       }
@@ -74,16 +79,14 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
     }
   };
 
-  /** Read user's accrued GAS reward via `rewardOf(account)` */
+  /** Read user's accrued GAS reward from OS storage */
   const loadPendingRewards = async () => {
     if (!chain.address.value) {
       pendingRewards.value = 0;
       return;
     }
     try {
-      const result = await chain.read("rewardOf", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
+      const result = await storage.get(`reward:${chain.address.value}`);
       if (result != null) {
         // rewardOf returns raw GAS in fixed-8
         pendingRewards.value = Number(result) / GAS_DECIMALS;
@@ -99,9 +102,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       return;
     }
     try {
-      const result = await chain.read("pendingWithdrawOf", [
-        { type: "Hash160", value: chain.address.value },
-      ]);
+      const result = await storage.get(`pendingWithdraw:${chain.address.value}`);
       if (result != null) {
         pendingWithdraw.value = Number(result);
       }
@@ -110,12 +111,12 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
     }
   };
 
-  /** Load global accounting stats: totalStake and reward-per-stake accumulator. */
+  /** Load global accounting stats from OS storage */
   const loadStats = async () => {
     try {
       const [totalStake, rps] = await Promise.all([
-        chain.read("totalStake"),
-        chain.read("rps"),
+        storage.get("stats:totalStake"),
+        storage.get("stats:rps"),
       ]);
       stats.value = {
         totalStaked: Number(totalStake ?? 0),
@@ -141,12 +142,13 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   // ------------------------------------------
-  // Write: stake (NEP-17 transfer of NEO to contract)
+  // Write: stake (NEP-17 transfer of NEO to contract — external)
   // ------------------------------------------
 
   /**
    * Stake NEO by transferring it to the contract address.
-   * The contract's OnNEP17Payment handler processes the deposit.
+   * Uses chain.invoke on the NEO native contract (external) since
+   * staking is a NEP-17 transfer, not an app-contract mutation.
    */
   const stake = async (amount: number) => {
     if (amount <= 0 || !Number.isInteger(amount)) {
@@ -172,7 +174,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
   };
 
   // ------------------------------------------
-  // Write: unstake
+  // Write: unstake (via OS payment — own contract)
   // ------------------------------------------
 
   const unstake = async (amount: number) => {
@@ -180,39 +182,39 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       throw new Error(t("invalidAmount"));
     }
 
-    const addr = await chain.ensureWallet();
+    await chain.ensureWallet();
 
-    await chain.invoke("withdraw", [
-      { type: "Hash160", value: addr },
-      { type: "Integer", value: amount },
-    ]);
+    // Withdraw via OS payment proxy — the edge function invokes
+    // the contract's withdraw method
+    await payment.withdraw(String(amount));
 
     eventBus.emit("unstake:completed", { amount });
     await loadAll();
   };
 
   const claimPendingWithdraw = async () => {
-    const addr = await chain.ensureWallet();
+    await chain.ensureWallet();
 
-    await chain.invoke("claimWithdraw", [
-      { type: "Hash160", value: addr },
-    ]);
+    // Claim pending withdrawal via OS payment proxy
+    await payment.withdraw("0");
 
     eventBus.emit("withdraw:claimed", {});
     await loadAll();
   };
 
   // ------------------------------------------
-  // Write: claim rewards
+  // Write: claim rewards (via OS payment — own contract)
   // ------------------------------------------
 
-  /** Call `claimReward(account)` to claim accrued GAS */
+  /** Claim accrued GAS rewards via OS payment proxy */
   const claimRewards = async () => {
-    const addr = await chain.ensureWallet();
+    await chain.ensureWallet();
 
-    await chain.invoke("claimReward", [
-      { type: "Hash160", value: addr },
-    ]);
+    // Claim via OS payment — the edge function calls claimReward
+    const balance = await payment.getBalance();
+    if (parseFloat(balance) > 0) {
+      await payment.withdraw(balance);
+    }
 
     eventBus.emit("rewards:claimed", {});
     await loadAll();
