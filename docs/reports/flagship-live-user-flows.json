@@ -1,0 +1,141 @@
+{
+  "generatedAt": "2026-03-31T03:22:59.010Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [],
+    "selected": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "selfLoan",
+      "neoPay"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/home/neo/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/home/neo/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/home/neo/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingEdgeGatewayConfigPath": "/home/neo/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": false,
+      "siblingOracleEnvLocalExists": false,
+      "siblingOraclePhalaEnvExists": false,
+      "siblingEdgeGatewayConfigExists": false
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [],
+      "selected": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "selfLoan",
+        "neoPay"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrl": "https://oracle.meshmini.app/testnet",
+      "phalaApiTokenConfigured": false,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 15000,
+      "oracleUpdaterWifConfigured": false,
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "gas": "3112248853784",
+        "neo": "73084"
+      },
+      "admin": {
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "gas": "3112248853784"
+      },
+      "oracleUpdater": {
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "gas": "3112248853784"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "ok": true,
+      "contractHash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+      "txid": "0xb6a6782a4fc7bf0e30d3ac73f9195a74bf2a0056c496e06b1870ac90791fbcb8",
+      "notificationObserved": true,
+      "statusBefore": {
+        "currentUtcDay": "20543140",
+        "lastCheckinDay": "0",
+        "canCheckin": true,
+        "timeUntilEligible": "0",
+        "streakWillReset": false,
+        "currentStreak": "0",
+        "nextRewardDay": "7"
+      },
+      "statusAfter": null
+    },
+    "lastSurvivor": {
+      "ok": false,
+      "error": "lastSurvivor fallback round restart: on-chain admin 0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56 does not match resolved admin signer 0x13ef519c362973f9a34648a9eac5b71250b2a80a (NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu). Set TEST_SMOKE_ADMIN_WIF or MINIAPP_UPDATE_WIF to the current contract admin before rerunning."
+    },
+    "gasBox": {
+      "ok": false,
+      "error": "fetch failed"
+    },
+    "fogPlay": {
+      "ok": false,
+      "error": "fetch failed"
+    },
+    "redEnvelope": {
+      "ok": false,
+      "error": "fetch failed"
+    },
+    "selfLoan": {
+      "ok": false,
+      "error": "fetch failed"
+    },
+    "neoPay": {
+      "ok": false,
+      "error": "fetch failed"
+    }
+  }
+}
