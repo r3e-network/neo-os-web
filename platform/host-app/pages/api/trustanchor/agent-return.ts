@@ -31,12 +31,23 @@ type AgentReturnBody = {
   amount?: number | string;
 };
 
+interface StackItem {
+  type: string;
+  value: unknown;
+  key?: StackItem;
+}
+
+interface MapEntry {
+  key?: StackItem;
+  value?: StackItem;
+}
+
 type InvokeResultLike = {
   state?: string;
   exception?: string;
   gasconsumed?: string | number;
   script?: string;
-  stack?: any[];
+  stack?: StackItem[];
 };
 
 function parsePositiveInteger(value: unknown): number | null {
@@ -72,15 +83,15 @@ function decodeHash160ByteString(value: string): string {
   return `0x${u.reverseHex(rawHex)}`;
 }
 
-function parseAgentDetailsMap(stackItem: any): Record<string, unknown> {
+function parseAgentDetailsMap(stackItem: StackItem): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!stackItem || stackItem.type !== "Map" || !Array.isArray(stackItem.value)) return out;
 
-  for (const entry of stackItem.value) {
+  for (const entry of stackItem.value as MapEntry[]) {
     const keyItem = entry?.key;
     const valueItem = entry?.value;
     if (!keyItem || !valueItem) continue;
-    const key = keyItem.type === "ByteString" ? decodeUtf8ByteString(keyItem.value) : String(keyItem.value || "");
+    const key = keyItem.type === "ByteString" ? decodeUtf8ByteString(String(keyItem.value ?? "")) : String(keyItem.value || "");
     if (!key) continue;
 
     if (valueItem.type === "Boolean") {
@@ -89,9 +100,9 @@ function parseAgentDetailsMap(stackItem: any): Record<string, unknown> {
       out[key] = String(valueItem.value || "0");
     } else if (valueItem.type === "ByteString") {
       if (key === "account") {
-        out[key] = decodeHash160ByteString(valueItem.value);
+        out[key] = decodeHash160ByteString(String(valueItem.value ?? ""));
       } else {
-        out[key] = decodeUtf8ByteString(valueItem.value);
+        out[key] = decodeUtf8ByteString(String(valueItem.value ?? ""));
       }
     } else {
       out[key] = valueItem.value;
@@ -101,7 +112,7 @@ function parseAgentDetailsMap(stackItem: any): Record<string, unknown> {
   return out;
 }
 
-async function waitForTransaction(rpcClient: any, txid: string, maxAttempts = 60) {
+async function waitForTransaction(rpcClient: InstanceType<typeof RpcClient>, txid: string, maxAttempts = 60) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const log = await rpcClient.getApplicationLog({ hash: txid });
@@ -159,7 +170,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (agentDetails.state !== "HALT") {
       return apiError.gatewayError(res, "failed to read trustanchor agent details");
     }
-    const parsedAgent = parseAgentDetailsMap(agentDetails.stack?.[0]);
+    const stackEntry = agentDetails.stack?.[0];
+    if (!stackEntry) {
+      return apiError.gatewayError(res, "trustanchor agent details stack is empty");
+    }
+    const parsedAgent = parseAgentDetailsMap(stackEntry);
     if (String(parsedAgent.account || "").toLowerCase() !== agentAccount.scriptHash.toLowerCase()) {
       return apiError.badRequest(res, "derived agent account does not match on-chain configuration");
     }

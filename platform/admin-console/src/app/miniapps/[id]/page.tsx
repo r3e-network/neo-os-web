@@ -6,11 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
+interface MiniAppConfig {
+  permissions: Record<string, boolean | number>;
+  tokens?: {
+    allowed_assets?: string[];
+    withdrawal_limit_24h?: number;
+  };
+  actions: Record<string, boolean>;
+  [key: string]: unknown;
+}
+
 export default function MiniAppConfigPage(props: { params: Promise<{ id: string }> }) {
   const params = use(props.params);
   const router = useRouter();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<MiniAppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

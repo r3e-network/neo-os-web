@@ -9,6 +9,7 @@ import type {
   MediaUploadOptions,
 } from "@/lib/hooks/useMiniApps";
 import { normalizeMediaUploadVariant, upsertVariantJSON } from "./media-utils";
+import type { MiniAppFormState } from "./form-types";
 
 type CreateMutationLike = {
   mutateAsync: (payload: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
@@ -29,8 +30,8 @@ type MediaUploadMutationLike = {
 };
 
 type Props = {
-  emptyForm: Record<string, any>;
-  formToConfig: (form: Record<string, any>) => Record<string, unknown>;
+  emptyForm: MiniAppFormState;
+  formToConfig: (form: MiniAppFormState) => Record<string, unknown>;
   selectedAppId?: string;
   createMutation: CreateMutationLike;
   updateMutation: UpdateMutationLike;
@@ -239,7 +240,7 @@ export function useMiniAppEditorController({
         throw new Error(text || `Upload failed (${uploadResponse.status})`);
       }
 
-      setForm((prev: Record<string, any>) => ({
+      setForm((prev: MiniAppFormState) => ({
         ...prev,
         content_icon_url: assetType === "icon" ? signed.public_url : prev.content_icon_url,
         content_logo_url: assetType === "logo" && applyAsPrimary ? signed.public_url : prev.content_logo_url,
