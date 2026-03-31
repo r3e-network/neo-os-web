@@ -20,7 +20,8 @@ class FactoryClient {
   constructor(options = {}) {
     this.rpc = options.rpc || 'https://testnet1.neo.coz.io:443';
     this.factoryHash = options.factoryHash || null;
-    this.networkMagic = options.networkMagic || 877933390;
+    // Neo N3 TestNet T5 network magic
+    this.networkMagic = options.networkMagic || 894710606;
     this.timeout = options.timeout || 30000;
   }
 
