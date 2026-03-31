@@ -14,7 +14,10 @@
 
 # R3E MiniApps Platform
 
-A Neo N3 MiniApp platform for host UX, admin tooling, MiniApp contracts, edge gateways, and integration with the externally deployed Morpheus Oracle and Abstract Account stacks.
+A Neo N3 MiniApp platform with an **Android OS-style system service architecture**
+(MiniApp-OS v2): host UX, admin tooling, 10 OS service contracts, 45 edge proxy
+functions, typed frontend proxies, and integration with the externally deployed
+Morpheus Oracle and Abstract Account stacks.
 
 ## Repository Boundary
 
@@ -29,7 +32,10 @@ This repository should be treated as:
 
 - the MiniApp host application
 - the admin console
-- MiniApp platform / example contracts
+- **10 OS system service contracts** (StorageService, PaymentService, GameService, EscrowService, NFTService, ScriptEngine, BadgeService, LeaderboardService, CheckinService, VestingService)
+- **45 OS Binder edge functions** for secure service access
+- **10 typed frontend OS proxy classes** with EdgeClient transport
+- platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor)
 - Supabase edge gateway functions
 - deployment and validation scripts
 - the integration surface for external Oracle / AA systems
@@ -42,9 +48,14 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **MiniApp contracts and templates**: Governance, AppRegistry, AutomationAnchor, flagship/example MiniApp contracts, plus supporting non-flagship artifacts outside the flagship path.
+- **OS system service contracts** (MiniApp-OS v2): 10 on-chain contracts replacing the old ModuleRegistry/RecipeRegistry/ServiceGateway chain. MiniApps call `ctx.os.<service>()` for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, vesting, and custom script execution.
+- **OS Binder edge layer**: 45 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to OS contracts.
+- **Typed frontend proxies**: 10 OS proxy classes in `apps/shared/services/os/` with `EdgeClient` transport.
+- **Platform infrastructure contracts**: AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
+- **SaaS integrations**: Sentry (error tracking), PostHog (product analytics), Supabase Realtime (live notifications).
 - **Validation and deployment scripts**: testnet workflow checks, contract scripts, and environment validators.
+- **Test suite**: 500+ test files covering OS proxies, shared services, edge utilities, contracts, and layering.
 
 The platform does **not** embed the Morpheus Oracle runtime or the AA runtime anymore.
 
@@ -69,33 +80,39 @@ Current flagship payment rule:
 - prefer direct prepaid transfer to the MiniApp contract itself
 - Oracle callback apps may additionally require prepaid Oracle request fee credit on the callback contract
 
-## Architecture
+## Architecture (MiniApp-OS v2)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│                       MiniApp Host / Admin UI                        │
-│                  (Next.js + shared MiniApp SDK/composables)          │
+│              MiniApp Frontend (defineMiniApp → PlayArea)              │
+│        ctx.os.<service>()              ctx.services.<service>()      │
 └──────────────────────────────────────────────────────────────────────┘
+                                 │
+                      EdgeClient (Binder transport)
                                  │
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     Supabase Edge / Host Proxies                     │
-│     auth, wallet binding, rate limits, usage caps, service routing   │
+│  45 OS Binder functions (os-storage-*, os-payment-*, os-game-*, ...) │
+│  + auth, wallet binding, rate limits, usage caps, service routing    │
 └──────────────────────────────────────────────────────────────────────┘
-                    │                                │
-                    │                                │
-                    ▼                                ▼
-┌──────────────────────────────┐      ┌───────────────────────────────┐
-│     neo-morpheus-oracle      │      │      neo-abstract-account     │
-│ oracle / datafeed / vrf /    │      │ AA core / verifiers / relay   │
-│ compute / paymaster runtime  │      │ plus external AA frontends     │
-└──────────────────────────────┘      └───────────────────────────────┘
-                    │                                │
-                    └───────────────┬────────────────┘
-                                    ▼
+        │                    │                                │
+        ▼                    ▼                                ▼
+┌─────────────┐  ┌──────────────────────┐  ┌───────────────────────────┐
+│ OS Contracts │  │ neo-morpheus-oracle  │  │  neo-abstract-account     │
+│ (10 on-chain)│  │ oracle / datafeed /  │  │ AA core / verifiers /     │
+│ Storage,     │  │ vrf / compute /      │  │ relay + AA frontends      │
+│ Payment,     │  │ paymaster runtime    │  └───────────────────────────┘
+│ Game, Escrow,│  └──────────────────────┘             │
+│ NFT, Script, │             │                         │
+│ Badge, etc.  │             │                         │
+└─────────────┘              │                         │
+        │                    └────────────┬────────────┘
+        └─────────────────────────────────┘
+                                 ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                              Neo N3 Chain                            │
-│      Platform contracts, MiniApp contracts, external Oracle / AA     │
+│    OS contracts, platform infra, external Oracle / AA contracts      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -277,6 +294,16 @@ Notes:
 | `NEO_RPC_URL` | Neo N3 RPC endpoint |
 | `NEO_NETWORK_MAGIC` | Neo network magic |
 | `CONTRACT_*_HASH` | MiniApp platform contract hashes |
+| `CONTRACT_STORAGESERVICE_HASH` | OS StorageService contract hash |
+| `CONTRACT_PAYMENTSERVICE_HASH` | OS PaymentService contract hash |
+| `CONTRACT_SCRIPTENGINE_HASH` | OS ScriptEngine contract hash |
+| `CONTRACT_CHECKINSERVICE_HASH` | OS CheckinService contract hash |
+| `CONTRACT_BADGESERVICE_HASH` | OS BadgeService contract hash |
+| `CONTRACT_LEADERBOARDSERVICE_HASH` | OS LeaderboardService contract hash |
+| `CONTRACT_VESTINGSERVICE_HASH` | OS VestingService contract hash |
+| `CONTRACT_GAMESERVICE_HASH` | OS GameService contract hash |
+| `CONTRACT_ESCROWSERVICE_HASH` | OS EscrowService contract hash |
+| `CONTRACT_NFTSERVICE_HASH` | OS NFTService contract hash |
 | `MORPHEUS_RUNTIME_URL` | preferred unified Morpheus runtime URL |
 | `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET` | runtime auth for unified Morpheus endpoints |
 | `MORPHEUS_PUBLIC_API_URL` | Morpheus web/public API URL |
@@ -285,14 +312,20 @@ Notes:
 | `TXPROXY_URL` | external txproxy URL |
 | `AA_RELAY_URL` | external AA relay URL used by `/api/aa/relay` |
 | `AA_PAYMASTER_ENDPOINT` or `MORPHEUS_PAYMASTER_*` | paymaster authorization endpoint |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry error reporting DSN (optional) |
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog analytics key (optional) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog host URL (optional) |
 
 See [`.env.example`](.env.example) for complete list.
 
-Shared-mode modular registration now also expects hash envs for:
+> **Note (v2):** The old shared-mode modular registration variables
+> (`CONTRACT_MODULEREGISTRY_HASH`, `CONTRACT_RECIPEREGISTRY_HASH`,
+> `CONTRACT_MINIAPPINSTANCEREGISTRY_HASH`, `CONTRACT_SERVICEGATEWAY_HASH`)
+> are deprecated. They are commented out in `.env.example` with a deprecation
+> notice pointing to the OS service contract hashes above.
 
-- `CONTRACT_MODULEREGISTRY_HASH`
-- `CONTRACT_RECIPEREGISTRY_HASH`
-- `CONTRACT_MINIAPPINSTANCEREGISTRY_HASH`
+Additional platform infrastructure hashes:
+
 - `CONTRACT_FUNDINGVAULT_HASH`
 - `CONTRACT_STREAMVESTING_HASH`
 
@@ -352,9 +385,35 @@ flagship admin phase and the selected-user phase.
 
 ```
 ├── deploy/                 # Deployment and validation scripts
-├── contracts/              # Neo N3 smart contracts (C#)
-├── platform/               # Host app, admin console, SDK, shared UI/runtime
-├── apps/                   # MiniApp frontends
+├── contracts/
+│   ├── os-storage/         # OS StorageService contract
+│   ├── os-payment/         # OS PaymentService contract
+│   ├── os-game/            # OS GameService contract
+│   ├── os-escrow/          # OS EscrowService contract
+│   ├── os-nft/             # OS NFTService contract
+│   ├── os-script/          # OS ScriptEngine contract
+│   ├── os-badge/           # OS BadgeService contract
+│   ├── os-leaderboard/     # OS LeaderboardService contract
+│   ├── os-checkin/         # OS CheckinService contract
+│   ├── os-vesting/         # OS VestingService contract
+│   ├── AppRegistry/        # MiniApp registration
+│   ├── Governance/         # NEO staking and voting
+│   └── ...                 # Other platform infrastructure contracts
+├── platform/
+│   ├── host-app/           # Next.js host shell
+│   ├── admin-console/      # Admin UX
+│   └── edge/functions/
+│       ├── os-*/           # 45 OS Binder edge functions
+│       └── ...             # Auth, wallet, policy edge functions
+├── apps/
+│   ├── shared/
+│   │   ├── services/os/    # 10 OS proxy classes + EdgeClient
+│   │   ├── services/       # PlatformServices + core services
+│   │   ├── utils/          # defineMiniApp.ts
+│   │   └── types/          # MiniAppContext, OSServices
+│   └── miniapp-*/          # MiniApp frontends
+├── _archive/               # Deprecated contracts and legacy code
+├── test/                   # Contract and layering tests
 ├── docs/                   # Current platform docs and runbooks
 └── scripts/                # Build and deploy scripts
 ```
@@ -363,12 +422,13 @@ flagship admin phase and the selected-user phase.
 
 | Document                                          | Description                          |
 | ------------------------------------------------- | ------------------------------------ |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md)             | Current platform architecture          |
-| [WORKFLOWS.md](docs/WORKFLOWS.md)                   | MiniApp lifecycle and callback flows  |
-| [LOCAL_DEV.md](docs/LOCAL_DEV.md)                   | Current local development path        |
-| [FRONTEND_SPECIFICATION.md](docs/FRONTEND_SPECIFICATION.md) | Host/frontend behavior          |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)             | Current platform architecture (OS v2) |
+| [WORKFLOWS.md](docs/WORKFLOWS.md)                   | MiniApp lifecycle, OS service flows, and callback flows |
+| [LOCAL_DEV.md](docs/LOCAL_DEV.md)                   | Local development path + OS contract development |
+| [FRONTEND_SPECIFICATION.md](docs/FRONTEND_SPECIFICATION.md) | Host/frontend behavior + OS proxies |
 | [MINIAPP_ENV_TEMPLATE.md](docs/MINIAPP_ENV_TEMPLATE.md)     | Current environment template   |
-| [sdk-guide.md](docs/sdk-guide.md)                   | MiniApp SDK integration               |
+| [sdk-guide.md](docs/sdk-guide.md)                   | MiniApp SDK + OS service proxy guide  |
+| [MiniApp-OS v2 Design](docs/superpowers/specs/2026-03-31-miniapp-os-v2-design.md) | OS v2 design spec (implemented) |
 
 ## License
 

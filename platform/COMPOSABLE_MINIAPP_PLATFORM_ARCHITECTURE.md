@@ -1,4 +1,4 @@
-> **DEPRECATED (2026-03-31):** This document describes the v1 composable module architecture which has been replaced by MiniApp-OS v2 direct system service contracts. See `docs/superpowers/specs/2026-03-31-miniapp-os-v2-design.md` for the current architecture.
+> **DEPRECATED (2026-03-31):** This document describes the v1 composable module architecture which has been **fully replaced** by MiniApp-OS v2 direct system service contracts. The ModuleRegistry, RecipeRegistry, MiniAppInstanceRegistry, and ServiceGateway contracts have been archived under `_archive/deprecated-contracts/`. All 10 OS service contracts are now deployed and all miniapps use the modern `defineMiniApp()` + `ctx.os.*` pattern. See `docs/superpowers/specs/2026-03-31-miniapp-os-v2-design.md` for the v2 design spec and `docs/ARCHITECTURE.md` for the current architecture.
 
 # Composable MiniApp Platform Architecture
 

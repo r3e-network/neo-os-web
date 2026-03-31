@@ -1,5 +1,13 @@
 # Universal MiniApp Configuration Guide
 
+> **OS v2 Note (2026-03-30):** With MiniApp-OS v2, most MiniApps no longer
+> need custom contracts. They can declare OS service permissions in their
+> manifest (`storage`, `payment`, `game`, `badge`, `checkin`, `leaderboard`,
+> `escrow`, `nft`, `vesting`, `script`) and call `ctx.os.*` proxies at
+> runtime. The template-driven configuration system described below works
+> alongside OS services -- the `permissions` section now accepts OS service
+> names in addition to the original capability flags.
+
 This guide explains how to create, configure, and manage MiniApps using the template-driven configuration system.
 
 ## Overview
@@ -249,7 +257,8 @@ For existing contracts:
 
 ## Permissions
 
-Configure what capabilities the MiniApp has:
+Configure what capabilities the MiniApp has. Since OS v2, these include both
+legacy capability flags and OS service permissions:
 
 ```json
 {
@@ -261,7 +270,15 @@ Configure what capabilities the MiniApp has:
     "storage": true,
     "oracle": true,
     "randomness": true,
-    "cross_chain": false
+    "cross_chain": false,
+    "game": true,
+    "badge": true,
+    "checkin": true,
+    "leaderboard": true,
+    "escrow": false,
+    "nft": false,
+    "vesting": false,
+    "script": false
   }
 }
 ```
