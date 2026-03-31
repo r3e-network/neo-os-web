@@ -85,7 +85,7 @@ describe("/api/morpheus/neodid/providers", () => {
     expect(payload.runtime.runtime_url).toBe(
       "https://oracle.meshmini.app/testnet",
     );
-    expect(payload.runtime.edge_url).toBe("https://oracle.meshmini.app/testnet");
+    expect(payload.runtime.edge_url).toBe("https://edge.meshmini.app/testnet");
     expect(payload.runtime.control_plane_url).toBe("https://control.meshmini.app/testnet");
   });
 });
