@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ["class"],
+  presets: [require("../shared/tailwind.preset.js")],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -15,14 +15,8 @@ module.exports = {
     },
     extend: {
       colors: {
-        background: "#020617",
-        foreground: "#f8fafc",
         primary: {
           DEFAULT: "#00E599",
-          100: "#ccfbea",
-          500: "#00E599",
-          600: "#00cc88",
-          700: "#00b377",
           foreground: "#020617",
         },
         secondary: {
@@ -46,15 +40,6 @@ module.exports = {
         ring: "#00E599",
         input: "#334155",
         border: "#334155",
-        neo: {
-          DEFAULT: "#00E599",
-          hover: "#00cc88",
-          glow: "rgba(0, 229, 153, 0.4)",
-        },
-        electric: {
-          purple: "#7000FF",
-          glow: "rgba(112, 0, 255, 0.4)",
-        },
         card: {
           DEFAULT: "rgba(15, 23, 42, 0.6)",
           foreground: "#f8fafc",
