@@ -43,32 +43,27 @@ const handleFetchPrice = async () => {
 };
 </script>
 
-<style scoped>
-.price-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-}
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.price-play-area { @include console.play-area; }
+.stack { @include console.stack; }
+
 .result-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-start;
+  @include console.console-output;
+  padding: 20px;
 }
-.result-symbol {
-  font-size: 12px;
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
+
+.result-symbol { @include console.section-header; letter-spacing: 0.12em; }
+
 .result-price {
   font-size: 32px;
   font-weight: 900;
+  color: #00e599;
+  font-family: 'JetBrains Mono', var(--font-mono, monospace);
 }
 </style>

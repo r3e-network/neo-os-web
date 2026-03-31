@@ -104,13 +104,7 @@ const handleFetchOracleKey = async () => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.automation-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-  min-height: 300px;
-}
+.automation-play-area { @include console.play-area; min-height: 300px; }
 
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }

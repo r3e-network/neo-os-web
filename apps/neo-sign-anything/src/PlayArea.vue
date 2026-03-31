@@ -64,16 +64,13 @@ const handleCopy = async (text: string) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
-@use "@shared/styles/mixins.scss" as *;
 
 .sign-play-area {
-  display: flex;
-  flex-direction: column;
+  @include console.play-area;
   align-items: center;
-  gap: 20px;
-  padding: 20px 12px;
   min-height: 300px;
 }
 </style>

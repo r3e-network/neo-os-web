@@ -97,20 +97,16 @@ const handleAction = async (name: string) => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/console-common" as console;
 @use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.health-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-  min-height: 300px;
-}
+.health-play-area { @include console.play-area; min-height: 300px; }
 
 .hero-container {
   margin-bottom: 20px;
+  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
 }
 
 .health-gauge-scene {
@@ -129,6 +125,8 @@ const handleAction = async (name: string) => {
   align-items: center;
   justify-content: center;
   position: relative;
+  animation: heartbeat-pulse 2.5s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--health-accent-glow, rgba(0, 229, 153, 0.2));
 
   &::before {
     content: "";
@@ -146,6 +144,7 @@ const handleAction = async (name: string) => {
   font-size: 22px;
   font-weight: 900;
   color: var(--health-accent-strong, #00e599);
+  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
 }
 
 .risk-alert {
@@ -153,26 +152,18 @@ const handleAction = async (name: string) => {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.risk-icon {
-  font-size: 16px;
-}
+.risk-icon { font-size: 16px; }
 
-.empty-state {
-  text-align: center;
-}
+.empty-state { text-align: center; }
 
-.health-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.health-stack { @include console.stack(16px); }
 
 .stats-grid {
   display: flex;
@@ -180,86 +171,26 @@ const handleAction = async (name: string) => {
   gap: 8px;
 }
 
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-}
+.stat-item { @include console.stat-row; }
+.stat-label { @include console.stat-label; }
+.stat-value { @include console.stat-value; }
 
-.stat-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.stat-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* ── Wallet Health Hero Enhancements: Health Dashboard ── */
 @keyframes heartbeat-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  14% {
-    transform: scale(1.08);
-  }
-  28% {
-    transform: scale(1);
-  }
-  42% {
-    transform: scale(1.12);
-  }
-  56% {
-    transform: scale(1);
-  }
-}
-
-.hero-container {
-  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
-}
-
-.gauge-ring {
-  animation: heartbeat-pulse 2.5s ease-in-out infinite;
-  box-shadow: 0 0 20px var(--health-accent-glow, rgba(0, 229, 153, 0.2));
-}
-
-.gauge-value {
-  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.08); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.12); }
+  56% { transform: scale(1); }
 }
 
 @media (max-width: 480px) {
-  .gauge-ring {
-    width: 64px;
-    height: 64px;
-  }
-
-  .gauge-ring::before {
-    width: 50px;
-    height: 50px;
-  }
-
-  .gauge-value {
-    font-size: 18px;
-  }
-
-  .health-gauge-scene {
-    height: 80px;
-  }
+  .gauge-ring { width: 64px; height: 64px; }
+  .gauge-ring::before { width: 50px; height: 50px; }
+  .gauge-value { font-size: 18px; }
+  .health-gauge-scene { height: 80px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gauge-ring {
-    animation: none;
-  }
+  .gauge-ring { animation: none; }
 }
 </style>

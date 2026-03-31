@@ -105,12 +105,7 @@ const handleSubmitHook = async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/console-common" as console;
 
-.aa-permissions-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
-}
+.aa-permissions-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
 </style>
