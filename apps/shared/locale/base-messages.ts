@@ -128,6 +128,20 @@ export const baseMessages = {
     zh: "NeoHub MiniApp Protocol v2.4.0",
   },
 
+  // --- Form validation keys ---
+  fieldRequired: { en: "This field is required", zh: "此字段为必填项" },
+  fieldMinValue: { en: "Value must be at least {min}", zh: "值必须至少为 {min}" },
+  fieldMaxValue: { en: "Value cannot exceed {max}", zh: "值不能超过 {max}" },
+  invalidAddress: { en: "Invalid Neo N3 address (must start with N, 34 characters)", zh: "无效的 Neo N3 地址（必须以 N 开头，34 个字符）" },
+  fieldInvalidFormat: { en: "Invalid format", zh: "格式无效" },
+  select: { en: "Select", zh: "选择" },
+
+  // --- Wallet connection error keys ---
+  walletRejected: { en: "Wallet connection was rejected. Please approve the request in your wallet.", zh: "钱包连接被拒绝。请在钱包中批准请求。" },
+  walletNotDetected: { en: "Wallet not detected. Please install a compatible Neo wallet.", zh: "未检测到钱包。请安装兼容的 Neo 钱包。" },
+  walletTimeout: { en: "Connection timed out. Please check your wallet is unlocked.", zh: "连接超时。请检查钱包是否已解锁。" },
+  walletGenericError: { en: "Could not connect wallet. Please try again.", zh: "无法连接钱包。请重试。" },
+
   // --- Error class user messages (for i18n-capable error classes) ---
   walletConnectionError: { en: "Please connect your wallet to continue.", zh: "请连接钱包以继续。" },
   contractError: { en: "Contract operation failed. Please try again.", zh: "合约操作失败，请重试。" },
