@@ -81,12 +81,78 @@ Optional but recommended when AA integration is needed:
 - `AA_RELAY_URL`
 - `AA_PAYMASTER_ENDPOINT`
 
+## OS Contract Development (MiniApp-OS v2)
+
+### Building OS Contracts
+
+The 10 OS service contracts live under `contracts/os-*/`:
+
+```bash
+# Build a single OS contract
+cd /home/neo/git/neo-miniapps-platform
+dotnet build contracts/os-storage/
+dotnet build contracts/os-payment/
+dotnet build contracts/os-game/
+
+# Build all contracts (including OS)
+./contracts/build.sh
+```
+
+### OS Contract Hashes
+
+When deploying OS contracts to testnet, record the hashes in `.env`:
+
+```bash
+CONTRACT_STORAGESERVICE_HASH=0x...
+CONTRACT_PAYMENTSERVICE_HASH=0x...
+CONTRACT_SCRIPTENGINE_HASH=0x...
+CONTRACT_CHECKINSERVICE_HASH=0x...
+CONTRACT_BADGESERVICE_HASH=0x...
+CONTRACT_LEADERBOARDSERVICE_HASH=0x...
+CONTRACT_VESTINGSERVICE_HASH=0x...
+CONTRACT_GAMESERVICE_HASH=0x...
+CONTRACT_ESCROWSERVICE_HASH=0x...
+CONTRACT_NFTSERVICE_HASH=0x...
+```
+
+### Edge Function Development for OS Services
+
+The 45 OS Binder edge functions live under `platform/edge/functions/os-*/`.
+Each follows a standardized pattern:
+
+1. `validateAuth(req)` — Supabase JWT check
+2. Parse `{ appId, ...params }` from request body
+3. `validatePermission(appId, "<service>")` — manifest permission check
+4. `rateLimit(userId, appId, "<function-name>")` — rate limiting
+5. `neoRpc.invokeContract(CONTRACT_HASH, "method", [appId, ...params])` — call OS contract
+6. Return JSON result
+
+To add a new OS edge function:
+
+```bash
+mkdir -p platform/edge/functions/os-<service>-<method>/
+# Create index.ts following the pattern in existing os-* functions
+```
+
+### SaaS Integration Environment Variables
+
+The host app supports optional SaaS monitoring (see `platform/host-app/.env.example`):
+
+```bash
+NEXT_PUBLIC_SENTRY_DSN=          # Sentry error reporting (leave blank to disable)
+NEXT_PUBLIC_POSTHOG_KEY=         # PostHog analytics (leave blank to disable)
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```
+
 ## Host / Edge Integration Notes
 
 - shared frontend Oracle / AA config lives in `apps/shared/constants/rpc.ts`
 - `useOracle()` defaults to `/api/rpc` when no explicit edge base URL is given
 - `useAbstractAccount()` defaults to `/api/aa/relay` for AA relay submission
 - `/api/aa/relay` is only active when `AA_RELAY_URL` is configured
+- OS proxy classes (`apps/shared/services/os/`) route through `EdgeClient` to the
+  `os-*` edge functions; the `EdgeClient` defaults to `/api/edge` when no
+  `VITE_EDGE_URL` is set
 
 ## Testnet Workflow Validation
 

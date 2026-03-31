@@ -1,5 +1,8 @@
 # MiniApp-OS v2 Implementation Plan
 
+> **Status: COMPLETE (2026-03-30)** — All tasks implemented across 51 commits.
+> This plan is retained for reference. See `docs/ARCHITECTURE.md` for current state.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Refactor the platform from composable module registry + per-app contracts to direct OS system service contracts following Android OS architecture.

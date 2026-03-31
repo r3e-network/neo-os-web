@@ -4,11 +4,19 @@ MiniApps must not construct or sign Neo transactions directly. All sensitive act
 
 `MiniApp → Host SDK → Supabase Edge (auth/limits) → TEE services (attested) → Neo N3 chain`
 
+Since **MiniApp-OS v2**, the preferred path for most operations uses OS service
+proxies:
+
+`MiniApp → ctx.os.<service>() → EdgeClient → OS Binder Edge Function → OS Contract → Neo N3 chain`
+
 ## Runtime Model
 
-- The host provides `window.MiniAppSDK`.
+- The host provides `window.MiniAppSDK` for legacy host-injected operations.
 - MiniApps run in a sandbox (Module Federation or `iframe`) with strict CSP.
 - MiniApps communicate with the host via a restricted message channel (allowlisted origins).
+- **All new miniapps use `defineMiniApp()`** with `ctx.os.*` for OS services and
+  `ctx.services.*` for platform services. There are zero legacy `App.legacy.vue`
+  files remaining.
 
 ## API (Draft)
 
@@ -114,6 +122,83 @@ declare global {
     }
 }
 ```
+
+## OS Service Proxies (MiniApp-OS v2)
+
+The preferred way for miniapps to interact with platform services is through the
+OS proxy layer, accessible via `ctx.os.*` inside `defineMiniApp()`:
+
+```ts
+defineMiniApp({
+  appId: "miniapp-dailycheckin",
+  playArea: PlayArea,
+  manifest,
+  messages,
+  setup(ctx) {
+    // Storage
+    await ctx.os.storage.set("key", value)
+    const data = await ctx.os.storage.get("key")
+
+    // Payments
+    await ctx.os.payment.deposit(amount)
+    const balance = await ctx.os.payment.getBalance()
+    await ctx.os.payment.withdraw(amount)
+
+    // Games
+    await ctx.os.game.createPool(config)
+    await ctx.os.game.placeBet(poolId, amount)
+    const state = await ctx.os.game.getPoolState(poolId)
+
+    // Check-in
+    await ctx.os.checkin.checkIn()
+    const streak = await ctx.os.checkin.getStreak()  // returns CheckinData
+    await ctx.os.checkin.claimRewards()
+
+    // Badges
+    await ctx.os.badge.award(badgeId, user)
+    const badges = await ctx.os.badge.list()
+
+    // Leaderboard
+    await ctx.os.leaderboard.submit(score)
+    const top = await ctx.os.leaderboard.get(limit)
+
+    // NFTs
+    await ctx.os.nft.mint(owner, metadata)
+    const tokens = await ctx.os.nft.list(owner)
+    await ctx.os.nft.validate(tokenId)  // ticket mode
+
+    // Escrow
+    await ctx.os.escrow.create(params)
+    await ctx.os.escrow.fund(escrowId)
+    await ctx.os.escrow.completeMilestone(escrowId, index)
+
+    // Vesting
+    await ctx.os.vesting.create(schedule)
+    await ctx.os.vesting.claim()
+
+    // ScriptEngine (dev only)
+    await ctx.os.script.register(hookPoint, nefBytes, manifestBytes)
+    const hooks = await ctx.os.script.list()
+  }
+})
+```
+
+### OS Proxy Architecture
+
+All OS proxies extend `OSServiceProxy` and use `EdgeClient` as the Binder
+transport:
+
+1. Proxy calls `EdgeClient.call(endpoint, params)`
+2. `EdgeClient` adds `appId` to every request (cannot be forged by the browser)
+3. Request hits one of the 45 `os-*` edge functions
+4. Edge function validates auth, permissions, and rate limits
+5. Edge function calls the OS contract via Neo N3 RPC
+6. Result flows back to the miniapp
+
+### Available Types
+
+- `CheckinData` — `{ currentStreak, highestStreak, totalCheckins, lastCheckinTime, unclaimedRewards, totalClaimed }`
+- `OSServices` — interface for all 10 OS proxy classes
 
 ## Host-Only APIs
 
@@ -280,8 +365,10 @@ The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
 | Gaming     | `miniapp-nft-evolve`        | Dynamic NFT evolution                |
 # Note
 
-The current flagship direction is:
+The current flagship direction (MiniApp-OS v2) is:
 
-- direct contract transfers when the MiniApp business flow allows it
-- direct Morpheus Oracle callbacks for async service flows
+- **OS service calls** (`ctx.os.*`) for payment, storage, game, badge, checkin,
+  leaderboard, escrow, NFT, and vesting workflows
+- **ScriptEngine** hooks for custom on-chain logic without standalone contracts
+- direct Morpheus Oracle callbacks for async Oracle/VRF/compute service flows
 - direct AA relay integration where sponsored / verifier-aware execution is needed
