@@ -1,7 +1,5 @@
-import { getEnv } from "../_shared/env.ts";
+import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getEnv("CONTRACT_LEADERBOARD_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
   { scopeName: "os-leaderboard-submit", permission: "leaderboard" },
@@ -11,7 +9,7 @@ export const handler = createOSHandler(
     const scoreInt = Number(score);
     if (!Number.isFinite(scoreInt)) throw new Error("score must be a number");
 
-    return buildInvocationIntent(CONTRACT_HASH, "SubmitScore", [
+    return buildInvocationIntent(OS_CONTRACTS.leaderboard, "SubmitScore", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
       { type: "Integer", value: String(Math.floor(scoreInt)) },
