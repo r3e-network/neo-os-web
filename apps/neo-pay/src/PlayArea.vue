@@ -118,63 +118,193 @@ const handleCancel = async (stream: StreamItem) => {
 </script>
 
 <style lang="scss" scoped>
+@use "./pages/index/neo-pay-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&display=swap');
+
 .neo-pay-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 20px;
+  padding: 24px 16px;
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  min-height: 300px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 260px;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .vaults-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--stream-surface, rgba(15, 28, 50, 0.65));
+  border: 1px solid var(--stream-card-border, rgba(59, 130, 246, 0.22));
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+
+  :deep(.neo-btn) {
+    font-family: var(--stream-font, 'DM Sans', sans-serif);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: var(--stream-accent, #3B82F6);
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(59, 130, 246, 0.35);
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+    }
+  }
 }
 
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.12em;
+  color: var(--stream-muted, rgba(232, 237, 245, 0.55));
 }
 
 .streams-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+:deep(.stream-item),
+:deep(.neo-card) {
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  background: var(--stream-card-bg, rgba(10, 22, 40, 0.82));
+  border: 1px solid var(--stream-card-border, rgba(59, 130, 246, 0.22));
+  border-radius: 16px;
+  box-shadow: var(--stream-card-shadow, 0 8px 32px rgba(6, 182, 212, 0.08));
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow:
+      0 12px 40px rgba(6, 182, 212, 0.12),
+      0 0 0 1px rgba(59, 130, 246, 0.08);
+    transform: translateY(-1px);
+  }
+}
+
+:deep(.neo-btn--primary) {
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 8px 28px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+  }
+}
+
+:deep(.neo-btn--secondary) {
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--stream-accent-seafoam, #06B6D4);
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(6, 182, 212, 0.35);
+  }
 }
 
 .empty-state {
   .connect-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 20px;
-    backdrop-filter: blur(8px);
+    background: var(--stream-card-bg, rgba(10, 22, 40, 0.82));
+    border: 1px solid var(--stream-card-border, rgba(59, 130, 246, 0.22));
+    border-radius: 18px;
+    padding: 32px 24px;
+    backdrop-filter: blur(16px);
     text-align: center;
+    box-shadow: var(--stream-card-shadow, 0 8px 32px rgba(6, 182, 212, 0.08));
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #3B82F6, #06B6D4, transparent);
+      border-radius: 0 0 4px 4px;
+    }
   }
 
   .connect-label {
     display: block;
+    font-family: var(--stream-font, 'DM Sans', sans-serif);
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 12px;
+    font-weight: 500;
+    color: var(--stream-muted, rgba(232, 237, 245, 0.55));
+    margin-bottom: 16px;
+    letter-spacing: 0.01em;
   }
 
   .connect-btn {
     :deep(.neo-btn) {
-      background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
-      color: #000;
+      background: linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%);
+      color: #fff;
+      font-family: var(--stream-font, 'DM Sans', sans-serif);
       font-weight: 600;
       border-radius: 12px;
-      transition: all 0.2s;
+      border: none;
+      transition: all 0.25s ease;
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
 
       &:hover {
-        box-shadow: 0 8px 24px rgba(0, 229, 153, 0.3);
-        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+        transform: translateY(-2px);
       }
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-pay-play-area::before {
+    animation: none;
+  }
+  :deep(.stream-item):hover,
+  :deep(.neo-card):hover {
+    transform: none;
   }
 }
 </style>
