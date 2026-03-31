@@ -65,7 +65,7 @@ import { computed } from "vue";
 import { ActionModal, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
-import type { ClaimItem } from "@/composables/useRedEnvelopeOpen";
+import type { ClaimItem } from "@/composables/useRedEnvelope";
 
 const props = defineProps<{
   visible: boolean;
