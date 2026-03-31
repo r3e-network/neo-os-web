@@ -1,12 +1,12 @@
 import { getEnv } from "../_shared/env.ts";
-import { createOSHandler, invokeOSContract } from "../_shared/os-service.ts";
+import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
 
 const CONTRACT_HASH = getEnv("CONTRACT_PAYMENT_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
-  { scopeName: "os-payment-balance", permission: "payments" },
+  { scopeName: "os-payment-balance", permission: "payments", cacheable: true },
   async ({ appId, userId }) => {
-    return invokeOSContract(CONTRACT_HASH, "GetBalance", [
+    return invokeOSContractCached(CONTRACT_HASH, "GetBalance", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
     ]);

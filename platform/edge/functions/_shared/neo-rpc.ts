@@ -6,6 +6,39 @@ import { getNeoRpcUrl } from "./k8s-config.ts";
 // Neo N3 GAS contract hash (native)
 const GAS_CONTRACT_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
+// ---------------------------------------------------------------------------
+// In-memory RPC response cache (short TTL, read-only calls only)
+// ---------------------------------------------------------------------------
+
+const rpcCache = new Map<string, { data: unknown; expires: number }>();
+
+const RPC_CACHE_MAX_ENTRIES = 200;
+
+function evictExpired() {
+  const now = Date.now();
+  for (const [k, v] of rpcCache) {
+    if (v.expires < now) rpcCache.delete(k);
+  }
+}
+
+/**
+ * Cached wrapper around rpcCall for repeated read-only RPC queries.
+ * Results are held in memory for `ttlMs` (default 10 000 ms).
+ */
+export async function rpcCallCached<T>(method: string, params: string[], ttlMs = 10_000): Promise<T> {
+  const key = JSON.stringify([method, params]);
+  const cached = rpcCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.data as T;
+
+  const result = await rpcCall<T>(method, params);
+  rpcCache.set(key, { data: result, expires: Date.now() + ttlMs });
+
+  // Prevent unbounded growth
+  if (rpcCache.size > RPC_CACHE_MAX_ENTRIES) evictExpired();
+
+  return result;
+}
+
 interface RpcResponse<T> {
   jsonrpc: string;
   id: number;

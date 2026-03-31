@@ -47,6 +47,8 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 86400, // 24h
     remotePatterns: [
       {
         protocol: "https",
@@ -57,8 +59,14 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === "development",
   },
   transpilePackages: ["../shared"],
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production"
+      ? { exclude: ["error", "warn"] }
+      : false,
+  },
   experimental: {
     externalDir: true,
+    scrollRestoration: true,
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
   },
   outputFileTracingIncludes: {

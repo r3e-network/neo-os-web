@@ -1,12 +1,12 @@
 import { getEnv } from "../_shared/env.ts";
-import { createOSHandler, invokeOSContract } from "../_shared/os-service.ts";
+import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
 
 const CONTRACT_HASH = getEnv("CONTRACT_CHECKIN_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
-  { scopeName: "os-checkin-streak", permission: "checkin" },
+  { scopeName: "os-checkin-streak", permission: "checkin", cacheable: true },
   async ({ appId, userId }) => {
-    return invokeOSContract(CONTRACT_HASH, "GetUserStats", [
+    return invokeOSContractCached(CONTRACT_HASH, "GetUserStats", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
     ]);
