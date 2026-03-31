@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const authResponse = await requireAdminAuth(request);
   if (authResponse) return authResponse;
   
-  return NextResponse.json({ _mock: true, contracts }, { headers: { "X-Mock-Data": "true" } });
+  return NextResponse.json(contracts, { headers: { "X-Mock-Data": "true" } });
 }
 
 export async function POST(request: Request) {
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       contracts.push({ ...data, id: data.name, deployed: false, _mock: true });
     }
 
-    return NextResponse.json({ _mock: true, success: true, contracts }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(contracts, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     console.error("contracts POST failed:", error instanceof Error ? error.message : String(error));
     return NextResponse.json({ error: "Invalid contract data" }, { status: 400 });
@@ -51,7 +51,7 @@ export async function DELETE(request: Request) {
     }
 
     contracts = contracts.filter(c => c.id !== id);
-    return NextResponse.json({ _mock: true, success: true, contracts }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(contracts, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete contract" }, { status: 500 });
   }
