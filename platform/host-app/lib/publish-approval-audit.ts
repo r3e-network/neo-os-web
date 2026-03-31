@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { stableStringify } from "../../shared/manifest";
 
 type Dict = Record<string, unknown>;
 
@@ -25,21 +26,6 @@ type AuditRow = {
   chain_hash: string;
   prev_hash: string | null;
 };
-
-function stableStringify(value: unknown): string {
-  if (value === null || value === undefined) return "null";
-  if (typeof value !== "object") {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
-  const obj = value as Dict;
-  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
-  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(",")}}`;
-}
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
