@@ -9,6 +9,9 @@ export * from "./performance";
 // Error tracking
 export * from "./errors";
 
+// Sentry integration
+export { captureError, setUserContext, initSentry } from "./sentry";
+
 // Usage analytics
 export * from "./analytics";
 
