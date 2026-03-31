@@ -12,10 +12,23 @@
       <!-- Gold trim -->
       <div class="envelope-trim-top" />
       <div class="envelope-trim-bottom" />
+      <!-- Corner ornaments -->
+      <div class="corner-ornament top-left" />
+      <div class="corner-ornament top-right" />
+      <div class="corner-ornament bottom-left" />
+      <div class="corner-ornament bottom-right" />
+    </div>
+    <!-- Gold coins spilling out on open -->
+    <div v-if="isOpening" class="coins-spill" aria-hidden="true">
+      <span v-for="i in 6" :key="i" class="gold-coin" :style="{ animationDelay: `${0.2 + i * 0.1}s`, left: `${20 + (i * 12) % 60}%` }">&#x1FA99;</span>
     </div>
     <!-- Sparkle decorations -->
     <div class="envelope-sparkles">
       <span v-for="i in 5" :key="i" class="sparkle" :style="{ animationDelay: `${i * 0.3}s` }"><AppIcon name="sparkle" :size="14" aria-hidden="true" /></span>
+    </div>
+    <!-- Lucky knot decoration -->
+    <div class="lucky-knot" aria-hidden="true">
+      <span class="knot-symbol">&#x7D50;</span>
     </div>
   </div>
 </template>
@@ -204,6 +217,60 @@ defineProps<{
     opacity: 1;
     transform: translateY(-8px) scale(1.1);
   }
+}
+
+/* Corner ornaments - Chinese pattern */
+.corner-ornament {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(var(--envelope-gold-rgb, 255, 215, 0), 0.25);
+  z-index: 2;
+
+  &.top-left { top: 14px; left: 14px; border-right: none; border-bottom: none; border-radius: 3px 0 0 0; }
+  &.top-right { top: 14px; right: 14px; border-left: none; border-bottom: none; border-radius: 0 3px 0 0; }
+  &.bottom-left { bottom: 14px; left: 14px; border-right: none; border-top: none; border-radius: 0 0 0 3px; }
+  &.bottom-right { bottom: 14px; right: 14px; border-left: none; border-top: none; border-radius: 0 0 3px 0; }
+}
+
+/* Gold coins spilling */
+.coins-spill {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.gold-coin {
+  position: absolute;
+  font-size: 18px;
+  animation: coin-spill 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  opacity: 0;
+}
+
+@keyframes coin-spill {
+  0% { opacity: 0; transform: translateY(-10px) rotate(0deg) scale(0.5); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(60px) rotate(360deg) scale(1.2); }
+}
+
+/* Lucky knot */
+.lucky-knot {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+.knot-symbol {
+  font-size: 16px;
+  color: rgba(var(--envelope-gold-rgb, 255, 215, 0), 0.5);
+  font-family: "Noto Serif SC", serif;
+  font-weight: 900;
+  filter: drop-shadow(0 0 4px rgba(var(--envelope-gold-rgb, 255, 215, 0), 0.3));
 }
 
 @media (max-width: 480px) {

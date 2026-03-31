@@ -1,16 +1,34 @@
 <template>
   <NeoCard variant="erobo">
     <span class="card-title-glass">{{ t("buyKeys") }}</span>
-    <NeoInput
-      :modelValue="keyCount"
-      @update:modelValue="$emit('update:keyCount', $event)"
-      type="number"
-      :placeholder="t('keyCountPlaceholder')"
-      :suffix="t('keysSuffix')"
-    />
+
+    <!-- Key Count Selector with +/- -->
+    <div class="key-selector">
+      <button class="key-adjust-btn minus" type="button" @click="adjustKeys(-1)" :disabled="Number(keyCount) <= 1" aria-label="Decrease">
+        <span class="adjust-icon">&minus;</span>
+      </button>
+      <div class="key-display">
+        <span class="key-count-value">{{ keyCount }}</span>
+        <span class="key-count-unit">{{ t("keysSuffix") }}</span>
+      </div>
+      <button class="key-adjust-btn plus" type="button" @click="adjustKeys(1)" aria-label="Increase">
+        <span class="adjust-icon">&plus;</span>
+      </button>
+    </div>
+
+    <!-- Quick-pick presets -->
+    <div class="key-presets">
+      <button v-for="n in [1, 3, 5, 10]" :key="n" class="preset-chip" :class="{ active: keyCount === String(n) }" type="button" @click="$emit('update:keyCount', String(n))">
+        {{ n }}
+      </button>
+    </div>
+
     <div class="cost-row-glass">
       <span class="cost-label-glass">{{ t("estimatedCost") }}</span>
-      <span class="cost-value-glass">{{ estimatedCost }} {{ t("tokenGas") }}</span>
+      <span class="cost-value-glass">
+        <span class="cost-gas-icon" aria-hidden="true">&#x26FD;</span>
+        {{ estimatedCost }} {{ t("tokenGas") }}
+      </span>
     </div>
     <span class="hint-text-glass">{{ t("keyPrice") }}</span>
     <NeoButton variant="primary" size="lg" block type="button" @click="$emit('buy')" :disabled="isPaying" :aria-label="t('buyKeys')">
@@ -26,16 +44,21 @@ import { messages } from "@/locale/messages";
 
 const { t } = createUseI18n(messages)();
 
-defineProps<{
+const props = defineProps<{
   keyCount: string;
   estimatedCost: string;
   isPaying: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: "update:keyCount", value: string): void;
   (e: "buy"): void;
 }>();
+
+const adjustKeys = (delta: number) => {
+  const current = Math.max(1, Number(props.keyCount) || 1);
+  emit("update:keyCount", String(Math.max(1, current + delta)));
+};
 </script>
 
 <style lang="scss" scoped>
@@ -73,6 +96,116 @@ defineEmits<{
 .cost-value-glass {
   @include mono-number(18px);
   color: var(--doom-success);
+}
+
+/* Key Selector with +/- */
+.key-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: $spacing-4;
+}
+
+.key-adjust-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary);
+  font-size: 20px;
+
+  &:hover:not(:disabled) {
+    background: rgba(234, 179, 8, 0.15);
+    border-color: rgba(234, 179, 8, 0.3);
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &.plus:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+  }
+}
+
+.adjust-icon {
+  font-weight: 900;
+  font-size: 18px;
+}
+
+.key-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 12px;
+}
+
+.key-count-value {
+  font-size: 28px;
+  font-weight: 900;
+  color: #eab308;
+  font-family: 'Orbitron', monospace;
+}
+
+.key-count-unit {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(234, 179, 8, 0.5);
+  letter-spacing: 0.1em;
+}
+
+/* Quick-pick presets */
+.key-presets {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: $spacing-4;
+}
+
+.preset-chip {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 800;
+  font-family: 'Orbitron', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.3);
+    color: #eab308;
+  }
+
+  &.active {
+    background: rgba(234, 179, 8, 0.2);
+    border-color: rgba(234, 179, 8, 0.5);
+    color: #eab308;
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.15);
+  }
+}
+
+.cost-gas-icon {
+  margin-right: 4px;
 }
 
 .hint-text-glass {

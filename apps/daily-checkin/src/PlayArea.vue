@@ -30,6 +30,16 @@
       <span>{{ canCheckIn ? t("statusReady") : t("statusDone") }}</span>
     </div>
 
+    <!-- Reward Preview -->
+    <div v-if="canCheckIn" class="reward-preview">
+      <span class="reward-preview-label">{{ t("checkInNow") }}</span>
+      <div class="reward-preview-amount">
+        <AppIcon name="star" :size="16" class="reward-icon" aria-hidden="true" />
+        <span>+{{ nextRewardAmount }} {{ t("tokenGas") }}</span>
+      </div>
+      <span class="reward-preview-hint">{{ t("dayStreak") }} {{ currentStreak + 1 }}</span>
+    </div>
+
     <!-- Check-in Action -->
     <NeoCard variant="erobo" :title="t('checkInNow')" class="action-card">
       <NeoButton
@@ -49,6 +59,10 @@
       </NeoButton>
     </NeoCard>
 
+    <!-- Confetti burst on success -->
+    <div v-if="showConfetti" class="confetti-container" aria-hidden="true">
+      <span v-for="i in 20" :key="i" class="confetti-piece" :style="confettiStyle(i)" /></div>
+
     <RewardsSection
       :t="t"
       :current-streak="currentStreak"
@@ -60,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from "vue";
+import { computed, inject, ref, watch } from "vue";
 import type { Ref } from "vue";
 import { AppIcon, NeoCard, NeoButton } from "@shared/components";
 import { MINIAPP_ACTIONS_KEY } from "@shared/utils/defineMiniApp";
@@ -87,6 +101,39 @@ const isClaiming = computed(() => Boolean(props.state.isClaiming?.value ?? false
 const canCheckIn = computed(() => Boolean(props.state.canCheckIn?.value ?? false));
 const utcTimeDisplay = computed(() => String(props.state.utcTimeDisplay?.value ?? "00:00:00"));
 const nextUtcMidnight = computed(() => Number(props.state.nextUtcMidnight?.value ?? 0));
+
+// ── Reward preview ──────────────────────────────────────────────────
+const nextRewardAmount = computed(() => {
+  const streak = currentStreak.value + 1;
+  // Base 1 GAS per day, bonus at milestones
+  if (streak >= 30) return 5;
+  if (streak >= 14) return 3;
+  if (streak >= 7) return 2;
+  return 1;
+});
+
+// ── Confetti ────────────────────────────────────────────────────────
+const showConfetti = ref(false);
+const confettiColors = ["#ff6b35", "#fbbf24", "#34d399", "#ff8a5c", "#c41e3a", "#ffd700"];
+
+const confettiStyle = (i: number) => ({
+  left: `${5 + Math.random() * 90}%`,
+  animationDelay: `${Math.random() * 0.5}s`,
+  animationDuration: `${1.5 + Math.random() * 1.5}s`,
+  backgroundColor: confettiColors[i % confettiColors.length],
+  width: `${6 + Math.random() * 6}px`,
+  height: `${6 + Math.random() * 6}px`,
+  borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+  transform: `rotate(${Math.random() * 360}deg)`,
+});
+
+// Watch for check-in success (canCheckIn goes from true to false while not loading)
+watch(canCheckIn, (newVal, oldVal) => {
+  if (oldVal === true && newVal === false) {
+    showConfetti.value = true;
+    setTimeout(() => { showConfetti.value = false; }, 3000);
+  }
+});
 
 // ── Action dispatch ──────────────────────────────────────────────────
 const actions = inject(MINIAPP_ACTIONS_KEY, new Map());
@@ -317,6 +364,83 @@ const handleCheckIn = async () => {
   z-index: 1;
 }
 
+/* Reward Preview */
+.reward-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px dashed rgba(255, 107, 53, 0.25);
+  border-radius: 14px;
+  position: relative;
+  z-index: 1;
+  animation: preview-breathe 2s ease-in-out infinite;
+}
+
+.reward-preview-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 107, 53, 0.6);
+}
+
+.reward-preview-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 900;
+  font-family: "Fredoka", sans-serif;
+  background: linear-gradient(135deg, #fbbf24, #ff6b35);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reward-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+}
+
+.reward-preview-hint {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@keyframes preview-breathe {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 53, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.2); }
+}
+
+/* Confetti Effect */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  opacity: 0;
+  animation: confetti-fall 2.5s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 1; top: -10px; transform: translateX(0) rotate(0deg); }
+  25% { opacity: 1; }
+  100% { opacity: 0; top: 100vh; transform: translateX(calc(-50px + 100px * var(--r, 0.5))) rotate(720deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .status-pill {
     animation: none;
@@ -325,6 +449,12 @@ const handleCheckIn = async () => {
   .ember {
     animation: none;
     display: none;
+  }
+  .confetti-container {
+    display: none;
+  }
+  .reward-preview {
+    animation: none;
   }
 }
 </style>

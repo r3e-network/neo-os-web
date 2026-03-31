@@ -84,7 +84,7 @@ defineProps<{
 .flow-particles { position: absolute; inset: 0; pointer-events: none; }
 .particle { position: absolute; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: rgba(139,92,246,0.6); box-shadow: 0 0 6px rgba(139,92,246,0.4); animation: particle-flow 4s linear infinite; }
 
-.hero-stream-stats { display: flex; align-items: center; gap: 20px; padding: 16px 28px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; }
+.hero-stream-stats { display: flex; align-items: center; gap: 20px; padding: 18px 28px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(6, 182, 212, 0.04)); border: 1px solid rgba(59, 130, 246, 0.15); border-radius: 14px; backdrop-filter: blur(8px); }
 .stream-stat { display: flex; align-items: center; gap: 10px; }
 .stream-stat-icon { font-size: 20px; }
 .stream-stat-info { display: flex; flex-direction: column; }
@@ -92,8 +92,8 @@ defineProps<{
 .stream-stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.4); }
 .stream-stat-divider { width: 1px; height: 32px; background: rgba(255,255,255,0.1); }
 
-.hero-active-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em;
-  &.live { border-color: rgba(52,211,153,0.3); color: var(--stream-success-light, #34d399); }
+.hero-active-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em;
+  &.live { border-color: rgba(52,211,153,0.3); color: var(--stream-success-light, #34d399); background: rgba(52, 211, 153, 0.06); box-shadow: 0 0 15px rgba(52, 211, 153, 0.1); }
 }
 .active-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.2);
   .live & { background: var(--stream-success-light, #34d399); box-shadow: 0 0 6px rgba(52,211,153,0.5); animation: dot-blink 2s ease-in-out infinite; }
