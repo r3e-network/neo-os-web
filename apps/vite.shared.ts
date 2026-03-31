@@ -100,6 +100,12 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
       outDir: "dist",
       assetsDir: "assets",
       copyPublicDir: true,
+      // Keep chunk sizes small for faster loading across 60+ miniapps
+      chunkSizeWarningLimit: 300,
+      // esbuild minification is fastest and sufficient for production
+      minify: "esbuild",
+      // Source maps add ~30% to bundle size; disable in production builds
+      sourcemap: false,
       rollupOptions: {
         external: [
           // Public folder assets accessed via absolute paths
@@ -108,9 +114,28 @@ export function createAppConfig(appDir: string, options: AppConfigOptions = {}) 
           /^\/static\//,
         ],
         output: {
-          // manualChunks: {
-          //   "vue-vendor": ["vue", "@dcloudio/uni-app", "@dcloudio/uni-h5"],
-          // },
+          /**
+           * Split vendor and platform code into dedicated chunks so that:
+           * 1. Vue runtime is cached independently from app code.
+           * 2. Shared platform services/composables are cached across
+           *    miniapp navigations (all 60+ apps share the same files).
+           * 3. Noble crypto libraries form their own chunk (they're heavy
+           *    and only needed by apps that do on-chain signing).
+           *
+           * We use a function because @shared/* paths are Vite aliases
+           * resolved to absolute filesystem paths, not npm packages.
+           */
+          manualChunks(id: string) {
+            if (id.includes("node_modules/vue/")) {
+              return "vue-vendor";
+            }
+            if (id.includes("node_modules/@noble/")) {
+              return "noble-crypto";
+            }
+            if (id.includes("/shared/services/") || id.includes("/shared/composables/")) {
+              return "platform-sdk";
+            }
+          },
         },
       },
       ...options.build,
