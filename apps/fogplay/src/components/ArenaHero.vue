@@ -12,6 +12,12 @@
       <CoinArena :display-outcome="displayOutcome" :is-flipping="isFlipping" :result="result" :t="t" />
     </div>
 
+    <!-- Result Flash -->
+    <div v-if="result && !isFlipping" :class="['result-flash', result.won ? 'win' : 'lose']">
+      <span class="result-flash-icon" aria-hidden="true">{{ result.won ? '\u2705' : '\u274C' }}</span>
+      <span class="result-flash-text">{{ result.won ? 'WIN' : 'LOSE' }}</span>
+    </div>
+
     <!-- Side Labels -->
     <div class="side-labels">
       <div :class="['side-badge', { active: displayOutcome === 'heads' || (!displayOutcome && !isFlipping) }]">
@@ -154,6 +160,54 @@ defineProps<{
   font-weight: 900;
   color: var(--coin-text-muted-light);
   letter-spacing: 0.15em;
+}
+
+/* -- Result Flash -- */
+.result-flash {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 14px;
+  z-index: 10;
+  animation: flash-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &.win {
+    background: rgba(52, 211, 153, 0.15);
+    border: 2px solid rgba(52, 211, 153, 0.4);
+    box-shadow: 0 0 30px rgba(52, 211, 153, 0.25);
+  }
+
+  &.lose {
+    background: rgba(239, 68, 68, 0.15);
+    border: 2px solid rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.25);
+  }
+}
+
+.result-flash-icon {
+  font-size: 24px;
+}
+
+.result-flash-text {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+
+  .win & {
+    color: #34d399;
+    text-shadow: 0 0 15px rgba(52, 211, 153, 0.5);
+  }
+  .lose & {
+    color: #f87171;
+    text-shadow: 0 0 15px rgba(248, 113, 113, 0.5);
+  }
+}
+
+@keyframes flash-entrance {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* -- Animations -- */

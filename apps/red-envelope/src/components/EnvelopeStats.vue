@@ -1,16 +1,19 @@
 <template>
   <div class="hero-envelope-stats">
     <div class="hero-stat">
+      <span class="hero-stat-emoji" aria-hidden="true">&#x1F9E7;</span>
       <span class="hero-stat-value">{{ envelopeCount }}</span>
       <span class="hero-stat-label">{{ t("sidebarEnvelopes") }}</span>
     </div>
     <div class="hero-stat-divider" />
     <div class="hero-stat">
+      <span class="hero-stat-emoji" aria-hidden="true">&#x1F4B0;</span>
       <span class="hero-stat-value">{{ poolCount }}</span>
       <span class="hero-stat-label">{{ t("sidebarPools") }}</span>
     </div>
     <div class="hero-stat-divider" />
     <div class="hero-stat">
+      <span class="hero-stat-emoji" aria-hidden="true">&#x2728;</span>
       <span class="hero-stat-value">{{ claimCount }}</span>
       <span class="hero-stat-label">{{ t("sidebarClaims") }}</span>
     </div>
@@ -50,14 +53,20 @@ defineProps<{
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
+}
+
+.hero-stat-emoji {
+  font-size: 18px;
+  margin-bottom: 2px;
 }
 
 .hero-stat-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   color: var(--envelope-stat-value);
   font-family: $font-mono;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
 .hero-stat-label {
