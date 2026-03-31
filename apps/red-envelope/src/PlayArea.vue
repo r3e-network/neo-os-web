@@ -109,6 +109,7 @@ const handleCreate = () =>
 @use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "./pages/index/red-envelope-theme.scss" as *;
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap");
 
 :global(body) {
   background: var(--bg-primary);
@@ -119,6 +120,40 @@ const handleCreate = () =>
   flex-direction: column;
   gap: 24px;
   padding: 20px 12px;
+  position: relative;
+  overflow: hidden;
+
+  /* Chinese cloud pattern overlay */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255, 215, 0, 0.06) 0%, transparent 40%),
+      radial-gradient(ellipse at 15% 50%, rgba(220, 38, 38, 0.08) 0%, transparent 30%),
+      radial-gradient(ellipse at 85% 50%, rgba(220, 38, 38, 0.08) 0%, transparent 30%);
+    pointer-events: none;
+  }
+
+  /* Gold corner ornaments */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 215, 0, 0.2) 15%,
+      rgba(255, 215, 0, 0.6) 30%,
+      #ffd700 50%,
+      rgba(255, 215, 0, 0.6) 70%,
+      rgba(255, 215, 0, 0.2) 85%,
+      transparent 100%
+    );
+  }
 }
 
 .hero-container {
@@ -130,12 +165,107 @@ const handleCreate = () =>
   text-align: center;
   padding: 24px 16px;
   gap: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Lucky red headings with gold accents */
+:deep(h1),
+:deep(h2),
+:deep(h3),
+:deep(.hero-title),
+:deep(.section-title) {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700;
+}
+
+:deep(.hero-title),
+:deep(h1) {
+  color: #ffd700;
+  text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+}
+
+/* Envelope stats gold on red */
+:deep(.envelope-stats) {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  background: rgba(153, 27, 27, 0.15);
+}
+
+:deep(.stat-value) {
+  font-family: "Noto Serif SC", serif;
+  color: #ffd700;
+}
+
+/* Create form golden trim */
+:deep(.create-form) {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+  background: rgba(153, 27, 27, 0.08);
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.06);
+}
+
+/* Red envelope graphic enhancement */
+:deep(.red-envelope-graphic) {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 8px 25px rgba(220, 38, 38, 0.3));
+}
+
+/* Lucky overlay festive style */
+:deep(.lucky-overlay) {
+  font-family: "Noto Serif SC", serif;
+}
+
+/* Golden CTA button */
+:deep(.neo-btn--primary) {
+  font-family: "Noto Serif SC", serif;
+  font-weight: 700;
+  background: linear-gradient(180deg, #ffd700 0%, #b8860b 100%);
+  color: #991b1b;
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+  text-shadow: none;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 6px 25px rgba(255, 215, 0, 0.35), 0 0 40px rgba(220, 38, 38, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+/* Form inputs with subtle red tint */
+:deep(input),
+:deep(select),
+:deep(textarea) {
+  font-family: "Noto Serif SC", serif;
+  border-color: rgba(255, 215, 0, 0.15);
+  background: rgba(153, 27, 27, 0.06);
+
+  &:focus {
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+  }
+}
+
+/* Opening modal festive */
+:deep(.opening-modal) {
+  font-family: "Noto Serif SC", serif;
 }
 
 @media (max-width: 480px) {
   .hero-container {
     min-height: 250px;
     padding: 16px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.red-envelope-graphic) {
+    filter: none;
   }
 }
 </style>
