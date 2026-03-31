@@ -38,28 +38,11 @@ const handleRequestRandom = async () => {
 };
 </script>
 
-<style scoped>
-.vrf-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-}
-.result-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-.label {
-  display: block;
-  font-size: 11px;
-  opacity: 0.6;
-  text-transform: uppercase;
-}
-.value {
-  display: block;
-  margin-top: 6px;
-  font-size: 13px;
-  word-break: break-all;
-}
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.vrf-play-area { @include console.play-area; }
+.result-grid { @include console.single-column-grid; }
+.label { @include console.label; }
+.value { @include console.value; }
 </style>

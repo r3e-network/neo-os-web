@@ -55,21 +55,14 @@ const actions = inject(MINIAPP_ACTIONS_KEY, new Map());
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/console-common" as console;
 @use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 
-.neo-convert-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-  min-height: 300px;
-}
+.neo-convert-play-area { @include console.play-area; min-height: 300px; }
 
-.hero-container {
-  margin-bottom: 20px;
-}
+.hero-container { margin-bottom: 20px; }
 
 .converter-scene {
   display: flex;
@@ -85,31 +78,27 @@ const actions = inject(MINIAPP_ACTIONS_KEY, new Map());
   animation: arrow-pulse 2s ease-in-out infinite;
 }
 
-.convert-arrow--right {
-  animation-delay: 1s;
-}
+.convert-arrow--right { animation-delay: 1s; }
 
 @keyframes arrow-pulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
 
 .hero {
   text-align: center;
   margin: 30px 0 40px;
   color: var(--text-primary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 24px;
+  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.08) 0%, transparent 60%);
 
   .hero-icon {
     font-size: 40px;
     display: block;
     margin-bottom: 16px;
+    animation: pulse-glow 3s ease-in-out infinite;
+    border-radius: 50%;
   }
 
   .hero-title {
@@ -139,57 +128,12 @@ const actions = inject(MINIAPP_ACTIONS_KEY, new Map());
     margin: 20px 0 30px;
     padding-bottom: 16px;
   }
-  .hero-icon {
-    font-size: 32px;
-  }
-  .hero-title {
-    font-size: 22px;
-  }
-  .hero-subtitle {
-    font-size: 13px;
-    max-width: 100%;
-  }
-}
-
-@keyframes convert-spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 12px rgba(0, 229, 153, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 28px rgba(0, 229, 153, 0.5);
-  }
+  .hero .hero-icon { font-size: 32px; }
+  .hero .hero-title { font-size: 22px; }
+  .hero .hero-subtitle { font-size: 13px; max-width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .convert-arrow,
-  .hero-icon {
-    animation: none;
-  }
-}
-
-.hero {
-  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.08) 0%, transparent 60%);
-}
-
-.hero-icon {
-  animation: pulse-glow 3s ease-in-out infinite;
-  border-radius: 50%;
-}
-
-.hero-title {
-  background: var(--convert-hero-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  .convert-arrow, .hero .hero-icon { animation: none; }
 }
 </style>

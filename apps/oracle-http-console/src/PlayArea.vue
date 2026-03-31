@@ -59,12 +59,7 @@ const handleRunQuery = async () => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.http-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-}
+.http-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
 .json-box { @include console.json-box; }
