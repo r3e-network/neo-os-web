@@ -95,7 +95,7 @@ import { ref } from "vue";
 import { AppIcon, NeoInput, NeoButton } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
-import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";
+import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelope";
 
 const props = defineProps<{
   pools: EnvelopeItem[];

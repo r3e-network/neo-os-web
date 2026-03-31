@@ -109,7 +109,7 @@ import { NeoCard, NeoInput, NeoButton, AppIcon } from "@shared/components";
 import { createUseI18n } from "@shared/composables";
 import { messages } from "@/locale/messages";
 
-import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
+import type { EnvelopeType } from "@/composables/useRedEnvelope";
 
 const props = defineProps<{
   name: string;
