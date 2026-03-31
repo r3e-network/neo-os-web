@@ -12,7 +12,9 @@
  *   color: var(--color-primary, #3b82f6);
  */
 
-// Import tokens for CSS custom properties
+// Forward tokens so consumers of variables.scss also see token members
+@forward "./tokens.scss";
+// Import tokens for internal use within this file
 @use "./tokens.scss" as *;
 
 // ============================================================================
