@@ -55,15 +55,22 @@ const actions = inject(MINIAPP_ACTIONS_KEY, new Map());
 .vault-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
+}
+
+.vault-list-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
 }
 
 .empty-state {
   text-align: center;
   padding: 24px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
   font-size: 14px;
 }
 </style>
