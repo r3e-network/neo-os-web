@@ -108,13 +108,10 @@ const handleSelectListing = (listing: MarketListing) => {
 };
 </script>
 
-<style scoped>
-.market-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px 0;
-}
+<style scoped lang="scss">
+@use "@shared/styles/console-common" as console;
+
+.market-play-area { @include console.play-area; }
 
 .summary {
   margin: 0;
@@ -122,32 +119,24 @@ const handleSelectListing = (listing: MarketListing) => {
   color: var(--text-secondary);
 }
 
-.operation-card + .operation-card {
-  margin-top: 14px;
-}
-
 .empty-state {
-  border: 1px dashed var(--border-color);
-  border-radius: 22px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   padding: 24px;
   text-align: center;
   color: var(--text-secondary);
-  background: var(--bg-card);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .listings {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
-.mb-6 {
-  margin-bottom: 14px;
-}
+.mb-6 { margin-bottom: 14px; }
 
 @media (min-width: 960px) {
-  .listings {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  .listings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

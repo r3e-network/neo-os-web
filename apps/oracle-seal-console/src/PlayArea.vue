@@ -177,12 +177,7 @@ const handleUpdateBoundCallbackContract = (val: string) => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.seal-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-}
+.seal-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
 .details-grid { @include console.detail-grid-min; }
