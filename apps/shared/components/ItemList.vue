@@ -9,7 +9,15 @@
     <!-- Empty state -->
     <div v-else-if="!items || items.length === 0" class="item-list__empty" role="status">
       <slot name="empty">
-        <span class="item-list__empty-text">{{ emptyText ?? t("emptyText") }}</span>
+        <span class="item-list__empty-text">{{ emptyText ?? t("emptyStateHint") }}</span>
+        <button
+          v-if="emptyActionLabel"
+          type="button"
+          class="item-list__empty-action"
+          @click="$emit('empty-action')"
+        >
+          {{ emptyActionLabel ?? t("getStarted") }}
+        </button>
       </slot>
     </div>
 
@@ -68,6 +76,8 @@ const props = withDefaults(
     loadMoreText?: string;
     /** Accessibility label for screen readers */
     ariaLabel?: string;
+    /** Label for the empty-state action button (shows button when provided) */
+    emptyActionLabel?: string;
   }>(),
   {
     loading: false,
@@ -80,11 +90,13 @@ const props = withDefaults(
     hasMore: false,
     loadMoreText: undefined,
     ariaLabel: undefined,
+    emptyActionLabel: undefined,
   }
 );
 
 defineEmits<{
   (e: "load-more"): void;
+  (e: "empty-action"): void;
 }>();
 
 const { t } = useI18n();
@@ -131,9 +143,34 @@ const displayedItems = computed(() => {
   }
 
   &__empty-text {
+    display: block;
     font-size: $font-size-md;
     font-weight: $font-weight-medium;
     color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+  }
+
+  &__empty-action {
+    display: inline-block;
+    margin-top: $spacing-3;
+    padding: $spacing-2 $spacing-4;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+    color: var(--text-primary, #ffffff);
+    background: var(--accent-primary, #3b82f6);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: var(--accent-hover, #2563eb);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    }
   }
 
   &__content {

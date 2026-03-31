@@ -39,6 +39,12 @@ function MonitoringInit() {
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <div className={`${inter.variable} ${outfit.variable} font-sans`}>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
+      >
+        Skip to main content
+      </a>
       <ErrorBoundary>
         <MotionConfig reducedMotion="user">
           <UserProvider>
@@ -48,7 +54,9 @@ export default function App({ Component, pageProps }: AppProps) {
                   <ThemeProvider>
                     <AnalyticsProvider>
                       <MonitoringInit />
-                      <Component {...pageProps} />
+                      <main id="main-content">
+                        <Component {...pageProps} />
+                      </main>
 
                       {/* Development monitoring panels */}
                       {process.env.NODE_ENV === "development" && (
