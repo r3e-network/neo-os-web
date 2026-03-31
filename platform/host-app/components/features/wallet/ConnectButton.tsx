@@ -109,7 +109,18 @@ export function ConnectButton() {
         loading: false,
       });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : typeof e === "string" ? e : "Connection failed";
+      const raw = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+      const lower = raw.toLowerCase();
+      let message: string;
+      if (lower.includes("rejected") || lower.includes("denied")) {
+        message = "Wallet connection was rejected. Please try again and approve the connection request.";
+      } else if (lower.includes("not found") || lower.includes("not installed")) {
+        message = "Wallet not detected. Please install a compatible Neo wallet extension.";
+      } else if (lower.includes("timeout")) {
+        message = "Connection timed out. Please check your wallet is unlocked and try again.";
+      } else {
+        message = "Could not connect wallet. Please try again or use a different wallet.";
+      }
       useAuthStore.setState({ loading: false, error: message });
     }
   };
