@@ -41,8 +41,8 @@ export function IconFeatureGrid({
           <div
             key={item.title}
             className={cn(
-              "rounded-2xl border border-gray-200 bg-gray-50 transition-colors dark:border-gray-700 dark:bg-gray-900/50",
-              compact ? "flex items-center gap-4 p-4" : "p-6",
+              "rounded-xl border border-gray-200/80 bg-gray-50/80 transition-all dark:border-white/[0.06] dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]",
+              compact ? "flex items-center gap-4 p-4" : "p-5",
             )}
           >
             <div
