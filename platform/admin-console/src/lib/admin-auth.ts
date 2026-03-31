@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 
+/**
+ * Server-only admin API key. MUST NOT be prefixed with NEXT_PUBLIC_ — doing so
+ * would expose the secret to browsers. Browser clients authenticate via session
+ * cookies; only server-to-server callers use this key directly.
+ */
 const ADMIN_API_KEY = String(process.env.ADMIN_CONSOLE_API_KEY || process.env.ADMIN_API_KEY || "").trim();
+const ADMIN_SESSION_SECRET = String(process.env.NEXTAUTH_SECRET || process.env.ADMIN_SESSION_SECRET || "").trim();
 const ADMIN_AUTH_WINDOW_SECONDS = parsePositiveInt(process.env.ADMIN_AUTH_RATE_LIMIT_WINDOW_SECONDS, 60);
 const ADMIN_AUTH_MAX_REQUESTS = parsePositiveInt(process.env.ADMIN_AUTH_MAX_REQUESTS, 120);
 
@@ -76,11 +82,53 @@ function isRateLimited(req: Request): boolean {
   return existing.count > ADMIN_AUTH_MAX_REQUESTS;
 }
 
+/**
+ * Validate a session cookie from a browser-based admin request.
+ *
+ * The session token is an HMAC-SHA256 of "admin-session" keyed by
+ * NEXTAUTH_SECRET / ADMIN_SESSION_SECRET. This is a minimal implementation;
+ * production deployments should integrate a full session store (e.g. NextAuth,
+ * iron-session, or a database-backed session).
+ */
+function validateAdminSession(req: Request): boolean {
+  if (!ADMIN_SESSION_SECRET) return false;
+
+  const cookieHeader = req.headers.get("cookie") || "";
+  const match = cookieHeader.match(/(?:^|;\s*)admin_session=([^;]+)/);
+  if (!match) return false;
+
+  const sessionToken = decodeURIComponent(match[1]).trim();
+  if (!sessionToken) return false;
+
+  // Compute expected HMAC so we can do a timing-safe comparison
+  const { createHmac } = require("crypto") as typeof import("crypto");
+  const expected = createHmac("sha256", ADMIN_SESSION_SECRET)
+    .update("admin-session")
+    .digest("hex");
+
+  return safeCompare(sessionToken, expected);
+}
+
+/**
+ * Authenticate an incoming admin API request.
+ *
+ * Accepts either:
+ *  1. A valid session cookie (browser clients) — preferred path.
+ *  2. An X-Admin-Key / Authorization: Bearer header (server-to-server only).
+ *
+ * Returns null on success, or an error Response to short-circuit the handler.
+ */
 export function requireAdminAuth(req: Request): Response | null {
   if (isRateLimited(req)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
+  // Path 1: session cookie (browser clients)
+  if (validateAdminSession(req)) {
+    return null;
+  }
+
+  // Path 2: API key header (server-to-server calls)
   if (!ADMIN_API_KEY) {
     return NextResponse.json({ error: "Admin API key not configured" }, { status: 500 });
   }

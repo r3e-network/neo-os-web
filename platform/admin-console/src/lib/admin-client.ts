@@ -1,21 +1,19 @@
-function readRuntimeAdminKey(): string {
-  if (typeof window === "undefined") return "";
-
-  try {
-    const fromMeta = document.querySelector('meta[name="admin-api-key"]')?.getAttribute("content") || "";
-    return fromMeta.trim();
-  } catch {
-    // SSR or restricted environment — return empty key (getAdminAuthHeaders handles absence)
-    return "";
-  }
+/**
+ * Returns headers for browser → Next.js API route calls.
+ *
+ * SECURITY: The admin API key must NEVER be exposed to the browser.
+ * Browser requests rely on cookie-based session auth (credentials: "include")
+ * instead of sending an API key header. The Next.js API routes validate the
+ * session server-side and inject the admin key when proxying to upstream services.
+ */
+export function getAdminAuthHeaders(): HeadersInit {
+  return {};
 }
 
-export function getAdminAuthHeaders(): HeadersInit {
-  const envKey = String(process.env.NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY || process.env.NEXT_PUBLIC_ADMIN_API_KEY || "").trim();
-  if (envKey) {
-    return { "X-Admin-Key": envKey };
-  }
-
-  const runtimeKey = readRuntimeAdminKey();
-  return runtimeKey ? { "X-Admin-Key": runtimeKey } : {};
+/**
+ * Returns the RequestInit options that every browser-side admin fetch should use.
+ * Ensures cookies (session token) are sent with same-origin requests.
+ */
+export function getAdminFetchOptions(): RequestInit {
+  return { credentials: "include" };
 }
