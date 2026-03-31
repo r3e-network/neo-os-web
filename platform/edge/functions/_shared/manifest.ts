@@ -46,31 +46,23 @@ const STATS_KEY_ALIASES = new Map<string, string>([
 
 const SUPPORTED_CATEGORIES = new Set(["gaming", "defi", "governance", "utility", "social", "nft", "data", "other"]);
 
-function stableSort(value: unknown): unknown {
-  if (value === null) return null;
-  if (Array.isArray(value)) return value.map(stableSort);
-  if (typeof value !== "object") return value;
-
-  const obj = value as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const key of Object.keys(obj).sort()) {
-    const v = obj[key];
-    if (v === undefined) continue;
-    out[key] = stableSort(v);
-  }
-  return out;
-}
-
+/**
+ * Canonical deterministic JSON serializer.
+ * Must match the implementation in platform/shared/manifest.ts exactly.
+ */
 export function stableStringify(value: unknown): string {
-  try {
-    return JSON.stringify(stableSort(value));
-  } catch (_e: unknown) {
+  if (value === null || value === undefined) return "null";
+  if (typeof value !== "object") {
     try {
       return JSON.stringify(value);
     } catch {
       return String(value);
     }
   }
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(",")}}`;
 }
 
 function normalizeStringList(
