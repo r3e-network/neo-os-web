@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const authResponse = await requireAdminAuth(request);
   if (authResponse) return authResponse;
   
-  return NextResponse.json({ _mock: true, pricefeeds }, { headers: { "X-Mock-Data": "true" } });
+  return NextResponse.json(pricefeeds, { headers: { "X-Mock-Data": "true" } });
 }
 
 export async function POST(request: Request) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       pricefeeds.push(data);
     }
 
-    return NextResponse.json({ _mock: true, success: true, pricefeeds }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(pricefeeds, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     return NextResponse.json({ error: "Invalid pricefeed data" }, { status: 400 });
   }
@@ -49,7 +49,7 @@ export async function DELETE(request: Request) {
     }
 
     pricefeeds = pricefeeds.filter(p => p.id !== id);
-    return NextResponse.json({ _mock: true, success: true, pricefeeds }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(pricefeeds, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete pricefeed" }, { status: 500 });
   }

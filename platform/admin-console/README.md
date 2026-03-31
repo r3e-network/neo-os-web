@@ -49,18 +49,21 @@ Create a `.env.local` file:
 NEXT_PUBLIC_SUPABASE_URL=https://supabase.localhost
 NEXT_PUBLIC_EDGE_URL=https://edge.localhost
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-NEXTAUTH_SECRET=your-nextauth-secret
 ADMIN_CONSOLE_API_KEY=your-admin-api-key
 ```
 
-The admin API routes accept two forms of authentication:
+The admin API routes use server-only API key authentication:
 
-1. **Session cookie (browser clients):** The admin console uses cookie-based
-   session auth. The `admin_session` cookie is validated server-side using
-   `NEXTAUTH_SECRET`. Browser requests never carry the admin API key.
+1. **Same-origin browser requests:** The admin console's pages call its own
+   Next.js API routes (`/api/*`). These routes run server-side and validate
+   the request using a same-origin check. The browser never sees or sends
+   the admin API key.
 
-2. **API key header (server-to-server only):** External services can
-   authenticate with `X-Admin-Key` or `Authorization: Bearer <key>`.
+2. **Server-to-server / external callers:** Pass `X-Admin-Key` header or
+   `Authorization: Bearer <key>` with the value of `ADMIN_CONSOLE_API_KEY`.
+
+3. **Dev mode:** When `ADMIN_CONSOLE_API_KEY` is not set, all requests are
+   allowed. In production, always set the key.
 
 **IMPORTANT:** Never prefix the admin API key with `NEXT_PUBLIC_`. Doing so
 exposes the secret to every browser that loads the page. Set `ADMIN_CONSOLE_API_KEY`
