@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   if (authResponse) return authResponse;
   
   // Never return the actual secret values, only metadata
-  return NextResponse.json({ _mock: true, secrets: oracleSecrets }, { headers: { "X-Mock-Data": "true" } });
+  return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
 }
 
 export async function POST(request: Request) {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       oracleSecrets.push(newSecret);
     }
 
-    return NextResponse.json({ _mock: true, success: true, secrets: oracleSecrets }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     return NextResponse.json({ error: "Invalid secret data" }, { status: 400 });
   }
@@ -57,7 +57,7 @@ export async function DELETE(request: Request) {
     }
 
     oracleSecrets = oracleSecrets.filter(s => s.id !== id);
-    return NextResponse.json({ _mock: true, success: true, secrets: oracleSecrets }, { headers: { "X-Mock-Data": "true" } });
+    return NextResponse.json(oracleSecrets, { headers: { "X-Mock-Data": "true" } });
   } catch (error) {
     return NextResponse.json({ error: "Failed to delete secret" }, { status: 500 });
   }
