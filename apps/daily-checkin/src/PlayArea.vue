@@ -98,7 +98,7 @@ const handleCheckIn = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
   text-align: center;
@@ -129,6 +129,7 @@ const handleCheckIn = async () => {
 .clock-display {
   @include mono-number(13px);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
 
@@ -142,34 +143,47 @@ const handleCheckIn = async () => {
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 20px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  background: rgba(0, 229, 153, 0.1);
+  color: #00e599;
   transition: all 0.3s ease;
 
   &.ready {
-    background: rgba(255, 222, 89, 0.08);
-    border-color: rgba(255, 222, 89, 0.25);
-    color: var(--accent-warning, #fde047);
-    box-shadow: 0 0 15px rgba(255, 222, 89, 0.15);
+    background: rgba(255, 200, 0, 0.1);
+    color: #ffc800;
+    box-shadow: 0 0 15px rgba(255, 200, 0, 0.15);
   }
 }
 
 .action-card {
   width: 100%;
   max-width: 400px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(8px);
 }
 
 .checkin-btn {
   margin-top: 16px;
-  transform: scale(1.02);
+
+  :deep(.neo-btn) {
+    background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
+    color: #000;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      box-shadow: 0 8px 24px rgba(0, 229, 153, 0.3);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .btn-content {
@@ -177,7 +191,7 @@ const handleCheckIn = async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-weight: 900;
+  font-weight: 700;
   text-transform: uppercase;
   font-size: 18px;
 }
