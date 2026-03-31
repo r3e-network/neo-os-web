@@ -290,5 +290,46 @@ export function secondsToHuman(seconds: number): {
 export function getRetryDelay(baseMs: number, jitterMs: number = 500): number {
   return baseMs + Math.random() * jitterMs;
 }
-export * from "./credential";
-export * from "./rpc";
+// credential.ts — named re-exports for tree-shaking
+export {
+  CREDENTIAL_CATEGORIES,
+  CREDENTIAL_TYPES,
+  ISSUER_POLICIES,
+  CREDENTIAL_REGISTRY,
+} from "./credential";
+export type {
+  CredentialCategory,
+  CredentialType,
+  CredentialIssuerPolicy,
+} from "./credential";
+
+// rpc.ts — named re-exports for tree-shaking
+export type { NeoNetwork, ExternalIntegrationConfig } from "./rpc";
+export {
+  N3INDEX_API,
+  NEO_MAINNET_RPC,
+  NEO_TESTNET_RPC,
+  MAINNET_MAGIC,
+  TESTNET_MAGIC,
+  NEO_HASH,
+  GAS_HASH,
+  CONTRACT_MANAGEMENT,
+  MINIAPP_CONTRACTS,
+  EXTERNAL_INTEGRATIONS,
+  AA_CONTRACT,
+  AA_CONTRACT_TESTNET,
+  ORACLE_CONTRACT_MAINNET,
+  ORACLE_CONTRACT_TESTNET,
+  DATA_FEED_CONTRACT,
+  DATA_FEED_CONTRACT_MAINNET,
+  DATA_FEED_CONTRACT_TESTNET,
+  resolveNeoNetwork,
+  getNetwork,
+  getRpcUrl,
+  getExternalIntegrationConfig,
+  getMiniAppContractHash,
+  getAAFrontendBaseUrl,
+  getAAIdentityWorkspaceUrl,
+  getAAAppWorkspaceUrl,
+  getAADocsUrl,
+} from "./rpc";

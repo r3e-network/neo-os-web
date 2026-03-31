@@ -9,7 +9,12 @@ import { useState, useEffect } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
-import { NotificationDropdown } from "@/components/features/notifications/NotificationDropdown";
+// Lazy-load wallet and notification components — neither needs SSR and both
+// depend on client-only state (wallet connection, notification polling).
+const NotificationDropdown = dynamic(
+  () => import("@/components/features/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
+  { ssr: false },
+);
 
 const ConnectButton = dynamic(() => import("@/components/features/wallet").then((m) => m.ConnectButton), {
   ssr: false,
