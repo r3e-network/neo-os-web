@@ -329,16 +329,18 @@ export default function MiniAppsPage() {
                 ))}
               </div>
             ) : viewMode === "list" ? (
-              <ul className="bg-white dark:bg-gray-950 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <div className="space-y-3">
                 {catalogResults.map((app) => (
-                  <li key={app.app_id}>
-                    <MiniAppListItem app={app} />
-                  </li>
+                  <MiniAppListItem key={app.app_id} app={app} />
                 ))}
                 {catalogResults.length === 0 && (
-                  <li className="py-12 text-center text-gray-500 dark:text-gray-400">No MiniApps found</li>
+                  <div className="flex flex-col items-center justify-center py-16 text-gray-500 dark:text-gray-400 glass-panel rounded-3xl">
+                    <LayoutGrid className="w-12 h-12 mb-3 text-gray-300 dark:text-gray-700" />
+                    <p className="text-base font-semibold">No MiniApps found</p>
+                    <p className="text-sm mt-1">Try adjusting your search or filters.</p>
+                  </div>
                 )}
-              </ul>
+              </div>
             ) : (
               <MiniAppGrid apps={catalogResults} columns={3} />
             )}

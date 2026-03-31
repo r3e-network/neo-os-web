@@ -1,8 +1,9 @@
 import { type ReactNode, useEffect } from "react";
 import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import { UserProvider, useUser } from "@auth0/nextjs-auth0/client";
-import { MotionConfig } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { QueryProvider } from "@/lib/query";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
@@ -47,6 +48,8 @@ function MonitoringInit() {
 }
 
 export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+
   return (
     <div className={`${inter.variable} ${outfit.variable} font-sans`}>
       <a
@@ -64,9 +67,18 @@ export default function App({ Component, pageProps }: AppProps) {
                   <ThemeProvider>
                     <AnalyticsProvider>
                       <MonitoringInit />
-                      <main id="main-content">
-                        <Component {...pageProps} />
-                      </main>
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.main
+                          key={router.asPath}
+                          id="main-content"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                        >
+                          <Component {...pageProps} />
+                        </motion.main>
+                      </AnimatePresence>
 
                       {/* Development monitoring panels */}
                       {process.env.NODE_ENV === "development" && (
