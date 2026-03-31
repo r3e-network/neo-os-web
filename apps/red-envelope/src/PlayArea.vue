@@ -117,7 +117,8 @@ const handleCreate = () =>
 .red-envelope-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  padding: 20px 12px;
 }
 
 .hero-container {

@@ -94,7 +94,7 @@ const handleClaimPrize = async () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
@@ -114,5 +114,10 @@ const handleClaimPrize = async () => {
 .buy-keys-card {
   width: 100%;
   max-width: 400px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(8px);
 }
 </style>
