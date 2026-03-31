@@ -144,15 +144,57 @@ const handleShareIdentityCredential = async () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 20px 12px;
+  padding: 24px 16px;
   min-height: 300px;
+  font-family: 'OCR A Std', 'Courier New', monospace;
+  background: linear-gradient(160deg, #1E293B 0%, #0F172A 50%, #1A1F35 100%);
+  color: #CBD5E1;
+  border-radius: 12px;
+  border: 2px solid #334155;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+}
+
+.neodid-passport-play-area::before {
+  content: "DIGITAL PASSPORT";
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  letter-spacing: 6px;
+  color: rgba(212, 168, 83, 0.25);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.neodid-passport-play-area::after {
+  content: "";
+  position: absolute;
+  top: 24px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(212, 168, 83, 0.2);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(212, 168, 83, 0.08), transparent);
+  pointer-events: none;
 }
 
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }
+
 .json-box {
   @include console.json-box(520px);
   white-space: pre-wrap;
   word-break: break-word;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  border-radius: 4px;
+  font-family: 'OCR A Std', 'Courier New', monospace;
+  font-size: 12px;
+  color: #94A3B8;
 }
 </style>
