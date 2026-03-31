@@ -1,11 +1,19 @@
 import Head from "next/head";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Layout, PageHero } from "@/components/layout";
-import {
-  ExplorerSearchPanel,
-  ExplorerSearchResults,
-  type ExplorerSearchResult,
-} from "@/components/features/explorer";
+import type { ExplorerSearchResult } from "@/components/features/explorer";
+
+// Lazy-load explorer components — this page is secondary and the search
+// result renderer pulls in heavy formatting and trace-display code.
+const ExplorerSearchPanel = dynamic(
+  () => import("@/components/features/explorer/ExplorerSearchPanel").then((m) => m.ExplorerSearchPanel),
+  { ssr: false },
+);
+const ExplorerSearchResults = dynamic(
+  () => import("@/components/features/explorer/ExplorerSearchResults").then((m) => m.ExplorerSearchResults),
+  { ssr: false },
+);
 
 export default function ExplorerPage() {
   const [query, setQuery] = useState("");
