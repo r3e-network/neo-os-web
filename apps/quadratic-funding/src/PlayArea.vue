@@ -133,6 +133,7 @@ const goToContributeTab = () => {
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "./pages/index/quadratic-funding-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :global(body) {
   background: linear-gradient(135deg, var(--qf-bg-start) 0%, var(--qf-bg-end) 100%);
@@ -142,12 +143,121 @@ const goToContributeTab = () => {
 .qf-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 20px;
+  padding: 24px 16px;
   min-height: 300px;
+  font-family: var(--qf-font, 'Outfit', sans-serif);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 280px;
+    background:
+      radial-gradient(ellipse at 25% 0%, rgba(194, 65, 12, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .op-btn {
   width: 100%;
+
+  :deep(.neo-btn) {
+    font-family: var(--qf-font, 'Outfit', sans-serif);
+    background: var(--qf-pool-gradient, linear-gradient(135deg, #C2410C, #7C3AED));
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(194, 65, 12, 0.25);
+    letter-spacing: 0.02em;
+    transition: all 0.25s ease;
+
+    &:hover {
+      box-shadow: 0 10px 32px rgba(194, 65, 12, 0.35);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+:deep(.neo-card) {
+  font-family: var(--qf-font, 'Outfit', sans-serif);
+  background: var(--qf-card-bg, rgba(22, 14, 32, 0.85));
+  border: 1px solid var(--qf-card-border, rgba(124, 58, 237, 0.2));
+  border-radius: 18px;
+  box-shadow: var(--qf-card-shadow, 0 8px 32px rgba(0, 0, 0, 0.25));
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: rgba(124, 58, 237, 0.35);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(124, 58, 237, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--qf-pool-gradient, linear-gradient(135deg, #C2410C, #7C3AED));
+    opacity: 0.5;
+  }
+}
+
+:deep(.neo-btn--primary) {
+  font-family: var(--qf-font, 'Outfit', sans-serif);
+  background: var(--qf-pool-gradient, linear-gradient(135deg, #C2410C, #7C3AED));
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.3);
+  letter-spacing: 0.02em;
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.4);
+    transform: translateY(-1px);
+  }
+}
+
+:deep(.neo-btn--secondary) {
+  font-family: var(--qf-font, 'Outfit', sans-serif);
+  background: var(--qf-multiplier-bg, rgba(124, 58, 237, 0.12));
+  border: 1px solid var(--qf-multiplier-border, rgba(124, 58, 237, 0.25));
+  color: var(--qf-accent, #7C3AED);
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba(124, 58, 237, 0.2);
+    border-color: rgba(124, 58, 237, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .op-btn :deep(.neo-btn):hover,
+  :deep(.neo-card):hover,
+  :deep(.neo-btn--primary):hover {
+    transform: none;
+  }
 }
 </style>

@@ -86,12 +86,153 @@ const handleRequestLoan = async (data: { amount: string; callbackContract: strin
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "./pages/index/flashloan-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 .flashloan-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 20px;
+  padding: 24px 16px;
   min-height: 300px;
+  font-family: var(--flash-font, 'Space Grotesk', sans-serif);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 40px,
+        var(--flash-grid, rgba(59, 130, 246, 0.06)) 40px,
+        var(--flash-grid, rgba(59, 130, 246, 0.06)) 41px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        var(--flash-grid, rgba(59, 130, 246, 0.06)) 40px,
+        var(--flash-grid, rgba(59, 130, 246, 0.06)) 41px
+      );
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, rgba(59, 130, 246, 0.04) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: flash-pulse 4s ease-in-out infinite;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+@keyframes flash-pulse {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+
+@keyframes lightning-strike {
+  0%, 90%, 100% { opacity: 0; }
+  92%, 96% { opacity: 1; }
+  94% { opacity: 0.3; }
+}
+
+:deep(.neo-card) {
+  font-family: var(--flash-font, 'Space Grotesk', sans-serif);
+  background: var(--flash-panel, rgba(12, 18, 34, 0.9));
+  border: 1px solid var(--flash-panel-border, rgba(59, 130, 246, 0.25));
+  border-radius: 14px;
+  box-shadow: var(--flash-panel-shadow, 0 0 24px rgba(59, 130, 246, 0.1));
+  backdrop-filter: blur(12px);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--flash-lightning-gradient, linear-gradient(135deg, #3B82F6 0%, #FBBF24 100%));
+    opacity: 0.6;
+  }
+
+  &:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow:
+      0 0 32px rgba(59, 130, 246, 0.15),
+      0 0 0 1px rgba(251, 191, 36, 0.05);
+  }
+}
+
+:deep(.neo-btn--primary) {
+  font-family: var(--flash-font, 'Space Grotesk', sans-serif);
+  background: var(--flash-lightning-gradient, linear-gradient(135deg, #3B82F6 0%, #FBBF24 100%));
+  color: var(--flash-button-text, #000);
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  box-shadow: var(--flash-button-shadow, 0 0 20px rgba(251, 191, 36, 0.4));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 13px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    box-shadow: var(--flash-electric-glow, 0 0 30px rgba(251, 191, 36, 0.25), 0 0 60px rgba(59, 130, 246, 0.1));
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: var(--flash-button-shadow-pressed);
+  }
+}
+
+:deep(.neo-btn--secondary) {
+  font-family: var(--flash-font, 'Space Grotesk', sans-serif);
+  background: var(--flash-surface, rgba(10, 15, 28, 0.7));
+  border: 1px solid var(--flash-panel-border, rgba(59, 130, 246, 0.25));
+  color: var(--flash-accent-yellow, #FBBF24);
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashloan-play-area::after {
+    animation: none;
+  }
+  :deep(.neo-btn--primary):hover {
+    transform: none;
+  }
 }
 </style>

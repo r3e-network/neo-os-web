@@ -1,11 +1,53 @@
 :global(.theme-trustanchor) {
+  --anchor-font: 'Instrument Sans', 'Inter', sans-serif;
   --trustanchor-success: #22c55e;
   --trustanchor-emerald: #10b981;
   --trustanchor-emerald-light: #34d399;
   --trustanchor-step-bg: rgba(16, 185, 129, 0.18);
+  --anchor-bg: #091520;
+  --anchor-bg-deep: #060f18;
+  --anchor-ocean: #0369A1;
+  --anchor-ocean-light: #0ea5e9;
+  --anchor-ocean-soft: rgba(3, 105, 161, 0.15);
+  --anchor-ocean-glow: rgba(3, 105, 161, 0.35);
+  --anchor-gray: #64748b;
+  --anchor-gray-soft: rgba(100, 116, 139, 0.15);
+  --anchor-trust-green: #22c55e;
+  --anchor-text: #e2e8f0;
+  --anchor-text-muted: rgba(226, 232, 240, 0.6);
+  --anchor-card-bg: rgba(12, 24, 38, 0.85);
+  --anchor-card-border: rgba(3, 105, 161, 0.2);
+  --anchor-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --anchor-surface: rgba(15, 28, 48, 0.65);
+  --anchor-divider: rgba(3, 105, 161, 0.1);
+  --anchor-chain-gradient: linear-gradient(135deg, rgba(3, 105, 161, 0.12) 0%, rgba(100, 116, 139, 0.06) 100%);
+  --anchor-depth-gradient: radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.1) 0%, transparent 60%);
+
+  --bg-primary: var(--anchor-bg);
+  --text-primary: var(--anchor-text);
+  --text-secondary: var(--anchor-text-muted);
+  --border-color: var(--anchor-card-border);
 }
 
 :global(.theme-light .theme-trustanchor),
 :global([data-theme="light"] .theme-trustanchor) {
   --trustanchor-success: #16a34a;
+  --anchor-bg: #f0f7fd;
+  --anchor-bg-deep: #e8f2fa;
+  --anchor-ocean: #0369A1;
+  --anchor-ocean-light: #0284c7;
+  --anchor-ocean-soft: rgba(3, 105, 161, 0.1);
+  --anchor-ocean-glow: rgba(3, 105, 161, 0.2);
+  --anchor-gray: #64748b;
+  --anchor-gray-soft: rgba(100, 116, 139, 0.08);
+  --anchor-trust-green: #16a34a;
+  --anchor-text: #0f172a;
+  --anchor-text-muted: rgba(15, 23, 42, 0.55);
+  --anchor-card-bg: rgba(255, 255, 255, 0.9);
+  --anchor-card-border: rgba(3, 105, 161, 0.18);
+  --anchor-card-shadow: 0 8px 28px rgba(3, 105, 161, 0.06);
+  --anchor-surface: rgba(255, 255, 255, 0.7);
+  --anchor-divider: rgba(3, 105, 161, 0.08);
+  --anchor-chain-gradient: linear-gradient(135deg, rgba(3, 105, 161, 0.08) 0%, rgba(100, 116, 139, 0.04) 100%);
+  --anchor-depth-gradient: radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.06) 0%, transparent 60%);
 }

@@ -66,17 +66,37 @@ const overviewStats = computed<StatsDisplayItem[]>(() => [
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "./pages/index/trustanchor-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
 :global(body) {
-  background: var(--bg-primary);
+  background: var(--anchor-bg, var(--bg-primary));
 }
 
 .trustanchor-play-area {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 20px;
+  padding: 24px 16px;
   min-height: 300px;
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 250px;
+    background: var(--anchor-depth-gradient, radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.1) 0%, transparent 60%));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .section-header {
@@ -86,17 +106,93 @@ const overviewStats = computed<StatsDisplayItem[]>(() => [
 }
 
 .section-title {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  color: var(--anchor-ocean, #0369A1);
 }
 
 .section-desc {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
   font-size: 14px;
   opacity: 0.82;
   line-height: 1.7;
   display: block;
+  color: var(--anchor-text-muted, var(--text-secondary));
+}
+
+:deep(.neo-card) {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
+  background: var(--anchor-card-bg, rgba(12, 24, 38, 0.85));
+  border: 1px solid var(--anchor-card-border, rgba(3, 105, 161, 0.2));
+  border-radius: 16px;
+  box-shadow: var(--anchor-card-shadow, 0 8px 32px rgba(0, 0, 0, 0.25));
+  backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+  position: relative;
+
+  &:hover {
+    border-color: rgba(3, 105, 161, 0.35);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(3, 105, 161, 0.08);
+    transform: translateY(-1px);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--anchor-ocean, #0369A1), transparent);
+    opacity: 0.2;
+  }
+}
+
+:deep(.neo-btn--primary) {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
+  background: linear-gradient(135deg, var(--anchor-ocean, #0369A1) 0%, var(--anchor-ocean-light, #0ea5e9) 100%);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px var(--anchor-ocean-glow, rgba(3, 105, 161, 0.35));
+  letter-spacing: 0.02em;
+  transition: all 0.25s ease;
+
+  &:hover {
+    box-shadow: 0 8px 28px var(--anchor-ocean-glow, rgba(3, 105, 161, 0.35));
+    transform: translateY(-1px);
+  }
+}
+
+:deep(.neo-btn--secondary) {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
+  background: var(--anchor-ocean-soft, rgba(3, 105, 161, 0.15));
+  border: 1px solid rgba(3, 105, 161, 0.2);
+  color: var(--anchor-ocean-light, #0ea5e9);
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+
+  &:hover {
+    background: rgba(3, 105, 161, 0.22);
+    border-color: rgba(3, 105, 161, 0.35);
+  }
+}
+
+:deep(.stats-display) {
+  font-family: var(--anchor-font, 'Instrument Sans', sans-serif);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.neo-card):hover,
+  :deep(.neo-btn--primary):hover {
+    transform: none;
+  }
 }
 </style>
