@@ -82,6 +82,7 @@ function handleClick(event: MouseEvent) {
 
   &:active:not(:disabled) {
     transform: translateY(0);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
   &:disabled {
@@ -91,9 +92,9 @@ function handleClick(event: MouseEvent) {
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent-primary, #3b82f6);
+    outline: 2px solid var(--accent-primary, #00e599);
     outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 4px rgba(0, 229, 153, 0.15);
   }
 
   &--block {
@@ -141,7 +142,7 @@ function handleClick(event: MouseEvent) {
     box-shadow: 0 2px 10px var(--shadow-color, rgba(0, 0, 0, 0.1));
 
     &:hover:not(:disabled) {
-      background: var(--bg-elevated, rgba(255, 255, 255, 0.1));
+      background: rgba(255, 255, 255, 0.06);
       border-color: var(--border-color, rgba(255, 255, 255, 0.2));
       box-shadow: 0 4px 15px var(--shadow-color, rgba(0, 0, 0, 0.2));
     }
@@ -156,6 +157,7 @@ function handleClick(event: MouseEvent) {
     &:hover:not(:disabled) {
       color: var(--text-primary, white);
       background: var(--bg-card, rgba(255, 255, 255, 0.05));
+      box-shadow: 0 0 15px rgba(0, 229, 153, 0.1);
     }
   }
 
