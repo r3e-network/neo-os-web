@@ -3,6 +3,7 @@ import { Key, Lock, FileText } from "lucide-react";
 import { useSecretsStore, SecretToken } from "@/lib/secrets";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/lib/wallet/store";
+import { ConfirmModal } from "@/components/ui/modal";
 import { CreateTokenForm } from "./CreateTokenForm";
 
 interface AppSecretsTabProps {
@@ -74,6 +75,7 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
 function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: string) => void }) {
   const [revoking, setRevoking] = useState(false);
   const [revokeErr, setRevokeErr] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
   const typeIcons: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
     api_key: Key,
     encryption_key: Lock,
@@ -121,7 +123,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
               type="button"
               disabled={revoking}
               className="px-2 py-1 text-xs border border-red-500 dark:border-red-400 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
-              onClick={handleRevoke}
+              onClick={() => setShowConfirm(true)}
             >
               {revoking ? "Revoking..." : "Revoke"}
             </button>
@@ -131,6 +133,16 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
       {revokeErr && (
         <p className="text-xs text-red-600 dark:text-red-400">{revokeErr}</p>
       )}
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Delete Secret"
+        message="This secret will be permanently deleted. This action cannot be undone."
+        confirmText="Delete Secret"
+        confirmVariant="danger"
+        onConfirm={handleRevoke}
+        onCancel={() => setShowConfirm(false)}
+      />
     </li>
   );
 }

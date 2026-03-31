@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmModal } from "@/components/ui/modal";
 import { SecretToken } from "@/lib/secrets";
 
 interface TokenListProps {
@@ -7,34 +9,50 @@ interface TokenListProps {
 }
 
 export function TokenList({ tokens, onRevoke }: TokenListProps) {
+  const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+
   if (tokens.length === 0) {
     return <div className="py-6 text-center text-gray-500 dark:text-gray-400">No tokens created yet</div>;
   }
 
   return (
-    <ul className="space-y-3">
-      {tokens.map((token) => (
-        <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900 dark:text-white truncate" title={token.name}>{token.name}</span>
-              <StatusBadge status={token.status} />
+    <>
+      <ul className="space-y-3">
+        {tokens.map((token) => (
+          <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900 dark:text-white truncate" title={token.name}>{token.name}</span>
+                <StatusBadge status={token.status} />
+              </div>
+              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate" title={`App: ${token.appName || token.appId}`}>App: {token.appName || token.appId}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Created: {formatDate(token.createdAt)}
+                {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
+              </div>
             </div>
-            <div className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate" title={`App: ${token.appName || token.appId}`}>App: {token.appName || token.appId}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Created: {formatDate(token.createdAt)}
-              {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
-            </div>
-          </div>
 
-          {token.status === "active" && (
-            <button type="button" onClick={() => onRevoke(token.id)} className="py-1 px-2 text-sm text-red-600 dark:text-red-400 hover:underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
-              Revoke
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
+            {token.status === "active" && (
+              <button type="button" onClick={() => setRevokeTarget(token.id)} className="py-1 px-2 text-sm text-red-600 dark:text-red-400 hover:underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
+                Revoke
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <ConfirmModal
+        isOpen={revokeTarget !== null}
+        title="Revoke API Token"
+        message="This will permanently revoke this token. Any services using it will lose access immediately."
+        confirmText="Revoke Token"
+        confirmVariant="danger"
+        onConfirm={() => {
+          if (revokeTarget) onRevoke(revokeTarget);
+        }}
+        onCancel={() => setRevokeTarget(null)}
+      />
+    </>
   );
 }
 
