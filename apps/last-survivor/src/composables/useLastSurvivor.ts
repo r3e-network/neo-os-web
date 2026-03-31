@@ -39,8 +39,7 @@ import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { LeaderboardProxy } from "@shared/services/os/LeaderboardProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { formatNumber } from "@shared/utils/format";
-import { formatAddress } from "@shared/utils/neo";
+import { formatNumber, formatAddress } from "@shared/utils/format";
 import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
 
 // ============================================================================
