@@ -90,6 +90,8 @@ const handleRequestLoan = async (data: { amount: string; callbackContract: strin
 .flashloan-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
 }
 </style>

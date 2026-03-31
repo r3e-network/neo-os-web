@@ -83,7 +83,7 @@ const handleFlip = (index: number) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }

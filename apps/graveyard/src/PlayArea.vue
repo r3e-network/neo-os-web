@@ -66,7 +66,7 @@ const handleForget = async (item: unknown) => {
 .graveyard-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
@@ -131,7 +131,7 @@ const handleForget = async (item: unknown) => {
 }
 
 .hero-stat-icon { font-size: 24px; margin-bottom: 8px; animation: ghost-float 4s ease-in-out infinite; }
-.hero-stat-value { font-size: 20px; font-weight: 700; color: var(--text-primary); font-family: $font-mono; display: block; }
+.hero-stat-value { font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: $font-mono; font-variant-numeric: tabular-nums; display: block; }
 .hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 1px; margin-top: 4px; display: block; }
 
 .fog {

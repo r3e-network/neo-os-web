@@ -100,12 +100,12 @@ const handleOpenMemorial = async (id: number) => {
 .memorial-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
 
-.hero-container { margin-bottom: 20px; background: radial-gradient(ellipse at 50% 80%, rgba(218, 165, 32, 0.1) 0%, transparent 60%); }
+.hero-container { background: radial-gradient(ellipse at 50% 80%, rgba(218, 165, 32, 0.1) 0%, transparent 60%); }
 .candle-scene { display: flex; justify-content: center; align-items: flex-end; height: 100px; padding-bottom: 10px; background: linear-gradient(180deg, transparent, rgba(218, 165, 32, 0.04)); }
 .candle { display: flex; flex-direction: column; align-items: center; }
 .flame { width: 12px; height: 20px; background: radial-gradient(ellipse at bottom, var(--shrine-gold), var(--shrine-incense), transparent); border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; animation: flame-flicker 2s ease-in-out infinite alternate; filter: blur(1px); }
@@ -116,7 +116,7 @@ const handleOpenMemorial = async (id: number) => {
 .hero-stats { display: flex; gap: 16px; justify-content: center; box-shadow: 0 0 20px rgba(218, 165, 32, 0.12); }
 .hero-stat { text-align: center; padding: 8px 16px; background: rgba(218, 165, 32, 0.08); border-radius: 8px; border: 1px solid rgba(218, 165, 32, 0.15); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .hero-stat-icon { display: block; font-size: 20px; margin-bottom: 4px; }
-.hero-stat-value { display: block; font-size: 20px; font-weight: 800; color: var(--shrine-gold, var(--text-primary)); }
+.hero-stat-value { display: block; font-size: 20px; font-weight: 800; color: var(--shrine-gold, var(--text-primary)); font-variant-numeric: tabular-nums; }
 .hero-stat-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--shrine-muted, var(--text-secondary)); letter-spacing: 1px; margin-top: 2px; }
 
 .header { text-align: center; padding: 32px 16px; }

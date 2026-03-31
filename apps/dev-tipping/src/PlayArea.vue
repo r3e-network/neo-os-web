@@ -91,11 +91,12 @@ const handleSendTip = async () => {
 .dev-tipping-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
 }
 
 .hero-container {
-  margin-bottom: 20px;
   background: radial-gradient(ellipse at center, rgba(210, 160, 60, 0.1) 0%, transparent 70%);
   transition: box-shadow 0.4s ease;
 }
