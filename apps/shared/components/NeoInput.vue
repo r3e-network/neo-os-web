@@ -42,7 +42,7 @@
         <span v-if="suffix">{{ suffix }}</span>
       </div>
     </div>
-    <span v-if="error" :id="`${inputId}-error`" class="neo-input__error" role="alert">{{ error }}</span>
+    <span v-if="error" :id="`${inputId}-error`" class="neo-input__error" role="alert" aria-live="assertive">{{ error }}</span>
     <span v-else-if="hint" :id="`${inputId}-hint`" class="neo-input__hint">{{ hint }}</span>
   </div>
 </template>
