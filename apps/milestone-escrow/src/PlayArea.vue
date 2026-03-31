@@ -107,11 +107,51 @@ const dispatch = async (name: string, payload?: unknown) => {
 </script>
 
 <style lang="scss" scoped>
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800&display=swap');
+
 .milestone-escrow-play-area {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 20px 12px;
+  padding: 24px 16px;
   min-height: 300px;
+  font-family: 'Work Sans', sans-serif;
+  background: linear-gradient(170deg, #ECFDF5 0%, #F0FDF4 30%, #F8FAFC 100%);
+  color: #1E293B;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.milestone-escrow-play-area::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 3px;
+  background: linear-gradient(90deg,
+    #10B981 0%,
+    #10B981 25%,
+    #F59E0B 25%,
+    #F59E0B 50%,
+    #D1D5DB 50%,
+    #D1D5DB 100%
+  );
+  border-radius: 0 0 2px 2px;
+  pointer-events: none;
+}
+
+.milestone-escrow-play-area::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(0deg, rgba(16, 185, 129, 0.03), transparent);
+  pointer-events: none;
 }
 </style>
