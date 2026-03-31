@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
+import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
 
 type Props = {
   app: MiniAppInfo;
@@ -27,8 +28,41 @@ export function AppDetailHeader({ app, onBack }: Props) {
     statusColor = "text-gray-500 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-gray-800 dark:border-gray-700";
   }
 
+  const bannerSources = useMemo(
+    () =>
+      buildMiniAppBannerSources({
+        appID: app.app_id,
+        entryURL: app.entry_url,
+        bannerURL: app.banner_url,
+        manifest: app.manifest || null,
+      }),
+    [app.app_id, app.banner_url, app.entry_url, app.manifest],
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
+
+  useEffect(() => {
+    setBannerIndex(0);
+  }, [bannerSources]);
+
+  const bannerSource = bannerSources[bannerIndex];
+
   return (
     <header className="relative border-b border-gray-200/50 dark:border-white/5 bg-white/40 dark:bg-[#0A0B10]/40 px-4 sm:px-8 pt-6 pb-8 sm:pt-10 sm:pb-12 overflow-hidden backdrop-blur-xl">
+      {/* Hero banner image with gradient fallback */}
+      {bannerSource ? (
+        <img
+          src={bannerSource}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-20 dark:opacity-15 pointer-events-none"
+          onError={() => {
+            setBannerIndex((prev) =>
+              prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length,
+            );
+          }}
+        />
+      ) : null}
+
       {/* Background glowing effects */}
       <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-neo/5 blur-[100px] rounded-full pointer-events-none" />
       <div className="absolute -bottom-1/2 left-1/4 w-[400px] h-[400px] bg-[#7000FF]/5 blur-[100px] rounded-full pointer-events-none" />
