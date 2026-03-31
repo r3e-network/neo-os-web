@@ -6,7 +6,8 @@ import { tx, wallet } from "@r3e/neo-js-sdk/browser";
 function getSponsorConfig() {
   return {
     sponsoredWIF: process.env.SPONSORED_WIF || "",
-    networkMagic: parseInt(process.env.NEXT_PUBLIC_NETWORK_MAGIC || "877933390", 10),
+    // Neo N3 TestNet T5 network magic
+    networkMagic: parseInt(process.env.NEXT_PUBLIC_NETWORK_MAGIC || "894710606", 10),
   };
 }
 

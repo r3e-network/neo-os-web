@@ -5,7 +5,7 @@
     "https://testnet2.neo.coz.io:443",
     "https://rpc.t5.n3.nspcc.ru:20331"
   ],
-  "network_magic": 877933390,
+  "network_magic": 894710606,
   "contracts": {
     "Governance": "0x2ec930202e6d03313d97198259b298cc3c29295e",
     "FundingVault": "0x958bccb2ec9292461977ef1d2f1222d4e7861537",
