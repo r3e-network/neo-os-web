@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-31T05:33:32.568Z",
+  "generatedAt": "2026-03-31T10:53:05.613Z",
   "targetNetwork": "testnet",
   "rpcUrl": "https://testnet1.neo.coz.io:443",
   "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
@@ -32,7 +32,7 @@
       "siblingOracleEnvLocalPath": "/home/neo/git/neo-morpheus-oracle/.env.local",
       "siblingOraclePhalaEnvPath": "/home/neo/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
       "siblingEdgeGatewayConfigPath": "/home/neo/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
-      "siblingOracleEnvExists": false,
+      "siblingOracleEnvExists": true,
       "siblingOracleEnvLocalExists": false,
       "siblingOraclePhalaEnvExists": false,
       "siblingEdgeGatewayConfigExists": true
@@ -61,7 +61,7 @@
     },
     "runtime": {
       "phalaApiUrl": "https://ddff154546fe22d15b65667156dd4b7c611e6093-3000.dstack-pha-prod5.phala.network/testnet",
-      "phalaApiTokenConfigured": false,
+      "phalaApiTokenConfigured": true,
       "rngFallbackEnabled": true,
       "rngFallbackLeadMs": 15000,
       "oracleUpdaterWifConfigured": false,
@@ -74,18 +74,18 @@
       "primary": {
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3113269319933",
-        "neo": "73084"
+        "gas": "3136702242398",
+        "neo": "73082"
       },
       "admin": {
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3113269319933"
+        "gas": "3136702242398"
       },
       "oracleUpdater": {
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3113269319933"
+        "gas": "3136702242398"
       }
     },
     "fundingHints": {
@@ -100,11 +100,11 @@
     "dailyCheckin": {
       "ok": true,
       "contractHash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-      "txid": "0xc428801236c0670de7fa5a87dcf02a857755cce93de627db97d0332644792490",
+      "txid": "0xe0c59426f53f6e1c4f44475c0149da2a778d9db1f56f530d8257215291b912a3",
       "notificationObserved": true,
       "statusBefore": {
-        "currentUtcDay": "20543231",
-        "lastCheckinDay": "20543141",
+        "currentUtcDay": "20543453",
+        "lastCheckinDay": "20543431",
         "canCheckin": true,
         "timeUntilEligible": "0",
         "streakWillReset": true,
@@ -127,7 +127,7 @@
         "version": "1",
         "enabled": true
       },
-      "machineId": 7,
+      "machineId": 8,
       "itemIndex": 1,
       "prizeItem": {
         "name": "Small GAS Prize",
@@ -137,23 +137,23 @@
         "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
         "amount": "1000000",
         "tokenId": "",
-        "stock": "1000000",
+        "stock": "5000000",
         "tokenCount": "0",
         "decimals": "8"
       },
       "provisioned": null,
-      "transferTx": "0x931fd1f82aa1eddd3aecc4ab5c202649930e558307d1ac35ac5c4f48fcbb846d",
-      "initiateTx": "0xa97afaea1af291878a48aa51e42457a751c1edc3f54fa85597d4a7cc2bd29e87",
-      "playId": "35",
+      "transferTx": "0x59107cec631d9a14cc88bdfac6dbdef3fb38a4a20d6d9d7d7d84d71815355af2",
+      "initiateTx": "0x28e3206752de19d9c8610b92c94149a86e5854e6af591828e486e32ba3303ae7",
+      "playId": "36",
       "selectedIndex": "1",
-      "settleTx": "0xc0aa33cfa9dc513fdfb35ce449e13dd1e1a8a75e1389ff947fc507c4d99d81df",
+      "settleTx": "0x2cc4b5e353687ac1b79e2afab63106e9f9b36e4033342bb71cdd6aca36112ee7",
       "play": {
-        "id": "35",
+        "id": "36",
         "player": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "machineId": "7",
+        "machineId": "8",
         "itemIndex": "1",
         "price": "10000000",
-        "timestamp": "1774935247725",
+        "timestamp": "1774954414561",
         "resolved": true
       }
     },
@@ -172,19 +172,19 @@
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
         "requiredCollateral": "1",
-        "availableNeo": "73084"
+        "availableNeo": "73082"
       },
-      "poolTx": "0xdcf68aaf08f98753c62b4ab0ea7c086dcca82c7efc242e547452b96057c81282",
-      "collateralTx": "0x870f61c912554728c4156274ce34a3f9177ed33b62ca369000ce65fcae8d1a58",
-      "createTx": "0xd9733f9f0d9539f59277db7972670e0e62e18a63a5899f106d2ba8a9a3860cfb",
-      "loanId": "37",
+      "poolTx": "0xbeeea898553e03543adea833f1908eda11021643e94f9d92a60f0f8877ae6753",
+      "collateralTx": "0x53a3387475fd4c3a802b970cd5dc3d820de97823be51bf2e8751384b6222acb2",
+      "createTx": "0x882a9e99cba6e98d5b17e956ab70d222acb969d2193391d0c7d692fff3fda22e",
+      "loanId": "39",
       "details": {
-        "id": "37",
+        "id": "39",
         "borrower": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "collateral": "1",
         "debt": "20000000",
         "originalDebt": "20000000",
-        "createdTime": "1774935283619",
+        "createdTime": "1774954449460",
         "ltvBps": "2000",
         "totalRepaid": "0",
         "yieldAccrued": "0",
@@ -196,14 +196,14 @@
     "neoPay": {
       "ok": true,
       "contractHash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-      "fundTx": "0x5d192d8fc10e394648f4887149cd677bdbce9238ae0966c12cc6e11c3d66f45c",
-      "createTx": "0x30f0e88767d9963cd13a6ca7709cd4e51569c0f520d130abd4947c95b29f2073",
-      "streamId": "35",
-      "cancelTx": "0xddfceb822f6e7adba5f8b13e9a8106de679e43645f34079557f484349479a503",
+      "fundTx": "0xc889f9b80dce728fef74106f436e3fcf96ee0c6c0e1c86041404ea898831e1c9",
+      "createTx": "0xeceace8995050e2f0e32aba4c70a57578fdbf9c8f244771acf9158369a6a8505",
+      "streamId": "37",
+      "cancelTx": "0xd4aa554b5d59701d6052984b6508bb7a98d53e21442277e069c14f54fa1aa438",
       "claimSimulationState": "FAULT",
       "claimSimulationError": "at instruction 2953 (ABORTMSG): ABORTMSG is executed. Reason: nothing claimable",
       "detailsBefore": {
-        "id": "35",
+        "id": "37",
         "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -216,11 +216,11 @@
         "claimable": "0",
         "title": "Codex Payroll Smoke",
         "notes": "testnet validation stream",
-        "createdTime": "1774935305963",
+        "createdTime": "1774954462126",
         "cancelledAt": "0"
       },
       "detailsAfter": {
-        "id": "35",
+        "id": "37",
         "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -233,8 +233,8 @@
         "claimable": "0",
         "title": "Codex Payroll Smoke",
         "notes": "testnet validation stream",
-        "createdTime": "1774935305963",
-        "cancelledAt": "1774935312262"
+        "createdTime": "1774954462126",
+        "cancelledAt": "1774954468694"
       }
     }
   }
