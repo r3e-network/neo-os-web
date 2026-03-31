@@ -155,21 +155,21 @@ const displayedItems = computed(() => {
     padding: $spacing-2 $spacing-4;
     font-size: $font-size-sm;
     font-weight: $font-weight-bold;
-    color: var(--text-primary, #ffffff);
-    background: var(--accent-primary, #3b82f6);
+    color: var(--text-primary, #1b1b2f);
+    background: var(--accent-primary, #00e599);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.2s ease;
 
     &:hover {
-      background: var(--accent-hover, #2563eb);
+      background: var(--accent-hover, #00cc88);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline: 2px solid var(--accent-primary, #00e599);
       outline-offset: 2px;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 0 4px rgba(0, 229, 153, 0.15);
     }
   }
 
@@ -189,10 +189,15 @@ const displayedItems = computed(() => {
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     border-radius: 12px;
     padding: $spacing-3;
-    transition: background 0.2s ease;
+    transition:
+      background 0.2s ease,
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
 
     &:hover {
       background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
   }
 
@@ -202,27 +207,29 @@ const displayedItems = computed(() => {
     margin-top: $spacing-2;
     font-size: $font-size-sm;
     font-weight: $font-weight-bold;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    color: var(--accent-primary, #00e599);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     cursor: pointer;
     border-radius: 8px;
-    border: none;
+    border: 1px solid rgba(0, 229, 153, 0.2);
     appearance: none;
     background: transparent;
     transition:
       background 0.2s ease,
-      color 0.2s ease;
+      color 0.2s ease,
+      border-color 0.2s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(0, 229, 153, 0.08);
       color: var(--text-primary, #ffffff);
+      border-color: rgba(0, 229, 153, 0.4);
     }
 
     &:focus-visible {
-      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline: 2px solid var(--accent-primary, #00e599);
       outline-offset: 2px;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+      box-shadow: 0 0 0 4px rgba(0, 229, 153, 0.15);
     }
   }
 }

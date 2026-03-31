@@ -284,7 +284,7 @@ const { t } = useI18n();
     margin: 0 auto 6px;
     background: rgba(255, 255, 255, 0.06);
     border-radius: 4px;
-    animation: statsDisplayPulse 1.5s ease-in-out infinite;
+    animation: statsDisplayPulse 1s ease-in-out infinite;
   }
 
   &__skeleton-label {
@@ -293,7 +293,7 @@ const { t } = useI18n();
     margin: 0 auto;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 3px;
-    animation: statsDisplayPulse 1.5s ease-in-out infinite 0.2s;
+    animation: statsDisplayPulse 1s ease-in-out infinite 0.2s;
   }
 }
 
@@ -319,6 +319,27 @@ const { t } = useI18n();
   .stats-display__skeleton-value,
   .stats-display__skeleton-label {
     animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-display {
+    &--cols-3,
+    &--cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    &__value {
+      font-size: $font-size-lg;
+    }
+
+    &__label {
+      font-size: 10px;
+    }
+
+    &__icon {
+      font-size: $font-size-xl;
+    }
   }
 }
 </style>
