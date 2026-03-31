@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { OnChainActivity } from "../components/types";
 import { logger } from "../lib/logger";
 import { fetchJSON, toApiError } from "@/lib/fetch-client";
+import { useRealtimeNotifications } from "./useRealtimeNotifications";
 
 interface UseActivityFeedOptions {
   appId?: string;
@@ -22,6 +23,12 @@ const DEFAULT_MAX_ITEMS = 100;
 
 export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityFeedState {
   const { appId, pollInterval = DEFAULT_POLL_INTERVAL, maxItems = DEFAULT_MAX_ITEMS, enabled = true } = options;
+
+  // Realtime notifications via WebSocket (replaces REST polling for notifications)
+  const { notifications: realtimeNotifications } = useRealtimeNotifications({
+    appId,
+    enabled,
+  });
 
   const [activities, setActivities] = useState<OnChainActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,10 +56,11 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
         };
 
         // Fetch events and transactions in parallel
-        const [eventsData, txData, notifData] = await Promise.all([
+        // NOTE: Notifications are now delivered via Supabase Realtime WebSocket
+        // (useRealtimeNotifications) instead of REST polling here.
+        const [eventsData, txData] = await Promise.all([
           fetchMaybe<{ events?: Array<Record<string, unknown>> }>(`/api/activity/events?${params}`),
           fetchMaybe<{ transactions?: Array<Record<string, unknown>> }>(`/api/activity/transactions?${params}`),
-          fetchMaybe<{ notifications?: Array<Record<string, unknown>> }>(`/api/miniapp-notifications?${params}&limit=20`),
         ]);
 
         const newActivities: OnChainActivity[] = [];
@@ -76,14 +84,6 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
           }
           if (txs.length > 0) {
             lastTxIdRef.current = String(txs[0].id ?? "");
-          }
-        }
-
-        // Process notifications
-        if (notifData) {
-          const notifs = notifData.notifications || [];
-          for (const notif of notifs) {
-            newActivities.push(transformNotification(notif));
           }
         }
 
@@ -133,7 +133,16 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
     };
   }, [enabled, pollInterval, fetchActivities]);
 
-  return { activities, loading, error, isConnected };
+  // Merge realtime notifications into the activity list
+  const mergedActivities = useMemo(() => {
+    const notifActivities = realtimeNotifications.map((notif) =>
+      transformNotification(notif as unknown as Record<string, unknown>),
+    );
+    const combined = mergeActivities(activities, notifActivities);
+    return combined.slice(0, maxItems);
+  }, [activities, realtimeNotifications, maxItems]);
+
+  return { activities: mergedActivities, loading, error, isConnected };
 }
 
 // Helper functions
