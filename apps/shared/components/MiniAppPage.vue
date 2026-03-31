@@ -421,11 +421,11 @@ $radius-lg: 16px;
 
   // Custom scrollbar
   &::-webkit-scrollbar {
-    width: 3px;
+    width: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: $border-hover;
-    border-radius: 3px;
+    background: rgba(0, 229, 153, 0.3);
+    border-radius: 6px;
   }
 
   @media (max-width: $mobile) {
@@ -567,6 +567,7 @@ $radius-lg: 16px;
 
     &:hover {
       transform: none;
+      background: rgba(0, 229, 153, 0.08);
     }
     &.active {
       border-color: rgba(0, 229, 153, 0.3);
@@ -821,18 +822,18 @@ $radius-lg: 16px;
 .comment-input {
   flex: 1;
   padding: 11px 18px;
-  background: $surface-1;
-  border: 1px solid $border;
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   color: $text-1;
   font-family: $font-display;
   font-size: 13px;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:focus {
-    border-color: rgba(0, 229, 153, 0.4);
-    box-shadow: 0 0 0 3px $accent-glow;
-    background: $surface-2;
+    border-color: $accent;
+    box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.12);
+    background: rgba(255, 255, 255, 0.06);
     outline: none;
   }
 
@@ -1072,11 +1073,11 @@ $radius-lg: 16px;
   backdrop-filter: blur(20px);
 
   &::-webkit-scrollbar {
-    width: 3px;
+    width: 6px;
   }
   &::-webkit-scrollbar-thumb {
-    background: $border-hover;
-    border-radius: 3px;
+    background: rgba(0, 229, 153, 0.3);
+    border-radius: 6px;
   }
 
   @media (max-width: $mobile) {
@@ -1182,9 +1183,11 @@ $radius-lg: 16px;
   }
 }
 
-.toast-enter-active,
+.toast-enter-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
 .toast-leave-active {
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .toast-enter-from {
   opacity: 0;
