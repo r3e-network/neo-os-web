@@ -30,20 +30,20 @@ export function CodeBlock({ code, language = "bash" }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative my-6 overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/90 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-[#0A0B10]/80">
-      <div className="flex items-center justify-between border-b border-gray-800 bg-gray-800/50 px-4 py-3 text-gray-300 dark:border-white/5 dark:bg-white/5">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-400">{language}</span>
+    <div className="group relative my-6 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-sm dark:border-white/[0.06] dark:bg-[#0d1117]">
+      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-100/80 px-4 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">{language}</span>
         <button
           type="button"
           onClick={handleCopy}
           aria-label="Copy code"
-          className="cursor-pointer rounded-lg border border-white/5 bg-white/5 p-2 shadow-sm backdrop-blur-md transition-all hover:scale-105 hover:border-white/20 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          className="cursor-pointer flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-mono font-semibold text-gray-400 opacity-0 transition-all group-hover:opacity-100 hover:bg-black/5 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-white/[0.06] dark:hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:opacity-100"
         >
-          {copied ? <Check size={14} className="text-neo" /> : <Copy size={14} className="text-gray-300" />}
+          {copied ? <><Check size={12} className="text-neo" /><span className="text-neo">Copied</span></> : <><Copy size={12} /><span>Copy</span></>}
         </button>
       </div>
-      <pre className="overflow-x-auto p-5 text-sm">
-        <code className="font-mono leading-relaxed tracking-wide text-[#a5d6ff]">{code}</code>
+      <pre className="overflow-x-auto p-5 text-[13px] leading-[1.65]">
+        <code className="font-mono tracking-wide text-gray-700 dark:text-[#c9d1d9]">{code}</code>
       </pre>
     </div>
   );

@@ -88,6 +88,50 @@
   }
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Docs Page — Professional Typography
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Inline code pills within prose sections */
+.prose code:not(pre code) {
+  @apply rounded-md px-1.5 py-0.5 text-[0.85em] font-semibold;
+  background: rgba(0, 229, 153, 0.06);
+  color: rgb(0, 180, 120);
+  border: 1px solid rgba(0, 229, 153, 0.12);
+  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.dark .prose code:not(pre code) {
+  background: rgba(0, 229, 153, 0.08);
+  color: rgb(0, 229, 153);
+  border-color: rgba(0, 229, 153, 0.15);
+}
+
+/* Blockquote callout style in prose */
+.prose blockquote {
+  @apply rounded-r-lg border-l-[3px] border-neo/50 bg-neo/[0.03] px-5 py-4;
+}
+
+.dark .prose blockquote {
+  @apply bg-neo/[0.02];
+}
+
+.prose blockquote p {
+  @apply !mb-0;
+}
+
+/* Strong in prose docs */
+.prose strong {
+  @apply font-bold text-gray-900 dark:text-white;
+}
+
+/* HR dividers */
+.prose hr {
+  @apply !my-10 border-none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 153, 0.15), transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
