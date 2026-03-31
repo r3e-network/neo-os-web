@@ -94,6 +94,8 @@ export const baseMessages = {
 
   // --- ItemList keys ---
   emptyText: { en: "No items found", zh: "未找到项目" },
+  emptyStateHint: { en: "Nothing here yet", zh: "暂无内容" },
+  getStarted: { en: "Get started", zh: "开始使用" },
   loadMore: { en: "Load more", zh: "加载更多" },
   listLabel: { en: "List", zh: "列表" },
   formLabel: { en: "Form", zh: "表单" },
