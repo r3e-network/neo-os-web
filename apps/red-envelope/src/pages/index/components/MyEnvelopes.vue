@@ -54,7 +54,7 @@ import { computed } from "vue";
 import { createUseI18n } from "@shared/composables";
 import AppIcon from "@shared/components/AppIcon.vue";
 import { messages } from "@/locale/messages";
-import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelopeOpen";
+import type { EnvelopeItem, ClaimItem } from "@/composables/useRedEnvelope";
 
 const props = defineProps<{
   envelopes: EnvelopeItem[];

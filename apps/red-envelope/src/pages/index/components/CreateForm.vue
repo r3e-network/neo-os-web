@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted, watch } from "vue";
 import CreateEnvelopeForm from "./CreateEnvelopeForm.vue";
-import type { EnvelopeType } from "@/composables/useRedEnvelopeOpen";
+import type { EnvelopeType } from "@/composables/useRedEnvelope";
 
 const props = defineProps<{
   isLoading: boolean;
