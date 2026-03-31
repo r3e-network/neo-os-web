@@ -1,23 +1,20 @@
-function stableSort(value: unknown): unknown {
-  if (value === null) return null;
-  if (Array.isArray(value)) return value.map(stableSort);
-  if (typeof value !== "object") return value;
-
-  const obj = value as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const key of Object.keys(obj).sort()) {
-    const v = obj[key];
-    if (v === undefined) continue;
-    out[key] = stableSort(v);
-  }
-  return out;
-}
-
+/**
+ * Canonical deterministic JSON serializer.
+ * Produces identical output for semantically-equal objects regardless of
+ * key insertion order. Used for manifest hashing AND audit-chain hashing,
+ * so every call-site in the platform MUST use this single implementation.
+ */
 export function stableStringify(value: unknown): string {
-  try {
-    return JSON.stringify(stableSort(value));
-  } catch (err) {
-    console.warn("[stableStringify] serialization failed:", err instanceof Error ? err.message : String(err));
-    return String(value);
+  if (value === null || value === undefined) return "null";
+  if (typeof value !== "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
   }
+  if (Array.isArray(value)) return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b));
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(",")}}`;
 }
