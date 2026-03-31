@@ -3,7 +3,7 @@
 
 // Neo N3 RPC endpoints (same as original site)
 const RPC_ENDPOINTS = [
-  "https://n3seed1.ngd.network:10332",
+  "https://testnet1.neo.coz.io:443",
   "https://n3seed2.ngd.network:10332",
   "https://neo-rpc1.red4sec.com:443",
 ];
