@@ -1,6 +1,7 @@
 <template>
   <div class="record-bar">
     <div class="record-item win">
+      <span class="record-emoji" aria-hidden="true">&#x2705;</span>
       <span class="record-count">{{ wins }}</span>
       <span class="record-label">{{ t("wins") }}</span>
     </div>
@@ -11,20 +12,36 @@
     </div>
     <div class="record-divider" />
     <div class="record-item loss">
+      <span class="record-emoji" aria-hidden="true">&#x274C;</span>
       <span class="record-count">{{ losses }}</span>
       <span class="record-label">{{ t("losses") }}</span>
+    </div>
+    <!-- Win rate bar -->
+    <div class="record-divider" />
+    <div class="record-item rate">
+      <span class="record-count">{{ winRate }}%</span>
+      <span class="record-label">WIN RATE</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from "vue";
+
+const props = defineProps<{
   t: (key: string, params?: Record<string, string | number>) => string;
   wins: number;
   losses: number;
   totalGames: number;
 }>();
+
+const winRate = computed(() => {
+  if (props.totalGames === 0) return 0;
+  return Math.round((props.wins / props.totalGames) * 100);
+});
 </script>
+
+<!-- script is above with template -->
 
 <style lang="scss" scoped>
 @use "@shared/styles/tokens.scss" as *;
@@ -58,6 +75,11 @@ defineProps<{
   gap: 2px;
 }
 
+.record-emoji {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
 .record-count {
   font-size: 20px;
   font-weight: 900;
@@ -66,12 +88,18 @@ defineProps<{
 
   .win & {
     color: var(--coin-win);
+    text-shadow: 0 0 8px rgba(52, 211, 153, 0.3);
   }
   .loss & {
     color: var(--coin-loss);
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
   }
   .total & {
     color: var(--coin-text-muted-light);
+  }
+  .rate & {
+    color: var(--coin-win, #ffd700);
+    font-size: 18px;
   }
 }
 

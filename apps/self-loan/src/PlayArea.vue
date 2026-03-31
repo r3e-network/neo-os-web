@@ -12,6 +12,13 @@
 
     <!-- ── Hero Container ── -->
     <div class="hero-container">
+      <!-- Vault security badge -->
+      <div class="vault-security-badge">
+        <span class="security-icon" aria-hidden="true">&#x1F512;</span>
+        <span class="security-text">{{ t("locked") || "VAULT SECURED" }}</span>
+        <span class="security-dot" />
+      </div>
+
       <CollateralDashboard
         :t="t"
         :collateralDisplay="collateralDisplay"
@@ -186,9 +193,46 @@ const handleAction = async (name: string) => {
     left: 12px;
     right: 12px;
     bottom: 12px;
-    border: 1px solid rgba(212, 168, 83, 0.08);
+    border: 1px solid rgba(212, 168, 83, 0.1);
     border-radius: 14px;
     pointer-events: none;
+  }
+
+  .vault-security-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(5, 150, 105, 0.06);
+    border: 1px solid rgba(5, 150, 105, 0.15);
+    margin-bottom: 8px;
+  }
+
+  .security-icon {
+    font-size: 14px;
+  }
+
+  .security-text {
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(5, 150, 105, 0.7);
+  }
+
+  .security-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #059669;
+    box-shadow: 0 0 6px rgba(5, 150, 105, 0.6);
+    animation: security-blink 2s ease-in-out infinite;
+  }
+
+  @keyframes security-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
 
   &::after {

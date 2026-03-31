@@ -141,7 +141,8 @@ const setAsset = (asset: "GAS" | "NEO") => {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  padding: 4px 0;
 }
 
 .input-group {
@@ -160,5 +161,62 @@ const setAsset = (asset: "GAS" | "NEO") => {
 .asset-toggle {
   display: flex;
   gap: 10px;
+
+  :deep(.neo-btn) {
+    flex: 1;
+    border-radius: 12px;
+    font-weight: 700;
+    transition: all 0.25s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+/* Bank-transfer-style form polish */
+:deep(.neo-input) {
+  border-radius: 12px;
+  transition: all 0.25s ease;
+
+  &:focus-within {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 4px 16px rgba(59, 130, 246, 0.08);
+  }
+}
+
+:deep(.neo-input label) {
+  font-family: var(--stream-font, 'DM Sans', sans-serif);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stream-muted, rgba(232, 237, 245, 0.55));
+}
+
+:deep(.neo-btn--primary) {
+  height: 52px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: 14px;
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: form-btn-shimmer 4s ease-in-out infinite;
+  }
+}
+
+@keyframes form-btn-shimmer {
+  0% { left: -100%; }
+  50%, 100% { left: 200%; }
 }
 </style>

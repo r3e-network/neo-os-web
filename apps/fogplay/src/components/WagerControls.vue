@@ -258,10 +258,18 @@ const updateBetAmount = (amount: string) => {
     text-transform: uppercase;
   }
 
+  &:hover:not(.selected) {
+    background: var(--coin-wager-bg-hover, rgba(255, 215, 0, 0.08));
+    border-color: rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.1);
+  }
+
   &.selected {
     background: var(--coin-success);
     border-color: var(--coin-success);
     box-shadow: 0 0 20px var(--coin-green-active-glow);
+    transform: scale(1.05);
     .amount-val,
     .amount-unit {
       color: var(--coin-black);
@@ -269,13 +277,52 @@ const updateBetAmount = (amount: string) => {
   }
 }
 
+/* Chip-like circular decoration on each wager */
+.wager-option::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 215, 0, 0.2);
+  pointer-events: none;
+}
+
+.wager-option.selected::before {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.wager-option {
+  position: relative;
+}
+
 .flip-btn {
-  height: 56px;
-  font-size: 17px;
+  height: 60px;
+  font-size: 18px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: btn-shimmer 3s ease-in-out infinite;
+  }
+}
+
+@keyframes btn-shimmer {
+  0% { left: -100%; }
+  50%, 100% { left: 200%; }
 }
 
 .btn-content {

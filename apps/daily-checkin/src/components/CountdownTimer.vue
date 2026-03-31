@@ -12,7 +12,7 @@
     </template>
 
     <template v-else>
-      <div class="countdown-timer__circle">
+      <div :class="['countdown-timer__circle', `urgency-${urgencyLevel}`]">
         <svg class="countdown-timer__ring" viewBox="0 0 220 220" aria-hidden="true">
           <circle class="countdown-timer__ring-bg" cx="110" cy="110" r="99" />
           <circle
@@ -20,12 +20,15 @@
             cx="110"
             cy="110"
             r="99"
-            :style="{ strokeDashoffset: strokeOffset }"
+            :style="{ strokeDashoffset: strokeOffset, stroke: urgencyColor }"
           />
         </svg>
         <div class="countdown-timer__display">
-          <span class="countdown-timer__time">{{ display }}</span>
+          <span class="countdown-timer__time" :style="{ textShadow: `0 0 20px ${urgencyColor}50` }">{{ display }}</span>
           <span v-if="label" class="countdown-timer__label">{{ label }}</span>
+          <span class="countdown-timer__urgency-hint" :class="urgencyLevel">
+            {{ urgencyLevel === 'calm' ? t('plentyOfTime') : urgencyLevel === 'attention' ? t('hurryUp') : t('almostGone') }}
+          </span>
         </div>
       </div>
     </template>
@@ -77,6 +80,24 @@ const progress = computed(() => {
   return Math.max(0, Math.min(1, 1 - remaining.value / total));
 });
 const strokeOffset = computed(() => CIRCUMFERENCE * (1 - progress.value));
+
+const urgencyLevel = computed(() => {
+  const totalSec = Math.max(0, Math.ceil(remaining.value / 1000));
+  const h = Math.floor(totalSec / 3600);
+  if (h >= 1) return "calm";       // hours left -> green
+  const m = Math.floor(totalSec / 60);
+  if (m >= 5) return "attention";   // minutes left -> yellow
+  return "urgent";                   // seconds left -> red
+});
+
+const urgencyColor = computed(() => {
+  switch (urgencyLevel.value) {
+    case "calm": return "#00e599";
+    case "attention": return "#fbbf24";
+    case "urgent": return "#ef4444";
+    default: return "#00e599";
+  }
+});
 
 const display = computed(() => {
   const totalSec = Math.max(0, Math.ceil(remaining.value / 1000));
@@ -183,12 +204,48 @@ onUnmounted(stop);
     margin-top: $spacing-1;
   }
 
+  &__urgency-hint {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: $spacing-1;
+
+    &.calm { color: #00e599; }
+    &.attention { color: #fbbf24; animation: hint-blink 2s ease-in-out infinite; }
+    &.urgent { color: #ef4444; animation: hint-blink 0.8s ease-in-out infinite; }
+  }
+
   &__text-only {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: $spacing-1;
   }
+}
+
+.urgency-attention {
+  .countdown-timer__ring-progress {
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+  }
+}
+
+.urgency-urgent {
+  animation: shake-subtle 0.5s ease-in-out infinite;
+  .countdown-timer__ring-progress {
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+  }
+}
+
+@keyframes hint-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shake-subtle {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

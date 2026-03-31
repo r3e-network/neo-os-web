@@ -12,14 +12,20 @@
       </div>
     </div>
 
-    <!-- Prize Pool -->
+    <!-- Prize Pool (MASSIVE) -->
     <div class="hero-prize-pool">
       <span class="prize-label">{{ t("totalPot") }}</span>
-      <span class="prize-amount">{{ formattedPot }} {{ t("tokenGas") }}</span>
+      <div class="prize-amount-row">
+        <span class="prize-gas-icon" aria-hidden="true">&#x26FD;</span>
+        <span class="prize-amount">{{ formattedPot }}</span>
+        <span class="prize-token">{{ t("tokenGas") }}</span>
+      </div>
+      <div class="pot-glow-bar" />
     </div>
 
     <!-- Claim Banner -->
     <div v-if="canClaim" class="hero-claim-banner" role="alert">
+      <div class="claim-trophy" aria-hidden="true">&#x1F3C6;</div>
       <span class="claim-text">{{ t("youWon") }}</span>
       <NeoButton variant="primary" size="lg" block type="button" :loading="isClaiming" @click="$emit('claim')" :aria-label="t('claimPrize')">
         {{ t("claimPrize") }}
@@ -171,7 +177,12 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 16px 28px;
+  background: rgba(251, 191, 36, 0.04);
+  border: 1px solid rgba(251, 191, 36, 0.12);
+  border-radius: 16px;
+  position: relative;
 }
 
 .prize-label {
@@ -182,15 +193,55 @@ defineEmits<{
   color: var(--text-secondary, rgba(255, 255, 255, 0.4));
 }
 
-.prize-amount {
+.prize-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prize-gas-icon {
   font-size: 28px;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+  animation: icon-pulse 2s ease-in-out infinite alternate;
+}
+
+.prize-amount {
+  font-size: 38px;
   font-weight: 900;
   font-family: $font-mono;
   background: linear-gradient(135deg, var(--doom-warn-light, #fbbf24), var(--doom-amber, #f59e0b), var(--doom-warn, #d97706));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4));
+  filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.5));
+  letter-spacing: 0.02em;
+}
+
+.prize-token {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(251, 191, 36, 0.6);
+  letter-spacing: 0.1em;
+  align-self: flex-end;
+  margin-bottom: 6px;
+}
+
+.pot-glow-bar {
+  width: 80%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.4), transparent);
+  border-radius: 1px;
+  animation: glow-bar-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+@keyframes glow-bar-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 /* ── Claim Banner ── */
@@ -205,14 +256,26 @@ defineEmits<{
   animation: claim-glow 2s ease-in-out infinite alternate;
 }
 
+.claim-trophy {
+  font-size: 42px;
+  margin-bottom: 8px;
+  animation: trophy-bounce 1s ease-in-out infinite;
+}
+
 .claim-text {
   display: block;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 900;
   color: var(--doom-success, var(--accent-success, #34d399));
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+}
+
+@keyframes trophy-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.05); }
 }
 
 @keyframes ring-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

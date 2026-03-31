@@ -5,11 +5,14 @@
       <!-- Glass Dome -->
       <div class="hero-dome">
         <div class="dome-shine" />
+        <div class="dome-shine dome-shine-2" />
         <div class="capsules-float">
           <span v-for="i in 7" :key="i" class="hero-capsule" :style="getCapsuleHeroStyle(i)">
             <AppIcon :name="capsuleIcons[i - 1]" :size="20" aria-hidden="true" />
           </span>
         </div>
+        <!-- Inner glow when playing -->
+        <div v-if="isPlaying" class="dome-inner-glow" />
       </div>
       <!-- Machine Body -->
       <div class="hero-machine-body">
@@ -31,9 +34,18 @@
         {{ machineName }}
       </span>
       <span v-if="machinePrice" class="hero-machine-price">
+        <span class="price-gem" aria-hidden="true">&#x1F48E;</span>
         {{ machinePrice }}
       </span>
       <span class="hero-machine-count"> {{ machineCountLabel }} </span>
+    </div>
+
+    <!-- Rarity Legend -->
+    <div class="rarity-legend">
+      <span class="rarity-chip common"><span class="rarity-dot" />Common</span>
+      <span class="rarity-chip rare"><span class="rarity-dot" />Rare</span>
+      <span class="rarity-chip epic"><span class="rarity-dot" />Epic</span>
+      <span class="rarity-chip legendary"><span class="rarity-dot" />Legend</span>
     </div>
   </div>
 </template>
@@ -112,9 +124,34 @@ const getCapsuleHeroStyle = (i: number) => ({
   left: 20px;
   width: 50px;
   height: 30px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 50%;
   transform: rotate(-30deg);
+  z-index: 3;
+
+  &.dome-shine-2 {
+    top: 15px;
+    left: auto;
+    right: 25px;
+    width: 25px;
+    height: 15px;
+    background: rgba(255, 255, 255, 0.06);
+    transform: rotate(20deg);
+  }
+}
+
+.dome-inner-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.25) 0%, transparent 60%);
+  animation: inner-glow-pulse 0.6s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+@keyframes inner-glow-pulse {
+  0% { opacity: 0.4; }
+  100% { opacity: 1; }
 }
 
 .capsules-float {
@@ -178,13 +215,18 @@ const getCapsuleHeroStyle = (i: number) => ({
 }
 
 .dispense-slot {
-  width: 40px;
-  height: 20px;
+  width: 44px;
+  height: 22px;
   background: rgba(0, 0, 0, 0.5);
-  border-radius: 4px 4px 0 0;
+  border-radius: 6px 6px 0 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
+  box-shadow: inset 0 -4px 8px rgba(139, 92, 246, 0.15);
+
+  .shaking & {
+    box-shadow: inset 0 -4px 12px rgba(139, 92, 246, 0.3), 0 0 10px rgba(139, 92, 246, 0.2);
+  }
 }
 
 .dispense-capsule {
@@ -223,6 +265,73 @@ const getCapsuleHeroStyle = (i: number) => ({
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
   font-weight: 500;
+}
+
+.price-gem {
+  margin-right: 4px;
+}
+
+/* -- Rarity Legend -- */
+.rarity-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.rarity-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 10px;
+  border: 1px solid;
+
+  &.common {
+    color: #9ca3af;
+    border-color: rgba(156, 163, 175, 0.3);
+    background: rgba(156, 163, 175, 0.08);
+  }
+  &.rare {
+    color: #60a5fa;
+    border-color: rgba(96, 165, 250, 0.3);
+    background: rgba(96, 165, 250, 0.08);
+  }
+  &.epic {
+    color: #c084fc;
+    border-color: rgba(192, 132, 252, 0.3);
+    background: rgba(192, 132, 252, 0.08);
+    box-shadow: 0 0 8px rgba(192, 132, 252, 0.15);
+  }
+  &.legendary {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.1);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+    animation: legend-chip-glow 2s ease-in-out infinite;
+  }
+}
+
+.rarity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+
+  .common & { background: #9ca3af; }
+  .rare & { background: #60a5fa; box-shadow: 0 0 4px rgba(96, 165, 250, 0.5); }
+  .epic & { background: #c084fc; box-shadow: 0 0 6px rgba(192, 132, 252, 0.6); }
+  .legendary & { background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.7); }
+}
+
+@keyframes legend-chip-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(251, 191, 36, 0.15); }
+  50% { box-shadow: 0 0 18px rgba(251, 191, 36, 0.35); }
 }
 
 @keyframes machine-shake {

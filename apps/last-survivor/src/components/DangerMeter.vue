@@ -8,8 +8,21 @@
       <span class="meter-label-right">{{ t("critical") }}</span>
     </div>
     <div class="meter-track">
+      <div class="meter-gradient-bg" />
       <div :class="['meter-fill', level]" :style="{ width: progress + '%' }" />
       <div class="meter-glow-point" :style="{ left: progress + '%' }" />
+      <!-- Zone markers -->
+      <div class="zone-markers">
+        <div class="zone-mark" style="left: 25%"><span class="zone-tick" /></div>
+        <div class="zone-mark" style="left: 50%"><span class="zone-tick" /></div>
+        <div class="zone-mark" style="left: 75%"><span class="zone-tick" /></div>
+      </div>
+    </div>
+    <div class="meter-zone-labels">
+      <span class="zone-label safe-label">SAFE</span>
+      <span class="zone-label warn-label">WARN</span>
+      <span class="zone-label high-label">HIGH</span>
+      <span class="zone-label crit-label">CRIT</span>
     </div>
   </div>
 </template>
@@ -69,36 +82,107 @@ defineProps<{
 }
 
 .meter-track {
-  height: 6px;
+  height: 8px;
   background: var(--bg-elevated, rgba(0, 0, 0, 0.4));
-  border-radius: 3px;
+  border-radius: 4px;
   position: relative;
   overflow: visible;
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
 }
 
+.meter-gradient-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg,
+    rgba(16, 185, 129, 0.1) 0%,
+    rgba(245, 158, 11, 0.1) 33%,
+    rgba(239, 68, 68, 0.1) 66%,
+    rgba(220, 38, 38, 0.15) 100%
+  );
+}
+
 .meter-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.5s ease;
-  &.low { background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-success, #34d399)); }
-  &.medium { background: linear-gradient(90deg, var(--doom-amber, #f59e0b), var(--doom-warn-light, #fbbf24)); }
-  &.high { background: linear-gradient(90deg, var(--doom-red, #ef4444), var(--doom-danger-light, #f87171)); }
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+  position: relative;
+  z-index: 1;
+
+  &.low {
+    background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-success, #34d399));
+  }
+  &.medium {
+    background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-amber, #f59e0b), var(--doom-warn-light, #fbbf24));
+  }
+  &.high {
+    background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-amber, #f59e0b), var(--doom-red, #ef4444));
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
+  }
   &.critical {
-    background: linear-gradient(90deg, var(--doom-red-deep, #dc2626), var(--doom-red, #ef4444));
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    background: linear-gradient(90deg, var(--doom-green, #10b981), var(--doom-amber, #f59e0b), var(--doom-red, #ef4444), var(--doom-red-deep, #dc2626));
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+    animation: critical-flash 1s ease-in-out infinite alternate;
   }
 }
 
 .meter-glow-point {
   position: absolute;
   top: 50%;
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--doom-white, var(--text-primary, #fff));
   transform: translate(-50%, -50%);
   box-shadow: 0 0 8px var(--doom-white, rgba(255, 255, 255, 0.8));
-  transition: left 0.5s ease;
+  transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+.zone-markers {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.zone-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+}
+
+.zone-tick {
+  display: block;
+  width: 1px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.meter-zone-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 0 2px;
+}
+
+.zone-label {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  flex: 1;
+  text-align: center;
+
+  &.safe-label { color: rgba(16, 185, 129, 0.5); }
+  &.warn-label { color: rgba(245, 158, 11, 0.5); }
+  &.high-label { color: rgba(239, 68, 68, 0.4); }
+  &.crit-label { color: rgba(220, 38, 38, 0.5); }
+}
+
+@keyframes critical-flash {
+  0% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+  100% { box-shadow: 0 0 18px rgba(239, 68, 68, 0.6); }
 }
 </style>

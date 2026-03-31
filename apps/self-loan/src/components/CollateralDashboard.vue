@@ -8,23 +8,46 @@
       <span class="asset-amount">{{ collateralDisplay }}</span>
       <span class="asset-token">{{ t("tokenNeo") }}</span>
       <span class="asset-label">{{ t("locked") }}</span>
+      <div class="vault-lock-indicator" aria-hidden="true">
+        <span class="lock-dot" />
+        <span class="lock-text">SECURED</span>
+      </div>
     </div>
 
-    <!-- Center: Health Gauge -->
+    <!-- Center: Semicircular Health Gauge (speedometer style) -->
     <div class="hero-health-gauge" aria-hidden="true">
-      <svg viewBox="0 0 120 120" class="gauge-svg">
-        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6" />
-        <circle
-          cx="60" cy="60" r="52" fill="none"
-          :stroke="healthColor" stroke-width="6" stroke-linecap="round"
-          :stroke-dasharray="`${healthArc} 327`"
-          transform="rotate(-90 60 60)"
-          class="gauge-arc"
+      <svg viewBox="0 0 200 120" class="gauge-svg-semi">
+        <!-- Background semicircle arc -->
+        <path
+          d="M 20 110 A 80 80 0 0 1 180 110"
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          stroke-width="10"
+          stroke-linecap="round"
+        />
+        <!-- Colored zone segments -->
+        <path d="M 20 110 A 80 80 0 0 1 66 30" fill="none" stroke="rgba(239, 68, 68, 0.15)" stroke-width="10" />
+        <path d="M 66 30 A 80 80 0 0 1 134 30" fill="none" stroke="rgba(251, 191, 36, 0.15)" stroke-width="10" />
+        <path d="M 134 30 A 80 80 0 0 1 180 110" fill="none" stroke="rgba(52, 211, 153, 0.15)" stroke-width="10" />
+        <!-- Active arc (health factor) -->
+        <path
+          d="M 20 110 A 80 80 0 0 1 180 110"
+          fill="none"
+          :stroke="healthColor"
+          stroke-width="10"
+          stroke-linecap="round"
+          :stroke-dasharray="`${healthArc * 2.51} 251`"
+          class="gauge-arc-semi"
         />
       </svg>
-      <div class="gauge-center">
-        <span class="gauge-value">{{ healthFactorDisplay }}</span>
-        <span class="gauge-label">{{ t("healthFactor") }}</span>
+      <!-- Gauge zone labels -->
+      <span class="gauge-zone-label danger-zone">DANGER</span>
+      <span class="gauge-zone-label warn-zone">WARN</span>
+      <span class="gauge-zone-label safe-zone">SAFE</span>
+      <div class="gauge-center-semi">
+        <span class="gauge-shield" aria-hidden="true">&#x1F6E1;</span>
+        <span class="gauge-value-semi">{{ healthFactorDisplay }}</span>
+        <span class="gauge-label-semi">{{ t("healthFactor") }}</span>
       </div>
     </div>
 
@@ -135,38 +158,59 @@ defineProps<{
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* ── Health Gauge ── */
+/* ── Health Gauge (Semicircular Speedometer) ── */
 .hero-health-gauge {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 200px;
+  height: 130px;
   flex-shrink: 0;
   animation: health-pulse 3s ease-in-out infinite;
 }
 
-.gauge-svg { width: 100%; height: 100%; }
+.gauge-svg-semi { width: 100%; height: 100%; }
 
-.gauge-arc {
+.gauge-arc-semi {
   transition: stroke-dasharray 0.8s ease, stroke 0.5s ease;
+  filter: drop-shadow(0 0 6px var(--vault-gold, rgba(212, 168, 83, 0.5)));
 }
 
-.gauge-center {
+.gauge-zone-label {
   position: absolute;
-  inset: 0;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  &.danger-zone { bottom: 8px; left: 8px; color: rgba(239, 68, 68, 0.5); }
+  &.warn-zone { top: 4px; left: 50%; transform: translateX(-50%); color: rgba(251, 191, 36, 0.5); }
+  &.safe-zone { bottom: 8px; right: 8px; color: rgba(52, 211, 153, 0.5); }
+}
+
+.gauge-center-semi {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
 }
 
-.gauge-value {
+.gauge-shield {
   font-size: 18px;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 0 6px rgba(212, 168, 83, 0.4));
+}
+
+.gauge-value-semi {
+  font-size: 24px;
   font-weight: 900;
   font-family: $font-mono;
   color: var(--text-primary);
+  text-shadow: 0 0 12px rgba(212, 168, 83, 0.3);
 }
 
-.gauge-label {
+.gauge-label-semi {
   font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
@@ -174,9 +218,38 @@ defineProps<{
   color: rgba(255, 255, 255, 0.35);
 }
 
+/* Vault lock indicator */
+.vault-lock-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.lock-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 4px rgba(52, 211, 153, 0.6);
+  animation: lock-blink 2s ease-in-out infinite;
+}
+
+.lock-text {
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: rgba(52, 211, 153, 0.6);
+}
+
+@keyframes lock-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 @keyframes health-pulse {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 229, 153, 0.3)); }
-  50% { filter: drop-shadow(0 0 20px rgba(0, 229, 153, 0.6)); }
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(212, 168, 83, 0.2)); }
+  50% { filter: drop-shadow(0 0 20px rgba(212, 168, 83, 0.5)); }
 }
 
 @keyframes lock-bounce {
