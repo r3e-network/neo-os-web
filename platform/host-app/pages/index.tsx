@@ -250,7 +250,18 @@ export default function LandingPage() {
                   viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" : "grid-cols-1 gap-4",
                 )}
               >
-                {filteredApps.length > 0 ? (
+                {catalogLoading ? (
+                  Array.from({ length: 6 }, (_, i) => (
+                    <div key={i} className="glass-card rounded-3xl overflow-hidden">
+                      <div className="h-48 w-full bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                      <div className="p-6 space-y-4">
+                        <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                        <div className="h-4 w-full rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                        <div className="h-4 w-1/2 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                      </div>
+                    </div>
+                  ))
+                ) : filteredApps.length > 0 ? (
                   filteredApps.map((app, idx) => (
                     <motion.div
                       key={app.app_id}
@@ -295,7 +306,17 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {toolApps && toolApps.length > 0 ? toolApps.map((app, idx) => (
+            {catalogLoading ? (
+              Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="glass-card rounded-3xl overflow-hidden">
+                  <div className="h-48 w-full bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                    <div className="h-4 w-full rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                  </div>
+                </div>
+              ))
+            ) : toolApps && toolApps.length > 0 ? toolApps.map((app, idx) => (
               <motion.div
                 key={app.app_id}
                 initial={{ opacity: 0, y: 20 }}
@@ -305,7 +326,13 @@ export default function LandingPage() {
               >
                 <MiniAppCard app={app} />
               </motion.div>
-            )) : null}
+            )) : (
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400 glass-panel rounded-3xl">
+                <Wrench className="w-12 h-12 mb-3 text-gray-300 dark:text-gray-700" />
+                <p className="text-base font-semibold">No tools available yet</p>
+                <p className="text-sm mt-1">Check back soon for new operator tools.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

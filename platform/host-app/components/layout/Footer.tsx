@@ -30,10 +30,10 @@ export function Footer() {
           <div className="lg:col-span-2 flex flex-col items-start pr-0 lg:pr-10">
             <Link href="/" className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo transition-transform hover:scale-105 inline-block">
               <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#00E599] to-[#00A3FF] shadow-[0_0_20px_rgba(0,229,153,0.3)] group-hover:shadow-[0_0_25px_rgba(0,229,153,0.5)] transition-shadow duration-500">
-                <span className="text-lg font-black text-white">N</span>
+                <span className="text-[10px] font-black text-white leading-none">R3E</span>
               </div>
               <span className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-                Neo<span className="text-neo">Hub</span>
+                R3E <span className="text-neo">Network</span>
               </span>
             </Link>
             <p className="mt-6 text-sm font-medium text-gray-600 dark:text-gray-400 leading-relaxed max-w-sm">
@@ -122,7 +122,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-16 border-t border-gray-200/50 dark:border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} Neo MiniApp Platform.
+            © {new Date().getFullYear()} R3E Network. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link href="/terms" className="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Terms of Service</Link>
