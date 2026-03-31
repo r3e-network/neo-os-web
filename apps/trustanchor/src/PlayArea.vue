@@ -74,7 +74,9 @@ const overviewStats = computed<StatsDisplayItem[]>(() => [
 .trustanchor-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
 }
 
 .section-header {
@@ -84,8 +86,11 @@ const overviewStats = computed<StatsDisplayItem[]>(() => [
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
 }
 
 .section-desc {
