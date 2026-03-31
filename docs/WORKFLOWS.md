@@ -1,25 +1,35 @@
 # MiniApp Workflows
 
-This document describes the **end-to-end workflows** for Neo N3 MiniApps.
+This document describes the **end-to-end workflows** for Neo N3 MiniApps,
+updated to reflect the **MiniApp-OS v2** architecture shipped in March 2026.
 
 Current workflow note:
 
-- flagship paths use direct prepaid MiniApp contract flows, direct Oracle
-  callbacks, and direct AA relay integrations where applicable
+- flagship apps now call **OS system services** (`ctx.os.*`) instead of direct
+  per-app contract invocations
+- OS services (PaymentService, GameService, CheckinService, etc.) handle
+  payment, settlement, storage, and game logic centrally
+- the OS Binder edge layer (45 `os-*` functions) enforces auth, permissions,
+  and rate limits before forwarding to on-chain contracts
+- direct Oracle / direct AA integrations remain for Oracle and AA flows
 
 Primary rule:
 
-- prefer direct Oracle / direct AA integrations for user-facing flows
+- prefer OS service calls (`ctx.os.*`) for payment, storage, game, badge,
+  leaderboard, checkin, escrow, NFT, and vesting workflows
+- prefer direct Oracle / direct AA integrations for Oracle and AA flows
 
 ## MiniApp Lifecycle (Developer + Host)
 
 1. **Build the MiniApp**
     - Create a bundle (Module Federation or iframe bundle).
     - Author `manifest.json` following the current host schema and existing `apps/*/neo-manifest.json` examples.
+    - Use `defineMiniApp()` as the sole entry point. Call `ctx.os.*` for OS services.
 2. **Register or Update Manifest**
     - Call `app-register` or `app-update-manifest` (Supabase Edge).
     - Edge canonicalizes the manifest, enforces **GAS-only / bNEO-only**, and
       returns an `AppRegistry` invocation for the developer wallet to sign.
+    - Manifest now declares `permissions` for OS service access (e.g. `storage`, `payment`, `game`).
 3. **On-Chain Registry Approval**
     - Developer wallet signs and submits the `AppRegistry.registerApp` (or
       `updateApp`) invocation, anchoring metadata on-chain.
@@ -31,10 +41,16 @@ Primary rule:
 5. **Runtime Access**
     - Users authenticate via Supabase Auth.
     - Users bind a Neo N3 wallet via `wallet-nonce` + `wallet-bind`.
-    - SDK and host proxies call direct Oracle / direct AA integrations for most services.
+    - MiniApps call OS services via `ctx.os.*` proxies, which route through the
+      45 OS Binder edge functions to on-chain OS contracts.
+    - Oracle / AA flows continue to use direct Oracle / direct AA integrations.
 6. **Platform Indexing**
     - Indexer tracks approved MiniApps and parses platform events.
     - Host UI reads `miniapp-stats` and `miniapp-notifications` for analytics and news.
+7. **Optional: Register ScriptEngine Hooks**
+    - Developers can register custom NeoVM bytecode scripts at hook points
+      (`onCheckin`, `onPaymentReceived`, `onSettlement`, etc.) via the ScriptEngine
+      contract for custom on-chain logic without deploying standalone contracts.
 
 ## Direct Oracle / AA Workflow
 
@@ -82,25 +98,95 @@ This is the preferred runtime path.
 6. **Realtime Push**
     - Supabase Realtime broadcasts new `miniapp_notifications`.
 
+## OS Service Workflow (MiniApp-OS v2)
+
+This is the primary runtime path for most MiniApp operations since v2.
+
+### Call Flow
+
+```
+MiniApp Frontend
+  │
+  │  ctx.os.checkin.checkIn()
+  │
+  ▼
+CheckinProxy (apps/shared/services/os/CheckinProxy.ts)
+  │
+  │  EdgeClient.call("os-checkin-checkin", { appId })
+  │
+  ▼
+Edge Function: os-checkin-checkin (platform/edge/functions/os-checkin-checkin/)
+  │
+  │  1. validateAuth(req) — Supabase JWT check
+  │  2. validatePermission(appId, "checkin") — manifest permission check
+  │  3. rateLimit(userId, appId, "os-checkin-checkin")
+  │  4. neoRpc.invokeContract(CHECKINSERVICE_HASH, "CheckIn", [appId, user])
+  │
+  ▼
+CheckinService contract (contracts/os-checkin/)
+  │
+  │  Updates streak → Calls ScriptEngine("onCheckin") if registered
+  │
+  ▼
+Result returned to frontend
+```
+
+### OS Services Available
+
+| Proxy | Edge Functions | Contract | Typical Use |
+| --- | --- | --- | --- |
+| `ctx.os.storage` | `os-storage-{get,set,delete,list,grant-access,read-shared}` | StorageService | App-scoped KV data |
+| `ctx.os.payment` | `os-payment-{deposit,withdraw,transfer,balance}` | PaymentService | Deposits, balances, prize distribution |
+| `ctx.os.game` | `os-game-{create,join,bet,settle,status}` | GameService | Pool management, betting, settlement |
+| `ctx.os.checkin` | `os-checkin-{checkin,streak,claim}` | CheckinService | Daily check-in, streaks, rewards |
+| `ctx.os.badge` | `os-badge-{define,award,list,revoke,get-stat,update-stat}` | BadgeService | Achievement badges |
+| `ctx.os.leaderboard` | `os-leaderboard-{submit,get,reset}` | LeaderboardService | Ranked scores |
+| `ctx.os.nft` | `os-nft-{mint,transfer,burn,list,validate}` | NFTService | Minting, soulbound, tickets |
+| `ctx.os.escrow` | `os-escrow-{create,fund,complete,refund}` | EscrowService | Milestone-based escrow |
+| `ctx.os.vesting` | `os-vesting-{create,claim,cancel,get,list}` | VestingService | Token vesting schedules |
+| `ctx.os.script` | `os-script-{register,unregister,list,count}` | ScriptEngine | Custom hook scripts (dev only) |
+
+### ScriptEngine Hook Points
+
+OS services call ScriptEngine at predefined hook points when scripts are registered:
+
+- `onPaymentReceived` — triggered after PaymentService deposit
+- `onSettlement` — triggered after GameService settlement
+- `onCheckin` — triggered after CheckinService check-in
+- `onBadgeAwarded` — triggered after BadgeService award
+- `onEscrowStateChange` — triggered on escrow state transitions
+- `onCustom:<name>` — app-defined custom hooks
+
 ## MiniApp Payment Workflow (Frontend → Contract → Payout)
 
 This is the **correct business workflow** for MiniApps that involve payments
 (gaming, DeFi, social). The simulation layer follows this exact pattern.
 
-### Workflow Diagram
+### Workflow Diagram (OS v2)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Current MiniApp Payment Workflow                     │
+│                    MiniApp Payment Workflow (OS v2)                         │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Direct prepaid flow                                                       │
+│  OS PaymentService flow (preferred for new apps)                           │
+│  ctx.os.payment.deposit(appId, amount)                                     │
+│    → Edge: os-payment-deposit (auth + permission + rate limit)             │
+│      → PaymentService.OnNEP17Payment(user, amount, appId)                  │
+│        → ScriptEngine("onPaymentReceived") if registered                   │
+│                                                                             │
+│  OS GameService settlement                                                 │
+│  ctx.os.game.settle(appId, poolId, results)                                │
+│    → GameService calls PaymentService.DistributePrize internally           │
+│    → ScriptEngine("onSettlement") if registered                            │
+│                                                                             │
+│  Direct prepaid flow (still supported for existing contracts)              │
 │  User wallet ──▶ GAS / asset transfer ──▶ MiniApp contract                 │
 │                    └─ OnNEP17Payment records prepaid credit                │
 │                    └─ user then invokes MiniApp method                     │
 │                    └─ contract consumes credit and updates state           │
 │                                                                             │
 │  Oracle / VRF apps                                                         │
-│  MiniApp contract ──▶ Morpheus Oracle callback request                     │
+│  OS / MiniApp contract ──▶ Morpheus Oracle callback request                │
 │                    └─ callback contract may need prepaid Oracle fee credit │
 │                    └─ callback resolves state and emits final result       │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -696,7 +782,9 @@ Response:
 ```
 # Note
 
-For the current flagship path, treat direct contract transfers, direct
-Morpheus Oracle callbacks, and direct AA relay integration as canonical. Use
+For the current flagship path, **OS service calls** (`ctx.os.*`) are the
+canonical pattern for payment, storage, game, badge, checkin, leaderboard,
+escrow, NFT, and vesting workflows. Direct Morpheus Oracle callbacks and
+direct AA relay integration remain canonical for Oracle and AA flows. Use
 `docs/ARCHITECTURE.md`, `docs/FRONTEND_SPECIFICATION.md`, and `README.md` as the
 current source of truth.

@@ -1,5 +1,11 @@
 # MiniApp Versioning Model
 
+> **OS v2 Note (2026-03-30):** This versioning model remains current and
+> compatible with MiniApp-OS v2. The manifest `permissions` field now includes
+> OS service permissions (e.g. `storage`, `payment`, `game`, `checkin`, etc.)
+> which are versioned alongside other manifest fields. Version snapshots
+> capture the full manifest including OS service permission declarations.
+
 This document defines the draft/published versioning workflow for the universal MiniApp platform.
 
 ## Goals

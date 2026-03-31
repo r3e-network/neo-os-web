@@ -1,9 +1,27 @@
 # MiniApp-OS v2: System Service Contract Architecture
 
 **Date**: 2026-03-31
-**Status**: Approved
+**Status**: Implemented (2026-03-30)
 **Supersedes**: 2026-03-27-platform-as-os-refactoring-design.md
 **Scope**: Complete platform refactoring — OS service contracts, ScriptEngine, frontend PlatformContext, edge proxy layer, legacy cleanup
+
+> **Implementation Complete (2026-03-30):** This design has been fully
+> implemented across 51 commits. Key completion milestones:
+>
+> - **10 OS service contracts** built and deployed under `contracts/os-*/`
+> - **10 typed frontend proxy classes** in `apps/shared/services/os/`
+> - **45 OS Binder edge functions** in `platform/edge/functions/os-*/`
+> - **All 7 flagship apps** migrated to OS services
+> - **27 total apps** using OS services via `defineMiniApp()` + `ctx.os.*`
+> - **Zero App.legacy.vue** files remaining — all apps on modern pattern
+> - **169 legacy files removed** during cleanup
+> - **189 new tests** covering OS proxies, shared services, edge utilities
+> - **SaaS integrations** added: Sentry (errors), PostHog (analytics), Supabase Realtime (notifications)
+> - **31 files** fixed for type safety with proper interfaces
+> - ModuleRegistry, RecipeRegistry, MiniAppInstanceRegistry, ServiceGateway archived
+> - UX improvements: i18n, wallet error handling, mobile, accessibility, confirmations
+>
+> See `docs/ARCHITECTURE.md` for the current runtime documentation.
 
 ## Vision
 
