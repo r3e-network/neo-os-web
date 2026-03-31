@@ -1,30 +1,58 @@
 :global(.theme-neo-pay) {
-  --stream-bg-start: #0b1324;
-  --stream-bg-end: #14233b;
-  --stream-card-bg: rgba(12, 19, 35, 0.75);
-  --stream-card-border: rgba(56, 189, 248, 0.24);
-  --stream-accent: #38bdf8;
-  --stream-accent-strong: #22d3ee;
-  --stream-accent-glow: #818cf8;
-  --stream-text: #e2e8f0;
-  --stream-muted: rgba(226, 232, 240, 0.6);
+  --stream-font: 'DM Sans', 'Inter', sans-serif;
+  --stream-bg-start: #081420;
+  --stream-bg-end: #0c1e33;
+  --stream-card-bg: rgba(10, 22, 40, 0.82);
+  --stream-card-border: rgba(59, 130, 246, 0.22);
+  --stream-card-shadow: 0 8px 32px rgba(6, 182, 212, 0.08);
+  --stream-accent: #3B82F6;
+  --stream-accent-strong: #06B6D4;
+  --stream-accent-glow: rgba(59, 130, 246, 0.4);
+  --stream-accent-seafoam: #06B6D4;
+  --stream-text: #e8edf5;
+  --stream-muted: rgba(232, 237, 245, 0.55);
   --stream-success: #22c55e;
   --stream-success-light: #34d399;
   --stream-danger: #f87171;
+  --stream-flow-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
+  --stream-timeline-track: rgba(59, 130, 246, 0.15);
+  --stream-timeline-fill: linear-gradient(90deg, #3B82F6, #06B6D4);
+  --stream-progress-glow: 0 0 12px rgba(6, 182, 212, 0.35);
+  --stream-surface: rgba(15, 28, 50, 0.65);
+  --stream-surface-hover: rgba(20, 36, 62, 0.75);
+  --stream-divider: rgba(59, 130, 246, 0.1);
+  --stream-badge-bg: rgba(59, 130, 246, 0.12);
+  --stream-badge-text: #60a5fa;
+
+  --bg-primary: var(--stream-bg-start);
+  --text-primary: var(--stream-text);
+  --text-secondary: var(--stream-muted);
+  --border-color: var(--stream-card-border);
 }
 
 :global(.theme-light .theme-neo-pay),
 :global([data-theme="light"] .theme-neo-pay) {
-  --stream-bg-start: #f8fafc;
-  --stream-bg-end: #e2e8f0;
-  --stream-card-bg: rgba(255, 255, 255, 0.8);
-  --stream-card-border: rgba(14, 116, 144, 0.2);
-  --stream-accent: #0ea5e9;
-  --stream-accent-strong: #0284c7;
-  --stream-accent-glow: #818cf8;
+  --stream-bg-start: #f0f7ff;
+  --stream-bg-end: #e0eefa;
+  --stream-card-bg: rgba(255, 255, 255, 0.88);
+  --stream-card-border: rgba(59, 130, 246, 0.18);
+  --stream-card-shadow: 0 8px 28px rgba(59, 130, 246, 0.08);
+  --stream-accent: #2563EB;
+  --stream-accent-strong: #0891B2;
+  --stream-accent-glow: rgba(37, 99, 235, 0.3);
+  --stream-accent-seafoam: #0891B2;
   --stream-text: #0f172a;
-  --stream-muted: rgba(15, 23, 42, 0.6);
+  --stream-muted: rgba(15, 23, 42, 0.55);
   --stream-success: #16a34a;
   --stream-success-light: #34d399;
   --stream-danger: #ef4444;
+  --stream-flow-gradient: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(6, 182, 212, 0.06) 100%);
+  --stream-timeline-track: rgba(59, 130, 246, 0.12);
+  --stream-timeline-fill: linear-gradient(90deg, #2563EB, #0891B2);
+  --stream-progress-glow: 0 0 10px rgba(37, 99, 235, 0.2);
+  --stream-surface: rgba(255, 255, 255, 0.7);
+  --stream-surface-hover: rgba(255, 255, 255, 0.85);
+  --stream-divider: rgba(59, 130, 246, 0.08);
+  --stream-badge-bg: rgba(59, 130, 246, 0.1);
+  --stream-badge-text: #2563EB;
 }
