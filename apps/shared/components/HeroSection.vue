@@ -98,7 +98,7 @@ withDefaults(
     display: block;
     font-size: 32px;
     margin-bottom: $spacing-2;
-    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+    filter: drop-shadow(0 0 10px rgba(0, 229, 153, 0.3));
   }
 
   &__subtitle {
@@ -133,7 +133,7 @@ withDefaults(
   &__description {
     margin-top: $spacing-3;
     font-size: $font-size-sm;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
     line-height: 1.5;
   }
 

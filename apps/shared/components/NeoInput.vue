@@ -120,9 +120,9 @@ const emit = defineEmits<{
 
     &:focus-within {
       background: var(--bg-elevated, rgba(255, 255, 255, 0.1));
-      border-color: rgba(159, 157, 243, 0.6);
+      border-color: #00e599;
       box-shadow:
-        0 0 20px rgba(159, 157, 243, 0.2),
+        0 0 20px rgba(0, 229, 153, 0.15),
         inset 0 2px 4px var(--shadow-color, rgba(0, 0, 0, 0.1));
     }
   }
@@ -140,7 +140,7 @@ const emit = defineEmits<{
     width: 100%;
 
     &::placeholder {
-      color: var(--text-muted, rgba(255, 255, 255, 0.3));
+      color: var(--text-muted, rgba(255, 255, 255, 0.5));
     }
   }
 
@@ -177,6 +177,7 @@ const emit = defineEmits<{
   &--error {
     .neo-input__wrapper {
       border-color: var(--input-error-color);
+      background: rgba(239, 68, 68, 0.05);
       box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
 
       &:focus-within {
@@ -191,12 +192,14 @@ const emit = defineEmits<{
   }
 
   &--disabled {
-    opacity: 0.5;
+    opacity: 0.6;
+    cursor: not-allowed;
     pointer-events: none;
 
     .neo-input__wrapper {
       background: rgba(255, 255, 255, 0.02);
       border-color: rgba(255, 255, 255, 0.05);
+      cursor: not-allowed;
     }
   }
 }
