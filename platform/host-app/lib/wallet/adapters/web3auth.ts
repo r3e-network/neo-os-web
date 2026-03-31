@@ -43,8 +43,7 @@ export class Web3AuthAdapter implements WalletAdapter {
 
       this.web3auth = new Web3Auth({
         clientId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web3Auth SDK expects a typed network string, env var is string
-        web3AuthNetwork: networkString as any,
+          web3AuthNetwork: networkString as (typeof WEB3AUTH_NETWORK)[keyof typeof WEB3AUTH_NETWORK],
         privateKeyProvider,
       });
 

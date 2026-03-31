@@ -3,9 +3,10 @@
 import { Input } from "@/components/ui/Input";
 import { ContractInitSchemaAutoForm } from "../ContractInitSchemaAutoForm";
 import type { ContractInitSchemaField } from "../../lib/contract-init-schema";
+import type { MiniAppFormState } from "../../lib/form-types";
 
 type Props = {
-  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional string/boolean fields
+  form: MiniAppFormState;
   mode: "create" | "edit";
   update: (key: string, value: string | boolean) => void;
   contractInitSchemaState: {

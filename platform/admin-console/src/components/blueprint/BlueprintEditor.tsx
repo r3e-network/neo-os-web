@@ -208,8 +208,7 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
                   id={`tab-type-${i}`}
                   value={tab.type}
                   aria-label="Tab type"
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TAB_TYPES values are string literals from the union
-                  onChange={(e) => updateTab(i, { type: e.target.value as any })}
+                  onChange={(e) => updateTab(i, { type: e.target.value as "content" | "forum" | "reviews" | "news" | "custom" })}
                   className="rounded-md border border-gray-300 dark:border-gray-600 px-2 text-sm"
                 >
                   {TAB_TYPES.map((t) => (

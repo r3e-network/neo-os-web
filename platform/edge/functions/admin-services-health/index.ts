@@ -27,7 +27,17 @@ function buildPlatformServices(): ServiceEntry[] {
   return entries.filter((entry): entry is ServiceEntry => Boolean(entry && entry.url));
 }
 
-async function checkNeoBlockchainHealth(): Promise<any> {
+interface HealthCheckResult {
+  name: string;
+  status: "healthy" | "unhealthy";
+  url: string;
+  lastCheck: string;
+  version?: string;
+  uptime?: string;
+  error?: string;
+}
+
+async function checkNeoBlockchainHealth(): Promise<HealthCheckResult> {
   const lastCheck = new Date().toISOString();
   try {
     const response = await fetch(NEO_RPC_URL, {

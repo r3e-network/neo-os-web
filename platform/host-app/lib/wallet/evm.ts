@@ -1,16 +1,20 @@
+/** EIP-1193 compatible provider (MetaMask, etc.) */
+interface EIP1193Provider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 export async function invokeEvmContract(
   contractAddress: string,
   method: string,
   args: unknown[],
   fromAddress: string
 ): Promise<{ txid: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API not in DOM types
-  if (typeof window === "undefined" || !(window as any).ethereum) {
+  const w = typeof window !== "undefined" ? (window as unknown as { ethereum?: EIP1193Provider }) : undefined;
+  if (!w?.ethereum) {
     throw new Error(`invokeEvmContract: Web3 wallet not found (contract=${contractAddress}, method=${method})`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API
-  const eth = (window as any).ethereum;
+  const eth = w.ethereum;
 
   // Without ABI metadata we cannot safely encode arbitrary method + args.
   // Require pre-encoded calldata in `method` or as the first arg to avoid invalid calls.
@@ -41,7 +45,7 @@ export async function invokeEvmContract(
       }]
     });
 
-    return { txid: txHash };
+    return { txid: txHash as string };
   } catch (err: unknown) {
     // Log the actual error for debugging, but don't expose internal details to users
     if (err instanceof Error) {

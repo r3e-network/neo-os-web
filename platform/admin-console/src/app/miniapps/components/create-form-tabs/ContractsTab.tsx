@@ -2,11 +2,38 @@
 
 import { Input } from "@/components/ui/Input";
 import { OperationParamsEditor } from "../CreateFormSubEditors";
+import type { MiniAppFormState } from "../../lib/form-types";
+
+type OperationParam = {
+  name: string;
+  type: string;
+  label: string;
+  required: boolean;
+  default_value: string;
+  placeholder: string;
+  options: string;
+};
+
+type OperationEntry = {
+  name: string;
+  method: string;
+  description: string;
+  gas_cost: string;
+  button_style: string;
+  confirm_message: string;
+  params: OperationParam[];
+};
+
+type ComponentEntry = {
+  type: string;
+  display: string;
+  props: string;
+};
 
 type Props = {
-  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
+  form: MiniAppFormState;
   update: (key: string, value: string | boolean) => void;
-  setForm: (form: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  setForm: (form: MiniAppFormState) => void;
   addContract: () => void;
   removeContract: (i: number) => void;
   updateContract: (i: number, field: "name" | "hash", val: string) => void;
@@ -65,7 +92,7 @@ export function ContractsTab({
           <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Operations</div>
           <button type="button" onClick={addOperation} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Operation</button>
         </div>
-        {form.operations.map((o: any, i: number) => (
+        {(form.operations as OperationEntry[]).map((o: OperationEntry, i: number) => (
           <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-3 space-y-2">
             <div className="flex gap-2">
               <Input id={`op-name-${i}`} placeholder="Name" value={o.name} onChange={e => updateOperation(i, "name", e.target.value)} aria-label="Operation name" />
@@ -96,7 +123,7 @@ export function ContractsTab({
           <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Components</div>
           <button type="button" onClick={addComponent} className="text-xs cursor-pointer text-primary-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-md">+ Add Component</button>
         </div>
-        {form.components.map((c: any, i: number) => (
+        {(form.components as ComponentEntry[]).map((c: ComponentEntry, i: number) => (
           <div key={i} className="flex gap-2 mb-2">
             <Input id={`comp-type-${i}`} placeholder="live_voting" value={c.type} onChange={e => updateComponent(i, "type", e.target.value)} aria-label="Component type" />
             <Input id={`comp-display-${i}`} placeholder="card" value={c.display} onChange={e => updateComponent(i, "display", e.target.value)} aria-label="Component display" />

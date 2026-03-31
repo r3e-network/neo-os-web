@@ -61,9 +61,14 @@ interface NeoLineInvokeParams {
   signers?: Array<{ account: string; scopes: string | number }>;
 }
 
+/** EIP-1193 compatible provider (MetaMask, etc.) */
+interface EIP1193Provider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 /** Extended window with NeoLine */
 interface WindowWithNeoLine extends Window {
-  ethereum?: any;
+  ethereum?: EIP1193Provider;
   NEOLineN3?: NeoLineN3Wallet;
   [key: string]: unknown;
 }
@@ -78,7 +83,7 @@ async function getInjectedWalletAddress(): Promise<string> {
   // Check EVM
   if (g.ethereum && typeof g.ethereum.request === "function") {
     try {
-      const accounts = await g.ethereum.request({ method: "eth_accounts" });
+      const accounts = await g.ethereum.request({ method: "eth_accounts" }) as string[];
       if (accounts && accounts.length > 0) return accounts[0];
     } catch {
       // User denied request or wallet unavailable — try next wallet option

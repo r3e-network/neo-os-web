@@ -5,9 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
+interface PlatformConfig {
+  maintenanceMode?: boolean;
+  approvalGateRequired?: boolean;
+  maxMiniappSizeMb?: number;
+  pricefeedIntervalMs?: number;
+  logLevel?: string;
+  [key: string]: unknown;
+}
+
 export default function SettingsPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<PlatformConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

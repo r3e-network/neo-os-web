@@ -279,11 +279,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             type="button"
             id={selectId}
             ref={(node) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DOM ref assignment from React Ref type mismatch
+              // The Select component renders a <button> as its trigger but exposes
+              // a ref typed as HTMLSelectElement for form-compatibility. Cast once here.
               if (typeof ref === "function") {
-                ref(node as any);
+                ref(node as unknown as HTMLSelectElement);
               } else if (ref) {
-                ref.current = node as any;
+                (ref as React.MutableRefObject<HTMLSelectElement | null>).current = node as unknown as HTMLSelectElement;
               }
             }}
             disabled={disabled}

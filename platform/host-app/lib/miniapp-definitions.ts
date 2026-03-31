@@ -70,14 +70,18 @@ function normalizeMediaVariants(raw: unknown): Array<{
       const themeRaw = getStr(item.theme).toLowerCase();
       const densityRaw = getStr(item.density).toLowerCase();
       const locale = getStr(item.locale);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- constructing variant record with flexible keys
-      const res: any = { url };
+      const res: {
+        url: string;
+        theme?: "light" | "dark" | "any";
+        density?: "1x" | "2x" | "3x";
+        locale?: string;
+      } = { url };
       if (themeRaw === "light" || themeRaw === "dark" || themeRaw === "any") res.theme = themeRaw;
       if (densityRaw === "1x" || densityRaw === "2x" || densityRaw === "3x") res.density = densityRaw;
       if (locale) res.locale = locale;
       return res;
     });
-  return items.filter((x) => x !== null) as any;
+  return items.filter((x): x is NonNullable<typeof x> => x !== null);
 }
 
 export function parseMiniAppDefinitionContent(content: string): unknown {

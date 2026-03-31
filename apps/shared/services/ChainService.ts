@@ -425,7 +425,7 @@ export class ChainService {
    *
    * @example
    * ```ts
-   * const bids = await chain.listEventsParsed("BidPlaced", (evt: any) => ({
+   * const bids = await chain.listEventsParsed("BidPlaced", (evt: Record<string, unknown>) => ({
    *   bidder: evt.state[0]?.value,
    *   amount: Number(evt.state[1]?.value),
    * }));

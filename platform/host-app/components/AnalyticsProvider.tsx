@@ -261,8 +261,8 @@ export function AnalyticsVisible({
     );
     
     const current = React.Children.only(children) as React.ReactElement;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- React internal ref access on typed children
-    if ((current as any)?.ref) {
+    const currentWithRef = current as React.ReactElement & { ref?: unknown };
+    if (currentWithRef?.ref) {
       // Handle ref
       observer.observe(current as unknown as Element);
     }
