@@ -14,7 +14,7 @@ import {
 } from "@r3e/neo-js-sdk/core";
 import { sc, tx, u, wallet } from "@r3e/neo-js-sdk/browser";
 
-const RPC_URL = String(process.env.TRUSTANCHOR_RPC_URL || process.env.NEO_RPC_URL || "https://n3seed1.ngd.network:20332").trim();
+const RPC_URL = String(process.env.TRUSTANCHOR_RPC_URL || process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443").trim();
 const NETWORK_MAGIC = parseInt(
   String(process.env.TRUSTANCHOR_NETWORK_MAGIC || process.env.NEXT_PUBLIC_NETWORK_MAGIC || "894710606"),
   10,
