@@ -2,11 +2,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
+import dynamic from "next/dynamic";
 import { ExternalMiniAppFrame } from "../../components/ExternalMiniAppFrame";
 import { LaunchDock } from "../../components/LaunchDock";
 import { FederatedMiniApp } from "../../components/FederatedMiniApp";
-import { LiveChat } from "../../components/features/chat";
 import { WalletState, MiniAppInfo } from "../../components/types";
+
+// Lazy-load chat component (only needed when user opens chat panel)
+const LiveChat = dynamic(
+  () => import("../../components/features/chat").then((m) => ({ default: m.LiveChat })),
+  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+);
 import { coerceMiniAppInfo, parseFederatedEntryUrl } from "../../lib/miniapp";
 import { isManifestMiniAppEntryUrl } from "../../lib/miniapp-entry-url";
 import { logger } from "../../lib/logger";

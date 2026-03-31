@@ -45,6 +45,10 @@ export type OSHandlerOptions = {
   permission?: string;
   /** HTTP method to accept. Defaults to "POST". */
   method?: "GET" | "POST";
+  /** When true, adds Cache-Control headers for read-only responses. */
+  cacheable?: boolean;
+  /** Cache TTL in seconds (default 10). Only used when cacheable is true. */
+  cacheTtl?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -99,6 +103,43 @@ export async function invokeOSContract(
     throw new Error(`RPC error: ${data.error.message}`);
   }
   return data.result;
+}
+
+// ---------------------------------------------------------------------------
+// Cached RPC reads (short TTL in-memory cache for [Safe] contract calls)
+// ---------------------------------------------------------------------------
+
+const invokeCache = new Map<string, { data: unknown; expires: number }>();
+const INVOKE_CACHE_MAX = 200;
+const INVOKE_CACHE_DEFAULT_TTL_MS = 10_000;
+
+function evictExpiredInvokeCache() {
+  const now = Date.now();
+  for (const [k, v] of invokeCache) {
+    if (v.expires < now) invokeCache.delete(k);
+  }
+}
+
+/**
+ * Cached variant of invokeOSContract for read-only [Safe] methods.
+ * Results are held in memory for `ttlMs` (default 10 000 ms).
+ */
+export async function invokeOSContractCached(
+  contractHash: string,
+  method: string,
+  args: InvokeFunctionArg[],
+  ttlMs = INVOKE_CACHE_DEFAULT_TTL_MS,
+): Promise<unknown> {
+  const key = JSON.stringify([contractHash, method, args]);
+  const cached = invokeCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.data;
+
+  const result = await invokeOSContract(contractHash, method, args);
+  invokeCache.set(key, { data: result, expires: Date.now() + ttlMs });
+
+  if (invokeCache.size > INVOKE_CACHE_MAX) evictExpiredInvokeCache();
+
+  return result;
 }
 
 /**
@@ -181,7 +222,14 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
         req,
       });
 
-      return json({ ok: true, data: result }, {}, req);
+      const resInit: ResponseInit = {};
+      if (opts.cacheable) {
+        const ttl = opts.cacheTtl ?? 10;
+        resInit.headers = new Headers({
+          "Cache-Control": `public, max-age=${ttl}, s-maxage=${ttl}`,
+        });
+      }
+      return json({ ok: true, data: result }, resInit, req);
     } catch (err) {
       const message = err instanceof Error ? err.message : "internal error";
       console.error(`[${opts.scopeName}] handler error:`, message);

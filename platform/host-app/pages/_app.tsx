@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import type { AppProps } from "next/app";
+import dynamic from "next/dynamic";
 import { UserProvider, useUser } from "@auth0/nextjs-auth0/client";
 import { MotionConfig } from "framer-motion";
 import { QueryProvider } from "@/lib/query";
@@ -7,12 +8,19 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
-import { MonitoringPanel } from "@/components/MonitoringPanel";
-import { PerformanceReportPanel } from "@/components/PerformanceReport";
 import { useAuthStore } from "@/lib/auth/store";
-import { initAllMonitoring } from "@/lib/monitoring";
 import { Inter, Outfit } from "next/font/google";
 import "@/styles/globals.css";
+
+// Lazy-load dev-only monitoring panels (excluded from production bundle)
+const MonitoringPanel = dynamic(
+  () => import("@/components/MonitoringPanel").then((m) => ({ default: m.MonitoringPanel })),
+  { ssr: false },
+);
+const PerformanceReportPanel = dynamic(
+  () => import("@/components/PerformanceReport").then((m) => ({ default: m.PerformanceReportPanel })),
+  { ssr: false },
+);
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -25,12 +33,14 @@ function AuthSync({ children }: { children: ReactNode }) {
 }
 
 /**
- * Initialize monitoring on app mount
+ * Initialize monitoring after hydration via dynamic import
+ * to keep it out of the critical JS bundle.
  */
 function MonitoringInit() {
   useEffect(() => {
-    // Initialize all monitoring systems
-    initAllMonitoring();
+    import("@/lib/monitoring").then(({ initAllMonitoring }) => {
+      initAllMonitoring();
+    });
   }, []);
 
   return null;
