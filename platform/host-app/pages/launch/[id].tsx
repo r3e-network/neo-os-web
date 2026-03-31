@@ -150,15 +150,15 @@ export default function LaunchPage({ app }: LaunchPageProps) {
         onShare={handleShare}
       />
       {federated ? (
-        <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto">
+        <div className="absolute top-12 left-0 w-full h-[calc(100vh-48px)] overflow-auto">
           <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
         </div>
       ) : externalUrl ? (
-        <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto">
+        <div className="absolute top-12 left-0 w-full h-[calc(100vh-48px)] overflow-auto">
           <ExternalMiniAppFrame
             src={externalUrl}
             title={app.name}
-            className="w-screen h-[calc(100vh-48px)] overflow-hidden rounded-none border-0 shadow-none"
+            className="w-full h-[calc(100vh-48px)] overflow-hidden rounded-none border-0 shadow-none"
           />
         </div>
       ) : (
@@ -202,7 +202,7 @@ function ManifestRuntime({ app }: { app: MiniAppInfo }) {
   }, [operations, template?.operation_panel?.operations]);
 
   return (
-    <div className="absolute top-12 left-0 w-screen h-[calc(100vh-48px)] overflow-auto bg-black text-white">
+    <div className="absolute top-12 left-0 w-full h-[calc(100vh-48px)] overflow-auto bg-black text-white">
       <div className="mx-auto max-w-5xl px-5 py-6">
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <p className="text-xs uppercase tracking-wider text-neo mb-1">Manifest Runtime</p>
