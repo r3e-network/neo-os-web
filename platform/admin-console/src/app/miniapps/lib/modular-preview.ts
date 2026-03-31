@@ -1,6 +1,5 @@
 import { miniAppConfigSchema } from "@/lib/schemas";
-
-type MiniAppFormState = Record<string, any>;
+import type { MiniAppFormState } from "./form-types";
 
 export type ModularPreviewState = {
   visible: boolean;

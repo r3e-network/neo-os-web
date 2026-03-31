@@ -6,11 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 
+interface ServiceConfig {
+  routing?: {
+    enabled?: boolean;
+    max_concurrent_requests?: number;
+    timeout_ms?: number;
+  };
+  security?: {
+    require_signature?: boolean;
+    allowlist_only?: boolean;
+  };
+  [key: string]: unknown;
+}
+
 export default function ServiceConfigPage(props: { params: Promise<{ id: string }> }) {
   const params = use(props.params);
   const router = useRouter();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config is arbitrary API JSON
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<ServiceConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);

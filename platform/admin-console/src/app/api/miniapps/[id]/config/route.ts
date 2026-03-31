@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 
 // Mock configuration storage for individual miniapps
-const miniappConfigs: Record<string, any> = {};
+const miniappConfigs: Record<string, Record<string, unknown>> = {};
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   const authResponse = await requireAdminAuth(request);

@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/Input";
 import { ContentBlocksEditor } from "../CreateFormSubEditors";
+import type { MiniAppFormState } from "../../lib/form-types";
 
 type FrontendSpecFormat = "markdown" | "yaml" | "json";
 
@@ -16,12 +17,12 @@ type ContentBlock = {
 };
 
 type Props = {
-  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional string/boolean fields
+  form: MiniAppFormState;
   update: (key: string, value: string | boolean) => void;
   dtTabs: Array<{ id: string; label: string; type: string; blocks?: ContentBlock[] }>;
   dtHero: Record<string, string>;
   dtOp: Record<string, string>;
-  updateDT: (updates: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  updateDT: (updates: Record<string, unknown>) => void;
 };
 
 export function LayoutTab({

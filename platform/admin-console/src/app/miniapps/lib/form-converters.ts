@@ -1,4 +1,5 @@
 import type { MiniApp } from "@/types";
+import type { MiniAppFormState } from "./form-types";
 
 type MediaVariant = {
   url: string;
@@ -109,7 +110,7 @@ function stringifyOrFallback(value: unknown, fallback: string): string {
   }
 }
 
-export function formToConfig(form: Record<string, any>) {
+export function formToConfig(form: MiniAppFormState) {
   const frontendSpecContent = String(form.frontend_spec_content || "").trim();
   const frontendSpec = frontendSpecContent
     ? {
@@ -262,13 +263,13 @@ export function formToConfig(form: Record<string, any>) {
       gas_cost: o.gas_cost || undefined,
       button_style: o.button_style || undefined,
       confirm_message: o.confirm_message || undefined,
-      params: Array.isArray(o.params) ? o.params.filter((p: any) => p.name && p.type).map((p: any) => ({
+      params: Array.isArray(o.params) ? o.params.filter((p: Record<string, unknown>) => p.name && p.type).map((p: Record<string, unknown>) => ({
         name: p.name, type: p.type,
         label: p.label || undefined,
         required: p.required,
         default_value: p.default_value || undefined,
         placeholder: p.placeholder || undefined,
-        options: p.options ? (() => { try { return JSON.parse(p.options); } catch (_e: unknown) { console.warn("[form-converters] JSON.parse options failed:", _e instanceof Error ? _e.message : String(_e)); return undefined; } })() : undefined,
+        options: p.options ? (() => { try { return JSON.parse(String(p.options)); } catch (_e: unknown) { console.warn("[form-converters] JSON.parse options failed:", _e instanceof Error ? _e.message : String(_e)); return undefined; } })() : undefined,
       })) : [],
     })) : [],
     components: Array.isArray(form.components) ? form.components.filter((c) => c.type).map((c) => ({
@@ -296,7 +297,7 @@ export function formToConfig(form: Record<string, any>) {
   };
 }
 
-export function appToForm(app: MiniApp): Record<string, any> {
+export function appToForm(app: MiniApp): MiniAppFormState {
   const m = (app.manifest || {}) as Record<string, unknown>;
   const content = (m.content && typeof m.content === "object") ? m.content as Record<string, unknown> : {};
   const media = (m.media && typeof m.media === "object") ? m.media as Record<string, unknown> : {};

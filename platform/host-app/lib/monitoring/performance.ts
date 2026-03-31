@@ -102,7 +102,7 @@ function setupPerformanceObservers(): void {
       const entries = list.getEntries();
       const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number };
       if (lastEntry) {
-        onLCP(lastEntry.renderTime || (lastEntry as any).startTime);
+        onLCP(lastEntry.renderTime || lastEntry.startTime);
       }
     });
     lcpObserver.observe({ type: "largest-contentful-paint", buffered: true });
