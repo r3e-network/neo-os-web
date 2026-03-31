@@ -41,6 +41,8 @@ function MonitoringInit() {
   useEffect(() => {
     import("@/lib/monitoring").then(({ initAllMonitoring }) => {
       initAllMonitoring();
+    }).catch((e) => {
+      console.warn("[monitoring] failed to initialize:", e instanceof Error ? e.message : String(e));
     });
   }, []);
 
