@@ -14,14 +14,18 @@ export const NEO_X_TESTNET = {
   blockExplorerUrls: ['https://xt4scan.ngd.network']
 };
 
+/** EIP-1193 compatible provider (MetaMask, etc.) */
+interface EIP1193Provider {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+}
+
 export async function connectNeoX(isTestnet = false) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API not in DOM types
-  if (typeof window === 'undefined' || !(window as any).ethereum) {
+  const w = typeof window !== 'undefined' ? (window as unknown as { ethereum?: EIP1193Provider }) : undefined;
+  if (!w?.ethereum) {
     throw new Error('MetaMask or compatible Web3 wallet is not installed.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- window.ethereum is a browser extension API
-  const eth = (window as any).ethereum;
+  const eth = w.ethereum;
   const network = isTestnet ? NEO_X_TESTNET : NEO_X_MAINNET;
 
   try {
@@ -41,7 +45,7 @@ export async function connectNeoX(isTestnet = false) {
         throw switchError;
       }
     }
-    const accounts = await eth.request({ method: 'eth_accounts' });
+    const accounts = await eth.request({ method: 'eth_accounts' }) as string[];
     return accounts[0];
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : typeof error === "string" ? error : "Failed to connect to Neo X.";

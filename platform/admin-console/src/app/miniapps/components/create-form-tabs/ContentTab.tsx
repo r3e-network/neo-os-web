@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { MiniAppMediaAssetKind, MediaUploadOptions } from "@/lib/hooks/useMiniApps";
+import type { MiniAppFormState } from "../../lib/form-types";
 
 type AssetVariantSettings = {
   theme: "" | "light" | "dark" | "any";
@@ -13,7 +14,7 @@ type AssetVariantSettings = {
 };
 
 type Props = {
-  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
+  form: MiniAppFormState;
   categories: string[];
   update: (key: string, value: string | boolean) => void;
   assetFiles: Partial<Record<MiniAppMediaAssetKind, File>>;

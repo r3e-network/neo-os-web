@@ -1,9 +1,10 @@
 "use client";
 
 import { Input } from "@/components/ui/Input";
+import type { MiniAppFormState } from "../../lib/form-types";
 
 type Props = {
-  form: any; // eslint-disable-line @typescript-eslint/no-explicit-any -- dynamic form with many optional fields
+  form: MiniAppFormState;
   permissionKeys: string[];
   togglePerm: (key: string) => void;
   update: (key: string, value: string | boolean) => void;

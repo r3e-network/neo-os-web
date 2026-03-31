@@ -21,7 +21,7 @@ import { ContractsTab } from "./create-form-tabs/ContractsTab";
 import { PermissionsTab } from "./create-form-tabs/PermissionsTab";
 import { JsonTab } from "./create-form-tabs/JsonTab";
 
-type MiniAppFormState = Record<string, any>;
+import type { MiniAppFormState } from "../lib/form-types";
 
 type AssetVariantSettings = {
   theme: "" | "light" | "dark" | "any";

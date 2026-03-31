@@ -302,13 +302,13 @@ export const Sheet: React.FC<SheetProps> = ({
     <>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child as React.ReactElement<any>, {
+          ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
               onClick: () => {
                 if (!isControlled) {
                   setInternalOpen(true);
                 }
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- child.props is React.RenderedElement, onClick optional
-                (child.props as any).onClick?.();
+                const props = child.props as Record<string, unknown>;
+                if (typeof props.onClick === "function") props.onClick();
               },
             })
           : child

@@ -50,8 +50,8 @@ async function loadHandler(name: string): Promise<EdgeHandler | null> {
   if (handlers.has(name)) return handlers.get(name) ?? null;
 
   const mod = await import(`./functions/${name}/index.ts`);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic import shape is unknown at compile time
-  const candidate: unknown = (mod as any)?.handler ?? (mod as any)?.default;
+  const imported = mod as Record<string, unknown>;
+  const candidate: unknown = imported?.handler ?? imported?.default;
   if (typeof candidate !== "function") return null;
 
   const h = candidate as EdgeHandler;

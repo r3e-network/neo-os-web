@@ -9,6 +9,7 @@ import {
   AuditSeverity,
 } from "./security/audit-log";
 import { validateQueryParams, FieldSchema } from "./security/input-validation";
+import type { Permission } from "./security/permissions";
 
 /**
  * API route configuration options
@@ -120,7 +121,7 @@ export function createApiHandler<
 >(
   handler: T,
   config: ApiRouteConfig = DEFAULT_CONFIG
-): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
   const allowedMethods = finalConfig.allowedMethods ?? DEFAULT_CONFIG.allowedMethods!;
   
@@ -193,7 +194,7 @@ export function createApiHandler<
  */
 export function withErrorHandling<
   T extends (req: NextApiRequest, res: NextApiResponse) => unknown
->(handler: T): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+>(handler: T): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   return async function errorHandledHandler(req: NextApiRequest, res: NextApiResponse) {
     try {
       return await handler(req, res);
@@ -218,7 +219,7 @@ export function withAuth<
     /** Optional: require specific role or permission */
     permission?: string;
   }
-): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   return async function authenticatedHandler(req: NextApiRequest, res: NextApiResponse) {
     const { requireWalletAuth } = await import("@/lib/require-wallet-auth");
     
@@ -234,8 +235,7 @@ export function withAuth<
       const { getPermissionsForWallet } = await import("@/lib/security/permissions");
       const permissions = getPermissionsForWallet(wallet);
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- permission is a string from middleware options
-      if (!permissions.includes(options.permission as any)) {
+      if (!permissions.includes(options.permission as Permission)) {
         apiError.forbidden(res, "Insufficient permissions");
         return;
       }
@@ -250,7 +250,7 @@ export function withAuth<
  */
 export function withAdminOnly<
   T extends (req: NextApiRequest, res: NextApiResponse) => unknown
->(handler: T): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+>(handler: T): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   return async function adminOnlyHandler(req: NextApiRequest, res: NextApiResponse) {
     const { requireMiniAppAdmin } = await import("@/lib/admin-auth");
     
@@ -279,7 +279,7 @@ export function publicGetEndpoint<
     /** Query parameter schema */
     querySchema?: Record<string, FieldSchema>;
   }
-): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   return createApiHandler(handler, {
     allowedMethods: ["GET", "HEAD"],
     requireCsrf: false,
@@ -306,7 +306,7 @@ export function protectedEndpoint<
     /** Query parameter schema */
     querySchema?: Record<string, FieldSchema>;
   }
-): (req: NextApiRequest, res: NextApiResponse) => Promise<any> {
+): (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> {
   const methods = options?.allowedMethods ?? ["POST"];
   
   if (options?.adminOnly) {
