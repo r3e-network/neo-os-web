@@ -3,11 +3,16 @@
  *
  * Subscribes to INSERT events on miniapp_notifications table via WebSocket.
  * Features:
+ * - Initial fetch of existing notifications from Supabase
+ * - Realtime push via postgres_changes (no polling)
  * - Auto-reconnect with exponential backoff
- * - Optional app_id filtering
+ * - Optional app_id / user_id filtering
  * - Callback on new notifications
  * - Max 50 recent notifications in memory
  * - Proper cleanup on unmount
+ *
+ * NOTE: The miniapp_notifications table must have Supabase Realtime enabled
+ * in the Supabase dashboard (Database > Replication > source tables).
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -21,8 +26,12 @@ export type UseRealtimeNotificationsOptions = {
   onNotification?: (notification: MiniAppNotification) => void;
   /** Optional filter by app_id column */
   appId?: string;
+  /** Optional filter by user_id column (for per-user notification channels) */
+  userId?: string;
   /** Enable/disable subscription (default: true) */
   enabled?: boolean;
+  /** Skip the initial fetch of existing notifications (default: false) */
+  skipInitialFetch?: boolean;
 };
 
 export type UseRealtimeNotificationsReturn = {
@@ -30,6 +39,8 @@ export type UseRealtimeNotificationsReturn = {
   notifications: MiniAppNotification[];
   /** WebSocket connection status */
   isConnected: boolean;
+  /** Whether the initial fetch is in progress */
+  loading: boolean;
   /** Connection or subscription error */
   error: Error | null;
   /** Manually trigger reconnection */
@@ -46,19 +57,21 @@ const MAX_RETRY_DELAY_MS = 30000;
 export function useRealtimeNotifications(
   options: UseRealtimeNotificationsOptions = {},
 ): UseRealtimeNotificationsReturn {
-  const { onNotification, appId, enabled = true } = options;
+  const { onNotification, appId, userId, enabled = true, skipInitialFetch = false } = options;
 
   // Check if running on client side
   const isClient = typeof window !== "undefined";
 
   const [notifications, setNotifications] = useState<MiniAppNotification[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const channelRef = useRef<RealtimeChannel | null>(null);
   const retryCountRef = useRef(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
+  const initialFetchDoneRef = useRef(false);
 
   /**
    * Calculate exponential backoff delay
@@ -103,6 +116,51 @@ export function useRealtimeNotifications(
   );
 
   /**
+   * Fetch existing notifications from Supabase on initial load
+   */
+  const fetchInitial = useCallback(async () => {
+    if (skipInitialFetch || !isClient || !isSupabaseConfigured) return;
+    if (initialFetchDoneRef.current) return;
+
+    setLoading(true);
+    try {
+      let query = supabase
+        .from("miniapp_notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(MAX_NOTIFICATIONS);
+
+      if (appId) {
+        query = query.eq("app_id", appId);
+      }
+      if (userId) {
+        query = query.eq("user_id", userId);
+      }
+
+      const { data, error: fetchError } = await query;
+
+      if (!mountedRef.current) return;
+
+      if (fetchError) {
+        logger.warn("Realtime notifications: Initial fetch failed", fetchError);
+        // Non-fatal: realtime subscription will still deliver new notifications
+      } else if (data) {
+        setNotifications(data as MiniAppNotification[]);
+      }
+
+      initialFetchDoneRef.current = true;
+    } catch (err) {
+      if (mountedRef.current) {
+        logger.warn("Realtime notifications: Initial fetch error", err);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [skipInitialFetch, isClient, appId, userId]);
+
+  /**
    * Subscribe to Supabase Realtime channel
    */
   const subscribe = useCallback(() => {
@@ -129,15 +187,27 @@ export function useRealtimeNotifications(
       return;
     }
 
+    // Build channel name scoped to user/app for efficient filtering
+    const channelName = userId
+      ? `notifications:${userId}`
+      : "miniapp-notifications-channel";
+
+    // Build postgres_changes filter for server-side row filtering
+    const pgFilter: Record<string, string> = {};
+    if (userId) {
+      pgFilter.filter = `user_id=eq.${userId}`;
+    }
+
     try {
       const channel = supabase
-        .channel("miniapp-notifications-channel")
+        .channel(channelName)
         .on(
           "postgres_changes",
           {
             event: "INSERT",
             schema: "public",
             table: "miniapp_notifications",
+            ...pgFilter,
           },
           handleInsert,
         )
@@ -190,7 +260,7 @@ export function useRealtimeNotifications(
       setError(err instanceof Error ? err : new Error("Failed to create Realtime channel"));
       setIsConnected(false);
     }
-  }, [enabled, isClient, handleInsert, getRetryDelay]);
+  }, [enabled, isClient, userId, handleInsert, getRetryDelay]);
 
   /**
    * Manually trigger reconnection (resets retry count)
@@ -205,6 +275,10 @@ export function useRealtimeNotifications(
    */
   useEffect(() => {
     mountedRef.current = true;
+    initialFetchDoneRef.current = false;
+
+    // Fetch existing notifications, then subscribe for new ones
+    fetchInitial();
     subscribe();
 
     return () => {
@@ -224,11 +298,12 @@ export function useRealtimeNotifications(
 
       setIsConnected(false);
     };
-  }, [subscribe]);
+  }, [fetchInitial, subscribe]);
 
   return {
     notifications,
     isConnected,
+    loading,
     error,
     reconnect,
   };
