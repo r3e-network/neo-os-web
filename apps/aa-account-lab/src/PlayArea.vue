@@ -136,12 +136,7 @@ const handleConnect = async () => {
 <style lang="scss" scoped>
 @use "@shared/styles/console-common" as console;
 
-.aa-account-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
-}
+.aa-account-play-area { @include console.play-area; }
 
 .field-stack { @include console.stack; }
 .actions-row { @include console.actions-row; }

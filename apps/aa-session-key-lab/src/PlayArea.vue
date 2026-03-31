@@ -88,12 +88,7 @@ const handleConfigureSessionKey = async () => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.session-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
-}
+.session-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
 .actions-row { @include console.actions-row; }

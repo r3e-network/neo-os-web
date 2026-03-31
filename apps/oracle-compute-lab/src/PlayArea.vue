@@ -108,13 +108,7 @@ const updateInputJson = (val: string) => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.compute-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-  min-height: 300px;
-}
+.compute-play-area { @include console.play-area; min-height: 300px; }
 
 .stack { @include console.stack; }
 .json-box { @include console.json-box; }

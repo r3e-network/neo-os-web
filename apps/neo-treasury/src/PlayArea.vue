@@ -87,6 +87,7 @@ const handleRefresh = async () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "./pages/index/neo-treasury-theme.scss" as *;
@@ -95,13 +96,7 @@ const handleRefresh = async () => {
   background: var(--bg-primary);
 }
 
-.treasury-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.treasury-play-area { @include console.play-area; }
 
-.op-btn {
-  width: 100%;
-}
+.op-btn { width: 100%; }
 </style>

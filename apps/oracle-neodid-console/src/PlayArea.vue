@@ -63,12 +63,7 @@ const handleApplyExample = (kind: string) => {
 <style scoped lang="scss">
 @use "@shared/styles/console-common" as console;
 
-.neodid-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-}
+.neodid-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(3); }

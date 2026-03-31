@@ -89,6 +89,7 @@ const loadTransaction = async () => {
 </script>
 
 <style lang="scss" scoped>
+@use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
 @use "./pages/index/neo-multisig-theme.scss" as *;
@@ -97,9 +98,5 @@ const loadTransaction = async () => {
   background: var(--multi-bg-start);
 }
 
-.multisig-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+.multisig-play-area { @include console.play-area; }
 </style>

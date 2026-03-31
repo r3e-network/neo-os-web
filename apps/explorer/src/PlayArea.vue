@@ -101,17 +101,15 @@ const handleViewTx = async (hash: string) => {
 </script>
 
 <style lang="scss" scoped>
-.explorer-play-area {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 20px 12px;
-  min-height: 300px;
-}
+@use "@shared/styles/console-common" as console;
+
+.explorer-play-area { @include console.play-area; min-height: 300px; }
 
 .loading {
   text-align: center;
   padding: 20px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
   animation: blink 1s infinite;
 }
 
