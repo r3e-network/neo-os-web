@@ -15,6 +15,17 @@ export default class MyDocument extends Document<Props> {
       <Html lang="en">
         <Head>
           <meta charSet="utf-8" />
+          {/* Resource hints — preconnect to high-priority origins so the
+              browser opens connections (DNS + TCP + TLS) early.  DNS-prefetch
+              covers lower-priority origins where a full preconnect is wasteful. */}
+          <link rel="preconnect" href="https://testnet1.neo.coz.io" crossOrigin="anonymous" />
+          <link rel="preconnect" href="/miniapps" />
+          <link rel="dns-prefetch" href="https://testnet1.neo.coz.io" />
+          <link rel="dns-prefetch" href="https://edge.meshmini.app" />
+          <link rel="dns-prefetch" href="https://oracle.meshmini.app" />
+          {process.env.NEXT_PUBLIC_EDGE_URL && (
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_EDGE_URL} />
+          )}
           <meta name="description" content="Discover and use decentralized MiniApps on Neo N3" />
           <meta property="og:type" content="website" />
           <meta property="og:title" content="R3E Network - MiniApp Platform for Neo N3" />

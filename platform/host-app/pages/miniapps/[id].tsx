@@ -3,6 +3,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import {
   MiniAppInfo,
   MiniAppNotification,
@@ -17,10 +18,21 @@ import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import type { OperationEntry, OperationParam } from "../../components/types";
 import { ActivityTicker } from "../../components/ActivityTicker";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
-import { AppSecretsTab } from "../../components/features/secrets/AppSecretsTab";
-import { ReviewsTab } from "../../components/features/reviews";
-import { ForumTab } from "../../components/features/forum";
 import { Layout } from "../../components/layout";
+
+// Lazy-load heavy tab components (only loaded when user navigates to that tab)
+const AppSecretsTab = dynamic(
+  () => import("../../components/features/secrets/AppSecretsTab").then((m) => ({ default: m.AppSecretsTab })),
+  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+);
+const ReviewsTab = dynamic(
+  () => import("../../components/features/reviews").then((m) => ({ default: m.ReviewsTab })),
+  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+);
+const ForumTab = dynamic(
+  () => import("../../components/features/forum").then((m) => ({ default: m.ForumTab })),
+  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+);
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
