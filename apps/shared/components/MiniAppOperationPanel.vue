@@ -457,19 +457,24 @@ async function submitOperation(op: OperationDefinition) {
 .neo-select {
   width: 100%;
   padding: 10px 12px;
+  padding-right: 36px;
   background: rgba(255, 255, 255, 0.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   appearance: none;
   cursor: pointer;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 229, 153, 0.3);
   }
 
   &:focus {
@@ -511,7 +516,7 @@ async function submitOperation(op: OperationDefinition) {
   height: 22px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 11px;
-  transition: background 0.2s ease;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 
   &::after {
@@ -523,7 +528,7 @@ async function submitOperation(op: OperationDefinition) {
     height: 18px;
     background: rgba(255, 255, 255, 0.5);
     border-radius: 50%;
-    transition: transform 0.2s ease, background 0.2s ease;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .toggle-input:checked + & {
@@ -550,18 +555,26 @@ async function submitOperation(op: OperationDefinition) {
 .operation-summary {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 2px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  border-radius: 10px;
   margin-bottom: 16px;
+  overflow: hidden;
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
 }
 
 .summary-label {
@@ -580,5 +593,26 @@ async function submitOperation(op: OperationDefinition) {
 /* ── Action Button ── */
 .operation-action-btn {
   margin-top: 8px;
+
+  &:not(:disabled) {
+    background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
+    box-shadow: 0 4px 16px rgba(0, 229, 153, 0.25), 0 0 0 1px rgba(0, 229, 153, 0.1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow: 0 6px 24px rgba(0, 229, 153, 0.35), 0 0 0 1px rgba(0, 229, 153, 0.2);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 229, 153, 0.2);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    filter: grayscale(0.2);
+  }
 }
 </style>

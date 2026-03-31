@@ -37,6 +37,9 @@ module.exports = {
           700: "#00b377",
         },
       },
+      ringColor: {
+        neo: "rgba(0, 229, 153, 0.3)",
+      },
     },
   },
   plugins: [],
