@@ -52,6 +52,8 @@ const isBusy = computed(() => Boolean(props.state.isBusy?.value ?? false));
 .gov-merc-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
 }
 </style>

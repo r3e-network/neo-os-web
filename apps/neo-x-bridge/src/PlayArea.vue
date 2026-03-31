@@ -78,7 +78,7 @@ const handleOpenDocs = () => {
 .bridge-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }

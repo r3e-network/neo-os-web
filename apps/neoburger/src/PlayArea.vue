@@ -139,10 +139,11 @@ const openExternal = (url: string) => {
 }
 
 .neoburger-shell {
-  padding: 20px 18px 36px;
+  padding: 20px 12px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 300px;
   font-family: var(--font-family-display, "Manrope", "Outfit", sans-serif);
   color: var(--burger-text);
 }

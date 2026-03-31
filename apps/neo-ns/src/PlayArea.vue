@@ -10,7 +10,7 @@
     </div>
 
     <!-- ── Error Display ── -->
-    <div v-if="error" class="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+    <div v-if="error" class="error-banner">
       {{ error }}
     </div>
 
@@ -106,13 +106,19 @@ const handleTransfer = async (transferAddress: string) => {
 .neo-ns-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
 
-.hero-container {
-  margin-bottom: 20px;
+.error-banner {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 /* ── Neo NS Hero Enhancements ── */

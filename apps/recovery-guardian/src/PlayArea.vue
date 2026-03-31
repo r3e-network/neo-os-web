@@ -106,7 +106,7 @@ const setField = (field: string, value: string) => {
 .guardian-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
@@ -123,7 +123,7 @@ const setField = (field: string, value: string) => {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 }
 .note-title {
   font-size: 11px;

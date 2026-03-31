@@ -93,25 +93,19 @@ const handleRequestSponsorship = async () => {
 .gas-sponsor-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
 
 .hero-container {
-  margin-bottom: 20px;
+  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.1) 0%, transparent 70%);
+  transition: box-shadow 0.4s ease;
 }
 
 :deep(.hero-stats-strip__item) {
   --hero-stat-bg: rgba(0, 229, 153, 0.08);
   --hero-stat-border: rgba(0, 229, 153, 0.15);
-}
-
-/* ── Gas Sponsor Hero Enhancements ── */
-
-.hero-container {
-  background: radial-gradient(ellipse at center, rgba(0, 229, 153, 0.1) 0%, transparent 70%);
-  transition: box-shadow 0.4s ease;
 }
 
 @keyframes fuel-gauge-fill {
