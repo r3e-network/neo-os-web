@@ -91,7 +91,19 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         loading: false,
       });
     } catch (err) {
-      set({ loading: false, error: err instanceof Error ? err.message : "login failed" });
+      const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+      const lower = raw.toLowerCase();
+      let message: string;
+      if (lower.includes("rejected") || lower.includes("denied")) {
+        message = "Wallet connection was rejected. Please try again and approve the connection request.";
+      } else if (lower.includes("not found") || lower.includes("not installed")) {
+        message = "Wallet not detected. Please install a compatible Neo wallet extension.";
+      } else if (lower.includes("timeout")) {
+        message = "Connection timed out. Please check your wallet is unlocked and try again.";
+      } else {
+        message = "Could not connect wallet. Please try again or use a different wallet.";
+      }
+      set({ loading: false, error: message });
     }
   },
 
