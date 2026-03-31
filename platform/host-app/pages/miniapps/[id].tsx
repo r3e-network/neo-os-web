@@ -22,6 +22,7 @@ import { ReviewsTab } from "../../components/features/reviews";
 import { ForumTab } from "../../components/features/forum";
 import { Layout } from "../../components/layout";
 import { useActivityFeed } from "../../hooks/useActivityFeed";
+import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
@@ -81,12 +82,21 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
 
-  // App-specific activity feed
+  // App-specific activity feed (events + transactions poll, notifications via Realtime)
   const { activities: appActivities } = useActivityFeed({
     appId: app?.app_id,
     pollInterval: 5000,
     enabled: Boolean(app?.app_id),
   });
+
+  // Realtime notifications for the news tab (replaces SSR-only notifications prop)
+  const { notifications: realtimeNews, loading: newsLoading } = useRealtimeNotifications({
+    appId: app?.app_id,
+    enabled: Boolean(app?.app_id) && showNews,
+  });
+
+  // Use realtime notifications if available, fall back to SSR-provided notifications
+  const liveNotifications = realtimeNews.length > 0 ? realtimeNews : notifications;
 
   const tabs = useMemo(
     () => buildDetailTabs(app?.detail_template?.tabs ?? [], showNews, showSecrets),
@@ -321,7 +331,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                 {activeTabConfig?.type === "news" && (
                   <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
                     {showNews ? (
-                      <AppNewsList notifications={notifications} />
+                      <AppNewsList notifications={liveNotifications} loading={newsLoading} />
                     ) : (
                       <p className="text-xs text-gray-500 dark:text-gray-400">News feed disabled by manifest.</p>
                     )}
