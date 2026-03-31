@@ -94,7 +94,7 @@ NETWORKS = {
     "testnet": NetworkConfig(
         name="testnet",
         rpc_url="https://testnet1.neo.coz.io:443",
-        network_magic=877933390,
+        network_magic=894710606,  # Neo N3 TestNet T5 network magic
     ),
 }
 
