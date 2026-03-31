@@ -252,40 +252,41 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
         <AppDetailHeader app={app} onBack={handleBack} />
 
         <main className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 sm:py-8">
-          <section className="mb-6 rounded-3xl border border-gray-200/70 bg-white/80 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+          <section className="mb-6 rounded-3xl border border-gray-200/70 bg-white/80 p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
             {app.detail_template?.hero?.eyebrow && (
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-neo">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-neo">
                 {app.detail_template.hero.eyebrow}
               </p>
             )}
-            <p className="break-words text-base leading-relaxed text-gray-500 dark:text-gray-400">
+            <p className="break-words text-base leading-relaxed text-gray-600 dark:text-gray-300">
               {app.description}
             </p>
             {app.detail_template?.hero?.disclaimer && (
-              <p className="mt-2 break-words text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-3 break-words text-xs text-gray-500 dark:text-gray-400 italic">
                 {app.detail_template.hero.disclaimer}
               </p>
             )}
-            <div className="mt-5 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href={`/launch/${app.app_id}`}
-                className="inline-flex items-center justify-center rounded-xl bg-neo px-4 py-2 text-sm font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-neo px-6 py-2.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(0,229,153,0.3)] transition-all hover:shadow-[0_0_30px_rgba(0,229,153,0.5)] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               >
                 Launch MiniApp
+                <span aria-hidden="true">&rarr;</span>
               </Link>
               {app.docs_url && (
                 <a
                   href={app.docs_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl border border-gray-200/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-neo/40 hover:text-neo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-white/10 dark:text-gray-200 dark:hover:text-neo"
+                  className="inline-flex items-center justify-center rounded-full border border-gray-200/80 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:border-neo/40 hover:text-neo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-white/10 dark:text-gray-200 dark:hover:text-neo"
                 >
-                  Read Documentation
+                  Documentation
                 </a>
               )}
             </div>
-            <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-              This page keeps the embedded surface, operations, permissions, and activity together. Use Runtime Mode for a focused full-screen launch shell.
+            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              This page combines the embedded surface, operations, permissions, and activity feed. Use Runtime Mode for a focused full-screen experience.
             </p>
           </section>
 
@@ -300,7 +301,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
               </section>
 
               <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
-                <div role="tablist" className="mb-6 flex flex-wrap gap-2 border-b border-gray-200 pb-3 dark:border-gray-700">
+                <div role="tablist" className="mb-6 flex flex-wrap gap-1 p-1 rounded-2xl bg-gray-100/50 dark:bg-white/5 border border-gray-200/50 dark:border-white/5">
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
@@ -310,10 +311,10 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                       aria-selected={activeTabConfig?.id === tab.id}
                       aria-controls={`tabpanel-${tab.id}`}
                       tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
-                      className={`cursor-pointer border-b-2 border-none bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-5 sm:py-3 ${
+                      className={`cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-5 sm:py-2.5 ${
                         activeTabConfig?.id === tab.id
-                          ? "border-neo text-neo"
-                          : "border-transparent text-gray-500 dark:text-gray-400"
+                          ? "bg-white dark:bg-[#1A1C23] text-neo shadow-sm"
+                          : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5"
                       }`}
                       onClick={() => setActiveTab(tab.id)}
                     >
@@ -363,8 +364,8 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
             </section>
 
             <aside className="self-start space-y-4 xl:sticky xl:top-24">
-              <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white sm:text-lg">{operationTitle}</h2>
+              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white sm:text-lg">{operationTitle}</h2>
                 {operationSubtitle && (
                   <p className="mt-1 break-words text-xs text-gray-500 dark:text-gray-400">{operationSubtitle}</p>
                 )}
@@ -408,7 +409,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
               </section>
 
               {sharedRuntime && (
-                <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
+                <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
                   <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Shared Runtime</h3>
                   <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
                     Instance ID:{" "}
@@ -453,7 +454,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                 </section>
               )}
 
-              <section className="rounded-3xl border border-gray-200/70 bg-gray-50 p-4 sm:p-5 dark:border-gray-700 dark:bg-gray-900/80">
+              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm dark:border-white/10 dark:bg-white/5">
                 <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Contract Details</h3>
                 <p className="my-1.5 text-xs text-gray-500 dark:text-gray-400">
                   App ID: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.app_id}</code>
@@ -488,7 +489,7 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
     <div className="space-y-6">
       {blocks.length > 0 && <DetailContentBlocks blocks={blocks} />}
 
-      <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white/70 dark:bg-white/5 rounded-2xl p-6 border border-gray-200/70 dark:border-white/10">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Permissions</h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
@@ -503,7 +504,7 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
       </div>
 
       {app.limits && (
-        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-white/5 rounded-2xl p-6 border border-gray-200/70 dark:border-white/10">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Limits</h3>
           <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
@@ -526,7 +527,7 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
       )}
 
       {app.docs_url && (
-        <div className="bg-gray-50 dark:bg-gray-900/80 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white/70 dark:bg-white/5 rounded-2xl p-6 border border-gray-200/70 dark:border-white/10">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-0 mb-4">Documentation</h3>
           <a
             href={app.docs_url}
