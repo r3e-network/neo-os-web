@@ -1,7 +1,5 @@
-import { getEnv } from "../_shared/env.ts";
+import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
 import { createOSHandler, invokeOSContract } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getEnv("CONTRACT_STORAGE_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
   { scopeName: "os-storage-get", permission: "storage" },
@@ -9,7 +7,7 @@ export const handler = createOSHandler(
     const key = String(params.key ?? "").trim();
     if (!key) throw new Error("key required");
 
-    return invokeOSContract(CONTRACT_HASH, "Get", [
+    return invokeOSContract(OS_CONTRACTS.storage, "Get", [
       { type: "String", value: appId },
       { type: "String", value: key },
     ]);

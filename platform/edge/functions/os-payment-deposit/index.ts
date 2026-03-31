@@ -1,10 +1,7 @@
 import { normalizeUInt160 } from "../_shared/contracts.ts";
-import { getEnv } from "../_shared/env.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
+import { NATIVE_CONTRACTS, OS_CONTRACTS } from "../_shared/os-contracts.ts";
 import { createOSHandler } from "../_shared/os-service.ts";
-
-// Neo N3 Testnet GAS contract hash (native contract)
-const NEO_TESTNET_GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
 export const handler = createOSHandler(
   { scopeName: "os-payment-deposit", permission: "payments" },
@@ -17,10 +14,8 @@ export const handler = createOSHandler(
     }
     if (amount <= 0n) throw new Error("amount must be > 0");
 
-    const gasContractHash = normalizeUInt160(getEnv("CONTRACT_GAS_HASH") ?? NEO_TESTNET_GAS_HASH);
-    const paymentServiceHash = normalizeUInt160(
-      getEnv("CONTRACT_PAYMENT_SERVICE_HASH") ?? "",
-    );
+    const gasContractHash = normalizeUInt160(NATIVE_CONTRACTS.gas);
+    const paymentServiceHash = normalizeUInt160(OS_CONTRACTS.payment);
     if (!paymentServiceHash) throw new Error("payment service contract not configured");
 
     const memo = String(params.memo ?? "").trim() || appId;
