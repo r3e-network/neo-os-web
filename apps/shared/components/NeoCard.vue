@@ -80,15 +80,16 @@ function createClickEvent(keyboardEvent: KeyboardEvent): MouseEvent {
   &--flat {
     box-shadow: none;
     background: transparent;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.03);
     backdrop-filter: none;
   }
 
   &--hoverable {
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 20px 50px rgba(27, 27, 47, 0.18);
+      box-shadow: 0 20px 40px rgba(0, 229, 153, 0.12);
       border-color: rgba(159, 157, 243, 0.35);
       background: rgba(255, 255, 255, 0.08);
     }
@@ -191,7 +192,7 @@ function createClickEvent(keyboardEvent: KeyboardEvent): MouseEvent {
   &__footer {
     padding: 16px 20px;
     border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-    background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
+    background: var(--bg-secondary, rgba(255, 255, 255, 0.02));
   }
 }
 
