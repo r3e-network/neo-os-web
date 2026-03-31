@@ -66,6 +66,9 @@ const appMessages = {
   tokenGas: { en: "GAS", zh: "GAS" },
   utcLabel: { en: "UTC", zh: "UTC" },
   dayPrefix: { en: "D", zh: "第" },
+  plentyOfTime: { en: "Plenty of time", zh: "时间充裕" },
+  hurryUp: { en: "Hurry up!", zh: "快点！" },
+  almostGone: { en: "Almost gone!", zh: "快截止了！" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

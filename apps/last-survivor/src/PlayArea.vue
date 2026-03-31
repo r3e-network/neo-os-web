@@ -20,6 +20,16 @@
       />
     </div>
 
+    <!-- Last Buyer Badge -->
+    <div v-if="lastBuyer && isRoundActive" class="last-buyer-badge">
+      <span class="last-buyer-icon" aria-hidden="true">&#x1F451;</span>
+      <div class="last-buyer-info">
+        <span class="last-buyer-label">{{ t("lastBuyer") || "CURRENT LEADER" }}</span>
+        <span class="last-buyer-address">{{ formatBuyerAddress(lastBuyer) }}</span>
+      </div>
+      <span class="last-buyer-hint">{{ t("timeUntilEvent") }}</span>
+    </div>
+
     <!-- Buy Keys Card -->
     <NeoCard v-if="isRoundActive && !canClaim" variant="erobo" class="buy-keys-card">
       <BuyKeysCard
@@ -63,6 +73,12 @@ const dangerProgress = computed(() => Number(props.state.dangerProgress?.value ?
 const shouldPulse = computed(() => Boolean(props.state.shouldPulse?.value ?? false));
 const estimatedCost = computed(() => String(props.state.estimatedCost?.value ?? "0.00"));
 const keyValidationError = computed(() => props.state.keyValidationError?.value as string | null);
+const lastBuyer = computed(() => (props.state.lastBuyer?.value ?? "") as string);
+
+const formatBuyerAddress = (addr: string) => {
+  if (!addr || addr.length < 10) return addr || "---";
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+};
 
 // ── Local state ───────────────────────────────────────────────────────
 const localKeyCount = ref("1");
@@ -224,6 +240,61 @@ const handleClaimPrize = async () => {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 700;
+}
+
+/* Last Buyer Badge */
+.last-buyer-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: rgba(234, 179, 8, 0.06);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: 8px;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  animation: leader-glow 3s ease-in-out infinite;
+}
+
+.last-buyer-icon {
+  font-size: 22px;
+}
+
+.last-buyer-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.last-buyer-label {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: rgba(234, 179, 8, 0.6);
+  text-transform: uppercase;
+}
+
+.last-buyer-address {
+  font-size: 13px;
+  font-weight: 800;
+  font-family: "Orbitron", monospace;
+  color: #eab308;
+  filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.3));
+}
+
+.last-buyer-hint {
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(220, 38, 38, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@keyframes leader-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.1); }
+  50% { box-shadow: 0 0 18px rgba(234, 179, 8, 0.2); }
 }
 
 @media (prefers-reduced-motion: reduce) {

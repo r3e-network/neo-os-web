@@ -8,6 +8,21 @@
       <span :class="['status-pill', stream.status]">{{ statusLabel(stream.status) }}</span>
     </div>
 
+    <!-- Progress bar: vested vs remaining -->
+    <div class="vault-progress">
+      <div class="progress-header">
+        <span class="progress-label">{{ t("released") }}</span>
+        <span class="progress-pct">{{ vestingPercent }}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" :style="{ width: `${vestingPercent}%` }" />
+      </div>
+      <div class="progress-legend">
+        <span class="legend-vested">{{ formatAmount(stream.assetSymbol, stream.releasedAmount) }} vested</span>
+        <span class="legend-remaining">{{ formatAmount(stream.assetSymbol, stream.remainingAmount) }} remaining</span>
+      </div>
+    </div>
+
     <div class="vault-metrics">
       <div v-for="metric in metrics" :key="metric.label">
         <span class="metric-label">{{ metric.label }}</span>
@@ -18,8 +33,12 @@
     </div>
 
     <div class="vault-meta">
-      <span class="meta-item">{{ t("intervalLabel") }}: {{ stream.intervalDays }}d</span>
       <span class="meta-item">
+        <span class="meta-icon" aria-hidden="true">&#x23F1;</span>
+        {{ t("intervalLabel") }}: {{ stream.intervalDays }}d
+      </span>
+      <span class="meta-item">
+        <span class="meta-icon" aria-hidden="true">&#x1F4B8;</span>
         {{ t("rateLabel") }}: {{ formatAmount(stream.assetSymbol, stream.rateAmount) }}
         {{ stream.assetSymbol }}
       </span>
@@ -78,6 +97,12 @@ const metrics = computed(() => {
     { label: t("claimable"), value: props.stream.claimable },
     { label: t("remaining"), value: props.stream.remainingAmount },
   ];
+});
+
+const vestingPercent = computed(() => {
+  const total = props.stream.totalAmount;
+  if (total === 0n) return 0;
+  return Math.min(100, Number((props.stream.releasedAmount * 100n) / total));
 });
 
 const formatAmount = (assetSymbol: "NEO" | "GAS", amount: bigint) => {
@@ -165,6 +190,78 @@ const statusLabel = (statusValue: StreamStatus) => {
   color: var(--stream-text);
 }
 
+/* Progress bar */
+.vault-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--stream-muted);
+}
+
+.progress-pct {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--stream-accent, #3B82F6);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.progress-track {
+  height: 6px;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6, #06B6D4);
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+    border-radius: 0 3px 3px 0;
+  }
+}
+
+.progress-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--stream-muted);
+}
+
+.legend-vested {
+  color: #06B6D4;
+  font-weight: 600;
+}
+
+.legend-remaining {
+  color: var(--stream-muted);
+  font-weight: 500;
+}
+
 .vault-meta {
   display: flex;
   flex-wrap: wrap;
@@ -173,8 +270,25 @@ const statusLabel = (statusValue: StreamStatus) => {
   color: var(--stream-muted);
 }
 
+.meta-icon {
+  margin-right: 3px;
+  font-size: 12px;
+}
+
 .vault-actions {
   display: flex;
   gap: 10px;
+}
+
+/* Active stream pulse */
+.vault-card:has(.status-pill:not(.completed):not(.cancelled)) {
+  .progress-fill {
+    animation: flow-shine 3s ease-in-out infinite;
+  }
+}
+
+@keyframes flow-shine {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.3); }
 }
 </style>
