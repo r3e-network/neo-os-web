@@ -11,6 +11,13 @@ export default class MyDocument extends Document<Props> {
 
   render() {
     const nonce = this.props.nonce;
+    const rpcOrigin = (() => {
+      try {
+        return new URL(process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443").origin;
+      } catch {
+        return "https://testnet1.neo.coz.io";
+      }
+    })();
     return (
       <Html lang="en">
         <Head>
@@ -18,9 +25,9 @@ export default class MyDocument extends Document<Props> {
           {/* Resource hints — preconnect to high-priority origins so the
               browser opens connections (DNS + TCP + TLS) early.  DNS-prefetch
               covers lower-priority origins where a full preconnect is wasteful. */}
-          <link rel="preconnect" href="https://testnet1.neo.coz.io" crossOrigin="anonymous" />
+          <link rel="preconnect" href={rpcOrigin} crossOrigin="anonymous" />
           <link rel="preconnect" href="/miniapps" />
-          <link rel="dns-prefetch" href="https://testnet1.neo.coz.io" />
+          <link rel="dns-prefetch" href={rpcOrigin} />
           <link rel="dns-prefetch" href="https://edge.meshmini.app" />
           <link rel="dns-prefetch" href="https://oracle.meshmini.app" />
           {process.env.NEXT_PUBLIC_EDGE_URL && (
