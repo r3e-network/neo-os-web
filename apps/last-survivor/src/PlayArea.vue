@@ -90,6 +90,8 @@ const handleClaimPrize = async () => {
 </script>
 
 <style lang="scss" scoped>
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap");
+
 .survivor-play-area {
   display: flex;
   flex-direction: column;
@@ -97,6 +99,66 @@ const handleClaimPrize = async () => {
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
+  position: relative;
+  font-family: "Orbitron", monospace;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 49px,
+      rgba(220, 38, 38, 0.04) 49px,
+      rgba(220, 38, 38, 0.04) 50px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 49px,
+      rgba(220, 38, 38, 0.04) 49px,
+      rgba(220, 38, 38, 0.04) 50px
+    );
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #dc2626 0,
+      #dc2626 20px,
+      #eab308 20px,
+      #eab308 40px
+    );
+    animation: hazard-scroll 2s linear infinite;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #eab308 0,
+      #eab308 20px,
+      #dc2626 20px,
+      #dc2626 40px
+    );
+    animation: hazard-scroll 2s linear infinite reverse;
+  }
+}
+
+@keyframes hazard-scroll {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 0;
+  }
 }
 
 .hero-container {
@@ -109,15 +171,67 @@ const handleClaimPrize = async () => {
   gap: 24px;
   padding: 24px 16px;
   width: 100%;
+  position: relative;
+  z-index: 1;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(220, 38, 38, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
 }
 
 .buy-keys-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 4px;
   padding: 20px;
   backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 0 20px rgba(220, 38, 38, 0.08),
+    inset 0 1px 0 rgba(234, 179, 8, 0.1);
+
+  &::before {
+    content: "// ACQUIRE KEYS";
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    font-family: "Orbitron", monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #eab308;
+    background: #0a0a0a;
+    padding: 2px 8px;
+    text-transform: uppercase;
+  }
+}
+
+:deep(.neo-card) {
+  font-family: "Orbitron", monospace;
+  border-radius: 4px;
+}
+
+:deep(.neo-btn) {
+  font-family: "Orbitron", monospace;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .survivor-play-area {
+    &::before,
+    &::after {
+      animation: none;
+    }
+  }
 }
 </style>
