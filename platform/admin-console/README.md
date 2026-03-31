@@ -53,13 +53,18 @@ NEXTAUTH_SECRET=your-nextauth-secret
 ADMIN_CONSOLE_API_KEY=your-admin-api-key
 ```
 
-The admin API routes require a matching key in `X-Admin-Key` (or `Authorization: Bearer`).
-For browser calls, set `NEXT_PUBLIC_ADMIN_CONSOLE_API_KEY` at build time or inject a
-runtime key in a meta tag:
+The admin API routes accept two forms of authentication:
 
-```html
-<meta name="admin-api-key" content="your-admin-api-key" />
-```
+1. **Session cookie (browser clients):** The admin console uses cookie-based
+   session auth. The `admin_session` cookie is validated server-side using
+   `NEXTAUTH_SECRET`. Browser requests never carry the admin API key.
+
+2. **API key header (server-to-server only):** External services can
+   authenticate with `X-Admin-Key` or `Authorization: Bearer <key>`.
+
+**IMPORTANT:** Never prefix the admin API key with `NEXT_PUBLIC_`. Doing so
+exposes the secret to every browser that loads the page. Set `ADMIN_CONSOLE_API_KEY`
+(or `ADMIN_API_KEY`) as a server-only environment variable.
 
 ## Deployment
 
