@@ -1,12 +1,10 @@
-import { getEnv } from "../_shared/env.ts";
+import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getEnv("CONTRACT_CHECKIN_SERVICE_HASH") ?? "";
 
 export const handler = createOSHandler(
   { scopeName: "os-checkin-checkin", permission: "checkin" },
   async ({ appId, userId }) => {
-    return buildInvocationIntent(CONTRACT_HASH, "CheckIn", [
+    return buildInvocationIntent(OS_CONTRACTS.checkin, "CheckIn", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
     ]);
