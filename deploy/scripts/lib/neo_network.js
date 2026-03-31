@@ -8,7 +8,7 @@ const TESTNET_MAGIC = 894710606;
 const NETWORK_DEFAULTS = {
   mainnet: {
     key: "neo-n3-mainnet",
-    rpcUrl: process.env.NEO_MAINNET_RPC_URL || process.env.NEO_RPC_MAINNET || MAINNET_RPC_URL,
+    rpcUrl: process.env.NEO_RPC_MAINNET || MAINNET_RPC_URL,
     networkMagic: Number(process.env.NEO_MAINNET_MAGIC || MAINNET_MAGIC),
     oracleHash: (
       process.env.MORPHEUS_ORACLE_MAINNET_HASH
@@ -18,7 +18,7 @@ const NETWORK_DEFAULTS = {
   },
   testnet: {
     key: "neo-n3-testnet",
-    rpcUrl: process.env.NEO_TESTNET_RPC_URL || process.env.NEO_RPC_URL || TESTNET_RPC_URL,
+    rpcUrl: process.env.NEO_RPC_TESTNET || process.env.NEO_RPC_URL || TESTNET_RPC_URL,
     networkMagic: Number(process.env.NEO_TESTNET_MAGIC || process.env.NEO_NETWORK_MAGIC || TESTNET_MAGIC),
     oracleHash: (
       process.env.MORPHEUS_ORACLE_TESTNET_HASH
