@@ -20,7 +20,7 @@ export const N3INDEX_API = "https://api.n3index.dev";
 export const NEO_MAINNET_RPC = "https://mainnet1.neo.coz.io:443";
 
 /** Neo N3 Testnet RPC (for direct reads and wallet-signed writes) */
-export const NEO_TESTNET_RPC = "https://n3seed1.ngd.network:20332";
+export const NEO_TESTNET_RPC = "https://testnet1.neo.coz.io:443";
 
 /** Network magic numbers */
 export const MAINNET_MAGIC = 860833102;
