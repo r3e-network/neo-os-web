@@ -1,5 +1,11 @@
 <template>
-  <div class="checkin-play-area">
+  <div class="checkin-play-area" :class="{ 'streak-active': currentStreak > 0 }">
+    <div class="flame-bg-effects">
+      <div class="ember ember-1"></div>
+      <div class="ember ember-2"></div>
+      <div class="ember ember-3"></div>
+    </div>
+
     <CheckinCalendar :t="t" :current-streak="currentStreak" :can-check-in="canCheckIn" />
 
     <StreakDisplay :t="t" :current-streak="currentStreak" :highest-streak="highestStreak" />
@@ -93,6 +99,7 @@ const handleCheckIn = async () => {
 
 <style lang="scss" scoped>
 @use "@shared/styles/mixins.scss" as *;
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap");
 
 .checkin-play-area {
   display: flex;
@@ -102,6 +109,78 @@ const handleCheckIn = async () => {
   padding: 20px 12px;
   min-height: 300px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(196, 30, 58, 0.1) 0%, transparent 50%);
+  font-family: "Fredoka", sans-serif;
+
+  &.streak-active {
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(196, 30, 58, 0.15) 0%, transparent 50%);
+  }
+}
+
+/* Floating ember particles */
+.flame-bg-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.ember {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6b35;
+  opacity: 0;
+  animation: ember-float 4s ease-in-out infinite;
+}
+
+.ember-1 {
+  left: 20%;
+  bottom: -10px;
+  animation-delay: 0s;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.6);
+}
+
+.ember-2 {
+  left: 55%;
+  bottom: -10px;
+  animation-delay: 1.5s;
+  width: 4px;
+  height: 4px;
+  background: #ffa726;
+  box-shadow: 0 0 6px rgba(255, 167, 38, 0.6);
+}
+
+.ember-3 {
+  left: 80%;
+  bottom: -10px;
+  animation-delay: 3s;
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.8);
+}
+
+@keyframes ember-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  80% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-400px) scale(0.3);
+  }
 }
 
 .countdown-section {
@@ -110,33 +189,37 @@ const handleCheckIn = async () => {
   align-items: center;
   gap: 8px;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .utc-clock {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 16px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.2);
   border-radius: 20px;
+  backdrop-filter: blur(8px);
 }
 
 .clock-icon {
   font-size: 14px;
+  color: #ff6b35;
 }
 
 .clock-display {
   @include mono-number(13px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
+  color: #ff8a5c;
 }
 
 .clock-utc-label {
   font-size: 8px;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 107, 53, 0.5);
   letter-spacing: 0.1em;
 }
 
@@ -144,44 +227,72 @@ const handleCheckIn = async () => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 6px 16px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  background: rgba(0, 229, 153, 0.1);
-  color: #00e599;
+  font-family: "Fredoka", sans-serif;
+  background: rgba(196, 30, 58, 0.12);
+  color: #e57373;
+  border: 1px solid rgba(196, 30, 58, 0.2);
   transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 
   &.ready {
-    background: rgba(255, 200, 0, 0.1);
-    color: #ffc800;
-    box-shadow: 0 0 15px rgba(255, 200, 0, 0.15);
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+    border-color: rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.2), 0 0 40px rgba(255, 107, 53, 0.1);
+    animation: pulse-flame 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-flame {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.2), 0 0 40px rgba(255, 107, 53, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 107, 53, 0.35), 0 0 60px rgba(255, 107, 53, 0.15);
   }
 }
 
 .action-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 107, 53, 0.05);
+  border: 1px solid rgba(255, 107, 53, 0.15);
   border-radius: 16px;
   padding: 20px;
   backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
 }
 
 .checkin-btn {
   margin-top: 16px;
 
   :deep(.neo-btn) {
-    background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
-    color: #000;
-    font-weight: 600;
-    border-radius: 12px;
-    transition: all 0.2s;
+    background: linear-gradient(135deg, #ff6b35 0%, #c41e3a 100%);
+    color: #fff;
+    font-weight: 700;
+    font-family: "Fredoka", sans-serif;
+    border-radius: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.02em;
 
     &:hover:not(:disabled) {
-      box-shadow: 0 8px 24px rgba(0, 229, 153, 0.3);
-      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(255, 107, 53, 0.45), 0 0 60px rgba(255, 107, 53, 0.15);
+      transform: translateY(-2px);
+    }
+
+    &:disabled {
+      background: linear-gradient(135deg, #5a3a2e 0%, #4a2030 100%);
+      color: rgba(255, 255, 255, 0.4);
+      box-shadow: none;
     }
   }
 }
@@ -194,12 +305,26 @@ const handleCheckIn = async () => {
   font-weight: 700;
   text-transform: uppercase;
   font-size: 18px;
+  font-family: "Fredoka", sans-serif;
+}
+
+/* Ensure child components sit above bg effects */
+:deep(.checkin-calendar),
+:deep(.streak-display),
+:deep(.rewards-section),
+:deep(.countdown-timer) {
+  position: relative;
+  z-index: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .status-pill {
     animation: none;
     transition: none;
+  }
+  .ember {
+    animation: none;
+    display: none;
   }
 }
 </style>
