@@ -16,9 +16,9 @@
     </div>
 
     <div v-if="!address" class="empty-state">
-      <NeoCard variant="erobo" class="p-6 text-center">
-        <span class="mb-3 block text-sm">{{ t("walletNotConnected") }}</span>
-        <NeoButton size="sm" variant="primary" @click="handleConnect">
+      <NeoCard variant="erobo" class="connect-card">
+        <span class="connect-label">{{ t("walletNotConnected") }}</span>
+        <NeoButton size="sm" variant="primary" class="connect-btn" @click="handleConnect">
           {{ t("connectWallet") }}
         </NeoButton>
       </NeoCard>
@@ -121,12 +121,60 @@ const handleCancel = async (stream: StreamItem) => {
 .neo-pay-play-area {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 0;
+  gap: 24px;
+  padding: 20px 12px;
 }
 
-.vaults-header { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
-.section-title { font-size: 18px; font-weight: 700; }
-.streams-container { display: flex; flex-direction: column; gap: 16px; }
-.empty-state { margin-top: 10px; }
+.vaults-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.streams-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.empty-state {
+  .connect-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+    text-align: center;
+  }
+
+  .connect-label {
+    display: block;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 12px;
+  }
+
+  .connect-btn {
+    :deep(.neo-btn) {
+      background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
+      color: #000;
+      font-weight: 600;
+      border-radius: 12px;
+      transition: all 0.2s;
+
+      &:hover {
+        box-shadow: 0 8px 24px rgba(0, 229, 153, 0.3);
+        transform: translateY(-1px);
+      }
+    }
+  }
+}
 </style>

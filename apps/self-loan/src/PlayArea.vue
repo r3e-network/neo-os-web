@@ -1,9 +1,9 @@
 <template>
   <div class="loan-play-area">
     <!-- ── Wallet Prompt ── -->
-    <div v-if="!isConnected" class="wallet-prompt mb-4">
-      <NeoCard variant="warning" class="text-center">
-        <span class="mb-2 block font-bold">{{ t("connectWalletToUse") }}</span>
+    <div v-if="!isConnected" class="wallet-prompt">
+      <NeoCard variant="warning" class="connect-card">
+        <span class="connect-label">{{ t("connectWalletToUse") }}</span>
         <NeoButton type="button" variant="primary" size="sm" @click="handleAction('connectWallet')">
           {{ t("connectWallet") }}
         </NeoButton>
@@ -77,13 +77,41 @@ const handleAction = async (name: string) => {
 .loan-play-area {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
 }
 
 .wallet-prompt {
-  margin-bottom: 16px;
+  .connect-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(8px);
+    text-align: center;
+  }
+
+  .connect-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 12px;
+  }
+
+  :deep(.neo-btn) {
+    background: linear-gradient(135deg, #00e599 0%, #00cc88 100%);
+    color: #000;
+    font-weight: 600;
+    border-radius: 12px;
+    transition: all 0.2s;
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 229, 153, 0.3);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 .hero-container {
