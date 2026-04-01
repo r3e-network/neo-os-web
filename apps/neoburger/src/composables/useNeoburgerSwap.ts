@@ -12,13 +12,15 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const NEO_CONTRACT = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 
+import type { PriceData } from "@shared/utils/price";
+
 export interface UseNeoburgerSwapOptions {
   chain: ChainService;
   eventBus: EventBus;
   neoBalance: Ref<number>;
   bNeoBalance: Ref<number>;
   BNEO_CONTRACT: Ref<string | null>;
-  priceData: Ref<{ neo: { usd: number } } | null>;
+  priceData: Ref<PriceData | null>;
   t: (key: string, params?: Record<string, string | number>) => string;
   loadBalances: () => Promise<void>;
 }
@@ -59,7 +61,7 @@ export function useNeoburgerSwap({
   const swapButtonLabel = computed(() => (swapMode.value === "stake" ? t("swapToBneo") : t("swapToNeo")));
 
   const swapUsdText = computed(() => {
-    const price = priceData.value?.neo.usd ?? 0;
+    const price = priceData.value?.usd?.neo ?? 0;
     const rawAmount = Number.parseFloat(swapAmount.value);
     const stakeAmountInt = Number(toFixedDecimals(swapAmount.value, 0));
     const amount = swapMode.value === "stake" ? stakeAmountInt : rawAmount || 0;
