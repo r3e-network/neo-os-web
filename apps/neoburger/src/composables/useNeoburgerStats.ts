@@ -51,7 +51,7 @@ export function useNeoburgerStats(t: (key: string, params?: Record<string, strin
   });
 
   const totalStakedUsdText = computed(() => {
-    const price = priceData.value?.neo.usd ?? 0;
+    const price = priceData.value?.usd?.neo ?? 0;
     if (!price || totalStaked.value === null) return t("usdPlaceholder");
     return t("approxUsd", { value: formatCompactNumber(totalStaked.value * price) });
   });

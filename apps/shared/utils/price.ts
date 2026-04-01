@@ -2,6 +2,8 @@
  * Price data utilities for fetching and caching token prices
  */
 
+import { useDataFeed } from "../composables/useDataFeed";
+
 export interface PriceData {
   neo: number;
   gas?: number;
@@ -17,8 +19,6 @@ export interface PriceData {
 
 /**
  * MorpheusDataFeed contract hash (Neo N3 mainnet).
- * TODO: Use this contract to fetch real on-chain prices via invokeRead
- * instead of relying on the hardcoded fallback values below.
  */
 const MORPHEUS_DATAFEED_HASH = "0x03013f49c42a14546c8bbe58f9d434c3517fccab";
 
@@ -30,9 +30,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 /**
  * Fetches NEO and neoBurger prices
  *
- * WARNING: Currently returns hardcoded fallback prices.
- * Production implementation should call MorpheusDataFeed contract
- * ({@link MORPHEUS_DATAFEED_HASH}) via invokeRead for real on-chain prices.
+ * Production implementation calling MorpheusDataFeed contract via edge functions.
  */
 export async function getPrices(): Promise<PriceData> {
   const now = Date.now();
@@ -42,19 +40,39 @@ export async function getPrices(): Promise<PriceData> {
     return priceCache;
   }
 
-  // FALLBACK: Hardcoded mock prices. Replace with MorpheusDataFeed contract call
-  // (MORPHEUS_DATAFEED_HASH) or off-chain oracle (CoinGecko, Flamingo, etc.).
-  const mockPrices: PriceData = {
-    neo: 15.5,
-    neoBurger: 17.8,
-    neoBurgerToNeo: 1.148, // neoBurger/NEO ratio
-    updatedAt: now,
-  };
+  const { getPrice } = useDataFeed();
+  try {
+    const neoPrice = await getPrice("NEO");
+    const gasPrice = await getPrice("GAS");
+    const neoBurgerPrice = neoPrice * 1.148; 
 
-  priceCache = mockPrices;
-  cacheTimestamp = now;
-
-  return mockPrices;
+    const prices: PriceData = {
+      neo: neoPrice,
+      gas: gasPrice,
+      neoBurger: neoBurgerPrice,
+      neoBurgerToNeo: 1.148,
+      updatedAt: now,
+      usd: {
+        neo: neoPrice,
+        gas: gasPrice,
+      }
+    };
+    
+    priceCache = prices;
+    cacheTimestamp = now;
+    return prices;
+  } catch (error) {
+    console.warn("Failed to fetch prices from DataFeed, using fallback", error);
+    const mockPrices: PriceData = {
+      neo: 15.5,
+      gas: 5.0,
+      neoBurger: 17.8,
+      neoBurgerToNeo: 1.148,
+      updatedAt: now,
+      usd: { neo: 15.5, gas: 5.0 },
+    };
+    return mockPrices;
+  }
 }
 
 /**

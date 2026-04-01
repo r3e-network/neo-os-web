@@ -1,9 +1,10 @@
 import { computed, type Ref } from "vue";
+import type { PriceData } from "@shared/utils/price";
 
 export function useNeoburgerRewards(
   bNeoBalance: Ref<number>,
   apy: Ref<number>,
-  priceData: Ref<{ neo: { usd: number } } | null>,
+  priceData: Ref<PriceData | null>,
   t: (key: string, params?: Record<string, string | number>) => string,
 ) {
 
@@ -19,7 +20,7 @@ export function useNeoburgerRewards(
   });
 
   const totalRewardsUsd = computed(() => {
-    const neoPrice = priceData.value?.neo.usd ?? 0;
+    const neoPrice = priceData.value?.usd?.neo ?? 0;
     return (totalRewards.value * neoPrice).toFixed(2);
   });
 
