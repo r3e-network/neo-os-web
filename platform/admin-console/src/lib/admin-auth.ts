@@ -4,16 +4,8 @@ import { timingSafeEqual } from "crypto";
 /**
  * Server-only admin authentication.
  *
- * The admin console's Next.js API routes run server-side and are the sole auth
- * boundary. Browser pages call these same-origin `/api/*` routes, which validate
- * the request using the server-only `ADMIN_CONSOLE_API_KEY` env var.
- *
- * Two supported auth flows:
- *  1. Same-origin browser requests — the Next.js API routes themselves ARE the
- *     server, so they can read the env var directly. No cookie or browser-sent
- *     key is needed; the route handler is already trusted code.
- *  2. External / server-to-server callers — pass `X-Admin-Key` header or
- *     `Authorization: Bearer <key>`.
+ * ALL requests to admin API routes must include a valid API key via
+ * `X-Admin-Key` header or `Authorization: Bearer <key>`.
  *
  * For production deployments behind a reverse proxy, the proxy can inject the
  * admin key server-side so that upstream services also accept the request.
@@ -98,9 +90,9 @@ function isRateLimited(req: Request): boolean {
 /**
  * Authenticate an incoming admin API request.
  *
- * For same-origin browser requests (the admin console's own pages), the Next.js
- * API route runs server-side and is inherently trusted — no key header is needed.
- * External callers must provide the key via `X-Admin-Key` or `Authorization: Bearer`.
+ * ALL callers must provide the API key via `X-Admin-Key` or
+ * `Authorization: Bearer`. When the key env var is not set, requests
+ * are rejected (fail closed).
  *
  * Returns null on success, or an error Response to short-circuit the handler.
  */
@@ -109,32 +101,22 @@ export function requireAdminAuth(req: Request): Response | null {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  // When no API key is configured, allow requests (dev mode). In production
-  // the env var MUST be set; the admin console should not be publicly exposed
-  // without it.
+  // Fail closed: when no API key is configured, reject all requests.
+  // ADMIN_CONSOLE_API_KEY must be set in production AND development.
   if (!ADMIN_API_KEY) {
-    return null;
+    return NextResponse.json(
+      { error: "ADMIN_CONSOLE_API_KEY not configured" },
+      { status: 500 },
+    );
   }
 
-  // Check for API key in headers (server-to-server or proxy-injected)
+  // Require a valid API key header for ALL requests (server-to-server,
+  // proxy-injected, or same-origin browser requests via fetch).
   const token = extractAdminKey(req);
   if (token && safeCompare(token, ADMIN_API_KEY)) {
     return null;
   }
 
-  // Same-origin requests from the admin console's own pages hit these API
-  // routes directly in the Next.js server process. The Referer/Origin check
-  // below is a lightweight same-origin guard — not a security boundary on its
-  // own, but combined with CORS defaults it prevents cross-origin misuse
-  // while allowing the admin UI to work without sending a key header.
-  const origin = req.headers.get("origin") || "";
-  const referer = req.headers.get("referer") || "";
-  const host = req.headers.get("host") || "";
-
-  if (host && (origin.includes(host) || referer.includes(host))) {
-    return null;
-  }
-
-  // Reject: no valid key header AND not a same-origin request
+  // Reject: no valid key header
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }
