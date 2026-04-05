@@ -138,6 +138,9 @@ export {
   writeTimedCache,
 } from "./runtime-cache";
 
+// iframe.ts
+export { getParentOrigin } from "./iframe";
+
 // createActionHandlers.ts
 export { registerActions } from "./createActionHandlers";
 export type { ActionDef } from "./createActionHandlers";
