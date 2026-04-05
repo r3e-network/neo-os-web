@@ -43,7 +43,7 @@ import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import { formatNumber, toFixedDecimals } from "@shared/utils/format";
+import { formatNumber, toFixedDecimals, toSafeNumber } from "@shared/utils/format";
 
 // ============================================================================
 // Types
@@ -105,10 +105,7 @@ export function useSelfLoan({
 }: UseSelfLoanOptions) {
   // ── Helpers ──────────────────────────────────────────────────────────
   const fmt = (n: number, d = 2) => formatNumber(n, d);
-  const toNumber = (value: unknown) => {
-    const num = Number(value ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
+  const toNumber = toSafeNumber;
 
   // ── Core State ──────────────────────────────────────────────────────
   const isLoading = ref(false);

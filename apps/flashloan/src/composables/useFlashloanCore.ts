@@ -26,7 +26,7 @@ import { ref } from "vue";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import { formatNumber, formatAddress, formatGas, toFixed8 } from "@shared/utils/format";
+import { formatNumber, formatAddress, formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
 
 type LoanStatus = "pending" | "success" | "failed";
 
@@ -76,10 +76,7 @@ export function useFlashloanCore({
 
   // -- Helpers --------------------------------------------------------------
 
-  const toNumber = (value: unknown) => {
-    const num = Number(value ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
+  const toNumber = toSafeNumber;
 
   const formatTimestamp = (value: unknown) => {
     const ts = toNumber(value);

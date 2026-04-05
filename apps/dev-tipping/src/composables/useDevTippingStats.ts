@@ -9,7 +9,7 @@
 
 import { ref } from "vue";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import { parseGas, formatNum } from "@shared/utils/format";
+import { parseGas, formatNum, toSafeNumber } from "@shared/utils/format";
 
 export interface Developer {
   id: number;
@@ -40,10 +40,7 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
   const totalDonated = ref(0);
   const isLoading = ref(false);
 
-  const toNumber = (value: unknown) => {
-    const num = Number(value ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
+  const toNumber = toSafeNumber;
 
   const loadDevelopers = async () => {
     isLoading.value = true;
