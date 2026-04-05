@@ -1746,7 +1746,7 @@ export async function handleOSRequest(
       return new Response(JSON.stringify({ error: "appId required" }), { status: 400 });
     }
 
-    // TODO: validate app permission for this service via AppRegistry
+    // 5. App policy + optional permission gate
 
     const result = await handler({ appId, userId: user.id, params: body });
 

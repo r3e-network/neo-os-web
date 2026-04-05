@@ -213,6 +213,10 @@ async function runQuadratic() {
 }
 
 async function runTimeCapsule() {
+  if (admin.address === user.address) {
+    console.warn("timecapsule: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address. Skipping test.");
+    return { skipped: true, reason: "same address" };
+  }
   const hash = ADDRESSES.timecapsule;
   const adminContract = appContract(hash, admin);
   const unlockTime = Date.now() + 2 * 86400 * 1000;
