@@ -167,6 +167,15 @@ export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Safely convert an unknown value to a finite number, defaulting to 0.
+ * Handles null, undefined, non-numeric strings, NaN, and Infinity.
+ */
+export function toSafeNumber(value: unknown): number {
+  const num = Number(value ?? 0);
+  return Number.isFinite(num) ? num : 0;
+}
+
 function trimTrailingZero(value: string): string {
   return value.replace(/\.0$/, "");
 }
