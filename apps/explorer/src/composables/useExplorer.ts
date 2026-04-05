@@ -17,6 +17,7 @@ import type { ChainService, EventBus } from "@shared/services";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
+import { getParentOrigin } from "@shared/utils/iframe";
 
 // ============================================================================
 // Constants
@@ -58,15 +59,8 @@ export interface UseExplorerOptions {
 // ============================================================================
 
 const getApiBase = () => {
-  try {
-    if (typeof window !== "undefined" && window.parent !== window) {
-      const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
-      if (parentOrigin) return `${parentOrigin}/api/explorer`;
-    }
-  } catch (e) {
-    console.warn("[useExplorer] getApiBase failed:", e instanceof Error ? e.message : String(e));
-  }
-  return "/api/explorer";
+  const parentOrigin = getParentOrigin();
+  return parentOrigin !== window.location.origin ? `${parentOrigin}/api/explorer` : "/api/explorer";
 };
 
 const API_BASE = getApiBase();

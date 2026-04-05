@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { ExternalMiniAppFrame } from "./ExternalMiniAppFrame";
 import { FederatedMiniApp } from "./FederatedMiniApp";
 import { parseFederatedEntryUrl } from "../lib/miniapp";
