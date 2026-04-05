@@ -1,6 +1,8 @@
 import { MiniAppNotification } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
+
 type Props = {
   notifications: MiniAppNotification[];
   loading?: boolean;
@@ -92,7 +94,7 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
         </p>
         {notification.tx_hash && (
           <a
-            href={`https://dora.coz.io/transaction/neo3/${notification.tx_hash}`}
+            href={`${DORA_TX_BASE}/${notification.tx_hash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block mt-2 cursor-pointer text-xs text-neo no-underline hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
