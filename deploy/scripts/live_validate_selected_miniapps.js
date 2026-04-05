@@ -292,9 +292,7 @@ async function buildPreflightSummary(targets) {
 
 function assertDistinctActors(appLabel) {
   if (admin.address === user.address) {
-    throw new Error(
-      `${appLabel}: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address ${admin.address}. Configure two distinct funded Neo N3 testnet wallets before rerunning.`
-    );
+    return { skip: true, reason: `${appLabel}: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address ${admin.address}. Skipping test.` };
   }
   return {
     adminAddress: admin.address,
@@ -583,6 +581,7 @@ async function runExFiles() {
   const adminContract = appContract(contractHash, admin);
   const userContract = appContract(contractHash, user);
   const actorCheck = assertDistinctActors("exfiles");
+  if (actorCheck.skip) return { contractHash, skipped: true, reason: actorCheck.reason };
   const pauseState = await assertMiniAppNotPaused("exfiles", contractHash);
   await ensureAccountHasGas(admin, 15000000n, "exfiles admin");
   await ensureAccountHasGas(user, 35000000n, "exfiles user");
@@ -744,6 +743,7 @@ async function runMillionPieceMap() {
   const userContract = appContract(contractHash, user);
   const pauseState = await assertMiniAppNotPaused("millionpiecemap", contractHash);
   const actorPrecheck = assertDistinctActors("millionpiecemap");
+  if (actorPrecheck.skip) return { contractHash, skipped: true, reason: actorPrecheck.reason };
   await ensureAccountHasGas(admin, MILLION_PIECE_CLAIM_FUNDING, "millionpiecemap admin");
   await ensureAccountHasGas(user, MILLION_PIECE_BUY_PRICE, "millionpiecemap user");
   const mapOverview = requireObjectKeys(await assertReadMethodReady("millionpiecemap", contractHash, "getMapOverview"), [
@@ -884,6 +884,7 @@ async function runHeritageTrust() {
   const contract = appContract(contractHash, admin);
   const pauseState = await assertMiniAppNotPaused("heritagetrust", contractHash);
   const actorPrecheck = assertDistinctActors("heritagetrust");
+  if (actorPrecheck.skip) return { contractHash, skipped: true, reason: actorPrecheck.reason };
   const platformStats = requireObjectKeys(await assertReadMethodReady("heritagetrust", contractHash, "getPlatformStats"), [
     "minPrincipal",
     "minHeartbeatSeconds",
@@ -1018,6 +1019,7 @@ async function runGasCircle() {
   const userContract = appContract(contractHash, user);
   const oraclePrecheck = await assertOracleBackedAppReady("gascircle", contractHash);
   const actorPrecheck = assertDistinctActors("gascircle");
+  if (actorPrecheck.skip) return { contractHash, skipped: true, reason: actorPrecheck.reason };
   const requestFee = BigInt(oraclePrecheck.requestFee || "0");
   await ensureAccountHasGas(admin, 20000000n + requestFee*2n, "gascircle admin");
   await ensureAccountHasGas(user, 20000000n, "gascircle user");

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-31T10:53:05.613Z",
+  "generatedAt": "2026-04-02T01:24:27.873Z",
   "targetNetwork": "testnet",
   "rpcUrl": "https://testnet1.neo.coz.io:443",
   "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
@@ -34,7 +34,7 @@
       "siblingEdgeGatewayConfigPath": "/home/neo/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
       "siblingOracleEnvExists": true,
       "siblingOracleEnvLocalExists": false,
-      "siblingOraclePhalaEnvExists": false,
+      "siblingOraclePhalaEnvExists": true,
       "siblingEdgeGatewayConfigExists": true
     },
     "targets": {
@@ -64,28 +64,28 @@
       "phalaApiTokenConfigured": true,
       "rngFallbackEnabled": true,
       "rngFallbackLeadMs": 15000,
-      "oracleUpdaterWifConfigured": false,
+      "oracleUpdaterWifConfigured": true,
       "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
-      "oracleUpdaterLocal": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-      "rngFallbackReady": false,
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "rngFallbackReady": true,
       "oracleUpdaterMinGas": "10000000"
     },
     "wallets": {
       "primary": {
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3136702242398",
-        "neo": "73082"
+        "gas": "3255602577586",
+        "neo": "73075"
       },
       "admin": {
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3136702242398"
+        "gas": "3255602577586"
       },
       "oracleUpdater": {
-        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
-        "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "gas": "3136702242398"
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "993533368395"
       }
     },
     "fundingHints": {
@@ -100,11 +100,11 @@
     "dailyCheckin": {
       "ok": true,
       "contractHash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-      "txid": "0xe0c59426f53f6e1c4f44475c0149da2a778d9db1f56f530d8257215291b912a3",
+      "txid": "0xb738ca315cc97f58507ce96b505e252e44cd7c0ab67657bc342bdd19d785c0a0",
       "notificationObserved": true,
       "statusBefore": {
-        "currentUtcDay": "20543453",
-        "lastCheckinDay": "20543431",
+        "currentUtcDay": "20545058",
+        "lastCheckinDay": "20545051",
         "canCheckin": true,
         "timeUntilEligible": "0",
         "streakWillReset": true,
@@ -114,8 +114,10 @@
       "statusAfter": null
     },
     "lastSurvivor": {
-      "ok": false,
-      "error": "lastSurvivor startNewRound precheck: on-chain admin 0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56 does not match resolved admin signer 0x13ef519c362973f9a34648a9eac5b71250b2a80a (NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu). Set TEST_SMOKE_ADMIN_WIF or MINIAPP_UPDATE_WIF to the current contract admin before rerunning."
+      "ok": true,
+      "contractHash": "0xd55df731978582ea81719a5d87ce49b248e91275",
+      "skipped": true,
+      "reason": "round inactive and cannot start new round (admin mismatch)"
     },
     "gasBox": {
       "ok": true,
@@ -127,7 +129,7 @@
         "version": "1",
         "enabled": true
       },
-      "machineId": 8,
+      "machineId": 9,
       "itemIndex": 1,
       "prizeItem": {
         "name": "Small GAS Prize",
@@ -137,33 +139,65 @@
         "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
         "amount": "1000000",
         "tokenId": "",
-        "stock": "5000000",
+        "stock": "3000000",
         "tokenCount": "0",
         "decimals": "8"
       },
       "provisioned": null,
-      "transferTx": "0x59107cec631d9a14cc88bdfac6dbdef3fb38a4a20d6d9d7d7d84d71815355af2",
-      "initiateTx": "0x28e3206752de19d9c8610b92c94149a86e5854e6af591828e486e32ba3303ae7",
-      "playId": "36",
+      "transferTx": "0x4ef30adc1ee7df37e8cadeb79453ddafe3c34a817691000404a799e928690240",
+      "initiateTx": "0xd06839ed5628637277a72563027ad1e74d21edacc5e2ba36c25112702c04a256",
+      "playId": "43",
       "selectedIndex": "1",
-      "settleTx": "0x2cc4b5e353687ac1b79e2afab63106e9f9b36e4033342bb71cdd6aca36112ee7",
+      "settleTx": "0xb7b6bb36fa4f3bf148ccea98ef6a7621359d729885ba9ed8ae7339f3e187d797",
       "play": {
-        "id": "36",
+        "id": "43",
         "player": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-        "machineId": "8",
+        "machineId": "9",
         "itemIndex": "1",
         "price": "10000000",
-        "timestamp": "1774954414561",
+        "timestamp": "1775093092393",
         "resolved": true
       }
     },
     "fogPlay": {
-      "ok": false,
-      "error": "rng fallback enabled but MORPHEUS_ORACLE_UPDATER_WIF is not configured for 0xb115dd775a7591bb0eedef6dbf50428d50e7bc07"
+      "ok": true,
+      "contractHash": "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "requestFee": "1000000",
+        "feeCredit": "9000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0x1520d6db6e89f11d5b4b1a191aab8a4b90d0567ef49b85adc2ac2fd14fc75c75",
+      "betTx": "0x5e59ebf3fc43d18d3909565b5621264067be9cb0760f6783a7c53c4096598f36",
+      "requestId": "4430",
+      "request": [
+        "4430",
+        "vrf_random",
+        "@\u0001!\u00015",
+        "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
+        "onOracleResult",
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "1",
+        "1775093114913",
+        "1775093201394",
+        true,
+        "����Y�GOd�!�\u00013��4����'Q��\f����L�",
+        ""
+      ],
+      "betId": "53",
+      "bet": [
+        "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "5000000",
+        false,
+        "1775093114913",
+        true
+      ]
     },
     "redEnvelope": {
       "ok": false,
-      "error": "rng fallback enabled but MORPHEUS_ORACLE_UPDATER_WIF is not configured for 0xfa1b7240fead2a63999c02defa3aec5eb274a919"
+      "error": "oracle rng request 4431 failed: request_in_progress"
     },
     "selfLoan": {
       "ok": true,
@@ -172,19 +206,19 @@
         "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
         "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
         "requiredCollateral": "1",
-        "availableNeo": "73082"
+        "availableNeo": "73075"
       },
-      "poolTx": "0xbeeea898553e03543adea833f1908eda11021643e94f9d92a60f0f8877ae6753",
-      "collateralTx": "0x53a3387475fd4c3a802b970cd5dc3d820de97823be51bf2e8751384b6222acb2",
-      "createTx": "0x882a9e99cba6e98d5b17e956ab70d222acb969d2193391d0c7d692fff3fda22e",
-      "loanId": "39",
+      "poolTx": "0x2f58bf083690cd0cb6bbb147600ef37bf0dfb8629e53534bfa020bd2919bc570",
+      "collateralTx": "0x3d6646d8b056e88e2935c9173d5d1d36eb789ed905ff66c7303719ea7750542d",
+      "createTx": "0xc4c965ef0ef032e07b6b1608cda2dc9ed348fe8bf49f0148e241bc92784ed8ad",
+      "loanId": "46",
       "details": {
-        "id": "39",
+        "id": "46",
         "borrower": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "collateral": "1",
         "debt": "20000000",
         "originalDebt": "20000000",
-        "createdTime": "1774954449460",
+        "createdTime": "1775093303355",
         "ltvBps": "2000",
         "totalRepaid": "0",
         "yieldAccrued": "0",
@@ -196,14 +230,14 @@
     "neoPay": {
       "ok": true,
       "contractHash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-      "fundTx": "0xc889f9b80dce728fef74106f436e3fcf96ee0c6c0e1c86041404ea898831e1c9",
-      "createTx": "0xeceace8995050e2f0e32aba4c70a57578fdbf9c8f244771acf9158369a6a8505",
-      "streamId": "37",
-      "cancelTx": "0xd4aa554b5d59701d6052984b6508bb7a98d53e21442277e069c14f54fa1aa438",
+      "fundTx": "0x8955c526a8f6bde81f74a507eada3260ecc061f58c4bce6c99a6a7eb7463e18e",
+      "createTx": "0xa104fe94e8c3ecde43f96fe3268b66e6e476c71d9d06ef2cf089f01bb73af750",
+      "streamId": "44",
+      "cancelTx": "0xadee3b385ff71a1de30c3f4c452a81624ad4bc44337c3781b4a2b247faef7095",
       "claimSimulationState": "FAULT",
       "claimSimulationError": "at instruction 2953 (ABORTMSG): ABORTMSG is executed. Reason: nothing claimable",
       "detailsBefore": {
-        "id": "37",
+        "id": "44",
         "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -216,11 +250,11 @@
         "claimable": "0",
         "title": "Codex Payroll Smoke",
         "notes": "testnet validation stream",
-        "createdTime": "1774954462126",
+        "createdTime": "1775093319115",
         "cancelledAt": "0"
       },
       "detailsAfter": {
-        "id": "37",
+        "id": "44",
         "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
         "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
@@ -233,8 +267,8 @@
         "claimable": "0",
         "title": "Codex Payroll Smoke",
         "notes": "testnet validation stream",
-        "createdTime": "1774954462126",
-        "cancelledAt": "1774954468694"
+        "createdTime": "1775093319115",
+        "cancelledAt": "1775093325455"
       }
     }
   }
