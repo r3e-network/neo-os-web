@@ -82,13 +82,16 @@ async function main() {
   const voteAdminLog = await waitForLog(voteAdminTx);
   if (voteAdminLog.execution.vmstate !== "HALT") throw new Error(voteAdminLog.execution.exception || "admin vote failed");
 
-  const voteUserTx = await userContract.invoke("vote", [
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
-    Neon.sc.ContractParam.integer(proposalId),
-    Neon.sc.ContractParam.boolean(true),
-  ]);
-  const voteUserLog = await waitForLog(voteUserTx);
-  if (voteUserLog.execution.vmstate !== "HALT") throw new Error(voteUserLog.execution.exception || "user vote failed");
+  let voteUserTx = "";
+  if (admin.address !== user.address) {
+    voteUserTx = await userContract.invoke("vote", [
+      Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
+      Neon.sc.ContractParam.integer(proposalId),
+      Neon.sc.ContractParam.boolean(true),
+    ]);
+    const voteUserLog = await waitForLog(voteUserTx);
+    if (voteUserLog.execution.vmstate !== "HALT") throw new Error(voteUserLog.execution.exception || "user vote failed");
+  }
 
   const delegationTx = await userContract.invoke("setDelegation", [
     Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
