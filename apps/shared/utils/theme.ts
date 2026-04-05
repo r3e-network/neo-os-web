@@ -1,4 +1,5 @@
 import { readQueryParam } from "./url";
+import { getParentOrigin } from "./iframe";
 
 export type Theme = "light" | "dark";
 
@@ -51,16 +52,7 @@ export function listenForThemeChanges(): () => void {
   if (typeof window === "undefined") return () => {};
 
   // Get expected origin from parent (for iframe context) or self
-  const expectedOrigin = (() => {
-    try {
-      if (window.parent !== window && document.referrer) {
-        return new URL(document.referrer).origin;
-      }
-    } catch (_e) {
-      console.warn("[theme] getOrigin failed:", _e instanceof Error ? _e.message : String(_e));
-    }
-    return window.location.origin;
-  })();
+  const expectedOrigin = getParentOrigin();
 
   const handler = (event: MessageEvent) => {
     const isParentMessage = event.source === window.parent;

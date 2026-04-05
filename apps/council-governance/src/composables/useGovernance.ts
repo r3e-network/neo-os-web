@@ -32,6 +32,7 @@ import { ref, computed } from "vue";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { getParentOrigin } from "@shared/utils/iframe";
 
 // ============================================================================
 // Constants
@@ -142,18 +143,8 @@ export function useGovernance({
   );
 
   // ── API Base (for council member lookup) ─────────────────────────────
-  const getApiBase = () => {
-    try {
-      if (window.parent !== window) {
-        const parentOrigin = document.referrer ? new URL(document.referrer).origin : "";
-        if (parentOrigin) return parentOrigin;
-      }
-    } catch (_e) {
-      console.warn("[useGovernance] getApiBase failed:", _e instanceof Error ? _e.message : String(_e));
-    }
-    return "";
-  };
-  const API_HOST = getApiBase();
+  const parentOrigin = getParentOrigin();
+  const API_HOST = parentOrigin !== window.location.origin ? parentOrigin : "";
 
   // ── Proposal Selection ──────────────────────────────────────────────
 

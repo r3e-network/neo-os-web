@@ -2,6 +2,7 @@ import { ref, onUnmounted, onMounted } from "vue";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
+import { getParentOrigin } from "../utils/iframe";
 
 // Module-level state for shared locale and event listeners
 let listenersRefCount = 0;
@@ -57,16 +58,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
         }
       };
 
-      const expectedOrigin = (() => {
-        try {
-          if (window.parent !== window && document.referrer) {
-            return new URL(document.referrer).origin;
-          }
-        } catch (_e) {
-          // ignore parsing errors
-        }
-        return window.location.origin;
-      })();
+      const expectedOrigin = getParentOrigin();
 
       messageHandler = (event: MessageEvent) => {
         const isParentMessage = event.source === window.parent;
