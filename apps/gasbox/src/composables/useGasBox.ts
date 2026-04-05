@@ -58,7 +58,7 @@ import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
-import { formatGas } from "@shared/utils/format";
+import { formatGas, toSafeNumber } from "@shared/utils/format";
 import type { Machine, MachineItem } from "../types";
 
 // ============================================================================
@@ -156,10 +156,7 @@ interface MachineData {
 // Helpers (pure functions — no chain dependency)
 // ============================================================================
 
-const numberFrom = (value: unknown): number => {
-  const num = Number(value ?? 0);
-  return Number.isFinite(num) ? num : 0;
-};
+const numberFrom = toSafeNumber;
 
 const formatTokenAmount = (raw: number, decimals: number): string => {
   if (!Number.isFinite(raw) || raw <= 0) return "0";

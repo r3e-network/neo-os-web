@@ -113,6 +113,7 @@ import { NeoInput, NeoButton, FormCard } from "@shared/components";
 import { addressToScriptHash, normalizeScriptHash } from "@shared/utils/neo";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
+import { toSafeNumber } from "@shared/utils/format";
 
 interface FormItemData {
   id: string;
@@ -161,10 +162,7 @@ const form = ref({
   items: [] as FormItemData[],
 });
 
-const toNumber = (value: string | number) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
-};
+const toNumber = toSafeNumber;
 const isWholeNumber = (value: string | number) => Number.isInteger(toNumber(value));
 
 const isNonEmpty = (value: string) => value.trim().length > 0;
