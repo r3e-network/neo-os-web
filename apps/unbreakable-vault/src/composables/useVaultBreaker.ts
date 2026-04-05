@@ -27,7 +27,7 @@ import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import { formatGas, toFixed8 } from "@shared/utils/format";
+import { formatGas, toFixed8, toSafeNumber } from "@shared/utils/format";
 
 // ============================================================================
 // Constants
@@ -118,10 +118,7 @@ export function useVaultBreaker({
   const recentVaults = ref<RecentVault[]>([]);
   const isLoading = ref(false);
 
-  const toNumber = (value: unknown) => {
-    const num = Number(value ?? 0);
-    return Number.isFinite(num) ? num : 0;
-  };
+  const toNumber = toSafeNumber;
 
   const canAttempt = computed(() => {
     const st = vaultDetails.value?.status;
