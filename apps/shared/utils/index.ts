@@ -31,6 +31,7 @@ export {
   formatCompactNumber,
   formatNum,
   formatCurrency,
+  toSafeNumber,
 } from "./format";
 
 // neo.ts

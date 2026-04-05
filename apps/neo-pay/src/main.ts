@@ -27,6 +27,7 @@ import PlayArea from "./PlayArea.vue";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useNeoPayApp } from "./composables/useNeoPayApp";
+import type { StreamItem } from "./types";
 
 defineMiniApp({
   appId: "miniapp-neo-pay",
@@ -76,15 +77,13 @@ defineMiniApp({
       },
       claimStream: {
         handler: async (stream: unknown) => {
-          const s = stream as { id: string };
-          await pay.claimStream(s as any);
+          await pay.claimStream(stream as StreamItem);
         },
         successKey: "streamClaimed",
       },
       cancelStream: {
         handler: async (stream: unknown) => {
-          const s = stream as { id: string };
-          await pay.cancelStream(s as any);
+          await pay.cancelStream(stream as StreamItem);
         },
         successKey: "streamCancelled",
       },
