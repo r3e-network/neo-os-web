@@ -14,14 +14,14 @@
  *
  * // Write with automatic event bus notification
  * const result = await chain.invoke("burnGas", [
- *   { type: "Hash160", value: chain.address.value },
+ *   { type: "Hash160", value: chain.address.get() },
  *   { type: "Integer", value: "100000000" },
  * ]);
  * ```
  */
 
-import { computed } from "vue";
-import type { ComputedRef, Ref } from "vue";
+import { createDerived } from "../react/context";
+import type { Observable } from "../react/context";
 import { useContractInteraction } from "../composables/useContractInteraction";
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
@@ -81,6 +81,23 @@ interface WalletSigner {
   rules?: unknown[];
 }
 
+/**
+ * Observable with a backward-compatible `.value` property.
+ * Allows consumers to use either `obs.get()`/`obs.set()` (Observable)
+ * or `obs.value` (legacy Ref-style) interchangeably.
+ */
+export type RefCompatObservable<T> = Observable<T> & { value: T };
+
+/** Wrap an Observable with a `.value` getter/setter for backward compat. */
+export function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
+  return Object.defineProperty(obs, "value", {
+    get() { return obs.get(); },
+    set(v: T) { obs.set(v); },
+    enumerable: true,
+    configurable: true,
+  }) as RefCompatObservable<T>;
+}
+
 // ---------------------------------------------------------------------------
 // Service implementation
 // ---------------------------------------------------------------------------
@@ -96,7 +113,14 @@ export class ChainService {
   private allEvents: ReturnType<typeof useAllEvents>;
 
   /** Whether a wallet is currently connected. Created once in constructor. */
-  readonly isConnected: ComputedRef<boolean>;
+  readonly isConnected: Observable<boolean>;
+
+  /** Wrapped Observable for the underlying wallet address ref. */
+  private addressObservable: RefCompatObservable<string | null>;
+  /** Wrapped Observable for the underlying contract address ref. */
+  private contractAddressObservable: RefCompatObservable<string | null>;
+  /** Wrapped Observable for the underlying processing state ref. */
+  private isProcessingObservable: RefCompatObservable<boolean>;
 
   constructor(
     appId: string,
@@ -114,15 +138,23 @@ export class ChainService {
     this.listEventsComposable = useEvents();
     this.allEvents = useAllEvents(this.listEventsComposable.list, appId);
 
-    // Create computed once to avoid allocating a new one on each property access
-    this.isConnected = computed(() => Boolean(this.interaction.address.value));
+    // Wrap observables with .value compat once in the constructor
+    this.addressObservable = withValueCompat(this.interaction.address);
+    this.contractAddressObservable = withValueCompat(this.interaction.contractAddress);
+    this.isProcessingObservable = withValueCompat(this.interaction.isProcessing);
+
+    // Derived observable: true when a wallet address is present
+    this.isConnected = createDerived(
+      () => Boolean(this.addressObservable.get()),
+      [this.addressObservable],
+    );
   }
 
   // -- Wallet management ----------------------------------------------------
 
-  /** Reactive wallet address ref. */
-  get address(): Ref<string | null> {
-    return this.interaction.address;
+  /** Reactive wallet address observable. Also supports `.value` for backward compat. */
+  get address(): RefCompatObservable<string | null> {
+    return this.addressObservable;
   }
 
   /**
@@ -130,7 +162,7 @@ export class ChainService {
    * Emits WALLET_CONNECTED on success.
    */
   async ensureWallet(): Promise<string> {
-    const wasConnected = Boolean(this.interaction.address.value);
+    const wasConnected = Boolean(this.addressObservable.get());
     const addr = await this.interaction.ensureWallet();
     if (!wasConnected && addr) {
       this.events.emit(EventBus.WALLET_CONNECTED, { address: addr });
@@ -140,16 +172,16 @@ export class ChainService {
 
   // -- Contract address -----------------------------------------------------
 
-  /** Reactive contract address ref. */
-  get contractAddress(): Ref<string | null> {
-    return this.interaction.contractAddress;
+  /** Reactive contract address observable. Also supports `.value` for backward compat. */
+  get contractAddress(): RefCompatObservable<string | null> {
+    return this.contractAddressObservable;
   }
 
   // -- Processing state -----------------------------------------------------
 
   /** Whether a write operation is currently in flight. */
-  get isProcessing(): Ref<boolean> {
-    return this.interaction.isProcessing;
+  get isProcessing(): RefCompatObservable<boolean> {
+    return this.isProcessingObservable;
   }
 
   /**
@@ -404,8 +436,8 @@ export class ChainService {
     await this.invoke(
       "transfer",
       [
-        { type: "Hash160", value: this.address.value! },
-        { type: "Hash160", value: this.contractAddress.value! },
+        { type: "Hash160", value: this.address.get()! },
+        { type: "Hash160", value: this.contractAddress.get()! },
         { type: "Integer", value: gasAmount },
         { type: "String", value: memo },
       ],

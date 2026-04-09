@@ -8,7 +8,7 @@
  * MiniApps can import from here for the full bundle or import individual
  * composables for tree-shaking.
  */
-import { computed } from "vue";
+import { createDerived } from "@shared/react/context";
 import { getExternalIntegrationConfig, getNetwork } from "../constants/rpc";
 import { normalizeEdgeBaseUrl, getWindowMiniAppSDK } from "./_oracleInternals";
 import { useVRF } from "./useVRF";
@@ -55,8 +55,9 @@ export function useOracle(config: OracleConfig = {}) {
   const oracleQuery = useOracleQuery(config);
   const compute = useCompute(config);
 
-  const isOracleAvailable = computed(
+  const isOracleAvailable = createDerived(
     () => Boolean(sdk?.rng || sdk?.datafeed || config.hostSdk?.oracle || edgeBaseUrl),
+    [],
   );
 
   return {

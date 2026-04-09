@@ -4,7 +4,8 @@
  * Provides verifiable randomness via the Morpheus VRF oracle, routed through
  * the host-injected MiniAppSDK or the platform edge gateway.
  */
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { getNetwork } from "../constants/rpc";
 import {
   type OracleConfig,
@@ -21,9 +22,9 @@ export function useVRF(config: OracleConfig = {}) {
   const edgeBaseUrl = normalizeEdgeBaseUrl(config.edgeBaseUrl);
   const sdk = config.sdk ?? getWindowMiniAppSDK();
 
-  const isRequesting = ref(false);
-  const error = ref<string | null>(null);
-  const lastRandom = ref<VRFResult | null>(null);
+  const isRequesting: Observable<boolean> = createObservable(false);
+  const error: Observable<string | null> = createObservable<string | null>(null);
+  const lastRandom: Observable<VRFResult | null> = createObservable<VRFResult | null>(null);
 
   const requestRandomness = async (_requestLabel?: string): Promise<VRFResult> => {
     const appId = String(config.appId ?? "").trim();
@@ -31,8 +32,8 @@ export function useVRF(config: OracleConfig = {}) {
       throw new Error("appId is required for RNG requests");
     }
 
-    isRequesting.value = true;
-    error.value = null;
+    isRequesting.set(true);
+    error.set(null);
     try {
       const response = sdk?.rng
         ? await sdk.rng.requestRandom(appId)
@@ -51,15 +52,15 @@ export function useVRF(config: OracleConfig = {}) {
         attestationHash: String(response.attestation_hash ?? "") || undefined,
         raw: response,
       };
-      lastRandom.value = result;
+      lastRandom.set(result);
       return result;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "RNG request failed";
-      error.value = msg;
+      error.set(msg);
       throw toMiniAppError(e, "RNG request failed", ERROR_CODE_RNG_FAILED);
     } finally {
-      isRequesting.value = false;
-      error.value = null;
+      isRequesting.set(false);
+      error.set(null);
     }
   };
 

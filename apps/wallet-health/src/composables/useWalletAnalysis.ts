@@ -5,7 +5,8 @@
  * instead of wiring useContractInteraction + useStatusMessage + useWallet directly.
  */
 
-import { computed, reactive, ref } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import { formatFixed8 } from "@shared/utils/format";
 import { parseBigInt } from "@shared/utils/parsers";
@@ -23,41 +24,41 @@ export interface UseWalletAnalysisOptions {
 }
 
 export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnalysisOptions) {
-  const isRefreshing = ref(false);
+  const isRefreshing = createObservable(false);
 
-  const balances = reactive({
+  const balances = {
     neo: 0n,
     gas: 0n,
-  });
+  };
 
-  const isUnsupported = computed(() => false);
-  const chainLabel = computed(() => {
-    if (!chain.address.value) return t("statusUnknown");
+  const isUnsupported = createDerived(() => false, []);
+  const chainLabel = createDerived(() => {
+    if (!chain.address.get()) return t("statusUnknown");
     return t("statusNeo");
-  });
-  const chainVariant = computed(() => {
-    if (!chain.address.value) return "warning";
+  }, []);
+  const chainVariant = createDerived(() => {
+    if (!chain.address.get()) return "warning";
     return "accent";
-  });
+  }, []);
 
-  const gasOk = computed(() => balances.gas >= GAS_LOW_THRESHOLD);
-  const neoDisplay = computed(() => balances.neo.toString());
-  const gasDisplay = computed(() => formatFixed8(balances.gas, 4));
+  const gasOk = createDerived(() => balances.gas >= GAS_LOW_THRESHOLD, []);
+  const neoDisplay = createDerived(() => balances.neo.toString(), []);
+  const gasDisplay = createDerived(() => formatFixed8(balances.gas, 4), []);
 
   const refreshBalances = async () => {
-    if (!chain.address.value) return;
-    if (isRefreshing.value) return;
+    if (!chain.address.get()) return;
+    if (isRefreshing.get()) return;
 
     try {
-      isRefreshing.value = true;
+      isRefreshing.set(true);
       balances.neo = parseBigInt(await chain.read(
         "balanceOf",
-        [{ type: "Hash160", value: chain.address.value }],
+        [{ type: "Hash160", value: chain.address.get() }],
         { scriptHash: NEO_HASH },
       ));
       balances.gas = parseBigInt(await chain.read(
         "balanceOf",
-        [{ type: "Hash160", value: chain.address.value }],
+        [{ type: "Hash160", value: chain.address.get() }],
         { scriptHash: GAS_HASH },
       ));
       eventBus.emit("balances:refreshed", { neo: balances.neo, gas: balances.gas });
@@ -66,14 +67,14 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
         message: e instanceof Error ? e.message : t("walletNotConnected"),
       });
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
   const connectWallet = async () => {
     try {
       await chain.ensureWallet();
-      if (chain.address.value) {
+      if (chain.address.get()) {
         await refreshBalances();
       }
     } catch (e) {

@@ -32,7 +32,8 @@ import { useContractAddress } from "./useContractAddress";
 import { parseInvokeResult, parseStackItem } from "../utils/neo";
 import { extractTxid, pollForTxEvent } from "../utils/transaction";
 import { BLOCKCHAIN_CONSTANTS, TIME_CONSTANTS } from "../constants";
-import { ref, shallowRef, onUnmounted } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 
 type InvokeArg = {
   type: string;
@@ -52,38 +53,30 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const { appId, t, wallet: externalWallet } = options;
 
   const wallet = externalWallet ?? (useWallet() as WalletSDK);
-  const { address, connect, invokeContract, invokeRead } = wallet;
+  const { connect, invokeContract, invokeRead } = wallet;
+  const address = refToObservable(wallet.address);
   const { contractAddress, ensure: ensureContractAddress, ensureSafe } = useContractAddress(t);
   const { payGAS } = usePayments(appId);
   const { list: listEvents } = useEvents();
 
-  const isProcessing = ref(false);
-  const paymentError = shallowRef<Error | null>(null);
-  const paymentSuccess = ref(false);
+  const isProcessing: Observable<boolean> = createObservable(false);
+  const paymentError: Observable<Error | null> = createObservable<Error | null>(null);
+  const paymentSuccess: Observable<boolean> = createObservable(false);
   let successTimer: ReturnType<typeof setTimeout> | null = null;
   let waitTimers: ReturnType<typeof setTimeout>[] = [];
-
-  onUnmounted(() => {
-    if (successTimer !== null) {
-      clearTimeout(successTimer);
-      successTimer = null;
-    }
-    waitTimers.forEach(clearTimeout);
-    waitTimers = [];
-  });
 
   /**
    * Ensure wallet is connected, connecting if needed.
    * Throws if the user declines.
    */
   const ensureWallet = async (): Promise<string> => {
-    if (!address.value) {
+    if (!address.get()) {
       await connect();
     }
-    if (!address.value) {
+    if (!address.get()) {
       throw new Error(t("connectWallet") || "Wallet not connected");
     }
-    return address.value;
+    return address.get()!;
   };
 
   /**
@@ -129,8 +122,8 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     const contract = scriptHash ?? (await ensureContractAddress());
 
     try {
-      isProcessing.value = true;
-      paymentError.value = null;
+      isProcessing.set(true);
+      paymentError.set(null);
 
       const payment = await payGAS(paymentAmount, paymentMemo, contract, appId);
       const receiptId = payment.receipt_id || "";
@@ -167,9 +160,9 @@ export function useContractInteraction(options: ContractInteractionOptions) {
         if (successTimer !== null) {
           clearTimeout(successTimer);
         }
-        paymentSuccess.value = true;
+        paymentSuccess.set(true);
         successTimer = setTimeout(() => {
-          paymentSuccess.value = false;
+          paymentSuccess.set(false);
           successTimer = null;
         }, 3500);
       };
@@ -177,11 +170,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
       return { txid, receiptId, waitForEvent, triggerSuccess, tx };
     } catch (error: unknown) {
       const sanitized = error instanceof Error ? error.message : "Payment operation failed";
-      paymentError.value = error instanceof Error ? error : new Error(sanitized);
+      paymentError.set(error instanceof Error ? error : new Error(sanitized));
       throw new Error(sanitized);
     } finally {
-      isProcessing.value = false;
-      paymentError.value = null;
+      isProcessing.set(false);
+      paymentError.set(null);
     }
   };
 
@@ -227,14 +220,14 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     signers?: WalletSigner[],
   ) => {
     await ensureWallet();
-    if (!address.value) throw new Error("Wallet address not set after connection");
+    if (!address.get()) throw new Error("Wallet address not set after connection");
     const contract = scriptHash ?? (await ensureContractAddress());
 
     await invokeContract({
       scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
       operation: "transfer",
       args: [
-        { type: "Hash160", value: address.value as string },
+        { type: "Hash160", value: address.get() as string },
         { type: "Hash160", value: contract },
         { type: "Integer", value: paymentAmountBaseUnits },
         { type: "String", value: paymentMemo },
@@ -247,6 +240,16 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     });
 
     return invokeDirectly(operation, args, contract, signers);
+  };
+
+  /** Cleanup function — caller is responsible for invoking on teardown. */
+  const dispose = () => {
+    if (successTimer !== null) {
+      clearTimeout(successTimer);
+      successTimer = null;
+    }
+    waitTimers.forEach(clearTimeout);
+    waitTimers = [];
   };
 
   return {
@@ -272,6 +275,9 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     isProcessing,
     paymentError,
     paymentSuccess,
+
+    // Lifecycle
+    dispose,
 
     // Re-exported parsing utilities for convenience
     parseInvokeResult,

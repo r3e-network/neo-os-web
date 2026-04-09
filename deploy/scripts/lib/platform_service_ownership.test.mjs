@@ -54,8 +54,8 @@ test("shared miniapp entry path owns the real PlatformServices instance", () => 
     repoRoot,
     "apps",
     "shared",
-    "utils",
-    "defineMiniApp.ts",
+    "react",
+    "defineMiniApp.tsx",
   );
   const miniAppRootFile = path.join(
     repoRoot,

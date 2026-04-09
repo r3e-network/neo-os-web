@@ -25,7 +25,8 @@
  *     badgeService.award("memory-buried", "")
  */
 
-import { ref, computed, onUnmounted } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -76,37 +77,37 @@ export function useGraveyard({
   eventBus,
   t,
 }: UseGraveyardOptions) {
-  const totalDestroyed = ref(0);
-  const gasReclaimed = ref(0);
-  const assetHash = ref("");
-  const memoryType = ref(1);
-  const history = ref<HistoryItem[]>([]);
-  const showConfirm = ref(false);
-  const isDestroying = ref(false);
-  const showWarningShake = ref(false);
-  const forgettingId = ref<string | null>(null);
-  const isLoading = ref(false);
+  const totalDestroyed = createObservable(0);
+  const gasReclaimed = createObservable(0);
+  const assetHash = createObservable("");
+  const memoryType = createObservable(1);
+  const history = createObservable<HistoryItem[]>([]);
+  const showConfirm = createObservable(false);
+  const isDestroying = createObservable(false);
+  const showWarningShake = createObservable(false);
+  const forgettingId = createObservable<string | null>(null);
+  const isLoading = createObservable(false);
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const memoryTypeOptions = computed(() => [
+  const memoryTypeOptions = createDerived(() => [
     { value: 1, label: t("memoryTypeSecret") },
     { value: 2, label: t("memoryTypeRegret") },
     { value: 3, label: t("memoryTypeWish") },
     { value: 4, label: t("memoryTypeConfession") },
     { value: 5, label: t("memoryTypeOther") },
-  ]);
+  ], []);
 
-  const gasReclaimedDisplay = computed(() => `${gasReclaimed.value} ${t("tokenGas")}`);
-  const historyCount = computed(() => history.value.length);
+  const gasReclaimedDisplay = createDerived(() => `${gasReclaimed.get()} ${t("tokenGas")}`, []);
+  const historyCount = createDerived(() => history.get().length, []);
 
   const initiateDestroy = () => {
-    if (!assetHash.value) {
-      showWarningShake.value = true;
+    if (!assetHash.get()) {
+      showWarningShake.set(true);
       if (shakeTimer) clearTimeout(shakeTimer);
-      shakeTimer = setTimeout(() => { showWarningShake.value = false; shakeTimer = null; }, 500);
+      shakeTimer = setTimeout(() => { showWarningShake.set(false); shakeTimer = null; }, 500);
       throw new Error(t("enterAssetHash"));
     }
-    showConfirm.value = true;
+    showConfirm.set(true);
   };
 
   // ── Actions (via OS services) ──────────────────────────────────────
@@ -116,37 +117,37 @@ export function useGraveyard({
    * The edge function handles the GAS fee transfer + BuryMemory contract call.
    */
   const executeDestroy = async () => {
-    showConfirm.value = false;
-    if (isDestroying.value) return;
-    isDestroying.value = true;
+    showConfirm.set(false);
+    if (isDestroying.get()) return;
+    isDestroying.set(true);
 
     try {
       // Burn the asset via NFTProxy — the edge function handles
       // the fee transfer and BuryMemory contract call
-      await nftService.burn(assetHash.value);
+      await nftService.burn(assetHash.get());
 
       // Record the burial in history
       const memoryId = String(Date.now());
-      history.value.unshift({
+      history.set([{
         id: memoryId,
-        hash: assetHash.value,
+        hash: assetHash.get(),
         time: new Intl.DateTimeFormat(undefined).format(new Date()),
         forgotten: false,
-      });
+      }, ...history.get()]);
 
-      totalDestroyed.value += 1;
-      gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
+      totalDestroyed.set(totalDestroyed.get() + 1);
+      gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
       eventBus.emit("graveyard:buried", { action: t("memoryBuried") });
 
       // Hint badge for memory buried (fire-and-forget)
       badgeService.award("memory-buried", "").catch(() => {});
 
-      assetHash.value = "";
+      assetHash.set("");
     } catch (e) {
       eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      isDestroying.value = false;
+      isDestroying.set(false);
     }
   };
 
@@ -161,11 +162,11 @@ export function useGraveyard({
       if (data && typeof data === "object") {
         const total = Number(data.totalBuried ?? data.totalMemories ?? 0);
         const fee = Number(data.buryFee ?? 0);
-        totalDestroyed.value = Number.isFinite(total) ? total : 0;
+        totalDestroyed.set(Number.isFinite(total) ? total : 0);
         if (Number.isFinite(fee) && fee > 0) {
-          gasReclaimed.value = Number(((totalDestroyed.value * fee) / 1e8).toFixed(2));
+          gasReclaimed.set(Number(((totalDestroyed.get() * fee) / 1e8).toFixed(2)));
         } else {
-          gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
+          gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
         }
       }
     } catch (_e) {
@@ -193,7 +194,7 @@ export function useGraveyard({
           }
         }
       }
-      history.value = entries;
+      history.set(entries);
     } catch (_e) {
       console.warn("[useGraveyard] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
     }
@@ -204,43 +205,40 @@ export function useGraveyard({
    * The edge function handles the GAS fee transfer + ForgetMemory contract call.
    */
   const forgetMemory = async (item: HistoryItem) => {
-    if (!item.id || item.forgotten || forgettingId.value) return;
+    if (!item.id || item.forgotten || forgettingId.get()) return;
 
-    forgettingId.value = item.id;
+    forgettingId.set(item.id);
     try {
       await storageService.set(`forget:${item.id}`, {
         memoryId: item.id,
         action: "forget",
       });
 
-      history.value = history.value.map((entry) => entry.id === item.id ? { ...entry, forgotten: true } : entry);
+      history.set(history.get().map((entry) => entry.id === item.id ? { ...entry, forgotten: true } : entry));
       eventBus.emit("graveyard:forgotten", { action: t("forgetSuccess") });
     } catch (e) {
       eventBus.emit("graveyard:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      forgettingId.value = null;
+      forgettingId.set(null);
     }
   };
 
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await loadStats();
       await loadHistory();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
   const cleanupTimers = () => {
     if (shakeTimer) { clearTimeout(shakeTimer); shakeTimer = null; }
   };
-
-  onUnmounted(() => cleanupTimers());
-
   return {
     totalDestroyed, gasReclaimed, assetHash, memoryType, history,
     showConfirm, isDestroying, showWarningShake, forgettingId, isLoading,

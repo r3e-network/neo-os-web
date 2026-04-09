@@ -7,7 +7,8 @@
  * interaction and caching.
  */
 
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { parseGas, formatNum, toSafeNumber } from "@shared/utils/format";
 
@@ -35,21 +36,21 @@ export interface UseDevTippingStatsOptions {
 }
 
 export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
-  const developers = ref<Developer[]>([]);
-  const recentTips = ref<RecentTip[]>([]);
-  const totalDonated = ref(0);
-  const isLoading = ref(false);
+  const developers = createObservable<Developer[]>([]);
+  const recentTips = createObservable<RecentTip[]>([]);
+  const totalDonated = createObservable(0);
+  const isLoading = createObservable(false);
 
   const toNumber = toSafeNumber;
 
   const loadDevelopers = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       const total = toNumber(await storage.get("totalDevelopers"));
 
       if (!total) {
-        developers.value = [];
-        totalDonated.value = 0;
+        developers.set([]);
+        totalDonated.set(0);
         return;
       }
 
@@ -81,28 +82,28 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
         }),
       );
 
-      totalDonated.value = parseGas(await storage.get("totalDonated"));
+      totalDonated.set(parseGas(await storage.get("totalDonated")));
 
       const validDevs = devs.filter((d): d is Developer => d !== null);
       validDevs.sort((a, b) => b.totalTips - a.totalTips);
       validDevs.forEach((dev, idx) => {
         dev.rank = `#${idx + 1}`;
       });
-      developers.value = validDevs;
+      developers.set(validDevs);
     } catch (_e) {
       console.warn("[useDevTippingStats] stats load failed:", _e instanceof Error ? _e.message : String(_e));
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
   const loadRecentTips = async () => {
     try {
       const tipsData = await storage.list("tips:recent") as Record<string, unknown>;
-      const devMap = new Map(developers.value.map((dev) => [dev.id, dev.name]));
+      const devMap = new Map(developers.get().map((dev) => [dev.id, dev.name]));
 
       const entries = Object.entries(tipsData);
-      recentTips.value = entries.map(([key, raw]) => {
+      recentTips.set(entries.map(([key, raw]) => {)
         const tip = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
         const devId = toNumber(tip.devId ?? 0);
         const amount = parseGas(tip.amount ?? 0);

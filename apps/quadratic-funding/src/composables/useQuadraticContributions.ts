@@ -1,5 +1,5 @@
-import type { Ref } from "vue";
-import { ref, reactive } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -11,7 +11,7 @@ import type { RoundItem } from "../pages/index/components/RoundList";
 import type { ProjectItem } from "../pages/index/components/ProjectList";
 
 export function useQuadraticContributions(
-  selectedRound: Ref<RoundItem | null>,
+  selectedRound: Observable<RoundItem | null>,
   ensureContractAddress: () => Promise<string>,
   setStatus: (msg: string, type: "success" | "error") => void,
   refreshProjects: () => Promise<void>,
@@ -19,27 +19,28 @@ export function useQuadraticContributions(
 ) {
   const { t } = createUseI18n(messages)();
   const wallet = useWallet() as WalletSDK;
-  const { address, chainType } = wallet;
+  const address = refToObservable(wallet.address);
+  const chainType = refToObservable(wallet.chainType);
   const { invokeDirectly, ensureWallet } = useContractInteraction({
     appId: "miniapp-quadratic-funding",
     t,
     wallet,
   });
 
-  const isContributing = ref(false);
+  const isContributing = createObservable(false);
 
   const globalSignerForCurrentWallet = (): WalletSigner[] => (
-    address.value
-      ? [{ account: address.value, scopes: "Global" }]
+    address.get()
+      ? [{ account: address.get(), scopes: "Global" }]
       : []
   );
 
-  const contributeForm = reactive({
+  const contributeForm = {
     roundId: "",
     projectId: "",
     amount: "",
     memo: "",
-  });
+  };
 
   const selectProject = (project: ProjectItem) => {
     contributeForm.projectId = project.id;
@@ -48,8 +49,8 @@ export function useQuadraticContributions(
 
   const contribute = async (data: { roundId: string; projectId: string; amount: string; memo: string }) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (isContributing.value) return;
-    if (!selectedRound.value) {
+    if (isContributing.get()) return;
+    if (!selectedRound.get()) {
       setStatus(t("noSelectedRound"), "error");
       return;
     }
@@ -60,7 +61,7 @@ export function useQuadraticContributions(
       return;
     }
 
-    const decimals = selectedRound.value.assetSymbol === "NEO" ? 0 : 8;
+    const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const amount = (() => {
       const [intPart, fracPart = ""] = data.amount.split(".");
       // NEO is indivisible — reject fractional amounts explicitly
@@ -81,9 +82,9 @@ export function useQuadraticContributions(
     }
 
     try {
-      isContributing.value = true;
+      isContributing.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const memo = data.memo.trim().slice(0, 160);
@@ -91,8 +92,8 @@ export function useQuadraticContributions(
       await invokeDirectly(
         "contribute",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: selectedRound.value.id },
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
           { type: "Integer", value: String(parsedProjectId) },
           { type: "Integer", value: amount },
           { type: "String", value: memo },
@@ -107,13 +108,13 @@ export function useQuadraticContributions(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isContributing.value = false;
+      isContributing.set(false);
     }
   };
 
-  const goToContribute = (project: ProjectItem, activeTab: Ref<string>) => {
+  const goToContribute = (project: ProjectItem, activeTab: Observable<string>) => {
     selectProject(project);
-    activeTab.value = "contribute";
+    activeTab.set("contribute");
   };
 
   return {

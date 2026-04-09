@@ -25,7 +25,8 @@
  *     badgeService.award("event-organizer", "")
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -92,17 +93,17 @@ export function useEventTicket({
   eventBus,
   t,
 }: UseEventTicketOptions) {
-  const events = ref<EventItem[]>([]);
-  const tickets = ref<TicketItem[]>([]);
-  const isRefreshing = ref(false);
-  const isRefreshingTickets = ref(false);
-  const isLoading = ref(false);
-  const togglingId = ref<string | null>(null);
+  const events = createObservable<EventItem[]>([]);
+  const tickets = createObservable<TicketItem[]>([]);
+  const isRefreshing = createObservable(false);
+  const isRefreshingTickets = createObservable(false);
+  const isLoading = createObservable(false);
+  const togglingId = createObservable<string | null>(null);
 
-  const address = ref("");
-  const eventsCount = computed(() => events.value.length);
-  const ticketsCount = computed(() => tickets.value.length);
-  const activeEventsCount = computed(() => events.value.filter((e) => e.active).length);
+  const address = createObservable("");
+  const eventsCount = createDerived(() => events.get().length, []);
+  const ticketsCount = createDerived(() => tickets.get().length, []);
+  const activeEventsCount = createDerived(() => events.get().filter((e) => e.active).length, []);
 
   // ── Data Loading (via OS services) ─────────────────────────────────
 
@@ -112,8 +113,8 @@ export function useEventTicket({
    * contract queries and returns normalized event data.
    */
   const refreshEvents = async () => {
-    if (isRefreshing.value) return;
-    isRefreshing.value = true;
+    if (isRefreshing.get()) return;
+    isRefreshing.set(true);
     try {
       const eventMap = await storageService.list("events:", 20);
       const items: EventItem[] = [];
@@ -136,11 +137,11 @@ export function useEventTicket({
           }
         }
       }
-      events.value = items;
+      events.set(items);
     } catch (e) {
       console.warn("[useEventTicket] refreshEvents failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
@@ -148,8 +149,8 @@ export function useEventTicket({
    * Load all tickets via StorageProxy.
    */
   const refreshTickets = async () => {
-    if (isRefreshingTickets.value) return;
-    isRefreshingTickets.value = true;
+    if (isRefreshingTickets.get()) return;
+    isRefreshingTickets.set(true);
     try {
       const ticketMap = await storageService.list("tickets:", 50);
       const items: TicketItem[] = [];
@@ -174,11 +175,11 @@ export function useEventTicket({
           }
         }
       }
-      tickets.value = items;
+      tickets.set(items);
     } catch (e) {
       console.warn("[useEventTicket] refreshTickets failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      isRefreshingTickets.value = false;
+      isRefreshingTickets.set(false);
     }
   };
 
@@ -203,28 +204,28 @@ export function useEventTicket({
    */
   const toggleEvent = async (event: unknown) => {
     const evt = event as EventItem;
-    if (togglingId.value) return;
-    togglingId.value = evt.id;
+    if (togglingId.get()) return;
+    togglingId.set(evt.id);
     try {
       await nftService.validate(evt.id);
       await refreshEvents();
     } finally {
-      togglingId.value = null;
+      togglingId.set(null);
     }
   };
 
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await connectWallet();
       // Hint badge for event organizer (fire-and-forget)
-      if (events.value.length > 0) {
+      if (events.get().length > 0) {
         badgeService.award("event-organizer", "").catch(() => {});
       }
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
