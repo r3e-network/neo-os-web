@@ -1,4 +1,5 @@
-import { computed, reactive } from "vue";
+import { createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -12,14 +13,14 @@ export interface ChecklistItem {
 }
 
 export interface UseHealthScoreReturn {
-  checklistItems: ReturnType<typeof computed<ChecklistItem[]>>;
-  completedChecklistCount: ReturnType<typeof computed<number>>;
-  totalChecklistCount: ReturnType<typeof computed<number>>;
-  safetyScore: ReturnType<typeof computed<number>>;
-  riskLabel: ReturnType<typeof computed<string>>;
-  riskClass: ReturnType<typeof computed<string>>;
-  riskIcon: ReturnType<typeof computed<string>>;
-  recommendations: ReturnType<typeof computed<string[]>>;
+  checklistItems: Observable<ChecklistItem[]>;
+  completedChecklistCount: Observable<number>;
+  totalChecklistCount: Observable<number>;
+  safetyScore: Observable<number>;
+  riskLabel: Observable<string>;
+  riskClass: Observable<string>;
+  riskIcon: Observable<string>;
+  recommendations: Observable<string[]>;
   loadChecklist: () => void;
   saveChecklist: () => void;
   toggleChecklist: (id: string) => void;
@@ -29,10 +30,10 @@ export interface UseHealthScoreReturn {
  * Computes wallet health score from a security checklist with persistent state.
  * Uses OS StorageProxy for persistence instead of raw localStorage.
  */
-export function useHealthScore(gasOk: { value: boolean }, storage: StorageProxy): UseHealthScoreReturn {
+export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy): UseHealthScoreReturn {
   const { t } = createUseI18n(messages)();
 
-  const checklistState = reactive<Record<string, boolean>>({});
+  const checklistState: Record<string, boolean> = {};
   const checklistStorageKey = "checklist";
 
   const checklistBase = [
@@ -44,50 +45,50 @@ export function useHealthScore(gasOk: { value: boolean }, storage: StorageProxy)
     { id: "twofa", titleKey: "checklist2fa", descKey: "checklist2faDesc" },
   ];
 
-  const checklistItems = computed<ChecklistItem[]>(() =>
+  const checklistItems = createDerived<ChecklistItem[]>(() =>
     checklistBase.map((item) => ({
       id: item.id,
       title: t(item.titleKey),
       desc: t(item.descKey),
-      done: item.id === "gas" ? gasOk.value : checklistState[item.id] === true,
+      done: item.id === "gas" ? gasOk.get() : checklistState[item.id] === true,
       auto: item.id === "gas",
     }))
-  );
+  , []);
 
-  const completedChecklistCount = computed(() => checklistItems.value.filter((item) => item.done).length);
-  const totalChecklistCount = computed(() => checklistItems.value.length);
+  const completedChecklistCount = createDerived(() => checklistItems.get().filter((item) => item.done).length, []);
+  const totalChecklistCount = createDerived(() => checklistItems.get().length, []);
 
-  const safetyScore = computed(() => {
-    if (totalChecklistCount.value === 0) return 0;
-    const score = (completedChecklistCount.value / totalChecklistCount.value) * 100;
+  const safetyScore = createDerived(() => {
+    if (totalChecklistCount.set(== 0) return 0);
+    const score = (completedChecklistCount.get() / totalChecklistCount.get()) * 100;
     return Math.round(score);
-  });
+  }, []);
 
-  const riskLabel = computed(() => {
-    if (safetyScore.value >= 80) return t("riskLow");
-    if (safetyScore.value >= 50) return t("riskMedium");
+  const riskLabel = createDerived(() => {
+    if (safetyScore.get() >= 80) return t("riskLow");
+    if (safetyScore.get() >= 50) return t("riskMedium");
     return t("riskHigh");
-  });
+  }, []);
 
-  const riskClass = computed(() => {
-    if (safetyScore.value >= 80) return "risk-low";
-    if (safetyScore.value >= 50) return "risk-medium";
+  const riskClass = createDerived(() => {
+    if (safetyScore.get() >= 80) return "risk-low";
+    if (safetyScore.get() >= 50) return "risk-medium";
     return "risk-high";
-  });
+  }, []);
 
-  const riskIcon = computed(() => {
-    if (safetyScore.value >= 80) return "check-circle";
-    if (safetyScore.value >= 50) return "alert-circle";
+  const riskIcon = createDerived(() => {
+    if (safetyScore.get() >= 80) return "check-circle";
+    if (safetyScore.get() >= 50) return "alert-circle";
     return "alert-circle";
-  });
+  }, []);
 
-  const recommendations = computed(() => {
+  const recommendations = createDerived(() => {
     const items: string[] = [];
     if (!checklistState.backup) items.push(t("recommendationBackup"));
-    if (!gasOk.value) items.push(t("recommendationGasLow"));
+    if (!gasOk.get()) items.push(t("recommendationGasLow"));
     if (!checklistState.permissions) items.push(t("recommendationPermissions"));
     return items;
-  });
+  }, []);
 
   const loadChecklist = () => {
     storage.get(checklistStorageKey).then((result) => {

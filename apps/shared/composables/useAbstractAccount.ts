@@ -9,7 +9,8 @@
  * Session-key configuration stays in the AA miniapp itself because it is an
  * on-chain verifier-plugin mutation, not a generic host SDK concern.
  */
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import {
   getExternalIntegrationConfig,
   getNetwork,
@@ -149,20 +150,20 @@ export function useAbstractAccount(config: AAConfig = {}) {
   const relayUrl = normalizeUrl(config.relayUrl, "/api/aa/relay");
   const sdk = config.sdk ?? getWindowMiniAppSDK();
 
-  const aaAddress = ref<string | null>(String(config.aaAddress ?? "").trim() || null);
-  const isCheckingSponsorship = ref(false);
-  const isRelaying = ref(false);
-  const lastRelayResponse = ref<AARelayResponse | null>(null);
-  const error = ref<string | null>(null);
+  const aaAddress: Observable<string | null> = createObservable<string | null>(String(config.aaAddress ?? "").trim() || null);
+  const isCheckingSponsorship: Observable<boolean> = createObservable(false);
+  const isRelaying: Observable<boolean> = createObservable(false);
+  const lastRelayResponse: Observable<AARelayResponse | null> = createObservable<AARelayResponse | null>(null);
+  const error: Observable<string | null> = createObservable<string | null>(null);
 
   const setAAAddress = (address: string | null | undefined) => {
     const next = String(address ?? "").trim();
-    aaAddress.value = next || null;
+    aaAddress.set(next || null);
   };
 
   const checkGasSponsorship = async (): Promise<GasSponsorCheckResponse> => {
-    isCheckingSponsorship.value = true;
-    error.value = null;
+    isCheckingSponsorship.set(true);
+    error.set(null);
     try {
       if (sdk?.gasSponsor?.check) {
         return await sdk.gasSponsor.check();
@@ -173,17 +174,17 @@ export function useAbstractAccount(config: AAConfig = {}) {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Gas sponsorship check failed";
-      error.value = msg;
+      error.set(msg);
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_CHECK, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_CHECK);
     } finally {
-      isCheckingSponsorship.value = false;
-      error.value = null;
+      isCheckingSponsorship.set(false);
+      error.set(null);
     }
   };
 
   const requestGasSponsorship = async (amount: string): Promise<GasSponsorRequestResponse> => {
-    isCheckingSponsorship.value = true;
-    error.value = null;
+    isCheckingSponsorship.set(true);
+    error.set(null);
     try {
       if (sdk?.gasSponsor?.request) {
         return await sdk.gasSponsor.request(amount);
@@ -195,11 +196,11 @@ export function useAbstractAccount(config: AAConfig = {}) {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Gas sponsorship request failed";
-      error.value = msg;
+      error.set(msg);
       throw new MiniAppError(msg, ERROR_CODE_GAS_SPONSORSHIP_REQUEST, undefined, undefined, undefined, ERROR_CODE_GAS_SPONSORSHIP_REQUEST);
     } finally {
-      isCheckingSponsorship.value = false;
-      error.value = null;
+      isCheckingSponsorship.set(false);
+      error.set(null);
     }
   };
 
@@ -214,8 +215,8 @@ export function useAbstractAccount(config: AAConfig = {}) {
       throw new Error("AA relay URL is not configured");
     }
 
-    isRelaying.value = true;
-    error.value = null;
+    isRelaying.set(true);
+    error.set(null);
     try {
       const paymaster = payload.paymaster ?? buildPaymasterConfig();
       const response = await requestJson<AARelayResponse>(relayUrl, {
@@ -228,15 +229,15 @@ export function useAbstractAccount(config: AAConfig = {}) {
         getAPIKey: config.getAPIKey,
       });
 
-      lastRelayResponse.value = response;
+      lastRelayResponse.set(response);
       return response;
     } catch (e) {
       const msg = e instanceof Error ? e.message : "AA relay submission failed";
-      error.value = msg;
+      error.set(msg);
       throw new MiniAppError(msg, ERROR_CODE_RELAY_SUBMISSION, undefined, undefined, undefined, ERROR_CODE_RELAY_SUBMISSION);
     } finally {
-      isRelaying.value = false;
-      error.value = null;
+      isRelaying.set(false);
+      error.set(null);
     }
   };
 

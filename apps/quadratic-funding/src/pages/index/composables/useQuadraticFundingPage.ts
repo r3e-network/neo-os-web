@@ -1,4 +1,5 @@
-import { ref, computed, onMounted, watch, onUnmounted, isRef } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { StatsDisplayItem } from "@shared/components";
 import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
@@ -9,8 +10,7 @@ import type ProjectForm from "../components/ProjectForm";
 import type ContributionForm from "../components/ContributionForm";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
-  const activeTab = ref("rounds");
-  const mountedRef = ref(true);
+  const activeTab = createObservable("rounds");
 
   const {
     rounds,
@@ -60,58 +60,58 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   );
 
   // Computed display data
-  const appState = computed(() => ({
-    roundCount: rounds.value.length,
-    selectedRoundId: selectedRoundId.value,
-  }));
+  const appState = createDerived(() => ({
+    roundCount: rounds.get().length,
+    selectedRoundId: selectedRoundId.get(),
+  }), []);
 
-  const opStats = computed<StatsDisplayItem[]>(() => [
-    { label: t("tabRounds"), value: rounds.value.length },
-    { label: t("tabProjects"), value: projects.value.length },
-    { label: t("sidebarSelectedRound"), value: selectedRoundId.value ?? t("notAvailable") },
+  const opStats = createDerived<StatsDisplayItem[]>(() => [
+    { label: t("tabRounds"), value: rounds.get().length },
+    { label: t("tabProjects"), value: projects.get().length },
+    { label: t("sidebarSelectedRound"), value: selectedRoundId.get() ?? t("notAvailable") },
     {
       label: t("sidebarMatchingPool"),
-      value: selectedRound.value ? formatAmount(selectedRound.value.matchingPool) : t("notAvailable"),
+      value: selectedRound.get() ? formatAmount(selectedRound.get().matchingPool) : t("notAvailable"),
     },
-  ]);
+  ], []);
 
   // Reuse the shared contract/status channel across tabs so sub-pages don't silently miss feedback.
   const projectsStatus = roundsStatus;
   const contributionStatus = roundsStatus;
 
   // Form refs
-  const roundFormRef = ref<InstanceType<typeof RoundForm> | null>(null);
-  const projectFormRef = ref<InstanceType<typeof ProjectForm> | null>(null);
-  const contributeFormRef = ref<InstanceType<typeof ContributionForm> | null>(null);
+  const roundFormRef = createObservable<InstanceType<typeof RoundForm> | null>(null);
+  const projectFormRef = createObservable<InstanceType<typeof ProjectForm> | null>(null);
+  const contributeFormRef = createObservable<InstanceType<typeof ContributionForm> | null>(null);
 
   // Form handlers
   const handleCreateRound = async (data: Parameters<typeof createRound>[0]) => {
-    roundFormRef.value?.setLoading(true);
+    roundFormRef.get()?.setLoading(true);
     try {
       await createRound(data);
-      if (roundsStatus.value?.type === "success") roundFormRef.value?.reset();
+      if (roundsStatus.get()?.type === "success") roundFormRef.get()?.reset();
     } finally {
-      roundFormRef.value?.setLoading(false);
+      roundFormRef.get()?.setLoading(false);
     }
   };
 
   const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]) => {
-    projectFormRef.value?.setLoading(true);
+    projectFormRef.get()?.setLoading(true);
     try {
       await registerProject(data);
-      if (!roundsStatus.value || roundsStatus.value.type === "success") projectFormRef.value?.reset();
+      if (!roundsStatus.get() || roundsStatus.get().type === "success") projectFormRef.get()?.reset();
     } finally {
-      projectFormRef.value?.setLoading(false);
+      projectFormRef.get()?.setLoading(false);
     }
   };
 
   const handleContribute = async (data: Parameters<typeof contribute>[0]) => {
-    contributeFormRef.value?.setLoading(true);
+    contributeFormRef.get()?.setLoading(true);
     try {
       await contribute(data);
-      if (!roundsStatus.value || roundsStatus.value.type === "success") contributeFormRef.value?.reset();
+      if (!roundsStatus.get() || roundsStatus.get().type === "success") contributeFormRef.get()?.reset();
     } finally {
-      contributeFormRef.value?.setLoading(false);
+      contributeFormRef.get()?.setLoading(false);
     }
   };
 
@@ -121,34 +121,12 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const handleClaimUnused = async () => { await claimUnused().catch((e: unknown) => { setStatus(String(e instanceof Error ? e.message : e), "error"); }); };
 
   const onTabChange = async (tabId: string) => {
-    activeTab.value = tabId;
+    activeTab.set(tabId);
     if (tabId === "rounds") await refreshRounds();
     if (tabId === "projects" || tabId === "contribute") await refreshProjects();
   };
 
-  // Lifecycle
-  onMounted(async () => {
-    if (!mountedRef.value) return;
-    try {
-      await refreshRounds();
-    } catch (_e) {
-      console.warn("[useQuadraticFundingPage] initial load error:", _e instanceof Error ? _e.message : String(_e));
-    }
-  });
-
-  const stopRoundWatch = watch(selectedRoundId, async (roundId) => {
-    if (!roundId) return;
-    if (!mountedRef.value) return;
-    try {
-      contributeForm.roundId = roundId;
-      await refreshProjects();
-      if (!mountedRef.value) return;
-    } catch (_e) {
-      if (mountedRef.value) setStatus(t("projectLoadFailed") || "Failed to load projects", "error");
-    }
-  });
-
-  onUnmounted(() => { mountedRef.value = false; stopRoundWatch(); });
+  // Caller is responsible for invoking refreshRounds() on mount
 
   return {
     // Rounds

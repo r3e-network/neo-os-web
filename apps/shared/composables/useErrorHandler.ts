@@ -17,7 +17,8 @@
  * ```
  */
 
-import { ref, type Ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 
 export type ErrorCategory =
   | "wallet"
@@ -36,11 +37,11 @@ export interface ErrorContext {
 
 export interface ErrorHandlerState {
   /** Last error message */
-  lastError: Ref<string | null>;
+  lastError: Observable<string | null>;
   /** Last error category */
-  lastCategory: Ref<ErrorCategory | null>;
+  lastCategory: Observable<ErrorCategory | null>;
   /** Whether error is recoverable */
-  isRecoverable: Ref<boolean>;
+  isRecoverable: Observable<boolean>;
 }
 
 // Error message keys for user-friendly display
@@ -102,9 +103,9 @@ export function useErrorHandler(translator?: (key: string) => string): ErrorHand
   /** Log error for debugging */
   logError: (error: unknown, context?: ErrorContext) => void;
 } {
-  const lastError = ref<string | null>(null);
-  const lastCategory = ref<ErrorCategory | null>(null);
-  const isRecoverable = ref<boolean>(false);
+  const lastError = createObservable<string | null>(null);
+  const lastCategory = createObservable<ErrorCategory | null>(null);
+  const isRecoverable = createObservable<boolean>(false);
 
   /**
    * Get user-friendly message for error
@@ -170,9 +171,9 @@ export function useErrorHandler(translator?: (key: string) => string): ErrorHand
     const category = categorizeError(error);
     const message = error instanceof Error ? error.message : String(error);
 
-    lastError.value = message;
-    lastCategory.value = category;
-    isRecoverable.value = isRecoverableError(category);
+    lastError.set(message);
+    lastCategory.set(category);
+    isRecoverable.set(isRecoverableError(category));
 
     logError(error, context);
   };
@@ -181,9 +182,9 @@ export function useErrorHandler(translator?: (key: string) => string): ErrorHand
    * Clear error state
    */
   const clearError = (): void => {
-    lastError.value = null;
-    lastCategory.value = null;
-    isRecoverable.value = false;
+    lastError.set(null);
+    lastCategory.set(null);
+    isRecoverable.set(false);
   };
 
   return {

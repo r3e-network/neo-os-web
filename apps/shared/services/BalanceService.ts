@@ -11,17 +11,29 @@
  *
  * // Reactive balance that auto-refreshes
  * const { balance, refresh } = services.balance.useBalance("GAS");
- * // balance.value auto-updates when BALANCE_CHANGED fires
+ * // balance.get() auto-updates when BALANCE_CHANGED fires
  * ```
  */
 
-import { ref } from "vue";
-import type { Ref } from "vue";
+import { createObservable } from "../react/context";
+import type { Observable } from "../react/context";
 import { useWalletBalanceReader } from "../composables/useWalletBalanceReader";
 import { BLOCKCHAIN_CONSTANTS } from "../constants";
 import type { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
 import type { ChainService } from "./ChainService";
+
+/** Observable with a backward-compatible `.value` property. */
+type RefCompatObservable<T> = Observable<T> & { value: T };
+
+function withValueCompat<T>(obs: Observable<T>): RefCompatObservable<T> {
+  return Object.defineProperty(obs, "value", {
+    get() { return obs.get(); },
+    set(v: T) { obs.set(v); },
+    enumerable: true,
+    configurable: true,
+  }) as RefCompatObservable<T>;
+}
 
 const BALANCE_CACHE_TTL_MS = 15_000; // 15 seconds
 const BALANCE_CACHE_PREFIX = "bal";
@@ -46,7 +58,7 @@ export class BalanceService {
    * address by default, or a specific address if provided.
    */
   async getBalance(asset: "NEO" | "GAS" | string, address?: string): Promise<number> {
-    const owner = address ?? this.chain.address.value ?? undefined;
+    const owner = address ?? this.chain.address.get() ?? undefined;
     const cacheKey = this.balanceCacheKey(asset, owner);
 
     const cached = this.cache.get<number>(cacheKey);
@@ -66,7 +78,7 @@ export class BalanceService {
    * Useful for precise calculations before display formatting.
    */
   async getRawBalance(asset: "NEO" | "GAS" | string, address?: string): Promise<bigint> {
-    const owner = address ?? this.chain.address.value ?? undefined;
+    const owner = address ?? this.chain.address.get() ?? undefined;
     return this.reader.readRawBalance(asset, {
       targetAddress: owner,
       requireChain: false,
@@ -97,22 +109,22 @@ export class BalanceService {
    * unmounts (or register it with LifecycleService).
    */
   useBalance(asset: "NEO" | "GAS" | string): {
-    balance: Ref<number>;
-    loading: Ref<boolean>;
+    balance: RefCompatObservable<number>;
+    loading: RefCompatObservable<boolean>;
     refresh: () => Promise<void>;
     cleanup: () => void;
   } {
-    const balance = ref(0);
-    const loading = ref(false);
+    const balance = withValueCompat(createObservable(0));
+    const loading = withValueCompat(createObservable(false));
 
     const refresh = async () => {
-      loading.value = true;
+      loading.set(true);
       try {
-        balance.value = await this.getBalance(asset);
+        balance.set(await this.getBalance(asset));
       } catch {
         // Keep the last known balance on error
       } finally {
-        loading.value = false;
+        loading.set(false);
       }
     };
 

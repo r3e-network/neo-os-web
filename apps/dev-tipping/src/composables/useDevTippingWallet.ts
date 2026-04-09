@@ -7,7 +7,8 @@
  * Chain/EventBus are still used for wallet connection and notifications.
  */
 
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { toFixed8 } from "@shared/utils/format";
@@ -22,7 +23,7 @@ export interface UseDevTippingWalletOptions {
 }
 
 export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippingWalletOptions) {
-  const isLoading = ref(false);
+  const isLoading = createObservable(false);
 
   const sendTip = async (
     selectedDevId: number,
@@ -34,7 +35,7 @@ export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippi
   ) => {
     if (!selectedDevId || !tipAmount) return false;
 
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await chain.ensureWallet();
 
@@ -67,7 +68,7 @@ export function useDevTippingWallet({ chain, eventBus, payment, t }: UseDevTippi
       eventBus.emit("devtipping:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 

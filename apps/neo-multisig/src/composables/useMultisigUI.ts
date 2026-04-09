@@ -1,4 +1,5 @@
-import { computed } from "vue";
+import { createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 
@@ -46,10 +47,10 @@ export function useMultisigUI() {
     return date.toLocaleDateString("en") + " " + date.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const tabs = computed(() => [
+  const tabs = createDerived(() => [
     { id: "home", label: t("tabHome"), icon: "home" },
     { id: "docs", label: t("tabDocs"), icon: "info" },
-  ]);
+  ], []);
 
   return {
     getStatusIcon,

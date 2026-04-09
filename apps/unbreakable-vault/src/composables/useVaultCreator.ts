@@ -20,7 +20,8 @@
  *     badgeService.award("vault-creator", "")
  */
 
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -84,9 +85,9 @@ export function useVaultCreator({
   eventBus,
   t,
 }: UseVaultCreatorOptions) {
-  const myVaults = ref<MyVault[]>([]);
-  const createdVaultId = ref<string | null>(null);
-  const isCreating = ref(false);
+  const myVaults = createObservable<MyVault[]>([]);
+  const createdVaultId = createObservable<string | null>(null);
+  const isCreating = createObservable(false);
 
   /**
    * Load vaults created by the current user via StorageProxy.
@@ -107,7 +108,7 @@ export function useVaultCreator({
           }
         }
       }
-      myVaults.value = vaults.sort((a, b) => b.created - a.created);
+      myVaults.set(vaults.sort((a, b) => b.created - a.created));
     } catch (e) {
       console.error(
         "[unbreakable-vault] loadMyVaults error:",
@@ -126,8 +127,8 @@ export function useVaultCreator({
     onSuccess: (vaultId: string) => void,
     loadRecentVaults: () => Promise<void>,
   ) => {
-    if (isCreating.value) return;
-    isCreating.value = true;
+    if (isCreating.get()) return;
+    isCreating.set(true);
     try {
       const amount = Number.parseFloat(form.bounty);
       const hash = form.secretHash || (await sha256Hex(form.secret));
@@ -156,7 +157,7 @@ export function useVaultCreator({
         description: form.description.trim().slice(0, 300),
       });
 
-      createdVaultId.value = vaultId || createdVaultId.value;
+      createdVaultId.set(vaultId || createdVaultId.get());
 
       eventBus.emit("vault:created", { action: t("vaultCreated") });
 
@@ -172,12 +173,12 @@ export function useVaultCreator({
       });
       throw e;
     } finally {
-      isCreating.value = false;
+      isCreating.set(false);
     }
   };
 
   return {
-    address: ref(""),
+    address: createObservable(""),
     isCreating,
     myVaults,
     createdVaultId,

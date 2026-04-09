@@ -1,4 +1,5 @@
-import { ref, computed, onMounted } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { clearCachedValue, readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 
 export interface HistoryItem {
@@ -11,56 +12,59 @@ export interface HistoryItem {
 const STORAGE_KEY = "multisig_history";
 
 export function useMultisigHistory() {
-  const history = ref<HistoryItem[]>([]);
+  const history = createObservable<HistoryItem[]>([]);
 
-  const pendingCount = computed(() =>
-    history.value.filter((h) => h.status === "pending" || h.status === "ready").length
-  );
+  const pendingCount = createDerived(() =>
+    history.get().filter((h) => h.status === "pending" || h.status === "ready").length
+  , []);
 
-  const completedCount = computed(() =>
-    history.value.filter((h) => h.status === "broadcasted").length
-  );
+  const completedCount = createDerived(() =>
+    history.get().filter((h) => h.status === "broadcasted").length
+  , []);
 
   const loadHistory = () => {
     const saved = readCachedJSON<HistoryItem[]>(STORAGE_KEY);
-    history.value = Array.isArray(saved) ? saved : [];
+    history.set(Array.isArray(saved) ? saved : []);
   };
 
   const saveHistory = () => {
     try {
-      writeCachedJSON(STORAGE_KEY, history.value);
+      writeCachedJSON(STORAGE_KEY, history.get());
     } catch (err) {
       console.warn("[useMultisigHistory] saveHistory failed:", err instanceof Error ? err.message : String(err));
     }
   };
 
   const addToHistory = (item: HistoryItem) => {
-    const exists = history.value.find((h) => h.id === item.id);
+    const exists = history.get().find((h) => h.id === item.id);
     if (!exists) {
-      history.value.unshift(item);
+      history.set([item, ...history.get()]);
       saveHistory();
     }
   };
 
   const updateHistoryItem = (id: string, updates: Partial<HistoryItem>) => {
-    const index = history.value.findIndex((h) => h.id === id);
+    const items = history.get();
+    const index = items.findIndex((h) => h.id === id);
     if (index !== -1) {
-      history.value[index] = { ...history.value[index], ...updates };
+      const updated = [...items];
+      updated[index] = { ...updated[index], ...updates };
+      history.set(updated);
       saveHistory();
     }
   };
 
   const removeFromHistory = (id: string) => {
-    history.value = history.value.filter((h) => h.id !== id);
+    history.set(history.get().filter((h) => h.id !== id));
     saveHistory();
   };
 
   const clearHistory = () => {
-    history.value = [];
+    history.set([]);
     clearCachedValue(STORAGE_KEY);
   };
 
-  onMounted(loadHistory);
+  // Caller is responsible for calling loadHistory() on mount
 
   return {
     history,

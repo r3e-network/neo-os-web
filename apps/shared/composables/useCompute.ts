@@ -4,7 +4,8 @@
  * Provides Trusted Execution Environment compute operations and
  * confidential ciphertext storage via the Morpheus oracle stack.
  */
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { getNetwork } from "../constants/rpc";
 import {
   type OracleConfig,
@@ -28,13 +29,13 @@ export function useCompute(config: OracleConfig = {}) {
   const network = config.network ?? getNetwork();
   const edgeBaseUrl = normalizeEdgeBaseUrl(config.edgeBaseUrl);
 
-  const isRequesting = ref(false);
-  const error = ref<string | null>(null);
-  const lastComputeResult = ref<ComputeJobResult | null>(null);
+  const isRequesting: Observable<boolean> = createObservable(false);
+  const error: Observable<string | null> = createObservable<string | null>(null);
+  const lastComputeResult: Observable<ComputeJobResult | null> = createObservable<ComputeJobResult | null>(null);
 
   const executeTEE = async <T = unknown>(params: ComputeExecuteRequest): Promise<TEEResult<T>> => {
-    isRequesting.value = true;
-    error.value = null;
+    isRequesting.set(true);
+    error.set(null);
     try {
       const response = config.hostSdk?.compute?.execute
         ? await config.hostSdk.compute.execute(params)
@@ -51,7 +52,7 @@ export function useCompute(config: OracleConfig = {}) {
             getAPIKey: config.getAPIKey,
           });
 
-      lastComputeResult.value = response as ComputeJobResult;
+      lastComputeResult.set(response as ComputeJobResult);
       return {
         result: (response.output ?? response.result ?? response) as T,
         attestation: String(response.attestation ?? ""),
@@ -60,10 +61,10 @@ export function useCompute(config: OracleConfig = {}) {
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Compute execution failed";
-      error.value = msg;
+      error.set(msg);
       throw toMiniAppError(e, "Compute execution failed", ERROR_CODE_COMPUTE_EXECUTION_FAILED);
     } finally {
-      isRequesting.value = false;
+      isRequesting.set(false);
     }
   };
 
@@ -73,8 +74,8 @@ export function useCompute(config: OracleConfig = {}) {
       throw new Error("appId is required for registered compute execution");
     }
 
-    isRequesting.value = true;
-    error.value = null;
+    isRequesting.set(true);
+    error.set(null);
     try {
       const response = await requestEdgeJSON<Record<string, unknown>>(edgeBaseUrl, "/compute-app-execute", {
         method: "POST",
@@ -89,7 +90,7 @@ export function useCompute(config: OracleConfig = {}) {
         getAPIKey: config.getAPIKey,
       });
 
-      lastComputeResult.value = response as ComputeJobResult;
+      lastComputeResult.set(response as ComputeJobResult);
       return {
         result: (response.output ?? response.result ?? response) as T,
         attestation: String(response.attestation ?? ""),
@@ -98,17 +99,17 @@ export function useCompute(config: OracleConfig = {}) {
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Registered compute execution failed";
-      error.value = msg;
+      error.set(msg);
       throw toMiniAppError(e, "Registered compute execution failed", ERROR_CODE_REGISTERED_COMPUTE_FAILED);
     } finally {
-      isRequesting.value = false;
-      error.value = null;
+      isRequesting.set(false);
+      error.set(null);
     }
   };
 
   const storeConfidentialCiphertext = async (params: ConfidentialStoreRequest): Promise<ConfidentialStoreResponse> => {
-    isRequesting.value = true;
-    error.value = null;
+    isRequesting.set(true);
+    error.set(null);
     try {
       return await requestJson<ConfidentialStoreResponse>("/api/morpheus/confidential/store", {
         method: "POST",
@@ -127,11 +128,11 @@ export function useCompute(config: OracleConfig = {}) {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Confidential store request failed";
-      error.value = msg;
+      error.set(msg);
       throw toMiniAppError(e, "Confidential store request failed", ERROR_CODE_CONFIDENTIAL_STORE_FAILED);
     } finally {
-      isRequesting.value = false;
-      error.value = null;
+      isRequesting.set(false);
+      error.set(null);
     }
   };
 

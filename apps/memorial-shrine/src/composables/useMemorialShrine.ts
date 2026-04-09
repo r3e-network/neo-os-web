@@ -20,7 +20,8 @@
  *     badgeService.award("memorial-creator", "")
  */
 
-import { ref, computed, onUnmounted } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -55,18 +56,18 @@ export function useMemorialShrine({
   eventBus,
   t,
 }: UseMemorialShrineOptions) {
-  const memorials = ref<Memorial[]>([]);
-  const visitedMemorials = ref<Memorial[]>([]);
-  const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
-  const selectedMemorial = ref<Memorial | null>(null);
-  const shareStatus = ref<string | null>(null);
-  const isSubmitting = ref(false);
-  const isPaying = ref(false);
+  const memorials = createObservable<Memorial[]>([]);
+  const visitedMemorials = createObservable<Memorial[]>([]);
+  const recentObituaries = createObservable<{ id: number; name: string; text: string }[]>([]);
+  const selectedMemorial = createObservable<Memorial | null>(null);
+  const shareStatus = createObservable<string | null>(null);
+  const isSubmitting = createObservable(false);
+  const isPaying = createObservable(false);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const memorialCount = computed(() => memorials.value.length);
-  const tributeCount = computed(() => visitedMemorials.value.length);
-  const obituaryCount = computed(() => recentObituaries.value.length);
+  const memorialCount = createDerived(() => memorials.get().length, []);
+  const tributeCount = createDerived(() => visitedMemorials.get().length, []);
+  const obituaryCount = createDerived(() => recentObituaries.get().length, []);
 
   // ------------------------------------------
   // Read: load memorials (via StorageProxy)
@@ -83,12 +84,12 @@ export function useMemorialShrine({
             items.push(stored);
           }
         }
-        memorials.value = items.length > 0 ? items : getDefaultMemorials();
+        memorials.set(items.length > 0 ? items : getDefaultMemorials());
       } else {
-        memorials.value = getDefaultMemorials();
+        memorials.set(getDefaultMemorials());
       }
     } catch (_e) {
-      memorials.value = getDefaultMemorials();
+      memorials.set(getDefaultMemorials());
     }
 
     try {
@@ -99,12 +100,12 @@ export function useMemorialShrine({
           const stored = value as { id: number; name: string; text: string };
           if (stored && stored.id) items.push(stored);
         }
-        recentObituaries.value = items.length > 0 ? items : getDefaultObituaries();
+        recentObituaries.set(items.length > 0 ? items : getDefaultObituaries());
       } else {
-        recentObituaries.value = getDefaultObituaries();
+        recentObituaries.set(getDefaultObituaries());
       }
     } catch (_e) {
-      recentObituaries.value = getDefaultObituaries();
+      recentObituaries.set(getDefaultObituaries());
     }
   };
 
@@ -120,7 +121,7 @@ export function useMemorialShrine({
   ];
 
   const loadVisitedMemorials = async () => {
-    visitedMemorials.value = memorials.value.slice(0, 2);
+    visitedMemorials.set(memorials.get().slice(0, 2));
   };
 
   // ------------------------------------------
@@ -128,9 +129,9 @@ export function useMemorialShrine({
   // ------------------------------------------
 
   const openMemorial = (id: number) => {
-    const memorial = memorials.value.find((m) => m.id === id);
+    const memorial = memorials.get().find((m) => m.id === id);
     if (memorial) {
-      selectedMemorial.value = memorial;
+      selectedMemorial.set(memorial);
       if (typeof window !== "undefined") {
         const url = new URL(window.location.href);
         url.searchParams.set("id", String(id));
@@ -140,7 +141,7 @@ export function useMemorialShrine({
   };
 
   const closeMemorial = () => {
-    selectedMemorial.value = null;
+    selectedMemorial.set(null);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.delete("id");
@@ -149,7 +150,7 @@ export function useMemorialShrine({
   };
 
   const shareMemorial = (memorial?: Memorial) => {
-    const target = memorial || selectedMemorial.value;
+    const target = memorial || selectedMemorial.get();
     if (!target || typeof window === "undefined") return;
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${target.id}`;
     if (navigator.share) {
@@ -164,8 +165,8 @@ export function useMemorialShrine({
       const id = parseInt(idParam, 10);
       if (!isNaN(id)) {
         await loadMemorials();
-        const memorial = memorials.value.find((m) => m.id === id);
-        if (memorial) selectedMemorial.value = memorial;
+        const memorial = memorials.get().find((m) => m.id === id);
+        if (memorial) selectedMemorial.set(memorial);
       }
     }
   };
@@ -188,8 +189,8 @@ export function useMemorialShrine({
     biography: string;
     obituary: string;
   }) => {
-    if (isSubmitting.value) return;
-    isSubmitting.value = true;
+    if (isSubmitting.get()) return;
+    isSubmitting.set(true);
     try {
       await nftService.mint({
         type: "memorial",
@@ -210,7 +211,7 @@ export function useMemorialShrine({
 
       await loadMemorials();
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   };
 
@@ -228,8 +229,8 @@ export function useMemorialShrine({
     offeringCost: number,
     message: string,
   ) => {
-    if (isPaying.value) return;
-    isPaying.value = true;
+    if (isPaying.get()) return;
+    isPaying.set(true);
     try {
       await storageService.set(`tribute:${memorialId}`, {
         memorialId,
@@ -245,11 +246,11 @@ export function useMemorialShrine({
 
       // Reload and update selected memorial
       await loadMemorials();
-      if (selectedMemorial.value?.id === memorialId) {
-        selectedMemorial.value = memorials.value.find((m) => m.id === memorialId) || null;
+      if (selectedMemorial.get()?.id === memorialId) {
+        selectedMemorial.set(memorials.get().find((m) => m.id === memorialId) || null);
       }
     } finally {
-      isPaying.value = false;
+      isPaying.set(false);
     }
   };
 
@@ -266,9 +267,6 @@ export function useMemorialShrine({
   const cleanupTimers = () => {
     if (shareStatusTimer) { clearTimeout(shareStatusTimer); shareStatusTimer = null; }
   };
-
-  onUnmounted(() => cleanupTimers());
-
   return {
     // State
     memorials, visitedMemorials, recentObituaries, selectedMemorial, shareStatus,

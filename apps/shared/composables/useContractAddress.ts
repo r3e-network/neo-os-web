@@ -1,4 +1,5 @@
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -17,23 +18,24 @@ type EnsureSafeOptions = {
  *
  * Two usage styles:
  *  - `ensure()` — returns the address string or throws (for use inside try/catch flows)
- *  - `ensureSafe()` — returns boolean, stores address in `contractAddress` ref (guard-style)
+ *  - `ensureSafe()` — returns boolean, stores address in `contractAddress` observable (guard-style)
  */
 export function useContractAddress(t: (key: string) => string) {
-  const { chainType, getContractAddress } = useWallet() as WalletSDK;
-  const contractAddress = ref<string | null>(null);
+  const wallet = useWallet() as WalletSDK;
+  const { chainType, getContractAddress } = wallet;
+  const contractAddress: Observable<string | null> = createObservable<string | null>(null);
   let resolvePromise: Promise<string> | null = null;
 
   const resolveAddress = async (mounted?: { current: boolean }) => {
-    if (contractAddress.value) {
-      return contractAddress.value;
+    if (contractAddress.get()) {
+      return contractAddress.get();
     }
     if (resolvePromise) {
       return resolvePromise;
     }
     const addr = await getContractAddress();
     if (mounted && !mounted.current) return addr;
-    contractAddress.value = addr;
+    contractAddress.set(addr);
     return addr;
   };
 

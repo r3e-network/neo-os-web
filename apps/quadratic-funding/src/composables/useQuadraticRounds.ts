@@ -1,4 +1,5 @@
-import { ref, computed, watch, onUnmounted } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK, WalletSigner } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -18,7 +19,8 @@ const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
 export function useQuadraticRounds() {
   const { t } = createUseI18n(messages)();
   const wallet = useWallet() as WalletSDK;
-  const { address, chainType } = wallet;
+  const address = refToObservable(wallet.address);
+  const chainType = refToObservable(wallet.chainType);
   const { read, invokeDirectly, ensureWallet } = useContractInteraction({
     appId: "miniapp-quadratic-funding",
     t,
@@ -28,37 +30,39 @@ export function useQuadraticRounds() {
     key === "contractUnavailable" ? t("contractMissing") : t(key)
   );
 
-  const rounds = ref<RoundItem[]>([]);
-  const selectedRoundId = ref<string>("");
-  const isRefreshingRounds = ref(false);
-  const isCreatingRound = ref(false);
-  const isAddingMatching = ref(false);
-  const isFinalizing = ref(false);
-  const isClaimingUnused = ref(false);
-  const { status, setStatus } = useStatusMessage();
+  const rounds = createObservable<RoundItem[]>([]);
+  const selectedRoundId = createObservable<string>("");
+  const isRefreshingRounds = createObservable(false);
+  const isCreatingRound = createObservable(false);
+  const isAddingMatching = createObservable(false);
+  const isFinalizing = createObservable(false);
+  const isClaimingUnused = createObservable(false);
+  const sm = useStatusMessage();
+  const status = refToObservable(sm.status);
+  const { setStatus } = sm;
 
-  const selectedRound = computed(() => rounds.value.find((round) => round.id === selectedRoundId.value) || null);
+  const selectedRound = createDerived(() => rounds.get().find((round) => round.id === selectedRoundId.get()) || null, []);
 
-  const canManageSelectedRound = computed(() => {
-    if (!selectedRound.value || !address.value) return false;
+  const canManageSelectedRound = createDerived(() => {
+    if (!selectedRound.get() || !address.get()) return false;
     return (
-      selectedRound.value.creator === address.value && !selectedRound.value.cancelled && !selectedRound.value.finalized
+      selectedRound.get().creator === address.get() && !selectedRound.get().cancelled && !selectedRound.get().finalized
     );
-  });
+  }, []);
 
-  const canFinalizeSelectedRound = computed(() => {
-    if (!selectedRound.value || !address.value) return false;
+  const canFinalizeSelectedRound = createDerived(() => {
+    if (!selectedRound.get() || !address.get()) return false;
     return (
-      selectedRound.value.creator === address.value && !selectedRound.value.cancelled && !selectedRound.value.finalized
+      selectedRound.get().creator === address.get() && !selectedRound.get().cancelled && !selectedRound.get().finalized
     );
-  });
+  }, []);
 
-  const canClaimUnused = computed(() => {
-    if (!selectedRound.value || !address.value) return false;
+  const canClaimUnused = createDerived(() => {
+    if (!selectedRound.get() || !address.get()) return false;
     return (
-      selectedRound.value.creator === address.value && selectedRound.value.finalized && !selectedRound.value.cancelled
+      selectedRound.get().creator === address.get() && selectedRound.get().finalized && !selectedRound.get().cancelled
     );
-  });
+  }, []);
 
   const ensureContractAddress = async () => {
     return ensureAddress({ silentChainCheck: true });
@@ -91,8 +95,8 @@ export function useQuadraticRounds() {
   };
 
   const globalSignerForCurrentWallet = (): WalletSigner[] => (
-    address.value
-      ? [{ account: address.value, scopes: "Global" }]
+    address.get()
+      ? [{ account: address.get(), scopes: "Global" }]
       : []
   );
 
@@ -117,24 +121,24 @@ export function useQuadraticRounds() {
   };
 
   const refreshRounds = async () => {
-    if (isRefreshingRounds.value) return;
+    if (isRefreshingRounds.get()) return;
     try {
-      isRefreshingRounds.value = true;
+      isRefreshingRounds.set(true);
       const ids = await fetchRoundIds();
       const details = await Promise.all(ids.map(fetchRoundDetails));
-      rounds.value = details.filter(Boolean) as RoundItem[];
-      if (!selectedRoundId.value && rounds.value.length > 0) {
-        selectedRoundId.value = rounds.value[0].id;
+      rounds.set(details.filter(Boolean) as RoundItem[]);
+      if (!selectedRoundId.get() && rounds.get().length > 0) {
+        selectedRoundId.set(rounds.get()[0].id);
       }
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isRefreshingRounds.value = false;
+      isRefreshingRounds.set(false);
     }
   };
 
   const selectRound = (round: RoundItem) => {
-    selectedRoundId.value = round.id;
+    selectedRoundId.set(round.id);
   };
 
   const createRound = async (data: {
@@ -146,7 +150,7 @@ export function useQuadraticRounds() {
     endTime: string;
   }) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (isCreatingRound.value) return;
+    if (isCreatingRound.get()) return;
 
     const title = data.title.trim().slice(0, 60);
     if (!title) {
@@ -175,9 +179,9 @@ export function useQuadraticRounds() {
     }
 
     try {
-      isCreatingRound.value = true;
+      isCreatingRound.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const assetHash = data.asset === "NEO" ? NEO_HASH : GAS_HASH;
@@ -186,7 +190,7 @@ export function useQuadraticRounds() {
       await invokeDirectly(
         "createRound",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: address.get() as string },
           { type: "Hash160", value: assetHash },
           { type: "Integer", value: matchingPool },
           { type: "Integer", value: startTime.toString() },
@@ -203,15 +207,15 @@ export function useQuadraticRounds() {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isCreatingRound.value = false;
+      isCreatingRound.set(false);
     }
   };
 
   const addMatching = async (amount: string) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (!selectedRound.value || isAddingMatching.value) return;
+    if (!selectedRound.get() || isAddingMatching.get()) return;
 
-    const decimals = selectedRound.value.assetSymbol === "NEO" ? 0 : 8;
+    const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const parsedAmount = (() => {
       const [intPart, fracPart = ""] = amount.split(".");
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
@@ -225,16 +229,16 @@ export function useQuadraticRounds() {
     }
 
     try {
-      isAddingMatching.value = true;
+      isAddingMatching.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       await invokeDirectly(
         "addMatchingPool",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: selectedRound.value.id },
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
           { type: "Integer", value: parsedAmount },
         ],
         contract,
@@ -246,7 +250,7 @@ export function useQuadraticRounds() {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isAddingMatching.value = false;
+      isAddingMatching.set(false);
     }
   };
 
@@ -261,7 +265,7 @@ export function useQuadraticRounds() {
 
   const finalizeRound = async (projectIdsRaw: string, matchedRaw: string) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (!selectedRound.value || isFinalizing.value) return;
+    if (!selectedRound.get() || isFinalizing.get()) return;
 
     const projectIdsArray = parseJsonArray(projectIdsRaw.trim());
     const matchedArray = parseJsonArray(matchedRaw.trim());
@@ -280,7 +284,7 @@ export function useQuadraticRounds() {
       .filter((value) => Number.isFinite(value) && value > 0)
       .map((value) => String(value));
 
-    const decimals = selectedRound.value.assetSymbol === "NEO" ? 0 : 8;
+    const decimals = selectedRound.get().assetSymbol === "NEO" ? 0 : 8;
     const matchedAmounts = matchedArray.map((value) => {
       const [intPart, fracPart = ""] = String(value).split(".");
       const normalized = fracPart.slice(0, decimals).padEnd(decimals, "0");
@@ -289,16 +293,16 @@ export function useQuadraticRounds() {
     });
 
     try {
-      isFinalizing.value = true;
+      isFinalizing.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       await invokeDirectly(
         "finalizeRound",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: selectedRound.value.id },
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
           { type: "Array", value: projectIds.map((value) => ({ type: "Integer", value })) },
           { type: "Array", value: matchedAmounts.map((value) => ({ type: "Integer", value })) },
         ],
@@ -310,25 +314,25 @@ export function useQuadraticRounds() {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isFinalizing.value = false;
+      isFinalizing.set(false);
     }
   };
 
   const claimUnused = async () => {
     if (!requireNeoChain(chainType, t)) return;
-    if (!selectedRound.value || isClaimingUnused.value) return;
+    if (!selectedRound.get() || isClaimingUnused.get()) return;
 
     try {
-      isClaimingUnused.value = true;
+      isClaimingUnused.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       await invokeDirectly(
         "claimUnusedMatching",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: selectedRound.value.id },
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
         ],
         contract,
       );
@@ -338,7 +342,7 @@ export function useQuadraticRounds() {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isClaimingUnused.value = false;
+      isClaimingUnused.set(false);
     }
   };
 
@@ -374,20 +378,6 @@ export function useQuadraticRounds() {
     const normalized = fracPart.replace(/0+$/, "");
     return normalized ? `${intPart}.${normalized}` : intPart;
   };
-
-  const mountedRef = ref(true);
-  const stopAddressWatch = watch(address, async (newAddr) => {
-    if (!mountedRef.value) return;
-    if (newAddr) {
-      try {
-        await refreshRounds();
-      } catch (_e) {
-        console.warn("[useQuadraticRounds] refreshRounds failed:", _e instanceof Error ? _e.message : String(_e));
-      }
-    }
-  });
-
-  onUnmounted(() => { mountedRef.value = false; stopAddressWatch(); });
 
   return {
     rounds,

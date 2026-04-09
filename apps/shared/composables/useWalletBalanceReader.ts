@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { createDerived, refToObservable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
@@ -49,12 +49,13 @@ function scaleBalance(raw: bigint, decimals: number): number {
 
 export function useWalletBalanceReader() {
   const wallet = useWallet() as WalletSDK;
-  const { address, chainType, invokeRead } = wallet;
+  const { chainType, invokeRead } = wallet;
+  const address = refToObservable(wallet.address);
 
-  const currentAddress = computed(() => address.value || "");
+  const currentAddress = createDerived(() => address.get() || "", [address]);
 
   const readRawBalance = async (asset: AssetRef, options: ReadWalletBalanceOptions = {}): Promise<bigint> => {
-    const owner = options.targetAddress ?? address.value;
+    const owner = options.targetAddress ?? address.get();
     if (!owner) return 0n;
     if (options.requireChain !== false && !requireNeoChain(chainType, undefined, undefined, { silent: true })) {
       return 0n;

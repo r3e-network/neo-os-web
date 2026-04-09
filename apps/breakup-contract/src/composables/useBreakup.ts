@@ -24,7 +24,8 @@
  *     badgeService.award("relationship-contract", "")
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -89,22 +90,22 @@ export function useBreakup({
   t,
 }: UseBreakupOptions) {
   // -- Form state -----------------------------------------------------------
-  const partnerAddress = ref("");
-  const stakeAmount = ref("");
-  const duration = ref("");
-  const contractTitle = ref("");
-  const contractTerms = ref("");
+  const partnerAddress = createObservable("");
+  const stakeAmount = createObservable("");
+  const duration = createObservable("");
+  const contractTitle = createObservable("");
+  const contractTerms = createObservable("");
 
   // -- Data state -----------------------------------------------------------
-  const contracts = ref<RelationshipContractView[]>([]);
-  const isLoading = ref(false);
+  const contracts = createObservable<RelationshipContractView[]>([]);
+  const isLoading = createObservable(false);
 
   // -- Derived state --------------------------------------------------------
-  const address = ref("");
-  const contractCount = computed(() => contracts.value.length);
-  const activeCount = computed(() => contracts.value.filter((c) => c.status === "active").length);
-  const pendingCount = computed(() => contracts.value.filter((c) => c.status === "pending").length);
-  const brokenCount = computed(() => contracts.value.filter((c) => c.status === "broken").length);
+  const address = createObservable("");
+  const contractCount = createDerived(() => contracts.get().length, []);
+  const activeCount = createDerived(() => contracts.get().filter((c) => c.status === "active").length, []);
+  const pendingCount = createDerived(() => contracts.get().filter((c) => c.status === "pending").length, []);
+  const brokenCount = createDerived(() => contracts.get().filter((c) => c.status === "broken").length, []);
 
   // -- Helpers --------------------------------------------------------------
 
@@ -146,7 +147,7 @@ export function useBreakup({
     else if (completed) contractStatus = "broken";
     else if (party2Signed || cancelled) contractStatus = "ended";
 
-    const addr = address.value;
+    const addr = address.get();
     const partner = addr && addr === party1 ? party2 : party1;
 
     return {
@@ -171,7 +172,7 @@ export function useBreakup({
    * The edge function handles the contract reads and event parsing.
    */
   const loadContracts = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       const contractMap = await storageService.list("contracts:", 50);
       const contractViews: RelationshipContractView[] = [];
@@ -184,12 +185,12 @@ export function useBreakup({
           }
         }
       }
-      contracts.value = contractViews.sort((a, b) => b.id - a.id);
+      contracts.set(contractViews.sort((a, b) => b.id - a.id));
     } catch (e) {
       eventBus.emit("breakup:error", { message: e instanceof Error ? e.message : t("loadFailed") });
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -200,17 +201,17 @@ export function useBreakup({
    * The edge function handles the GAS stake transfer + contract creation.
    */
   const createContract = async () => {
-    if (isLoading.value) return;
+    if (isLoading.get()) return;
 
-    const partnerValue = partnerAddress.value.trim();
+    const partnerValue = partnerAddress.get().trim();
     if (!partnerValue) throw new Error(t("partnerRequired"));
     if (!isValidNeoAddress(partnerValue)) throw new Error(t("partnerInvalid"));
-    if (!stakeAmount.value) throw new Error(t("error"));
+    if (!stakeAmount.get()) throw new Error(t("error"));
 
-    const stake = parseFloat(stakeAmount.value);
-    const durationDays = parseInt(duration.value, 10);
-    const titleValue = contractTitle.value.trim();
-    const termsValue = contractTerms.value.trim();
+    const stake = parseFloat(stakeAmount.get());
+    const durationDays = parseInt(duration.get(), 10);
+    const titleValue = contractTitle.get().trim();
+    const termsValue = contractTerms.get().trim();
 
     if (!Number.isFinite(stake) || stake < 1 || !Number.isFinite(durationDays) || durationDays < 30) {
       throw new Error(t("error"));
@@ -223,9 +224,9 @@ export function useBreakup({
     const expirySeconds = Math.floor(Date.now() / 1000) + durationDays * 86400;
     await escrowService.create({
       beneficiary: partnerValue,
-      amount: stakeAmount.value,
+      amount: stakeAmount.get(),
       milestones: [
-        { name: "relationship", amount: stakeAmount.value },
+        { name: "relationship", amount: stakeAmount.get() },
       ],
       expiry: expirySeconds,
     });
@@ -244,11 +245,11 @@ export function useBreakup({
     badgeService.award("relationship-contract", "").catch(() => {});
 
     // Reset form
-    partnerAddress.value = "";
-    stakeAmount.value = "";
-    duration.value = "";
-    contractTitle.value = "";
-    contractTerms.value = "";
+    partnerAddress.set("");
+    stakeAmount.set("");
+    duration.set("");
+    contractTitle.set("");
+    contractTerms.set("");
 
     await loadContracts();
   };
@@ -258,7 +259,7 @@ export function useBreakup({
    * The edge function handles the matching stake transfer + sign contract call.
    */
   const signContract = async (contract: { id: number; stake: number }) => {
-    if (isLoading.value) return;
+    if (isLoading.get()) return;
 
     await escrowService.fund(String(contract.id));
 
