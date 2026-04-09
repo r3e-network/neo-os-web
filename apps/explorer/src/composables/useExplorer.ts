@@ -12,7 +12,8 @@
  *   - Stats/sidebar driven by manifest, not manually constructed
  */
 
-import { ref, computed, watch } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
@@ -101,13 +102,13 @@ const parseResponseData = (payload: unknown) => {
 
 export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   // ── State ────────────────────────────────────────────────────────────
-  const searchQuery = ref("");
-  const selectedNetwork = ref<"mainnet" | "testnet">("mainnet");
-  const isLoading = ref(false);
-  const isSearching = ref(false);
-  const searchResult = ref<Record<string, unknown> | null>(null);
-  const recentTxs = ref<TransactionRecord[]>([]);
-  const stats = ref<ExplorerStats>({
+  const searchQuery = createObservable("");
+  const selectedNetwork = createObservable<"mainnet" | "testnet">("mainnet");
+  const isLoading = createObservable(false);
+  const isSearching = createObservable(false);
+  const searchResult = createObservable<Record<string, unknown> | null>(null);
+  const recentTxs = createObservable<TransactionRecord[]>([]);
+  const stats = createObservable<ExplorerStats>({
     mainnet: { height: 0, txCount: 0 },
     testnet: { height: 0, txCount: 0 },
   });
@@ -115,17 +116,37 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   // ── Formatted values for manifest bindings ───────────────────────────
   const formatNum = (n: number) => formatNumber(n, 0);
 
-  const mainnetHeight = computed(() => formatNum(stats.value.mainnet.height));
-  const mainnetTxCount = computed(() => formatNum(stats.value.mainnet.txCount));
-  const testnetHeight = computed(() => formatNum(stats.value.testnet.height));
-  const testnetTxCount = computed(() => formatNum(stats.value.testnet.txCount));
-  const recentTxCount = computed(() => recentTxs.value.length);
+  const mainnetHeight: Observable = {
+    get: () => formatNum(stats.get().mainnet.height),
+    set: () => {},
+    subscribe: (listener) => stats.subscribe(listener),
+  };
+  const mainnetTxCount: Observable = {
+    get: () => formatNum(stats.get().mainnet.txCount),
+    set: () => {},
+    subscribe: (listener) => stats.subscribe(listener),
+  };
+  const testnetHeight: Observable = {
+    get: () => formatNum(stats.get().testnet.height),
+    set: () => {},
+    subscribe: (listener) => stats.subscribe(listener),
+  };
+  const testnetTxCount: Observable = {
+    get: () => formatNum(stats.get().testnet.txCount),
+    set: () => {},
+    subscribe: (listener) => stats.subscribe(listener),
+  };
+  const recentTxCount: Observable = {
+    get: () => recentTxs.get().length,
+    set: () => {},
+    subscribe: (listener) => recentTxs.subscribe(listener),
+  };
 
   // ── Data Loading ─────────────────────────────────────────────────────
 
   const loadStats = async () => {
     const cached = readCachedJSON<ExplorerStats>(STATS_CACHE_KEY);
-    if (cached) stats.value = cached;
+    if (cached) stats.set(cached);
 
     let freshStats: ExplorerStats | null = null;
 
@@ -148,27 +169,27 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     }
 
     if (freshStats && typeof freshStats === "object") {
-      stats.value = freshStats as ExplorerStats;
+      stats.set(freshStats as ExplorerStats);
       writeCachedJSON(STATS_CACHE_KEY, freshStats);
     }
   };
 
   const loadRecentTxs = async () => {
     const cached = readCachedJSON<TransactionRecord[]>(TXS_CACHE_KEY);
-    if (cached) recentTxs.value = cached;
+    if (cached) recentTxs.set(cached);
 
     let freshTxs: TransactionRecord[] = [];
     let hasFreshTxs = false;
 
     if (isLocalPreview) {
-      freshTxs = LOCAL_RECENT_MOCK[selectedNetwork.value];
+      freshTxs = LOCAL_RECENT_MOCK[selectedNetwork.get()];
       hasFreshTxs = true;
     }
 
     if (!hasFreshTxs) {
       try {
         const res = await uni.request({
-          url: `${API_BASE}/recent?network=${selectedNetwork.value}&limit=10`,
+          url: `${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`,
           method: "GET",
         });
         if (res.statusCode === 200 && res.data) {
@@ -182,7 +203,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     }
 
     if (hasFreshTxs) {
-      recentTxs.value = freshTxs;
+      recentTxs.set(freshTxs);
       writeCachedJSON(TXS_CACHE_KEY, freshTxs);
     }
   };
@@ -190,47 +211,47 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   // ── Search ───────────────────────────────────────────────────────────
 
   const search = async () => {
-    const query = searchQuery.value.trim();
+    const query = searchQuery.get().trim();
     if (!query) return;
 
-    isSearching.value = true;
-    searchResult.value = null;
+    isSearching.set(true);
+    searchResult.set(null);
 
     try {
       if (isLocalPreview) {
-        const txMatch = recentTxs.value.find((tx) =>
+        const txMatch = recentTxs.get().find((tx) =>
           String(tx?.hash || "").toLowerCase().includes(query.toLowerCase()),
         );
         if (txMatch) {
-          searchResult.value = { type: "transaction", data: txMatch };
+          searchResult.set({ type: "transaction", data: txMatch });
         } else if (query.length >= 20) {
-          const transactions = recentTxs.value.slice(0, 3);
-          searchResult.value = {
+          const transactions = recentTxs.get().slice(0, 3);
+          searchResult.set({
             type: "address",
             data: { address: query, txCount: transactions.length, transactions },
-          };
+          });
         }
         return;
       }
 
       const res = await uni.request({
-        url: `${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.value}`,
+        url: `${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`,
         method: "GET",
       });
       if (res.statusCode === 200 && res.data) {
-        searchResult.value = parseResponseData(res.data);
+        searchResult.set(parseResponseData(res.data));
       }
     } catch (e) {
       eventBus.emit("explorer:error", {
         message: e instanceof Error ? e.message : t("searchFailed"),
       });
     } finally {
-      isSearching.value = false;
+      isSearching.set(false);
     }
   };
 
   const viewTx = (hash: string) => {
-    searchQuery.value = hash;
+    searchQuery.set(hash);
     search();
   };
 
@@ -250,12 +271,12 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
    * Load all data — called by defineMiniApp on mount.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await Promise.all([loadStats(), loadRecentTxs()]);
       startPolling();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 

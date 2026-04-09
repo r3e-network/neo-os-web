@@ -12,15 +12,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreReading(BigInteger readingId, ReadingData reading)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_READINGS, (ByteString)readingId.ToByteArray()),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_READINGS, readingId),
                 StdLib.Serialize(reading));
         }
 
         private static void StoreReader(UInt160 reader, ReaderProfile profile)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_READERS, reader),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_READERS, reader),
                 StdLib.Serialize(profile));
         }
 
@@ -42,7 +40,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddUserReading(UInt160 user, BigInteger readingId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_USER_READING_COUNT, user);
+            ByteString countKey = Key(PREFIX_USER_READING_COUNT, user);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -80,14 +78,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreUserStats(UInt160 user, UserStats stats)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_USER_STATS, user),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_USER_STATS, user),
                 StdLib.Serialize(stats));
         }
 
         private static void UpdateSpreadCount(BigInteger spreadType)
         {
-            byte[] key = Helper.Concat(PREFIX_SPREAD_COUNTS, (ByteString)spreadType.ToByteArray());
+            ByteString key = Key(PREFIX_SPREAD_COUNTS, spreadType);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, key);
             Storage.Put(Storage.CurrentContext, key, count + 1);
         }

@@ -81,7 +81,6 @@ title: { en: "Neo Name Service", zh: "Neo 域名服务" },
   sidebarExpiringSoon: { en: "Expiring Soon", zh: "即将到期" },
   connected: { en: "Connected", zh: "已连接" },
   disconnected: { en: "Disconnected", zh: "未连接" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   domainSuffix: { en: ".neo", zh: ".neo" },
 } as const;
 

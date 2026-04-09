@@ -13,32 +13,32 @@ namespace NeoMiniAppPlatform.Contracts
         private static void StoreMask(BigInteger maskId, MaskData mask)
         {
             Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MASKS, (ByteString)maskId.ToByteArray()),
+                Key(PREFIX_MASKS, maskId),
                 StdLib.Serialize(mask));
         }
 
         private static void StoreProposal(BigInteger proposalId, ProposalData proposal)
         {
             Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_PROPOSALS, (ByteString)proposalId.ToByteArray()),
+                Key(PREFIX_PROPOSALS, proposalId),
                 StdLib.Serialize(proposal));
         }
 
         private static ByteString GetVoteKey(BigInteger proposalId, BigInteger maskId)
         {
             return Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_VOTES, (ByteString)proposalId.ToByteArray()),
+                Key(PREFIX_VOTES, proposalId),
                 (ByteString)maskId.ToByteArray());
         }
 
         private static void AddUserMask(UInt160 user, BigInteger maskId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_USER_MASK_COUNT, user);
+            byte[] countKey = (byte[])Key(PREFIX_USER_MASK_COUNT, user);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_MASKS, user),
+                Key(PREFIX_USER_MASKS, user),
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, maskId);
         }
@@ -83,7 +83,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static void StoreMemberStats(UInt160 member, MemberStats stats)
         {
             Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MEMBER_STATS, member),
+                Key(PREFIX_MEMBER_STATS, member),
                 StdLib.Serialize(stats));
         }
 
@@ -202,7 +202,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (HasMemberBadge(member, badgeType)) return;
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_MEMBER_BADGES, member),
+                Key(PREFIX_MEMBER_BADGES, member),
                 (ByteString)badgeType.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, 1);
 

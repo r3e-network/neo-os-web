@@ -1,0 +1,29 @@
+@use "@shared/styles/tokens.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&display=swap');
+
+.certificate-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(185, 28, 28, 0.03) 28px, rgba(185, 28, 28, 0.03) 29px),
+    linear-gradient(180deg, #FEF3C7 0%, #fdf6e3 40%, #faf0d4 100%);
+  color: #3B2F1E;
+  border: 3px double #B8860B;
+  border-radius: 12px;
+  position: relative;
+}
+
+.hero-stats { display: flex; gap: 16px; justify-content: center; }
+.hero-stat {
+  text-align: center;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(184, 134, 11, 0.08), rgba(254, 243, 199, 0.5));
+  border-radius: 8px;
+  border: 1px solid rgba(184, 134, 11, 0.25);
+}
+.hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #92400E; }
+.hero-stat-label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #78716C; letter-spacing: 1.5px; margin-top: 2px; }

@@ -36,10 +36,10 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] USER_STATS_FIELD_VERIFIED_OWNED = new byte[] { 0x0D };
 
         private static byte[] GetRecordKey(BigInteger recordId) =>
-            Helper.Concat(PREFIX_RECORDS, (ByteString)recordId.ToByteArray());
+            (byte[])Key(PREFIX_RECORDS, recordId);
 
         private static byte[] GetUserStatsKey(UInt160 user) =>
-            Helper.Concat(PREFIX_USER_STATS, user);
+            (byte[])Key(PREFIX_USER_STATS, user);
 
         private static BigInteger GetBigInteger(byte[] key)
         {
@@ -106,12 +106,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddUserRecord(UInt160 user, BigInteger recordId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_USER_RECORD_COUNT, user);
+            byte[] countKey = (byte[])Key(PREFIX_USER_RECORD_COUNT, user);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_RECORDS, user),
+                Key(PREFIX_USER_RECORDS, user),
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, recordId);
         }

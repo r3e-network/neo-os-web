@@ -133,6 +133,7 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
         return;
       }
       if (event.origin !== allowedOrigin) return;
+      if (event.source !== popup) return;
 
       if (event.data?.type === "oauth-success" && event.data?.provider === provider) {
         cleanup();
@@ -161,6 +162,9 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
     window.addEventListener("message", handleMessage);
   });
 }
+
+/** @internal Exposed for testing only */
+export const __test__ = { waitForOAuthCallback };
 
 /** OAuth provider metadata */
 export const oauthProviders = [

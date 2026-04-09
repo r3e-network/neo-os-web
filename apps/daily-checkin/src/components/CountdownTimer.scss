@@ -1,0 +1,30 @@
+@use "@shared/styles/tokens.scss" as *;
+
+.countdown-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__circle { position: relative; width: 180px; height: 180px; }
+  &__ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  &__ring-bg { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 14; }
+  &__ring-progress { fill: none; stroke: var(--countdown-color, #00e599); stroke-width: 14; stroke-linecap: round; stroke-dasharray: 622; transition: stroke-dashoffset 1s linear; filter: drop-shadow(0 0 4px rgba(0, 229, 153, 0.3)); }
+  &__display { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  &__time { font-family: $font-mono; font-size: $font-size-5xl; font-weight: $font-weight-bold; color: var(--text-primary, white); text-shadow: 0 0 20px rgba(0, 229, 153, 0.3); }
+  &__label { font-size: $font-size-xs; font-weight: $font-weight-semibold; text-transform: uppercase; color: var(--text-secondary, rgba(255, 255, 255, 0.5)); margin-top: $spacing-1; }
+  &__urgency-hint {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-top: $spacing-1;
+    &.calm { color: #00e599; }
+    &.attention { color: #fbbf24; animation: hint-blink 2s ease-in-out infinite; }
+    &.urgent { color: #ef4444; animation: hint-blink 0.8s ease-in-out infinite; }
+  }
+  &__text-only { display: flex; flex-direction: column; align-items: center; gap: $spacing-1; }
+}
+
+.urgency-attention .countdown-timer__ring-progress { filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.5)); }
+.urgency-urgent { animation: shake-subtle 0.5s ease-in-out infinite; }
+.urgency-urgent .countdown-timer__ring-progress { filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6)); }
+
+@keyframes hint-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes shake-subtle { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-1px); } 75% { transform: translateX(1px); } }
+@media (prefers-reduced-motion: reduce) { .countdown-timer__ring-progress { transition: none; } }

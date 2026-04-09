@@ -51,7 +51,6 @@ const appMessages = {
   callbackContract: { en: "Bound Callback Contract", zh: "绑定回调合约" },
   refUnavailableForToken: { en: "Reference mode currently supports encrypted_payload or encrypted_params, not encrypted_token.", zh: "引用模式当前只支持 encrypted_payload 或 encrypted_params，不支持 encrypted_token。" },
   stored: { en: "Ciphertext stored as confidential reference", zh: "密文已存为 confidential reference" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   notLoaded: { en: "not loaded", zh: "未加载" },
   loadKeyFailed: { en: "Load key failed", zh: "加载公钥失败" },
   sealFailed: { en: "Seal failed", zh: "密封失败" },

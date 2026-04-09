@@ -1,0 +1,34 @@
+@use "../styles/tokens.scss" as *;
+
+.app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast, var(--transition-normal, 150ms ease));
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.icon-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--icon-fallback-color, var(--text-secondary, rgba(248, 250, 252, 0.7)));
+  background: var(--icon-fallback-bg, var(--bg-tertiary, rgba(255, 255, 255, 0.1)));
+  border-radius: var(--radius-sm, 4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-icon {
+    transition: none;
+    &:active {
+      transform: none;
+    }
+  }
+}

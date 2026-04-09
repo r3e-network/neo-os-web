@@ -1,0 +1,23 @@
+@use "@shared/styles/console-common" as console;
+
+.detail-grid {
+  @include console.detail-grid;
+
+  &--cols-3 {
+    @include console.detail-grid(3, 900px);
+  }
+}
+
+.detail-card {
+  @include console.detail-card;
+}
+
+.detail-label {
+  @include console.label;
+  letter-spacing: 0.12em;
+}
+
+.detail-value {
+  @include console.value;
+  margin-top: 8px;
+}

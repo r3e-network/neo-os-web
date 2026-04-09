@@ -40,7 +40,8 @@
  *     feeds VRF randomness into the game flow for provably fair results
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -149,33 +150,33 @@ export function useCoinFlip({
   t,
 }: UseCoinFlipOptions) {
   // -- Game State -------------------------------------------------------------
-  const betAmount = ref("1");
-  const choice = ref<"heads" | "tails">("heads");
-  const isFlipping = ref(false);
-  const result = ref<GameResult | null>(null);
-  const displayOutcome = ref<"heads" | "tails" | null>(null);
-  const showWinOverlay = ref(false);
-  const winAmount = ref("0");
-  const validationError = ref<string | null>(null);
+  const betAmount = createObservable("1");
+  const choice = createObservable<"heads" | "tails">("heads");
+  const isFlipping = createObservable(false);
+  const result = createObservable<GameResult | null>(null);
+  const displayOutcome = createObservable<"heads" | "tails" | null>(null);
+  const showWinOverlay = createObservable(false);
+  const winAmount = createObservable("0");
+  const validationError = createObservable<string | null>(null);
 
   // -- Stats ------------------------------------------------------------------
-  const wins = ref(0);
-  const losses = ref(0);
-  const totalWon = ref(0);
-  const totalGames = computed(() => wins.value + losses.value);
+  const wins = createObservable(0);
+  const losses = createObservable(0);
+  const totalWon = createObservable(0);
+  const totalGames = createDerived(() => wins.get() + losses.get(), []);
 
   // -- History ----------------------------------------------------------------
-  const gameHistory = ref<GameHistoryItem[]>([]);
+  const gameHistory = createObservable<GameHistoryItem[]>([]);
 
   // -- Formatted display values -----------------------------------------------
   // These are consumed by the manifest stat/sidebar bindings via the
   // state object returned from defineMiniApp's setup().
-  const formattedTotalWon = computed(() => `${formatNum(totalWon.value)} ${t("tokenGas")}`);
+  const formattedTotalWon = createDerived(() => `${formatNum(totalWon.get())} ${t("tokenGas")}`, []);
 
-  const canBet = computed(() => {
-    const n = parseFloat(betAmount.value);
-    return n >= MIN_BET && n <= MAX_BET && !validationError.value && !isFlipping.value;
-  });
+  const canBet = createDerived(() => {
+    const n = parseFloat(betAmount.get());
+    return n >= MIN_BET && n <= MAX_BET && !validationError.get() && !isFlipping.get();
+  }, []);
 
   // -- Validation -------------------------------------------------------------
 
@@ -199,9 +200,9 @@ export function useCoinFlip({
     try {
       const data = await storageService.get("playerStats") as StoredPlayerStats | null;
       if (data && typeof data === "object") {
-        wins.value = Number(data.wins ?? 0);
-        losses.value = Number(data.losses ?? 0);
-        totalWon.value = Number(data.totalWon ?? 0);
+        wins.set(Number(data.wins ?? 0));
+        losses.set(Number(data.losses ?? 0));
+        totalWon.set(Number(data.totalWon ?? 0));
       }
     } catch (e) {
       console.warn("[useCoinFlip] loadStats failed:", e instanceof Error ? e.message : String(e));
@@ -230,7 +231,7 @@ export function useCoinFlip({
             time: entry.time ?? "",
           });
         }
-        gameHistory.value = items;
+        gameHistory.set(items);
       }
     } catch (e) {
       console.warn("[useCoinFlip] loadHistory failed:", e instanceof Error ? e.message : String(e));
@@ -251,10 +252,10 @@ export function useCoinFlip({
    * Reset the game UI to its initial state.
    */
   const resetGame = () => {
-    isFlipping.value = false;
-    result.value = null;
-    displayOutcome.value = null;
-    showWinOverlay.value = false;
+    isFlipping.set(false);
+    result.set(null);
+    displayOutcome.set(null);
+    showWinOverlay.set(false);
   };
 
   /**
@@ -273,24 +274,24 @@ export function useCoinFlip({
    */
   const placeBet = async () => {
     // -- Validate ---
-    const validation = validateBetAmount(betAmount.value);
+    const validation = validateBetAmount(betAmount.get());
     if (validation) {
-      validationError.value = validation;
+      validationError.set(validation);
       throw new Error(validation);
     }
-    validationError.value = null;
+    validationError.set(null);
 
-    if (isFlipping.value || !canBet.value) return;
+    if (isFlipping.get() || !canBet.get()) return;
 
-    isFlipping.value = true;
-    result.value = null;
-    displayOutcome.value = null;
-    showWinOverlay.value = false;
+    isFlipping.set(true);
+    result.set(null);
+    displayOutcome.set(null);
+    showWinOverlay.set(false);
 
-    const isFirstFlip = totalGames.value === 0;
+    const isFirstFlip = totalGames.set(== 0);
 
     try {
-      const amountBase = toFixed8(betAmount.value);
+      const amountBase = toFixed8(betAmount.get());
       if (amountBase === "0") throw new Error(t("invalidBetAmount"));
 
       // -- Step 1: Deposit GAS via PaymentProxy ---
@@ -303,7 +304,7 @@ export function useCoinFlip({
         "current",
         JSON.stringify({
           amount: amountBase,
-          choice: choice.value === "heads",
+          choice: choice.get() === "heads",
         }),
       );
       const betId = String((betPoolState as unknown as { betId?: string })?.betId ?? "");
@@ -339,21 +340,21 @@ export function useCoinFlip({
       // -- Step 5: Parse result ---
       const won = Boolean(resolvedState.won);
       const payoutValue = Number(resolvedState.payout ?? 0);
-      const outcome = won ? choice.value : choice.value === "heads" ? "tails" : "heads";
+      const outcome = won ? choice.get() : choice.set(== "heads" ? "tails" : "heads");
 
       // -- Step 6: Update UI ---
-      displayOutcome.value = outcome;
-      isFlipping.value = false;
-      result.value = { won, outcome: outcome.toUpperCase() };
+      displayOutcome.set(outcome);
+      isFlipping.set(false);
+      result.set({ won, outcome: outcome.toUpperCase() });
 
       if (won) {
-        wins.value += 1;
-        totalWon.value += payoutValue;
-        winAmount.value = payoutValue.toFixed(2);
-        showWinOverlay.value = true;
+        wins.set(wins.get() + 1);
+        totalWon.set(totalWon.get() + payoutValue);
+        winAmount.set(payoutValue.toFixed(2));
+        showWinOverlay.set(true);
         eventBus.emit("coinflip:win", { action: t("youWon"), payout: payoutValue });
       } else {
-        losses.value += 1;
+        losses.set(losses.get() + 1);
         eventBus.emit("coinflip:loss", { action: t("youLost") });
       }
 
@@ -368,7 +369,7 @@ export function useCoinFlip({
       eventBus.emit("coinflip:error", {
         message: e instanceof Error ? e.message : t("flipFailed"),
       });
-      isFlipping.value = false;
+      isFlipping.set(false);
       throw e;
     }
   };
@@ -377,7 +378,7 @@ export function useCoinFlip({
    * Dismiss the win overlay.
    */
   const dismissOverlay = () => {
-    showWinOverlay.value = false;
+    showWinOverlay.set(false);
   };
 
   return {

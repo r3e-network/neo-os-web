@@ -59,7 +59,6 @@ const appMessages = {
   memoryTypeConfession: { en: "Confession", zh: "告白" },
   memoryTypeOther: { en: "Other", zh: "其他" },
   totalDestroyed: { en: "Total Buried", zh: "总埋葬数" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   hashEllipsis: { en: "...", zh: "..." },
 } as const;
 

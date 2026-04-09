@@ -56,7 +56,6 @@ const appMessages = {
   maxBetError: { en: "Maximum bet is {max} {tokenGas}", zh: "最高下注 {max} {tokenGas}" },
   invalidAmountDecimals: { en: "Maximum 8 decimal places", zh: "最多8位小数" },
   gameErrorFallback: { en: "Something went wrong", zh: "出现错误" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   wagerRange: { en: "0.1 - 100", zh: "0.1 - 100" },
 } as const;
 

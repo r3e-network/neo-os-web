@@ -67,7 +67,6 @@ title: { en: "Gov Merc", zh: "治理雇佣兵" },
   },
     activeBids: { en: "Active Bids", zh: "活跃竞价" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -1,0 +1,17 @@
+.cinematic-overlay { position: fixed; inset: 0; z-index: 1050; display: flex; align-items: center; justify-content: center; overflow: hidden; border: none; appearance: none; padding: 0; cursor: pointer; }
+.overlay-backdrop { position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(2, 6, 23, 0.95) 0%, rgba(10, 10, 15, 1) 100%); backdrop-filter: blur(10px); }
+.overlay-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 30px; animation: entry-pulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.congrats-text { font-size: 12px; font-weight: 900; letter-spacing: 6px; color: var(--coin-gold); }
+.reward-circle { width: 200px; height: 200px; position: relative; display: flex; align-items: center; justify-content: center;
+  .glow-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.1); background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%); animation: rotate-ring 4s linear infinite; }
+  .content { display: flex; flex-direction: column; align-items: center; }
+  .amount { font-size: 64px; font-weight: 900; color: #fff; line-height: 1; }
+  .unit { font-size: 16px; font-weight: 700; color: var(--coin-text-muted); letter-spacing: 2px; }
+}
+.win-label { font-size: 18px; font-weight: 700; color: #fff; opacity: 0.8; }
+.tap-hint { margin-top: 40px; font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.4); letter-spacing: 2px; animation: fade-blink 1.5s infinite; }
+.is-win { .congrats-text { color: var(--coin-success); } .amount { color: var(--coin-success); } }
+@keyframes entry-pulse { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+@keyframes rotate-ring { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fade-blink { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .overlay-content, .glow-ring, .tap-hint { animation: none; } }

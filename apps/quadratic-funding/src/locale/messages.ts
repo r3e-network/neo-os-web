@@ -125,8 +125,6 @@ const appMessages = {
   ariaProjects: { en: "Projects", zh: "项目" },
   ariaRounds: { en: "Rounds", zh: "轮次" },
   quickContribute: { en: "Quick Contribute", zh: "快捷捐助" },
-  notAvailable: { en: "N/A", zh: "不可用" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

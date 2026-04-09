@@ -24,10 +24,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 10,
-      functions: 8,
-      lines: 10,
-      statements: 10,
+      branches: 25,
+      functions: 25,
+      lines: 25,
+      statements: 25,
     },
     // Core implementation files - realistic thresholds based on current coverage
     "./hooks/useRealtimeNotifications.ts": {

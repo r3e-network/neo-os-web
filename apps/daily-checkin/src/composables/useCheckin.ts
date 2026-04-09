@@ -1,35 +1,18 @@
 /**
  * useCheckin — Domain logic for the Daily Check-in miniapp (OS Services)
  *
+ * React version: uses createObservable instead of Vue ref/computed.
+ *
  * This composable uses OS service proxies instead of direct chain calls.
  * All contract interaction is delegated to CheckinProxy via edge functions,
  * so this file contains zero contract hashes, parameter encoding, or
  * event parsing logic.
- *
- * Migration from direct chain calls to OS services:
- *
- *   BEFORE (chain):
- *     chain.read("GetUserStats", [{ type: "Hash160", value: addr }])
- *     chain.invokeWithPayment(fee, memo, "checkIn", [...])
- *     chain.invoke("claimRewards", [...])
- *     chain.listEvents("CheckedIn", { limit: 10 })
- *
- *   AFTER (OS proxy):
- *     ctx.os.checkin.getStreak()
- *     ctx.os.checkin.checkIn()
- *     ctx.os.checkin.claimRewards()
- *
- * The composable still owns:
- *   - Reactive state (refs + computed) for manifest bindings
- *   - UTC countdown timer logic
- *   - Loading/claiming UI flags
- *   - Formatted display values
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { CheckinProxy, CheckinData } from "@shared/services/os/CheckinProxy";
 import { formatGas } from "@shared/utils/format";
-import { useTicker } from "@shared/composables/useTicker";
 
 // ============================================================================
 // Constants
@@ -67,126 +50,154 @@ export interface UseCheckinOptions {
 
 export function useCheckin({ checkinService, t }: UseCheckinOptions) {
   // ── User State ──────────────────────────────────────────────────────
-  const currentStreak = ref(0);
-  const highestStreak = ref(0);
-  const lastCheckInDay = ref(0);
-  const unclaimedRewards = ref(0);
-  const totalClaimed = ref(0);
-  const totalUserCheckins = ref(0);
-  const isLoading = ref(false);
-  const isClaiming = ref(false);
+  const currentStreak = createObservable(0);
+  const highestStreak = createObservable(0);
+  const lastCheckInDay = createObservable(0);
+  const unclaimedRewards = createObservable(0);
+  const totalClaimed = createObservable(0);
+  const totalUserCheckins = createObservable(0);
+  const isLoading = createObservable(false);
+  const isClaiming = createObservable(false);
 
   // ── Global Stats ────────────────────────────────────────────────────
-  // These remain as refs for manifest bindings. The OS proxy returns
-  // user-level data; global stats may be added to the proxy later.
-  // For now they default to 0 (the manifest still renders them).
-  const totalGlobalCheckins = ref(0);
-  const totalGlobalUsers = ref(0);
-  const totalGlobalRewarded = ref(0);
+  const totalGlobalCheckins = createObservable(0);
+  const totalGlobalUsers = createObservable(0);
+  const totalGlobalRewarded = createObservable(0);
 
   // ── History ─────────────────────────────────────────────────────────
-  const checkinHistory = ref<CheckinHistoryItem[]>([]);
+  const checkinHistory = createObservable<CheckinHistoryItem[]>([]);
 
   // ── Countdown Timer ─────────────────────────────────────────────────
-  const now = ref(Date.now());
-  const countdownTicker = useTicker(() => {
-    now.value = Date.now();
-  }, 1000);
+  const now = createObservable(Date.now());
+  let tickerInterval: ReturnType<typeof setInterval> | null = null;
 
-  const currentUtcDay = computed(() => Math.floor(now.value / MS_PER_DAY));
-  const nextUtcMidnight = computed(() => (currentUtcDay.value + 1) * MS_PER_DAY);
+  // ── Derived observables (computed equivalents) ──────────────────────
+  const currentUtcDay: Observable<number> = {
+    get: () => Math.floor(now.get() / MS_PER_DAY),
+    set: () => {},
+    subscribe: (fn) => now.subscribe(fn),
+  };
 
-  const canCheckIn = computed(() => {
-    if (lastCheckInDay.value === 0) return true;
-    return currentUtcDay.value > lastCheckInDay.value;
-  });
+  const nextUtcMidnight: Observable<number> = {
+    get: () => (currentUtcDay.get() + 1) * MS_PER_DAY,
+    set: () => {},
+    subscribe: (fn) => now.subscribe(fn),
+  };
 
-  const utcTimeDisplay = computed(() => {
-    const utcDate = new Date(now.value);
-    const h = String(utcDate.getUTCHours()).padStart(2, "0");
-    const m = String(utcDate.getUTCMinutes()).padStart(2, "0");
-    const s = String(utcDate.getUTCSeconds()).padStart(2, "0");
-    return `${h}:${m}:${s}`;
-  });
+  const canCheckIn: Observable<boolean> = {
+    get: () => {
+      if (lastCheckInDay.get() === 0) return true;
+      return currentUtcDay.get() > lastCheckInDay.get();
+    },
+    set: () => {},
+    subscribe: (fn) => {
+      const unsub1 = now.subscribe(fn);
+      const unsub2 = lastCheckInDay.subscribe(fn);
+      return () => { unsub1(); unsub2(); };
+    },
+  };
+
+  const utcTimeDisplay: Observable<string> = {
+    get: () => {
+      const utcDate = new Date(now.get());
+      const h = String(utcDate.getUTCHours()).padStart(2, "0");
+      const m = String(utcDate.getUTCMinutes()).padStart(2, "0");
+      const s = String(utcDate.getUTCSeconds()).padStart(2, "0");
+      return `${h}:${m}:${s}`;
+    },
+    set: () => {},
+    subscribe: (fn) => now.subscribe(fn),
+  };
 
   // ── Formatted display values ────────────────────────────────────────
-  const formattedCurrentStreak = computed(() => `${currentStreak.value} ${t("days")}`);
-  const formattedHighestStreak = computed(() => `${highestStreak.value} ${t("days")}`);
-  const formattedUnclaimed = computed(() => `${formatGas(unclaimedRewards.value)} ${t("tokenGas")}`);
-  const formattedTotalClaimed = computed(() => `${formatGas(totalClaimed.value)} ${t("tokenGas")}`);
-  const formattedTotalRewarded = computed(() => `${formatGas(totalGlobalRewarded.value)} ${t("tokenGas")}`);
+  const formattedCurrentStreak: Observable<string> = {
+    get: () => `${currentStreak.get()} ${t("days")}`,
+    set: () => {},
+    subscribe: (fn) => currentStreak.subscribe(fn),
+  };
+
+  const formattedHighestStreak: Observable<string> = {
+    get: () => `${highestStreak.get()} ${t("days")}`,
+    set: () => {},
+    subscribe: (fn) => highestStreak.subscribe(fn),
+  };
+
+  const formattedUnclaimed: Observable<string> = {
+    get: () => `${formatGas(unclaimedRewards.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => unclaimedRewards.subscribe(fn),
+  };
+
+  const formattedTotalClaimed: Observable<string> = {
+    get: () => `${formatGas(totalClaimed.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => totalClaimed.subscribe(fn),
+  };
+
+  const formattedTotalRewarded: Observable<string> = {
+    get: () => `${formatGas(totalGlobalRewarded.get())} ${t("tokenGas")}`,
+    set: () => {},
+    subscribe: (fn) => totalGlobalRewarded.subscribe(fn),
+  };
 
   // ── Data Loading ────────────────────────────────────────────────────
 
-  /**
-   * Apply CheckinData from the OS proxy to local reactive state.
-   */
   const applyCheckinData = (data: CheckinData) => {
-    currentStreak.value = data.currentStreak;
-    highestStreak.value = data.highestStreak;
-    totalUserCheckins.value = data.totalCheckins;
-    lastCheckInDay.value = data.lastCheckinTime
-      ? Math.floor(data.lastCheckinTime / (MS_PER_DAY / 1000))
-      : 0;
-    unclaimedRewards.value = Number(data.unclaimedRewards ?? 0);
-    totalClaimed.value = Number(data.totalClaimed ?? 0);
+    currentStreak.set(data.currentStreak);
+    highestStreak.set(data.highestStreak);
+    totalUserCheckins.set(data.totalCheckins);
+    lastCheckInDay.set(
+      data.lastCheckinTime
+        ? Math.floor(data.lastCheckinTime / (MS_PER_DAY / 1000))
+        : 0,
+    );
+    unclaimedRewards.set(Number(data.unclaimedRewards ?? 0));
+    totalClaimed.set(Number(data.totalClaimed ?? 0));
   };
 
-  /**
-   * Load all data via the OS checkin proxy.
-   * Called by defineMiniApp on mount and when the wallet connects.
-   */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       const data = await checkinService.getStreak();
       applyCheckinData(data);
     } catch (e) {
       console.warn("[useCheckin] loadAll failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
   // ── Actions ─────────────────────────────────────────────────────────
 
-  /**
-   * Perform a daily check-in via the OS proxy.
-   * The proxy handles wallet connection, payment, and event waiting.
-   */
   const doCheckIn = async () => {
-    if (!canCheckIn.value || isLoading.value) return;
+    if (!canCheckIn.get() || isLoading.get()) return;
 
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await checkinService.checkIn();
       await loadAll();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
-  /**
-   * Claim accumulated GAS rewards via the OS proxy.
-   */
   const claimRewards = async () => {
-    if (unclaimedRewards.value <= 0 || isClaiming.value) return;
+    if (unclaimedRewards.get() <= 0 || isClaiming.get()) return;
 
-    isClaiming.value = true;
+    isClaiming.set(true);
     try {
       await checkinService.claimRewards();
       await loadAll();
     } finally {
-      isClaiming.value = false;
+      isClaiming.set(false);
     }
   };
 
-  /**
-   * Start the countdown timer. Called from setup after composable creation.
-   * The ticker stops automatically via Vue's onUnmounted hook.
-   */
   const startTimer = () => {
-    countdownTicker.start();
+    if (tickerInterval) clearInterval(tickerInterval);
+    tickerInterval = setInterval(() => {
+      now.set(Date.now());
+    }, 1000);
   };
 
   return {
@@ -228,5 +239,5 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
   };
 }
 
-/** Return type of useCheckin for use in inject/provide typing */
+/** Return type of useCheckin for use in typing */
 export type UseCheckinReturn = ReturnType<typeof useCheckin>;

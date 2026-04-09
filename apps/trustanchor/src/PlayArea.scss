@@ -1,0 +1,24 @@
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./pages/index/trustanchor-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+body { background: var(--anchor-bg, var(--bg-primary)); }
+
+.trustanchor-play-area {
+  display: flex; flex-direction: column; gap: 20px; padding: 24px 16px;
+  min-height: 300px; font-family: var(--anchor-font, 'Instrument Sans', sans-serif); position: relative;
+  &::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 250px; background: var(--anchor-depth-gradient, radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.1) 0%, transparent 60%)); pointer-events: none; z-index: 0; }
+  > * { position: relative; z-index: 1; }
+}
+
+.section-header { display: flex; justify-content: space-between; align-items: center; }
+.section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--anchor-ocean, #0369A1); }
+.section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; opacity: 0.82; line-height: 1.7; display: block; color: var(--anchor-text-muted, var(--text-secondary)); }
+
+.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: var(--anchor-card-bg, rgba(12, 24, 38, 0.85)); border: 1px solid var(--anchor-card-border, rgba(3, 105, 161, 0.2)); border-radius: 16px; box-shadow: var(--anchor-card-shadow, 0 8px 32px rgba(0, 0, 0, 0.25)); backdrop-filter: blur(12px); padding: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+.px-1 { padding-left: 8px; padding-right: 8px; }
+
+@media (prefers-reduced-motion: reduce) { .neo-card:hover { transform: none; } }

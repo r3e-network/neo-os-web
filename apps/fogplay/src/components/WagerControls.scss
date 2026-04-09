@@ -1,0 +1,27 @@
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/mixins.scss" as *;
+
+.bet-section { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 20px; z-index: 2; }
+.choice-grid { @include grid-layout(2, 16px); }
+.choice-card { position: relative; height: 120px; background: var(--coin-choice-bg); border: 1px solid var(--coin-choice-border); border-radius: 20px; overflow: hidden; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer;
+  .card-inner { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .symbol-ring { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--coin-choice-ring); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; }
+  &.heads { background: linear-gradient(135deg, var(--coin-green-active-bg) 0%, var(--coin-green-active-bg-light) 100%); border-color: var(--coin-success); box-shadow: 0 10px 30px var(--coin-side-active-bg); transform: scale(1.05); }
+  &.tails { background: linear-gradient(135deg, var(--coin-blue-active-bg) 0%, var(--coin-blue-active-bg-light) 100%); border-color: var(--coin-blue); box-shadow: 0 10px 30px var(--coin-blue-active-bg); transform: scale(1.05); }
+  &.inactive { opacity: 0.6; &:hover { opacity: 1; transform: translateY(-4px); } }
+}
+.choice-name { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--coin-text-primary); }
+.wager-panel { width: 100%; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
+  .label { font-size: 12px; font-weight: 700; color: var(--coin-label); text-transform: uppercase; letter-spacing: 1px; }
+}
+.balance-pill { background: var(--coin-balance-pill-bg); padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700; color: var(--coin-success); border: 1px solid var(--coin-balance-pill-border); .unit { opacity: 0.7; margin-left: 4px; } }
+.wager-grid { @include grid-layout(4, 10px); margin-bottom: 20px; }
+.wager-option { background: var(--coin-wager-bg); border: 1px solid var(--coin-wager-border); padding: 14px 6px; border-radius: 14px; text-align: center; transition: all 0.3s ease; cursor: pointer;
+  .amount-val { display: block; font-size: 17px; font-weight: 800; color: var(--coin-text-primary); }
+  .amount-unit { font-size: 9px; opacity: 0.6; color: var(--coin-text-secondary); text-transform: uppercase; }
+  &.selected { background: var(--coin-success); border-color: var(--coin-success); box-shadow: 0 0 20px var(--coin-green-active-glow); transform: scale(1.05); .amount-val, .amount-unit { color: var(--coin-black); } }
+}
+.flip-btn { height: 60px; font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; border-radius: 14px; }
+.btn-content { display: flex; align-items: center; justify-content: center; gap: 10px; }

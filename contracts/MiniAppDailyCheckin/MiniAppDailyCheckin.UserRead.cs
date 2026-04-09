@@ -13,43 +13,37 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserStreak(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_STREAK, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_STREAK, user));
         }
 
         [Safe]
         public static BigInteger GetUserHighestStreak(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_HIGHEST, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_HIGHEST, user));
         }
 
         [Safe]
         public static BigInteger GetUserLastCheckin(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_LAST_CHECKIN, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_LAST_CHECKIN, user));
         }
 
         [Safe]
         public static BigInteger GetUserUnclaimed(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_UNCLAIMED, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_UNCLAIMED, user));
         }
 
         [Safe]
         public static BigInteger GetUserClaimed(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_CLAIMED, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_CLAIMED, user));
         }
 
         [Safe]
         public static BigInteger GetUserCheckins(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_CHECKINS, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_CHECKINS, user));
         }
 
         [Safe]

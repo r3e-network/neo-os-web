@@ -173,7 +173,7 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(fromMaskId != toMaskId, "cannot self-delegate");
             }
 
-            byte[] key = Helper.Concat(PREFIX_DELEGATIONS, (ByteString)fromMaskId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_DELEGATIONS, fromMaskId);
             if (toMaskId > 0)
             {
                 Storage.Put(Storage.CurrentContext, key, toMaskId);

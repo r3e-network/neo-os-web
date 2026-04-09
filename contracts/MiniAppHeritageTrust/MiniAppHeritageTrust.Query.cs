@@ -137,8 +137,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetHeirTrustCount(UInt160 heir)
         {
-            byte[] key = Helper.Concat(PREFIX_HEIR_TRUST_COUNT, heir);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_HEIR_TRUST_COUNT, heir));
         }
 
         [Safe]

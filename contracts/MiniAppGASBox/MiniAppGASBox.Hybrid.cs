@@ -341,19 +341,19 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StorePlayAvailableWeight(BigInteger playId, BigInteger weight)
         {
-            byte[] key = Helper.Concat(PREFIX_PLAY_WEIGHT, playId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_PLAY_WEIGHT, playId);
             Storage.Put(Storage.CurrentContext, key, weight);
         }
 
         private static BigInteger GetPlayAvailableWeight(BigInteger playId)
         {
-            byte[] key = Helper.Concat(PREFIX_PLAY_WEIGHT, playId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_PLAY_WEIGHT, playId);
             return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
         private static void DeletePlayAvailableWeight(BigInteger playId)
         {
-            byte[] key = Helper.Concat(PREFIX_PLAY_WEIGHT, playId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_PLAY_WEIGHT, playId);
             Storage.Delete(Storage.CurrentContext, key);
         }
 

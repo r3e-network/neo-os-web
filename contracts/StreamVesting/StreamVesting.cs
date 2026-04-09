@@ -32,6 +32,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_INSTANCE = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_STREAM_COUNTER = new byte[] { 0x11 };
         private static readonly byte[] PREFIX_STREAM = new byte[] { 0x12 };
+        private static readonly byte[] PREFIX_CLAIM_GUARD = new byte[] { 0x13 };
 
         public struct InstanceInfo
         {
@@ -241,6 +242,25 @@ namespace NeoMiniAppPlatform.Contracts
             string method)
         {
             Contract.Call(fundingVault, method, CallFlags.All, instanceId, referenceId, asset, recipient, amount);
+        }
+
+        private static byte[] ClaimGuardKey(string instanceId, BigInteger streamId)
+        {
+            return Helper.Concat(
+                Helper.Concat((ByteString)PREFIX_CLAIM_GUARD, (ByteString)instanceId),
+                (ByteString)streamId.ToByteArray());
+        }
+
+        private static void EnterClaimGuard(string instanceId, BigInteger streamId)
+        {
+            byte[] key = ClaimGuardKey(instanceId, streamId);
+            ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, key) == null, "reentrant claim");
+            Storage.Put(Storage.CurrentContext, key, 1);
+        }
+
+        private static void ExitClaimGuard(string instanceId, BigInteger streamId)
+        {
+            Storage.Delete(Storage.CurrentContext, ClaimGuardKey(instanceId, streamId));
         }
 
         private static void StoreStream(string instanceId, BigInteger streamId, StreamData stream)
@@ -472,6 +492,8 @@ namespace NeoMiniAppPlatform.Contracts
             RequireActiveInstance(info);
             ExecutionEngine.Assert(IsInstanceActor(info, beneficiary), "unauthorized");
 
+            EnterClaimGuard(instanceId, streamId);
+
             StreamData stream = GetStreamInternal(instanceId, streamId);
             ExecutionEngine.Assert(stream.Creator != UInt160.Zero, "stream not found");
             ExecutionEngine.Assert(stream.Beneficiary == beneficiary, "wrong beneficiary");
@@ -490,6 +512,8 @@ namespace NeoMiniAppPlatform.Contracts
                 beneficiary,
                 claimable,
                 "ReleaseFunds");
+
+            ExitClaimGuard(instanceId, streamId);
 
             OnStreamClaimed(instanceId, streamId, beneficiary, claimable, stream.ReleasedAmount);
         }

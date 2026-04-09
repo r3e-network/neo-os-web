@@ -52,7 +52,8 @@
  *   - Item availability + probability normalization (pure frontend math)
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -204,35 +205,35 @@ export function useGasBox({
   t,
 }: UseGasBoxOptions) {
   // ── Machine State ──────────────────────────────────────────────────
-  const machines = ref<Machine[]>([]);
-  const selectedMachine = ref<Machine | null>(null);
-  const isLoadingMachines = ref(false);
+  const machines = createObservable<Machine[]>([]);
+  const selectedMachine = createObservable<Machine | null>(null);
+  const isLoadingMachines = createObservable(false);
   const actionLoading = ref<Record<string, boolean>>({});
-  const walletHash = ref("");
+  const walletHash = createObservable("");
 
   // ── Play State ─────────────────────────────────────────────────────
-  const isPlaying = ref(false);
-  const showResult = ref(false);
-  const resultItem = ref<MachineItem | null>(null);
-  const playError = ref<string | null>(null);
-  const showFireworks = ref(false);
+  const isPlaying = createObservable(false);
+  const showResult = createObservable(false);
+  const resultItem = createObservable<MachineItem | null>(null);
+  const playError = createObservable<string | null>(null);
+  const showFireworks = createObservable(false);
 
   // ── Publish State ──────────────────────────────────────────────────
-  const isPublishing = ref(false);
+  const isPublishing = createObservable(false);
 
   // ── Address State ──────────────────────────────────────────────────
-  const address = ref<string | null>(null);
+  const address = createObservable<string | null>(null);
 
   // ── Helpers ────────────────────────────────────────────────────────
 
   const setActionLoading = (key: string, value: boolean) => {
-    actionLoading.value[key] = value;
+    actionLoading.get()[key] = value;
   };
 
   const resetResult = () => {
-    showResult.value = false;
-    resultItem.value = null;
-    playError.value = null;
+    showResult.set(false);
+    resultItem.set(null);
+    playError.set(null);
   };
 
   // ── Item Normalization ────────────────────────────────────────────
@@ -331,47 +332,47 @@ export function useGasBox({
    * returns normalized data.
    */
   const loadMachines = async () => {
-    isLoadingMachines.value = true;
+    isLoadingMachines.set(true);
     try {
       const state = (await gameService.getPoolState("machines")) as GasBoxPoolState;
       if (state && Array.isArray(state.machines)) {
-        machines.value = state.machines.map(normalizeMachine);
+        machines.set(state.machines.map(normalizeMachine));
       } else {
-        machines.value = [];
+        machines.set([]);
       }
 
       // Load wallet hash from storage (set by platform on wallet connect)
       try {
         const hash = await storageService.get("walletHash");
-        walletHash.value = String(hash || "");
+        walletHash.set(String(hash || ""));
         const addr = await storageService.get("walletAddress");
-        address.value = addr ? String(addr) : null;
+        address.set(addr ? String(addr) : null);
       } catch {
         // Wallet state not available yet
       }
 
       // Sync selected machine with reloaded data
-      if (selectedMachine.value) {
-        const updated = machines.value.find(
-          (m) => m.id === selectedMachine.value?.id,
+      if (selectedMachine.get()) {
+        const updated = machines.get().find(
+          (m) => m.id === selectedMachine.get()?.id,
         ) || null;
-        selectedMachine.value = updated;
+        selectedMachine.set(updated);
       }
     } catch (e) {
       console.warn("[useGasBox] loadMachines failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      isLoadingMachines.value = false;
+      isLoadingMachines.set(false);
     }
   };
 
   // ── Machine Selection ──────────────────────────────────────────────
 
   const selectMachine = (machine: Machine) => {
-    selectedMachine.value = machine;
+    selectedMachine.set(machine);
   };
 
   const deselectMachine = () => {
-    selectedMachine.value = null;
+    selectedMachine.set(null);
   };
 
   // ── Play Action (via OS services) ──────────────────────────────────
@@ -384,16 +385,16 @@ export function useGasBox({
    * including RNG seed generation and item selection.
    */
   const playMachine = async () => {
-    const machine = selectedMachine.value;
-    if (!machine || isPlaying.value) return;
+    const machine = selectedMachine.get();
+    if (!machine || isPlaying.get()) return;
     if (!machine.active || !machine.inventoryReady) {
-      playError.value = t("inventoryUnavailable");
+      playError.set(t("inventoryUnavailable"));
       return;
     }
 
     try {
-      isPlaying.value = true;
-      playError.value = null;
+      isPlaying.set(true);
+      playError.set(null);
       resetResult();
 
       // Step 1: Deposit GAS payment via PaymentProxy
@@ -412,9 +413,9 @@ export function useGasBox({
 
       // Step 3: Display result
       if (result && typeof result === "object" && result.item) {
-        resultItem.value = normalizeItem(result.item, t("rarityCommon"));
+        resultItem.set(normalizeItem(result.item, t("rarityCommon")));
       } else {
-        resultItem.value = {
+        resultItem.set({
           name: t("unknownPrize"),
           probability: 0,
           displayProbability: 0,
@@ -430,19 +431,19 @@ export function useGasBox({
           decimals: 0,
           available: false,
           icon: "gift",
-        };
+        });
       }
-      showResult.value = true;
-      showFireworks.value = true;
+      showResult.set(true);
+      showFireworks.set(true);
 
       // Step 4: Hint badge for first play (fire-and-forget)
       badgeService.award("first-play", "").catch(() => {});
 
       await loadMachines();
     } catch (e) {
-      playError.value = e instanceof Error ? e.message : t("error");
+      playError.set(e instanceof Error ? e.message : t("error"));
     } finally {
-      isPlaying.value = false;
+      isPlaying.set(false);
     }
   };
 
@@ -452,7 +453,7 @@ export function useGasBox({
    * Buy a machine listed for sale via PaymentProxy + GameProxy.
    */
   const buyMachine = async () => {
-    const machine = selectedMachine.value;
+    const machine = selectedMachine.get();
     if (!machine || !machine.forSale || machine.salePriceRaw <= 0) return;
 
     const key = `buy:${machine.id}`;
@@ -489,10 +490,10 @@ export function useGasBox({
     machineData: MachineData,
     setStatus: (msg: string, type: "success" | "error" | "loading") => void,
   ) => {
-    if (isPublishing.value) return;
+    if (isPublishing.get()) return;
 
     try {
-      isPublishing.value = true;
+      isPublishing.set(true);
       setStatus(t("publishing"), "loading");
 
       // Create machine via GameProxy
@@ -535,7 +536,7 @@ export function useGasBox({
       setStatus(msg, "error");
       throw e;
     } finally {
-      isPublishing.value = false;
+      isPublishing.set(false);
     }
   };
 
@@ -547,7 +548,7 @@ export function useGasBox({
    */
   const updateMachinePrice = async (machine: Machine) => {
     const key = `price:${machine.id}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -570,7 +571,7 @@ export function useGasBox({
    */
   const toggleMachineActive = async (machine: Machine) => {
     const key = `active:${machine.id}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -587,7 +588,7 @@ export function useGasBox({
    */
   const toggleMachineListed = async (machine: Machine) => {
     const key = `listed:${machine.id}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -604,7 +605,7 @@ export function useGasBox({
    */
   const listMachineForSale = async (machine: Machine, salePrice: string) => {
     const key = `sale:${machine.id}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -625,7 +626,7 @@ export function useGasBox({
    */
   const cancelMachineSale = async (machine: Machine) => {
     const key = `cancelSale:${machine.id}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -648,7 +649,7 @@ export function useGasBox({
     tokenId: string,
   ) => {
     const key = `deposit:${machine.id}:${index}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -686,7 +687,7 @@ export function useGasBox({
     tokenId: string,
   ) => {
     const key = `withdraw:${machine.id}:${index}`;
-    if (actionLoading.value[key]) return;
+    if (actionLoading.get()[key]) return;
 
     try {
       setActionLoading(key, true);
@@ -710,12 +711,12 @@ export function useGasBox({
   };
 
   // ── Derived display values ────────────────────────────────────────
-  const machineCount = computed(() => machines.value.length);
-  const isPlayingDisplay = computed(() =>
-    isPlaying.value ? t("yes") : t("no"),
+  const machineCount = createDerived(() => machines.get().length, []);
+  const isPlayingDisplay = createDerived(() =>
+    isPlaying.get() ? t("yes") : t("no"),
   );
-  const selectedMachineName = computed(
-    () => selectedMachine.value?.name || t("none"),
+  const selectedMachineName = createDerived(
+    () => selectedMachine.get()?.name || t("none"),
   );
 
   // ── Load All ───────────────────────────────────────────────────────

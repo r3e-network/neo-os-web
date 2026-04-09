@@ -73,7 +73,6 @@ const appMessages = {
   linkCopied: { en: "Link copied! Share to let others pay tribute 🙏", zh: "链接已复制！分享给亲友一同祭拜 🙏" },
   shareMemorial: { en: "Share Memorial", zh: "分享灵位" },
   sidebarObituaries: { en: "Obituaries", zh: "讣告" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   yearRangeSeparator: { en: " - ", zh: " - " },
   yearSeparator: { en: "-", zh: "-" },
   candleIcon: { en: "Memorial candle", zh: "纪念蜡烛" },

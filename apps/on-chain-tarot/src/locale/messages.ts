@@ -66,7 +66,6 @@ const appMessages = {
   tarotKnight: { en: "Knight", zh: "骑士" },
   tarotQueen: { en: "Queen", zh: "女王" },
   tarotKing: { en: "King", zh: "国王" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -125,7 +125,6 @@ const appMessages = {
   },
   invalidAmount: { en: "NEO is indivisible — enter a whole number", zh: "NEO 不可分割 — 请输入整数" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
