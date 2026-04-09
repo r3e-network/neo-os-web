@@ -1,9 +1,9 @@
-import { createAppConfig } from "../vite.shared";
+import { createReactAppConfig } from "../vite.shared.react";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 
 declare const __dirname: string;
-export default createAppConfig(__dirname, {
+export default createReactAppConfig(__dirname, {
   alias: {
     html2canvas: path.resolve(__dirname, "../shared/shims/html2canvas-stub.js"),
   },

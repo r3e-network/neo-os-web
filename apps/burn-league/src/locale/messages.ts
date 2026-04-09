@@ -64,7 +64,6 @@ const appMessages = {
   sidebarBurns: { en: "Burns", zh: "燃烧次数" },
   sidebarRewardPool: { en: "Reward Pool", zh: "奖励池" },
   gasSuffix: { en: "GAS", zh: "GAS" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   rankGold: { en: "1st place", zh: "第一名" },
   rankSilver: { en: "2nd place", zh: "第二名" },
   rankBronze: { en: "3rd place", zh: "第三名" },

@@ -1,0 +1,251 @@
+@use "@shared/styles/mixins.scss" as *;
+@use "@shared/styles/tokens.scss" as *;
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap");
+
+.checkin-play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(196, 30, 58, 0.1) 0%, transparent 50%);
+  font-family: "Fredoka", sans-serif;
+
+  &.streak-active {
+    background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 53, 0.25) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(196, 30, 58, 0.15) 0%, transparent 50%);
+  }
+}
+
+.flame-bg-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.ember {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff6b35;
+  opacity: 0;
+  animation: ember-float 4s ease-in-out infinite;
+}
+
+.ember-1 {
+  left: 20%;
+  bottom: -10px;
+  animation-delay: 0s;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.6);
+}
+
+.ember-2 {
+  left: 55%;
+  bottom: -10px;
+  animation-delay: 1.5s;
+  width: 4px;
+  height: 4px;
+  background: #ffa726;
+  box-shadow: 0 0 6px rgba(255, 167, 38, 0.6);
+}
+
+.ember-3 {
+  left: 80%;
+  bottom: -10px;
+  animation-delay: 3s;
+  width: 5px;
+  height: 5px;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.8);
+}
+
+@keyframes ember-float {
+  0% { opacity: 0; transform: translateY(0) scale(1); }
+  20% { opacity: 0.8; }
+  80% { opacity: 0.3; }
+  100% { opacity: 0; transform: translateY(-400px) scale(0.3); }
+}
+
+.countdown-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.utc-clock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+}
+
+.clock-display {
+  @include mono-number(13px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ff8a5c;
+}
+
+.clock-utc-label {
+  font-size: 8px;
+  font-weight: 800;
+  color: rgba(255, 107, 53, 0.5);
+  letter-spacing: 0.1em;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: "Fredoka", sans-serif;
+  background: rgba(196, 30, 58, 0.12);
+  color: #e57373;
+  border: 1px solid rgba(196, 30, 58, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
+
+  &.ready {
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+    border-color: rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.2), 0 0 40px rgba(255, 107, 53, 0.1);
+    animation: pulse-flame 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-flame {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.2), 0 0 40px rgba(255, 107, 53, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(255, 107, 53, 0.35), 0 0 60px rgba(255, 107, 53, 0.15); }
+}
+
+.action-card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(255, 107, 53, 0.05);
+  border: 1px solid rgba(255, 107, 53, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-btn {
+  margin-top: 16px;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 18px;
+  font-family: "Fredoka", sans-serif;
+}
+
+.checkin-calendar,
+.streak-display,
+.rewards-section,
+.countdown-timer {
+  position: relative;
+  z-index: 1;
+}
+
+.reward-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  background: rgba(255, 107, 53, 0.08);
+  border: 1px dashed rgba(255, 107, 53, 0.25);
+  border-radius: 14px;
+  position: relative;
+  z-index: 1;
+  animation: preview-breathe 2s ease-in-out infinite;
+}
+
+.reward-preview-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 107, 53, 0.6);
+}
+
+.reward-preview-amount {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 900;
+  font-family: "Fredoka", sans-serif;
+  background: linear-gradient(135deg, #fbbf24, #ff6b35);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reward-preview-hint {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@keyframes preview-breathe {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 53, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.2); }
+}
+
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -10px;
+  opacity: 0;
+  animation: confetti-fall 2.5s ease-out forwards;
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 1; top: -10px; transform: translateX(0) rotate(0deg); }
+  25% { opacity: 1; }
+  100% { opacity: 0; top: 100vh; transform: translateX(calc(-50px + 100px * var(--r, 0.5))) rotate(720deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-pill { animation: none; transition: none; }
+  .ember { animation: none; display: none; }
+  .confetti-container { display: none; }
+  .reward-preview { animation: none; }
+}

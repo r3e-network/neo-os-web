@@ -1,28 +1,12 @@
 /**
- * useFlashloanCore — Domain logic for the Flash Loan miniapp (OS Services)
+ * useFlashloanCore — Domain logic for the Flash Loan miniapp.
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (PaymentProxy, StorageProxy, BadgeProxy) via edge functions,
- * so this file contains zero contract hashes, parameter encoding, or
- * event parsing logic.
- *
- * Migration from direct chain calls to OS services:
- *
- *   BEFORE (chain):
- *     chain.read("getPoolBalance")
- *     chain.read("getLoan", [...])
- *     chain.invoke("requestLoan", [...])
- *     chain.listAllEvents("LoanExecuted")
- *
- *   AFTER (OS proxy):
- *     paymentService.getBalance()                 — pool balance
- *     storageService.get(`loan:${id}`)            — loan details
- *     storageService.list("loan:")                — loan history/stats
- *     paymentService.deposit(amount, memo)        — request loan
- *     badgeService.award(badgeId, user)           — achievement tracking
+ * All contract interaction is delegated to OS service proxies
+ * (PaymentProxy, StorageProxy, BadgeProxy) via edge functions.
  */
 
-import { ref } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -66,13 +50,13 @@ export function useFlashloanCore({
   badgeService,
   t,
 }: UseFlashloanCoreOptions) {
-  const poolBalance = ref(0);
-  const loanDetails = ref<LoanDetails | null>(null);
-  const stats = ref({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
-  const recentLoans = ref<ExecutedLoan[]>([]);
-  const isLoading = ref(false);
-  const validationError = ref<string | null>(null);
-  const address = ref("");
+  const poolBalance = createObservable(0);
+  const loanDetails = createObservable<LoanDetails | null>(null);
+  const stats = createObservable({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
+  const recentLoans = createObservable<ExecutedLoan[]>([]);
+  const isLoading = createObservable(false);
+  const validationError = createObservable<string | null>(null);
+  const address = createObservable("");
 
   // -- Helpers --------------------------------------------------------------
 
@@ -148,10 +132,10 @@ export function useFlashloanCore({
   const loadPoolBalance = async () => {
     try {
       const result = await paymentService.getBalance();
-      poolBalance.value = toNumber(result);
+      poolBalance.set(toNumber(result));
     } catch (e) {
       console.warn("[useFlashloanCore] loadPoolBalance failed:", e instanceof Error ? e.message : String(e));
-      poolBalance.value = 0;
+      poolBalance.set(0);
     }
   };
 
@@ -163,8 +147,8 @@ export function useFlashloanCore({
     try {
       const raw = await storageService.list("loan:");
       if (!raw || typeof raw !== "object") {
-        stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
-        recentLoans.value = [];
+        stats.set({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
+        recentLoans.set([]);
         return;
       }
 
@@ -186,13 +170,13 @@ export function useFlashloanCore({
       const totalVolume = loans.reduce((sum, loan) => sum + loan.amount, 0);
       const totalFees = loans.reduce((sum, loan) => sum + loan.fee, 0);
 
-      stats.value = {
+      stats.set({
         totalLoans: loans.length,
         totalVolume,
         totalFees,
-      };
+      });
 
-      recentLoans.value = loans
+      recentLoans.set(loans);
         .slice()
         .sort((a, b) => {
           const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
@@ -202,19 +186,19 @@ export function useFlashloanCore({
         .slice(0, 10);
     } catch (e) {
       console.warn("[useFlashloanCore] loadLoanStats failed:", e instanceof Error ? e.message : String(e));
-      stats.value = { totalLoans: 0, totalVolume: 0, totalFees: 0 };
-      recentLoans.value = [];
+      stats.set({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
+      recentLoans.set([]);
     }
   };
 
   const loadData = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await Promise.all([loadPoolBalance(), loadLoanStats()]);
     } catch (e) {
       console.warn("[useFlashloanCore] loadData failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -227,13 +211,13 @@ export function useFlashloanCore({
   const lookupLoan = async (loanIdValue: string) => {
     const validation = validateLoanId(loanIdValue);
     if (validation) {
-      validationError.value = validation;
+      validationError.set(validation);
       throw new Error(validation);
     }
-    validationError.value = null;
+    validationError.set(null);
 
     const loanId = Number(loanIdValue);
-    isLoading.value = true;
+    isLoading.set(true);
 
     try {
       const parsed = await storageService.get(`loan:${loanId}`);
@@ -242,13 +226,13 @@ export function useFlashloanCore({
         loanId,
       );
       if (!details) {
-        loanDetails.value = null;
+        loanDetails.set(null);
         throw new Error(t("loanNotFound"));
       }
 
-      loanDetails.value = details;
+      loanDetails.set(details);
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -258,37 +242,37 @@ export function useFlashloanCore({
    * and the requestLoan contract invocation.
    */
   const requestLoan = async (data: { amount: string; callbackContract: string; callbackMethod: string }) => {
-    if (!address.value) {
+    if (!address.get()) {
       throw new Error(t("connectWallet"));
     }
 
     const validation = validateLoanRequest(data);
     if (validation) {
-      validationError.value = validation;
+      validationError.set(validation);
       throw new Error(validation);
     }
-    validationError.value = null;
+    validationError.set(null);
 
-    isLoading.value = true;
+    isLoading.set(true);
 
     try {
       // Request loan via StorageProxy — the edge function handles
       // the requestLoan contract invocation
       await storageService.set("loan:request", {
-        borrower: address.value,
+        borrower: address.get(),
         amount: toFixed8(data.amount),
         callbackContract: data.callbackContract,
         callbackMethod: data.callbackMethod,
       });
 
       // Award first-loan badge (fire-and-forget)
-      if (stats.value.totalLoans === 0) {
-        badgeService.award("first-flashloan", address.value).catch(() => {});
+      if (stats.get().totalLoans === 0) {
+        badgeService.award("first-flashloan", address.get()).catch(() => {});
       }
 
       await loadData();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -312,7 +296,7 @@ export function useFlashloanCore({
      * Set the wallet address. Called from main.ts to track the
      * connected wallet address from the platform's chain service.
      */
-    setAddress: (addr: string) => { address.value = addr; },
+    setAddress: (addr: string) => { address.set(addr); },
   };
 }
 

@@ -1,0 +1,36 @@
+@use "../styles/tokens.scss" as *;
+
+.stats-tab {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+
+  &__grid {
+    margin-bottom: $spacing-2;
+  }
+
+  &__card {
+    background: var(--bg-card, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    border-radius: var(--card-radius, 20px);
+    padding: $spacing-4;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  &__rows-title {
+    display: block;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-primary, rgba(255, 255, 255, 0.9));
+    padding-bottom: $spacing-3;
+    margin-bottom: $spacing-2;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  }
+
+  &__extra {
+    margin-top: $spacing-2;
+  }
+}

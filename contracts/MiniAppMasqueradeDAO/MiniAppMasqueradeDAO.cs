@@ -214,7 +214,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static MemberStats GetMemberStats(UInt160 member)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MEMBER_STATS, member));
+                Key(PREFIX_MEMBER_STATS, member));
             if (data == null) return new MemberStats();
             return (MemberStats)StdLib.Deserialize(data);
         }
@@ -223,7 +223,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool HasMemberBadge(UInt160 member, BigInteger badgeType)
         {
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_MEMBER_BADGES, member),
+                Key(PREFIX_MEMBER_BADGES, member),
                 (ByteString)badgeType.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
@@ -232,7 +232,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static MaskData GetMask(BigInteger maskId)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MASKS, (ByteString)maskId.ToByteArray()));
+                Key(PREFIX_MASKS, maskId));
             if (data == null) return new MaskData();
             return (MaskData)StdLib.Deserialize(data);
         }
@@ -241,7 +241,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static ProposalData GetProposal(BigInteger proposalId)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_PROPOSALS, (ByteString)proposalId.ToByteArray()));
+                Key(PREFIX_PROPOSALS, proposalId));
             if (data == null) return new ProposalData();
             return (ProposalData)StdLib.Deserialize(data);
         }
@@ -249,14 +249,14 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserMaskCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_MASK_COUNT, user);
+            byte[] key = (byte[])Key(PREFIX_USER_MASK_COUNT, user);
             return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
         [Safe]
         public static BigInteger GetDelegation(BigInteger maskId)
         {
-            byte[] key = Helper.Concat(PREFIX_DELEGATIONS, (ByteString)maskId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_DELEGATIONS, maskId);
             return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
         #endregion

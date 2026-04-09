@@ -162,7 +162,6 @@ const appMessages = {
   sidebarNoActivity: { en: "No Activity Yet", zh: "暂无活动" },
   ariaSigners: { en: "Signers", zh: "签名人" },
   sidebarTotalTxsLabel: { en: "Total Txs", zh: "总交易数" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

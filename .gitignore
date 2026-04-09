@@ -150,3 +150,8 @@ test_*.go
 *.tar
 coordinator-config.json
 coordinator-enclave.signed
+
+# Fuzz daemon runtime files
+test/fuzz/daemon.pid
+docs/reports/fuzz/
+docs/reports/live-smoke/

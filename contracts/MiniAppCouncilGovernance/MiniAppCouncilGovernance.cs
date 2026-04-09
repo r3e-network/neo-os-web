@@ -186,7 +186,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static MemberStats GetMemberStats(UInt160 member)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MEMBER_STATS, member));
+                Key(PREFIX_MEMBER_STATS, member));
             if (data == null) return new MemberStats();
             return (MemberStats)StdLib.Deserialize(data);
         }
@@ -195,7 +195,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool HasMemberBadge(UInt160 member, BigInteger badgeType)
         {
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_MEMBER_BADGES, member),
+                Key(PREFIX_MEMBER_BADGES, member),
                 (ByteString)badgeType.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }
@@ -204,7 +204,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static UInt160 GetDelegatee(UInt160 delegator)
         {
             ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_DELEGATION, delegator));
+                Key(PREFIX_DELEGATION, delegator));
             if (data == null) return UInt160.Zero;
             return (UInt160)data;
         }

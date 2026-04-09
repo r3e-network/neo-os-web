@@ -50,7 +50,6 @@ const appMessages = {
   idle: { en: "idle", zh: "空闲" },
   sessionVerifier: { en: "Session Verifier", zh: "Session Verifier" },
   sponsor: { en: "Sponsor", zh: "赞助商" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   anyMethod: { en: "Any method", zh: "任意方法" },
 } as const;
 

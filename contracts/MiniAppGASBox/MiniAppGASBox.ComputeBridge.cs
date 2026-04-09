@@ -126,6 +126,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static BigInteger DebugExpectedSelection(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             PlayData play = LoadPlay(playId);
             ByteString seed = play.Seed;
             if (seed == null)
@@ -139,6 +140,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static Map<string, object> DebugSelectedItem(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -156,6 +158,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static bool DebugTransferSelectedItem(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -166,6 +169,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void DebugEmitPlayResolved(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -175,6 +179,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void DebugFinalizeSettlementState(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -205,6 +210,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static bool DebugTransferAndFinalize(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -233,6 +239,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static bool DebugTransferAndEmit(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             PlayData play = LoadPlay(playId);
             ItemData item = LoadItem(play.MachineId, selectedIndex);
@@ -249,6 +256,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         public static void DebugFullSettle(BigInteger playId)
         {
+            ExecutionEngine.Assert(IsAdminWitness(), "debug: admin only");
             BigInteger selectedIndex = DebugExpectedSelection(playId);
             OnDebugCheckpoint(1, playId, selectedIndex);
 

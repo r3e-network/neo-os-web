@@ -61,23 +61,23 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         private static byte[] GetMachineKey(BigInteger machineId) =>
-            Helper.Concat(PREFIX_MACHINES, (ByteString)machineId.ToByteArray());
+            (byte[])Key(PREFIX_MACHINES, machineId);
 
         private static byte[] GetItemKey(BigInteger machineId, BigInteger itemIndex)
         {
-            byte[] key = Helper.Concat(PREFIX_MACHINE_ITEMS, (ByteString)machineId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_MACHINE_ITEMS, machineId);
             return Helper.Concat(key, (ByteString)itemIndex.ToByteArray());
         }
 
         private static byte[] GetItemTokenKey(BigInteger machineId, BigInteger itemIndex, BigInteger tokenIndex)
         {
-            byte[] key = Helper.Concat(PREFIX_ITEM_TOKEN_LIST, (ByteString)machineId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_ITEM_TOKEN_LIST, machineId);
             key = Helper.Concat(key, (ByteString)itemIndex.ToByteArray());
             return Helper.Concat(key, (ByteString)tokenIndex.ToByteArray());
         }
 
         private static byte[] GetPlayKey(BigInteger playId) =>
-            Helper.Concat(PREFIX_PLAYS, (ByteString)playId.ToByteArray());
+            (byte[])Key(PREFIX_PLAYS, playId);
 
         #region Storage Field Constants
         private static readonly byte[] MACHINE_FIELD_CREATOR = new byte[] { 0x01 };

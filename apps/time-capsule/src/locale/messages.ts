@@ -110,7 +110,6 @@ const appMessages = {
   sidebarTotalCapsules: { en: "Total Capsules", zh: "总胶囊数" },
   sidebarLocked: { en: "Locked", zh: "已锁定" },
   sidebarRevealed: { en: "Revealed", zh: "已揭示" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

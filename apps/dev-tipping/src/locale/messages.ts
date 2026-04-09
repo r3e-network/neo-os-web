@@ -70,7 +70,6 @@ const appMessages = {
     en: "Attach a short note or stay anonymous.",
     zh: "可附上简短留言或匿名打赏。",
   },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

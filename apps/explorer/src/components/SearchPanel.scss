@@ -1,0 +1,10 @@
+.search-card { width: 100%; }
+.search-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.network-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 16px;
+}

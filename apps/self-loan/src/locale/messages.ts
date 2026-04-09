@@ -116,8 +116,6 @@ const appMessages = {
   neoUnit: { en: "NEO", zh: "NEO" },
   gasUnit: { en: "GAS", zh: "GAS" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   thresholdSafe: { en: "(>{value})", zh: "(>{value})" },
   thresholdWarning: { en: "({min}-{max})", zh: "({min}-{max})" },
   thresholdDanger: { en: "(<{value})", zh: "(<{value})" },

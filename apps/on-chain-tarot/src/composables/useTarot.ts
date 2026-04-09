@@ -27,11 +27,20 @@
  *   - Question input state
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { Card } from "../pages/index/components/TarotCard.vue";
+// Card type (extracted from TarotCard component)
+export interface Card {
+  id: number;
+  name: string;
+  icon: string;
+  flipped: boolean;
+  suit?: string;
+  number?: number;
+}
 import { TAROT_DECK } from "../pages/index/components/tarot-data";
 
 export interface UseTarotOptions {
@@ -61,12 +70,12 @@ export function useTarot({
   t,
 }: UseTarotOptions) {
   const tarotDeck = TAROT_DECK;
-  const drawn = ref<Card[]>([]);
-  const hasDrawn = computed(() => drawn.value.length === 3);
-  const allFlipped = computed(() => drawn.value.every((c) => c.flipped));
-  const readingsCount = ref(0);
-  const question = ref("");
-  const isLoading = ref(false);
+  const drawn = createObservable<Card[]>([]);
+  const hasDrawn = createDerived(() => drawn.get().length === 3, []);
+  const allFlipped = createDerived(() => drawn.get().every((c) => c.flipped), []);
+  const readingsCount = createObservable(0);
+  const question = createObservable("");
+  const isLoading = createObservable(false);
 
   /**
    * Poll for a completed reading via StorageProxy.
@@ -107,11 +116,11 @@ export function useTarot({
    * 3. Map returned card IDs to the tarot deck
    */
   const draw = async () => {
-    if (isLoading.value) return;
-    isLoading.value = true;
+    if (isLoading.get()) return;
+    isLoading.set(true);
 
     try {
-      const prompt = question.value.trim() || t("defaultQuestion");
+      const prompt = question.get().trim() || t("defaultQuestion");
 
       // Step 1: Request reading via GameProxy — the edge function handles
       // wallet connection, GAS payment, and requestReading contract invocation
@@ -125,43 +134,43 @@ export function useTarot({
       if (!reading) throw new Error(t("readingPending"));
 
       // Step 3: Map card IDs to deck entries
-      drawn.value = reading.cards.map((cardId: number) => {
+      drawn.set(reading.cards.map((cardId: number) => {
         const card = tarotDeck.find((item) => item.id === cardId);
         if (!card) {
           return { id: cardId, name: `Card ${cardId}`, icon: "\uD83C\uDCA0", flipped: false };
         }
         return { ...card, flipped: false };
-      });
+      }));
 
-      readingsCount.value += 1;
-      question.value = "";
+      readingsCount.set(readingsCount.get() + 1);
+      question.set("");
 
       // Award first-reading badge (fire-and-forget)
-      if (readingsCount.value === 1) {
+      if (readingsCount.get() === 1) {
         badgeService.award("first-reading", "").catch(() => {});
       }
 
-      isLoading.value = false;
+      isLoading.set(false);
       return { success: true };
     } catch (e) {
-      isLoading.value = false;
+      isLoading.set(false);
       throw e;
     }
   };
 
   const flipCard = (index: number) => {
-    if (drawn.value[index]) {
-      drawn.value[index].flipped = true;
+    if (drawn.get()[index]) {
+      drawn.get()[index].flipped = true;
     }
   };
 
   const reset = () => {
-    drawn.value = [];
+    drawn.set([]);
   };
 
   const getReading = () => {
-    if (drawn.value.length !== 3) return t("readingText");
-    const [past, present, future] = drawn.value;
+    if (drawn.get().length !== 3) return t("readingText");
+    const [past, present, future] = drawn.get();
     return `${t("past")}: ${past.name} \u00B7 ${t("present")}: ${present.name} \u00B7 ${t("future")}: ${future.name}`;
   };
 
@@ -173,11 +182,11 @@ export function useTarot({
     try {
       const raw = await storageService.list("reading:");
       if (raw && typeof raw === "object") {
-        readingsCount.value = Object.keys(raw).length;
+        readingsCount.set(Object.keys(raw).length);
       }
     } catch (_e) {
       console.warn("[on-chain-tarot] reading count load failed:", _e instanceof Error ? _e.message : String(_e));
-      readingsCount.value = Math.max(readingsCount.value, 0);
+      readingsCount.set(Math.max(readingsCount.get(), 0));
     }
   };
 

@@ -159,7 +159,6 @@ const appMessages = {
   sidebarPools: { en: "Pools", zh: "奖池" },
   confirm: { en: "OK", zh: "确认" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   hoursSuffix: { en: "h", zh: "小时" },
   daysSuffix: { en: "days", zh: "天" },
   holdDuration: { en: "hold", zh: "持有" },

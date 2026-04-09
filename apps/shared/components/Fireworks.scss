@@ -1,0 +1,74 @@
+.fireworks-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-index-toast, 1050);
+  overflow: hidden;
+}
+
+.firework {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--firework-color, #ffd93d);
+  animation: explode 1s ease-out forwards;
+}
+
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--firework-color, #ffd93d);
+  animation: spark-fly 0.8s ease-out forwards;
+}
+
+@for $i from 1 through 8 {
+  .spark-#{$i} {
+    $angle: ($i - 1) * 45deg;
+    --spark-x: cos($angle) * 60px;
+    --spark-y: sin($angle) * 60px;
+    animation-delay: #{($i - 1) * 0.02}s;
+  }
+}
+
+@keyframes explode {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes spark-fly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--spark-x, 40px), var(--spark-y, 40px)) scale(0);
+    opacity: 0;
+  }
+}
+
+// Stagger firework animations
+@for $i from 1 through 12 {
+  .firework-#{$i} {
+    animation-delay: #{$i * 0.15}s;
+  }
+}
+
+// Disable animations for users who prefer reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .fireworks-container {
+    display: none;
+  }
+}

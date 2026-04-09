@@ -25,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void IncrementUserBadgeCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_BADGE_COUNT, user);
+            ByteString key = Key(PREFIX_USER_BADGE_COUNT, user);
             BigInteger current = (BigInteger)Storage.Get(Storage.CurrentContext, key);
             Storage.Put(Storage.CurrentContext, key, current + 1);
         }
@@ -33,8 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserBadgeCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_BADGE_COUNT, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_BADGE_COUNT, user));
         }
 
         #endregion

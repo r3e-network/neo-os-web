@@ -1,0 +1,8 @@
+@use "@shared/styles/tokens.scss" as *;
+.dev-tipping-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+}

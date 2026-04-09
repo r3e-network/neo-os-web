@@ -21,7 +21,8 @@
  *     badgeService.award("album-creator", "")
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -76,29 +77,45 @@ export function useForeverAlbum({
   t,
 }: UseForeverAlbumOptions) {
   // ── Photo browsing state ─────────────────────────────────────────────
-  const loadingPhotos = ref(false);
-  const photos = ref<PhotoItem[]>([]);
-  const showViewer = ref(false);
-  const viewingPhoto = ref<PhotoItem | null>(null);
+  const loadingPhotos = createObservable(false);
+  const photos = createObservable<PhotoItem[]>([]);
+  const showViewer = createObservable(false);
+  const viewingPhoto = createObservable<PhotoItem | null>(null);
 
   // ── Decryption state ─────────────────────────────────────────────────
-  const showDecrypt = ref(false);
-  const decryptTarget = ref<PhotoItem | null>(null);
-  const decrypting = ref(false);
-  const decryptedPreview = ref("");
+  const showDecrypt = createObservable(false);
+  const decryptTarget = createObservable<PhotoItem | null>(null);
+  const decrypting = createObservable(false);
+  const decryptedPreview = createObservable("");
 
   // ── Upload state ─────────────────────────────────────────────────────
-  const showUpload = ref(false);
-  const uploading = ref(false);
-  const selectedImages = ref<UploadItem[]>([]);
-  const isEncrypted = ref(false);
-  const password = ref("");
+  const showUpload = createObservable(false);
+  const uploading = createObservable(false);
+  const selectedImages = createObservable<UploadItem[]>([]);
+  const isEncrypted = createObservable(false);
+  const password = createObservable("");
 
   // ── Computed ──────────────────────────────────────────────────────────
-  const photosCount = computed(() => photos.value.length);
-  const encryptedCount = computed(() => photos.value.filter((p) => p.encrypted).length);
-  const publicCount = computed(() => photos.value.filter((p) => !p.encrypted).length);
-  const totalPayloadSize = computed(() => selectedImages.value.reduce((sum, item) => sum + item.size, 0));
+  const photosCount: Observable = {
+    get: () => photos.get().length,
+    set: () => {},
+    subscribe: (listener) => photos.subscribe(listener),
+  };
+  const encryptedCount: Observable = {
+    get: () => photos.get().filter((p) => p.encrypted).length,
+    set: () => {},
+    subscribe: (listener) => photos.subscribe(listener),
+  };
+  const publicCount: Observable = {
+    get: () => photos.get().filter((p) => !p.encrypted).length,
+    set: () => {},
+    subscribe: (listener) => photos.subscribe(listener),
+  };
+  const totalPayloadSize: Observable = {
+    get: () => selectedImages.get().reduce((sum, item) => sum + item.size, 0),
+    set: () => {},
+    subscribe: (listener) => selectedImages.subscribe(listener),
+  };
 
   // ── Photo loading (via StorageProxy) ────────────────────────────────
 
@@ -107,7 +124,7 @@ export function useForeverAlbum({
    * The edge function handles the contract reads and returns normalized data.
    */
   const loadPhotos = async () => {
-    loadingPhotos.value = true;
+    loadingPhotos.set(true);
     try {
       const photoMap = await storageService.list("photos:", 50);
       const entries: PhotoItem[] = [];
@@ -124,11 +141,11 @@ export function useForeverAlbum({
           }
         }
       }
-      photos.value = entries.sort((a, b) => b.createdAt - a.createdAt);
+      photos.set(entries.sort((a, b) => b.createdAt - a.createdAt));
     } catch (e) {
       console.warn("[useForeverAlbum] loadPhotos failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      loadingPhotos.value = false;
+      loadingPhotos.set(false);
     }
   };
 
@@ -136,67 +153,67 @@ export function useForeverAlbum({
 
   const viewPhoto = (photo: PhotoItem) => {
     if (photo.encrypted) {
-      decryptTarget.value = photo;
-      decryptedPreview.value = "";
-      showDecrypt.value = true;
+      decryptTarget.set(photo);
+      decryptedPreview.set("");
+      showDecrypt.set(true);
       return;
     }
-    viewingPhoto.value = photo;
-    showViewer.value = true;
+    viewingPhoto.set(photo);
+    showViewer.set(true);
   };
 
   const closeViewer = () => {
-    showViewer.value = false;
-    viewingPhoto.value = null;
+    showViewer.set(false);
+    viewingPhoto.set(null);
   };
 
   // ── Decryption ───────────────────────────────────────────────────────
 
   const openDecrypt = () => {
-    showViewer.value = false;
-    showDecrypt.value = true;
+    showViewer.set(false);
+    showDecrypt.set(true);
   };
 
   const closeDecrypt = () => {
-    showDecrypt.value = false;
-    decryptTarget.value = null;
-    decryptedPreview.value = "";
+    showDecrypt.set(false);
+    decryptTarget.set(null);
+    decryptedPreview.set("");
   };
 
   const handleDecrypt = async (pwd: string) => {
-    if (!decryptTarget.value || !pwd) {
+    if (!decryptTarget.get() || !pwd) {
       eventBus.emit("album:error", { message: t("passwordRequired") });
       return;
     }
-    decrypting.value = true;
+    decrypting.set(true);
     try {
-      const result = await decryptPayload(decryptTarget.value.data, pwd);
+      const result = await decryptPayload(decryptTarget.get().data, pwd);
       if (!result.startsWith("data:image")) throw new Error(t("invalidPayload"));
-      decryptedPreview.value = result;
+      decryptedPreview.set(result);
     } catch (e) {
       eventBus.emit("album:error", {
         message: e instanceof Error ? e.message : t("decryptFailed"),
       });
     } finally {
-      decrypting.value = false;
+      decrypting.set(false);
     }
   };
 
   // ── Upload (via NFTProxy + StorageProxy) ────────────────────────────
 
   const openUpload = () => {
-    showUpload.value = true;
-    selectedImages.value = [];
-    isEncrypted.value = false;
-    password.value = "";
+    showUpload.set(true);
+    selectedImages.set([]);
+    isEncrypted.set(false);
+    password.set("");
   };
 
   const closeUpload = () => {
-    showUpload.value = false;
+    showUpload.set(false);
   };
 
   const removeImage = (id: string) => {
-    selectedImages.value = selectedImages.value.filter((item) => item.id !== id);
+    selectedImages.set(selectedImages.get().filter((item) => item.id !== id));
   };
 
   /**
@@ -204,19 +221,19 @@ export function useForeverAlbum({
    * The edge function handles the contract call for storing photo data on-chain.
    */
   const uploadPhotos = async () => {
-    if (uploading.value || selectedImages.value.length === 0) return;
-    if (isEncrypted.value && !password.value) {
+    if (uploading.get() || selectedImages.get().length === 0) return;
+    if (isEncrypted.get() && !password.get()) {
       eventBus.emit("album:error", { message: t("passwordRequired") });
       return;
     }
 
-    uploading.value = true;
+    uploading.set(true);
     try {
       const payloads: string[] = [];
       let totalSize = 0;
-      for (const item of selectedImages.value) {
-        const payload = isEncrypted.value
-          ? await encryptPayload(item.dataUrl, password.value)
+      for (const item of selectedImages.get()) {
+        const payload = isEncrypted.get()
+          ? await encryptPayload(item.dataUrl, password.get())
           : item.dataUrl;
         if (payload.length > MAX_PHOTO_BYTES) throw new Error(t("encryptedTooLarge"));
         totalSize += payload.length;
@@ -229,7 +246,7 @@ export function useForeverAlbum({
         await nftService.mint({
           type: "photo",
           data: payload,
-          encrypted: isEncrypted.value,
+          encrypted: isEncrypted.get(),
         });
       }
 
@@ -239,7 +256,7 @@ export function useForeverAlbum({
       badgeService.award("album-creator", "").catch(() => {});
 
       closeUpload();
-      selectedImages.value = [];
+      selectedImages.set([]);
       await loadPhotos();
     } catch (e) {
       eventBus.emit("album:error", {
@@ -247,7 +264,7 @@ export function useForeverAlbum({
       });
       throw e;
     } finally {
-      uploading.value = false;
+      uploading.set(false);
     }
   };
 

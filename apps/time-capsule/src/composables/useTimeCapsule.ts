@@ -26,14 +26,13 @@
  *     badgeService.award("capsule-creator", "")
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { sha256Hex } from "@shared/utils/hash";
-import type { Capsule } from "../pages/index/components/CapsuleList.vue";
-
 // ============================================================================
 // Constants
 // ============================================================================
@@ -45,6 +44,18 @@ const CONTENT_STORE_KEY = "time-capsule-content";
 // ============================================================================
 // Types
 // ============================================================================
+
+export interface Capsule {
+  id: string;
+  title: string;
+  contentHash: string;
+  unlockDate: string;
+  unlockTime: number;
+  locked: boolean;
+  revealed: boolean;
+  isPublic: boolean;
+  content: string;
+}
 
 export interface CapsuleFormData {
   title: string;
@@ -93,12 +104,12 @@ export function useTimeCapsule({
   t,
 }: UseTimeCapsuleOptions) {
   // ── State ────────────────────────────────────────────────────────────
-  const capsules = ref<Capsule[]>([]);
-  const isLoading = ref(false);
-  const isCreating = ref(false);
-  const isProcessing = ref(false);
+  const capsules = createObservable<Capsule[]>([]);
+  const isLoading = createObservable(false);
+  const isCreating = createObservable(false);
+  const isProcessing = createObservable(false);
 
-  const newCapsule = ref<CapsuleFormData>({
+  const newCapsule = createObservable<CapsuleFormData>({
     title: "",
     content: "",
     days: "30",
@@ -107,24 +118,44 @@ export function useTimeCapsule({
   });
 
   // Local content store for decrypting capsules
-  const localContent = ref<Record<string, string>>({});
+  const localContent = createObservable<Record<string, string>>({});
 
   // ── Computed ──────────────────────────────────────────────────────────
-  const totalCapsules = computed(() => capsules.value.length);
-  const lockedCount = computed(() => capsules.value.filter((c) => c.locked).length);
-  const revealedCount = computed(() => capsules.value.filter((c) => c.revealed).length);
-  const isBusy = computed(() => isCreating.value || isProcessing.value);
+  const totalCapsules: Observable = {
+    get: () => capsules.get().length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const lockedCount: Observable = {
+    get: () => capsules.get().filter((c) => c.locked).length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const revealedCount: Observable = {
+    get: () => capsules.get().filter((c) => c.revealed).length,
+    set: () => {},
+    subscribe: (listener) => capsules.subscribe(listener),
+  };
+  const isBusy: Observable = {
+    get: () => isCreating.get() || isProcessing.get(),
+    set: () => {},
+    subscribe: (listener) => isCreating.subscribe(listener),
+  };
 
-  const canCreate = computed(() => {
-    const daysValue = Number.parseInt(newCapsule.value.days, 10);
+  const canCreate: Observable = {
+    get: () => {
+    const daysValue = Number.parseInt(newCapsule.get().days, 10);
     return (
-      newCapsule.value.title.trim() !== "" &&
-      newCapsule.value.content.trim() !== "" &&
+      newCapsule.get().title.trim() !== "" &&
+      newCapsule.get().content.trim() !== "" &&
       Number.isFinite(daysValue) &&
       daysValue >= MIN_LOCK_DAYS &&
       daysValue <= MAX_LOCK_DAYS
     );
-  });
+    },
+    set: () => {},
+    subscribe: (listener) => newCapsule.subscribe(listener),
+  };
 
   // ── Local Content Helpers ────────────────────────────────────────────
 
@@ -160,7 +191,7 @@ export function useTimeCapsule({
   };
 
   // Initialize local content
-  localContent.value = loadLocalContent();
+  localContent.set(loadLocalContent());
 
   // ── Capsule Mapping ──────────────────────────────────────────────────
 
@@ -171,7 +202,7 @@ export function useTimeCapsule({
     const revealed = Boolean(data.isRevealed);
     const title = String(data.title || "");
     const unlockDate = unlockTime ? new Date(unlockTime * 1000).toISOString().split("T")[0] : t("notAvailable");
-    const content = contentHash ? localContent.value[contentHash] : "";
+    const content = contentHash ? localContent.get()[contentHash] : "";
 
     return {
       id: String(data.id),
@@ -218,11 +249,11 @@ export function useTimeCapsule({
    * The edge function handles the GAS transfer + bury contract call.
    */
   const createCapsule = async () => {
-    if (isBusy.value || !canCreate.value) return;
+    if (isBusy.get() || !canCreate.get()) return;
 
-    isCreating.value = true;
+    isCreating.set(true);
     try {
-      const daysValue = Number.parseInt(newCapsule.value.days, 10);
+      const daysValue = Number.parseInt(newCapsule.get().days, 10);
       if (!Number.isFinite(daysValue) || daysValue < MIN_LOCK_DAYS || daysValue > MAX_LOCK_DAYS) {
         throw new Error(t("invalidLockDuration"));
       }
@@ -230,7 +261,7 @@ export function useTimeCapsule({
       const unlockDate = new Date();
       unlockDate.setDate(unlockDate.getDate() + daysValue);
       const unlockTimestamp = Math.floor(unlockDate.getTime() / 1000);
-      const content = newCapsule.value.content.trim();
+      const content = newCapsule.get().content.trim();
       const contentHash = await sha256Hex(content);
 
       // Create capsule via EscrowProxy — the edge function handles
@@ -248,26 +279,26 @@ export function useTimeCapsule({
       // Store content mapping locally and in StorageProxy
       saveLocalContent(contentHash, content);
       await storageService.set(`content:${contentHash}`, {
-        title: newCapsule.value.title.trim().slice(0, 100),
+        title: newCapsule.get().title.trim().slice(0, 100),
         contentHash,
         unlockTimestamp,
-        isPublic: newCapsule.value.isPublic,
-        category: newCapsule.value.category,
+        isPublic: newCapsule.get().isPublic,
+        category: newCapsule.get().category,
       });
 
       eventBus.emit("capsule:created", { action: t("capsuleCreated") });
-      newCapsule.value = { title: "", content: "", days: "30", isPublic: false, category: 1 };
+      newCapsule.set({ title: "", content: "", days: "30", isPublic: false, category: 1 });
 
       // Hint badge for capsule creator (fire-and-forget)
       badgeService.award("capsule-creator", "").catch(() => {});
 
       // Reload capsules
-      capsules.value = await loadCapsules();
+      capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      isCreating.value = false;
+      isCreating.set(false);
     }
   };
 
@@ -280,15 +311,15 @@ export function useTimeCapsule({
       eventBus.emit("capsule:error", { message: t("notUnlocked") });
       return;
     }
-    if (isBusy.value) return;
+    if (isBusy.get()) return;
 
-    isProcessing.value = true;
+    isProcessing.set(true);
     try {
       if (!cap.revealed) {
         await escrowService.completeMilestone(cap.id, 0);
       }
 
-      const content = cap.contentHash ? localContent.value[cap.contentHash] : "";
+      const content = cap.contentHash ? localContent.get()[cap.contentHash] : "";
       if (content) {
         eventBus.emit("capsule:opened", { message: `${t("message")} ${content}` });
       } else if (cap.contentHash) {
@@ -298,12 +329,12 @@ export function useTimeCapsule({
       }
 
       // Reload capsules
-      capsules.value = await loadCapsules();
+      capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      isProcessing.value = false;
+      isProcessing.set(false);
     }
   };
 
@@ -312,9 +343,9 @@ export function useTimeCapsule({
    * The edge function handles the GAS fee + fish contract call.
    */
   const fishCapsule = async () => {
-    if (isBusy.value) return;
+    if (isBusy.get()) return;
 
-    isProcessing.value = true;
+    isProcessing.set(true);
     try {
       // Trigger fish via escrow fund (which pays the fishing fee)
       await escrowService.fund("fish");
@@ -331,12 +362,12 @@ export function useTimeCapsule({
       badgeService.award("capsule-fisher", "").catch(() => {});
 
       // Reload capsules
-      capsules.value = await loadCapsules();
+      capsules.set(await loadCapsules());
     } catch (e) {
       eventBus.emit("capsule:error", { message: e instanceof Error ? e.message : t("error") });
       throw e;
     } finally {
-      isProcessing.value = false;
+      isProcessing.set(false);
     }
   };
 
@@ -344,11 +375,11 @@ export function useTimeCapsule({
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
-      capsules.value = await loadCapsules();
+      capsules.set(await loadCapsules());
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 

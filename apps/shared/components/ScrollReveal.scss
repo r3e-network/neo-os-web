@@ -1,0 +1,42 @@
+.scroll-reveal {
+  opacity: 0;
+  transition-property: opacity, transform;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+
+  // Animation Variants
+  &.fade-up {
+    transform: translateY(40px);
+  }
+
+  &.fade-down {
+    transform: translateY(-40px);
+  }
+
+  &.scale-in {
+    transform: scale(0.92);
+  }
+
+  &.slide-left {
+    transform: translateX(40px);
+  }
+
+  &.slide-right {
+    transform: translateX(-40px);
+  }
+
+  // Active State
+  &.is-visible {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+// Disable scroll animations for users who prefer reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

@@ -32,7 +32,8 @@
  *   - Stream parsing and display formatting
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { VestingProxy } from "@shared/services/os/VestingProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { toFixed8, toFixedDecimals } from "@shared/utils/format";
@@ -53,19 +54,19 @@ export interface UseNeoPayAppOptions {
 }
 
 export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayAppOptions) {
-  const isLoading = ref(false);
-  const isRefreshing = ref(false);
-  const claimingId = ref<string | null>(null);
-  const cancellingId = ref<string | null>(null);
-  const createdStreams = ref<StreamItem[]>([]);
-  const beneficiaryStreams = ref<StreamItem[]>([]);
+  const isLoading = createObservable(false);
+  const isRefreshing = createObservable(false);
+  const claimingId = createObservable<string | null>(null);
+  const cancellingId = createObservable<string | null>(null);
+  const createdStreams = createObservable<StreamItem[]>([]);
+  const beneficiaryStreams = createObservable<StreamItem[]>([]);
 
   // -- Computed --
-  const allStreams = computed(() => [...createdStreams.value, ...beneficiaryStreams.value]);
-  const activeCount = computed(() => allStreams.value.filter((s) => s.status === "active").length);
-  const createdStreamCount = computed(() => createdStreams.value.length);
-  const beneficiaryStreamCount = computed(() => beneficiaryStreams.value.length);
-  const totalStreamCount = computed(() => createdStreams.value.length + beneficiaryStreams.value.length);
+  const allStreams = createDerived(() => [...createdStreams.get(), ...beneficiaryStreams.get()], []);
+  const activeCount = createDerived(() => allStreams.get().filter((s) => s.status === "active").length, []);
+  const createdStreamCount = createDerived(() => createdStreams.get().length, []);
+  const beneficiaryStreamCount = createDerived(() => beneficiaryStreams.get().length, []);
+  const totalStreamCount = createDerived(() => createdStreams.get().length + beneficiaryStreams.get().length, []);
 
   // -- Helpers --
 
@@ -114,9 +115,9 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
    * getUserStreams / getBeneficiaryStreams calls and returns normalized data.
    */
   const refreshStreams = async () => {
-    if (isRefreshing.value) return;
+    if (isRefreshing.get()) return;
     try {
-      isRefreshing.value = true;
+      isRefreshing.set(true);
 
       const [creatorRaw, beneficiaryRaw] = await Promise.all([
         vestingService.listStreams("creator"),
@@ -135,13 +136,13 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
         return parseStream(record, id);
       }).filter(Boolean) as StreamItem[];
 
-      createdStreams.value = created;
-      beneficiaryStreams.value = beneficiary;
+      createdStreams.set(created);
+      beneficiaryStreams.set(beneficiary);
     } catch (e) {
       console.warn("[useNeoPayApp] refreshStreams failed:", e instanceof Error ? e.message : String(e));
       throw e;
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
@@ -163,7 +164,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     intervalDays: string;
     notes: string;
   }) => {
-    if (isLoading.value) return;
+    if (isLoading.get()) return;
 
     const beneficiary = formData.beneficiary.trim();
     if (!beneficiary || !addressToScriptHash(beneficiary)) {
@@ -190,7 +191,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     }
 
     try {
-      isLoading.value = true;
+      isLoading.set(true);
       const title = formData.name.trim().slice(0, 60);
       const notes = formData.notes.trim().slice(0, 240);
 
@@ -211,7 +212,7 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     } catch (e) {
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -220,15 +221,15 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
    * The edge function handles the ClaimStream contract call.
    */
   const claimStream = async (stream: StreamItem) => {
-    if (claimingId.value) return;
+    if (claimingId.get()) return;
     try {
-      claimingId.value = stream.id;
+      claimingId.set(stream.id);
       await vestingService.claim(stream.id);
       await refreshStreams();
     } catch (e) {
       throw e;
     } finally {
-      claimingId.value = null;
+      claimingId.set(null);
     }
   };
 
@@ -238,15 +239,15 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
    * returns unvested funds to the creator.
    */
   const cancelStream = async (stream: StreamItem) => {
-    if (cancellingId.value) return;
+    if (cancellingId.get()) return;
     try {
-      cancellingId.value = stream.id;
+      cancellingId.set(stream.id);
       await vestingService.cancel(stream.id);
       await refreshStreams();
     } catch (e) {
       throw e;
     } finally {
-      cancellingId.value = null;
+      cancellingId.set(null);
     }
   };
 

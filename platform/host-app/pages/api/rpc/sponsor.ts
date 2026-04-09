@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { requireWalletAuth } from "@/lib/require-wallet-auth";
 import { tx, wallet } from "@r3e/neo-js-sdk/browser";
 
 function getSponsorConfig() {
@@ -61,9 +62,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const authenticatedWallet = await requireWalletAuth(req, res);
+    if (!authenticatedWallet) return; // requireWalletAuth already sent the error response
+
     const { txBase64, userAddress } = req.body;
     if (!txBase64 || !userAddress) {
       return apiError.badRequest(res, "txBase64 and userAddress required");
+    }
+
+    if (authenticatedWallet !== userAddress) {
+      return apiError.unauthorized(res, "Authenticated wallet does not match requested sponsor address");
     }
 
     resetStatsIfNeeded();
@@ -87,11 +95,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const sponsorAccount = new wallet.Account(sponsoredWIF);
     const transaction = tx.Transaction.deserialize(txBase64) as SponsorTransaction;
 
-    const hasUserSigner = transaction.signers.some(
+    const userSignerIndex = transaction.signers.findIndex(
       (signer) => wallet.getAddressFromScriptHash(normalizeAccount(signer.account)) === userAddress,
     );
-    if (!hasUserSigner) {
+    if (userSignerIndex < 0) {
       return apiError.badRequest(res, "Transaction does not belong to the user");
+    }
+
+    const userWitness = transaction.witnesses?.[userSignerIndex];
+    if (!userWitness?.invocationScript || String(userWitness.invocationScript).length === 0) {
+      return apiError.badRequest(res, "Transaction must include a signed user witness");
     }
 
     const sponsorScriptHash = sponsorAccount.scriptHash;

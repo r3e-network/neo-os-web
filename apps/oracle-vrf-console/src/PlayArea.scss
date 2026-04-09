@@ -1,0 +1,7 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.vrf-play-area { @include console.play-area; }
+.result-grid { @include console.single-column-grid; }
+.label { @include console.label; }
+.value { @include console.value; }

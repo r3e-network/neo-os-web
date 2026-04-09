@@ -74,7 +74,6 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   feature2Desc: { en: "Immutable relationship records.", zh: "不可变的关系记录。" },
   feature3Name: { en: "Dual Signature", zh: "双签确认" },
   feature3Desc: { en: "Both parties must sign before activation.", zh: "双方签署后合约才会生效。" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

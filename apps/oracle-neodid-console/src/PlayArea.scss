@@ -1,0 +1,12 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.neodid-play-area { @include console.play-area; }
+
+.stack { @include console.stack; }
+.button-row { @include console.button-grid(3); }
+.json-box {
+  @include console.json-box(520px);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -29,15 +29,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void SetUserJoinTime(UInt160 user, BigInteger value)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_JOIN_TIME, user);
-            Storage.Put(Storage.CurrentContext, key, value);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_USER_JOIN_TIME, user), value);
         }
 
         private static void IncrementUserResets(UInt160 user)
         {
             BigInteger current = GetUserResets(user);
-            byte[] key = Helper.Concat(PREFIX_USER_RESETS, user);
-            Storage.Put(Storage.CurrentContext, key, current + 1);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_USER_RESETS, user), current + 1);
         }
 
         #endregion

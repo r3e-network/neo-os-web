@@ -1,12 +1,12 @@
 /**
  * useNeodidConsole -- Domain logic for Oracle NeoDID Console
  *
- * Receives OracleService from PlatformServices instead of
- * using Vue composables directly. No onMounted/onUnmounted -- lifecycle
- * is managed by defineMiniApp.
+ * Uses createObservable instead of Vue ref/computed.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { OracleService } from "@shared/services";
 
 export interface UseNeodidConsoleOptions {
@@ -15,10 +15,10 @@ export interface UseNeodidConsoleOptions {
 }
 
 export function useNeodidConsole({ oracle, t }: UseNeodidConsoleOptions) {
-  const did = ref("did:morpheus:neo_n3:service:neodid");
-  const format = ref("resolution");
-  const latestPayload = ref<Record<string, unknown> | null>(null);
-  const providersPayload = ref<Record<string, unknown> | null>(null);
+  const did = createObservable("did:morpheus:neo_n3:service:neodid");
+  const format = createObservable("resolution");
+  const latestPayload = createObservable<Record<string, unknown> | null>(null);
+  const providersPayload = createObservable<Record<string, unknown> | null>(null);
 
   function normalizeFormat(value: string): "resolution" | "document" {
     return String(value || "").trim().toLowerCase() === "document" ? "document" : "resolution";
@@ -26,53 +26,91 @@ export function useNeodidConsole({ oracle, t }: UseNeodidConsoleOptions) {
 
   function applyExample(kind: "service" | "vault" | "aa") {
     if (kind === "service") {
-      did.value = "did:morpheus:neo_n3:service:neodid";
-      format.value = "resolution";
+      did.set("did:morpheus:neo_n3:service:neodid");
+      format.set("resolution");
       return;
     }
     if (kind === "vault") {
-      did.value = "did:morpheus:neo_n3:vault:6d0656f6dd91469db1c90cc1e574380613f43738";
-      format.value = "document";
+      did.set("did:morpheus:neo_n3:vault:6d0656f6dd91469db1c90cc1e574380613f43738");
+      format.set("document");
       return;
     }
-    did.value = "did:morpheus:neo_n3:aa:demo-account";
-    format.value = "document";
+    did.set("did:morpheus:neo_n3:aa:demo-account");
+    format.set("document");
   }
 
-  const providerCount = computed(() => {
-    if (Array.isArray(providersPayload.value)) return providersPayload.value.length;
-    if (providersPayload.value && typeof providersPayload.value === "object") return Object.keys(providersPayload.value).length;
-    return 0;
-  });
+  const providerCount: Observable<number> = {
+    get: () => {
+      const pp = providersPayload.get();
+      if (Array.isArray(pp)) return pp.length;
+      if (pp && typeof pp === "object") return Object.keys(pp).length;
+      return 0;
+    },
+    set: () => {},
+    subscribe: (fn) => providersPayload.subscribe(fn),
+  };
 
-  const renderedPayload = computed(() =>
-    JSON.stringify(latestPayload.value ?? providersPayload.value ?? {}, null, 2) || t("notAvailable"),
-  );
+  const renderedPayload: Observable<string> = {
+    get: () => JSON.stringify(latestPayload.get() ?? providersPayload.get() ?? {}, null, 2) || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = latestPayload.subscribe(fn);
+      const u2 = providersPayload.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
 
-  // State values for manifest bindings
-  const formatDisplay = computed(() => normalizeFormat(format.value));
-  const networkDisplay = computed(() => oracle.network);
-  const publicApiUrl = computed(() => oracle.integration.morpheusPublicApiUrl);
-  const neodidContract = computed(() => oracle.integration.contracts.morpheusNeoDid || t("externalResolver"));
-  const neodidDomain = computed(() => oracle.integration.domains.neodid || t("notPublished"));
+  const formatDisplay: Observable<string> = {
+    get: () => normalizeFormat(format.get()),
+    set: () => {},
+    subscribe: (fn) => format.subscribe(fn),
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => oracle.network,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const publicApiUrl: Observable<string> = {
+    get: () => oracle.integration.morpheusPublicApiUrl,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const neodidContract: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusNeoDid || t("externalResolver"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const neodidDomain: Observable<string> = {
+    get: () => oracle.integration.domains.neodid || t("notPublished"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
   async function resolveDid() {
-    latestPayload.value = await oracle.resolveDidWithFormat(did.value, normalizeFormat(format.value)) as Record<string, unknown>;
+    latestPayload.set(await oracle.resolveDidWithFormat(did.get(), normalizeFormat(format.get())) as Record<string, unknown>);
     return { success: true };
   }
 
   async function loadProviders() {
-    providersPayload.value = await oracle.getDidProviders() as Record<string, unknown>;
-    latestPayload.value = providersPayload.value;
+    const result = await oracle.getDidProviders() as Record<string, unknown>;
+    providersPayload.set(result);
+    latestPayload.set(result);
     return { success: true };
   }
 
-  const loadAll = async () => {
-    // No initial data to load for NeoDID console
+  const loadAll = async () => {};
+
+  const isRequesting: Observable<boolean> = {
+    get: () => oracle.isRequesting,
+    set: () => {},
+    subscribe: () => () => {},
   };
 
   return {
-    // State
     did,
     format,
     latestPayload,
@@ -84,9 +122,7 @@ export function useNeodidConsole({ oracle, t }: UseNeodidConsoleOptions) {
     publicApiUrl,
     neodidContract,
     neodidDomain,
-    isRequesting: oracle.isRequesting,
-
-    // Actions
+    isRequesting,
     normalizeFormat,
     applyExample,
     resolveDid,

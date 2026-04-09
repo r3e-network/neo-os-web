@@ -1,0 +1,6 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.aa-permissions-play-area { @include console.play-area; }
+
+.stack { @include console.stack; }

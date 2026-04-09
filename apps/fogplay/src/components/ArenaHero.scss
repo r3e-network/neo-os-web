@@ -1,0 +1,26 @@
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.arena-hero { display: flex; flex-direction: column; align-items: center; gap: 20px; position: relative; width: 100%; }
+.hero-arena-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.arena-ring { position: absolute; top: 50%; left: 50%; width: 280px; height: 280px; border: 1px dashed var(--coin-arena-ring); border-radius: 50%; transform: translate(-50%, -50%); animation: arena-spin 40s linear infinite; }
+.arena-ring-2 { width: 220px; height: 220px; border-color: var(--coin-arena-ring-2); animation-direction: reverse; animation-duration: 30s; }
+.arena-ambient { position: absolute; top: 50%; left: 50%; width: 180px; height: 180px; background: radial-gradient(circle, var(--coin-arena-ambient) 0%, transparent 70%); transform: translate(-50%, -50%); transition: all 0.5s ease;
+  &.flipping { width: 250px; height: 250px; background: radial-gradient(circle, var(--coin-arena-ambient-flip) 0%, transparent 70%); }
+}
+.coin-stage { position: relative; z-index: 2; }
+.side-labels { display: flex; align-items: center; gap: 16px; z-index: 2; }
+.side-badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 12px; background: var(--coin-record-bg); border: 1px solid var(--coin-record-border); transition: all 0.3s ease; opacity: 0.5;
+  &.active { opacity: 1; background: var(--coin-side-active-bg); border-color: var(--coin-side-active-border); box-shadow: 0 0 12px var(--coin-side-glow); }
+}
+.side-text { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--coin-text-muted); }
+.side-vs { font-size: 12px; font-weight: 900; color: var(--coin-text-muted-light); letter-spacing: 0.15em; }
+.result-flash { display: flex; align-items: center; gap: 10px; padding: 10px 24px; border-radius: 14px; z-index: 10; animation: flash-entrance 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  &.win { background: rgba(52, 211, 153, 0.15); border: 2px solid rgba(52, 211, 153, 0.4); box-shadow: 0 0 30px rgba(52, 211, 153, 0.25); }
+  &.lose { background: rgba(239, 68, 68, 0.15); border: 2px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 30px rgba(239, 68, 68, 0.25); }
+}
+.result-flash-icon { font-size: 24px; }
+.result-flash-text { font-size: 22px; font-weight: 900; letter-spacing: 0.15em; .win & { color: #34d399; } .lose & { color: #f87171; } }
+@keyframes flash-entrance { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes arena-spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .arena-ring, .arena-ring-2, .side-badge { animation: none; transition: none; } }

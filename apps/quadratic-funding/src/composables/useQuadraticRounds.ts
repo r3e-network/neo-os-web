@@ -8,8 +8,9 @@ import { useStatusMessage } from "@shared/composables/useStatusMessage";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { requireNeoChain } from "@shared/utils/chain";
 import { useContractAddress } from "@shared/composables/useContractAddress";
+import { parseBigInt, parseDateInput } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
-import type { RoundItem } from "../pages/index/components/RoundList.vue";
+import type { RoundItem } from "../pages/index/components/RoundList";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_HASH = BLOCKCHAIN_CONSTANTS.GAS_HASH;
@@ -61,23 +62,6 @@ export function useQuadraticRounds() {
 
   const ensureContractAddress = async () => {
     return ensureAddress({ silentChainCheck: true });
-  };
-
-  const parseBigInt = (value: unknown) => {
-    try {
-      return BigInt(String(value ?? "0"));
-    } catch (_e) {
-      return 0n;
-    }
-  };
-
-  const parseDateInput = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return 0;
-    const normalized = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
-    const parsed = Date.parse(normalized);
-    if (Number.isNaN(parsed)) return 0;
-    return Math.floor(parsed / 1000);
   };
 
   const parseRound = (raw: Record<string, unknown>, id: string): RoundItem | null => {

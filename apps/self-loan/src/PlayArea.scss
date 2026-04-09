@@ -1,0 +1,39 @@
+@use "@shared/styles/tokens.scss" as *;
+.play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+}
+
+.main-card {
+  width: 100%;
+  max-width: 500px;
+}
+
+.play-area-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.play-area-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary);
+}
+
+.ready-state {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-primary);
+}

@@ -33,10 +33,10 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] USER_STATS_FIELD_LAST_ACTIVITY = new byte[] { 0x0B };
 
         private static byte[] GetCapsuleKey(BigInteger capsuleId) =>
-            Helper.Concat(PREFIX_CAPSULES, (ByteString)capsuleId.ToByteArray());
+            (byte[])Key(PREFIX_CAPSULES, capsuleId);
 
         private static byte[] GetUserStatsKey(UInt160 user) =>
-            Helper.Concat(PREFIX_USER_STATS, user);
+            (byte[])Key(PREFIX_USER_STATS, user);
 
         private static BigInteger GetBigInteger(byte[] key, byte[] field)
         {
@@ -81,12 +81,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddUserCapsule(UInt160 user, BigInteger capsuleId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_USER_CAPSULE_COUNT, user);
+            byte[] countKey = (byte[])Key(PREFIX_USER_CAPSULE_COUNT, user);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_CAPSULES, user),
+                Key(PREFIX_USER_CAPSULES, user),
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, capsuleId);
         }
@@ -102,7 +102,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void UpdateUserEarned(UInt160 user, BigInteger amount)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_TOTAL_EARNED, user);
+            byte[] key = (byte[])Key(PREFIX_USER_TOTAL_EARNED, user);
             BigInteger earned = (BigInteger)Storage.Get(Storage.CurrentContext, key);
             Storage.Put(Storage.CurrentContext, key, earned + amount);
         }

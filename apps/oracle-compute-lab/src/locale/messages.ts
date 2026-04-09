@@ -22,7 +22,6 @@ const appMessages = {
   feature2Desc: { en: "Shows compute attestation and raw output.", zh: "展示计算证明与原始输出。" },
   feature3Name: { en: "Operator Tool", zh: "运维工具" },
   feature3Desc: { en: "Fast validation surface for compute workflows.", zh: "面向计算工作流的快速验证界面。" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   executeFailed: { en: "Execute failed", zh: "执行失败" },
   computeSubmitted: { en: "Compute job submitted", zh: "计算任务已提交" },
 } as const;

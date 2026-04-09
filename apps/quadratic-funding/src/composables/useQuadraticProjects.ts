@@ -7,8 +7,9 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
-import type { RoundItem } from "../pages/index/components/RoundList.vue";
+import { parseBigInt, parseBool } from "@shared/utils/parsers";
+import type { ProjectItem } from "../pages/index/components/ProjectList";
+import type { RoundItem } from "../pages/index/components/RoundList";
 
 export function useQuadraticProjects(
   selectedRound: Ref<RoundItem | null>,
@@ -28,16 +29,6 @@ export function useQuadraticProjects(
   const isRefreshingProjects = ref(false);
   const isRegisteringProject = ref(false);
   const claimingProjectId = ref<string | null>(null);
-
-  const parseBigInt = (value: unknown) => {
-    try {
-      return BigInt(String(value ?? "0"));
-    } catch (_e) {
-      return 0n;
-    }
-  };
-
-  const parseBool = (value: unknown) => value === true || value === "true" || value === 1 || value === "1";
 
   const parseProject = (raw: Record<string, unknown>, id: string): ProjectItem | null => {
     if (!raw || typeof raw !== "object") return null;

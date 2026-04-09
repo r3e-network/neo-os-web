@@ -38,7 +38,8 @@
  *   - Formatted display values
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -108,122 +109,122 @@ export function useSelfLoan({
   const toNumber = toSafeNumber;
 
   // ── Core State ──────────────────────────────────────────────────────
-  const isLoading = ref(false);
-  const neoBalance = ref(0);
-  const platformStats = ref<PlatformStats>({
+  const isLoading = createObservable(false);
+  const neoBalance = createObservable(0);
+  const platformStats = createObservable<PlatformStats>({
     ltvTier1Bps: 2000,
     ltvTier2Bps: 3000,
     ltvTier3Bps: 4000,
     minLoanDurationSeconds: 86400,
     platformFeeBps: 50,
   });
-  const selectedTier = ref(1);
-  const loan = ref<Loan>({ borrowed: 0, collateralLocked: 0, active: false });
-  const collateralAmount = ref<string>("");
+  const selectedTier = createObservable(1);
+  const loan = createObservable<Loan>({ borrowed: 0, collateralLocked: 0, active: false });
+  const collateralAmount = createObservable<string>("");
 
   // ── History State ───────────────────────────────────────────────────
-  const stats = ref<LoanStats>({ totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 });
-  const loanHistory = ref<LoanHistoryEntry[]>([]);
+  const stats = createObservable<LoanStats>({ totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 });
+  const loanHistory = createObservable<LoanHistoryEntry[]>([]);
 
   // ── Computed: LTV Options ───────────────────────────────────────────
   const ltvOptions = computed<LtvOption[]>(() => [
     {
       tier: 1,
-      percent: Number((platformStats.value.ltvTier1Bps / 100).toFixed(1)),
+      percent: Number((platformStats.get().ltvTier1Bps / 100).toFixed(1)),
       label: t("ltvTierConservative"),
       desc: t("ltvTierConservativeDesc"),
     },
     {
       tier: 2,
-      percent: Number((platformStats.value.ltvTier2Bps / 100).toFixed(1)),
+      percent: Number((platformStats.get().ltvTier2Bps / 100).toFixed(1)),
       label: t("ltvTierBalanced"),
       desc: t("ltvTierBalancedDesc"),
     },
     {
       tier: 3,
-      percent: Number((platformStats.value.ltvTier3Bps / 100).toFixed(1)),
+      percent: Number((platformStats.get().ltvTier3Bps / 100).toFixed(1)),
       label: t("ltvTierAggressive"),
       desc: t("ltvTierAggressiveDesc"),
     },
   ]);
 
-  const selectedLtvPercent = computed(() => {
-    const option = ltvOptions.value.find((entry) => entry.tier === selectedTier.value);
+  const selectedLtvPercent = createDerived(() => {
+    const option = ltvOptions.get().find((entry) => entry.tier === selectedTier.get());
     return option?.percent ?? 20;
-  });
+  }, []);
 
-  const minDurationHours = computed(() =>
-    Math.max(1, Math.round(platformStats.value.minLoanDurationSeconds / 3600)),
+  const minDurationHours = createDerived(() =>
+    Math.max(1, Math.round(platformStats.get().minLoanDurationSeconds / 3600)),
   );
-  const platformFeeBps = computed(() => platformStats.value.platformFeeBps);
+  const platformFeeBps = createDerived(() => platformStats.get().platformFeeBps, []);
 
   const borrowTerms = computed<Terms>(() => ({
-    ltvPercent: selectedLtvPercent.value,
-    minDurationHours: minDurationHours.value,
+    ltvPercent: selectedLtvPercent.get(),
+    minDurationHours: minDurationHours.get(),
   }));
 
   const positionTerms = computed<Terms>(() => ({
-    ltvPercent: loan.value.ltvPercent ?? selectedLtvPercent.value,
-    minDurationHours: minDurationHours.value,
+    ltvPercent: loan.get().ltvPercent ?? selectedLtvPercent.get(),
+    minDurationHours: minDurationHours.get(),
   }));
 
   // ── Computed: Position Metrics ──────────────────────────────────────
-  const healthFactor = computed(() => {
-    if (loan.value.borrowed === 0) return 999;
-    return loan.value.collateralLocked / loan.value.borrowed;
-  });
+  const healthFactor = createDerived(() => {
+    if (loan.get().borrowed === 0) return 999;
+    return loan.get().collateralLocked / loan.get().borrowed;
+  }, []);
 
-  const currentLTV = computed(() => {
-    if (loan.value.collateralLocked === 0) return 0;
-    return Math.round((loan.value.borrowed / loan.value.collateralLocked) * 100);
-  });
+  const currentLTV = createDerived(() => {
+    if (loan.get().collateralLocked === 0) return 0;
+    return Math.round((loan.get().borrowed / loan.get().collateralLocked) * 100);
+  }, []);
 
-  const collateralUtilization = computed(() => {
-    const total = loan.value.collateralLocked + neoBalance.value;
+  const collateralUtilization = createDerived(() => {
+    const total = loan.get().collateralLocked + neoBalance.get();
     if (total === 0) return 0;
-    return Math.round((loan.value.collateralLocked / total) * 100);
-  });
+    return Math.round((loan.get().collateralLocked / total) * 100);
+  }, []);
 
   // ── Computed: Display Values ────────────────────────────────────────
-  const isConnected = ref(false);
-  const collateralDisplay = computed(() => fmt(loan.value.collateralLocked));
-  const borrowedDisplay = computed(() => fmt(loan.value.borrowed));
+  const isConnected = createObservable(false);
+  const collateralDisplay = createDerived(() => fmt(loan.get().collateralLocked), []);
+  const borrowedDisplay = createDerived(() => fmt(loan.get().borrowed), []);
 
-  const healthFactorDisplay = computed(() => {
-    const hf = healthFactor.value;
+  const healthFactorDisplay = createDerived(() => {
+    const hf = healthFactor.get();
     if (hf >= 999) return t("notAvailable");
     return fmt(hf, 2);
-  });
+  }, []);
 
-  const currentLTVDisplay = computed(() => {
-    const ltv = currentLTV.value;
-    if (ltv === 0 && !loan.value.active) return t("notAvailable");
+  const currentLTVDisplay = createDerived(() => {
+    const ltv = currentLTV.get();
+    if (ltv === 0 && !loan.get().active) return t("notAvailable");
     return `${ltv}%`;
-  });
+  }, []);
 
-  const hasLoanDisplay = computed(() =>
-    loan.value.active ? t("yes") : t("no"),
+  const hasLoanDisplay = createDerived(() =>
+    loan.get().active ? t("yes") : t("no"),
   );
 
-  const neoBalanceDisplay = computed(() => fmt(neoBalance.value, 0));
-  const totalLoans = computed(() => stats.value.totalLoans);
-  const totalBorrowedDisplay = computed(() => fmt(stats.value.totalBorrowed));
-  const totalRepaidDisplay = computed(() => fmt(stats.value.totalRepaid));
+  const neoBalanceDisplay = createDerived(() => fmt(neoBalance.get(), 0), []);
+  const totalLoans = createDerived(() => stats.get().totalLoans, []);
+  const totalBorrowedDisplay = createDerived(() => fmt(stats.get().totalBorrowed), []);
+  const totalRepaidDisplay = createDerived(() => fmt(stats.get().totalRepaid), []);
 
   // ── Computed: Health Gauge ──────────────────────────────────────────
-  const healthColor = computed(() => {
-    const hf = healthFactor.value;
+  const healthColor = createDerived(() => {
+    const hf = healthFactor.get();
     if (!hf || hf >= 999) return "rgba(255,255,255,0.2)";
     if (hf >= 1.5) return "var(--checkbook-success, #34d399)";
     if (hf >= 1.2) return "var(--checkbook-warning, #fbbf24)";
     return "var(--checkbook-danger, #f87171)";
-  });
+  }, []);
 
-  const healthArc = computed(() => {
-    const hf = healthFactor.value;
+  const healthArc = createDerived(() => {
+    const hf = healthFactor.get();
     if (!hf || hf >= 999) return 0;
     return Math.min(hf / 2, 1) * 327;
-  });
+  }, []);
 
   // ── Validation ──────────────────────────────────────────────────────
   const validateCollateral = (amount: string, balance: number): string | null => {
@@ -243,7 +244,7 @@ export function useSelfLoan({
   const loadBalance = async () => {
     try {
       const balanceStr = await paymentService.getBalance();
-      neoBalance.value = toNumber(balanceStr);
+      neoBalance.set(toNumber(balanceStr));
     } catch (e) {
       console.warn("[useSelfLoan] loadBalance failed:", e instanceof Error ? e.message : String(e));
     }
@@ -260,14 +261,14 @@ export function useSelfLoan({
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
         const data = raw as Record<string, unknown>;
         const feeBps = toNumber(data.platformFeeBps);
-        platformStats.value = {
-          ltvTier1Bps: toNumber(data.ltvTier1Bps) || platformStats.value.ltvTier1Bps,
-          ltvTier2Bps: toNumber(data.ltvTier2Bps) || platformStats.value.ltvTier2Bps,
-          ltvTier3Bps: toNumber(data.ltvTier3Bps) || platformStats.value.ltvTier3Bps,
+        platformStats.set({
+          ltvTier1Bps: toNumber(data.ltvTier1Bps) || platformStats.get().ltvTier1Bps,
+          ltvTier2Bps: toNumber(data.ltvTier2Bps) || platformStats.get().ltvTier2Bps,
+          ltvTier3Bps: toNumber(data.ltvTier3Bps) || platformStats.get().ltvTier3Bps,
           minLoanDurationSeconds:
-            toNumber(data.minLoanDurationSeconds) || platformStats.value.minLoanDurationSeconds,
-          platformFeeBps: feeBps > 0 ? feeBps : platformStats.value.platformFeeBps,
-        };
+            toNumber(data.minLoanDurationSeconds) || platformStats.get().minLoanDurationSeconds,
+          platformFeeBps: feeBps > 0 ? feeBps : platformStats.get().platformFeeBps,
+        });
       }
     } catch (e) {
       console.warn("[useSelfLoan] loadPlatformStats failed:", e instanceof Error ? e.message : String(e));
@@ -282,7 +283,7 @@ export function useSelfLoan({
     try {
       const raw = await escrowService.get(loanId);
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-        loan.value = { borrowed: 0, collateralLocked: 0, active: false };
+        loan.set({ borrowed: 0, collateralLocked: 0, active: false });
         return;
       }
       const data = raw as Record<string, unknown>;
@@ -290,17 +291,17 @@ export function useSelfLoan({
       const debt = toNumber(data.debt);
       const active = Boolean(data.active);
       const ltvBps = toNumber(data.ltvBps);
-      const ltvPercent = ltvBps ? ltvBps / 100 : selectedLtvPercent.value;
-      loan.value = {
+      const ltvPercent = ltvBps ? ltvBps / 100 : selectedLtvPercent.get();
+      loan.set({
         borrowed: active ? debt : 0,
         collateralLocked: active ? collateral : 0,
         active,
         id: toNumber(data.id) || null,
         ltvPercent,
-      };
+      });
     } catch (e) {
       console.warn("[useSelfLoan] loadLoanPosition failed:", e instanceof Error ? e.message : String(e));
-      loan.value = { borrowed: 0, collateralLocked: 0, active: false };
+      loan.set({ borrowed: 0, collateralLocked: 0, active: false });
     }
   };
 
@@ -313,8 +314,8 @@ export function useSelfLoan({
     try {
       const raw = await storageService.list("loan:");
       if (!raw || typeof raw !== "object") {
-        stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
-        loanHistory.value = [];
+        stats.set({ totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 });
+        loanHistory.set([]);
         return;
       }
 
@@ -341,11 +342,11 @@ export function useSelfLoan({
           createdTime: number;
         } => entry !== null && entry.id > 0);
 
-      stats.value = {
+      stats.set({
         totalLoans: entries.length,
         totalBorrowed: entries.reduce((sum, entry) => sum + entry.netBorrow, 0),
         totalRepaid: entries.reduce((sum, entry) => sum + entry.repaid, 0),
-      };
+      });
 
       const history = entries
         .flatMap((entry) => {
@@ -378,14 +379,14 @@ export function useSelfLoan({
         })
         .sort((a, b) => Number(b.timestampRaw || 0) - Number(a.timestampRaw || 0));
 
-      loanHistory.value = history.slice(0, 20).map((item) => ({
+      loanHistory.set(history.slice(0, 20).map((item) => ({
         icon: item.icon,
         label: item.label,
         amount: item.amount,
         timestamp: new Intl.DateTimeFormat(undefined).format(
           new Date(item.timestampRaw || Date.now()),
         ),
-      }));
+      })));
 
       // Load the latest active loan position
       const activeLoan = entries.find((e) => e.active);
@@ -394,8 +395,8 @@ export function useSelfLoan({
       }
     } catch (e) {
       console.warn("[useSelfLoan] loadHistory failed:", e instanceof Error ? e.message : String(e));
-      stats.value = { totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 };
-      loanHistory.value = [];
+      stats.set({ totalLoans: 0, totalBorrowed: 0, totalRepaid: 0 });
+      loanHistory.set([]);
     }
   };
 
@@ -410,27 +411,27 @@ export function useSelfLoan({
    * locks collateral until repayment.
    */
   const takeLoan = async () => {
-    if (isLoading.value) return;
+    if (isLoading.get()) return;
 
-    const validation = validateCollateral(collateralAmount.value, neoBalance.value);
+    const validation = validateCollateral(collateralAmount.get(), neoBalance.get());
     if (validation) {
       throw new Error(validation);
     }
 
-    const collateral = Number(toFixedDecimals(collateralAmount.value, 0));
-    const ltvPercent = selectedLtvPercent.value;
-    const feeBps = platformFeeBps.value;
+    const collateral = Number(toFixedDecimals(collateralAmount.get(), 0));
+    const ltvPercent = selectedLtvPercent.get();
+    const feeBps = platformFeeBps.get();
     const grossBorrow = (collateral * ltvPercent) / 100;
     const feeAmount = (grossBorrow * feeBps) / 10000;
     const netBorrow = Math.max(grossBorrow - feeAmount, 0);
 
     try {
-      isLoading.value = true;
+      isLoading.set(true);
 
       // Step 1: Deposit NEO collateral via PaymentProxy
       await paymentService.deposit(
         String(collateral),
-        `self-loan:collateral:tier${selectedTier.value}`,
+        `self-loan:collateral:tier${selectedTier.get()}`,
       );
 
       // Step 2: Create loan escrow via EscrowProxy
@@ -447,19 +448,19 @@ export function useSelfLoan({
 
       // Step 3: Award first-loan badge if applicable
       try {
-        if (stats.value.totalLoans === 0) {
+        if (stats.get().totalLoans === 0) {
           await badgeService.award("first-loan", "self");
         }
       } catch (_badgeErr) {
         // Badge award is non-critical; don't block the loan flow
       }
 
-      collateralAmount.value = "";
+      collateralAmount.set("");
       await loadAll();
     } catch (e) {
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 

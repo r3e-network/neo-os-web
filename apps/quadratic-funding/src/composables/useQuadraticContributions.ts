@@ -7,8 +7,8 @@ import { useContractInteraction } from "@shared/composables/useContractInteracti
 import { messages } from "@/locale/messages";
 import { requireNeoChain } from "@shared/utils/chain";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
-import type { RoundItem } from "../pages/index/components/RoundList.vue";
-import type { ProjectItem } from "../pages/index/components/ProjectList.vue";
+import type { RoundItem } from "../pages/index/components/RoundList";
+import type { ProjectItem } from "../pages/index/components/ProjectList";
 
 export function useQuadraticContributions(
   selectedRound: Ref<RoundItem | null>,

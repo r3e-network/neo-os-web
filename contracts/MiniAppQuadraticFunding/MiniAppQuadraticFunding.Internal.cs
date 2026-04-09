@@ -12,15 +12,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreRound(BigInteger roundId, RoundData round)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_ROUNDS, (ByteString)roundId.ToByteArray()),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_ROUNDS, roundId),
                 StdLib.Serialize(round));
         }
 
         private static void StoreProject(BigInteger projectId, ProjectData project)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_PROJECTS, (ByteString)projectId.ToByteArray()),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_PROJECTS, projectId),
                 StdLib.Serialize(project));
         }
 
@@ -33,7 +31,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddRoundProject(BigInteger roundId, BigInteger projectId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_ROUND_PROJECT_COUNT, (ByteString)roundId.ToByteArray());
+            ByteString countKey = Key(PREFIX_ROUND_PROJECT_COUNT, roundId);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -42,7 +40,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddOwnerProject(UInt160 owner, BigInteger projectId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_OWNER_PROJECT_COUNT, owner);
+            ByteString countKey = Key(PREFIX_OWNER_PROJECT_COUNT, owner);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -54,7 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddCreatorRound(UInt160 creator, BigInteger roundId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_CREATOR_ROUND_COUNT, creator);
+            ByteString countKey = Key(PREFIX_CREATOR_ROUND_COUNT, creator);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -66,20 +64,17 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger GetRoundProjectCountInternal(BigInteger roundId)
         {
-            byte[] key = Helper.Concat(PREFIX_ROUND_PROJECT_COUNT, (ByteString)roundId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_ROUND_PROJECT_COUNT, roundId));
         }
 
         private static BigInteger GetOwnerProjectCountInternal(UInt160 owner)
         {
-            byte[] key = Helper.Concat(PREFIX_OWNER_PROJECT_COUNT, owner);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_OWNER_PROJECT_COUNT, owner));
         }
 
         private static BigInteger GetCreatorRoundCountInternal(UInt160 creator)
         {
-            byte[] key = Helper.Concat(PREFIX_CREATOR_ROUND_COUNT, creator);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_CREATOR_ROUND_COUNT, creator));
         }
 
         private static byte[] BuildContributionKey(UInt160 contributor, BigInteger roundId, BigInteger projectId)

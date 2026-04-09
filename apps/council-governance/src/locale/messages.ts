@@ -104,7 +104,6 @@ title: { en: "Council Governance", zh: "议会治理" },
     totalProposals: { en: "Total Proposals", zh: "提案总数" },
     votingPower: { en: "Voting Power", zh: "投票权重" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);
