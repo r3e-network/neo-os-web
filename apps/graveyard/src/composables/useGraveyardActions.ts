@@ -1,4 +1,5 @@
-import { ref, computed, onUnmounted } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useEvents } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
@@ -14,54 +15,52 @@ const APP_ID = "miniapp-graveyard";
 
 export function useGraveyardActions() {
   const { t } = createUseI18n(messages)();
-  const {
-    address,
-    ensureWallet,
-    read,
-    invokeDirectly,
-    contractAddress,
-    ensureContractAddress,
-    isProcessing: isLoading,
-  } = useContractInteraction({ appId: APP_ID, t });
+  const ci = useContractInteraction({ appId: APP_ID, t });
+  const address = refToObservable(ci.address);
+  const contractAddress = refToObservable(ci.contractAddress);
+  const isLoading = refToObservable(ci.isProcessing);
+  const { ensureWallet, read, invokeDirectly, ensureContractAddress } = ci;
   const { list: listEvents } = useEvents();
 
-  const totalDestroyed = ref(0);
-  const gasReclaimed = ref(0);
-  const assetHash = ref("");
-  const memoryType = ref(1);
-  const { status, setStatus } = useStatusMessage();
-  const history = ref<HistoryItem[]>([]);
-  const showConfirm = ref(false);
-  const isDestroying = ref(false);
-  const showWarningShake = ref(false);
-  const forgettingId = ref<string | null>(null);
-  const memoryTypeOptions = computed(() => [
+  const totalDestroyed = createObservable(0);
+  const gasReclaimed = createObservable(0);
+  const assetHash = createObservable("");
+  const memoryType = createObservable(1);
+  const sm = useStatusMessage();
+  const status = refToObservable(sm.status);
+  const { setStatus } = sm;
+  const history = createObservable<HistoryItem[]>([]);
+  const showConfirm = createObservable(false);
+  const isDestroying = createObservable(false);
+  const showWarningShake = createObservable(false);
+  const forgettingId = createObservable<string | null>(null);
+  const memoryTypeOptions = createDerived(() => [
     { value: 1, label: t("memoryTypeSecret") },
     { value: 2, label: t("memoryTypeRegret") },
     { value: 3, label: t("memoryTypeWish") },
     { value: 4, label: t("memoryTypeConfession") },
     { value: 5, label: t("memoryTypeOther") },
-  ]);
+  ], []);
   let shakeTimer: ReturnType<typeof setTimeout> | null = null;
 
   const initiateDestroy = () => {
-    if (!assetHash.value) {
+    if (!assetHash.get()) {
       setStatus(t("enterAssetHash"), "error");
-      showWarningShake.value = true;
+      showWarningShake.set(true);
       if (shakeTimer) clearTimeout(shakeTimer);
       shakeTimer = setTimeout(() => {
-        showWarningShake.value = false;
+        showWarningShake.set(false);
         shakeTimer = null;
       }, 500);
       return;
     }
-    showConfirm.value = true;
+    showConfirm.set(true);
   };
 
   const executeDestroy = async () => {
-    showConfirm.value = false;
-    if (isLoading.value || isDestroying.value) return;
-    isDestroying.value = true;
+    showConfirm.set(false);
+    if (isLoading.get() || isDestroying.get()) return;
+    isDestroying.set(true);
 
     try {
       await ensureWallet();
@@ -70,10 +69,10 @@ export function useGraveyardActions() {
       await invokeDirectly(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: address.get() as string },
           { type: "Hash160", value: contract },
           { type: "Integer", value: "10000000" },
-          { type: "String", value: `graveyard:bury:${assetHash.value.slice(0, 10)}` },
+          { type: "String", value: `graveyard:bury:${assetHash.get().slice(0, 10)}` },
         ],
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
@@ -81,9 +80,9 @@ export function useGraveyardActions() {
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
       const result = await invokeDirectly("BuryMemory", [
-        { type: "Hash160", value: address.value as string },
-          { type: "String", value: assetHash.value },
-          { type: "Integer", value: String(memoryType.value) },
+        { type: "Hash160", value: address.get() as string },
+          { type: "String", value: assetHash.get() },
+          { type: "Integer", value: String(memoryType.get()) },
       ], contract);
 
       const evt = await waitForListedEventByTransaction<{ created_at?: string; state?: unknown[]; tx_hash?: string }>(result.tx, {
@@ -100,47 +99,47 @@ export function useGraveyardActions() {
       const evtRecord = evt as unknown as Record<string, unknown>;
       const values = Array.isArray(evtRecord?.state) ? (evtRecord.state as unknown[]).map(parseStackItem) : [];
       const memoryId = String(values[0] ?? "");
-      const contentHash = String(values[2] ?? assetHash.value);
-      history.value.unshift({
+      const contentHash = String(values[2] ?? assetHash.get());
+      history.set([{
         id: memoryId || String(Date.now()),
         hash: contentHash,
         time: new Intl.DateTimeFormat(undefined).format(new Date(evt.created_at || Date.now())),
         forgotten: false,
-      });
+      }, ...history.get()]);
 
-      totalDestroyed.value += 1;
-      gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
+      totalDestroyed.set(totalDestroyed.get() + 1);
+      gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
       setStatus(t("memoryBuried"), "success");
-      assetHash.value = "";
+      assetHash.set("");
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
-      isDestroying.value = false;
+      isDestroying.set(false);
     }
   };
 
   const loadStats = async () => {
-    if (!contractAddress.value) {
+    if (!contractAddress.get()) {
       await ensureContractAddress();
     }
-    if (!contractAddress.value) return;
+    if (!contractAddress.get()) return;
     try {
       const parsed = await read("getPlatformStats");
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         const stats = parsed as Record<string, unknown>;
         const total = Number(stats.totalBuried ?? stats.totalMemories ?? 0);
         const fee = Number(stats.buryFee ?? 0);
-        totalDestroyed.value = Number.isFinite(total) ? total : 0;
+        totalDestroyed.set(Number.isFinite(total) ? total : 0);
         if (Number.isFinite(fee) && fee > 0) {
-          gasReclaimed.value = Number(((totalDestroyed.value * fee) / 1e8).toFixed(2));
+          gasReclaimed.set(Number(((totalDestroyed.get() * fee) / 1e8).toFixed(2)));
         } else {
-          gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
+          gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
         }
         return;
       }
       const totalResult = await read("totalMemories");
-      totalDestroyed.value = Number(totalResult || 0);
-      gasReclaimed.value = Number((totalDestroyed.value * 0.1).toFixed(2));
+      totalDestroyed.set(Number(totalResult || 0));
+      gasReclaimed.set(Number((totalDestroyed.get() * 0.1).toFixed(2)));
     } catch (_e) {
       console.warn("[useGraveyardActions] stats fetch failed:", _e instanceof Error ? _e.message : String(_e));
       setStatus(t("loadFailed") || "Failed to load stats", "error");
@@ -180,7 +179,7 @@ export function useGraveyardActions() {
           };
         })
       );
-      history.value = entries;
+      history.set(entries);
     } catch (_e) {
       console.warn("[useGraveyardActions] history fetch failed:", _e instanceof Error ? _e.message : String(_e));
       setStatus(t("loadFailed") || "Failed to load history", "error");
@@ -189,7 +188,7 @@ export function useGraveyardActions() {
 
   const forgetMemory = async (item: HistoryItem) => {
     if (!item.id || item.forgotten) return;
-    if (isLoading.value || forgettingId.value) return;
+    if (isLoading.get() || forgettingId.get()) return;
 
     const confirmed = await new Promise<boolean>((resolve) => {
       uni.showModal({
@@ -204,7 +203,7 @@ export function useGraveyardActions() {
 
     if (!confirmed) return;
 
-    forgettingId.value = item.id;
+    forgettingId.set(item.id);
     try {
       await ensureWallet();
       const contract = await ensureContractAddress();
@@ -212,7 +211,7 @@ export function useGraveyardActions() {
       await invokeDirectly(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: address.get() as string },
           { type: "Hash160", value: contract },
           { type: "Integer", value: "100000000" },
           { type: "String", value: `${APP_ID}:forget:${item.id}` },
@@ -223,7 +222,7 @@ export function useGraveyardActions() {
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
       const result = await invokeDirectly("ForgetMemory", [
-        { type: "Hash160", value: address.value as string },
+        { type: "Hash160", value: address.get() as string },
         { type: "Integer", value: String(item.id) },
       ], contract);
 
@@ -237,12 +236,12 @@ export function useGraveyardActions() {
         errorMessage: t("error"),
       });
 
-      history.value = history.value.map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry));
+      history.set(history.get().map((entry) => (entry.id === item.id ? { ...entry, forgotten: true } : entry)));
       setStatus(t("forgetSuccess"), "success");
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
-      forgettingId.value = null;
+      forgettingId.set(null);
     }
   };
 
@@ -252,9 +251,6 @@ export function useGraveyardActions() {
       shakeTimer = null;
     }
   };
-
-  onUnmounted(() => cleanupTimers());
-
   return {
     // State
     totalDestroyed,

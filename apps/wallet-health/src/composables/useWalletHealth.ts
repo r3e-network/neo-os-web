@@ -11,7 +11,8 @@
  * OS storage instead of raw localStorage.
  */
 
-import { computed } from "vue";
+import { createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { useWalletAnalysis } from "./useWalletAnalysis";
@@ -35,20 +36,20 @@ export function useWalletHealth({ chain, balance, eventBus, storage, t }: UseWal
   const health = useHealthScore(analysis.gasOk, storage);
 
   // ── Formatted display values ─────────────────────────────────────────
-  const connectionStatus = computed(() =>
-    analysis.address.value ? t("statusConnected") : t("statusDisconnected"),
+  const connectionStatus = createDerived(() =>
+    analysis.address.get() ? t("statusConnected") : t("statusDisconnected"),
   );
-  const networkLabel = computed(() => "Neo N3");
-  const isConnected = computed(() => Boolean(analysis.address.value));
+  const networkLabel = createDerived(() => "Neo N3", []);
+  const isConnected = createDerived(() => Boolean(analysis.address.get()), []);
 
   // ── Health stats array for the dashboard grid ────────────────────────
-  const healthStats = computed<HealthStat[]>(() => [
-    { label: t("statConnection"), value: connectionStatus.value },
-    { label: t("statNetwork"), value: networkLabel.value },
-    { label: t("statNeo"), value: analysis.neoDisplay.value },
-    { label: t("statGas"), value: analysis.gasDisplay.value },
-    { label: t("statScore"), value: `${health.safetyScore.value}%` },
-  ]);
+  const healthStats = createDerived<HealthStat[]>(() => [
+    { label: t("statConnection"), value: connectionStatus.get() },
+    { label: t("statNetwork"), value: networkLabel.get() },
+    { label: t("statNeo"), value: analysis.neoDisplay.get() },
+    { label: t("statGas"), value: analysis.gasDisplay.get() },
+    { label: t("statScore"), value: `${health.safetyScore.get()}%` },
+  ], []);
 
   return {
     // From useWalletAnalysis

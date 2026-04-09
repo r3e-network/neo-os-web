@@ -1,4 +1,5 @@
-import { ref, reactive, type Ref } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import QRCode from "qrcode";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { requireNeoChain } from "@shared/utils/chain";
@@ -13,40 +14,42 @@ export function useEventTicketContract(
   setStatus: (msg: string, type: "success" | "error") => void,
   t: (key: string, params?: Record<string, unknown>) => string
 ) {
-  const { address, connect, invokeContract, invokeRead, chainType } = wallet;
+  const address = refToObservable(wallet.address);
+  const chainType = refToObservable(wallet.chainType);
+  const { connect, invokeContract, invokeRead } = wallet;
 
-  const isCreating = ref(false);
-  const isRefreshing = ref(false);
-  const isRefreshingTickets = ref(false);
-  const isIssuing = ref(false);
-  const isCheckingIn = ref(false);
-  const isLookingUp = ref(false);
-  const issueModalOpen = ref(false);
-  const togglingId = ref<string | null>(null);
-  const events = ref<EventItem[]>([]);
-  const tickets = ref<TicketItem[]>([]);
-  const ticketQrs = reactive<Record<string, string>>({});
-  const lookup = ref<TicketItem | null>(null);
+  const isCreating = createObservable(false);
+  const isRefreshing = createObservable(false);
+  const isRefreshingTickets = createObservable(false);
+  const isIssuing = createObservable(false);
+  const isCheckingIn = createObservable(false);
+  const isLookingUp = createObservable(false);
+  const issueModalOpen = createObservable(false);
+  const togglingId = createObservable<string | null>(null);
+  const events = createObservable<EventItem[]>([]);
+  const tickets = createObservable<TicketItem[]>([]);
+  const ticketQrs: Record<string, string> = {};
+  const lookup = createObservable<TicketItem | null>(null);
 
-  const form = reactive({
+  const form = {
     name: "",
     venue: "",
     start: "",
     end: "",
     maxSupply: "100",
     notes: "",
-  });
+  };
 
-  const issueForm = reactive({
+  const issueForm = {
     eventId: "",
     recipient: "",
     seat: "",
     memo: "",
-  });
+  };
 
-  const checkin = reactive({
+  const checkin = {
     tokenId: "",
-  });
+  };
 
   const parseEvent = (raw: Record<string, unknown> | null, id: string): EventItem | null => {
     if (!raw || typeof raw !== "object") return null;
@@ -114,34 +117,34 @@ export function useEventTicketContract(
   };
 
   const refreshEvents = async () => {
-    if (!address.value) return;
-    if (isRefreshing.value) return;
+    if (!address.get()) return;
+    if (isRefreshing.get()) return;
     try {
-      isRefreshing.value = true;
-      const ids = await loadEventIds(address.value);
+      isRefreshing.set(true);
+      const ids = await loadEventIds(address.get());
       const details = await Promise.all(ids.map(loadEventDetails));
-      events.value = details.filter(Boolean) as EventItem[];
+      events.set(details.filter(Boolean) as EventItem[]);
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
   const refreshTickets = async () => {
-    if (!address.value) return;
-    if (isRefreshingTickets.value) return;
+    if (!address.get()) return;
+    if (isRefreshingTickets.get()) return;
     try {
-      isRefreshingTickets.value = true;
+      isRefreshingTickets.set(true);
       const contract = await ensureContractAddress();
       const tokenResult = await invokeRead({
         scriptHash: contract,
         operation: "TokensOf",
-        args: [{ type: "Hash160", value: address.value }],
+        args: [{ type: "Hash160", value: address.get() }],
       });
       const parsed = parseInvokeResult(tokenResult);
       if (!Array.isArray(parsed)) {
-        tickets.value = [];
+        tickets.set([]);
         return;
       }
       const tokenIds = parsed.map((value) => String(value || "")).filter(Boolean);
@@ -156,9 +159,9 @@ export function useEventTicketContract(
           return parseTicket(detailParsed, tokenId);
         })
       );
-      tickets.value = details.filter(Boolean) as TicketItem[];
+      tickets.set(details.filter(Boolean) as TicketItem[]);
       await Promise.all(
-        tickets.value.map(async (ticket) => {
+        tickets.get().map(async (ticket) => {
           if (!ticketQrs[ticket.tokenId]) {
             try {
               ticketQrs[ticket.tokenId] = await QRCode.toDataURL(ticket.tokenId, { margin: 1 });
@@ -171,14 +174,14 @@ export function useEventTicketContract(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isRefreshingTickets.value = false;
+      isRefreshingTickets.set(false);
     }
   };
 
   const connectWallet = async () => {
     try {
       await connect();
-      if (address.value) {
+      if (address.get()) {
         await refreshEvents();
         await refreshTickets();
       }
@@ -188,7 +191,7 @@ export function useEventTicketContract(
   };
 
   const createEvent = async () => {
-    if (isCreating.value) return;
+    if (isCreating.get()) return;
     if (!requireNeoChain(chainType, t)) return;
     const name = form.name.trim();
     if (!name) {
@@ -207,15 +210,15 @@ export function useEventTicketContract(
       return;
     }
     try {
-      isCreating.value = true;
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      isCreating.set(true);
+      if (!address.get()) await connect();
+      if (!address.get()) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "CreateEvent",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.get() },
           { type: "String", value: name },
           { type: "String", value: form.venue.trim() },
           { type: "Integer", value: String(startTime) },
@@ -235,7 +238,7 @@ export function useEventTicketContract(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isCreating.value = false;
+      isCreating.set(false);
     }
   };
 
@@ -244,15 +247,15 @@ export function useEventTicketContract(
     issueForm.recipient = "";
     issueForm.seat = "";
     issueForm.memo = "";
-    issueModalOpen.value = true;
+    issueModalOpen.set(true);
   };
 
   const closeIssueModal = () => {
-    issueModalOpen.value = false;
+    issueModalOpen.set(false);
   };
 
   const issueTicket = async () => {
-    if (isIssuing.value) return;
+    if (isIssuing.get()) return;
     if (!requireNeoChain(chainType, t)) return;
     const recipient = issueForm.recipient.trim();
     if (!recipient || !addressToScriptHash(recipient)) {
@@ -260,15 +263,15 @@ export function useEventTicketContract(
       return;
     }
     try {
-      isIssuing.value = true;
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      isIssuing.set(true);
+      if (!address.get()) await connect();
+      if (!address.get()) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "IssueTicket",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.get() },
           { type: "Hash160", value: recipient },
           { type: "Integer", value: issueForm.eventId },
           { type: "String", value: issueForm.seat.trim() },
@@ -276,29 +279,29 @@ export function useEventTicketContract(
         ],
       });
       setStatus(t("ticketIssued"), "success");
-      issueModalOpen.value = false;
+      issueModalOpen.set(false);
       await refreshEvents();
       await refreshTickets();
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isIssuing.value = false;
+      isIssuing.set(false);
     }
   };
 
   const toggleEvent = async (event: EventItem) => {
-    if (togglingId.value) return;
+    if (togglingId.get()) return;
     if (!requireNeoChain(chainType, t)) return;
     try {
-      togglingId.value = event.id;
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      togglingId.set(event.id);
+      if (!address.get()) await connect();
+      if (!address.get()) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "SetEventActive",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.get() },
           { type: "Integer", value: event.id },
           { type: "Boolean", value: !event.active },
         ],
@@ -307,12 +310,12 @@ export function useEventTicketContract(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      togglingId.value = null;
+      togglingId.set(null);
     }
   };
 
   const lookupTicket = async () => {
-    if (isLookingUp.value) return;
+    if (isLookingUp.get()) return;
     if (!requireNeoChain(chainType, t)) return;
     const tokenId = checkin.tokenId.trim();
     if (!tokenId) {
@@ -320,7 +323,7 @@ export function useEventTicketContract(
       return;
     }
     try {
-      isLookingUp.value = true;
+      isLookingUp.set(true);
       const contract = await ensureContractAddress();
       const detailResult = await invokeRead({
         scriptHash: contract,
@@ -331,19 +334,19 @@ export function useEventTicketContract(
       const parsed = parseTicket(detailParsed, tokenId);
       if (!parsed) {
         setStatus(t("ticketNotFound"), "error");
-        lookup.value = null;
+        lookup.set(null);
         return;
       }
-      lookup.value = parsed;
+      lookup.set(parsed);
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isLookingUp.value = false;
+      isLookingUp.set(false);
     }
   };
 
   const checkInTicket = async () => {
-    if (isCheckingIn.value) return;
+    if (isCheckingIn.get()) return;
     if (!requireNeoChain(chainType, t)) return;
     const tokenId = checkin.tokenId.trim();
     if (!tokenId) {
@@ -351,15 +354,15 @@ export function useEventTicketContract(
       return;
     }
     try {
-      isCheckingIn.value = true;
-      if (!address.value) await connect();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      isCheckingIn.set(true);
+      if (!address.get()) await connect();
+      if (!address.get()) throw new Error(t("walletNotConnected"));
       const contract = await ensureContractAddress();
       await invokeContract({
         scriptHash: contract,
         operation: "CheckIn",
         args: [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.get() },
           { type: "ByteArray", value: encodeTokenId(tokenId) },
         ],
       });
@@ -368,7 +371,7 @@ export function useEventTicketContract(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isCheckingIn.value = false;
+      isCheckingIn.set(false);
     }
   };
 

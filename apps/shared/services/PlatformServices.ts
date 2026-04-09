@@ -4,28 +4,26 @@
  * This is the "Android OS services" layer that all miniapps consume.
  * It wires together CacheService, EventBus, ChainService, BalanceService,
  * TransferService, OracleService, AAService, and LifecycleService into
- * a single injectable object.
+ * a single object available via direct exports.
  *
- * Usage with Vue 3 provide/inject:
+ * Usage:
  * ```ts
- * // In the root component (e.g. App.vue):
+ * // Create and register a singleton:
  * const services = providePlatformServices("miniapp-fogplay", { t });
  *
- * // In any child component:
+ * // Retrieve in any module:
  * const services = usePlatformServices();
  * const gas = await services.balance.getGasBalance();
  * ```
  *
- * IMPORTANT: PlatformServices.create() must be called inside a Vue
- * component's setup() context (or within defineMiniApp's setup hook).
+ * IMPORTANT: PlatformServices.create() must be called inside a
+ * component's setup context (or within defineMiniApp's setup hook).
  * The underlying composables (useContractInteraction, useOracle, etc.)
- * register Vue lifecycle hooks that only work within a setup context.
+ * register lifecycle hooks that only work within a setup context.
  * Calling PlatformServices.create() outside setup will cause timer
  * cleanup hooks to silently fail to register.
  */
 
-import { inject, provide } from "vue";
-import type { InjectionKey } from "vue";
 import { CacheService } from "./CacheService";
 import { EventBus } from "./EventBus";
 import { ChainService } from "./ChainService";
@@ -64,10 +62,10 @@ export interface PlatformServicesOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Injection key
+// Module-level singleton
 // ---------------------------------------------------------------------------
 
-const PLATFORM_SERVICES_KEY: InjectionKey<PlatformServices> = Symbol("PlatformServices");
+let _instance: PlatformServices | null = null;
 
 // ---------------------------------------------------------------------------
 // Service registry
@@ -160,12 +158,13 @@ export class PlatformServices {
 }
 
 // ---------------------------------------------------------------------------
-// Vue composable wrappers
+// Service accessor functions
 // ---------------------------------------------------------------------------
 
 /**
- * Provide PlatformServices to the component tree via Vue's provide/inject.
- * Call this in the root component's setup() function.
+ * Create and register the PlatformServices singleton.
+ * Call this once during app initialisation (e.g. in the root component's
+ * setup function or inside defineMiniApp's setup hook).
  *
  * @returns The created PlatformServices instance
  */
@@ -174,23 +173,21 @@ export function providePlatformServices(
   options?: PlatformServicesOptions,
 ): PlatformServices {
   const services = PlatformServices.create(appId, options);
-  provide(PLATFORM_SERVICES_KEY, services);
+  _instance = services;
   return services;
 }
 
 /**
- * Retrieve the PlatformServices instance from the component tree.
- * Must be called in a descendant of a component that called providePlatformServices().
+ * Retrieve the current PlatformServices singleton.
  *
- * @throws Error if PlatformServices has not been provided
+ * @throws Error if PlatformServices has not been provided via providePlatformServices()
  */
 export function usePlatformServices(): PlatformServices {
-  const services = inject(PLATFORM_SERVICES_KEY);
-  if (!services) {
+  if (!_instance) {
     throw new Error(
-      "usePlatformServices() was called without a matching providePlatformServices() in a parent component. " +
-      "Make sure your root App component calls providePlatformServices() in its setup().",
+      "usePlatformServices() was called before providePlatformServices(). " +
+      "Make sure your root component calls providePlatformServices() first.",
     );
   }
-  return services;
+  return _instance;
 }

@@ -6,7 +6,8 @@
  * chain context (chain ID).
  */
 
-import { ref, computed, watch, onUnmounted } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -57,11 +58,11 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
   // Determine default chain from ChainService or fall back to mainnet
   const defaultChain = "neo-n3-mainnet" as "neo-n3-mainnet" | "neo-n3-testnet";
 
-  const step = ref(1);
-  const isPreparing = ref(false);
-  const isSubmitting = ref(false);
+  const step = createObservable(1);
+  const isPreparing = createObservable(false);
+  const isSubmitting = createObservable(false);
 
-  const form = ref<MultisigFormData>({
+  const form = createObservable<MultisigFormData>({
     signers: ["", ""],
     threshold: 1,
     selectedChain: defaultChain,
@@ -71,9 +72,9 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
     memo: "",
   });
 
-  const multisigAccount = ref<MultisigAccount | null>(null);
-  const preparedTx = ref<Record<string, unknown> | null>(null);
-  const feeSummary = ref<FeeSummary>({
+  const multisigAccount = createObservable<MultisigAccount | null>(null);
+  const preparedTx = createObservable<Record<string, unknown> | null>(null);
+  const feeSummary = createObservable<FeeSummary>({
     systemFee: "0",
     networkFee: "0",
     validUntilBlock: 0,
@@ -92,53 +93,48 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
     }
   };
 
-  const stopSignersWatch = watch(
-    () => form.value.signers,
-    (next) => {
-      if (form.value.threshold > next.length) {
-        form.value.threshold = next.length || 1;
-      }
-    },
-    { deep: true },
-  );
-
-  onUnmounted(() => stopSignersWatch());
-
-  const trimmedSigners = computed(() => form.value.signers.map((s) => s.trim()));
-  const isValidSigners = computed(() => {
-    if (trimmedSigners.value.some((s) => !s)) return false;
+  const trimmedSigners = createDerived(() => form.get().signers.map((s) => s.trim()), []);
+  const isValidSigners = createDerived(() => {
+    if (trimmedSigners.get().some((s) => !s)) return false;
     try {
-      normalizePublicKeys(trimmedSigners.value);
+      normalizePublicKeys(trimmedSigners.get());
       return true;
     } catch {
       return false;
     }
-  });
+  }, []);
 
-  const isValidTx = computed(() => {
-    return isValidAddress(form.value.toAddress) && validateAmount(form.value.amount, form.value.asset);
-  });
+  const isValidTx = createDerived(() => {
+    return isValidAddress(form.get().toAddress) && validateAmount(form.get().amount, form.get().asset);
+  }, []);
 
-  const chainLabel = computed(() =>
-    form.value.selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet"),
-  );
+  const chainLabel = createDerived(() =>
+    form.get().selectedChain === "neo-n3-mainnet" ? t("chainMainnet") : t("chainTestnet"),
+  []);
 
-  const addSigner = () => form.value.signers.push("");
-  const removeSigner = (i: number) => form.value.signers.splice(i, 1);
+  const addSigner = () => {
+    const f = form.get();
+    form.set({ ...f, signers: [...f.signers, ""] });
+  };
+  const removeSigner = (i: number) => {
+    const f = form.get();
+    form.set({ ...f, signers: f.signers.filter((_, idx) => idx !== i) });
+  };
   const setChain = (chain: "neo-n3-mainnet" | "neo-n3-testnet") => {
-    form.value.selectedChain = chain;
+    const f = form.get();
+    form.set({ ...f, selectedChain: chain });
   };
 
   const finalizeConfig = () => {
     try {
-      const normalized = normalizePublicKeys(trimmedSigners.value);
-      const account = createMultisigAccount(form.value.threshold, normalized);
-      multisigAccount.value = {
+      const normalized = normalizePublicKeys(trimmedSigners.get());
+      const account = createMultisigAccount(form.get().threshold, normalized);
+      multisigAccount.set({
         address: account.address,
         scriptHash: account.scriptHash,
         publicKeys: account.publicKeys,
-      };
-      step.value = 3;
+      });
+      step.set(3);
     } catch (e) {
       const message =
         e instanceof Error && e.message.includes("duplicate") ? t("toastDuplicateSigners") : t("toastInvalidSigners");
@@ -147,55 +143,55 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
   };
 
   const prepareTransaction = async () => {
-    if (!multisigAccount.value) {
+    if (!multisigAccount.get()) {
       setStatus(t("toastInvalidSigners"), "error");
       return;
     }
-    if (!isValidAddress(form.value.toAddress)) {
+    if (!isValidAddress(form.get().toAddress)) {
       setStatus(t("toastInvalidAddress"), "error");
       return;
     }
-    if (!validateAmount(form.value.amount, form.value.asset)) {
+    if (!validateAmount(form.get().amount, form.get().asset)) {
       setStatus(t("toastInvalidAmount"), "error");
       return;
     }
 
-    isPreparing.value = true;
+    isPreparing.set(true);
     try {
       const prepared = await buildTransferTransaction({
-        chainId: form.value.selectedChain,
-        fromAddress: multisigAccount.value.address,
-        toAddress: form.value.toAddress,
-        amount: form.value.amount,
-        assetSymbol: form.value.asset,
-        threshold: form.value.threshold,
-        publicKeys: multisigAccount.value.publicKeys,
+        chainId: form.get().selectedChain,
+        fromAddress: multisigAccount.get().address,
+        toAddress: form.get().toAddress,
+        amount: form.get().amount,
+        assetSymbol: form.get().asset,
+        threshold: form.get().threshold,
+        publicKeys: multisigAccount.get().publicKeys,
       });
-      preparedTx.value = prepared.tx;
-      feeSummary.value = {
+      preparedTx.set(prepared.tx);
+      feeSummary.set({
         systemFee: prepared.systemFee,
         networkFee: prepared.networkFee,
         validUntilBlock: prepared.validUntilBlock,
-      };
-      step.value = 4;
+      });
+      step.set(4);
     } catch (e) {
       setStatus(formatErrorMessage(e, t("toastPrepareFailed")), "error");
     } finally {
-      isPreparing.value = false;
+      isPreparing.set(false);
     }
   };
 
   const submit = async (onSuccess?: (id: string) => void) => {
-    if (!preparedTx.value || !multisigAccount.value) return;
-    isSubmitting.value = true;
+    if (!preparedTx.get() || !multisigAccount.get()) return;
+    isSubmitting.set(true);
     try {
       const result = await api.create({
-        chainId: form.value.selectedChain,
-        scriptHash: multisigAccount.value.scriptHash,
-        threshold: form.value.threshold,
-        signers: multisigAccount.value.publicKeys,
-        transactionHex: (preparedTx.value as { serialize: (unsigned: boolean) => string }).serialize(false),
-        memo: form.value.memo || undefined,
+        chainId: form.get().selectedChain,
+        scriptHash: multisigAccount.get().scriptHash,
+        threshold: form.get().threshold,
+        signers: multisigAccount.get().publicKeys,
+        transactionHex: (preparedTx.get() as { serialize: (unsigned: boolean) => string }).serialize(false),
+        memo: form.get().memo || undefined,
       });
 
       const history = Array.isArray(readCachedJSON<Array<Record<string, unknown>>>("multisig_history"))
@@ -203,7 +199,7 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
         : [];
       history.unshift({
         id: result.id,
-        scriptHash: multisigAccount.value.scriptHash,
+        scriptHash: multisigAccount.get().scriptHash,
         status: result.status || "pending",
         createdAt: result.created_at || new Date().toISOString(),
       });
@@ -213,7 +209,7 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("toastCreateFailed")), "error");
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   };
 
@@ -230,7 +226,7 @@ export function useMultisigCreation(options?: UseMultisigCreationOptions) {
     isValidTx,
     chainLabel,
     // status/setStatus/clearStatus are provided for backward compat with sub-pages
-    status: ref(null),
+    status: createObservable(null),
     setStatus,
     clearStatus,
     addSigner,

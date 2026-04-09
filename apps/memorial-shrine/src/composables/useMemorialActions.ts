@@ -1,4 +1,5 @@
-import { ref, onUnmounted } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { createUseI18n } from "@shared/composables/useI18n";
 import { messages } from "@/locale/messages";
 import { readQueryParam } from "@shared/utils/url";
@@ -7,15 +8,15 @@ import type { Memorial } from "@/types";
 export function useMemorialActions() {
   const { t } = createUseI18n(messages)();
 
-  const memorials = ref<Memorial[]>([]);
-  const visitedMemorials = ref<Memorial[]>([]);
-  const recentObituaries = ref<{ id: number; name: string; text: string }[]>([]);
-  const selectedMemorial = ref<Memorial | null>(null);
-  const shareStatus = ref<string | null>(null);
+  const memorials = createObservable<Memorial[]>([]);
+  const visitedMemorials = createObservable<Memorial[]>([]);
+  const recentObituaries = createObservable<{ id: number; name: string; text: string }[]>([]);
+  const selectedMemorial = createObservable<Memorial | null>(null);
+  const shareStatus = createObservable<string | null>(null);
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const loadMemorials = async () => {
-    memorials.value = [
+    memorials.set([)
       {
         id: 1,
         name: "\u5F20\u5FB7\u660E",
@@ -54,26 +55,26 @@ export function useMemorialActions() {
       },
     ];
 
-    recentObituaries.value = [
+    recentObituaries.set([)
       { id: 1, name: "\u5F20\u8001\u5148\u751F", text: "\u5F20\u8001\u5148\u751F\u4E8E2024\u5E741\u6708\u9A7E\u9E64\u897F\u53BB" },
       { id: 2, name: "\u674E\u5976\u5976", text: "\u6148\u6BCD\u674E\u5976\u5976\u5B89\u8BE6\u79BB\u4E16" },
     ];
   };
 
   const loadVisitedMemorials = async () => {
-    visitedMemorials.value = memorials.value.slice(0, 2);
+    visitedMemorials.set(memorials.get().slice(0, 2));
   };
 
   const openMemorial = (id: number) => {
-    const memorial = memorials.value.find((m) => m.id === id);
+    const memorial = memorials.get().find((m) => m.id === id);
     if (memorial) {
-      selectedMemorial.value = memorial;
+      selectedMemorial.set(memorial);
       updateUrlWithMemorial(id);
     }
   };
 
   const closeMemorial = () => {
-    selectedMemorial.value = null;
+    selectedMemorial.set(null);
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.delete("id");
@@ -90,7 +91,7 @@ export function useMemorialActions() {
   };
 
   const shareMemorial = (memorial?: Memorial) => {
-    const target = memorial || selectedMemorial.value;
+    const target = memorial || selectedMemorial.get();
     if (!target || typeof window === "undefined") return;
 
     const shareUrl = `${window.location.origin}${window.location.pathname}?id=${target.id}`;
@@ -112,10 +113,10 @@ export function useMemorialActions() {
     uni.setClipboardData({
       data: text,
       success: () => {
-        shareStatus.value = t("linkCopied");
+        shareStatus.set(t("linkCopied"));
         if (shareStatusTimer) clearTimeout(shareStatusTimer);
         shareStatusTimer = setTimeout(() => {
-          shareStatus.value = null;
+          shareStatus.set(null);
           shareStatusTimer = null;
         }, 3000);
       },
@@ -128,9 +129,9 @@ export function useMemorialActions() {
       const id = parseInt(idParam, 10);
       if (!isNaN(id)) {
         await loadMemorials();
-        const memorial = memorials.value.find((m) => m.id === id);
+        const memorial = memorials.get().find((m) => m.id === id);
         if (memorial) {
-          selectedMemorial.value = memorial;
+          selectedMemorial.set(memorial);
         }
       }
     }
@@ -142,8 +143,8 @@ export function useMemorialActions() {
 
   const onTributePaid = async (memorialId: number, _offeringType: number) => {
     await loadMemorials();
-    if (selectedMemorial.value?.id === memorialId) {
-      selectedMemorial.value = memorials.value.find((m) => m.id === memorialId) || null;
+    if (selectedMemorial.get()?.id === memorialId) {
+      selectedMemorial.set(memorials.get().find((m) => m.id === memorialId) || null);
     }
   };
 
@@ -153,9 +154,6 @@ export function useMemorialActions() {
       shareStatusTimer = null;
     }
   };
-
-  onUnmounted(() => cleanupTimers());
-
   return {
     // State
     memorials,

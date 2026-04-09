@@ -1,4 +1,5 @@
-import { ref, computed } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { parseGas, toFixed8 } from "@shared/utils/format";
@@ -17,34 +18,33 @@ const APP_ID = "miniapp-breakupcontract";
 const isValidNeoAddress = (value: string) => /^N[0-9a-zA-Z]{33}$/.test(value.trim());
 
 export function useBreakupContract(t: (key: string) => string) {
-  const { chainType } = useWallet() as WalletSDK;
-  const {
-    address,
-    ensureWallet,
-    read,
-    invokeDirectly,
-    ensureContractAddress,
-    isProcessing: isLoading,
-  } = useContractInteraction({ appId: APP_ID, t });
+  const wallet = useWallet() as WalletSDK;
+  const chainType = refToObservable(wallet.chainType);
+  const ci = useContractInteraction({ appId: APP_ID, t });
+  const address = refToObservable(ci.address);
+  const isLoading = refToObservable(ci.isProcessing);
+  const { ensureWallet, read, invokeDirectly, ensureContractAddress } = ci;
   const { list: listEvents } = useEvents();
   const { listAllEvents } = useAllEvents(listEvents, APP_ID);
-  const { status, setStatus, clearStatus } = useStatusMessage();
+  const sm = useStatusMessage();
+  const status = refToObservable(sm.status);
+  const { setStatus, clearStatus } = sm;
 
-  const partnerAddress = ref("");
-  const stakeAmount = ref("");
-  const duration = ref("");
-  const contractTitle = ref("");
-  const contractTerms = ref("");
-  const contracts = ref<RelationshipContractView[]>([]);
+  const partnerAddress = createObservable("");
+  const stakeAmount = createObservable("");
+  const duration = createObservable("");
+  const contractTitle = createObservable("");
+  const contractTerms = createObservable("");
+  const contracts = createObservable<RelationshipContractView[]>([]);
 
-  const appState = computed(() => ({
-    contracts: contracts.value.length,
-  }));
+  const appState = createDerived(() => ({
+    contracts: contracts.get().length,
+  }), []);
 
   const sidebarItems = createSidebarItems(t, [
-    { labelKey: "tabContracts", value: () => contracts.value.length },
-    { labelKey: "active", value: () => contracts.value.filter((c) => c.status === "active").length },
-    { labelKey: "broken", value: () => contracts.value.filter((c) => c.status === "broken").length },
+    { labelKey: "tabContracts", value: () => contracts.get().length },
+    { labelKey: "active", value: () => contracts.get().filter((c) => c.status === "active").length },
+    { labelKey: "broken", value: () => contracts.get().filter((c) => c.status === "broken").length },
   ]);
 
   const parseContract = (
@@ -107,7 +107,7 @@ export function useBreakupContract(t: (key: string) => string) {
     else if (completed) contractStatus = "broken";
     else if (party2Signed || cancelled) contractStatus = "ended";
 
-    const partner = address.value && address.value === party1 ? party2 : party1;
+    const partner = address.get() && address.get() === party1 ? party2 : party1;
 
     return {
       id,
@@ -142,15 +142,15 @@ export function useBreakupContract(t: (key: string) => string) {
         const view = parseContract(id, parsed as Record<string, unknown> | unknown[] | null);
         if (view) contractViews.push(view);
       }
-      contracts.value = contractViews;
+      contracts.set(contractViews);
     } catch (e) {
       setStatus(formatErrorMessage(e, t("loadFailed")), "error");
     }
   };
 
   const createContract = async () => {
-    if (isLoading.value) return;
-    const partnerValue = partnerAddress.value.trim();
+    if (isLoading.get()) return;
+    const partnerValue = partnerAddress.get().trim();
     if (!partnerValue) {
       setStatus(t("partnerRequired"), "error");
       return;
@@ -159,14 +159,14 @@ export function useBreakupContract(t: (key: string) => string) {
       setStatus(t("partnerInvalid"), "error");
       return;
     }
-    if (!stakeAmount.value) {
+    if (!stakeAmount.get()) {
       setStatus(t("error"), "error");
       return;
     }
-    const stake = parseFloat(stakeAmount.value);
-    const durationDays = parseInt(duration.value, 10);
-    const titleValue = contractTitle.value.trim();
-    const termsValue = contractTerms.value.trim();
+    const stake = parseFloat(stakeAmount.get());
+    const durationDays = parseInt(duration.get(), 10);
+    const titleValue = contractTitle.get().trim();
+    const termsValue = contractTerms.get().trim();
     if (!Number.isFinite(stake) || stake < 1 || !Number.isFinite(durationDays) || durationDays < 30) {
       setStatus(t("error"), "error");
       return;
@@ -190,9 +190,9 @@ export function useBreakupContract(t: (key: string) => string) {
       await invokeDirectly(
         "transfer",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: address.get() as string },
           { type: "Hash160", value: contractHash },
-          { type: "Integer", value: toFixed8(stakeAmount.value) },
+          { type: "Integer", value: toFixed8(stakeAmount.get()) },
           { type: "String", value: `${APP_ID}:create:${partnerValue.slice(0, 10)}` },
         ],
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
@@ -201,19 +201,19 @@ export function useBreakupContract(t: (key: string) => string) {
       await new Promise((resolve) => setTimeout(resolve, 4000));
 
       await invokeDirectly("createContract", [
-        { type: "Hash160", value: address.value as string },
+        { type: "Hash160", value: address.get() as string },
         { type: "Hash160", value: partnerValue },
-        { type: "Integer", value: toFixed8(stakeAmount.value) },
+        { type: "Integer", value: toFixed8(stakeAmount.get()) },
         { type: "Integer", value: durationDays },
         { type: "String", value: titleValue },
         { type: "String", value: termsValue },
       ], contractHash);
       setStatus(t("contractCreated"), "success");
-      partnerAddress.value = "";
-      stakeAmount.value = "";
-      duration.value = "";
-      contractTitle.value = "";
-      contractTerms.value = "";
+      partnerAddress.set("");
+      stakeAmount.set("");
+      duration.set("");
+      contractTitle.set("");
+      contractTerms.set("");
       await loadContracts();
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
@@ -221,14 +221,14 @@ export function useBreakupContract(t: (key: string) => string) {
   };
 
   const signContract = async (contract: RelationshipContractView) => {
-    if (isLoading.value || !address.value) return;
+    if (isLoading.get() || !address.get()) return;
     try {
       const contractHash = await ensureContractAddress();
 
       await invokeDirectly(
         "transfer",
         [
-          { type: "Hash160", value: address.value },
+          { type: "Hash160", value: address.get() },
           { type: "Hash160", value: contractHash },
           { type: "Integer", value: toFixed8(contract.stake.toFixed(8)) },
           { type: "String", value: `${APP_ID}:sign:${contract.id}` },
@@ -240,7 +240,7 @@ export function useBreakupContract(t: (key: string) => string) {
 
       await invokeDirectly("signContract", [
         { type: "Integer", value: contract.id },
-        { type: "Hash160", value: address.value },
+        { type: "Hash160", value: address.get() },
       ], contractHash);
       setStatus(t("contractSigned"), "success");
       await loadContracts();
@@ -250,14 +250,14 @@ export function useBreakupContract(t: (key: string) => string) {
   };
 
   const breakContract = async (contract: RelationshipContractView) => {
-    if (!address.value) {
+    if (!address.get()) {
       setStatus(t("error"), "error");
       return;
     }
     try {
       await invokeDirectly("triggerBreakup", [
         { type: "Integer", value: contract.id },
-        { type: "Hash160", value: address.value },
+        { type: "Hash160", value: address.get() },
       ]);
       setStatus(t("contractBroken"), "warning");
       await loadContracts();

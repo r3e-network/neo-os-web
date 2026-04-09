@@ -1,5 +1,5 @@
-import type { Ref } from "vue";
-import { ref, watch, onUnmounted } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { createUseI18n } from "@shared/composables/useI18n";
@@ -12,23 +12,24 @@ import type { ProjectItem } from "../pages/index/components/ProjectList";
 import type { RoundItem } from "../pages/index/components/RoundList";
 
 export function useQuadraticProjects(
-  selectedRound: Ref<RoundItem | null>,
+  selectedRound: Observable<RoundItem | null>,
   ensureContractAddress: () => Promise<string>,
   setStatus: (msg: string, type: "success" | "error") => void
 ) {
   const { t } = createUseI18n(messages)();
   const wallet = useWallet() as WalletSDK;
-  const { address, chainType } = wallet;
+  const address = refToObservable(wallet.address);
+  const chainType = refToObservable(wallet.chainType);
   const { read, invokeDirectly, ensureWallet } = useContractInteraction({
     appId: "miniapp-quadratic-funding",
     t,
     wallet,
   });
 
-  const projects = ref<ProjectItem[]>([]);
-  const isRefreshingProjects = ref(false);
-  const isRegisteringProject = ref(false);
-  const claimingProjectId = ref<string | null>(null);
+  const projects = createObservable<ProjectItem[]>([]);
+  const isRefreshingProjects = createObservable(false);
+  const isRegisteringProject = createObservable(false);
+  const claimingProjectId = createObservable<string | null>(null);
 
   const parseProject = (raw: Record<string, unknown>, id: string): ProjectItem | null => {
     if (!raw || typeof raw !== "object") return null;
@@ -70,24 +71,24 @@ export function useQuadraticProjects(
   };
 
   const refreshProjects = async () => {
-    if (!selectedRound.value) return;
-    if (isRefreshingProjects.value) return;
+    if (!selectedRound.get()) return;
+    if (isRefreshingProjects.get()) return;
     try {
-      isRefreshingProjects.value = true;
-      const ids = await fetchProjectIds(selectedRound.value.id);
+      isRefreshingProjects.set(true);
+      const ids = await fetchProjectIds(selectedRound.get().id);
       const details = await Promise.all(ids.map(fetchProjectDetails));
-      projects.value = details.filter(Boolean) as ProjectItem[];
+      projects.set(details.filter(Boolean) as ProjectItem[]);
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isRefreshingProjects.value = false;
+      isRefreshingProjects.set(false);
     }
   };
 
   const registerProject = async (data: { name: string; description: string; link: string }) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (isRegisteringProject.value) return;
-    if (!selectedRound.value) {
+    if (isRegisteringProject.get()) return;
+    if (!selectedRound.get()) {
       setStatus(t("noSelectedRound"), "error");
       return;
     }
@@ -99,9 +100,9 @@ export function useQuadraticProjects(
     }
 
     try {
-      isRegisteringProject.value = true;
+      isRegisteringProject.set(true);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       const description = data.description.trim().slice(0, 300);
@@ -110,8 +111,8 @@ export function useQuadraticProjects(
       await invokeDirectly(
         "registerProject",
         [
-          { type: "Hash160", value: address.value as string },
-          { type: "Integer", value: selectedRound.value.id },
+          { type: "Hash160", value: address.get() as string },
+          { type: "Integer", value: selectedRound.get().id },
           { type: "String", value: name },
           { type: "String", value: description },
           { type: "String", value: link },
@@ -124,34 +125,34 @@ export function useQuadraticProjects(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      isRegisteringProject.value = false;
+      isRegisteringProject.set(false);
     }
   };
 
   const canClaimProject = (project: ProjectItem) => {
-    if (!selectedRound.value || !address.value) return false;
+    if (!selectedRound.get() || !address.get()) return false;
     return (
-      selectedRound.value.finalized &&
-      !selectedRound.value.cancelled &&
+      selectedRound.get().finalized &&
+      !selectedRound.get().cancelled &&
       !project.claimed &&
-      project.owner === address.value
+      project.owner === address.get()
     );
   };
 
   const claimProject = async (project: ProjectItem) => {
     if (!requireNeoChain(chainType, t)) return;
-    if (claimingProjectId.value) return;
+    if (claimingProjectId.get()) return;
 
     try {
-      claimingProjectId.value = project.id;
+      claimingProjectId.set(project.id);
       await ensureWallet();
-      if (!address.value) throw new Error(t("walletNotConnected"));
+      if (!address.get()) throw new Error(t("walletNotConnected"));
 
       const contract = await ensureContractAddress();
       await invokeDirectly(
         "claimProject",
         [
-          { type: "Hash160", value: address.value as string },
+          { type: "Hash160", value: address.get() as string },
           { type: "Integer", value: project.id },
         ],
         contract,
@@ -162,7 +163,7 @@ export function useQuadraticProjects(
     } catch (e) {
       setStatus(formatErrorMessage(e, t("contractMissing")), "error");
     } finally {
-      claimingProjectId.value = null;
+      claimingProjectId.set(null);
     }
   };
 
@@ -175,39 +176,6 @@ export function useQuadraticProjects(
     if (project.claimed) return "claimed";
     return project.active ? "active" : "inactive";
   };
-
-  const isMounted = ref(true);
-
-  const stopRoundWatch = watch(
-    () => selectedRound.value?.id,
-    async (roundId) => {
-      if (!isMounted.value) return;
-      if (roundId) {
-        try {
-          await refreshProjects();
-        } catch (_e) {
-          console.warn("[useQuadraticProjects] refreshProjects failed:", _e instanceof Error ? _e.message : String(_e));
-        }
-      }
-    }
-  );
-
-  const stopAddressWatch = watch(address, async (newAddr) => {
-    if (!isMounted.value) return;
-    if (!newAddr) {
-      try {
-        claimingProjectId.value = null;
-      } catch (_e) {
-        console.warn("[useQuadraticProjects] address change failed:", _e instanceof Error ? _e.message : String(_e));
-      }
-    }
-  });
-
-  onUnmounted(() => {
-    isMounted.value = false;
-    stopRoundWatch();
-    stopAddressWatch();
-  });
 
   return {
     projects,

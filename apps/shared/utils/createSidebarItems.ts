@@ -1,4 +1,5 @@
-import { computed, type ComputedRef } from "vue";
+import { createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 
 type SidebarValue = string | number | boolean | null | undefined;
 
@@ -8,20 +9,17 @@ type SidebarItemDef = {
 };
 
 /**
- * Factory that eliminates repeated `computed(() => [{ label: t(key), value: expr }])` boilerplate
- * found across miniapp index pages.
+ * Factory that eliminates repeated sidebar item boilerplate.
  *
  * Each item provides an i18n label key and a getter function for the reactive value.
- * Returns a computed array of `{ label, value }` objects suitable for `<SidebarPanel :items>`.
+ * Returns a derived observable array of `{ label, value }` objects.
  */
 export function createSidebarItems(
   t: (key: string) => string,
   items: SidebarItemDef[]
-): ComputedRef<Array<{ label: string; value: SidebarValue }>> {
-  return computed(() =>
-    items.map((item) => ({
-      label: t(item.labelKey),
-      value: item.value(),
-    }))
+): Observable<Array<{ label: string; value: SidebarValue }>> {
+  return createDerived(
+    () => items.map((item) => ({ label: t(item.labelKey), value: item.value() })),
+    [],
   );
 }

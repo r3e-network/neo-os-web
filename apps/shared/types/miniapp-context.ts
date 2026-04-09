@@ -6,7 +6,7 @@
  * circular dependencies between the factory and the root component.
  */
 
-import type { InjectionKey, Ref } from "vue";
+import type { Observable } from "../react/context";
 import type { MiniAppManifest } from "./miniapp-manifest";
 import type { StatusType } from "../composables/useStatusMessage";
 import type { PlatformServices } from "../services";
@@ -26,7 +26,7 @@ export interface MiniAppContext {
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
   /** Reactive state that the platform reads for stats/sidebar display */
-  state: Record<string, Ref<unknown>>;
+  state: Record<string, Observable>;
   /** Set a status message (toast) */
   setStatus: (msg: string, type: StatusType) => void;
   /** Clear the current status message */
@@ -41,7 +41,7 @@ export interface MiniAppContext {
 /** Result returned from the miniapp's setup function */
 export interface MiniAppSetupResult {
   /** Reactive state bindings for stats/sidebar display */
-  state?: Record<string, Ref<unknown>>;
+  state?: Record<string, Observable>;
   /** Data loading function called on mount */
   loadData?: () => Promise<void>;
   /** Cleanup function called on unmount */
@@ -53,18 +53,17 @@ export interface MiniAppSetupResult {
 // ============================================================================
 
 /** Provides the full MiniAppContext to child components */
-export const MINIAPP_CONTEXT_KEY: InjectionKey<MiniAppContext> =
+export const MINIAPP_CONTEXT_KEY: symbol =
   Symbol("miniapp-context");
 
 /** Provides the manifest for reading in child components */
-export const MINIAPP_MANIFEST_KEY: InjectionKey<MiniAppManifest> =
+export const MINIAPP_MANIFEST_KEY: symbol =
   Symbol("miniapp-manifest");
 
 /** Provides the action handler registry */
-export const MINIAPP_ACTIONS_KEY: InjectionKey<
-  Map<string, (...args: unknown[]) => Promise<void>>
-> = Symbol("miniapp-actions");
+export const MINIAPP_ACTIONS_KEY: symbol =
+  Symbol("miniapp-actions");
 
 /** Provides the reactive state store */
-export const MINIAPP_STATE_KEY: InjectionKey<Record<string, Ref<unknown>>> =
+export const MINIAPP_STATE_KEY: symbol =
   Symbol("miniapp-state");
