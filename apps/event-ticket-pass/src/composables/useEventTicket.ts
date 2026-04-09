@@ -29,6 +29,7 @@ import { ref, computed } from "vue";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import type { EventItem, TicketItem } from "../types";
 
 // ============================================================================
@@ -79,13 +80,6 @@ interface StoredTicket {
   used: boolean;
   usedTime: number;
 }
-
-const parseBigInt = (value: unknown) => {
-  try { return BigInt(String(value ?? "0")); } catch { return 0n; }
-};
-
-const parseBool = (value: unknown) =>
-  value === true || value === "true" || value === 1 || value === "1";
 
 // ============================================================================
 // Composable

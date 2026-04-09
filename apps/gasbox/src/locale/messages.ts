@@ -163,7 +163,6 @@ const appMessages = {
     none: { en: "None", zh: "无" },
     yes: { en: "Yes", zh: "是" },
     no: { en: "No", zh: "否" },
-    tokenGas: { en: "GAS", zh: "GAS" },
     percentSuffix: { en: "%", zh: "%" },
     nep17Label: { en: "NEP-17", zh: "NEP-17" },
     nep11Label: { en: "NEP-11", zh: "NEP-11" },

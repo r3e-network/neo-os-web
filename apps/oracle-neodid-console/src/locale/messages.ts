@@ -30,7 +30,6 @@ const appMessages = {
   vaultDid: { en: "Vault DID", zh: "Vault DID" },
   aaDid: { en: "AA DID", zh: "AA DID" },
   resultLoaded: { en: "NeoDID response loaded", zh: "NeoDID 响应已加载" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   resolveFailed: { en: "Resolve failed", zh: "解析失败" },
   loadProvidersFailed: { en: "Load providers failed", zh: "加载 providers 失败" },
 } as const;

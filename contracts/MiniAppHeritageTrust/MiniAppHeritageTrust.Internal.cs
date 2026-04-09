@@ -12,14 +12,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreTrust(BigInteger trustId, Trust trust)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_TRUSTS, (ByteString)trustId.ToByteArray()),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_TRUSTS, trustId),
                 StdLib.Serialize(trust));
         }
 
         private static void AddUserTrust(UInt160 user, BigInteger trustId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_USER_TRUST_COUNT, user);
+            ByteString countKey = Key(PREFIX_USER_TRUST_COUNT, user);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -31,7 +30,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void AddHeirTrust(UInt160 heir, BigInteger trustId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_HEIR_TRUST_COUNT, heir);
+            ByteString countKey = Key(PREFIX_HEIR_TRUST_COUNT, heir);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
@@ -43,7 +42,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void RemoveHeirTrust(UInt160 heir, BigInteger trustId)
         {
-            byte[] countKey = Helper.Concat(PREFIX_HEIR_TRUST_COUNT, heir);
+            ByteString countKey = Key(PREFIX_HEIR_TRUST_COUNT, heir);
             BigInteger count = (BigInteger)Storage.Get(Storage.CurrentContext, countKey);
             if (count > 0)
             {
@@ -77,8 +76,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreOwnerStats(UInt160 owner, OwnerStats stats)
         {
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_OWNER_STATS, owner),
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_OWNER_STATS, owner),
                 StdLib.Serialize(stats));
         }
 

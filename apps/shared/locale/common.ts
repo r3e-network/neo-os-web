@@ -102,6 +102,7 @@ export const commonMessages = {
   heroStatsAriaLabel: { en: "Hero statistics", zh: "英雄数据统计" },
   heroSectionAriaLabel: { en: "Hero section", zh: "英雄区域" },
   dialogAriaLabel: { en: "Dialog", zh: "对话框" },
+  scrollRevealAriaLabel: { en: "Animated content", zh: "动画内容" },
   bridgeLeftDefault: { en: "N3", zh: "N3" },
   bridgeRightDefault: { en: "X", zh: "X" },
   heroMarkDefault: { en: "F", zh: "F" },

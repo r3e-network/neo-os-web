@@ -1,0 +1,11 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.relay-play-area { @include console.play-area; }
+
+.stack { @include console.stack; }
+.json-box { @include console.json-box; }
+.textarea-label, .label { @include console.label; }
+.value { @include console.value; }
+.response-grid { @include console.single-column-grid; }
+.actions-row { @include console.actions-row; }

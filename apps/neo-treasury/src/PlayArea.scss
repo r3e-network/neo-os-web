@@ -1,0 +1,7 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./pages/index/neo-treasury-theme.scss" as *;
+
+.treasury-play-area { @include console.play-area; }
+.op-btn { width: 100%; }

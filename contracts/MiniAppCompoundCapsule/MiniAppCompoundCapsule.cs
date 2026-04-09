@@ -184,7 +184,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserCapsuleCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_CAPSULE_COUNT, user);
+            byte[] key = (byte[])Key(PREFIX_USER_CAPSULE_COUNT, user);
             return (BigInteger)Storage.Get(Storage.CurrentContext, key);
         }
 
@@ -212,7 +212,7 @@ namespace NeoMiniAppPlatform.Contracts
         public static bool HasUserBadge(UInt160 user, BigInteger badgeType)
         {
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_BADGES, user),
+                Key(PREFIX_USER_BADGES, user),
                 (ByteString)badgeType.ToByteArray());
             return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
         }

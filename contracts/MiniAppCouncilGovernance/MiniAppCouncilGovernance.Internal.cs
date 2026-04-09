@@ -10,24 +10,14 @@ namespace NeoMiniAppPlatform.Contracts
     public partial class MiniAppContract
     {
         #region Helper Methods
-        private static ByteString GetProposalKey(BigInteger proposalId)
-        {
-            return Helper.Concat((ByteString)PREFIX_PROPOSAL, (ByteString)proposalId.ToByteArray());
-        }
+        private static ByteString GetProposalKey(BigInteger proposalId) =>
+            Key(PREFIX_PROPOSAL, proposalId);
 
-        private static ByteString GetVoteKey(BigInteger proposalId, UInt160 voter)
-        {
-            return Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_VOTE, (ByteString)proposalId.ToByteArray()),
-                (ByteString)(byte[])voter);
-        }
+        private static ByteString GetVoteKey(BigInteger proposalId, UInt160 voter) =>
+            Key(PREFIX_VOTE, proposalId, voter);
 
-        private static ByteString GetSignatureKey(BigInteger proposalId, UInt160 signer)
-        {
-            return Helper.Concat(
-                Helper.Concat((ByteString)PREFIX_SIGNATURE, (ByteString)proposalId.ToByteArray()),
-                (ByteString)(byte[])signer);
-        }
+        private static ByteString GetSignatureKey(BigInteger proposalId, UInt160 signer) =>
+            Key(PREFIX_SIGNATURE, proposalId, signer);
         #endregion
 
         #region Internal Helpers
@@ -35,7 +25,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static void StoreMemberStats(UInt160 member, MemberStats stats)
         {
             Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MEMBER_STATS, member),
+                Key(PREFIX_MEMBER_STATS, member),
                 StdLib.Serialize(stats));
         }
 
@@ -137,7 +127,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (HasMemberBadge(member, badgeType)) return;
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_MEMBER_BADGES, member),
+                Key(PREFIX_MEMBER_BADGES, member),
                 (ByteString)badgeType.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, 1);
 

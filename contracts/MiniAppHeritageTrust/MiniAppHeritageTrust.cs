@@ -191,8 +191,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static OwnerStats GetOwnerStats(UInt160 owner)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_OWNER_STATS, owner));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_OWNER_STATS, owner));
             if (data == null) return new OwnerStats();
             return (OwnerStats)StdLib.Deserialize(data);
         }
@@ -209,8 +208,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static Trust GetTrust(BigInteger trustId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_TRUSTS, (ByteString)trustId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_TRUSTS, trustId));
             if (data == null) return new Trust();
             return (Trust)StdLib.Deserialize(data);
         }
@@ -218,17 +216,13 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserTrustCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_TRUST_COUNT, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_TRUST_COUNT, user));
         }
 
         [Safe]
         public static bool IsGuardian(BigInteger trustId, UInt160 guardian)
         {
-            byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_GUARDIANS, (ByteString)trustId.ToByteArray()),
-                guardian);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key) == 1;
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_GUARDIANS, trustId, guardian)) == 1;
         }
         #endregion
     }

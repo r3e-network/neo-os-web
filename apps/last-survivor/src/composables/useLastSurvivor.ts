@@ -33,14 +33,21 @@
  *   - Formatted display values
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { LeaderboardProxy } from "@shared/services/os/LeaderboardProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { formatNumber, formatAddress } from "@shared/utils/format";
-import type { HistoryEvent } from "../pages/index/components/HistoryList.vue";
+// HistoryEvent type (extracted from HistoryList component)
+export interface HistoryEvent {
+  id: string | number;
+  title: string;
+  details: string;
+  date: string;
+}
 
 // ============================================================================
 // Constants
@@ -116,77 +123,77 @@ export function useLastSurvivor({
   t,
 }: UseLastSurvivorOptions) {
   // ── Game State ──────────────────────────────────────────────────────
-  const roundId = ref(0);
-  const totalPot = ref(0);
-  const isRoundActive = ref(false);
-  const lastBuyer = ref<string | null>(null);
-  const userKeys = ref(0);
-  const keyCount = ref("1");
-  const keyValidationError = ref<string | null>(null);
-  const history = ref<HistoryEvent[]>([]);
-  const isBuyingKeys = ref(false);
-  const isClaiming = ref(false);
-  const isLoading = ref(false);
-  const totalKeysInRound = ref(0n);
+  const roundId = createObservable(0);
+  const totalPot = createObservable(0);
+  const isRoundActive = createObservable(false);
+  const lastBuyer = createObservable<string | null>(null);
+  const userKeys = createObservable(0);
+  const keyCount = createObservable("1");
+  const keyValidationError = createObservable<string | null>(null);
+  const history = createObservable<HistoryEvent[]>([]);
+  const isBuyingKeys = createObservable(false);
+  const isClaiming = createObservable(false);
+  const isLoading = createObservable(false);
+  const totalKeysInRound = createObservable(0n);
 
   // ── Timer State ─────────────────────────────────────────────────────
-  const endTime = ref(0);
-  const now = ref(Date.now());
+  const endTime = createObservable(0);
+  const now = createObservable(Date.now());
   const MAX_DURATION_SECONDS = 86400;
 
-  const timeRemainingSeconds = computed(() => {
-    if (!endTime.value) return 0;
-    return Math.max(0, Math.floor((endTime.value - now.value) / 1000));
-  });
+  const timeRemainingSeconds = createDerived(() => {
+    if (!endTime.get()) return 0;
+    return Math.max(0, Math.floor((endTime.get() - now.get()) / 1000));
+  }, []);
 
-  const countdown = computed(() => {
-    const total = timeRemainingSeconds.value;
+  const countdown = createDerived(() => {
+    const total = timeRemainingSeconds.get();
     const hours = String(Math.floor(total / 3600)).padStart(2, "0");
     const mins = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
     const secs = String(total % 60).padStart(2, "0");
     return `${hours}:${mins}:${secs}`;
-  });
+  }, []);
 
-  const dangerLevel = computed(() => {
-    const seconds = timeRemainingSeconds.value;
+  const dangerLevel = createDerived(() => {
+    const seconds = timeRemainingSeconds.get();
     if (seconds > 7200) return "low";
     if (seconds > 3600) return "medium";
     if (seconds > 600) return "high";
     return "critical";
-  });
+  }, []);
 
-  const dangerLevelText = computed(() => {
-    switch (dangerLevel.value) {
+  const dangerLevelText = createDerived(() => {
+    switch (dangerLevel.get()) {
       case "low": return t("dangerLow");
       case "medium": return t("dangerMedium");
       case "high": return t("dangerHigh");
       case "critical": return t("dangerCritical");
       default: return t("dangerLow");
     }
-  });
+  }, []);
 
-  const dangerProgress = computed(() => {
-    if (!timeRemainingSeconds.value) return 0;
-    return Math.min(100, (timeRemainingSeconds.value / MAX_DURATION_SECONDS) * 100);
-  });
+  const dangerProgress = createDerived(() => {
+    if (!timeRemainingSeconds.get()) return 0;
+    return Math.min(100, (timeRemainingSeconds.get() / MAX_DURATION_SECONDS) * 100);
+  }, []);
 
-  const shouldPulse = computed(() => timeRemainingSeconds.value <= 600);
+  const shouldPulse = createDerived(() => timeRemainingSeconds.get() <= 600, []);
 
-  const updateNow = () => { now.value = Date.now(); };
+  const updateNow = () => { now.set(Date.now(); });
 
   // ── Formatted display values ──────────────────────────────────────
-  const lastBuyerLabel = computed(() => lastBuyer.value ? formatAddress(lastBuyer.value) : t("notAvailable"));
-  const formattedRound = computed(() => `#${roundId.value}`);
-  const totalPotDisplay = computed(() => `${formatNumber(totalPot.value, 2)} ${t("tokenGas")}`);
-  const roundStatusDisplay = computed(() => isRoundActive.value ? t("activeRound") : t("inactiveRound"));
+  const lastBuyerLabel = createDerived(() => lastBuyer.get() ? formatAddress(lastBuyer.get()) : t("notAvailable"), []);
+  const formattedRound = createDerived(() => `#${roundId.get()}`, []);
+  const totalPotDisplay = createDerived(() => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`, []);
+  const roundStatusDisplay = createDerived(() => isRoundActive.get() ? t("activeRound") : t("inactiveRound"), []);
 
-  const canClaim = computed(() => {
+  const canClaim = createDerived(() => {
     return (
-      !isRoundActive.value &&
-      !!lastBuyer.value &&
-      totalPot.value > 0
+      !isRoundActive.get() &&
+      !!lastBuyer.get() &&
+      totalPot.get() > 0
     );
-  });
+  }, []);
 
   // ── Key cost formula (pure frontend math) ─────────────────────────
   const calculateKeyCostFormula = (count: bigint, currentTotalKeys: bigint): bigint => {
@@ -198,12 +205,12 @@ export function useLastSurvivor({
     return baseCost + incrementCost;
   };
 
-  const estimatedCostRaw = computed(() => {
-    const count = BigInt(Math.max(0, Math.floor(Number(keyCount.value) || 0)));
-    return calculateKeyCostFormula(count, totalKeysInRound.value);
-  });
+  const estimatedCostRaw = createDerived(() => {
+    const count = BigInt(Math.max(0, Math.floor(Number(keyCount.get()) || 0)));
+    return calculateKeyCostFormula(count, totalKeysInRound.get());
+  }, []);
 
-  const estimatedCost = computed(() => (Number(estimatedCostRaw.value) / 1e8).toFixed(2));
+  const estimatedCost = createDerived(() => (Number(estimatedCostRaw.get()) / 1e8).toFixed(2), []);
 
   // ── Data Loading (via OS services) ─────────────────────────────────
 
@@ -216,11 +223,11 @@ export function useLastSurvivor({
     try {
       const state = await gameService.getPoolState("current") as SurvivorPoolState;
       if (state && typeof state === "object") {
-        roundId.value = Number(state.roundId ?? 0);
-        totalPot.value = Number(state.totalBets ?? state.pot ?? 0);
-        isRoundActive.value = state.status === "active" || Boolean(state.active);
-        lastBuyer.value = String(state.lastBuyer ?? "");
-        totalKeysInRound.value = BigInt(Number(state.totalKeys) || 0);
+        roundId.set(Number(state.roundId ?? 0));
+        totalPot.set(Number(state.totalBets ?? state.pot ?? 0));
+        isRoundActive.set(state.status === "active" || Boolean(state.active));
+        lastBuyer.set(String(state.lastBuyer ?? ""));
+        totalKeysInRound.set(BigInt(Number(state.totalKeys) || 0));
         return Number(state.remainingTime ?? 0);
       }
       return 0;
@@ -235,16 +242,16 @@ export function useLastSurvivor({
    * The edge function reads the per-player key count from contract storage.
    */
   const loadUserKeys = async () => {
-    if (!roundId.value) {
-      userKeys.value = 0;
+    if (!roundId.get()) {
+      userKeys.set(0);
       return;
     }
     try {
-      const keys = await storageService.get(`playerKeys:${roundId.value}`);
-      userKeys.value = Number(keys || 0);
+      const keys = await storageService.get(`playerKeys:${roundId.get()}`);
+      userKeys.set(Number(keys || 0));
     } catch (e) {
       console.warn("[useLastSurvivor] loadUserKeys failed:", e instanceof Error ? e.message : String(e));
-      userKeys.value = 0;
+      userKeys.set(0);
     }
   };
 
@@ -298,10 +305,10 @@ export function useLastSurvivor({
         });
       }
 
-      history.value = items.sort((a, b) => Number(b.id) - Number(a.id));
+      history.set(items.sort((a, b) => Number(b.id) - Number(a.id)));
     } catch (e) {
       console.warn("[useLastSurvivor] loadHistory failed:", e instanceof Error ? e.message : String(e));
-      history.value = [];
+      history.set([]);
     }
   };
 
@@ -316,15 +323,15 @@ export function useLastSurvivor({
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       const remainingSeconds = await loadRoundData();
       const endTimeMs = remainingSeconds > 0 ? Date.now() + remainingSeconds * 1000 : 0;
-      endTime.value = endTimeMs;
+      endTime.set(endTimeMs);
       await loadUserKeys();
       await loadHistory();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -339,29 +346,29 @@ export function useLastSurvivor({
    * edge function, so we just fire-and-forget a badge hint.
    */
   const buyKeys = async (count: string) => {
-    if (isBuyingKeys.value) return;
+    if (isBuyingKeys.get()) return;
     const validation = validateKeyCount(count);
     if (validation) {
-      keyValidationError.value = validation;
+      keyValidationError.set(validation);
       throw new Error(validation);
     }
-    keyValidationError.value = null;
+    keyValidationError.set(null);
     const numKeys = Math.max(0, Math.floor(Number(count) || 0));
     if (numKeys <= 0) throw new Error(t("invalidKeyCount"));
 
-    isBuyingKeys.value = true;
+    isBuyingKeys.set(true);
     try {
-      const costRaw = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.value);
+      const costRaw = calculateKeyCostFormula(BigInt(numKeys), totalKeysInRound.get());
       const costGas = (Number(costRaw) / 1e8).toFixed(8);
 
       // Step 1: Deposit GAS via PaymentProxy
-      await paymentService.deposit(costGas, `buy:${roundId.value}:${numKeys}`);
+      await paymentService.deposit(costGas, `buy:${roundId.get()}:${numKeys}`);
 
       // Step 2: Place bet (buy keys) via GameProxy
       await gameService.placeBet("current", String(numKeys));
 
       // Step 3: Hint badge service about first-key achievement (fire-and-forget)
-      if (userKeys.value === 0) {
+      if (userKeys.get() === 0) {
         badgeService.award("first-key", "").catch(() => {});
       }
 
@@ -370,7 +377,7 @@ export function useLastSurvivor({
     } catch (e) {
       throw e;
     } finally {
-      isBuyingKeys.value = false;
+      isBuyingKeys.set(false);
     }
   };
 
@@ -381,14 +388,14 @@ export function useLastSurvivor({
    * The payment is automatically settled to the winner by the edge function.
    */
   const claimPrize = async () => {
-    if (isClaiming.value) return;
-    isClaiming.value = true;
+    if (isClaiming.get()) return;
+    isClaiming.set(true);
     try {
       // Settle the round — the edge function handles prize distribution
       await gameService.settle("current", { claim: true });
 
       // Submit the winning score to the leaderboard
-      await leaderboardService.submitScore(String(totalPot.value));
+      await leaderboardService.submitScore(String(totalPot.get()));
 
       // Hint badge service about winner achievement (fire-and-forget)
       badgeService.award("survivor-winner", "").catch(() => {});
@@ -397,7 +404,7 @@ export function useLastSurvivor({
     } catch (e) {
       throw e;
     } finally {
-      isClaiming.value = false;
+      isClaiming.set(false);
     }
   };
 

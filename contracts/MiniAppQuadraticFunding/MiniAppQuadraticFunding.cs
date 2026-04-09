@@ -191,8 +191,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static RoundData GetRound(BigInteger roundId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_ROUNDS, (ByteString)roundId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_ROUNDS, roundId));
             if (data == null) return new RoundData();
             return (RoundData)StdLib.Deserialize(data);
         }
@@ -200,8 +199,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static ProjectData GetProject(BigInteger projectId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_PROJECTS, (ByteString)projectId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_PROJECTS, projectId));
             if (data == null) return new ProjectData();
             return (ProjectData)StdLib.Deserialize(data);
         }

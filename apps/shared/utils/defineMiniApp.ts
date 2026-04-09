@@ -16,7 +16,7 @@
  * @example
  * ```ts
  * import { defineMiniApp } from "@shared/utils/defineMiniApp";
- * import PlayArea from "./components/PlayArea.vue";
+ * import PlayArea from "./PlayArea";
  *
  * defineMiniApp({
  *   appId: "miniapp-daily-checkin",
@@ -51,7 +51,7 @@ import type {
   MiniAppSetupResult,
   PlatformServices,
 } from "../types/miniapp-context";
-import MiniAppRoot from "../components/MiniAppRoot.vue";
+import MiniAppRoot from "../react/MiniAppRoot";
 
 // Re-export shared types and injection keys so consumers can import from one place
 export type {

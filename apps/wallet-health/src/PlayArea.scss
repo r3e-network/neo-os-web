@@ -1,0 +1,83 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.health-play-area { @include console.play-area; min-height: 300px; }
+
+.hero-container {
+  margin-bottom: 20px;
+  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
+}
+
+.health-gauge-scene { display: flex; justify-content: center; align-items: center; height: 100px; }
+
+.gauge-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(var(--health-accent, #00e599) calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.08) 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: heartbeat-pulse 2.5s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--health-accent-glow, rgba(0, 229, 153, 0.2));
+
+  &::before {
+    content: "";
+    position: absolute;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: var(--health-bg-start, #0a0a0a);
+  }
+}
+
+.gauge-value {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--health-accent-strong, #00e599);
+  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
+}
+
+.risk-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.risk-icon { font-size: 16px; }
+.empty-state { text-align: center; }
+.health-stack { @include console.stack(16px); }
+.stats-grid { display: flex; flex-direction: column; gap: 8px; }
+.stat-item { @include console.stat-row; }
+.stat-label { @include console.stat-label; }
+.stat-value { @include console.stat-value; }
+
+@keyframes heartbeat-pulse {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.08); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.12); }
+  56% { transform: scale(1); }
+}
+
+@media (max-width: 480px) {
+  .gauge-ring { width: 64px; height: 64px; }
+  .gauge-ring::before { width: 50px; height: 50px; }
+  .gauge-value { font-size: 18px; }
+  .health-gauge-scene { height: 80px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge-ring { animation: none; }
+}

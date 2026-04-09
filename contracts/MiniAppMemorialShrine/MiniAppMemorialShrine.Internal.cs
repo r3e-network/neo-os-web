@@ -13,14 +13,12 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreMemorial(BigInteger memorialId, Memorial memorial)
         {
-            byte[] key = Helper.Concat(PREFIX_MEMORIALS, (ByteString)memorialId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, StdLib.Serialize(memorial));
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_MEMORIALS, memorialId), StdLib.Serialize(memorial));
         }
 
         private static void StoreTribute(BigInteger tributeId, Tribute tribute)
         {
-            byte[] key = Helper.Concat(PREFIX_TRIBUTES, (ByteString)tributeId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, StdLib.Serialize(tribute));
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_TRIBUTES, tributeId), StdLib.Serialize(tribute));
         }
 
         #endregion
@@ -35,8 +33,7 @@ namespace NeoMiniAppPlatform.Contracts
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, memorialId);
 
-            byte[] countKey = Helper.Concat(PREFIX_CREATOR_MEMORIAL_COUNT, creator);
-            Storage.Put(Storage.CurrentContext, countKey, count + 1);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_CREATOR_MEMORIAL_COUNT, creator), count + 1);
         }
 
         [Safe]
@@ -60,8 +57,7 @@ namespace NeoMiniAppPlatform.Contracts
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, tributeId);
 
-            byte[] countKey = Helper.Concat(PREFIX_MEMORIAL_TRIBUTE_COUNT, (ByteString)memorialId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, countKey, count + 1);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_MEMORIAL_TRIBUTE_COUNT, memorialId), count + 1);
         }
 
         [Safe]
@@ -87,8 +83,7 @@ namespace NeoMiniAppPlatform.Contracts
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, memorialId);
 
-            byte[] countKey = Helper.Concat(PREFIX_VISITOR_MEMORIAL_COUNT, visitor);
-            Storage.Put(Storage.CurrentContext, countKey, count + 1);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_VISITOR_MEMORIAL_COUNT, visitor), count + 1);
 
             byte[] visitedKey = Helper.Concat(
                 Helper.Concat(PREFIX_VISITED_FLAG, visitor),
@@ -125,8 +120,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger count = GetObituaryCount();
             BigInteger nextIndex = count % MAX_RECENT_OBITUARIES;
 
-            byte[] key = Helper.Concat(PREFIX_RECENT_OBITUARIES, (ByteString)nextIndex.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, memorialId);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_RECENT_OBITUARIES, nextIndex), memorialId);
 
             Storage.Put(Storage.CurrentContext, PREFIX_OBITUARY_COUNT, count + 1);
         }
@@ -134,8 +128,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetRecentObituaryAt(BigInteger index)
         {
-            byte[] key = Helper.Concat(PREFIX_RECENT_OBITUARIES, (ByteString)index.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_RECENT_OBITUARIES, index));
         }
 
         [Safe]

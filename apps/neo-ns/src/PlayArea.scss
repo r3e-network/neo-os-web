@@ -1,0 +1,28 @@
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.neo-ns-play-area {
+  display: flex; flex-direction: column; gap: 24px; padding: 20px 12px; min-height: 300px;
+}
+
+.error-banner {
+  padding: 12px 16px; border-radius: 12px;
+  background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #f87171; font-size: 13px; line-height: 1.5;
+}
+
+.hero-container {
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.12), rgba(0, 105, 148, 0.06), rgba(0, 229, 153, 0.08));
+  background-size: 200% 200%; animation: ns-gradient-shift 8s ease-in-out infinite;
+  box-shadow: 0 0 30px rgba(0, 188, 212, 0.08), inset 0 1px 0 rgba(0, 188, 212, 0.1);
+  border: 1px solid rgba(0, 188, 212, 0.1); border-radius: 16px; padding: 24px; text-align: center;
+}
+
+.hero-stats { display: flex; justify-content: center; gap: 16px; }
+.hero-stat-item { padding: 12px 20px; background: rgba(0, 188, 212, 0.12); border: 1px solid rgba(0, 188, 212, 0.15); border-radius: 12px; }
+.hero-stat-value { display: block; font-size: 24px; font-weight: 700; }
+.hero-stat-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+
+@keyframes ns-gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@media (prefers-reduced-motion: reduce) { .hero-container { animation: none; } }

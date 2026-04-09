@@ -96,15 +96,10 @@ type RuntimeUIConfig = {
   buttons?: RuntimeButtonConfig[];
 };
 
-function asObject(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
+const asObject = (v: unknown): Record<string, unknown> =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 
-function toString(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  return String(value).trim();
-}
+const toString = (v: unknown): string => (v == null ? "" : String(v).trim());
 
 function parseDocs(raw: RuntimeDocsConfig | undefined): DocsConfig | undefined {
   if (!raw || !toString(raw.title)) return undefined;

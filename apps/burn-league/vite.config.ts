@@ -1,3 +1,3 @@
-import { createAppConfig } from "../vite.shared";
+import { createReactAppConfig } from "../vite.shared.react";
 
-export default createAppConfig(__dirname);
+export default createReactAppConfig(__dirname);

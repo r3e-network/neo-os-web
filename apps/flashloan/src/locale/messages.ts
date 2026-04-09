@@ -148,7 +148,6 @@ const appMessages = {
   sidebarTotalVolume: { en: "Total Volume", zh: "总交易量" },
   flashloanErrorFallback: { en: "Something went wrong", zh: "出现错误" },
   error: { en: "Error", zh: "错误" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

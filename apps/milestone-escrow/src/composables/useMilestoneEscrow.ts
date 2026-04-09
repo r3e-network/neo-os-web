@@ -38,7 +38,8 @@ import { ref, computed } from "vue";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { formatGas, formatAddress } from "@shared/utils/format";
-import type { EscrowItem } from "../pages/index/components/EscrowList.vue";
+import { parseBigInt } from "@shared/utils/parsers";
+import type { EscrowItem } from "../pages/index/components/EscrowList";
 
 // ============================================================================
 // Constants
@@ -77,17 +78,9 @@ const parseBoolArray = (value: unknown, count: number): boolean[] => {
   return value.map((item) => Boolean(item));
 };
 
-const parseBigIntValue = (value: unknown): bigint => {
-  try {
-    return BigInt(String(value || 0));
-  } catch {
-    return 0n;
-  }
-};
-
 const parseBigIntArray = (value: unknown, count: number): bigint[] => {
   if (!Array.isArray(value)) return new Array(count).fill(0n);
-  return value.map((item) => parseBigIntValue(item));
+  return value.map((item) => parseBigInt(item));
 };
 
 const parseEscrow = (raw: Record<string, unknown> | null, id: string): EscrowItem | null => {
@@ -101,8 +94,8 @@ const parseEscrow = (raw: Record<string, unknown> | null, id: string): EscrowIte
     creator: String(raw.creator || ""),
     beneficiary: String(raw.beneficiary || ""),
     assetSymbol,
-    totalAmount: parseBigIntValue(raw.totalAmount),
-    releasedAmount: parseBigIntValue(raw.releasedAmount),
+    totalAmount: parseBigInt(raw.totalAmount),
+    releasedAmount: parseBigInt(raw.releasedAmount),
     status: String(raw.status || "active") as "active" | "completed" | "cancelled",
     milestoneAmounts: parseBigIntArray(raw.milestoneAmounts, milestoneCount),
     milestoneApproved: parseBoolArray(raw.milestoneApproved, milestoneCount),

@@ -1,12 +1,12 @@
 /**
- * useAARelayConsole — Domain logic for AA Relay Console
+ * useAARelayConsole -- Domain logic for AA Relay Console
  *
- * Encapsulates AA relay, sponsorship check, and sponsorship request logic.
- * Receives AAService + EventBus from PlatformServices instead of
- * using useAbstractAccount directly.
+ * Uses createObservable instead of Vue ref/computed.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { AAService, EventBus } from "@shared/services";
 import type { SponsorshipStatus, RelayResult } from "@shared/services";
 import { getExternalIntegrationConfig } from "@shared/constants/rpc";
@@ -23,25 +23,71 @@ type SponsorResult = SponsorshipStatus | RelayResult | null;
 export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions) {
   const integration = getExternalIntegrationConfig("testnet");
 
-  const aaAddress = ref("");
-  const dappId = ref("");
-  const payloadJson = ref("{\n  \"metaInvocation\": {\n    \"scriptHash\": \"0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38\"\n  }\n}");
-  const sponsorResult = ref<SponsorResult>(null);
-  const lastRelayResult = ref<RelayResult | null>(null);
+  const aaAddress = createObservable("");
+  const dappId = createObservable("");
+  const payloadJson = createObservable('{\n  "metaInvocation": {\n    "scriptHash": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"\n  }\n}');
+  const sponsorResult = createObservable<SponsorResult>(null);
+  const lastRelayResult = createObservable<RelayResult | null>(null);
 
-  // -- Display values --
-  const aaAddressDisplay = computed(() => aaAddress.value || t("notAvailable"));
-  const paymasterDisplay = computed(() => dappId.value || t("unset"));
-  const sponsorState = computed(() => JSON.stringify(sponsorResult.value ?? {}, null, 2));
-  const relayResponse = computed(() => JSON.stringify(lastRelayResult.value ?? {}, null, 2));
-  const aaCoreDisplay = computed(() => integration.contracts.aaCore);
-  const relayUrlDisplay = computed(() => "/api/aa/relay");
-  const networkDisplay = computed(() => "testnet");
+  // Display values
+  const aaAddressDisplay: Observable<string> = {
+    get: () => aaAddress.get() || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => aaAddress.subscribe(fn),
+  };
 
-  // -- Actions --
+  const paymasterDisplay: Observable<string> = {
+    get: () => dappId.get() || t("unset"),
+    set: () => {},
+    subscribe: (fn) => dappId.subscribe(fn),
+  };
+
+  const sponsorState: Observable<string> = {
+    get: () => JSON.stringify(sponsorResult.get() ?? {}, null, 2),
+    set: () => {},
+    subscribe: (fn) => sponsorResult.subscribe(fn),
+  };
+
+  const relayResponse: Observable<string> = {
+    get: () => JSON.stringify(lastRelayResult.get() ?? {}, null, 2),
+    set: () => {},
+    subscribe: (fn) => lastRelayResult.subscribe(fn),
+  };
+
+  const aaCoreDisplay: Observable<string> = {
+    get: () => integration.contracts.aaCore,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const relayUrlDisplay: Observable<string> = {
+    get: () => "/api/aa/relay",
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => "testnet",
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const isCheckingSponsorship: Observable<boolean> = {
+    get: () => aa.isCheckingSponsorship,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const isRelaying: Observable<boolean> = {
+    get: () => aa.isRelaying,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  // Actions
   async function checkSponsor() {
     try {
-      sponsorResult.value = await aa.checkSponsorship();
+      sponsorResult.set(await aa.checkSponsorship());
       eventBus.emit("sponsor:checked", {});
     } catch (e) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorCheckError")) });
@@ -51,7 +97,7 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
 
   async function requestSponsor() {
     try {
-      sponsorResult.value = await aa.requestSponsorship("0.1");
+      sponsorResult.set(await aa.requestSponsorship("0.1"));
       eventBus.emit("sponsor:requested", {});
     } catch (e) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(e, t("sponsorRequestError")) });
@@ -61,11 +107,11 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
 
   async function submitRelay() {
     try {
-      const payload = JSON.parse(payloadJson.value);
-      aa.setAddress(aaAddress.value || null);
+      const payload = JSON.parse(payloadJson.get());
+      aa.setAddress(aaAddress.get() || null);
       const result = await aa.submitRelay(payload);
-      lastRelayResult.value = result;
-      sponsorResult.value = result;
+      lastRelayResult.set(result);
+      sponsorResult.set(result);
       eventBus.emit("relay:submitted", {});
     } catch (e) {
       eventBus.emit("relay:error", { message: formatErrorMessage(e, t("relayError")) });
@@ -73,17 +119,12 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
     }
   }
 
-  const loadAll = async () => {
-    // No initial data to load — relay is user-triggered
-  };
+  const loadAll = async () => {};
 
   return {
-    // -- Form state --
     aaAddress,
     dappId,
     payloadJson,
-
-    // -- Display values --
     aaAddressDisplay,
     paymasterDisplay,
     sponsorState,
@@ -91,10 +132,8 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
     aaCoreDisplay,
     relayUrlDisplay,
     networkDisplay,
-    isCheckingSponsorship: aa.isCheckingSponsorship,
-    isRelaying: aa.isRelaying,
-
-    // -- Actions --
+    isCheckingSponsorship,
+    isRelaying,
     checkSponsor,
     requestSponsor,
     submitRelay,

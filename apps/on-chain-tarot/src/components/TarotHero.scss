@@ -1,0 +1,9 @@
+.hero-container { margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.tarot-scene { width: 80px; height: 120px; }
+.tarot-card-back-hero { width: 100%; height: 100%; background: linear-gradient(135deg, #1a0a2e, #2d1b4e); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(167, 139, 250, 0.3); transition: all 0.5s; &.tarot-card-back--drawn { opacity: 0.3; transform: scale(0.9); } }
+.tarot-card-inner-hero { display: flex; align-items: center; justify-content: center; }
+.tarot-symbol { font-size: 32px; color: #a78bfa; }
+.hero-stats { display: flex; gap: 24px; }
+.hero-stat { display: flex; flex-direction: column; align-items: center; }
+.hero-stat-value { font-size: 24px; font-weight: 900; color: #a78bfa; }
+.hero-stat-label { font-size: 10px; font-weight: 600; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }

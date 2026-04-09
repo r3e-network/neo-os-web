@@ -174,15 +174,13 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetSpreadCount(BigInteger spreadType)
         {
-            byte[] key = Helper.Concat(PREFIX_SPREAD_COUNTS, (ByteString)spreadType.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_SPREAD_COUNTS, spreadType));
         }
 
         [Safe]
         public static ReadingData GetReading(BigInteger readingId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_READINGS, (ByteString)readingId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_READINGS, readingId));
             if (data == null) return new ReadingData();
             return (ReadingData)StdLib.Deserialize(data);
         }
@@ -190,8 +188,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static UserStats GetUserStats(UInt160 user)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_USER_STATS, user));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_STATS, user));
             if (data == null) return new UserStats();
             return (UserStats)StdLib.Deserialize(data);
         }
@@ -199,8 +196,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static ReaderProfile GetReader(UInt160 reader)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_READERS, reader));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_READERS, reader));
             if (data == null) return new ReaderProfile();
             return (ReaderProfile)StdLib.Deserialize(data);
         }
@@ -208,8 +204,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserReadingCount(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_READING_COUNT, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_READING_COUNT, user));
         }
 
         [Safe]

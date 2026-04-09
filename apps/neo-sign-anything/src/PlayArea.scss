@@ -1,0 +1,9 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.sign-play-area {
+  @include console.play-area;
+  align-items: center;
+  min-height: 300px;
+}

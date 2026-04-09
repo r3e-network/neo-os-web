@@ -1,12 +1,13 @@
 /**
- * useNeodidPassport -- Domain logic for NeoDID Passport
+ * useNeodidPassport -- Domain logic for NeoDID Passport (React)
  *
  * Receives OracleService from PlatformServices instead of
  * using useOracle directly. No onMounted/onUnmounted -- lifecycle
  * is managed by defineMiniApp.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { OracleService, ClipboardService } from "@shared/services";
 import { CREDENTIAL_REGISTRY } from "@shared/constants";
 import { useWallet } from "@shared/utils/wallet-sdk";
@@ -23,75 +24,103 @@ export function useNeodidPassport({ oracle, clipboard, t }: UseNeodidPassportOpt
   const wallet = useWallet() as WalletSDK;
   const identityCredential = CREDENTIAL_REGISTRY.identity_passport;
 
-  const did = ref("did:morpheus:neo_n3:service:neodid");
-  const format = ref("resolution");
-  const secretName = ref("passport-ref");
-  const credentialRecipient = ref("");
-  const credentialTemplateId = ref("");
-  const ciphertext = ref("");
-  const latestPayload = ref<Record<string, unknown> | null>(null);
+  const did = createObservable("did:morpheus:neo_n3:service:neodid");
+  const format = createObservable("resolution");
+  const secretName = createObservable("passport-ref");
+  const credentialRecipient = createObservable("");
+  const credentialTemplateId = createObservable("");
+  const ciphertext = createObservable("");
+  const latestPayload = createObservable<Record<string, unknown> | null>(null);
 
-  const normalizedFormat = computed<"resolution" | "document">(() =>
-    String(format.value || "").trim().toLowerCase() === "document" ? "document" : "resolution",
-  );
+  const normalizedFormat: Observable<"resolution" | "document"> = {
+    get: () => String(format.get() || "").trim().toLowerCase() === "document" ? "document" : "resolution",
+    set: (val) => format.set(val),
+    subscribe: (listener) => format.subscribe(listener),
+  };
 
-  const providerCount = computed(() => {
-    const payload = latestPayload.value;
-    if (!payload) return 0;
-    if (Array.isArray(payload)) return payload.length;
-    if (Array.isArray(payload.providers)) return payload.providers.length;
-    if (payload.providers && typeof payload.providers === "object") {
-      return Object.keys(payload.providers as Record<string, unknown>).length;
-    }
-    return 0;
-  });
+  const providerCount: Observable<number> = {
+    get: () => {
+      const payload = latestPayload.get();
+      if (!payload) return 0;
+      if (Array.isArray(payload)) return payload.length;
+      if (Array.isArray(payload.providers)) return payload.providers.length;
+      if (payload.providers && typeof payload.providers === "object") {
+        return Object.keys(payload.providers as Record<string, unknown>).length;
+      }
+      return 0;
+    },
+    set: () => {},
+    subscribe: (listener) => latestPayload.subscribe(listener),
+  };
 
-  const renderedPayload = computed(() =>
-    JSON.stringify(latestPayload.value ?? {}, null, 2) || t("notAvailable"),
-  );
+  const renderedPayload: Observable<string> = {
+    get: () => JSON.stringify(latestPayload.get() ?? {}, null, 2) || t("notAvailable"),
+    set: () => {},
+    subscribe: (listener) => latestPayload.subscribe(listener),
+  };
 
   // State values for manifest bindings
-  const oracleHash = computed(() => oracle.integration.contracts.morpheusOracle);
-  const networkDisplay = computed(() => oracle.network);
-  const publicApiUrl = computed(() => oracle.integration.morpheusPublicApiUrl);
-  const neodidDomain = computed(() => oracle.integration.domains.neodid || t("notPublished"));
-  const neodidContract = computed(() => oracle.integration.contracts.morpheusNeoDid || t("externalResolver"));
+  const oracleHash: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusOracle,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+  const networkDisplay: Observable<string> = {
+    get: () => oracle.network,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+  const publicApiUrl: Observable<string> = {
+    get: () => oracle.integration.morpheusPublicApiUrl,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+  const neodidDomain: Observable<string> = {
+    get: () => oracle.integration.domains.neodid || t("notPublished"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+  const neodidContract: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusNeoDid || t("externalResolver"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
   async function resolveDidDocument() {
-    latestPayload.value = await oracle.resolveDidWithFormat(did.value, normalizedFormat.value) as Record<string, unknown>;
+    latestPayload.set(await oracle.resolveDidWithFormat(did.get(), normalizedFormat.get()) as Record<string, unknown>);
     return { success: true };
   }
 
   async function loadProviders() {
-    latestPayload.value = await oracle.getDidProviders() as Record<string, unknown>;
+    latestPayload.set(await oracle.getDidProviders() as Record<string, unknown>);
     return { success: true };
   }
 
   async function fetchOracleKey() {
-    latestPayload.value = await oracle.getOraclePublicKey() as unknown as Record<string, unknown>;
+    latestPayload.set(await oracle.getOraclePublicKey() as unknown as Record<string, unknown>);
     return { success: true };
   }
 
   async function storeRef() {
-    if (!String(ciphertext.value || "").trim()) {
+    if (!String(ciphertext.get() || "").trim()) {
       throw new Error(t("storeFailed"));
     }
-    latestPayload.value = await oracle.storeConfidentialCiphertext({
-      ciphertext: ciphertext.value,
-      name: secretName.value || undefined,
+    latestPayload.set(await oracle.storeConfidentialCiphertext({
+      ciphertext: ciphertext.get(),
+      name: secretName.get() || undefined,
       project_slug: "neodid-passport",
       metadata: {
-        did: did.value,
-        format: normalizedFormat.value,
+        did: did.get(),
+        format: normalizedFormat.get(),
       },
-    }) as unknown as Record<string, unknown>;
+    }) as unknown as Record<string, unknown>);
     return { success: true };
   }
 
   function buildIdentityCredentialUrl() {
-    const payload = latestPayload.value || {};
-    const recipient = String(credentialRecipient.value || wallet.address.value || "").trim();
-    const resolvedDid = String((payload.id as string) || did.value || "").trim();
+    const payload = latestPayload.get() || {};
+    const recipient = String(credentialRecipient.get() || wallet.address.value || "").trim();
+    const resolvedDid = String((payload.id as string) || did.get() || "").trim();
     const achievement = resolvedDid ? "NeoDID Passport Verified" : "Identity Credential";
     const memo = resolvedDid ? `DID ${resolvedDid}` : "Identity credential draft";
     const params = new URLSearchParams({
@@ -105,8 +134,8 @@ export function useNeodidPassport({ oracle, clipboard, t }: UseNeodidPassportOpt
       issueSource: "neodid-passport",
       autoIssueDraft: "1",
     });
-    if (credentialTemplateId.value.trim()) {
-      params.set("issueTemplateId", credentialTemplateId.value.trim());
+    if (credentialTemplateId.get().trim()) {
+      params.set("issueTemplateId", credentialTemplateId.get().trim());
     }
     return buildMiniAppLaunchUrl("miniapp-soulbound-certificate", Object.fromEntries(params.entries()));
   }

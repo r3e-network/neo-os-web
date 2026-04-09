@@ -1,82 +1,69 @@
 /**
- * useAAAccountLab — Domain logic for AA Account Lab (OS Services)
+ * useAAAccountLab -- Domain logic for AA Account Lab (OS Services)
  *
- * This app primarily uses the AA service (ctx.services.aa) which is a
- * platform service, NOT an OS contract. The migration is minimal:
- * - chain.invokeRead() calls remain as-is since they target the
- *   external aaCore contract (not a platform OS contract)
- * - chain.invokeWrite() calls remain as-is for the same reason
- * - StorageProxy is used for any persistent state caching
- *
- * The AA service (ctx.services.aa) is the correct abstraction for
- * account abstraction operations. The chain service is still needed
- * for low-level invokeRead/invokeWrite to the aaCore contract since
- * there is no OS-level AA proxy.
- *
- * What changed:
- * - StorageProxy added for caching inspected account state
- * - ChainService retained for aaCore contract reads/writes
+ * Uses createObservable instead of Vue ref/computed/reactive.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, reactive, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService } from "@shared/services";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import { addressToScriptHash, normalizeScriptHash, parseInvokeResult } from "@shared/utils/neo";
 import { deriveAAAccountIdHash } from "@shared/utils/aa-account";
-import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface UseAAAccountLabOptions {
-  /** ChainService for aaCore contract reads/writes (platform service) */
   chain: ChainService;
-  /** OS StorageProxy for caching inspected state */
   storageService: StorageProxy;
-  /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
 }
-
-// ============================================================================
-// Composable
-// ============================================================================
 
 export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOptions) {
   const integration = getExternalIntegrationConfig("testnet");
   const aaCore = integration.contracts.aaCore;
   const defaultVerifier = integration.contracts.aaWeb3AuthVerifier;
 
-  // -- Inspect form state --
-  const inspectForm = reactive({ accountIdInput: "" });
-
-  // -- Register form state --
-  const registerForm = reactive({
+  // Form state (plain objects, not reactive -- mutations happen through actions)
+  const inspectForm = { accountIdInput: "" };
+  const registerForm = {
     accountIdInput: "",
     verifierHash: defaultVerifier,
     verifierParamsHex: "",
     hookHash: "",
     backupOwner: "",
     escapeTimelock: "2592000",
-  });
+  };
 
-  // -- Inspected state --
-  const currentVerifier = ref(t("notAvailable"));
-  const currentHook = ref(t("notAvailable"));
-  const currentBackupOwner = ref(t("notAvailable"));
-  const inspectedAccountIdHash = ref("");
+  // Inspected state
+  const currentVerifier = createObservable(t("notAvailable"));
+  const currentHook = createObservable(t("notAvailable"));
+  const currentBackupOwner = createObservable(t("notAvailable"));
 
-  // -- Loading states --
-  const isInspecting = ref(false);
-  const isSubmitting = ref(false);
+  // Loading states
+  const isInspecting = createObservable(false);
+  const isSubmitting = createObservable(false);
 
-  // -- Display values --
-  const aaCoreDisplay = computed(() => aaCore);
-  const defaultVerifierDisplay = computed(() => defaultVerifier);
-  const networkDisplay = computed(() => t("testnet"));
+  // Display values
+  const aaCoreDisplay: Observable<string> = {
+    get: () => aaCore,
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
-  // -- Helpers --
+  const defaultVerifierDisplay: Observable<string> = {
+    get: () => defaultVerifier,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => t("testnet"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  // Helpers
   function deriveAccountIdHash(input: string): string {
     try {
       return deriveAAAccountIdHash(input);
@@ -99,18 +86,10 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     return normalized;
   }
 
-  // -- Actions --
-
-  /**
-   * Inspect an AA account.
-   * Uses chain.invokeRead for aaCore contract reads (platform service),
-   * then caches results via StorageProxy for persistence.
-   */
   const inspectAccount = async () => {
     try {
-      isInspecting.value = true;
+      isInspecting.set(true);
       const accountIdHash = deriveAccountIdHash(inspectForm.accountIdInput);
-      inspectedAccountIdHash.value = accountIdHash;
       const accountId = `0x${accountIdHash}`;
 
       const [verifierResult, hookResult, backupResult] = await Promise.all([
@@ -119,31 +98,26 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
         chain.invokeRead(aaCore, "getBackupOwner", [{ type: "Hash160", value: accountId }]),
       ]);
 
-      currentVerifier.value = String(parseInvokeResult(verifierResult) || t("notAvailable"));
-      currentHook.value = String(parseInvokeResult(hookResult) || t("notAvailable"));
-      currentBackupOwner.value = String(parseInvokeResult(backupResult) || t("notAvailable"));
+      currentVerifier.set(String(parseInvokeResult(verifierResult) || t("notAvailable")));
+      currentHook.set(String(parseInvokeResult(hookResult) || t("notAvailable")));
+      currentBackupOwner.set(String(parseInvokeResult(backupResult) || t("notAvailable")));
 
-      // Cache inspected state via StorageProxy
       storageService.set(`account:${accountIdHash}`, {
-        verifier: currentVerifier.value,
-        hook: currentHook.value,
-        backupOwner: currentBackupOwner.value,
+        verifier: currentVerifier.get(),
+        hook: currentHook.get(),
+        backupOwner: currentBackupOwner.get(),
         inspectedAt: Date.now(),
       }).catch(() => {});
     } catch (error: unknown) {
       throw error;
     } finally {
-      isInspecting.value = false;
+      isInspecting.set(false);
     }
   };
 
-  /**
-   * Register a new AA account.
-   * Uses chain.invokeWrite for aaCore contract writes (platform service).
-   */
   const submitRegister = async () => {
     try {
-      isSubmitting.value = true;
+      isSubmitting.set(true);
       const accountIdHash = deriveAccountIdHash(registerForm.accountIdInput);
       const verifierHash = normalizeHashOrZero(registerForm.verifierHash);
       const hookHash = normalizeHashOrZero(registerForm.hookHash);
@@ -160,7 +134,6 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
         { type: "Integer", value: String(escapeTimelock) },
       ]);
 
-      // Cache registered account via StorageProxy
       storageService.set(`registered:${accountIdHash}`, {
         verifier: verifierHash,
         hook: hookHash,
@@ -171,36 +144,24 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
     } catch (error: unknown) {
       throw error;
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   };
 
-  const loadAll = async () => {
-    // No initial data to load — inspect is user-triggered
-  };
+  const loadAll = async () => {};
 
   return {
-    // -- Form state --
     inspectForm,
     registerForm,
-
-    // -- Inspected state --
     currentVerifier,
     currentHook,
     currentBackupOwner,
-    inspectedAccountIdHash,
-
-    // -- Loading --
     isInspecting,
     isSubmitting,
-
-    // -- Display values --
     aaCoreDisplay,
     defaultVerifierDisplay,
     networkDisplay,
     aaCore,
-
-    // -- Actions --
     inspectAccount,
     submitRegister,
     loadAll,

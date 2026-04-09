@@ -67,7 +67,6 @@ const appMessages = {
   feature3Desc: { en: "Next-step recommendations for better security.", zh: "提供下一步安全建议。" },
   healthSummary: { en: "Health Summary", zh: "健康概览" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

@@ -1,5 +1,5 @@
 {
-  "extends": "../tsconfig.miniapp.json",
+  "extends": "../tsconfig.miniapp.react.json",
   "compilerOptions": {
     "paths": {
       "@/*": [
@@ -14,8 +14,7 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue"
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

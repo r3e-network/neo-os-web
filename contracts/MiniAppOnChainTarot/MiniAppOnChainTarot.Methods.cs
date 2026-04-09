@@ -50,9 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             BigInteger cardCount = GetCardCount(spreadType);
             BigInteger requestId = RequestRng(readingId, cardCount);
-            Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_REQUEST_MAP, (ByteString)requestId.ToByteArray()),
-                readingId);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_REQUEST_MAP, requestId), readingId);
 
             AddUserReading(user, readingId);
             UpdateUserStats(user, fee, spreadType);
@@ -213,7 +211,7 @@ namespace NeoMiniAppPlatform.Contracts
             ValidateOracle();
 
             ByteString readingIdData = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_REQUEST_MAP, (ByteString)requestId.ToByteArray()));
+                Key(PREFIX_REQUEST_MAP, requestId));
             if (readingIdData == null) return;
 
             BigInteger readingId = (BigInteger)readingIdData;
@@ -229,8 +227,7 @@ namespace NeoMiniAppPlatform.Contracts
                 OnReadingCompleted(readingId, reading.User, cards);
             }
 
-            Storage.Delete(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_REQUEST_MAP, (ByteString)requestId.ToByteArray()));
+            Storage.Delete(Storage.CurrentContext, Key(PREFIX_REQUEST_MAP, requestId));
         }
 
         #endregion

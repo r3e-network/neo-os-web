@@ -104,6 +104,7 @@ export const baseMessages = {
   navigationSidebar: { en: "Navigation sidebar", zh: "导航侧边栏" },
   operationsPanel: { en: "Operations panel", zh: "操作面板" },
   detailsLabel: { en: "Details", zh: "详情" },
+  scrollRevealAriaLabel: { en: "Animated content", zh: "动画内容" },
   vaultLabel: { en: "Vault {id}", zh: "保险库 {id}" },
 
   // --- Documentation keys ---

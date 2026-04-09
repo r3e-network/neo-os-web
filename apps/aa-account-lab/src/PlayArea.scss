@@ -1,0 +1,7 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.aa-account-play-area { @include console.play-area; }
+
+.field-stack { @include console.stack; }
+.actions-row { @include console.actions-row; }

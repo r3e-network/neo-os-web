@@ -74,7 +74,7 @@ namespace NeoMiniAppPlatform.Contracts
             for (BigInteger i = 0; i < count; i++)
             {
                 byte[] key = Helper.Concat(
-                    Helper.Concat(PREFIX_DELEGATORS, (ByteString)maskId.ToByteArray()),
+                    Key(PREFIX_DELEGATORS, maskId),
                     (ByteString)i.ToByteArray());
                 delegators[(int)i] = (BigInteger)Storage.Get(Storage.CurrentContext, key);
             }
@@ -88,9 +88,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetDelegatorCount(BigInteger maskId)
         {
-            byte[] key = Helper.Concat(
-                PREFIX_DELEGATOR_COUNT,
-                (ByteString)maskId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_DELEGATOR_COUNT, maskId);
             ByteString data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
         }
@@ -101,9 +99,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetCachedDelegatedPower(BigInteger maskId)
         {
-            byte[] key = Helper.Concat(
-                PREFIX_CACHED_POWER,
-                (ByteString)maskId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_CACHED_POWER, maskId);
             ByteString data = Storage.Get(Storage.CurrentContext, key);
             return data == null ? 0 : (BigInteger)data;
         }
@@ -225,17 +221,17 @@ namespace NeoMiniAppPlatform.Contracts
             // Add to delegators list
             BigInteger count = GetDelegatorCount(targetMaskId);
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_DELEGATORS, (ByteString)targetMaskId.ToByteArray()),
+                Key(PREFIX_DELEGATORS, targetMaskId),
                 (ByteString)count.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, delegatorMaskId);
 
             // Update count
-            byte[] countKey = Helper.Concat(PREFIX_DELEGATOR_COUNT, (ByteString)targetMaskId.ToByteArray());
+            byte[] countKey = (byte[])Key(PREFIX_DELEGATOR_COUNT, targetMaskId);
             Storage.Put(Storage.CurrentContext, countKey, count + 1);
 
             // Update cached power
             BigInteger currentPower = GetCachedDelegatedPower(targetMaskId);
-            byte[] powerKey = Helper.Concat(PREFIX_CACHED_POWER, (ByteString)targetMaskId.ToByteArray());
+            byte[] powerKey = (byte[])Key(PREFIX_CACHED_POWER, targetMaskId);
             Storage.Put(Storage.CurrentContext, powerKey, currentPower + power);
         }
 
@@ -243,7 +239,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             // Update cached power (subtract)
             BigInteger currentPower = GetCachedDelegatedPower(targetMaskId);
-            byte[] powerKey = Helper.Concat(PREFIX_CACHED_POWER, (ByteString)targetMaskId.ToByteArray());
+            byte[] powerKey = (byte[])Key(PREFIX_CACHED_POWER, targetMaskId);
             BigInteger newPower = currentPower > power ? currentPower - power : 0;
             Storage.Put(Storage.CurrentContext, powerKey, newPower);
 
@@ -253,7 +249,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreDelegation(BigInteger maskId, BigInteger delegateToMaskId)
         {
-            byte[] key = Helper.Concat(PREFIX_DELEGATIONS, (ByteString)maskId.ToByteArray());
+            byte[] key = (byte[])Key(PREFIX_DELEGATIONS, maskId);
             if (delegateToMaskId > 0)
             {
                 Storage.Put(Storage.CurrentContext, key, delegateToMaskId);

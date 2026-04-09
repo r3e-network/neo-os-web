@@ -8,6 +8,7 @@
 import { computed, reactive, ref } from "vue";
 import type { ChainService, BalanceService, EventBus } from "@shared/services";
 import { formatFixed8 } from "@shared/utils/format";
+import { parseBigInt } from "@shared/utils/parsers";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
@@ -42,15 +43,6 @@ export function useWalletAnalysis({ chain, balance, eventBus, t }: UseWalletAnal
   const gasOk = computed(() => balances.gas >= GAS_LOW_THRESHOLD);
   const neoDisplay = computed(() => balances.neo.toString());
   const gasDisplay = computed(() => formatFixed8(balances.gas, 4));
-
-  const parseBigInt = (value: unknown) => {
-    try {
-      return BigInt(String(value ?? "0"));
-    } catch (_e) {
-      console.warn("[useWalletAnalysis] parseBigInt failed:", _e instanceof Error ? _e.message : String(_e));
-      return 0n;
-    }
-  };
 
   const refreshBalances = async () => {
     if (!chain.address.value) return;

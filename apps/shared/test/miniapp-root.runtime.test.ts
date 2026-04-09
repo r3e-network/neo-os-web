@@ -9,7 +9,7 @@ vi.mock("@shared/components/ErrorBoundary.vue", () => ({
   }),
 }));
 
-import MiniAppRoot from "@shared/components/MiniAppRoot.vue";
+import MiniAppRoot from "@shared/react/MiniAppRoot";
 import { EventBus } from "@shared/services/EventBus";
 
 const DummyPlayArea = defineComponent({

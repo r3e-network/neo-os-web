@@ -1,22 +1,12 @@
 {
-  "extends": "../tsconfig.miniapp.json",
+  "extends": "../tsconfig.miniapp.react.json",
   "compilerOptions": {
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@shared/*": [
-        "../../shared/*"
-      ]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/*"]
     },
     "types": ["vite/client"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.vue"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

@@ -23,7 +23,6 @@ const appMessages = {
   feature2Desc: { en: "Supports optional secret injection by name.", zh: "支持按名称注入可选 secret。" },
   feature3Name: { en: "Operator Console", zh: "运维控制台" },
   feature3Desc: { en: "Fast inspection tool for Oracle responses.", zh: "面向预言机响应的快速检查工具。" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   queryFailed: { en: "Query failed", zh: "查询失败" },
   queryCompleted: { en: "Query completed", zh: "查询完成" },
 } as const;

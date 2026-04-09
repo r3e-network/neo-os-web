@@ -237,10 +237,11 @@ namespace NeoMiniAppPlatform.Contracts
         }
         #endregion
 
-        #region Delegation Methods
+        #region Delegation Methods (advanced — no frontend UI; invoked via direct contract calls)
 
         /// <summary>
         /// Delegate voting power to another council member.
+        /// Not exposed in the miniapp frontend; intended for power-user or admin use.
         /// </summary>
         public static void SetDelegation(UInt160 delegator, UInt160 delegatee)
         {
@@ -253,7 +254,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(existingDelegatee == UInt160.Zero, "delegatee has delegation");
 
             Storage.Put(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_DELEGATION, delegator),
+                Key(PREFIX_DELEGATION, delegator),
                 delegatee);
 
             MemberStats stats = GetMemberStats(delegatee);
@@ -265,6 +266,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>
         /// Revoke vote delegation.
+        /// Not exposed in the miniapp frontend; intended for power-user or admin use.
         /// </summary>
         public static void RevokeDelegation(UInt160 delegator)
         {
@@ -274,7 +276,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(currentDelegatee != UInt160.Zero, "no delegation");
 
             Storage.Delete(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_DELEGATION, delegator));
+                Key(PREFIX_DELEGATION, delegator));
 
             MemberStats stats = GetMemberStats(currentDelegatee);
             if (stats.DelegationsReceived > 0)

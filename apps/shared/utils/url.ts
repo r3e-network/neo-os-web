@@ -10,9 +10,7 @@ export function buildUrlWithParams(
 ): string {
     const url = new URL(baseUrl, window.location.href);
     Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-            url.searchParams.set(key, String(value));
-        }
+        if (value != null) url.searchParams.set(key, String(value));
     });
     return url.toString();
 }

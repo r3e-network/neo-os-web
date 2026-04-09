@@ -61,8 +61,8 @@ test("shared miniapp entry path owns the real PlatformServices instance", () => 
     repoRoot,
     "apps",
     "shared",
-    "components",
-    "MiniAppRoot.vue",
+    "react",
+    "MiniAppRoot.tsx",
   );
   const miniAppContextFile = path.join(
     repoRoot,
@@ -83,12 +83,12 @@ test("shared miniapp entry path owns the real PlatformServices instance", () => 
   );
   assert.match(
     miniAppRootSource,
-    /PlatformServices\.create\(props\.appId,/,
+    /PlatformServices\.create\((?:props\.)?appId,/,
     "MiniAppRoot should create the real PlatformServices instance",
   );
   assert.match(
     miniAppRootSource,
-    /const ctx:[\s\S]*?\bservices\b/,
+    /(?:const ctx|ctxRef\.current)[\s\S]*?\bservices\b/,
     "MiniAppRoot should wire ctx.services to the real platform services object",
   );
   assert.match(

@@ -34,8 +34,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserResets(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_RESETS, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_RESETS, user));
         }
 
         #endregion

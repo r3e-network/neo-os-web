@@ -252,10 +252,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(guardian.IsValid && guardian != trust.Owner, "invalid guardian");
             ExecutionEngine.Assert(!IsGuardian(trustId, guardian), "already guardian");
 
-            byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_GUARDIANS, (ByteString)trustId.ToByteArray()),
-                guardian);
-            Storage.Put(Storage.CurrentContext, key, 1);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_GUARDIANS, trustId, guardian), 1);
 
             UpdateOwnerStatsOnGuardianAdd(trust.Owner);
 

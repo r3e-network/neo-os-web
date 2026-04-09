@@ -1,0 +1,33 @@
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./pages/index/neo-swap-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+body { background: var(--swap-bg-start); }
+
+.neo-swap-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 16px;
+  min-height: 300px;
+  font-family: 'IBM Plex Sans', 'Inter', sans-serif;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 48px, var(--swap-grid-line, rgba(0, 255, 136, 0.03)) 48px, var(--swap-grid-line, rgba(0, 255, 136, 0.03)) 49px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  > * { position: relative; z-index: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-swap-play-area::before { animation: none; }
+}

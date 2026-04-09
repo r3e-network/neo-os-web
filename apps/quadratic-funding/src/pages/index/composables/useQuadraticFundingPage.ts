@@ -4,9 +4,9 @@ import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
 import { formatAddress } from "@shared/utils/format";
-import type RoundForm from "../components/RoundForm.vue";
-import type ProjectForm from "../components/ProjectForm.vue";
-import type ContributionForm from "../components/ContributionForm.vue";
+import type RoundForm from "../components/RoundForm";
+import type ProjectForm from "../components/ProjectForm";
+import type ContributionForm from "../components/ContributionForm";
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = ref("rounds");

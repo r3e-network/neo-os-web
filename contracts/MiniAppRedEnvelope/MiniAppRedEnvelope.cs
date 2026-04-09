@@ -167,7 +167,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(Runtime.CheckWitness(claimer), "unauthorized");
 
             EnvelopeData envelope = GetEnvelope(envelopeId);
-            ExecutionEngine.Assert(envelope.Creator != null, "envelope not found");
+            ExecutionEngine.Assert(envelope.Creator != UInt160.Zero, "envelope not found");
             ExecutionEngine.Assert(envelope.Ready, "envelope not ready");
             ExecutionEngine.Assert(envelope.ClaimedCount < envelope.PacketCount, "envelope empty");
             ExecutionEngine.Assert(Runtime.Time <= (ulong)envelope.ExpiryTime, "envelope expired");
@@ -269,7 +269,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger envelopeId = (BigInteger)envelopeIdData;
             EnvelopeData envelope = GetEnvelope(envelopeId);
             ExecutionEngine.Assert(!envelope.Ready, "already ready");
-            ExecutionEngine.Assert(envelope.Creator != null, "envelope not found");
+            ExecutionEngine.Assert(envelope.Creator != UInt160.Zero, "envelope not found");
 
             Storage.Delete(Storage.CurrentContext,
                 Helper.Concat(PREFIX_REQUEST_TO_ENVELOPE, (ByteString)requestId.ToByteArray()));

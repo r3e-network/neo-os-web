@@ -1,0 +1,10 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+
+.compute-play-area { @include console.play-area; min-height: 300px; }
+
+.stack { @include console.stack; }
+.json-box { @include console.json-box; }
+.textarea-label, .label { @include console.label; }
+.value { @include console.value; }
+.result-grid { @include console.single-column-grid; }

@@ -1,0 +1,26 @@
+@use "@shared/styles/tokens.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+.qf-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 16px;
+  min-height: 300px;
+  font-family: var(--qf-font, 'Outfit', sans-serif);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 280px;
+    background:
+      radial-gradient(ellipse at 25% 0%, rgba(194, 65, 12, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 10%, rgba(124, 58, 237, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  > * { position: relative; z-index: 1; }
+}

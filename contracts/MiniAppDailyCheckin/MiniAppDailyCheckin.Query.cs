@@ -13,8 +13,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetUserJoinTime(UInt160 user)
         {
-            byte[] key = Helper.Concat(PREFIX_USER_JOIN_TIME, user);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_USER_JOIN_TIME, user));
         }
 
         [Safe]

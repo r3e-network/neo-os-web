@@ -148,8 +148,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static Memorial GetMemorial(BigInteger memorialId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_MEMORIALS, (ByteString)memorialId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_MEMORIALS, memorialId));
             if (data == null) return new Memorial();
             return (Memorial)StdLib.Deserialize(data);
         }
@@ -157,8 +156,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static Tribute GetTribute(BigInteger tributeId)
         {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_TRIBUTES, (ByteString)tributeId.ToByteArray()));
+            ByteString data = Storage.Get(Storage.CurrentContext, Key(PREFIX_TRIBUTES, tributeId));
             if (data == null) return new Tribute();
             return (Tribute)StdLib.Deserialize(data);
         }
@@ -166,22 +164,19 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static BigInteger GetCreatorMemorialCount(UInt160 creator)
         {
-            byte[] key = Helper.Concat(PREFIX_CREATOR_MEMORIAL_COUNT, creator);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_CREATOR_MEMORIAL_COUNT, creator));
         }
 
         [Safe]
         public static BigInteger GetVisitorMemorialCount(UInt160 visitor)
         {
-            byte[] key = Helper.Concat(PREFIX_VISITOR_MEMORIAL_COUNT, visitor);
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_VISITOR_MEMORIAL_COUNT, visitor));
         }
 
         [Safe]
         public static BigInteger GetMemorialTributeCount(BigInteger memorialId)
         {
-            byte[] key = Helper.Concat(PREFIX_MEMORIAL_TRIBUTE_COUNT, (ByteString)memorialId.ToByteArray());
-            return (BigInteger)Storage.Get(Storage.CurrentContext, key);
+            return (BigInteger)Storage.Get(Storage.CurrentContext, Key(PREFIX_MEMORIAL_TRIBUTE_COUNT, memorialId));
         }
 
         [Safe]

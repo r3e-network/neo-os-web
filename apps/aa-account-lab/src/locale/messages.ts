@@ -36,7 +36,6 @@ const appMessages = {
   network: { en: "Network", zh: "网络" },
   testnet: { en: "Testnet", zh: "测试网" },
   notConnected: { en: "not connected", zh: "未连接" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   defaultVerifier: { en: "Default Verifier", zh: "默认 Verifier" },
   aaCore: { en: "AA Core", zh: "AA Core" },
   walletConnected: { en: "Wallet connected", zh: "钱包已连接" },

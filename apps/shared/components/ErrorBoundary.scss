@@ -1,0 +1,65 @@
+@use "../styles/tokens.scss" as *;
+
+.error-boundary {
+  padding: $spacing-6;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary, #f5f5f5);
+}
+
+.error-container {
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  background: var(--surface-primary, white);
+  border-radius: $spacing-4;
+  padding: $spacing-8;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+  font-size: $spacing-12;
+  margin-bottom: $spacing-4;
+  display: block;
+}
+
+.error-title {
+  font-size: $spacing-6;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+  margin-bottom: $spacing-3;
+  display: block;
+}
+
+.error-message {
+  font-size: $spacing-4;
+  color: var(--text-secondary, #666);
+  margin-bottom: $spacing-6;
+  display: block;
+  line-height: 1.5;
+}
+
+.error-actions {
+  display: flex;
+  gap: $spacing-3;
+  justify-content: center;
+  margin-bottom: $spacing-4;
+}
+
+.error-details {
+  margin-top: $spacing-4;
+  padding: $spacing-4;
+  background: var(--bg-secondary, #f0f0f0);
+  border-radius: $spacing-2;
+  text-align: left;
+}
+
+.error-stack {
+  font-family: monospace;
+  font-size: $font-size-xs;
+  color: var(--text-secondary, #666);
+  white-space: pre-wrap;
+  word-break: break-all;
+}

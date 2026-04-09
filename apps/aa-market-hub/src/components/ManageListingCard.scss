@@ -1,0 +1,31 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.selection-summary {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.selection-summary__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.selection-summary__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hint-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
