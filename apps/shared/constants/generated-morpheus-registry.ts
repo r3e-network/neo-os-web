@@ -1,0 +1,100 @@
+/* eslint-disable */
+// Generated from neo-morpheus-oracle/scripts/export-public-network-registry.mjs.
+// Do not edit manually; re-export from the Morpheus canonical network registry.
+
+export const MORPHEUS_PUBLIC_REGISTRY = {
+  "mainnet": {
+    "network": "mainnet",
+    "rpcUrl": "https://mainnet1.neo.coz.io:443",
+    "networkMagic": 860833102,
+    "morpheus": {
+      "publicApiUrl": "https://oracle.meshmini.app/mainnet",
+      "publicApiUrls": [
+        "https://oracle.meshmini.app/mainnet"
+      ],
+      "runtimeUrl": "https://oracle.meshmini.app/mainnet",
+      "runtimeUrls": [
+        "https://oracle.meshmini.app/mainnet",
+        "https://edge.meshmini.app/mainnet"
+      ],
+      "edgeUrl": "https://edge.meshmini.app/mainnet",
+      "controlPlaneBaseUrl": "https://control.meshmini.app",
+      "controlPlaneUrl": "https://control.meshmini.app/mainnet",
+      "oracleCvmId": "ddff154546fe22d15b65667156dd4b7c611e6093",
+      "oracleCvmName": "oracle-morpheus-neo-r3e",
+      "oracleAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
+      "datafeedCvmId": "28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedCvmName": "datafeed-morpheus-neo-r3e",
+      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
+      "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
+    },
+    "contracts": {
+      "aaCore": "0x9742b4ed62a84a886f404d36149da6147528ee33",
+      "aaWeb3AuthVerifier": "0xb4107cb2cb4bace0ebe15bc4842890734abe133a",
+      "aaSessionKeyVerifier": "0xe82b9d056c011819ff3652427682224daad0cd1f",
+      "aaSocialRecoveryVerifier": "0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3",
+      "morpheusOracle": "0x017520f068fd602082fe5572596185e62a4ad991",
+      "morpheusDatafeed": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
+      "morpheusNeoDid": "0xb81f31ea81e279793b30411b82c2e82078b63105"
+    },
+    "domains": {
+      "aa": "smartwallet.neo",
+      "aaAlias": "aa.morpheus.neo",
+      "aaCore": "core.smartwallet.neo",
+      "aaWeb3AuthVerifier": "web3auth.smartwallet.neo",
+      "aaSessionKeyVerifier": "sessionkey.smartwallet.neo",
+      "aaSocialRecoveryVerifier": "recovery.smartwallet.neo",
+      "oracle": "oracle.morpheus.neo",
+      "datafeed": "pricefeed.morpheus.neo",
+      "neodid": "neodid.morpheus.neo"
+    }
+  },
+  "testnet": {
+    "network": "testnet",
+    "rpcUrl": "https://testnet1.neo.coz.io:443",
+    "networkMagic": 894710606,
+    "morpheus": {
+      "publicApiUrl": "https://oracle.meshmini.app/testnet",
+      "publicApiUrls": [
+        "https://oracle.meshmini.app/testnet"
+      ],
+      "runtimeUrl": "https://oracle.meshmini.app/testnet",
+      "runtimeUrls": [
+        "https://oracle.meshmini.app/testnet",
+        "https://edge.meshmini.app/testnet"
+      ],
+      "edgeUrl": "https://edge.meshmini.app/testnet",
+      "controlPlaneBaseUrl": "https://control.meshmini.app",
+      "controlPlaneUrl": "https://control.meshmini.app/testnet",
+      "oracleCvmId": "ddff154546fe22d15b65667156dd4b7c611e6093",
+      "oracleCvmName": "oracle-morpheus-neo-r3e",
+      "oracleAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
+      "datafeedCvmId": "28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedCvmName": "datafeed-morpheus-neo-r3e",
+      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
+      "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
+    },
+    "contracts": {
+      "aaCore": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38",
+      "aaWeb3AuthVerifier": "0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d",
+      "aaSessionKeyVerifier": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
+      "aaSocialRecoveryVerifier": "",
+      "morpheusOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      "morpheusDatafeed": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
+      "morpheusNeoDid": ""
+    },
+    "domains": {
+      "aa": "",
+      "aaAlias": "",
+      "aaCore": "",
+      "aaWeb3AuthVerifier": "",
+      "aaSessionKeyVerifier": "",
+      "aaSocialRecoveryVerifier": "",
+      "oracle": "",
+      "datafeed": "",
+      "neodid": ""
+    }
+  }
+} as const;
+
+export type MorpheusPublicRegistry = typeof MORPHEUS_PUBLIC_REGISTRY;
