@@ -126,7 +126,7 @@ namespace NeoMiniAppPlatform.Contracts
             for (BigInteger i = 0; i < resultCount; i++)
             {
                 byte[] key = Helper.Concat(
-                    Helper.Concat(PREFIX_USER_MASKS, user),
+                    Key(PREFIX_USER_MASKS, user),
                     (ByteString)(offset + i).ToByteArray());
                 result[(int)i] = (BigInteger)Storage.Get(Storage.CurrentContext, key);
             }

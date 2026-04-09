@@ -85,8 +85,7 @@ export function clearCachedValue(key: string): void {
 
 export function readTimedCache<T>(key: string): CacheEnvelope<T> | null {
   const payload = readCachedJSON<CacheEnvelope<T>>(key);
-  if (!payload || typeof payload !== "object") return null;
-  if (typeof payload.updatedAt !== "number") return null;
+  if (!payload || typeof payload !== "object" || typeof payload.updatedAt !== "number") return null;
   if (typeof payload.expiresAt === "number" && payload.expiresAt <= safeNow()) {
     clearCachedValue(key);
     return null;

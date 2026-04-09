@@ -80,7 +80,6 @@ const appMessages = {
   feature3Desc: { en: "Attempt fees scale with difficulty.", zh: "尝试费用随难度提升。" },
   sidebarDifficulty: { en: "Difficulty", zh: "难度" },
   sidebarAttemptFee: { en: "Attempt Fee", zh: "尝试费用" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

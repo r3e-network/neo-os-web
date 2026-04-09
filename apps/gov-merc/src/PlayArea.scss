@@ -1,0 +1,16 @@
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./pages/index/gov-merc-theme.scss" as *;
+
+body {
+  background: var(--merc-bg);
+}
+
+.gov-merc-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+}

@@ -87,9 +87,7 @@ const appMessages = {
   sidebarTotalPot: { en: "Total Pot", zh: "奖池总额" },
   sidebarYourKeys: { en: "Your Keys", zh: "你的钥匙" },
   sidebarTimeLeft: { en: "Time Left", zh: "剩余时间" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   keysSuffix: { en: "Keys", zh: "把钥匙" },
-  tokenGas: { en: "GAS", zh: "GAS" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

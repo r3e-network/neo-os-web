@@ -27,7 +27,6 @@ const appMessages = {
   labelAA: { en: "AA", zh: "AA" },
   labelSponsor: { en: "Sponsor", zh: "Sponsor" },
   unset: { en: "unset", zh: "未设置" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   relayError: { en: "Relay transaction failed", zh: "Relay 交易失败" },
   sponsorCheckError: { en: "Sponsor check failed", zh: "赞助检查失败" },
   sponsorRequestError: { en: "Sponsor request failed", zh: "赞助请求失败" },

@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
+import { isValidNeoAddress } from "@/lib/neo-address";
 import { getServerSupabaseClient } from "@/lib/server-supabase";
 
-const WALLET_REGEX = /^N[A-Za-z0-9]{33}$/;
 const WALLET_EMAIL_REGEX = /^(N[A-Za-z0-9]{33})@wallet\.neo$/i;
 
 function getBearerToken(req: NextApiRequest): string | null {
@@ -23,14 +23,14 @@ function extractWalletFromUser(user: { user_metadata?: unknown; email?: string |
 
   if (typeof metadataAddress === "string") {
     const wallet = metadataAddress.trim();
-    if (WALLET_REGEX.test(wallet)) {
+    if (isValidNeoAddress(wallet)) {
       return wallet;
     }
   }
 
   if (typeof user.email === "string") {
     const emailMatch = user.email.trim().match(WALLET_EMAIL_REGEX);
-    if (emailMatch?.[1]) {
+    if (emailMatch?.[1] && isValidNeoAddress(emailMatch[1])) {
       return emailMatch[1];
     }
   }

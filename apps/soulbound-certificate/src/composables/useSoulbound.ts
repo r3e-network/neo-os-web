@@ -37,6 +37,7 @@ import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ClipboardService } from "@shared/services";
 import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
+import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import type { TemplateItem, CertificateItem } from "../types";
 
 // ============================================================================
@@ -89,13 +90,6 @@ interface StoredCertificate {
   revoked: boolean;
   revokedTime: number;
 }
-
-const parseBigInt = (value: unknown) => {
-  try { return BigInt(String(value ?? "0")); } catch { return 0n; }
-};
-
-const parseBool = (value: unknown) =>
-  value === true || value === "true" || value === 1 || value === "1";
 
 // ============================================================================
 // Composable

@@ -18,7 +18,7 @@ describe("/api/rpc/sponsor env access", () => {
       signers: [{ account: "user-script-hash" }],
       serialize: serializeMock,
       sign: signMock,
-      witnesses: [{ toJSON: () => ({ invocation: "witness-1", verification: "witness-2" }) }],
+      witnesses: [{ invocationScript: "0c40" + "00".repeat(64), verificationScript: "abc", toJSON: () => ({ invocation: "witness-1", verification: "witness-2" }) }],
     };
     const fakeSizingTx = {
       signers: [],
@@ -26,6 +26,10 @@ describe("/api/rpc/sponsor env access", () => {
       serialize: jest.fn(() => "00".repeat(120)),
     };
     deserializeMock.mockImplementationOnce(() => fakePrimaryTx).mockImplementationOnce(() => fakeSizingTx);
+
+    jest.doMock("@/lib/require-wallet-auth", () => ({
+      requireWalletAuth: jest.fn(async () => "user-script-hash"),
+    }));
 
     jest.doMock("@r3e/neo-js-sdk/browser", () => {
       return {

@@ -1,0 +1,74 @@
+@use "@shared/styles/console-common" as console;
+@use "@shared/styles/tokens.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700;800&display=swap');
+
+.guardian-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px 16px;
+  min-height: 300px;
+  font-family: 'Exo 2', sans-serif;
+  background: linear-gradient(160deg, #1E3A5F 0%, #172554 40%, #0F1D3A 100%);
+  color: #CBD5E1;
+  border-radius: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.guardian-play-area::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.guardian-play-area::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 44px;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.15) 0%, rgba(37, 99, 235, 0.05) 100%);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  pointer-events: none;
+}
+
+.stack { @include console.stack; }
+.button-row { @include console.button-grid(2); }
+
+.json-box {
+  @include console.json-box(520px);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 8px;
+  font-family: 'Exo 2', monospace;
+  font-size: 12px;
+}
+
+.note-box {
+  margin-bottom: 12px;
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(203, 213, 225, 0.03));
+  position: relative;
+  z-index: 1;
+}
+
+.note-title { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; color: #60A5FA; font-family: 'Exo 2', sans-serif; }
+.note-text { font-size: 13px; line-height: 1.6; opacity: 0.8; }
+.link-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(37, 99, 235, 0.1); }
+.link-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; color: #93C5FD; font-family: 'Exo 2', sans-serif; }
+.link-value { font-size: 12px; line-height: 1.5; opacity: 0.88; word-break: break-all; color: #CBD5E1; }
+.link-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.result-section, .operation-section { position: relative; z-index: 1; }

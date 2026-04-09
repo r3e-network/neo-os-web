@@ -1,0 +1,14 @@
+@use "@shared/styles/tokens.scss" as *;
+.bridge-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 12px;
+  min-height: 300px;
+}
+
+@media (max-width: 480px) {
+  .bridge-play-area {
+    padding: 12px 8px;
+  }
+}

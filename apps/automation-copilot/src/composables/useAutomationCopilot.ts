@@ -1,12 +1,12 @@
 /**
  * useAutomationCopilot -- Domain logic for Automation Copilot
  *
- * Receives OracleService from PlatformServices instead of
- * using useOracle directly. No onMounted/onUnmounted -- lifecycle
- * is managed by defineMiniApp.
+ * Uses createObservable instead of Vue ref/computed.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { OracleService } from "@shared/services";
 
 export interface UseAutomationCopilotOptions {
@@ -15,53 +15,75 @@ export interface UseAutomationCopilotOptions {
 }
 
 export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions) {
-  const asset = ref("NEO");
-  const targetPrice = ref("20");
-  const schedule = ref("0 */6 * * *");
-  const actionName = ref("auto_repay_self_loan");
-  const latestPayload = ref<Record<string, unknown> | null>(null);
-  const latestPrice = ref<number | null>(null);
+  const asset = createObservable("NEO");
+  const targetPrice = createObservable("20");
+  const schedule = createObservable("0 */6 * * *");
+  const actionName = createObservable("auto_repay_self_loan");
+  const latestPayload = createObservable<Record<string, unknown> | null>(null);
+  const latestPrice = createObservable<number | null>(null);
 
-  const priceDisplay = computed(() =>
-    latestPrice.value == null ? t("notAvailable") : `$${latestPrice.value.toFixed(4)}`,
-  );
+  const priceDisplay: Observable<string> = {
+    get: () => latestPrice.get() == null ? t("notAvailable") : `$${latestPrice.get()!.toFixed(4)}`,
+    set: () => {},
+    subscribe: (fn) => latestPrice.subscribe(fn),
+  };
 
-  const renderedPayload = computed(() =>
-    JSON.stringify(latestPayload.value ?? {}, null, 2) || t("notAvailable"),
-  );
+  const renderedPayload: Observable<string> = {
+    get: () => JSON.stringify(latestPayload.get() ?? {}, null, 2) || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => latestPayload.subscribe(fn),
+  };
 
-  // State values for manifest bindings
-  const oracleHash = computed(() => oracle.integration.contracts.morpheusOracle);
-  const networkDisplay = computed(() => oracle.network);
-  const datafeedHash = computed(() => oracle.integration.contracts.morpheusDatafeed);
-  const publicApiUrl = computed(() => oracle.integration.morpheusPublicApiUrl);
+  const oracleHash: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusOracle,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => oracle.network,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const datafeedHash: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusDatafeed,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const publicApiUrl: Observable<string> = {
+    get: () => oracle.integration.morpheusPublicApiUrl,
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
   async function fetchCurrentPrice() {
-    const price = await oracle.getPrice(asset.value);
-    latestPrice.value = price.price;
-    latestPayload.value = {
+    const price = await oracle.getPrice(asset.get());
+    latestPrice.set(price.price);
+    latestPayload.set({
       kind: "price",
-      asset: asset.value,
-      current_price: latestPrice.value,
-      target_price: Number(targetPrice.value || "0"),
-      schedule: schedule.value,
-      action_name: actionName.value,
+      asset: asset.get(),
+      current_price: latestPrice.get(),
+      target_price: Number(targetPrice.get() || "0"),
+      schedule: schedule.get(),
+      action_name: actionName.get(),
       network: oracle.network,
-    };
+    });
     return { success: true };
   }
 
   function previewRecipePayload() {
-    latestPayload.value = {
+    latestPayload.set({
       kind: "recipe_preview",
       trigger: {
         type: "price_threshold",
-        asset: asset.value,
-        target_price: Number(targetPrice.value || "0"),
+        asset: asset.get(),
+        target_price: Number(targetPrice.get() || "0"),
       },
-      schedule: schedule.value,
+      schedule: schedule.get(),
       execution: {
-        action_name: actionName.value,
+        action_name: actionName.get(),
         target: "aa_or_morpheus_runtime",
       },
       protections: {
@@ -69,34 +91,37 @@ export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions)
         request_response_isolation: true,
       },
       network: oracle.network,
-    };
+    });
     return { success: true };
   }
 
   async function loadRandomness() {
     const result = await oracle.requestRandom("automation-jitter");
-    latestPayload.value = {
+    latestPayload.set({
       kind: "randomness",
-      asset: asset.value,
+      asset: asset.get(),
       randomness: result.randomBytes,
       proof: result.proof,
       request_id: result.requestId,
-    };
+    });
     return { success: true };
   }
 
   async function fetchOracleKey() {
     const keyData = await oracle.getOraclePublicKey();
-    latestPayload.value = keyData as unknown as Record<string, unknown>;
+    latestPayload.set(keyData as unknown as Record<string, unknown>);
     return { success: true };
   }
 
-  const loadAll = async () => {
-    // No initial data to load for automation copilot
+  const loadAll = async () => {};
+
+  const isRequesting: Observable<boolean> = {
+    get: () => oracle.isRequesting,
+    set: () => {},
+    subscribe: () => () => {},
   };
 
   return {
-    // State
     asset,
     targetPrice,
     schedule,
@@ -109,9 +134,7 @@ export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions)
     networkDisplay,
     datafeedHash,
     publicApiUrl,
-    isRequesting: oracle.isRequesting,
-
-    // Actions
+    isRequesting,
     fetchCurrentPrice,
     previewRecipePayload,
     loadRandomness,

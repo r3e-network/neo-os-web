@@ -187,7 +187,6 @@ const appMessages = {
   copyAlt: { en: "Copy", zh: "复制" },
   tokenNeo: { en: "NEO", zh: "NEO" },
   tokenBneo: { en: "bNEO", zh: "bNEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   tokenNobug: { en: "NoBug", zh: "NoBug" },
 
   // Dashboard
@@ -303,7 +302,6 @@ const appMessages = {
   sidebarApr: { en: "APR", zh: "年化" },
   stepsLabel: { en: "Steps", zh: "步骤" },
   featuresLabel: { en: "Features", zh: "功能" },
-  notAvailable: { en: "N/A", zh: "不可用" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

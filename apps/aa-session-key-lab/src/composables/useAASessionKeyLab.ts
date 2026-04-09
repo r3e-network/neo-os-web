@@ -1,12 +1,12 @@
 /**
- * useAASessionKeyLab — Domain logic for AA Session Key Lab
+ * useAASessionKeyLab -- Domain logic for AA Session Key Lab
  *
- * Encapsulates session key generation, configuration, and sponsorship logic.
- * Receives AAService + ChainService + EventBus from PlatformServices instead
- * of using useAbstractAccount directly.
+ * Uses createObservable instead of Vue ref/computed/reactive.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, reactive, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { AAService, ChainService, EventBus } from "@shared/services";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
@@ -37,62 +37,21 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   const integration = getExternalIntegrationConfig("testnet");
   const aaCore = integration.contracts.aaCore;
 
-  const form = reactive({
+  // Form state (plain object, mutations happen through actions)
+  const form = {
     accountSeed: "",
     sessionPublicKey: "",
     targetContract: "",
     allowedMethod: "*",
     expiresAt: String(Math.floor(Date.now() / 1000) + 3600),
-  });
+  };
 
-  const sponsorState = ref<Record<string, unknown> | null>(null);
-  const generatedPrivateKey = ref("");
-  const lastConfigured = ref<SessionConfiguration | null>(null);
-  const isSubmitting = ref(false);
+  const sponsorState = createObservable<Record<string, unknown> | null>(null);
+  const generatedPrivateKey = createObservable("");
+  const lastConfigured = createObservable<SessionConfiguration | null>(null);
+  const isSubmitting = createObservable(false);
 
-  // -- Derived values --
-  const derivedAccountIdHash = computed(() => {
-    try {
-      return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
-    } catch (_e) {
-      console.warn("[aa-session-key-lab] deriveAAAccountIdHash failed:", _e instanceof Error ? _e.message : String(_e));
-      return "";
-    }
-  });
-
-  const normalizedAllowedMethod = computed(() => String(form.allowedMethod || "").trim() || t("anyMethod"));
-
-  const normalizedTargetContract = computed(() => {
-    try {
-      return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
-    } catch (_e) {
-      console.warn("[aa-session-key-lab] normalizeHashOrAddress failed:", _e instanceof Error ? _e.message : String(_e));
-      return "";
-    }
-  });
-
-  const sponsorStateText = computed(() => JSON.stringify(sponsorState.value ?? {}, null, 2));
-
-  // -- Display values --
-  const sessionStatusDisplay = computed(() => lastConfigured.value ? t("configured") : t("pending"));
-  const sessionVerifierDisplay = computed(() => integration.contracts.aaSessionKeyVerifier || t("notAvailable"));
-  const aaCoreDisplay = computed(() => aaCore);
-  const walletDisplay = computed(() => address.value || t("notConnected"));
-  const sponsorStatusDisplay = computed(() => sponsorState.value ? t("checked") : t("idle"));
-
-  // -- Detail items for display --
-  const detailItems = computed(() => [
-    { label: t("accountIdHash"), value: lastConfigured.value?.accountIdHash || derivedAccountIdHash.value || t("notAvailable") },
-    { label: t("sessionPublicKey"), value: lastConfigured.value?.publicKey || form.sessionPublicKey || t("notAvailable") },
-    { label: t("targetContract"), value: lastConfigured.value?.targetContract || normalizedTargetContract.value || t("notAvailable") },
-    { label: t("allowedMethod"), value: lastConfigured.value?.allowedMethod || normalizedAllowedMethod.value || t("anyMethod") },
-    { label: t("expiresAt"), value: lastConfigured.value?.expiresAt || form.expiresAt || t("notAvailable") },
-    { label: t("lastTx"), value: lastConfigured.value?.txid || t("notAvailable") },
-    { label: t("generatedPrivateKey"), value: generatedPrivateKey.value || t("notAvailable") },
-    { label: t("sponsorship"), value: sponsorStateText.value },
-  ]);
-
-  // -- Helpers --
+  // Helpers
   function normalizeHashOrAddress(value: string): string {
     const trimmed = String(value || "").trim();
     if (!trimmed) throw new Error(t("invalidTargetContract"));
@@ -113,18 +72,111 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
     return parsed;
   }
 
-  // -- Actions --
+  // Derived values
+  const derivedAccountIdHash: Observable<string> = {
+    get: () => {
+      try {
+        return form.accountSeed.trim() ? `0x${deriveAAAccountIdHash(form.accountSeed)}` : "";
+      } catch (_e) {
+        return "";
+      }
+    },
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const normalizedAllowedMethod: Observable<string> = {
+    get: () => String(form.allowedMethod || "").trim() || t("anyMethod"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const normalizedTargetContract: Observable<string> = {
+    get: () => {
+      try {
+        return form.targetContract.trim() ? normalizeHashOrAddress(form.targetContract) : "";
+      } catch (_e) {
+        return "";
+      }
+    },
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  // Display values
+  const sessionStatusDisplay: Observable<string> = {
+    get: () => lastConfigured.get() ? t("configured") : t("pending"),
+    set: () => {},
+    subscribe: (fn) => lastConfigured.subscribe(fn),
+  };
+
+  const sessionVerifierDisplay: Observable<string> = {
+    get: () => integration.contracts.aaSessionKeyVerifier || t("notAvailable"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const aaCoreDisplay: Observable<string> = {
+    get: () => aaCore,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const walletDisplay: Observable<string> = {
+    get: () => address.value || t("notConnected"),
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const sponsorStatusDisplay: Observable<string> = {
+    get: () => sponsorState.get() ? t("checked") : t("idle"),
+    set: () => {},
+    subscribe: (fn) => sponsorState.subscribe(fn),
+  };
+
+  const isCheckingSponsorship: Observable<boolean> = {
+    get: () => aa.isCheckingSponsorship,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  // Detail items for display
+  const detailItems: Observable<Array<{ label: string; value: string }>> = {
+    get: () => {
+      const lc = lastConfigured.get();
+      const sponsorStateText = JSON.stringify(sponsorState.get() ?? {}, null, 2);
+      return [
+        { label: t("accountIdHash"), value: lc?.accountIdHash || derivedAccountIdHash.get() || t("notAvailable") },
+        { label: t("sessionPublicKey"), value: lc?.publicKey || form.sessionPublicKey || t("notAvailable") },
+        { label: t("targetContract"), value: lc?.targetContract || normalizedTargetContract.get() || t("notAvailable") },
+        { label: t("allowedMethod"), value: lc?.allowedMethod || normalizedAllowedMethod.get() || t("anyMethod") },
+        { label: t("expiresAt"), value: String(lc?.expiresAt || form.expiresAt || t("notAvailable")) },
+        { label: t("lastTx"), value: lc?.txid || t("notAvailable") },
+        { label: t("generatedPrivateKey"), value: generatedPrivateKey.get() || t("notAvailable") },
+        { label: t("sponsorship"), value: sponsorStateText },
+      ];
+    },
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = lastConfigured.subscribe(fn);
+      const u2 = generatedPrivateKey.subscribe(fn);
+      const u3 = sponsorState.subscribe(fn);
+      return () => { u1(); u2(); u3(); };
+    },
+  };
+
+  // Actions
   function generateSessionKey() {
     const pair = generateAASessionKeyPair();
     form.sessionPublicKey = pair.publicKey;
-    generatedPrivateKey.value = pair.privateKey;
+    generatedPrivateKey.set(pair.privateKey);
     eventBus.emit("sessionKey:generated", {});
   }
 
   async function checkSponsor() {
     try {
       const result = await aa.checkSponsorship();
-      sponsorState.value = result as unknown as Record<string, unknown>;
+      sponsorState.set(result as unknown as Record<string, unknown>);
       eventBus.emit("sponsor:checked", {});
     } catch (error: unknown) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorCheckFailed")) });
@@ -135,7 +187,7 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
   async function requestSponsor() {
     try {
       const result = await aa.requestSponsorship("0.1");
-      sponsorState.value = result as unknown as Record<string, unknown>;
+      sponsorState.set(result as unknown as Record<string, unknown>);
       eventBus.emit("sponsor:requested", {});
     } catch (error: unknown) {
       eventBus.emit("sponsor:error", { message: formatErrorMessage(error, t("sponsorRequestFailed")) });
@@ -145,13 +197,13 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
 
   async function configureSessionKey() {
     try {
-      isSubmitting.value = true;
+      isSubmitting.set(true);
       if (!address.value) await connect();
 
       const accountIdHash = deriveAAAccountIdHash(form.accountSeed);
       const publicKey = normalizeSessionPublicKey(form.sessionPublicKey);
       const targetContract = normalizeHashOrAddress(form.targetContract);
-      const allowedMethod = normalizedAllowedMethod.value;
+      const allowedMethod = normalizedAllowedMethod.get();
       const expiresAt = normalizeExpiry(form.expiresAt);
 
       const result = await invokeContract({
@@ -173,55 +225,43 @@ export function useAASessionKeyLab({ aa, chain, eventBus, t }: UseAASessionKeyLa
         ],
       });
 
-      lastConfigured.value = {
+      lastConfigured.set({
         txid: String(result.txid || result.tx || ""),
         accountIdHash: `0x${accountIdHash}`,
         publicKey,
         targetContract,
         allowedMethod,
         expiresAt,
-      };
-      eventBus.emit("session:configured", { txid: lastConfigured.value.txid });
+      });
+      eventBus.emit("session:configured", { txid: lastConfigured.get()!.txid });
     } catch (error: unknown) {
       eventBus.emit("session:error", { message: formatErrorMessage(error, t("sessionConfigureFailed")) });
       throw error;
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   }
 
-  const loadAll = async () => {
-    // No initial data to load — session config is user-triggered
-  };
+  const loadAll = async () => {};
 
   return {
-    // -- Form state --
     form,
     generatedPrivateKey,
     lastConfigured,
     isSubmitting,
     sponsorState,
-
-    // -- Derived --
     derivedAccountIdHash,
     normalizedAllowedMethod,
     normalizedTargetContract,
-    sponsorStateText,
-
-    // -- Display values --
     sessionStatusDisplay,
     sessionVerifierDisplay,
     aaCoreDisplay,
     walletDisplay,
     sponsorStatusDisplay,
     detailItems,
-    isCheckingSponsorship: aa.isCheckingSponsorship,
-
-    // -- Constants --
+    isCheckingSponsorship,
     aaCore,
     integration,
-
-    // -- Actions --
     generateSessionKey,
     checkSponsor,
     requestSponsor,

@@ -12,7 +12,6 @@ const appMessages = {
   feature2Desc: { en: "Aligned to the shared testnet feed endpoint.", zh: "对齐共享测试网价格源。" },
   feature3Name: { en: "Console", zh: "控制台" },
   feature3Desc: { en: "Fast operator-style inspection for asset prices.", zh: "面向运维的快速价格查询台。" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   fetchFailed: { en: "Fetch failed", zh: "获取失败" },
   priceLoaded: { en: "Price loaded", zh: "价格已加载" },
   heroFeed: { en: "Feed", zh: "价格源" },

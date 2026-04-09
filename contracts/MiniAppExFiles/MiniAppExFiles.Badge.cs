@@ -14,7 +14,7 @@ namespace NeoMiniAppPlatform.Contracts
             if (HasBadge(user, badgeType)) return;
 
             byte[] key = Helper.Concat(
-                Helper.Concat(PREFIX_USER_BADGES, user),
+                Key(PREFIX_USER_BADGES, user),
                 (ByteString)badgeType.ToByteArray());
             Storage.Put(Storage.CurrentContext, key, 1);
 

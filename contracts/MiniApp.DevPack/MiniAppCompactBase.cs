@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Numerics;
 using Neo;
 using Neo.SmartContract.Framework;
 using Neo.SmartContract.Framework.Attributes;
@@ -49,6 +50,26 @@ namespace NeoMiniAppPlatform.Contracts
             ByteString? value = Storage.Get(Storage.CurrentContext, PREFIX_PAUSED);
             return value is not null && (BigInteger)value == 1;
         }
+
+        #region Storage Key Builders
+
+        /// <summary>Build a storage key from prefix + BigInteger id.</summary>
+        protected static ByteString Key(byte[] prefix, BigInteger id) =>
+            Helper.Concat((ByteString)prefix, (ByteString)id.ToByteArray());
+
+        /// <summary>Build a storage key from prefix + address.</summary>
+        protected static ByteString Key(byte[] prefix, UInt160 addr) =>
+            Helper.Concat((ByteString)prefix, (ByteString)(byte[])addr);
+
+        /// <summary>Build a storage key from prefix + BigInteger id + address.</summary>
+        protected static ByteString Key(byte[] prefix, BigInteger id, UInt160 addr) =>
+            Helper.Concat(Key(prefix, id), (ByteString)(byte[])addr);
+
+        /// <summary>Build a storage key from prefix + string.</summary>
+        protected static ByteString Key(byte[] prefix, string suffix) =>
+            Helper.Concat((ByteString)prefix, (ByteString)suffix);
+
+        #endregion
 
         protected static void ValidateAddress(UInt160 addr)
         {

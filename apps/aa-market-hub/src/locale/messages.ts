@@ -63,7 +63,6 @@ const appMessages = {
   myPendingPayment: { en: "My Pending", zh: "我的待处理款项" },
   pendingRefund: { en: "pending refund", zh: "待退款" },
   mine: { en: "mine", zh: "我的" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   unset: { en: "unset", zh: "未设置" },
   notConnected: { en: "not connected", zh: "未连接" },
   marketHashRequired: { en: "Market hash is required", zh: "需要市场哈希" },
@@ -75,7 +74,6 @@ const appMessages = {
   accountIdHashPlaceholder: { en: "0x...", zh: "0x..." },
   emptyStateEnterHash: { en: "Enter an AA market contract hash in the operation panel to load listings.", zh: "在操作面板输入 AA 市场合约哈希以加载列表。" },
   emptyStateNoListings: { en: "No listings found for the current market hash.", zh: "未找到当前市场哈希的 Listings。" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   hubSummary: { en: "Trade deterministic Neo Abstract Account addresses through a trustless GAS escrow market. Settlement transfers only the AA shell. Existing verifier, hook, and backup-owner configuration must be reattached by the buyer after purchase.", zh: "通过无信任 GAS 托管市场交易确定性 Neo 抽象账户地址。结算仅转移 AA 外壳。现有验证器、Hook 和备份所有者配置需由买方在购买后重新附加。" },
 } as const;
 

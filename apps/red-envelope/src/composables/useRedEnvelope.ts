@@ -40,7 +40,8 @@
  *   - Formatted display values
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -147,31 +148,31 @@ export function useRedEnvelope({
   t,
 }: UseRedEnvelopeOptions) {
   // ── State ────────────────────────────────────────────────────────────
-  const envelopes = ref<EnvelopeItem[]>([]);
-  const claims = ref<ClaimItem[]>([]);
-  const pools = ref<EnvelopeItem[]>([]);
-  const loadingEnvelopes = ref(false);
-  const isLoading = ref(false);
+  const envelopes = createObservable<EnvelopeItem[]>([]);
+  const claims = createObservable<ClaimItem[]>([]);
+  const pools = createObservable<EnvelopeItem[]>([]);
+  const loadingEnvelopes = createObservable(false);
+  const isLoading = createObservable(false);
 
   // Opening state
-  const luckyMessage = ref<{ amount: number; from: string } | null>(null);
-  const openingId = ref<string | null>(null);
-  const showOpeningModal = ref(false);
-  const openingEnvelope = ref<EnvelopeItem | null>(null);
+  const luckyMessage = createObservable<{ amount: number; from: string } | null>(null);
+  const openingId = createObservable<string | null>(null);
+  const showOpeningModal = createObservable(false);
+  const openingEnvelope = createObservable<EnvelopeItem | null>(null);
 
   // Eligibility state
-  const isEligible = ref(false);
-  const neoBalance = ref(0);
-  const holdingDays = ref(0);
-  const eligibilityReason = ref("");
-  const checkingEligibility = ref(false);
+  const isEligible = createObservable(false);
+  const neoBalance = createObservable(0);
+  const holdingDays = createObservable(0);
+  const eligibilityReason = createObservable("");
+  const checkingEligibility = createObservable(false);
 
   // ── Computed ─────────────────────────────────────────────────────────
-  const envelopeCount = computed(() => envelopes.value.length);
-  const claimCount = computed(() => claims.value.length);
-  const poolCount = computed(() => pools.value.length);
-  const isConnected = computed(() => true); // OS services handle auth
-  const isOpening = computed(() => Boolean(openingId.value));
+  const envelopeCount = createDerived(() => envelopes.get().length, []);
+  const claimCount = createDerived(() => claims.get().length, []);
+  const poolCount = createDerived(() => pools.get().length, []);
+  const isConnected = createDerived(() => true, []); // OS services handle auth
+  const isOpening = createDerived(() => Boolean(openingId.get()), []);
 
   // ── Preview Distribution (pure computation) ─────────────────────────
 
@@ -290,7 +291,7 @@ export function useRedEnvelope({
    * contract queries and returns normalized data.
    */
   const loadEnvelopes = async () => {
-    loadingEnvelopes.value = true;
+    loadingEnvelopes.set(true);
     try {
       // Load all envelopes from storage
       const envelopeMap = await storageService.list("envelopes:", 120);
@@ -306,8 +307,8 @@ export function useRedEnvelope({
       }
 
       allEnvelopes.sort((a, b) => Number(b.id) - Number(a.id));
-      envelopes.value = allEnvelopes;
-      pools.value = allEnvelopes.filter((item) => item.active && item.canOpen);
+      envelopes.set(allEnvelopes);
+      pools.set(allEnvelopes.filter((item) => item.active && item.canOpen));
 
       // Load claims for current user
       const claimMap = await storageService.list("claims:", 120);
@@ -329,11 +330,11 @@ export function useRedEnvelope({
         }
       }
 
-      claims.value = claimItems;
+      claims.set(claimItems);
     } catch (e) {
       console.warn("[useRedEnvelope] loadEnvelopes failed:", e instanceof Error ? e.message : String(e));
     } finally {
-      loadingEnvelopes.value = false;
+      loadingEnvelopes.set(false);
     }
   };
 
@@ -361,9 +362,9 @@ export function useRedEnvelope({
     count: string;
     expiryHours: string;
   }) => {
-    if (isLoading.value) return;
+    if (isLoading.get()) return;
 
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       const totalValue = Number(formData.amount);
       const packetCount = Number(formData.count);
@@ -396,7 +397,7 @@ export function useRedEnvelope({
     } catch (e) {
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -420,22 +421,22 @@ export function useRedEnvelope({
    * Open an envelope — claims it and shows the lucky message overlay.
    */
   const openEnvelope = async (envelope: EnvelopeItem) => {
-    if (openingId.value) return;
+    if (openingId.get()) return;
 
     try {
-      openingId.value = envelope.id;
+      openingId.set(envelope.id);
 
       const result = await claimEnvelope(envelope.id);
 
       if (result.amount > 0) {
-        luckyMessage.value = {
+        luckyMessage.set({
           amount: Number(fromFixed8(result.amount).toFixed(4)),
           from: envelope.from,
-        };
+        });
       }
 
-      showOpeningModal.value = false;
-      openingEnvelope.value = null;
+      showOpeningModal.set(false);
+      openingEnvelope.set(null);
 
       // Hint badge for lucky draw (fire-and-forget)
       badgeService.award("lucky-draw", "").catch(() => {});
@@ -444,13 +445,13 @@ export function useRedEnvelope({
     } catch (e) {
       throw e;
     } finally {
-      openingId.value = null;
+      openingId.set(null);
     }
   };
 
   const openFromList = (envelope: EnvelopeItem) => {
-    openingEnvelope.value = envelope;
-    showOpeningModal.value = true;
+    openingEnvelope.set(envelope);
+    showOpeningModal.set(true);
   };
 
   /**
@@ -462,10 +463,10 @@ export function useRedEnvelope({
       const result = await claimEnvelope(envelopeId);
 
       if (result.amount > 0) {
-        luckyMessage.value = {
+        luckyMessage.set({
           amount: Number(fromFixed8(result.amount).toFixed(4)),
           from: `#${envelopeId}`,
-        };
+        });
       }
 
       // Hint badge for pool claim (fire-and-forget)
@@ -484,27 +485,27 @@ export function useRedEnvelope({
    * The edge function reads the eligibility data from the contract.
    */
   const checkEligibility = async (envelopeId: string): Promise<boolean> => {
-    checkingEligibility.value = true;
+    checkingEligibility.set(true);
     try {
       const data = await storageService.get(`eligibility:${envelopeId}`) as Record<string, unknown> | null;
 
       if (!data) {
-        isEligible.value = false;
-        eligibilityReason.value = t("eligibilityCheckFailed");
+        isEligible.set(false);
+        eligibilityReason.set(t("eligibilityCheckFailed"));
         return false;
       }
 
-      isEligible.value = Boolean(data.eligible);
-      neoBalance.value = Number(data.neoBalance ?? 0);
-      holdingDays.value = Number(data.holdDays ?? 0);
-      eligibilityReason.value = String(data.reason ?? "");
-      return isEligible.value;
+      isEligible.set(Boolean(data.eligible));
+      neoBalance.set(Number(data.neoBalance ?? 0));
+      holdingDays.set(Number(data.holdDays ?? 0));
+      eligibilityReason.set(String(data.reason ?? ""));
+      return isEligible.get();
     } catch (_e) {
-      isEligible.value = false;
-      eligibilityReason.value = t("checkFailed");
+      isEligible.set(false);
+      eligibilityReason.set(t("checkFailed"));
       return false;
     } finally {
-      checkingEligibility.value = false;
+      checkingEligibility.set(false);
     }
   };
 
@@ -515,7 +516,7 @@ export function useRedEnvelope({
   const checkNeoBalance = async (): Promise<number> => {
     try {
       const balance = Number(await paymentService.getBalance() ?? 0);
-      neoBalance.value = balance;
+      neoBalance.set(balance);
       return balance;
     } catch (_e) {
       return 0;

@@ -1,12 +1,12 @@
 /**
- * useAAMarketHub — Domain logic for AA Market Hub
+ * useAAMarketHub -- Domain logic for AA Market Hub
  *
- * Encapsulates all AA address marketplace logic: listing, buying, selling,
- * cancelling, and refunding. Receives ChainService + EventBus from
- * PlatformServices.
+ * Uses createObservable instead of Vue ref/computed/watch.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed, watch, onUnmounted } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import {
   buyAddressListing,
@@ -36,55 +36,123 @@ export interface UseAAMarketHubOptions {
 export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   const wallet = useWallet() as WalletSDK;
 
-  // -- Form state --
-  const marketHash = ref("");
-  const aaContractHash = ref(getDefaultAAContractHash());
-  const accountIdHash = ref("");
-  const priceGas = ref("");
-  const listingTitle = ref("");
-  const metadataUri = ref("");
-  const nextPriceGas = ref("");
-  const newBackupOwner = ref("");
-  const selectedListingId = ref("");
-  const listings = ref<MarketListing[]>([]);
-  const isLoading = ref(false);
-  const isSubmitting = ref(false);
-  const isWalletConnecting = ref(false);
+  // Form state
+  const marketHash = createObservable("");
+  const aaContractHash = createObservable(getDefaultAAContractHash());
+  const accountIdHash = createObservable("");
+  const priceGas = createObservable("");
+  const listingTitle = createObservable("");
+  const metadataUri = createObservable("");
+  const nextPriceGas = createObservable("");
+  const newBackupOwner = createObservable("");
+  const selectedListingId = createObservable("");
+  const listings = createObservable<MarketListing[]>([]);
+  const isLoading = createObservable(false);
+  const isSubmitting = createObservable(false);
+  const isWalletConnecting = createObservable(false);
 
-  const walletAddress = computed(() => wallet.address.value || "");
-  const selectedListing = computed(() => listings.value.find((l) => l.id === selectedListingId.value) ?? null);
-  const activeListings = computed(() => listings.value.filter((l) => l.status === "active").length);
-  const selectedListingHasPendingRefund = computed(() => {
-    const pending = selectedListing.value?.myPendingPayment || "0";
-    return BigInt(pending) > 0n;
-  });
-  const canCreateListing = computed(() =>
-    Boolean(marketHash.value.trim() && aaContractHash.value.trim() && accountIdHash.value.trim() && priceGas.value.trim()));
-  const canManageSelectedListing = computed(() =>
-    Boolean(selectedListing.value && selectedListing.value.status === "active" && selectedListing.value.isMine));
-  const canBuySelectedListing = computed(() =>
-    Boolean(selectedListing.value && selectedListing.value.status === "active" && !selectedListing.value.isMine));
+  const walletAddress: Observable<string> = {
+    get: () => wallet.address.value || "",
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
-  // -- Display values --
-  const totalListingsDisplay = computed(() => listings.value.length);
-  const activeListingsDisplay = computed(() => activeListings.value);
-  const marketHashDisplay = computed(() => {
-    const hash = marketHash.value || "";
-    if (!hash || hash.length <= 21) return hash || t("notAvailable");
-    return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
-  });
-  const walletDisplay = computed(() => {
-    const addr = walletAddress.value;
-    if (!addr || addr.length <= 21) return addr || t("notAvailable");
-    return `${addr.slice(0, 10)}...${addr.slice(-8)}`;
-  });
-  const selectedListingDisplay = computed(() =>
-    selectedListing.value ? `#${selectedListing.value.id}` : t("notAvailable"));
+  const selectedListing: Observable<MarketListing | null> = {
+    get: () => listings.get().find((l) => l.id === selectedListingId.get()) ?? null,
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = listings.subscribe(fn);
+      const u2 = selectedListingId.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
 
-  // -- Persistence --
+  const selectedListingHasPendingRefund: Observable<boolean> = {
+    get: () => {
+      const sl = selectedListing.get();
+      const pending = sl?.myPendingPayment || "0";
+      return BigInt(pending) > 0n;
+    },
+    set: () => {},
+    subscribe: (fn) => selectedListing.subscribe(fn),
+  };
+
+  const canCreateListing: Observable<boolean> = {
+    get: () => Boolean(marketHash.get().trim() && aaContractHash.get().trim() && accountIdHash.get().trim() && priceGas.get().trim()),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = marketHash.subscribe(fn);
+      const u2 = aaContractHash.subscribe(fn);
+      const u3 = accountIdHash.subscribe(fn);
+      const u4 = priceGas.subscribe(fn);
+      return () => { u1(); u2(); u3(); u4(); };
+    },
+  };
+
+  const canManageSelectedListing: Observable<boolean> = {
+    get: () => {
+      const sl = selectedListing.get();
+      return Boolean(sl && sl.status === "active" && sl.isMine);
+    },
+    set: () => {},
+    subscribe: (fn) => selectedListing.subscribe(fn),
+  };
+
+  const canBuySelectedListing: Observable<boolean> = {
+    get: () => {
+      const sl = selectedListing.get();
+      return Boolean(sl && sl.status === "active" && !sl.isMine);
+    },
+    set: () => {},
+    subscribe: (fn) => selectedListing.subscribe(fn),
+  };
+
+  // Display values
+  const totalListingsDisplay: Observable<number> = {
+    get: () => listings.get().length,
+    set: () => {},
+    subscribe: (fn) => listings.subscribe(fn),
+  };
+
+  const activeListingsDisplay: Observable<number> = {
+    get: () => listings.get().filter((l) => l.status === "active").length,
+    set: () => {},
+    subscribe: (fn) => listings.subscribe(fn),
+  };
+
+  const marketHashDisplay: Observable<string> = {
+    get: () => {
+      const hash = marketHash.get() || "";
+      if (!hash || hash.length <= 21) return hash || t("notAvailable");
+      return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+    },
+    set: () => {},
+    subscribe: (fn) => marketHash.subscribe(fn),
+  };
+
+  const walletDisplay: Observable<string> = {
+    get: () => {
+      const addr = walletAddress.get();
+      if (!addr || addr.length <= 21) return addr || t("notAvailable");
+      return `${addr.slice(0, 10)}...${addr.slice(-8)}`;
+    },
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const selectedListingDisplay: Observable<string> = {
+    get: () => {
+      const sl = selectedListing.get();
+      return sl ? `#${sl.id}` : t("notAvailable");
+    },
+    set: () => {},
+    subscribe: (fn) => selectedListing.subscribe(fn),
+  };
+
+  // Persistence
   function persistConfig() {
-    writeCachedJSON(MARKET_HASH_STORAGE_KEY, marketHash.value.trim());
-    writeCachedJSON(AA_HASH_STORAGE_KEY, aaContractHash.value.trim());
+    writeCachedJSON(MARKET_HASH_STORAGE_KEY, marketHash.get().trim());
+    writeCachedJSON(AA_HASH_STORAGE_KEY, aaContractHash.get().trim());
   }
 
   function readCachedString(key: string): string {
@@ -92,70 +160,69 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     return typeof cached === "string" ? cached : "";
   }
 
-  // -- Helpers --
-  function hasPendingPayment(listing: MarketListing) {
-    return BigInt(listing.myPendingPayment || "0") > 0n;
-  }
+  // Subscribe to config changes for persistence
+  const unsubMarket = marketHash.subscribe(persistConfig);
+  const unsubAA = aaContractHash.subscribe(persistConfig);
 
   function selectListing(listing: MarketListing) {
-    selectedListingId.value = listing.id;
-    nextPriceGas.value = listing.priceGas;
-    newBackupOwner.value = walletAddress.value;
+    selectedListingId.set(listing.id);
+    nextPriceGas.set(listing.priceGas);
+    newBackupOwner.set(walletAddress.get());
   }
 
-  // -- Actions --
+  // Actions
   async function connectWallet() {
     try {
-      isWalletConnecting.value = true;
+      isWalletConnecting.set(true);
       await wallet.connect();
-      newBackupOwner.value = walletAddress.value;
-      eventBus.emit("wallet:connected", { address: walletAddress.value });
-      if (marketHash.value.trim()) {
+      newBackupOwner.set(walletAddress.get());
+      eventBus.emit("wallet:connected", { address: walletAddress.get() });
+      if (marketHash.get().trim()) {
         await loadListings();
       }
-      return walletAddress.value;
+      return walletAddress.get();
     } catch (error: unknown) {
       eventBus.emit("wallet:error", { message: formatErrorMessage(error, t("connectFailed")) });
       throw error;
     } finally {
-      isWalletConnecting.value = false;
+      isWalletConnecting.set(false);
     }
   }
 
   async function loadListings() {
     try {
-      if (!marketHash.value.trim()) {
+      if (!marketHash.get().trim()) {
         throw new Error(t("marketHashRequired"));
       }
-      isLoading.value = true;
-      listings.value = await listAddressListings(wallet, marketHash.value, walletAddress.value);
+      isLoading.set(true);
+      listings.set(await listAddressListings(wallet, marketHash.get(), walletAddress.get()));
 
-      if (selectedListingId.value) {
-        const nextSelected = listings.value.find((l) => l.id === selectedListingId.value);
+      if (selectedListingId.get()) {
+        const nextSelected = listings.get().find((l) => l.id === selectedListingId.get());
         if (nextSelected) {
           selectListing(nextSelected);
-        } else if (listings.value[0]) {
-          selectListing(listings.value[0]);
+        } else if (listings.get()[0]) {
+          selectListing(listings.get()[0]);
         } else {
-          selectedListingId.value = "";
+          selectedListingId.set("");
         }
-      } else if (listings.value[0]) {
-        selectListing(listings.value[0]);
+      } else if (listings.get()[0]) {
+        selectListing(listings.get()[0]);
       }
 
       persistConfig();
-      eventBus.emit("listings:loaded", { count: listings.value.length });
+      eventBus.emit("listings:loaded", { count: listings.get().length });
     } catch (error: unknown) {
       eventBus.emit("listings:error", { message: formatErrorMessage(error, t("loadListingsFailed")) });
       throw error;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   }
 
   async function runWriteAction(action: () => Promise<{ txid: string }>, successMessage: string) {
     try {
-      isSubmitting.value = true;
+      isSubmitting.set(true);
       const result = await action();
       eventBus.emit("action:success", { message: successMessage, txid: result.txid });
       await loadListings();
@@ -164,67 +231,65 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       eventBus.emit("action:error", { message: formatErrorMessage(error, t("actionFailed")) });
       throw error;
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   }
 
   async function submitCreateListing() {
     const result = await runWriteAction(
-      () => createAddressListing(wallet, marketHash.value, {
-        aaContractHash: aaContractHash.value,
-        accountIdHash: accountIdHash.value,
-        priceGas: priceGas.value,
-        title: listingTitle.value,
-        metadataUri: metadataUri.value,
+      () => createAddressListing(wallet, marketHash.get(), {
+        aaContractHash: aaContractHash.get(),
+        accountIdHash: accountIdHash.get(),
+        priceGas: priceGas.get(),
+        title: listingTitle.get(),
+        metadataUri: metadataUri.get(),
       }),
       t("createListingSuccess"),
     );
-    accountIdHash.value = "";
-    priceGas.value = "";
-    listingTitle.value = "";
-    metadataUri.value = "";
+    accountIdHash.set("");
+    priceGas.set("");
+    listingTitle.set("");
+    metadataUri.set("");
     return result;
   }
 
   async function submitUpdatePrice() {
-    if (!selectedListing.value) return;
+    if (!selectedListing.get()) return;
     return runWriteAction(
-      () => updateAddressListingPrice(wallet, marketHash.value, selectedListing.value!.id, nextPriceGas.value),
+      () => updateAddressListingPrice(wallet, marketHash.get(), selectedListing.get()!.id, nextPriceGas.get()),
       t("updatePriceSuccess"),
     );
   }
 
   async function submitCancelSelected() {
-    if (!selectedListing.value) return;
+    if (!selectedListing.get()) return;
     return runWriteAction(
-      () => cancelAddressListing(wallet, marketHash.value, selectedListing.value!.id),
+      () => cancelAddressListing(wallet, marketHash.get(), selectedListing.get()!.id),
       t("cancelListingSuccess"),
     );
   }
 
   async function submitBuySelected() {
-    if (!selectedListing.value) return;
+    if (!selectedListing.get()) return;
     return runWriteAction(
-      () => buyAddressListing(wallet, marketHash.value, selectedListing.value!.id, { newBackupOwner: newBackupOwner.value }),
+      () => buyAddressListing(wallet, marketHash.get(), selectedListing.get()!.id, { newBackupOwner: newBackupOwner.get() }),
       t("buyListingSuccess"),
     );
   }
 
   async function submitRefundSelected() {
-    if (!selectedListing.value) return;
+    if (!selectedListing.get()) return;
     return runWriteAction(
-      () => refundPendingAddressPurchase(wallet, marketHash.value, selectedListing.value!.id),
+      () => refundPendingAddressPurchase(wallet, marketHash.get(), selectedListing.get()!.id),
       t("refundPendingSuccess"),
     );
   }
 
-  const stopConfigWatch = watch([marketHash, aaContractHash], persistConfig);
-
   const loadAll = async () => {
-    marketHash.value = readCachedString(MARKET_HASH_STORAGE_KEY);
-    aaContractHash.value = readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash();
-    newBackupOwner.value = walletAddress.value;
-    if (marketHash.value.trim()) {
+    marketHash.set(readCachedString(MARKET_HASH_STORAGE_KEY));
+    aaContractHash.set(readCachedString(AA_HASH_STORAGE_KEY) || getDefaultAAContractHash());
+    newBackupOwner.set(walletAddress.get());
+    if (marketHash.get().trim()) {
       await loadListings().catch((e: unknown) => {
         console.warn("[aa-market-hub] loadListings failed:", e instanceof Error ? e.message : String(e));
       });
@@ -232,11 +297,11 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
   };
 
   const cleanup = () => {
-    stopConfigWatch();
+    unsubMarket();
+    unsubAA();
   };
 
   return {
-    // -- Form state --
     marketHash,
     aaContractHash,
     accountIdHash,
@@ -250,29 +315,19 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
     isLoading,
     isSubmitting,
     isWalletConnecting,
-
-    // -- Computed --
     walletAddress,
     selectedListing,
-    activeListings,
     selectedListingHasPendingRefund,
     canCreateListing,
     canManageSelectedListing,
     canBuySelectedListing,
-
-    // -- Display values --
     totalListingsDisplay,
     activeListingsDisplay,
     marketHashDisplay,
     walletDisplay,
     selectedListingDisplay,
-
-    // -- Helpers --
-    hasPendingPayment,
-    selectListing,
     formatGasFractions,
-
-    // -- Actions --
+    selectListing,
     connectWallet,
     loadListings,
     submitCreateListing,

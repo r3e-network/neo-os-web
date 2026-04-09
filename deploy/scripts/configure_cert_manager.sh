@@ -24,7 +24,7 @@ validate_email() {
     if [[ ! "$email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
         return 1
     fi
-    if [[ "$email" == *"@example.com" ]]; then
+    if [[ "$email" == *"@example.com" || "$email" == "devops@miniapps.com" ]]; then
         return 1
     fi
     return 0

@@ -15,7 +15,6 @@ const appMessages = {
   feature2Desc: { en: "Shows request id and proof payload.", zh: "展示请求编号和证明载荷。" },
   feature3Name: { en: "Operator View", zh: "运维视图" },
   feature3Desc: { en: "Fast validation surface for randomness requests.", zh: "面向随机数请求的快速验证界面。" },
-  notAvailable: { en: "N/A", zh: "不可用" },
   requestFailed: { en: "Request failed", zh: "请求失败" },
   randomnessRequested: { en: "Randomness requested", zh: "随机数已请求" },
 } as const;

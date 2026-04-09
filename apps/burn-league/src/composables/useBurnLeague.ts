@@ -30,7 +30,8 @@
  *   - Leaderboard preview computation
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { LeaderboardProxy, LeaderboardEntry } from "@shared/services/os/LeaderboardProxy";
@@ -97,36 +98,36 @@ export function useBurnLeague({
   t,
 }: UseBurnLeagueOptions) {
   // ── State ────────────────────────────────────────────────────────────
-  const totalBurned = ref(0);
-  const rewardPool = ref(0);
-  const userBurned = ref(0);
-  const rank = ref(0);
-  const burnCount = ref(0);
-  const leaderboard = ref<LeaderEntry[]>([]);
-  const isBurning = ref(false);
-  const isLoading = ref(false);
+  const totalBurned = createObservable(0);
+  const rewardPool = createObservable(0);
+  const userBurned = createObservable(0);
+  const rank = createObservable(0);
+  const burnCount = createObservable(0);
+  const leaderboard = createObservable<LeaderEntry[]>([]);
+  const isBurning = createObservable(false);
+  const isLoading = createObservable(false);
 
   // ── Local UI state managed by the composable ─────────────────────────
-  const burnAmount = ref("1");
+  const burnAmount = createObservable("1");
 
   // ── Formatted display values ─────────────────────────────────────────
   // These are consumed by the manifest stat/sidebar bindings via the
   // state object returned from defineMiniApp's setup().
-  const totalBurnedDisplay = computed(() => `${formatNumber(totalBurned.value, 2)} ${t("tokenGas")}`);
-  const userBurnedDisplay = computed(() => `${formatNumber(userBurned.value, 2)} ${t("tokenGas")}`);
-  const rewardPoolDisplay = computed(() => `${formatNumber(rewardPool.value, 2)} ${t("tokenGas")}`);
-  const formattedRank = computed(() => rank.value > 0 ? `#${rank.value}` : "--");
-  const leaderboardSize = computed(() => leaderboard.value.length);
+  const totalBurnedDisplay = createDerived(() => `${formatNumber(totalBurned.get(), 2)} ${t("tokenGas")}`, []);
+  const userBurnedDisplay = createDerived(() => `${formatNumber(userBurned.get(), 2)} ${t("tokenGas")}`, []);
+  const rewardPoolDisplay = createDerived(() => `${formatNumber(rewardPool.get(), 2)} ${t("tokenGas")}`, []);
+  const formattedRank = createDerived(() => rank.get() > 0 ? `#${rank.get()}` : "--", []);
+  const leaderboardSize = createDerived(() => leaderboard.get().length, []);
 
   // ── Derived values for PlayArea ─────────────────────────────────────
   /** Estimated reward based on current burn amount (0.1x multiplier) */
-  const estimatedReward = computed(() => {
-    const amount = parseFloat(burnAmount.value);
+  const estimatedReward = createDerived(() => {
+    const amount = parseFloat(burnAmount.get());
     return Number.isFinite(amount) && amount > 0 ? amount * 0.1 : 0;
-  });
+  }, []);
 
   /** Top 10 entries for the leaderboard preview */
-  const leaderboardPreview = computed(() => leaderboard.value.slice(0, 10));
+  const leaderboardPreview = createDerived(() => leaderboard.get().slice(0, 10), []);
 
   // ── Data Loading (via OS services) ──────────────────────────────────
 
@@ -139,10 +140,10 @@ export function useBurnLeague({
     try {
       const state = await gameService.getPoolState("burn-league") as BurnLeaguePoolState;
       if (state && typeof state === "object") {
-        totalBurned.value = Number(state.totalBurned ?? state.totalBets ?? 0);
-        rewardPool.value = Number(state.rewardPool ?? 0);
-        userBurned.value = Number(state.userBurned ?? 0);
-        burnCount.value = Number(state.burnCount ?? state.playerCount ?? 0);
+        totalBurned.set(Number(state.totalBurned ?? state.totalBets ?? 0));
+        rewardPool.set(Number(state.rewardPool ?? 0));
+        userBurned.set(Number(state.userBurned ?? 0));
+        burnCount.set(Number(state.burnCount ?? state.playerCount ?? 0));
       }
     } catch (e) {
       console.warn("[useBurnLeague] loadStats failed:", e instanceof Error ? e.message : String(e));
@@ -165,11 +166,11 @@ export function useBurnLeague({
           isUser: false, // Edge function marks the current user server-side
         }));
 
-        leaderboard.value = mapped;
+        leaderboard.set(mapped);
 
         // Find user's rank from the leaderboard
-        const userEntry = mapped.find((entry) => entry.burned === userBurned.value && userBurned.value > 0);
-        rank.value = userEntry ? userEntry.rank : 0;
+        const userEntry = mapped.find((entry) => entry.burned === userBurned.get() && userBurned.get() > 0);
+        rank.set(userEntry ? userEntry.rank : 0);
       }
     } catch (e) {
       console.warn("[useBurnLeague] loadLeaderboard failed:", e instanceof Error ? e.message : String(e));
@@ -181,11 +182,11 @@ export function useBurnLeague({
    * Called by defineMiniApp on mount and when the wallet connects.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await Promise.all([loadStats(), loadLeaderboard()]);
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -206,15 +207,15 @@ export function useBurnLeague({
    * @returns The validated burn amount (for UI reset on success)
    */
   const burnTokens = async (burnAmountInput?: string) => {
-    const amountStr = burnAmountInput ?? burnAmount.value;
+    const amountStr = burnAmountInput ?? burnAmount.get();
     const amount = parseFloat(amountStr);
     if (!Number.isFinite(amount) || amount < MIN_BURN) {
       throw new Error(t("minBurn", { amount: MIN_BURN, tokenGas: t("tokenGas") }));
     }
 
-    if (isBurning.value) return;
+    if (isBurning.get()) return;
 
-    isBurning.value = true;
+    isBurning.set(true);
     try {
       // Step 1: Burn via NFTProxy — the edge function handles wallet
       // connection, GAS transfer to contract, and burnGas invocation
@@ -224,7 +225,7 @@ export function useBurnLeague({
       badgeService.updateStat("", "totalBurned", amountStr).catch(() => {});
 
       // Step 3: Award badge for first burn (fire-and-forget)
-      if (burnCount.value === 0) {
+      if (burnCount.get() === 0) {
         badgeService.award("first-burn", "").catch(() => {});
       }
 
@@ -234,13 +235,13 @@ export function useBurnLeague({
       await loadAll();
 
       // Reset the burn amount input on success
-      burnAmount.value = "1";
+      burnAmount.set("1");
 
       return amount;
     } catch (e) {
       throw e;
     } finally {
-      isBurning.value = false;
+      isBurning.set(false);
     }
   };
 

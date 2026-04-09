@@ -1,0 +1,129 @@
+/* OfficialLauncherMiniApp styles — extracted from OfficialLauncherMiniApp.vue scoped styles */
+
+.hero-shell {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hero-kicker-color, #fb7185);
+}
+
+.hero-title {
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.hero-subtitle,
+.copy-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.copy-text + .copy-text {
+  margin-top: 10px;
+}
+
+.flamingo-scene,
+.bridge-scene {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+}
+
+.flamingo-scene {
+  gap: 12px;
+}
+
+.bridge-scene {
+  gap: 14px;
+}
+
+.flamingo-mark {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--flamingo-mark-color, #0f172a);
+  background: linear-gradient(180deg, var(--flamingo-mark-start, #f97316) 0%, var(--flamingo-mark-end, #fb7185) 100%);
+  box-shadow: 0 16px 46px var(--flamingo-mark-shadow, rgba(249, 115, 22, 0.24));
+}
+
+.flamingo-trail {
+  width: 96px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.15), rgba(251, 113, 133, 0.95), rgba(249, 115, 22, 0.15));
+}
+
+.bridge-orb {
+  width: 66px;
+  height: 66px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--bridge-border, rgba(79, 209, 255, 0.16));
+  background: linear-gradient(180deg, rgba(79, 209, 255, 0.18), rgba(79, 209, 255, 0.05));
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.24);
+}
+
+.bridge-link {
+  width: 90px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(79, 209, 255, 0.22), rgba(79, 209, 255, 0.9), rgba(79, 209, 255, 0.22));
+}
+
+.toggle-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Hero section inline styles (subset for launcher) */
+.hero-section {
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-section--compact {
+  padding: 0;
+}
+
+.hero-section--accent {
+  background: linear-gradient(135deg, rgba(0, 229, 153, 0.08), rgba(99, 102, 241, 0.04));
+}
+
+.hero-section__background {
+  position: relative;
+  padding: 24px;
+}

@@ -1,12 +1,12 @@
 /**
  * useVrfConsole -- Domain logic for Oracle VRF Console
  *
- * Receives OracleService from PlatformServices instead of
- * using Vue composables directly. No onMounted/onUnmounted -- lifecycle
- * is managed by defineMiniApp.
+ * Uses createObservable instead of Vue ref/computed.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { OracleService } from "@shared/services";
 
 export interface UseVrfConsoleOptions {
@@ -21,32 +21,63 @@ export interface VrfRandomResult {
 }
 
 export function useVrfConsole({ oracle, t }: UseVrfConsoleOptions) {
-  const lastRandom = ref<VrfRandomResult | null>(null);
+  const lastRandom = createObservable<VrfRandomResult | null>(null);
 
-  // State values for manifest bindings
-  const requestId = computed(() => lastRandom.value?.requestId || t("notAvailable"));
-  const randomValue = computed(() => lastRandom.value?.value || t("notAvailable"));
-  const proof = computed(() => lastRandom.value?.proof || t("notAvailable"));
-  const oracleHash = computed(() => oracle.integration.contracts.morpheusOracle);
-  const networkDisplay = computed(() => oracle.network);
-  const publicApiUrl = computed(() => oracle.integration.morpheusPublicApiUrl);
+  const requestId: Observable<string> = {
+    get: () => lastRandom.get()?.requestId || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => lastRandom.subscribe(fn),
+  };
+
+  const randomValue: Observable<string> = {
+    get: () => lastRandom.get()?.value || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => lastRandom.subscribe(fn),
+  };
+
+  const proof: Observable<string> = {
+    get: () => lastRandom.get()?.proof || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => lastRandom.subscribe(fn),
+  };
+
+  const oracleHash: Observable<string> = {
+    get: () => oracle.integration.contracts.morpheusOracle,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => oracle.network,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const publicApiUrl: Observable<string> = {
+    get: () => oracle.integration.morpheusPublicApiUrl,
+    set: () => {},
+    subscribe: () => () => {},
+  };
 
   async function requestRandom() {
     const result = await oracle.requestRandom();
-    lastRandom.value = {
+    lastRandom.set({
       requestId: result.requestId,
       value: result.randomBytes,
       proof: result.proof,
-    };
+    });
     return { success: true };
   }
 
-  const loadAll = async () => {
-    // No initial data to load for VRF console
+  const loadAll = async () => {};
+
+  const isRequesting: Observable<boolean> = {
+    get: () => oracle.isRequesting,
+    set: () => {},
+    subscribe: () => () => {},
   };
 
   return {
-    // State
     lastRandom,
     requestId,
     randomValue,
@@ -54,9 +85,7 @@ export function useVrfConsole({ oracle, t }: UseVrfConsoleOptions) {
     oracleHash,
     networkDisplay,
     publicApiUrl,
-    isRequesting: oracle.isRequesting,
-
-    // Actions
+    isRequesting,
     requestRandom,
     loadAll,
   };

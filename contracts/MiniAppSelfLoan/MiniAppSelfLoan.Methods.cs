@@ -142,7 +142,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             UpdateTotalCollateral(neoAmount, false);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, neoAmount);
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, neoAmount),
+                "collateral withdrawal transfer failed");
 
             OnCollateralWithdrawn(loanId, neoAmount);
         }
@@ -161,7 +163,9 @@ namespace NeoMiniAppPlatform.Contracts
             UpdateTotalCollateral(loan.Collateral, false);
             UpdateBorrowerStatsOnClose(loan.Borrower);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, loan.Collateral);
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, loan.Collateral),
+                "loan close transfer failed");
 
             OnLoanClosed(loanId, loan.Borrower);
         }

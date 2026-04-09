@@ -27,7 +27,9 @@ namespace NeoMiniAppPlatform.Contracts
             // Transfer prize to winner
             if (winner != UInt160.Zero && winnerPrize > 0)
             {
-                GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize);
+                ExecutionEngine.Assert(
+                    GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize),
+                    "winner payout failed");
 
                 // Update winner stats
                 PlayerStats stats = GetPlayerStats(winner);

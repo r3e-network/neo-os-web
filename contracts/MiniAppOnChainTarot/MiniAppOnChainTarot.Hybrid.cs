@@ -185,21 +185,18 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static void StoreReadingOperation(BigInteger readingId, ByteString data)
         {
-            byte[] key = Helper.Concat(PREFIX_READING_OPERATION, readingId.ToByteArray());
-            Storage.Put(Storage.CurrentContext, key, data);
+            Storage.Put(Storage.CurrentContext, Key(PREFIX_READING_OPERATION, readingId), data);
         }
 
         [Safe]
         public static ByteString GetReadingOperation(BigInteger readingId)
         {
-            byte[] key = Helper.Concat(PREFIX_READING_OPERATION, readingId.ToByteArray());
-            return Storage.Get(Storage.CurrentContext, key);
+            return Storage.Get(Storage.CurrentContext, Key(PREFIX_READING_OPERATION, readingId));
         }
 
         private static void DeleteReadingOperation(BigInteger readingId)
         {
-            byte[] key = Helper.Concat(PREFIX_READING_OPERATION, readingId.ToByteArray());
-            Storage.Delete(Storage.CurrentContext, key);
+            Storage.Delete(Storage.CurrentContext, Key(PREFIX_READING_OPERATION, readingId));
         }
 
         #endregion

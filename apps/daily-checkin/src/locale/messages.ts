@@ -63,7 +63,6 @@ const appMessages = {
   yourStatsTitle: { en: "Your Stats", zh: "你的统计" },
   statusReady: { en: "Complete your daily check-in now!", zh: "立即完成每日签到！" },
   statusDone: { en: "You have secured your streak for today.", zh: "您已锁定今日连续签到。" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   utcLabel: { en: "UTC", zh: "UTC" },
   dayPrefix: { en: "D", zh: "第" },
   plentyOfTime: { en: "Plenty of time", zh: "时间充裕" },

@@ -13,7 +13,7 @@ function read(relativePath) {
 
 test("defineMiniApp runtime creates one real platform service registry for the root", () => {
   const defineMiniApp = read("apps/shared/utils/defineMiniApp.ts");
-  const rootComponent = read("apps/shared/components/MiniAppRoot.vue");
+  const rootComponent = read("apps/shared/react/MiniAppRoot.tsx");
 
   assert.doesNotMatch(
     defineMiniApp,

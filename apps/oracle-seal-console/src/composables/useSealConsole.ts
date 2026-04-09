@@ -1,12 +1,12 @@
 /**
  * useSealConsole -- Domain logic for Oracle Seal Console
  *
- * Receives OracleService from PlatformServices instead of
- * using Vue composables directly. No onMounted/onUnmounted -- lifecycle
- * is managed by defineMiniApp.
+ * Uses createObservable instead of Vue ref/computed.
+ * Called once during setup, returns observables that React components subscribe to.
  */
 
-import { ref, computed } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { OracleService, ClipboardService, OraclePublicKeyResponse, ConfidentialStoreResponse } from "@shared/services";
 import { encryptJsonWithOraclePublicKey, encryptTextWithOraclePublicKey } from "../utils/encryption";
 
@@ -17,88 +17,163 @@ export interface UseSealConsoleOptions {
 }
 
 export function useSealConsole({ oracle, clipboard, t }: UseSealConsoleOptions) {
-  const keyMeta = ref<OraclePublicKeyResponse | null>(null);
-  const inputMode = ref<"json" | "text">("json");
-  const fieldName = ref<"encrypted_payload" | "encrypted_params" | "encrypted_token">("encrypted_payload");
-  const confidentialInput = ref(`{\n  "mode": "builtin",\n  "function": "math.modexp",\n  "input": {\n    "base": "2",\n    "exponent": "10",\n    "modulus": "17"\n  },\n  "target_chain": "neo_n3"\n}`);
-  const ciphertext = ref("");
-  const isLoadingKey = ref(false);
-  const isSealing = ref(false);
-  const isStoring = ref(false);
-  const copiedKey = ref<"cipher" | "wrapper" | "ref" | null>(null);
-  const storageName = ref("");
-  const projectSlug = ref("");
-  const boundRequester = ref("");
-  const boundCallbackContract = ref("");
-  const storedRef = ref<ConfidentialStoreResponse | null>(null);
+  const keyMeta = createObservable<OraclePublicKeyResponse | null>(null);
+  const inputMode = createObservable<"json" | "text">("json");
+  const fieldName = createObservable<"encrypted_payload" | "encrypted_params" | "encrypted_token">("encrypted_payload");
+  const confidentialInput = createObservable(`{\n  "mode": "builtin",\n  "function": "math.modexp",\n  "input": {\n    "base": "2",\n    "exponent": "10",\n    "modulus": "17"\n  },\n  "target_chain": "neo_n3"\n}`);
+  const ciphertext = createObservable("");
+  const isLoadingKey = createObservable(false);
+  const isSealing = createObservable(false);
+  const isStoring = createObservable(false);
+  const copiedKey = createObservable<"cipher" | "wrapper" | "ref" | null>(null);
+  const storageName = createObservable("");
+  const projectSlug = createObservable("");
+  const boundRequester = createObservable("");
+  const boundCallbackContract = createObservable("");
+  const storedRef = createObservable<ConfidentialStoreResponse | null>(null);
 
   let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const canSeal = computed(() => Boolean(keyMeta.value?.public_key && confidentialInput.value.trim()));
-  const wrapperJson = computed(() => ciphertext.value ? JSON.stringify({ [fieldName.value]: ciphertext.value }, null, 2) : "");
-  const refFieldName = computed(() => fieldName.value === "encrypted_payload" ? "encrypted_payload_ref" : fieldName.value === "encrypted_params" ? "encrypted_params_ref" : "");
-  const canStoreRef = computed(() => Boolean(ciphertext.value && refFieldName.value));
-  const refWrapperJson = computed(() => storedRef.value?.secret_ref && refFieldName.value
-    ? JSON.stringify({ [refFieldName.value]: storedRef.value.secret_ref }, null, 2)
-    : "");
+  const canSeal: Observable<boolean> = {
+    get: () => Boolean(keyMeta.get()?.public_key && confidentialInput.get().trim()),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = keyMeta.subscribe(fn);
+      const u2 = confidentialInput.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
 
-  // State values for manifest bindings
-  const modeDisplay = computed(() => t(inputMode.value === "json" ? "jsonMode" : "textMode"));
-  const fieldDisplay = computed(() => t(fieldName.value === "encrypted_payload" ? "encryptedPayload" : fieldName.value === "encrypted_params" ? "encryptedParams" : "encryptedToken"));
-  const algorithmDisplay = computed(() => keyMeta.value?.algorithm || t("notAvailable"));
-  const networkDisplay = computed(() => keyMeta.value?.network || oracle.network);
-  const contractDisplay = computed(() => keyMeta.value?.contract || t("notLoaded"));
-  const sourceDisplay = computed(() => keyMeta.value?.source || t("notLoaded"));
+  const wrapperJson: Observable<string> = {
+    get: () => ciphertext.get() ? JSON.stringify({ [fieldName.get()]: ciphertext.get() }, null, 2) : "",
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = ciphertext.subscribe(fn);
+      const u2 = fieldName.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
+
+  const refFieldName: Observable<string> = {
+    get: () => {
+      const fn = fieldName.get();
+      return fn === "encrypted_payload" ? "encrypted_payload_ref" : fn === "encrypted_params" ? "encrypted_params_ref" : "";
+    },
+    set: () => {},
+    subscribe: (fn) => fieldName.subscribe(fn),
+  };
+
+  const canStoreRef: Observable<boolean> = {
+    get: () => Boolean(ciphertext.get() && refFieldName.get()),
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = ciphertext.subscribe(fn);
+      const u2 = fieldName.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
+
+  const refWrapperJson: Observable<string> = {
+    get: () => {
+      const ref = storedRef.get();
+      const rfn = refFieldName.get();
+      return ref?.secret_ref && rfn ? JSON.stringify({ [rfn]: ref.secret_ref }, null, 2) : "";
+    },
+    set: () => {},
+    subscribe: (fn) => {
+      const u1 = storedRef.subscribe(fn);
+      const u2 = fieldName.subscribe(fn);
+      return () => { u1(); u2(); };
+    },
+  };
+
+  // Display values for manifest bindings
+  const modeDisplay: Observable<string> = {
+    get: () => t(inputMode.get() === "json" ? "jsonMode" : "textMode"),
+    set: () => {},
+    subscribe: (fn) => inputMode.subscribe(fn),
+  };
+
+  const fieldDisplay: Observable<string> = {
+    get: () => t(fieldName.get() === "encrypted_payload" ? "encryptedPayload" : fieldName.get() === "encrypted_params" ? "encryptedParams" : "encryptedToken"),
+    set: () => {},
+    subscribe: (fn) => fieldName.subscribe(fn),
+  };
+
+  const algorithmDisplay: Observable<string> = {
+    get: () => keyMeta.get()?.algorithm || t("notAvailable"),
+    set: () => {},
+    subscribe: (fn) => keyMeta.subscribe(fn),
+  };
+
+  const networkDisplay: Observable<string> = {
+    get: () => keyMeta.get()?.network || oracle.network,
+    set: () => {},
+    subscribe: (fn) => keyMeta.subscribe(fn),
+  };
+
+  const contractDisplay: Observable<string> = {
+    get: () => keyMeta.get()?.contract || t("notLoaded"),
+    set: () => {},
+    subscribe: (fn) => keyMeta.subscribe(fn),
+  };
+
+  const sourceDisplay: Observable<string> = {
+    get: () => keyMeta.get()?.source || t("notLoaded"),
+    set: () => {},
+    subscribe: (fn) => keyMeta.subscribe(fn),
+  };
 
   async function loadKey() {
     try {
-      isLoadingKey.value = true;
-      keyMeta.value = await oracle.getOraclePublicKey();
+      isLoadingKey.set(true);
+      keyMeta.set(await oracle.getOraclePublicKey());
       return { success: true };
     } finally {
-      isLoadingKey.value = false;
+      isLoadingKey.set(false);
     }
   }
 
   async function sealPayload() {
-    if (!keyMeta.value?.public_key) {
+    if (!keyMeta.get()?.public_key) {
       throw new Error(t("oracleKeyUnavailable"));
     }
     try {
-      isSealing.value = true;
-      ciphertext.value = inputMode.value === "json"
-        ? await encryptJsonWithOraclePublicKey(keyMeta.value.public_key, confidentialInput.value)
-        : await encryptTextWithOraclePublicKey(keyMeta.value.public_key, confidentialInput.value);
-      storedRef.value = null;
+      isSealing.set(true);
+      const encrypted = inputMode.get() === "json"
+        ? await encryptJsonWithOraclePublicKey(keyMeta.get()!.public_key, confidentialInput.get())
+        : await encryptTextWithOraclePublicKey(keyMeta.get()!.public_key, confidentialInput.get());
+      ciphertext.set(encrypted);
+      storedRef.set(null);
       return { success: true };
     } finally {
-      isSealing.value = false;
+      isSealing.set(false);
     }
   }
 
   async function storeCiphertextRef() {
-    if (!refFieldName.value) {
+    if (!refFieldName.get()) {
       throw new Error(t("refUnavailableForToken"));
     }
-    if (!ciphertext.value) {
+    if (!ciphertext.get()) {
       throw new Error(t("ciphertextRequired"));
     }
     try {
-      isStoring.value = true;
-      storedRef.value = await oracle.storeConfidentialCiphertext({
-        ciphertext: ciphertext.value,
-        name: storageName.value || undefined,
-        project_slug: projectSlug.value || undefined,
-        requester_script_hash: boundRequester.value || undefined,
-        callback_contract: boundCallbackContract.value || undefined,
+      isStoring.set(true);
+      storedRef.set(await oracle.storeConfidentialCiphertext({
+        ciphertext: ciphertext.get(),
+        name: storageName.get() || undefined,
+        project_slug: projectSlug.get() || undefined,
+        requester_script_hash: boundRequester.get() || undefined,
+        callback_contract: boundCallbackContract.get() || undefined,
         metadata: {
           app_id: "miniapp-oracle-seal-console",
-          field: fieldName.value,
+          field: fieldName.get(),
         },
-      });
+      }));
       return { success: true };
     } finally {
-      isStoring.value = false;
+      isStoring.set(false);
     }
   }
 
@@ -110,9 +185,9 @@ export function useSealConsole({ oracle, clipboard, t }: UseSealConsoleOptions) 
         clearTimeout(copyTimer);
         copyTimer = undefined;
       }
-      copiedKey.value = key;
+      copiedKey.set(key);
       copyTimer = setTimeout(() => {
-        if (copiedKey.value === key) copiedKey.value = null;
+        if (copiedKey.get() === key) copiedKey.set(null);
         copyTimer = undefined;
       }, 1500);
     }
@@ -129,8 +204,13 @@ export function useSealConsole({ oracle, clipboard, t }: UseSealConsoleOptions) 
     await loadKey();
   };
 
+  const isRequesting: Observable<boolean> = {
+    get: () => oracle.isRequesting,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
   return {
-    // State
     keyMeta,
     inputMode,
     fieldName,
@@ -156,9 +236,7 @@ export function useSealConsole({ oracle, clipboard, t }: UseSealConsoleOptions) 
     networkDisplay,
     contractDisplay,
     sourceDisplay,
-    isRequesting: oracle.isRequesting,
-
-    // Actions
+    isRequesting,
     loadKey,
     sealPayload,
     storeCiphertextRef,

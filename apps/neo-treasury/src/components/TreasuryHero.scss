@@ -1,0 +1,63 @@
+@use "@shared/styles/hero" as *;
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+
+.hero-container {
+  margin-bottom: 20px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(255, 222, 89, 0.08) 0%, transparent 55%);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 20px rgba(255, 222, 89, 0.1);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  &:hover {
+    box-shadow: 0 6px 28px rgba(255, 222, 89, 0.25);
+    transform: translateY(-2px);
+  }
+}
+
+.hero-stat {
+  text-align: center;
+  padding: 8px 14px;
+  background: linear-gradient(180deg, rgba(255, 222, 89, 0.04), transparent);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 222, 89, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 222, 89, 0.08);
+}
+
+.hero-stat-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--treasury-gold, var(--text-primary));
+  font-family: var(--font-family-display, "Cinzel", serif);
+  background: linear-gradient(90deg, var(--treasury-gold), var(--treasury-light-gold, #fff8dc), var(--treasury-gold));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-shimmer 4s linear infinite;
+}
+
+.hero-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+@keyframes gold-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat-value { animation: none; }
+}

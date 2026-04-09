@@ -83,7 +83,6 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   popularPairs: { en: "Popular Pairs", zh: "热门交易对" },
     sidebarRate: { en: "Rate", zh: "汇率" },
   tokenNeo: { en: "NEO", zh: "NEO" },
-  tokenGas: { en: "GAS", zh: "GAS" },
   neoGasRate: { en: "1 NEO ≈ 8.5 GAS", zh: "1 NEO ≈ 8.5 GAS" },
 } as const;
 
