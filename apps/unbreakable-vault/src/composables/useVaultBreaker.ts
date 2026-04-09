@@ -22,7 +22,8 @@
  *     badgeService.award("vault-breaker", "")
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
@@ -112,30 +113,30 @@ export function useVaultBreaker({
   eventBus,
   t,
 }: UseVaultBreakerOptions) {
-  const vaultIdInput = ref("");
-  const attemptSecret = ref("");
-  const vaultDetails = ref<VaultDetails | null>(null);
-  const recentVaults = ref<RecentVault[]>([]);
-  const isLoading = ref(false);
+  const vaultIdInput = createObservable("");
+  const attemptSecret = createObservable("");
+  const vaultDetails = createObservable<VaultDetails | null>(null);
+  const recentVaults = createObservable<RecentVault[]>([]);
+  const isLoading = createObservable(false);
 
   const toNumber = toSafeNumber;
 
-  const canAttempt = computed(() => {
-    const st = vaultDetails.value?.status;
+  const canAttempt = createDerived(() => {
+    const st = vaultDetails.get()?.status;
     return Boolean(
-      vaultIdInput.value &&
-        attemptSecret.value.trim() &&
-        vaultDetails.value &&
-        String(vaultDetails.value.id) === String(vaultIdInput.value) &&
+      vaultIdInput.get() &&
+        attemptSecret.get().trim() &&
+        vaultDetails.get() &&
+        String(vaultDetails.get().id) === String(vaultIdInput.get()) &&
         st === "active",
     );
-  });
+  }, []);
 
-  const attemptFeeDisplay = computed(() => {
+  const attemptFeeDisplay = createDerived(() => {
     const fallback = toFixed8(ATTEMPT_FEE);
-    const fee = vaultDetails.value?.attemptFee ?? fallback;
+    const fee = vaultDetails.get()?.attemptFee ?? fallback;
     return formatGas(fee);
-  });
+  }, []);
 
   // ── Data Loading (via StorageProxy) ────────────────────────────────
 
@@ -158,7 +159,7 @@ export function useVaultBreaker({
           }
         }
       }
-      recentVaults.value = vaults;
+      recentVaults.set(vaults);
     } catch (e) {
       console.error(
         "[unbreakable-vault] loadRecentVaults error:",
@@ -172,9 +173,9 @@ export function useVaultBreaker({
    * Load vault details via StorageProxy.get().
    */
   const loadVault = async () => {
-    if (!vaultIdInput.value) return;
+    if (!vaultIdInput.get()) return;
     try {
-      const data = await storageService.get(`vault:${vaultIdInput.value}`) as StoredVaultDetails | null;
+      const data = await storageService.get(`vault:${vaultIdInput.get()}`) as StoredVaultDetails | null;
       if (!data || typeof data !== "object") throw new Error(t("vaultNotFound"));
 
       const creator = String(data.creator || "");
@@ -184,8 +185,8 @@ export function useVaultBreaker({
       const expired = Boolean(data.expired);
       const broken = Boolean(data.broken);
 
-      vaultDetails.value = {
-        id: vaultIdInput.value,
+      vaultDetails.set({
+        id: vaultIdInput.get(),
         creator,
         bounty: toNumber(data.bounty),
         attempts: toNumber(data.attemptCount),
@@ -197,12 +198,12 @@ export function useVaultBreaker({
         difficultyName: String(data.difficultyName || ""),
         expiryTime: toNumber(data.expiryTime),
         remainingDays: toNumber(data.remainingDays),
-      };
+      });
     } catch (e) {
       eventBus.emit("vault:error", {
         message: e instanceof Error ? e.message : t("loadFailed"),
       });
-      vaultDetails.value = null;
+      vaultDetails.set(null);
     }
   };
 
@@ -214,22 +215,22 @@ export function useVaultBreaker({
    * attemptBreak contract call.
    */
   const attemptBreak = async () => {
-    if (!canAttempt.value || isLoading.value) return;
-    isLoading.value = true;
+    if (!canAttempt.get() || isLoading.get()) return;
+    isLoading.set(true);
     try {
-      const feeBase = vaultDetails.value?.attemptFee ?? toFixed8(ATTEMPT_FEE);
+      const feeBase = vaultDetails.get()?.attemptFee ?? toFixed8(ATTEMPT_FEE);
 
       // Step 1: Pay the attempt fee via PaymentProxy
       await paymentService.deposit(
         String(feeBase),
-        `miniapp-unbreakablevault:attempt:${vaultIdInput.value}`,
+        `miniapp-unbreakablevault:attempt:${vaultIdInput.get()}`,
       );
 
       // Step 2: Attempt the break via EscrowProxy
-      await escrowService.completeMilestone(vaultIdInput.value, 0);
+      await escrowService.completeMilestone(vaultIdInput.get(), 0);
 
       // Check the result from storage
-      const result = await storageService.get(`attemptResult:${vaultIdInput.value}`) as { success?: boolean } | null;
+      const result = await storageService.get(`attemptResult:${vaultIdInput.get()}`) as { success?: boolean } | null;
       const success = Boolean(result?.success);
 
       if (success) {
@@ -240,7 +241,7 @@ export function useVaultBreaker({
         eventBus.emit("vault:attempt_failed", { message: t("vaultAttemptFailed") });
       }
 
-      attemptSecret.value = "";
+      attemptSecret.set("");
       await loadVault();
       await loadRecentVaults();
     } catch (e) {
@@ -249,12 +250,12 @@ export function useVaultBreaker({
       });
       throw e;
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
   const selectVault = async (id: string) => {
-    vaultIdInput.value = id;
+    vaultIdInput.set(id);
     await loadVault();
   };
 

@@ -1,4 +1,5 @@
-import { computed, ref } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -45,18 +46,18 @@ function writeStoredProofs(items: TimestampProof[]) {
 }
 
 export function useTimestampProofContract(t: (key: string) => string) {
-  const { address } = useWallet();
+  const address = refToObservable(useWallet().address);
 
-  const proofs = ref<TimestampProof[]>([]);
-  const verifiedProof = ref<TimestampProof | null>(null);
-  const verifyError = ref(false);
-  const isCreating = ref(false);
-  const isVerifying = ref(false);
+  const proofs = createObservable<TimestampProof[]>([]);
+  const verifiedProof = createObservable<TimestampProof | null>(null);
+  const verifyError = createObservable(false);
+  const isCreating = createObservable(false);
+  const isVerifying = createObservable(false);
 
-  const currentActor = () => String(address.value || "local");
+  const currentActor = () => String(address.get() || "local");
 
   const loadProofs = async () => {
-    proofs.value = readStoredProofs();
+    proofs.set(readStoredProofs());
   };
 
   const persistProofs = (items: TimestampProof[]) => {
@@ -65,11 +66,11 @@ export function useTimestampProofContract(t: (key: string) => string) {
       .filter((item) => item.id > 0 && item.contentHash.length > 0 && item.timestamp > 0)
       .sort((a, b) => b.id - a.id)
       .slice(0, MAX_PROOFS);
-    proofs.value = next;
+    proofs.set(next);
     writeStoredProofs(next);
   };
 
-  const myProofsCount = computed(() => proofs.value.filter((item) => item.creator === currentActor()).length);
+  const myProofsCount = createDerived(() => proofs.get().filter((item) => item.creator === currentActor()).length, []);
 
   const hashContent = async (content: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -91,7 +92,7 @@ export function useTimestampProofContract(t: (key: string) => string) {
     }
 
     try {
-      isCreating.value = true;
+      isCreating.set(true);
       const contentHash = await hashContent(normalizedContent);
       const currentProofs = readStoredProofs();
       const nextId = currentProofs.length > 0 ? Math.max(...currentProofs.map((item) => item.id)) + 1 : 1;
@@ -106,41 +107,41 @@ export function useTimestampProofContract(t: (key: string) => string) {
       };
 
       persistProofs([proof, ...currentProofs]);
-      verifiedProof.value = proof;
-      verifyError.value = false;
+      verifiedProof.set(proof);
+      verifyError.set(false);
       setStatus(t("createSuccess"), "success");
       onSuccess();
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
-      isCreating.value = false;
+      isCreating.set(false);
     }
   };
 
   const verifyProofById = async (id: string) => {
     try {
-      isVerifying.value = true;
-      verifyError.value = false;
-      verifiedProof.value = null;
+      isVerifying.set(true);
+      verifyError.set(false);
+      verifiedProof.set(null);
 
       const proofId = Number(id);
       if (!Number.isInteger(proofId) || proofId <= 0) {
-        verifyError.value = true;
+        verifyError.set(true);
         return;
       }
 
       const matched = readStoredProofs().find((item) => item.id === proofId) || null;
       if (!matched) {
-        verifyError.value = true;
+        verifyError.set(true);
         return;
       }
 
-      proofs.value = readStoredProofs();
-      verifiedProof.value = matched;
+      proofs.set(readStoredProofs());
+      verifiedProof.set(matched);
     } catch (_e) {
-      verifyError.value = true;
+      verifyError.set(true);
     } finally {
-      isVerifying.value = false;
+      isVerifying.set(false);
     }
   };
 

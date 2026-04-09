@@ -27,8 +27,8 @@
  * ```
  */
 
-import { ref } from "vue";
-import type { Ref } from "vue";
+import { createObservable } from "../react/context";
+import type { Observable } from "../react/context";
 import { EventBus } from "./EventBus";
 
 export type AppState = "idle" | "mounting" | "mounted" | "active" | "paused" | "unmounting";
@@ -37,7 +37,7 @@ export class LifecycleService {
   private events: EventBus;
   private appId: string;
 
-  private state: Ref<AppState>;
+  private state: Observable<AppState>;
 
   private mountCallbacks: Array<() => void | Promise<void>>;
   private unmountCallbacks: Array<() => void>;
@@ -49,7 +49,7 @@ export class LifecycleService {
   constructor(appId: string, events: EventBus) {
     this.appId = appId;
     this.events = events;
-    this.state = ref("idle") as Ref<AppState>;
+    this.state = createObservable<AppState>("idle");
 
     this.mountCallbacks = [];
     this.unmountCallbacks = [];
@@ -62,7 +62,7 @@ export class LifecycleService {
   // -- State accessor -------------------------------------------------------
 
   /** Current lifecycle state of the miniapp. */
-  get appState(): Ref<AppState> {
+  get appState(): Observable<AppState> {
     return this.state;
   }
 
@@ -149,9 +149,9 @@ export class LifecycleService {
    * 4. Transition to "active" state
    */
   async mount(): Promise<void> {
-    if (this.state.value !== "idle") return;
+    if (this.state.get() !== "idle") return;
 
-    this.state.value = "mounting";
+    this.state.set("mounting");
 
     // Run mount callbacks in order
     for (const callback of this.mountCallbacks) {
@@ -165,14 +165,14 @@ export class LifecycleService {
       }
     }
 
-    this.state.value = "mounted";
+    this.state.set("mounted");
 
     // Run data loaders in parallel
     if (this.dataLoaders.length > 0) {
       await this.reloadData();
     }
 
-    this.state.value = "active";
+    this.state.set("active");
     this.events.emit(EventBus.APP_MOUNTED, { appId: this.appId });
   }
 
@@ -185,9 +185,9 @@ export class LifecycleService {
    * 5. Clear all registrations
    */
   unmount(): void {
-    if (this.state.value === "idle" || this.state.value === "unmounting") return;
+    if (this.state.get() === "idle" || this.state.get() === "unmounting") return;
 
-    this.state.value = "unmounting";
+    this.state.set("unmounting");
 
     // Run unmount callbacks in reverse order
     for (let i = this.unmountCallbacks.length - 1; i >= 0; i--) {
@@ -217,15 +217,15 @@ export class LifecycleService {
     this.dataLoaders = [];
     this.cleanups = [];
 
-    this.state.value = "idle";
+    this.state.set("idle");
   }
 
   /**
    * Pause the miniapp. Runs pause callbacks and transitions to "paused" state.
    */
   pause(): void {
-    if (this.state.value !== "active") return;
-    this.state.value = "paused";
+    if (this.state.get() !== "active") return;
+    this.state.set("paused");
     for (const callback of this.pauseCallbacks) {
       try {
         callback();
@@ -239,8 +239,8 @@ export class LifecycleService {
    * Resume the miniapp from paused state. Runs resume callbacks.
    */
   resume(): void {
-    if (this.state.value !== "paused") return;
-    this.state.value = "active";
+    if (this.state.get() !== "paused") return;
+    this.state.set("active");
     for (const callback of this.resumeCallbacks) {
       try {
         callback();

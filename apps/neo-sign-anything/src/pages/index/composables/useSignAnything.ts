@@ -1,4 +1,5 @@
-import { ref, computed } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useWallet } from "@shared/utils/wallet-sdk";
 import type { WalletSDK } from "@shared/utils/wallet-sdk";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
@@ -19,87 +20,91 @@ const getMessageBytes = (value: string): number => {
 
 export function useSignAnything(t: (key: string) => string) {
   const wallet = useWallet() as WalletSDK;
-  const { address, signMessage: signWithWallet, chainType } = wallet;
+  const address = refToObservable(wallet.address);
+  const chainType = refToObservable(wallet.chainType);
+  const { signMessage: signWithWallet } = wallet;
   const { invokeDirectly, ensureWallet } = useContractInteraction({
     appId: "miniapp-neo-sign-anything",
     t,
     wallet,
   });
-  const { status, setStatus } = useStatusMessage(5000);
+  const sm = useStatusMessage(5000);
+  const status = refToObservable(sm.status);
+  const { setStatus } = sm;
 
   // --- Reactive state ---
-  const message = ref("");
-  const signature = ref("");
-  const txHash = ref("");
-  const isSigning = ref(false);
-  const isBroadcasting = ref(false);
-  const currentTab = ref("home");
+  const message = createObservable("");
+  const signature = createObservable("");
+  const txHash = createObservable("");
+  const isSigning = createObservable(false);
+  const isBroadcasting = createObservable(false);
+  const currentTab = createObservable("home");
 
   // --- Computed ---
-  const appState = computed(() => ({
-    walletConnected: !!address.value,
-    hasSigned: !!signature.value,
-  }));
+  const appState = createDerived(() => ({
+    walletConnected: !!address.get(),
+    hasSigned: !!signature.get(),
+  }), []);
 
   const sidebarItems = createSidebarItems(t, [
-    { labelKey: "sidebarWallet", value: () => (address.value ? t("connected") : t("disconnected")) },
-    { labelKey: "signatureResult", value: () => (signature.value ? t("yes") : t("no")) },
-    { labelKey: "sidebarBroadcastTx", value: () => (txHash.value ? t("yes") : t("no")) },
-    { labelKey: "sidebarMessageLength", value: () => message.value.length },
+    { labelKey: "sidebarWallet", value: () => (address.get() ? t("connected") : t("disconnected")) },
+    { labelKey: "signatureResult", value: () => (signature.get() ? t("yes") : t("no")) },
+    { labelKey: "sidebarBroadcastTx", value: () => (txHash.get() ? t("yes") : t("no")) },
+    { labelKey: "sidebarMessageLength", value: () => message.get().length },
   ]);
 
   // --- Actions ---
   const onTabChange = (tabId: string) => {
-    currentTab.value = tabId;
+    currentTab.set(tabId);
   };
 
   const signMessage = async () => {
-    if (!message.value) return;
+    if (!message.get()) return;
     if (!requireNeoChain(chainType, t)) return;
 
-    isSigning.value = true;
-    signature.value = "";
-    txHash.value = ""; // clear previous results
+    isSigning.set(true);
+    signature.set("");
+    txHash.set(""); // clear previous results
 
     try {
       await ensureWallet();
 
-      const result = await signWithWallet(message.value);
+      const result = await signWithWallet(message.get());
 
       // The result might be an object { signature, publicKey, salt } or just signature string
       // depending on the bridge implementation. Let's assume standard response.
       if (typeof result === "string") {
-        signature.value = result;
+        signature.set(result);
       } else if (result && typeof result === "object") {
         const resultRecord = result as Record<string, unknown>;
         if (resultRecord.signature) {
-          signature.value = String(resultRecord.signature);
+          signature.set(String(resultRecord.signature));
         } else {
-          try { signature.value = JSON.stringify(result); }
-          catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
+          try { signature.set(JSON.stringify(result)); }
+          catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.set(String(result)); }
         }
       } else {
-        try { signature.value = JSON.stringify(result); }
-        catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.value = String(result); }
+        try { signature.set(JSON.stringify(result)); }
+        catch (_e) { console.warn("[useSignAnything] JSON.stringify failed, falling back to String():", _e instanceof Error ? _e.message : String(_e)); signature.set(String(result)); }
       }
     } catch (err: unknown) {
       setStatus(formatErrorMessage(err, t("signFailed")), "error");
     } finally {
-      isSigning.value = false;
+      isSigning.set(false);
     }
   };
 
   const broadcastMessage = async () => {
-    if (!message.value) return;
+    if (!message.get()) return;
     if (!requireNeoChain(chainType, t)) return;
-    if (getMessageBytes(message.value) > MAX_MESSAGE_BYTES) {
+    if (getMessageBytes(message.get()) > MAX_MESSAGE_BYTES) {
       setStatus(t("messageTooLong"), "error");
       return;
     }
 
-    isBroadcasting.value = true;
-    txHash.value = "";
-    signature.value = ""; // clear previous results
+    isBroadcasting.set(true);
+    txHash.set("");
+    signature.set(""); // clear previous results
 
     try {
       const walletAddress = await ensureWallet();
@@ -111,15 +116,15 @@ export function useSignAnything(t: (key: string) => string) {
           { type: "Hash160", value: walletAddress },
           { type: "Hash160", value: walletAddress },
           { type: "Integer", value: "0" },
-          { type: "String", value: message.value },
+          { type: "String", value: message.get() },
         ],
         BLOCKCHAIN_CONSTANTS.GAS_HASH,
       );
-      txHash.value = txid || t("txPending");
+      txHash.set(txid || t("txPending"));
     } catch (err: unknown) {
       setStatus(formatErrorMessage(err, t("broadcastFailed")), "error");
     } finally {
-      isBroadcasting.value = false;
+      isBroadcasting.set(false);
     }
   };
 

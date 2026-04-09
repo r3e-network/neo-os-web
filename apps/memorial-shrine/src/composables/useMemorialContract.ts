@@ -1,4 +1,5 @@
-import { ref } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { useContractInteraction } from "@shared/composables/useContractInteraction";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
 import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
@@ -6,10 +7,12 @@ import { BLOCKCHAIN_CONSTANTS } from "@shared/constants";
 const APP_ID = "miniapp-memorial-shrine";
 
 export function useMemorialContract(t: (key: string) => string) {
-  const { ensureWallet, invokeDirectly, address, ensureContractAddress } = useContractInteraction({ appId: APP_ID, t });
+  const ci = useContractInteraction({ appId: APP_ID, t });
+  const address = refToObservable(ci.address);
+  const { ensureWallet, invokeDirectly, ensureContractAddress } = ci;
 
-  const isSubmitting = ref(false);
-  const isPaying = ref(false);
+  const isSubmitting = createObservable(false);
+  const isPaying = createObservable(false);
 
   const createMemorial = async (
     form: {
@@ -24,8 +27,8 @@ export function useMemorialContract(t: (key: string) => string) {
     onSuccess: () => void,
     setStatus: (msg: string, type: string) => void
   ) => {
-    if (isSubmitting.value) return;
-    isSubmitting.value = true;
+    if (isSubmitting.get()) return;
+    isSubmitting.set(true);
     try {
       const addr = await ensureWallet();
       await invokeDirectly("createMemorial", [
@@ -43,7 +46,7 @@ export function useMemorialContract(t: (key: string) => string) {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
-      isSubmitting.value = false;
+      isSubmitting.set(false);
     }
   };
 
@@ -54,8 +57,8 @@ export function useMemorialContract(t: (key: string) => string) {
     message: string,
     setStatus: (msg: string, type: string) => void
   ) => {
-    if (isPaying.value) return;
-    isPaying.value = true;
+    if (isPaying.get()) return;
+    isPaying.set(true);
     try {
       const addr = await ensureWallet();
       const contract = await ensureContractAddress();
@@ -85,7 +88,7 @@ export function useMemorialContract(t: (key: string) => string) {
     } catch (e) {
       setStatus(formatErrorMessage(e, t("error")), "error");
     } finally {
-      isPaying.value = false;
+      isPaying.set(false);
     }
   };
 

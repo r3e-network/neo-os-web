@@ -1,5 +1,3 @@
-import { onUnmounted } from "vue";
-
 export interface UseTickerOptions {
   immediate?: boolean;
 }
@@ -29,17 +27,19 @@ export function useTicker(onTick: () => void, intervalMs = 1000, options: UseTic
     }
   };
 
-  onUnmounted(() => {
+  /** Cleanup function — caller is responsible for invoking on teardown. */
+  const dispose = () => {
     if (intervalId !== null) {
       clearInterval(intervalId);
       intervalId = null;
       started = false;
     }
-  });
+  };
 
   return {
     start,
     stop,
     isStarted: () => started,
+    dispose,
   };
 }

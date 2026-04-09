@@ -34,7 +34,8 @@
  *   - Escrow list management
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { EscrowProxy } from "@shared/services/os/EscrowProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import { formatGas, formatAddress } from "@shared/utils/format";
@@ -116,28 +117,28 @@ export function useMilestoneEscrow({
   t,
 }: UseMilestoneEscrowOptions) {
   // ── Reactive State ────────────────────────────────────────────────────
-  const creatorEscrows = ref<EscrowItem[]>([]);
-  const beneficiaryEscrows = ref<EscrowItem[]>([]);
-  const isLoading = ref(false);
-  const isRefreshing = ref(false);
-  const isCreating = ref(false);
-  const approvingId = ref<string | null>(null);
-  const claimingId = ref<string | null>(null);
-  const cancellingId = ref<string | null>(null);
-  const address = ref("");
+  const creatorEscrows = createObservable<EscrowItem[]>([]);
+  const beneficiaryEscrows = createObservable<EscrowItem[]>([]);
+  const isLoading = createObservable(false);
+  const isRefreshing = createObservable(false);
+  const isCreating = createObservable(false);
+  const approvingId = createObservable<string | null>(null);
+  const claimingId = createObservable<string | null>(null);
+  const cancellingId = createObservable<string | null>(null);
+  const address = createObservable("");
 
   // ── Computed (manifest stat/sidebar bindings) ─────────────────────────
-  const creatorEscrowCount = computed(() => creatorEscrows.value.length);
-  const beneficiaryEscrowCount = computed(() => beneficiaryEscrows.value.length);
-  const activeCount = computed(() =>
-    creatorEscrows.value.filter((e) => e.status === "active").length,
+  const creatorEscrowCount = createDerived(() => creatorEscrows.get().length, []);
+  const beneficiaryEscrowCount = createDerived(() => beneficiaryEscrows.get().length, []);
+  const activeCount = createDerived(() =>
+    creatorEscrows.get().filter((e) => e.status === "active").length,
   );
-  const completedCount = computed(() =>
-    creatorEscrows.value.filter((e) => e.status === "completed").length,
+  const completedCount = createDerived(() =>
+    creatorEscrows.get().filter((e) => e.status === "completed").length,
   );
 
   // Contract readiness: true once we have a wallet address
-  const contractReady = computed(() => Boolean(address.value));
+  const contractReady = createDerived(() => Boolean(address.get()), []);
 
   // ── Display helpers (exposed as refs for PlayArea) ────────────────────
 
@@ -168,16 +169,16 @@ export function useMilestoneEscrow({
    * The edge function handles listing creator and beneficiary escrows.
    */
   const refreshEscrows = async () => {
-    if (!address.value) return;
-    if (isRefreshing.value) return;
+    if (!address.get()) return;
+    if (isRefreshing.get()) return;
 
     try {
-      isRefreshing.value = true;
+      isRefreshing.set(true);
 
       // Fetch escrow list from the edge function via a get call
       // that returns both creator and beneficiary escrow IDs
-      const creatorRaw = await escrowService.get(`creator:${address.value}`);
-      const beneficiaryRaw = await escrowService.get(`beneficiary:${address.value}`);
+      const creatorRaw = await escrowService.get(`creator:${address.get()}`);
+      const beneficiaryRaw = await escrowService.get(`beneficiary:${address.get()}`);
 
       const creatorIds = Array.isArray(creatorRaw) ? creatorRaw.map(String) : [];
       const beneficiaryIds = Array.isArray(beneficiaryRaw) ? beneficiaryRaw.map(String) : [];
@@ -187,13 +188,13 @@ export function useMilestoneEscrow({
         Promise.all(beneficiaryIds.map(fetchEscrowDetails)),
       ]);
 
-      creatorEscrows.value = creator.filter(Boolean) as EscrowItem[];
-      beneficiaryEscrows.value = beneficiary.filter(Boolean) as EscrowItem[];
+      creatorEscrows.set(creator.filter(Boolean) as EscrowItem[]);
+      beneficiaryEscrows.set(beneficiary.filter(Boolean) as EscrowItem[]);
     } catch (e) {
       console.warn("[useMilestoneEscrow] refreshEscrows failed:", e instanceof Error ? e.message : String(e));
       throw e;
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
@@ -201,11 +202,11 @@ export function useMilestoneEscrow({
    * Load all data. Called by defineMiniApp on mount and wallet reconnect.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await refreshEscrows();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -217,7 +218,7 @@ export function useMilestoneEscrow({
    * and the CreateEscrow contract invocation.
    */
   const createEscrow = async (data: CreateEscrowParams) => {
-    if (isCreating.value) return;
+    if (isCreating.get()) return;
 
     if (data.milestones.length < 1 || data.milestones.length > MAX_MILESTONES) {
       throw new Error(t("milestoneLimit"));
@@ -245,7 +246,7 @@ export function useMilestoneEscrow({
       throw new Error(t("invalidAmount"));
     }
 
-    isCreating.value = true;
+    isCreating.set(true);
     try {
       // Step 1: Fund the escrow via PaymentProxy
       await paymentService.deposit(
@@ -262,7 +263,7 @@ export function useMilestoneEscrow({
 
       await refreshEscrows();
     } finally {
-      isCreating.value = false;
+      isCreating.set(false);
     }
   };
 
@@ -271,19 +272,19 @@ export function useMilestoneEscrow({
    * The edge function handles the ApproveMilestone contract invocation.
    */
   const approveMilestone = async (escrow: EscrowItem, milestoneIndex?: number) => {
-    if (approvingId.value) return;
+    if (approvingId.get()) return;
 
     const idx = milestoneIndex ?? escrow.milestoneApproved.findIndex((approved: boolean) => !approved);
     if (idx < 0) return;
 
     try {
-      approvingId.value = `${escrow.id}-${idx}`;
+      approvingId.set(`${escrow.id}-${idx}`);
 
       await escrowService.completeMilestone(escrow.id, idx);
 
       await refreshEscrows();
     } finally {
-      approvingId.value = null;
+      approvingId.set(null);
     }
   };
 
@@ -292,7 +293,7 @@ export function useMilestoneEscrow({
    * The edge function handles the ClaimMilestone contract invocation.
    */
   const claimMilestone = async (escrow: EscrowItem, milestoneIndex?: number) => {
-    if (claimingId.value) return;
+    if (claimingId.get()) return;
 
     const idx = milestoneIndex ?? escrow.milestoneApproved.findIndex(
       (approved: boolean, i: number) => approved && !escrow.milestoneClaimed[i],
@@ -300,13 +301,13 @@ export function useMilestoneEscrow({
     if (idx < 0) return;
 
     try {
-      claimingId.value = `${escrow.id}-${idx}`;
+      claimingId.set(`${escrow.id}-${idx}`);
 
       await escrowService.fund(escrow.id);
 
       await refreshEscrows();
     } finally {
-      claimingId.value = null;
+      claimingId.set(null);
     }
   };
 
@@ -315,16 +316,16 @@ export function useMilestoneEscrow({
    * The edge function handles the CancelEscrow contract invocation.
    */
   const cancelEscrow = async (escrow: EscrowItem) => {
-    if (cancellingId.value) return;
+    if (cancellingId.get()) return;
 
     try {
-      cancellingId.value = escrow.id;
+      cancellingId.set(escrow.id);
 
       await escrowService.refund(escrow.id);
 
       await refreshEscrows();
     } finally {
-      cancellingId.value = null;
+      cancellingId.set(null);
     }
   };
 
@@ -334,7 +335,7 @@ export function useMilestoneEscrow({
   const connectWallet = async () => {
     // Wallet connection is handled by the platform's chain service
     // in main.ts. Once connected, address is set and refreshEscrows is called.
-    if (address.value) {
+    if (address.get()) {
       await refreshEscrows();
     }
   };
@@ -342,8 +343,8 @@ export function useMilestoneEscrow({
   // ── Cleanup ───────────────────────────────────────────────────────────
 
   const cleanup = () => {
-    creatorEscrows.value = [];
-    beneficiaryEscrows.value = [];
+    creatorEscrows.set([]);
+    beneficiaryEscrows.set([]);
   };
 
   return {
@@ -385,7 +386,7 @@ export function useMilestoneEscrow({
      * Set the wallet address. Called from main.ts to track the
      * connected wallet address from the platform's chain service.
      */
-    setAddress: (addr: string) => { address.value = addr; },
+    setAddress: (addr: string) => { address.set(addr); },
   };
 }
 

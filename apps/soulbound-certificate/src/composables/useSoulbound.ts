@@ -31,7 +31,8 @@
  *   - Link building + clipboard + share logic
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -103,22 +104,22 @@ export function useSoulbound({
   eventBus,
   t,
 }: UseSoulboundOptions) {
-  const templates = ref<TemplateItem[]>([]);
-  const certificates = ref<CertificateItem[]>([]);
-  const isRefreshing = ref(false);
-  const isRefreshingCertificates = ref(false);
-  const togglingId = ref<string | null>(null);
-  const isLoading = ref(false);
+  const templates = createObservable<TemplateItem[]>([]);
+  const certificates = createObservable<CertificateItem[]>([]);
+  const isRefreshing = createObservable(false);
+  const isRefreshingCertificates = createObservable(false);
+  const togglingId = createObservable<string | null>(null);
+  const isLoading = createObservable(false);
 
-  const address = ref("");
-  const templatesCount = computed(() => templates.value.length);
-  const certificatesCount = computed(() => certificates.value.length);
-  const activeTemplatesCount = computed(() => templates.value.filter((tpl) => tpl.active).length);
+  const address = createObservable("");
+  const templatesCount = createDerived(() => templates.get().length, []);
+  const certificatesCount = createDerived(() => certificates.get().length, []);
+  const activeTemplatesCount = createDerived(() => templates.get().filter((tpl) => tpl.active).length, []);
 
   // ── Data Loading (via OS services) ─────────────────────────────────
 
   const refreshTemplates = async () => {
-    isRefreshing.value = true;
+    isRefreshing.set(true);
     try {
       const templateMap = await storageService.list("templates:", 20);
       const items: TemplateItem[] = [];
@@ -140,16 +141,16 @@ export function useSoulbound({
           }
         }
       }
-      templates.value = items;
+      templates.set(items);
     } catch (_e) {
-      templates.value = [];
+      templates.set([]);
     } finally {
-      isRefreshing.value = false;
+      isRefreshing.set(false);
     }
   };
 
   const refreshCertificates = async () => {
-    isRefreshingCertificates.value = true;
+    isRefreshingCertificates.set(true);
     try {
       const certMap = await storageService.list("certificates:", 50);
       const items: CertificateItem[] = [];
@@ -175,11 +176,11 @@ export function useSoulbound({
           }
         }
       }
-      certificates.value = items;
+      certificates.set(items);
     } catch (_e) {
-      certificates.value = [];
+      certificates.set([]);
     } finally {
-      isRefreshingCertificates.value = false;
+      isRefreshingCertificates.set(false);
     }
   };
 
@@ -205,13 +206,13 @@ export function useSoulbound({
    */
   const toggleTemplate = async (template: unknown) => {
     const tpl = template as TemplateItem;
-    if (togglingId.value) return;
-    togglingId.value = tpl.id;
+    if (togglingId.get()) return;
+    togglingId.set(tpl.id);
     try {
       await nftService.validate(tpl.id);
       await refreshTemplates();
     } finally {
-      togglingId.value = null;
+      togglingId.set(null);
     }
   };
 
@@ -243,15 +244,15 @@ export function useSoulbound({
   // ── Load All ────────────────────────────────────────────────────────
 
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await connectWallet();
       // Hint badge for certificate issuer (fire-and-forget)
-      if (templates.value.length > 0) {
+      if (templates.get().length > 0) {
         badgeService.award("certificate-issuer", "").catch(() => {});
       }
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 

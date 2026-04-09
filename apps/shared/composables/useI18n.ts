@@ -1,4 +1,5 @@
-import { ref, onUnmounted, onMounted } from "vue";
+import { createObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
@@ -8,7 +9,7 @@ import { getParentOrigin } from "../utils/iframe";
 let listenersRefCount = 0;
 let languageChangeHandler: ((event: Event) => void) | null = null;
 let messageHandler: ((event: MessageEvent) => void) | null = null;
-const sharedLocale = ref<Locale>(getLocale());
+const sharedLocale: Observable<Locale> = createObservable<Locale>(getLocale());
 
 type InterpolationArgs = Record<string, string | number>;
 
@@ -38,14 +39,14 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     if (typeof entry === "string") {
       str = entry;
     } else {
-      str = entry[sharedLocale.value] || entry.en || entry.zh || String(key);
+      str = entry[sharedLocale.get()] || entry.en || entry.zh || String(key);
     }
 
     return args ? interpolate(str, args) : str;
   };
 
   const setLocale = (lang: string) => {
-    sharedLocale.value = normalizeLocale(lang);
+    sharedLocale.set(normalizeLocale(lang));
   };
 
   // Register event listeners on first use
@@ -54,7 +55,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
       languageChangeHandler = (event: Event) => {
         const newLang = (event as CustomEvent<{ language?: string }>).detail?.language;
         if (newLang) {
-          sharedLocale.value = normalizeLocale(newLang);
+          sharedLocale.set(normalizeLocale(newLang));
         }
       };
 
@@ -73,29 +74,32 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
         if (data.type !== "language-change") return;
         const newLang = String(data.language || data.locale || data.lang || "").trim();
         if (!newLang) return;
-        sharedLocale.value = normalizeLocale(newLang);
+        sharedLocale.set(normalizeLocale(newLang));
       };
 
       window.addEventListener("languageChange", languageChangeHandler);
       window.addEventListener("message", messageHandler);
     }
     listenersRefCount++;
-
-    onUnmounted(() => {
-      listenersRefCount--;
-      if (listenersRefCount === 0 && languageChangeHandler && messageHandler) {
-        window.removeEventListener("languageChange", languageChangeHandler);
-        window.removeEventListener("message", messageHandler);
-        languageChangeHandler = null;
-        messageHandler = null;
-      }
-    });
   }
+
+  /** Cleanup function — caller is responsible for invoking on teardown. */
+  const dispose = () => {
+    if (typeof window === "undefined") return;
+    listenersRefCount--;
+    if (listenersRefCount === 0 && languageChangeHandler && messageHandler) {
+      window.removeEventListener("languageChange", languageChangeHandler);
+      window.removeEventListener("message", messageHandler);
+      languageChangeHandler = null;
+      messageHandler = null;
+    }
+  };
 
   return () => ({
     locale: sharedLocale,
     t,
     setLocale,
+    dispose,
   });
 }
 

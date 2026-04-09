@@ -9,7 +9,8 @@
  * cross-component notifications.
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { useGasSponsor as useGasSponsorSDK } from "@shared/utils/wallet-sdk";
 import { formatErrorMessage } from "@shared/utils/errorHandling";
@@ -25,53 +26,55 @@ export interface UseGasSponsorAppOptions {
 }
 
 export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions) {
-  const { isRequestingSponsorship: isRequesting, checkEligibility, requestSponsorship: apiRequest } = useGasSponsorSDK();
+  const gasSponsorSDK = useGasSponsorSDK();
+  const isRequesting = refToObservable(gasSponsorSDK.isRequestingSponsorship);
+  const { checkEligibility, requestSponsorship: apiRequest } = gasSponsorSDK;
 
-  const userAddress = ref("");
-  const gasBalance = ref("0");
-  const usedQuota = ref("0");
-  const dailyLimit = ref("0.1");
-  const resetsAt = ref("");
-  const loading = ref(true);
-  const requestAmount = ref("0.01");
+  const userAddress = createObservable("");
+  const gasBalance = createObservable("0");
+  const usedQuota = createObservable("0");
+  const dailyLimit = createObservable("0.1");
+  const resetsAt = createObservable("");
+  const loading = createObservable(true);
+  const requestAmount = createObservable("0.01");
 
   // Donate/Send state
-  const donateAmount = ref("0.1");
-  const sendAmount = ref("0.1");
-  const recipientAddress = ref("");
-  const isDonating = ref(false);
-  const isSending = ref(false);
+  const donateAmount = createObservable("0.1");
+  const sendAmount = createObservable("0.1");
+  const recipientAddress = createObservable("");
+  const isDonating = createObservable(false);
+  const isSending = createObservable(false);
 
   // -- Computed --
-  const isEligible = computed(() => parseFloat(gasBalance.value) < ELIGIBILITY_THRESHOLD);
-  const remainingQuota = computed(() => Math.max(0, parseFloat(dailyLimit.value) - parseFloat(usedQuota.value)));
-  const fuelLevelPercent = computed(() => {
-    const balance = parseFloat(gasBalance.value);
+  const isEligible = createDerived(() => parseFloat(gasBalance.get()) < ELIGIBILITY_THRESHOLD, []);
+  const remainingQuota = createDerived(() => Math.max(0, parseFloat(dailyLimit.get()) - parseFloat(usedQuota.get())), []);
+  const fuelLevelPercent = createDerived(() => {
+    const balance = parseFloat(gasBalance.get());
     return Math.min((balance / ELIGIBILITY_THRESHOLD) * 100, 100);
-  });
-  const maxRequestAmount = computed(() => remainingQuota.value.toFixed(4));
-  const quickAmounts = computed(() => [0.001, 0.005, 0.01, 0.05]);
-  const quotaPercent = computed(() => {
-    const limit = parseFloat(dailyLimit.value);
-    const used = parseFloat(usedQuota.value);
+  }, []);
+  const maxRequestAmount = createDerived(() => remainingQuota.get().toFixed(4), []);
+  const quickAmounts = createDerived(() => [0.001, 0.005, 0.01, 0.05], []);
+  const quotaPercent = createDerived(() => {
+    const limit = parseFloat(dailyLimit.get());
+    const used = parseFloat(usedQuota.get());
     return limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-  });
-  const resetTime = computed(() => {
-    if (!resetsAt.value) return t("notAvailable");
+  }, []);
+  const resetTime = createDerived(() => {
+    if (!resetsAt.get()) return t("notAvailable");
     const now = Date.now();
-    const reset = new Date(resetsAt.value).getTime();
+    const reset = new Date(resetsAt.get()).getTime();
     const diff = reset - now;
     if (diff <= 0) return t("now");
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor((diff % 3600000) / 60000);
     return `${hours}${t("hoursShort")} ${minutes}${t("minutesShort")}`;
-  });
+  }, []);
 
   // -- Display values for manifest --
-  const tankLevelDisplay = computed(() => `${Math.round(fuelLevelPercent.value)}%`);
-  const gasBalanceDisplay = computed(() => gasBalance.value);
-  const remainingQuotaDisplay = computed(() => remainingQuota.value.toFixed(4));
-  const eligibleDisplay = computed(() => isEligible.value ? t("eligible") : t("notEligible"));
+  const tankLevelDisplay = createDerived(() => `${Math.round(fuelLevelPercent.get())}%`, []);
+  const gasBalanceDisplay = createDerived(() => gasBalance.get(), []);
+  const remainingQuotaDisplay = createDerived(() => remainingQuota.get().toFixed(4), []);
+  const eligibleDisplay = createDerived(() => isEligible.get() ? t("eligible") : t("notEligible"), []);
 
   // -- Helpers --
 
@@ -87,37 +90,37 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
 
   // -- Actions --
   const loadUserData = async () => {
-    loading.value = true;
+    loading.set(true);
     try {
       await chain.ensureWallet();
-      userAddress.value = chain.address.value || "";
+      userAddress.set(chain.address.get() || "");
 
       const statusData = await checkEligibility();
-      gasBalance.value = statusData.gas_balance;
-      usedQuota.value = statusData.used_today;
-      dailyLimit.value = statusData.daily_limit;
-      resetsAt.value = statusData.resets_at;
+      gasBalance.set(statusData.gas_balance);
+      usedQuota.set(statusData.used_today);
+      dailyLimit.set(statusData.daily_limit);
+      resetsAt.set(statusData.resets_at);
       eventBus.emit("userData:loaded", {});
     } catch (e) {
       eventBus.emit("userData:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {
-      loading.value = false;
+      loading.set(false);
     }
   };
 
   const requestSponsorship = async () => {
-    if (!isEligible.value || remainingQuota.value <= 0) return;
+    if (!isEligible.get() || remainingQuota.get() <= 0) return;
 
-    const amount = parseFloat(requestAmount.value);
-    if (Number.isNaN(amount) || amount <= 0 || amount > remainingQuota.value) {
+    const amount = parseFloat(requestAmount.get());
+    if (Number.isNaN(amount) || amount <= 0 || amount > remainingQuota.get()) {
       throw new Error(t("invalidAmount"));
     }
 
     try {
-      const result = await apiRequest(requestAmount.value);
+      const result = await apiRequest(requestAmount.get());
       eventBus.emit("sponsorship:requested", { id: result.request_id });
-      requestAmount.value = "0.01";
+      requestAmount.set("0.01");
       await loadUserData();
       return result;
     } catch (e) {
@@ -127,68 +130,68 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
   };
 
   const handleDonate = async () => {
-    if (isDonating.value) return;
-    const amount = parseFloat(donateAmount.value);
+    if (isDonating.get()) return;
+    const amount = parseFloat(donateAmount.get());
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    isDonating.value = true;
+    isDonating.set(true);
     try {
       await chain.ensureWallet();
-      const sender = chain.address.value as string;
+      const sender = chain.address.get() as string;
       await chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },
           { type: "Hash160", value: SPONSOR_POOL_ADDRESS },
-          { type: "Integer", value: toFixed8(donateAmount.value) },
+          { type: "Integer", value: toFixed8(donateAmount.get()) },
           { type: "String", value: "" },
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
       eventBus.emit("donate:success", {});
-      donateAmount.value = "0.1";
+      donateAmount.set("0.1");
       await loadUserData();
     } catch (e) {
       eventBus.emit("donate:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {
-      isDonating.value = false;
+      isDonating.set(false);
     }
   };
 
   const handleSend = async () => {
-    if (isSending.value) return;
-    if (!recipientAddress.value || recipientAddress.value.length < 30) {
+    if (isSending.get()) return;
+    if (!recipientAddress.get() || recipientAddress.get().length < 30) {
       throw new Error(t("invalidAddress"));
     }
-    const amount = parseFloat(sendAmount.value);
+    const amount = parseFloat(sendAmount.get());
     if (Number.isNaN(amount) || amount <= 0) {
       throw new Error(t("invalidAmount"));
     }
-    isSending.value = true;
+    isSending.set(true);
     try {
       await chain.ensureWallet();
-      const sender = chain.address.value as string;
+      const sender = chain.address.get() as string;
       await chain.invoke(
         "transfer",
         [
           { type: "Hash160", value: sender },
-          { type: "Hash160", value: recipientAddress.value },
-          { type: "Integer", value: toFixed8(sendAmount.value) },
+          { type: "Hash160", value: recipientAddress.get() },
+          { type: "Integer", value: toFixed8(sendAmount.get()) },
           { type: "String", value: "" },
         ],
         { scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH },
       );
       eventBus.emit("send:success", {});
-      sendAmount.value = "0.1";
-      recipientAddress.value = "";
+      sendAmount.set("0.1");
+      recipientAddress.set("");
       await loadUserData();
     } catch (e) {
       eventBus.emit("send:error", { message: formatErrorMessage(e, t("loadFailed")) });
       throw e;
     } finally {
-      isSending.value = false;
+      isSending.set(false);
     }
   };
 

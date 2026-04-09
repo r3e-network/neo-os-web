@@ -1,4 +1,5 @@
-import { ref } from "vue";
+import { createObservable, refToObservable } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import {
   validateWif,
   validatePrivateKey,
@@ -32,13 +33,15 @@ const EMPTY_RESULT: ConversionResult = {
 
 /** Converts between Neo key formats (WIF, private key, public key) and disassembles scripts. */
 export function useConverter(t: (key: string) => string, clipboard?: ClipboardService) {
-  const { status: copyStatus, setStatus: setCopyStatus } = useStatusMessage(3000);
+  const sm = useStatusMessage(3000);
+  const copyStatus = refToObservable(sm.status);
+  const { setStatus: setCopyStatus } = sm;
 
-  const inputKey = ref("");
-  const statusMsg = ref("");
-  const statusType = ref("");
-  const showSecrets = ref(false);
-  const result = ref<ConversionResult>({ ...EMPTY_RESULT });
+  const inputKey = createObservable("");
+  const statusMsg = createObservable("");
+  const statusType = createObservable("");
+  const showSecrets = createObservable(false);
+  const result = createObservable<ConversionResult>({ ...EMPTY_RESULT });
 
   async function copy(text: string) {
     if (clipboard) {
@@ -53,14 +56,14 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
   }
 
   function clearResult() {
-    result.value = { ...EMPTY_RESULT };
-    statusMsg.value = "";
-    statusType.value = "";
-    showSecrets.value = false;
+    result.set({ ...EMPTY_RESULT });
+    statusMsg.set("");
+    statusType.set("");
+    showSecrets.set(false);
   }
 
   function detectAndConvert() {
-    const val = inputKey.value.trim();
+    const val = inputKey.get().trim();
     if (!val) {
       clearResult();
       return;
@@ -69,50 +72,50 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
     try {
       // 1. Try WIF
       if (validateWif(val)) {
-        statusMsg.value = "detectedWif";
-        statusType.value = "success";
+        statusMsg.set("detectedWif");
+        statusType.set("success");
         const priv = getPrivateKeyFromWIF(val)!;
         const pub = getPublicKey(priv);
         const addr = convertPublicKeyToAddress(pub);
-        result.value = { address: addr, publicKey: pub, wif: val, privateKey: priv, opcodes: [] };
+        result.set({ address: addr, publicKey: pub, wif: val, privateKey: priv, opcodes: [] });
         return;
       }
 
       // 2. Try Public Key (66 hex)
       if (validatePublicKey(val)) {
-        statusMsg.value = "detectedPubKey";
-        statusType.value = "success";
+        statusMsg.set("detectedPubKey");
+        statusType.set("success");
         const address = convertPublicKeyToAddress(val);
-        result.value = { address, publicKey: val, wif: "", privateKey: "", opcodes: [] };
+        result.set({ address, publicKey: val, wif: "", privateKey: "", opcodes: [] });
         return;
       }
 
       // 3. Try Private Key (64 hex)
       if (validatePrivateKey(val)) {
-        statusMsg.value = "detectedPrivKey";
-        statusType.value = "success";
+        statusMsg.set("detectedPrivKey");
+        statusType.set("success");
         const pub = getPublicKey(val);
         const addr = convertPublicKeyToAddress(pub);
         const wif = convertPrivateKeyToWif(val);
-        result.value = { address: addr, publicKey: pub, wif, privateKey: val, opcodes: [] };
+        result.set({ address: addr, publicKey: pub, wif, privateKey: val, opcodes: [] });
         return;
       }
 
       // 4. Try Hex Script
       if (validateHexScript(val)) {
-        statusMsg.value = "detectedScript";
-        statusType.value = "success";
+        statusMsg.set("detectedScript");
+        statusType.set("success");
         const ops = disassembleScript(val);
-        result.value = { address: "", publicKey: "", wif: "", privateKey: "", opcodes: ops };
+        result.set({ address: "", publicKey: "", wif: "", privateKey: "", opcodes: ops });
         return;
       }
 
-      statusMsg.value = "unknownFormat";
-      statusType.value = "error";
-      result.value = { ...EMPTY_RESULT };
+      statusMsg.set("unknownFormat");
+      statusType.set("error");
+      result.set({ ...EMPTY_RESULT });
     } catch (e) {
-      statusMsg.value = formatErrorMessage(e, t("invalidFormat"));
-      statusType.value = "error";
+      statusMsg.set(formatErrorMessage(e, t("invalidFormat")));
+      statusType.set("error");
     }
   }
 

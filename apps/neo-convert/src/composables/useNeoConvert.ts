@@ -17,7 +17,8 @@
  *   - The EventBus is used to emit success/error events for platform toasts
  */
 
-import { ref, computed } from "vue";
+import { createObservable, createDerived } from "@shared/react/context";
+import type { Observable } from "@shared/react/context";
 import type { ChainService, BalanceService, TransferService, EventBus, ClipboardService } from "@shared/services";
 import { generateAccount } from "@/services/neo";
 import type { NeoAccount } from "@/services/neo";
@@ -54,58 +55,58 @@ export interface UseNeoConvertOptions {
 
 export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeoConvertOptions) {
   // ── Tab & UI State ──────────────────────────────────────────────────
-  const activeTab = ref("generate");
-  const isMobile = ref(typeof window !== "undefined" ? window.innerWidth < 768 : false);
-  const isLoading = ref(false);
+  const activeTab = createObservable("generate");
+  const isMobile = createObservable(typeof window !== "undefined" ? window.innerWidth < 768 : false);
+  const isLoading = createObservable(false);
 
   // ── Account Generator State ─────────────────────────────────────────
-  const generatedAccount = ref<NeoAccount | null>(null);
-  const accountsGenerated = ref(0);
-  const showSecrets = ref(false);
+  const generatedAccount = createObservable<NeoAccount | null>(null);
+  const accountsGenerated = createObservable(0);
+  const showSecrets = createObservable(false);
 
   // ── Converter (delegates to existing useConverter) ──────────────────
   const converter = useConverter(t as (key: string) => string, clipboard);
 
   // ── Wallet Balances (reactive, auto-refresh on wallet connect) ──────
-  const neoBalance = ref(0);
-  const gasBalance = ref(0);
-  const balancesLoading = ref(false);
+  const neoBalance = createObservable(0);
+  const gasBalance = createObservable(0);
+  const balancesLoading = createObservable(false);
   let balanceCleanups: Array<() => void> = [];
 
   // ── Formatted values for manifest stat/sidebar bindings ─────────────
-  const deviceMode = computed(() =>
-    isMobile.value ? t("sidebarMobile") : t("sidebarDesktop"),
+  const deviceMode = createDerived(() =>
+    isMobile.get() ? t("sidebarMobile") : t("sidebarDesktop"),
   );
 
-  const formattedNeoBalance = computed(() => `${neoBalance.value} NEO`);
-  const formattedGasBalance = computed(() =>
-    `${gasBalance.value.toFixed(gasBalance.value % 1 === 0 ? 0 : 4)} GAS`,
+  const formattedNeoBalance = createDerived(() => `${neoBalance.get()} NEO`, []);
+  const formattedGasBalance = createDerived(() =>
+    `${gasBalance.get().toFixed(gasBalance.get() % 1 === 0 ? 0 : 4)} GAS`,
   );
-  const formattedAccountsGenerated = computed(() => String(accountsGenerated.value));
-  const hasGeneratedAccount = computed(() => generatedAccount.value !== null);
-  const hasConversionResult = computed(() =>
-    converter.result.value.address !== "" ||
-    converter.result.value.publicKey !== "" ||
-    converter.result.value.opcodes.length > 0,
+  const formattedAccountsGenerated = createDerived(() => String(accountsGenerated.get()), []);
+  const hasGeneratedAccount = createDerived(() => generatedAccount.get() !== null, []);
+  const hasConversionResult = createDerived(() =>
+    converter.result.get().address !== "" ||
+    converter.result.get().publicKey !== "" ||
+    converter.result.get().opcodes.length > 0,
   );
 
   // ── Data Loading ────────────────────────────────────────────────────
 
   const loadBalances = async () => {
-    if (!chain.address.value) return;
+    if (!chain.address.get()) return;
 
-    balancesLoading.value = true;
+    balancesLoading.set(true);
     try {
       const [neo, gas] = await Promise.all([
         balance.getNeoBalance(),
         balance.getGasBalance(),
       ]);
-      neoBalance.value = neo;
-      gasBalance.value = gas;
+      neoBalance.set(neo);
+      gasBalance.set(gas);
     } catch (e) {
       console.warn(`[${APP_ID}] loadBalances failed:`, e instanceof Error ? e.message : String(e));
     } finally {
-      balancesLoading.value = false;
+      balancesLoading.set(false);
     }
   };
 
@@ -117,14 +118,14 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
     // Clean up any previous watchers
     cleanupBalances();
 
-    if (!chain.address.value) return;
+    if (!chain.address.get()) return;
 
     const neoWatcher = balance.useBalance("NEO");
     const gasWatcher = balance.useBalance("GAS");
 
     // Sync reactive refs
-    const syncNeo = () => { neoBalance.value = neoWatcher.balance.value; };
-    const syncGas = () => { gasBalance.value = gasWatcher.balance.value; };
+    const syncNeo = () => { neoBalance.set(neoWatcher.balance.get()); };
+    const syncGas = () => { gasBalance.set(gasWatcher.balance.get()); };
 
     // Initial sync
     syncNeo();
@@ -153,12 +154,12 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
    * wallet balances (if connected) for display purposes.
    */
   const loadAll = async () => {
-    isLoading.value = true;
+    isLoading.set(true);
     try {
       await loadBalances();
       setupReactiveBalances();
     } finally {
-      isLoading.value = false;
+      isLoading.set(false);
     }
   };
 
@@ -170,9 +171,9 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
    */
   const generateNewAccount = () => {
     try {
-      generatedAccount.value = generateAccount();
-      accountsGenerated.value += 1;
-      showSecrets.value = false;
+      generatedAccount.set(generateAccount());
+      accountsGenerated.set(accountsGenerated.get() + 1);
+      showSecrets.set(false);
       eventBus.emit("convert:generated", { action: t("btnGenerate") });
     } catch (e) {
       eventBus.emit("convert:error", {
@@ -189,13 +190,13 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   const convertInput = () => {
     converter.detectAndConvert();
 
-    if (converter.statusType.value === "success") {
+    if (converter.statusType.get() === "success") {
       eventBus.emit("convert:converted", {
-        format: converter.statusMsg.value,
+        format: converter.statusMsg.get(),
       });
-    } else if (converter.statusType.value === "error") {
+    } else if (converter.statusType.get() === "error") {
       eventBus.emit("convert:error", {
-        message: t(converter.statusMsg.value),
+        message: t(converter.statusMsg.get()),
       });
     }
   };
@@ -204,7 +205,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
    * Toggle secret field visibility for the generated account.
    */
   const toggleSecrets = () => {
-    showSecrets.value = !showSecrets.value;
+    showSecrets.set(!showSecrets.get());
   };
 
   /**
@@ -225,7 +226,7 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   let resizeCleanup: (() => void) | null = null;
   if (typeof window !== "undefined") {
     const handleResize = () => {
-      isMobile.value = window.innerWidth < 768;
+      isMobile.set(window.innerWidth < 768);
     };
     window.addEventListener("resize", handleResize);
     resizeCleanup = () => window.removeEventListener("resize", handleResize);
