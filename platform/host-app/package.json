@@ -16,8 +16,8 @@
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
     "@r3e/neo-js-sdk": "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
-    "@sentry/nextjs": "^8.53.0",
     "@sendgrid/mail": "^8.1.6",
+    "@sentry/nextjs": "^10.48.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.13",
     "@web3auth/base": "^9.7.0",
@@ -63,6 +63,7 @@
   "overrides": {
     "socket.io-parser": "4.2.6",
     "glob": "^11.0.0",
-    "minimatch": "^10.2.1"
+    "minimatch": "^10.2.1",
+    "axios": "1.15.0"
   }
 }
