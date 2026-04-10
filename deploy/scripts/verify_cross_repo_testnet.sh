@@ -206,6 +206,16 @@ fi
 load_env_defaults "$WORKSPACE_SECRETS_ENV_FILE"
 verify_runtime_catalog_contract "$WORKSPACE_RUNTIME_CATALOG_FILE"
 
+MORPHEUS_PUBLIC_API_URL="${MORPHEUS_PUBLIC_API_URL:-$(cd "$MORPHEUS_DIR" && node -e 'const fs = require("fs"); const path = require("path"); const repoRoot = process.argv[1]; const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "config/networks/testnet.json"), "utf8")); process.stdout.write(String(config?.phala?.public_api_url || ""));' "$MORPHEUS_DIR")}"
+if [[ -z "${MORPHEUS_PUBLIC_API_URL:-}" || "$MORPHEUS_PUBLIC_API_URL" == "null" ]]; then
+  echo "MORPHEUS public api url missing in network registry" >&2
+  exit 1
+fi
+
+echo ""
+echo "=== Public Runtime API: neo-morpheus-oracle ==="
+(cd "$MORPHEUS_DIR" && node scripts/check-public-runtime-api.mjs "$MORPHEUS_PUBLIC_API_URL")
+
 NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-}"
 AA_TEST_WIF="${AA_TEST_WIF:-}"
 ORACLE_TEST_WIF="${ORACLE_TEST_WIF:-}"
