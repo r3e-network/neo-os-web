@@ -86,9 +86,12 @@ verify_runtime_catalog_contract() {
     exit 1
   fi
 
-  local envelope_version
+  local envelope_version risk_plane automation_tee_required
   envelope_version="$(jq -r '.envelope.version' "$runtime_catalog_file")"
+  risk_plane="$(jq -r '.topology.riskPlane' "$runtime_catalog_file")"
+  automation_tee_required="$(jq -r '.workflows[] | select(.id == \"automation.upkeep\") | .execution.teeRequired' "$runtime_catalog_file")"
   mapfile -t workflow_ids < <(jq -r '.workflows[].id' "$runtime_catalog_file")
+  mapfile -t automation_trigger_kinds < <(jq -r '.automation.triggerKinds[]' "$runtime_catalog_file")
 
   for consumer_catalog in "$platform_catalog" "$aa_catalog"; do
     if [[ ! -s "$consumer_catalog" ]]; then
@@ -99,12 +102,31 @@ verify_runtime_catalog_contract() {
       echo "Runtime catalog consumer is missing envelope version $envelope_version: $consumer_catalog" >&2
       exit 1
     fi
+    if ! grep -q '"topology"' "$consumer_catalog"; then
+      echo "Runtime catalog consumer is missing topology block: $consumer_catalog" >&2
+      exit 1
+    fi
+    if ! grep -q "\"riskPlane\": \"$risk_plane\"" "$consumer_catalog"; then
+      echo "Runtime catalog consumer is missing risk plane $risk_plane: $consumer_catalog" >&2
+      exit 1
+    fi
+    if ! grep -q "\"teeRequired\": $automation_tee_required" "$consumer_catalog"; then
+      echo "Runtime catalog consumer is missing automation teeRequired=$automation_tee_required: $consumer_catalog" >&2
+      exit 1
+    fi
     for workflow_id in "${workflow_ids[@]}"; do
       if ! grep -q "\"$workflow_id\"" "$consumer_catalog"; then
         echo "Runtime catalog consumer is missing workflow $workflow_id: $consumer_catalog" >&2
         exit 1
       fi
     done
+    for trigger_kind in "${automation_trigger_kinds[@]}"; do
+      if ! grep -q "\"$trigger_kind\"" "$consumer_catalog"; then
+        echo "Runtime catalog consumer is missing automation trigger kind $trigger_kind: $consumer_catalog" >&2
+        exit 1
+      fi
+    done
+
   done
 }
 
