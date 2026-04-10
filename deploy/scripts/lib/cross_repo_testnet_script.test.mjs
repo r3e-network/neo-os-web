@@ -14,3 +14,10 @@ test("cross-repo testnet script honors RPC overrides and retries transient Neo R
   assert.match(script, /TESTNET_RPC_URL="\$AA_TESTNET_RPC_URL"/);
   assert.match(script, /ECONNRESET/);
 });
+
+test("cross-repo testnet script keeps the automation upkeep jq selector shell-safe", () => {
+  const script = fs.readFileSync(path.join(repoRoot, "deploy/scripts/verify_cross_repo_testnet.sh"), "utf8");
+
+  assert.match(script, /\.workflows\[\] | select\(\.id == "automation\.upkeep"\) | \.execution\.teeRequired/);
+  assert.doesNotMatch(script, /\\"automation\.upkeep\\"/);
+});
