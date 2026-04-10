@@ -43,7 +43,7 @@
   "devDependencies": {
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "dotenv": "^17.2.3",
     "pg": "^8.16.3",
     "react": "^18.3.1",
@@ -61,6 +61,17 @@
   "overrides": {
     "fast-xml-parser": "5.5.8",
     "serialize-javascript": "7.0.4",
-    "socket.io-parser": "4.2.6"
+    "socket.io-parser": "4.2.6",
+    "axios": "1.15.0",
+    "picomatch": "4.0.4",
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "anymatch": {
+      "picomatch": "2.3.2"
+    },
+    "readdirp": {
+      "picomatch": "2.3.2"
+    }
   }
 }
