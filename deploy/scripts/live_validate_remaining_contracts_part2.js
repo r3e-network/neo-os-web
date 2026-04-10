@@ -19,7 +19,10 @@ const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const ROOT = path.resolve(__dirname, "../..");
-const OUTPUT_PATH = path.join(ROOT, "docs", "reports", "2026-03-19-remaining-miniapp-live-smoke-part2.json");
+const OUTPUT_PATH = String(
+  process.env.REMAINING_MINIAPP_SMOKE_PART2_REPORT_PATH
+    || path.join(ROOT, "docs", "reports", "live-smoke", "remaining-contracts-part2.json"),
+);
 const TARGET_FILTER = new Set(
   String(process.env.REMAINING_MINIAPP_SMOKE_TARGETS || "")
     .split(",")
@@ -322,6 +325,7 @@ async function runAll() {
     }
   }
 
+  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify({
     generatedAt: new Date().toISOString(),
     rpcUrl: RPC_URL,

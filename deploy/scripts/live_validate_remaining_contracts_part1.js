@@ -28,7 +28,10 @@ const siblingOraclePhalaEnvPath = path.resolve(
   "phala",
   "morpheus.testnet.env"
 );
-const OUTPUT_PATH = path.join(ROOT, "docs", "reports", "2026-03-19-remaining-miniapp-live-smoke-part1.json");
+const OUTPUT_PATH = String(
+  process.env.REMAINING_MINIAPP_SMOKE_PART1_REPORT_PATH
+    || path.join(ROOT, "docs", "reports", "live-smoke", "remaining-contracts-part1.json"),
+);
 const TARGET_FILTER = new Set(
   String(process.env.REMAINING_MINIAPP_SMOKE_TARGETS || "")
     .split(",")
@@ -439,6 +442,7 @@ async function runAll() {
     }
   }
 
+  fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify({
     generatedAt: new Date().toISOString(),
     rpcUrl: RPC_URL,
