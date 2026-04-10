@@ -6,6 +6,30 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
   "envelope": {
     "version": "2026-04-tee-v1"
   },
+  "topology": {
+    "ingressPlane": "edge_gateway",
+    "orchestrationPlane": "control_plane",
+    "schedulerPlane": "control_plane",
+    "executionPlane": "tee_runtime",
+    "riskPlane": "independent_observer"
+  },
+  "risk": {
+    "observer": "independent_observer",
+    "actions": [
+      "observe",
+      "review",
+      "pause_scope"
+    ]
+  },
+  "automation": {
+    "workflowId": "automation.upkeep",
+    "triggerKinds": [
+      "interval",
+      "threshold"
+    ],
+    "route": "/automation/execute",
+    "deliveryMode": "onchain_callback"
+  },
   "networks": {
     "mainnet": {
       "network": "mainnet",
@@ -118,6 +142,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "provider",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "api_response"
       }
@@ -139,6 +169,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "provider",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "api_response"
       }
@@ -162,6 +198,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "provider",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "shared_resource_sync"
       }
@@ -187,6 +229,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "paymaster",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "onchain_callback"
       }
@@ -207,6 +255,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "tenant",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "api_response"
       }
@@ -227,6 +281,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "tenant",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "kernel_inbox"
       }
@@ -247,6 +307,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "tenant",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "kernel_inbox"
       }
@@ -267,6 +333,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "tenant",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "kernel_inbox"
       }
@@ -288,6 +360,12 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "paymaster",
         "risk"
       ],
+      "execution": {
+        "orchestrationPlane": "control_plane",
+        "executionPlane": "tee_runtime",
+        "riskPlane": "independent_observer",
+        "teeRequired": true
+      },
       "delivery": {
         "mode": "api_response"
       }

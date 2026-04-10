@@ -48,6 +48,10 @@ export type ExternalIntegrationConfig = {
   morpheusControlPlaneUrl: string;
   morpheusEnvelopeVersion: string;
   morpheusWorkflowIds: string[];
+  morpheusTopology: typeof MORPHEUS_PUBLIC_RUNTIME_CATALOG.topology;
+  morpheusRiskPlane: string;
+  morpheusRiskActions: string[];
+  morpheusAutomationTriggerKinds: string[];
   morpheusOracleCvmId: string;
   morpheusOracleCvmName: string;
   morpheusOracleAttestationExplorerUrl: string;
@@ -131,6 +135,10 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
     morpheusControlPlaneUrl: registry.morpheus.controlPlaneUrl,
     morpheusEnvelopeVersion: MORPHEUS_PUBLIC_RUNTIME_CATALOG.envelope.version,
     morpheusWorkflowIds: listMorpheusWorkflows(network).map((workflow) => workflow.id),
+    morpheusTopology: { ...MORPHEUS_PUBLIC_RUNTIME_CATALOG.topology },
+    morpheusRiskPlane: MORPHEUS_PUBLIC_RUNTIME_CATALOG.topology.riskPlane,
+    morpheusRiskActions: [...MORPHEUS_PUBLIC_RUNTIME_CATALOG.risk.actions],
+    morpheusAutomationTriggerKinds: [...MORPHEUS_PUBLIC_RUNTIME_CATALOG.automation.triggerKinds],
     morpheusOracleCvmId: registry.morpheus.oracleCvmId,
     morpheusOracleCvmName: registry.morpheus.oracleCvmName,
     morpheusOracleAttestationExplorerUrl: registry.morpheus.oracleAttestationExplorerUrl,
