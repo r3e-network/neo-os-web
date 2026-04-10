@@ -89,7 +89,7 @@ verify_runtime_catalog_contract() {
   local envelope_version risk_plane automation_tee_required
   envelope_version="$(jq -r '.envelope.version' "$runtime_catalog_file")"
   risk_plane="$(jq -r '.topology.riskPlane' "$runtime_catalog_file")"
-  automation_tee_required="$(jq -r '.workflows[] | select(.id == \"automation.upkeep\") | .execution.teeRequired' "$runtime_catalog_file")"
+  automation_tee_required="$(jq -r '.workflows[] | select(.id == "automation.upkeep") | .execution.teeRequired' "$runtime_catalog_file")"
   mapfile -t workflow_ids < <(jq -r '.workflows[].id' "$runtime_catalog_file")
   mapfile -t automation_trigger_kinds < <(jq -r '.automation.triggerKinds[]' "$runtime_catalog_file")
 
