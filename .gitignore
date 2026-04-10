@@ -155,3 +155,5 @@ coordinator-enclave.signed
 test/fuzz/daemon.pid
 docs/reports/fuzz/
 docs/reports/live-smoke/
+
+.worktrees/
