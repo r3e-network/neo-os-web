@@ -176,14 +176,15 @@ export function useFlashloanCore({
         totalFees,
       });
 
-      recentLoans.set(loans);
-        .slice()
+      recentLoans.set(
+        loans.slice()
         .sort((a, b) => {
           const aTime = a.timestamp ? new Date(a.timestamp).getTime() : 0;
           const bTime = b.timestamp ? new Date(b.timestamp).getTime() : 0;
           return bTime - aTime;
         })
-        .slice(0, 10);
+        .slice(0, 10)
+      );
     } catch (e) {
       console.warn("[useFlashloanCore] loadLoanStats failed:", e instanceof Error ? e.message : String(e));
       stats.set({ totalLoans: 0, totalVolume: 0, totalFees: 0 });
