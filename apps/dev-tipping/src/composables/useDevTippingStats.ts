@@ -103,7 +103,7 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
       const devMap = new Map(developers.get().map((dev) => [dev.id, dev.name]));
 
       const entries = Object.entries(tipsData);
-      recentTips.set(entries.map(([key, raw]) => {)
+      recentTips.set(entries.map(([key, raw]) => {
         const tip = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
         const devId = toNumber(tip.devId ?? 0);
         const amount = parseGas(tip.amount ?? 0);
@@ -115,7 +115,7 @@ export function useDevTippingStats({ storage, t }: UseDevTippingStatsOptions) {
           amount: amount.toFixed(2),
           time: new Intl.DateTimeFormat(undefined).format(new Date((tip.created_at as string) || Date.now())),
         };
-      });
+      }))
     } catch (_e) {
       console.warn("[useDevTippingStats] loadRecentTips failed:", _e instanceof Error ? _e.message : String(_e));
     }

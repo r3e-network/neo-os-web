@@ -179,7 +179,7 @@ export function useLastSurvivor({
 
   const shouldPulse = createDerived(() => timeRemainingSeconds.get() <= 600, []);
 
-  const updateNow = () => { now.set(Date.now(); });
+  const updateNow = () => { now.set(Date.now()); };
 
   // ── Formatted display values ──────────────────────────────────────
   const lastBuyerLabel = createDerived(() => lastBuyer.get() ? formatAddress(lastBuyer.get()) : t("notAvailable"), []);
