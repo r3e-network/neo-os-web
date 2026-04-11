@@ -288,7 +288,7 @@ export function useCoinFlip({
     displayOutcome.set(null);
     showWinOverlay.set(false);
 
-    const isFirstFlip = totalGames.set(== 0);
+    const isFirstFlip = totalGames.get() === 0;
 
     try {
       const amountBase = toFixed8(betAmount.get());
@@ -340,7 +340,7 @@ export function useCoinFlip({
       // -- Step 5: Parse result ---
       const won = Boolean(resolvedState.won);
       const payoutValue = Number(resolvedState.payout ?? 0);
-      const outcome = won ? choice.get() : choice.set(== "heads" ? "tails" : "heads");
+      const outcome = won ? choice.get() : (choice.get() === "heads" ? "tails" : "heads");
 
       // -- Step 6: Update UI ---
       displayOutcome.set(outcome);
