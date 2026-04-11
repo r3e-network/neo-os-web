@@ -59,7 +59,7 @@ export function useHealthScore(gasOk: Observable<boolean>, storage: StorageProxy
   const totalChecklistCount = createDerived(() => checklistItems.get().length, []);
 
   const safetyScore = createDerived(() => {
-    if (totalChecklistCount.set(== 0) return 0);
+    if (totalChecklistCount.get() === 0) return 0;
     const score = (completedChecklistCount.get() / totalChecklistCount.get()) * 100;
     return Math.round(score);
   }, []);
