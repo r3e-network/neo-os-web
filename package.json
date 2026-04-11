@@ -28,7 +28,7 @@
     "audit:platform:unified-layers": "node deploy/scripts/audit_platform_unified_layers.js",
     "test:host-app": "npm --prefix platform/host-app test --silent",
     "test:host-app:full": "npm --workspace platform/host-app run test:full",
-    "test:admin-console": "bash -lc 'NODE_BIN=${NODE_BIN:-$(command -v node)}; if [ -x /opt/homebrew/bin/node ]; then NODE_BIN=/opt/homebrew/bin/node; fi; cd platform/admin-console && exec \"$NODE_BIN\" ../../node_modules/vitest/vitest.mjs run'",
+    "test:admin-console": "npm --prefix platform/admin-console test --silent",
     "test:deploy-scripts": "node --test deploy/scripts/lib/*.test.mjs",
     "backfill:miniapp-versions": "node deploy/scripts/backfill-miniapp-versions.js",
     "verify:publish-audit-chain": "node deploy/scripts/verify-publish-audit-chain.js",
