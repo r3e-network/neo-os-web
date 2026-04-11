@@ -6,8 +6,8 @@
     "dev": "next dev -p 3002",
     "build": "next build",
     "start": "next start -p 3002",
-    "test": "node ../../node_modules/vitest/vitest.mjs run",
-    "test:coverage": "node ../../node_modules/vitest/vitest.mjs run --coverage",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typegen": "next typegen",
     "typecheck": "node -e \"const fs=require('fs'); fs.rmSync('.next/types',{recursive:true,force:true}); fs.rmSync('tsconfig.tsbuildinfo',{force:true});\" && next typegen && tsc --noEmit --incremental false"
   },
