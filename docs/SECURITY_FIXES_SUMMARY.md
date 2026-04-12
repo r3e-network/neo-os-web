@@ -42,7 +42,7 @@ This document summarizes the security fixes implemented to address three critica
 
 ## Files Created
 
-### 1. `/home/neo/git/service_layer/infrastructure/security/sanitize.go`
+### 1. `service_layer/infrastructure/security/sanitize.go`
 
 **Purpose**: Secret sanitization utilities
 **Features**:
@@ -67,12 +67,12 @@ This document summarizes the security fixes implemented to address three critica
 - Credit Cards
 - Email Addresses (partial)
 
-### 2. `/home/neo/git/service_layer/infrastructure/security/sanitize_test.go`
+### 2. `service_layer/infrastructure/security/sanitize_test.go`
 
 **Purpose**: Comprehensive test coverage for sanitization
 **Test Coverage**: 100% (all tests passing)
 
-### 3. `/home/neo/git/service_layer/infrastructure/security/README.md`
+### 3. `service_layer/infrastructure/security/README.md`
 
 **Purpose**: Documentation for the security package
 **Contents**:
@@ -83,7 +83,7 @@ This document summarizes the security fixes implemented to address three critica
 - Best practices
 - Security considerations
 
-### 4. `/home/neo/git/service_layer/infrastructure/security/USAGE_EXAMPLE.md`
+### 4. `service_layer/infrastructure/security/USAGE_EXAMPLE.md`
 
 **Purpose**: Practical usage examples
 **Contents**:
@@ -98,7 +98,7 @@ This document summarizes the security fixes implemented to address three critica
 
 ## Files Modified
 
-### 1. `/home/neo/git/service_layer/infrastructure/middleware/serviceauth.go`
+### 1. `service_layer/infrastructure/middleware/serviceauth.go`
 
 **Changes**:
 
