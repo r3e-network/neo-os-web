@@ -90,7 +90,7 @@ Primary shared registry in this repo:
 ## Validation Commands
 
 ```bash
-cd /Users/jinghuiliao/git/neo-miniapps-platform
+cd <repo-root>
 
 # Env sanity
 npm run validate:miniapp-env -- --stage=prod --json

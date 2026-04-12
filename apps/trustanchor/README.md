@@ -68,7 +68,7 @@ There is no candidate ranking page and no old agent-contract management page any
 - User deposit updates `stakeOf(user)` and auto-routes the same NEO amount into `agent 21`.
 - User withdraw reduces `stakeOf(user)` immediately.
 - If core liquidity is unavailable, the same withdraw is recorded in `pendingWithdrawOf(user)`.
-- Reward accounting uses an RPS accumulator and is covered by automated model tests in [TrustAnchorRewardModelTest.cs](/Users/jinghuiliao/git/neo-miniapps-platform/contracts/__tests__/TrustAnchorRewardModelTest.cs).
+- Reward accounting uses an RPS accumulator and is covered by automated model tests in [TrustAnchorRewardModelTest.cs](../../contracts/__tests__/TrustAnchorRewardModelTest.cs).
 
 ## Assets
 

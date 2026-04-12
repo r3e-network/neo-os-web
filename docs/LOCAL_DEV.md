@@ -24,7 +24,7 @@ Requirements:
 Commands:
 
 ```bash
-cd /Users/jinghuiliao/git/neo-miniapps-platform
+cd <repo-root>
 npm install
 npm run validate:miniapp-env -- --stage=prod --json
 
@@ -89,7 +89,7 @@ The 10 OS service contracts live under `contracts/os-*/`:
 
 ```bash
 # Build a single OS contract
-cd /home/neo/git/neo-miniapps-platform
+cd <repo-root>
 dotnet build contracts/os-storage/
 dotnet build contracts/os-payment/
 dotnet build contracts/os-game/
@@ -159,7 +159,7 @@ NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 To validate the platform against current testnet contracts:
 
 ```bash
-cd /Users/jinghuiliao/git/neo-miniapps-platform
+cd <repo-root>
 AA_TEST_WIF=<funded-aa-testnet-wif> \
 bash deploy/scripts/verify_cross_repo_testnet.sh
 ```
