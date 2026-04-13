@@ -157,3 +157,6 @@ docs/reports/fuzz/
 docs/reports/live-smoke/
 
 .worktrees/
+.omx/
+.oracle-edit
+platform/host-app/coverage/

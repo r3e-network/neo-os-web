@@ -72,10 +72,10 @@ namespace NeoMiniAppPlatform.Contracts
             {
                 byte[] rewardKey = Helper.Concat(PREFIX_USER_REWARDS, depositor);
                 Storage.Put(Storage.CurrentContext, rewardKey, 0);
-                GAS.Transfer(Runtime.ExecutingScriptHash, depositor, rewards);
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, depositor, rewards), "reward transfer failed");
             }
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, depositor, amount);
+            ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, depositor, amount), "withdrawal transfer failed");
 
             UpdateDepositorStatsOnWithdraw(depositor, amount, rewards);
 

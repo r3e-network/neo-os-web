@@ -100,7 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
                 BigInteger fee = vault.Bounty * PLATFORM_FEE_BPS / 10000;
                 BigInteger reward = vault.Bounty - fee;
 
-                GAS.Transfer(Runtime.ExecutingScriptHash, attacker, reward);
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, attacker, reward), "reward transfer failed");
                 UpdateHackerStatsOnBreak(attacker, reward, vault.Difficulty, isNewHacker);
                 UpdateCreatorStatsOnBroken(vault.Creator, vault.Bounty);
                 UpdateTotalBroken();
@@ -158,7 +158,7 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger fee = vault.Bounty * PLATFORM_FEE_BPS / 10000;
             BigInteger refund = vault.Bounty - fee;
 
-            GAS.Transfer(Runtime.ExecutingScriptHash, vault.Creator, refund);
+            ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, vault.Creator, refund), "refund transfer failed");
             UpdateTotalBounties(vault.Bounty, false);
             UpdateCreatorStatsOnExpired(vault.Creator, refund);
 

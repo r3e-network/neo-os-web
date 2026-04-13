@@ -102,7 +102,7 @@ namespace NeoMiniAppPlatform.Contracts
             trust.ClaimedYield += yieldAmount;
             StoreTrust(trustId, trust);
 
-            GAS.Transfer(Runtime.ExecutingScriptHash, trust.Owner, yieldAmount);
+            ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, trust.Owner, yieldAmount), "yield transfer failed");
 
             UpdateOwnerStatsOnYieldClaim(trust.Owner, yieldAmount);
             UpdateTotalYield(yieldAmount);
@@ -136,14 +136,14 @@ namespace NeoMiniAppPlatform.Contracts
             trust.Executed = true;
             StoreTrust(trustId, trust);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, trust.PrimaryHeir, heirAmount);
+            ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, trust.PrimaryHeir, heirAmount), "heir transfer failed");
 
             if (platformFee > 0)
             {
                 UInt160 admin = Admin();
                 if (admin != null && admin.IsValid)
                 {
-                    NEO.Transfer(Runtime.ExecutingScriptHash, admin, platformFee);
+                    ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, admin, platformFee), "platform fee transfer failed");
                 }
             }
 
@@ -174,14 +174,14 @@ namespace NeoMiniAppPlatform.Contracts
             trust.Cancelled = true;
             StoreTrust(trustId, trust);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, trust.Owner, refundAmount);
+            ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, trust.Owner, refundAmount), "refund transfer failed");
 
             if (penalty > 0)
             {
                 UInt160 admin = Admin();
                 if (admin != null && admin.IsValid)
                 {
-                    NEO.Transfer(Runtime.ExecutingScriptHash, admin, penalty);
+                    ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, admin, penalty), "penalty transfer failed");
                 }
             }
 

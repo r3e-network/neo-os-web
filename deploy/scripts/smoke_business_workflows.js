@@ -454,10 +454,10 @@ async function main() {
   console.log("║  Business Workflow Smoke Tests — Neo N3 Testnet             ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log(`  RPC:     ${RPC_URL}`);
-  console.log(`  Address: ${account.address}`);
   console.log(`  Time:    ${new Date().toISOString()}`);
 
   await init();
+  console.log(`  Address: ${account.address}`);
 
   // Verify connectivity
   try {
