@@ -273,7 +273,7 @@ namespace NeoMiniAppPlatform.Contracts
                 stats.ActivePools -= 1;
                 StoreSponsorStats(pool.Sponsor, stats);
 
-                GAS.Transfer(Runtime.ExecutingScriptHash, pool.Sponsor, refundAmount);
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, pool.Sponsor, refundAmount), "pool refund transfer failed");
 
                 OnPoolRefunded(poolId, pool.Sponsor, refundAmount);
             }

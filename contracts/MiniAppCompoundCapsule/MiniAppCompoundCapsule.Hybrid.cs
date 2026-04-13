@@ -163,10 +163,10 @@ namespace NeoMiniAppPlatform.Contracts
             StoreCapsule(capsuleId, capsule);
 
             // Transfer assets
-            NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Principal);
+            ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Principal), "principal transfer failed");
             if (totalCompound > expectedFee)
             {
-                GAS.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, totalCompound - expectedFee);
+                ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, totalCompound - expectedFee), "compound transfer failed");
             }
 
             UpdateTotalLocked(capsule.Principal, false);
@@ -203,7 +203,7 @@ namespace NeoMiniAppPlatform.Contracts
             capsule.EarlyWithdrawn = true;
             StoreCapsule(capsuleId, capsule);
 
-            NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, expectedPayout);
+            ExecutionEngine.Assert(NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, expectedPayout), "early withdrawal transfer failed");
             UpdateTotalLocked(capsule.Principal, false);
             UpdateUserStatsOnEarlyWithdraw(capsule.Owner, capsule.Principal, expectedPenalty);
 

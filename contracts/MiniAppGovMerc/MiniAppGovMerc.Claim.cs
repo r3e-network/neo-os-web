@@ -28,7 +28,7 @@ namespace NeoMiniAppPlatform.Contracts
             deposit.LastClaimEpoch = GetCurrentEpochId();
             StoreDeposit(depositor, deposit);
 
-            GAS.Transfer(Runtime.ExecutingScriptHash, depositor, rewards);
+            ExecutionEngine.Assert(GAS.Transfer(Runtime.ExecutingScriptHash, depositor, rewards), "reward transfer failed");
 
             OnRewardClaimed(depositor, deposit.LastClaimEpoch, rewards);
         }
