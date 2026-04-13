@@ -1,39 +1,213 @@
 @use "@shared/styles/tokens.scss" as *;
-.play-area {
+
+.selfloan-play-area {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+}
+
+// ---------- Stats ----------
+.selfloan-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.selfloan-hero-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.selfloan-hero-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00e599;
+}
+
+.selfloan-hero-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+// ---------- Loan Status ----------
+.selfloan-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.selfloan-status-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.selfloan-status-item {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.selfloan-status-label {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.selfloan-status-value {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+// ---------- Health Factor Gauge ----------
+.selfloan-health {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.selfloan-health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.selfloan-health-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selfloan-health-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.selfloan-health-track {
+  height: 6px;
+  background: linear-gradient(90deg,
+    rgba(239, 68, 68, 0.3) 0%,
+    rgba(245, 158, 11, 0.3) 40%,
+    rgba(0, 229, 153, 0.3) 100%
+  );
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.selfloan-health-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.selfloan-health-markers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+// ---------- Form ----------
+.selfloan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+// ---------- LTV Indicator ----------
+.selfloan-ltv-indicator {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.selfloan-ltv-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.selfloan-ltv-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #00e599;
+  margin-left: auto;
+}
+
+.selfloan-ltv-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.selfloan-ltv-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00e599, #f59e0b);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+// ---------- Divider ----------
+.selfloan-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0.25rem 0;
+}
+
+// ---------- Loading Overlay ----------
+.selfloan-loading-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  justify-content: center;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  border-radius: 8px;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
 }
 
-.main-card {
-  width: 100%;
-  max-width: 500px;
+.selfloan-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00e599;
+  border-radius: 50%;
+  animation: selfloan-spin 0.8s linear infinite;
 }
 
-.play-area-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
-}
-
-.play-area-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-secondary);
-}
-
-.ready-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-primary);
+@keyframes selfloan-spin {
+  to { transform: rotate(360deg); }
 }

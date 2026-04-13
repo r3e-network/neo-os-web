@@ -1,39 +1,240 @@
 @use "@shared/styles/tokens.scss" as *;
-.play-area {
+
+.redenv-play-area {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+// ---------- Stats ----------
+.redenv-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.redenv-hero-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  &--wide {
+    grid-column: span 2;
+  }
+}
+
+.redenv-hero-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ff4444;
+}
+
+.redenv-hero-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+.redenv-hero-stat-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.redenv-hero-stat-divider {
+  width: 1px;
+  height: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+// ---------- Form ----------
+.redenv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+// ---------- Loading / Empty ----------
+.redenv-loading,
+.redenv-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
+}
+
+// ---------- Envelope Grid ----------
+.redenv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.redenv-envelope {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(255, 68, 68, 0.04);
+  border: 1px solid rgba(255, 68, 68, 0.12);
+  border-radius: 10px;
+  transition: border-color 0.2s, transform 0.2s;
+
+  &:hover {
+    border-color: rgba(255, 68, 68, 0.3);
+    transform: translateY(-2px);
+  }
+
+  &--claimed,
+  &--empty {
+    opacity: 0.5;
+  }
 }
 
-.main-card {
-  width: 100%;
-  max-width: 500px;
+.redenv-envelope-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
 }
 
-.play-area-title {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
-}
-
-.play-area-content {
+.redenv-envelope-body {
+  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0.25rem;
 }
 
-.loading-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-secondary);
+.redenv-envelope-amount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.ready-state {
+.redenv-envelope-remaining {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.redenv-envelope-status {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+
+  &--active {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff6666;
+  }
+
+  &--claimed {
+    background: rgba(0, 229, 153, 0.15);
+    color: #00e599;
+  }
+
+  &--empty {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.redenv-envelope-actions {
+  display: flex;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+// ---------- Modal ----------
+.redenv-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: redenv-fade-in 0.3s ease;
+}
+
+.redenv-modal {
+  position: relative;
+  width: 90%;
+  max-width: 360px;
+  border-radius: 16px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 68, 68, 0.2);
+  overflow: hidden;
+  animation: redenv-scale-in 0.3s ease;
+}
+
+.redenv-modal-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(255, 68, 68, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.redenv-modal-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 1.5rem;
   text-align: center;
-  padding: 24px;
-  color: var(--text-primary);
+}
+
+.redenv-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+  box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+}
+
+.redenv-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 0;
+}
+
+.redenv-modal-message {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.redenv-modal-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ff4444;
+}
+
+@keyframes redenv-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes redenv-scale-in {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
