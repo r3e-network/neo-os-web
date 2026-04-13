@@ -1,39 +1,157 @@
 @use "@shared/styles/tokens.scss" as *;
-.play-area {
+
+.neopay-play-area {
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  gap: 1rem;
 }
 
-.main-card {
-  width: 100%;
-  max-width: 500px;
+// ---------- Stats Bar ----------
+.neopay-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
 }
 
-.play-area-title {
-  font-size: 18px;
+.neopay-hero-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.neopay-hero-stat-value {
+  display: block;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
+  color: #00e599;
 }
 
-.play-area-content {
+.neopay-hero-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+// ---------- Form ----------
+.neopay-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0.75rem;
 }
 
-.loading-state {
+// ---------- Loading / Empty ----------
+.neopay-loading,
+.neopay-empty {
   text-align: center;
-  padding: 24px;
-  color: var(--text-secondary);
+  padding: 2rem 1rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
 }
 
-.ready-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-primary);
+// ---------- Stream List ----------
+.neopay-stream-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.neopay-stream-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: rgba(0, 229, 153, 0.2);
+  }
+}
+
+.neopay-stream-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.neopay-stream-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.neopay-stream-id {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.neopay-stream-status {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+
+  &--active {
+    background: rgba(0, 229, 153, 0.15);
+    color: #00e599;
+  }
+
+  &--completed {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
+
+  &--cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+}
+
+.neopay-stream-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.neopay-stream-detail {
+  white-space: nowrap;
+}
+
+// ---------- Progress Bar ----------
+.neopay-stream-progress {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.neopay-stream-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00e599, #00c9ff);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+// ---------- Actions ----------
+.neopay-stream-actions {
+  display: flex;
+  gap: 0.375rem;
+  flex-shrink: 0;
 }
