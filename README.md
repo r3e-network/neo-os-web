@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.svg" alt="R3E MiniApps Platform" width="100%"/>
+  <strong>R3E MiniApps Platform</strong>
 </p>
 
 <p align="center">

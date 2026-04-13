@@ -1,4 +1,4 @@
-import { GAS_HASH, getExternalIntegrationConfig } from "@shared/constants/rpc";
+import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 import { addressToScriptHash, normalizeScriptHash, ownerMatchesAddress } from "@shared/utils/neo";
 import type { ContractArg, InvokeResult, WalletSDK } from "@shared/utils/wallet-sdk";
 
@@ -369,11 +369,11 @@ export async function buyAddressListing(
   const backupOwner = normalizeHash160Input(options.newBackupOwner || address, "Backup owner");
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
-    operation: "buyListing",
+    operation: "settleListing",
     args: [
       { type: "Integer", value: String(listingId) },
+      { type: "Hash160", value: address },
       { type: "Hash160", value: normalizeScriptHash(backupOwner) },
-      { type: "Hash160", value: normalizeScriptHash(GAS_HASH) },
     ],
     signers: [{ account: address, scopes: 1 }],
   });
@@ -389,7 +389,7 @@ export async function refundPendingAddressPurchase(
   const address = await ensureWalletConnected(wallet);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
-    operation: "refundPendingPurchase",
+    operation: "refundPendingPayment",
     args: [{ type: "Integer", value: String(listingId) }],
     signers: [{ account: address, scopes: 1 }],
   });
