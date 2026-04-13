@@ -15,8 +15,7 @@ let Neon;
 // ── Config ──────────────────────────────────────────────────────────────────
 const RPC_URL   = "https://testnet1.neo.coz.io:443";
 const NET_MAGIC = 894710606;
-const WIF       = "***REMOVED***";
-const ADDRESS   = "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+const WIF       = process.env.BUSINESS_SMOKE_WIF || process.env.NEO_TESTNET_WIF || "";
 
 // ── Contract hashes ─────────────────────────────────────────────────────────
 const HASHES = {
@@ -38,6 +37,9 @@ let account;
 
 async function init() {
   Neon = require("@cityofzion/neon-js");
+  if (!WIF) {
+    throw new Error("BUSINESS_SMOKE_WIF or NEO_TESTNET_WIF is required");
+  }
   account = new Neon.wallet.Account(WIF);
   rpc = new Neon.rpc.RPCClient(RPC_URL);
 }
@@ -452,7 +454,7 @@ async function main() {
   console.log("║  Business Workflow Smoke Tests — Neo N3 Testnet             ║");
   console.log("╚══════════════════════════════════════════════════════════════╝");
   console.log(`  RPC:     ${RPC_URL}`);
-  console.log(`  Address: ${ADDRESS}`);
+  console.log(`  Address: ${account.address}`);
   console.log(`  Time:    ${new Date().toISOString()}`);
 
   await init();
