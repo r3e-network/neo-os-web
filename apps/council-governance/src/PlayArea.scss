@@ -1,39 +1,208 @@
 @use "@shared/styles/tokens.scss" as *;
-.play-area {
+
+.council-play-area {
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  gap: 1rem;
 }
 
-.main-card {
-  width: 100%;
-  max-width: 500px;
+.council-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
 }
 
-.play-area-title {
-  font-size: 18px;
+/* ── Hero Stats ── */
+.council-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.council-hero-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.council-hero-stat-value {
+  display: block;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
+  color: #00e599;
 }
 
-.play-area-content {
+.council-hero-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* ── Proposals Card ── */
+.council-proposals-card {
+  width: 100%;
+}
+
+.council-proposals-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.council-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Create Form ── */
+.council-create-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.loading-state {
+/* ── Proposal List ── */
+.council-empty {
   text-align: center;
-  padding: 24px;
-  color: var(--text-secondary);
+  padding: 1.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.8125rem;
 }
 
-.ready-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-primary);
+.council-proposal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.council-proposal-item {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.council-proposal-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.council-status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.council-status--active {
+  background: rgba(0, 229, 153, 0.15);
+  color: #00e599;
+}
+
+.council-status--passed {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.council-status--rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.council-status--pending {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+.council-proposal-id {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: monospace;
+}
+
+.council-proposal-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.25rem;
+}
+
+.council-proposal-desc {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+/* ── Vote Bar ── */
+.council-vote-bar {
+  margin-bottom: 0.5rem;
+}
+
+.council-vote-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(239, 68, 68, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.council-vote-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.council-vote-bar-for {
+  background: #00e599;
+}
+
+.council-vote-counts {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+}
+
+.council-vote-for {
+  color: #00e599;
+  font-weight: 600;
+}
+
+.council-vote-against {
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* ── Vote Actions ── */
+.council-vote-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }

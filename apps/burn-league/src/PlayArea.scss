@@ -1,39 +1,189 @@
 @use "@shared/styles/tokens.scss" as *;
-.play-area {
+
+.burn-league-play-area {
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 20px 12px;
-  min-height: 300px;
+  gap: 1rem;
 }
 
-.main-card {
-  width: 100%;
-  max-width: 500px;
+.burn-league-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
 }
 
-.play-area-title {
-  font-size: 18px;
+/* ── Hero Stats ── */
+.burn-league-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.burn-league-hero-stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.burn-league-hero-stat-value {
+  display: block;
+  font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 16px;
-  color: var(--text-primary);
+  color: #00e599;
 }
 
-.play-area-content {
+.burn-league-hero-stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+/* ── Rank Card ── */
+.burn-league-rank-card {
+  width: 100%;
+}
+
+.burn-league-rank-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.burn-league-rank-number {
+  display: flex;
+  align-items: baseline;
+  gap: 0.125rem;
+}
+
+.burn-league-rank-hash {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.burn-league-rank-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+.burn-league-rank-meta {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 100px;
 }
 
-.loading-state {
-  text-align: center;
-  padding: 24px;
-  color: var(--text-secondary);
+.burn-league-rank-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.ready-state {
+.burn-league-rank-subtitle {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.burn-league-estimated-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.125rem;
+}
+
+.burn-league-reward-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.burn-league-reward-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #00e599;
+}
+
+/* ── Action Card ── */
+.burn-league-action-card {
+  width: 100%;
+}
+
+.burn-league-section-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.burn-league-burn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── Leaderboard ── */
+.burn-league-leaderboard-card {
+  width: 100%;
+}
+
+.burn-league-empty {
   text-align: center;
-  padding: 24px;
-  color: var(--text-primary);
+  padding: 1.5rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.8125rem;
+}
+
+.burn-league-leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.burn-league-leaderboard-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.burn-league-lb-rank {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fbbf24;
+  min-width: 2rem;
+}
+
+.burn-league-lb-address {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: monospace;
+}
+
+.burn-league-lb-amount {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #00e599;
+  text-align: right;
 }
