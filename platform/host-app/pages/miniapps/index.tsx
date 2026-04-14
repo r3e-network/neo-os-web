@@ -1,10 +1,76 @@
 import Head from "next/head";
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Layout } from "@/components/layout";
-import { MiniAppGrid } from "@/components/features/miniapp";
 import type { MiniAppInfo } from "@/components/types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { isFlagshipMiniApp, sortMiniApps } from "@/lib/miniapp-showcase";
+import { resolveMiniAppSlug } from "@/lib/miniapp-media";
+
+function FlagshipCard({ app, featured = false }: { app: MiniAppInfo; featured?: boolean }) {
+  const slug = resolveMiniAppSlug(app.app_id, app.entry_url);
+  const logoUrl = `/miniapp-assets/${slug}/logo.svg`;
+  const bannerUrl = `/miniapp-assets/${slug}/banner.svg`;
+
+  return (
+    <Link
+      href={`/miniapps/${app.app_id}`}
+      className={`group relative block rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm transition-all duration-400 hover:shadow-lg hover:border-emerald-300 hover:-translate-y-1 ${featured ? "col-span-full lg:col-span-2 row-span-2" : ""}`}
+    >
+      {/* Banner */}
+      <div className={`relative overflow-hidden bg-gray-50 ${featured ? "h-56 sm:h-72" : "h-40"}`}>
+        <img
+          src={bannerUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
+
+        {/* Category pill */}
+        <div className="absolute top-4 right-4 z-10">
+          <span className="rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-gray-600">
+            {app.category}
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative px-5 pb-5 -mt-8 z-10">
+        {/* Logo */}
+        <div className={`mb-3 inline-flex rounded-xl border border-gray-200 bg-white p-1.5 shadow-md ${featured ? "w-14 h-14" : "w-11 h-11"}`}>
+          <img
+            src={logoUrl}
+            alt={app.name}
+            className="w-full h-full rounded-lg"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+
+        <h3 className={`font-bold text-gray-900 group-hover:text-emerald-600 transition-colors duration-300 truncate ${featured ? "text-2xl sm:text-3xl" : "text-lg"}`}>
+          {app.name}
+        </h3>
+
+        <p className={`mt-1.5 text-gray-500 leading-relaxed ${featured ? "text-sm line-clamp-3" : "text-xs line-clamp-2"}`}>
+          {app.description}
+        </p>
+
+        {/* Mainnet badge */}
+        <div className="mt-3 flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-50" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            Mainnet
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export default function MiniAppsPage() {
   const [flagshipApps, setFlagshipApps] = useState<MiniAppInfo[]>([]);
@@ -28,49 +94,53 @@ export default function MiniAppsPage() {
     return () => { mountedRef.current = false; };
   }, []);
 
+  const hero = flagshipApps[0];
+  const rest = flagshipApps.slice(1);
+
   return (
     <Layout>
       <Head>
         <title>MiniApps - R3E Network</title>
       </Head>
 
-      <div className="pt-20">
+      <div className="min-h-screen bg-gray-50 pt-20">
         {/* Hero */}
-        <section className="relative overflow-hidden border-b border-white/5 bg-[#05050A] px-4 py-16 sm:px-6 lg:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(0,229,153,0.08),transparent_60%)]" />
-          <div className="relative mx-auto max-w-5xl text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#00E599]">Neo N3 MiniApps</p>
-            <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-6xl">
-              Seven Flagship Apps
+        <section className="relative overflow-hidden bg-white border-b border-gray-100 px-4 py-14 sm:px-6 sm:py-20">
+          <div className="relative mx-auto max-w-6xl">
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-600">Neo N3 Mainnet</p>
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Flagship MiniApps
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-gray-400">
-              Production miniapps running on Neo N3 mainnet. Each one is a self-contained
-              application with its own smart contract, UI, and on-chain state.
+            <p className="mt-4 max-w-xl text-base text-gray-500 leading-relaxed">
+              Seven production applications with live smart contracts on Neo N3 mainnet.
             </p>
           </div>
         </section>
 
-        {/* Flagship Grid */}
-        <section className="bg-[#05050A] px-4 py-12 sm:px-6">
-          <div className="mx-auto max-w-[1400px]">
+        {/* Apps */}
+        <section className="px-4 py-12 sm:px-6 sm:py-16">
+          <div className="mx-auto max-w-6xl">
             {fetchError && (
-              <p role="alert" className="mb-6 text-center text-sm text-red-400">
+              <p role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 Failed to load apps. Please try again later.
               </p>
             )}
 
             {loading ? (
-              <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 7 }, (_, i) => (
-                  <div key={i} className="rounded-3xl border border-white/5 bg-white/[0.02] p-6 space-y-4">
-                    <Skeleton className="h-44 w-full rounded-2xl bg-white/5 animate-pulse" />
-                    <Skeleton className="h-6 w-3/4 rounded-lg bg-white/5 animate-pulse" />
-                    <Skeleton className="h-4 w-1/2 rounded-lg bg-white/5 animate-pulse" />
+                  <div key={i} className={`rounded-2xl border border-gray-200 bg-white ${i === 0 ? "col-span-full lg:col-span-2 row-span-2 h-80" : "h-64"}`}>
+                    <div className="animate-pulse h-full rounded-2xl bg-gray-100" />
                   </div>
                 ))}
               </div>
             ) : (
-              <MiniAppGrid apps={flagshipApps} columns={3} />
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {hero && <FlagshipCard app={hero} featured />}
+                {rest.map((app) => (
+                  <FlagshipCard key={app.app_id} app={app} />
+                ))}
+              </div>
             )}
           </div>
         </section>
