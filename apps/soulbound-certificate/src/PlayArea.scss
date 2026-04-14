@@ -8,11 +8,9 @@
   padding: 20px 12px;
   min-height: 300px;
   font-family: 'Cormorant Garamond', Georgia, serif;
-  background:
-    repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(185, 28, 28, 0.03) 28px, rgba(185, 28, 28, 0.03) 29px),
-    linear-gradient(180deg, #FEF3C7 0%, #fdf6e3 40%, #faf0d4 100%);
-  color: #3B2F1E;
-  border: 3px double #B8860B;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   position: relative;
 }
@@ -21,16 +19,16 @@
 .hero-stat {
   text-align: center;
   padding: 10px 18px;
-  background: linear-gradient(135deg, rgba(184, 134, 11, 0.08), rgba(254, 243, 199, 0.5));
+  background: #f9fafb;
   border-radius: 8px;
-  border: 1px solid rgba(184, 134, 11, 0.25);
+  border: 1px solid #f3f4f6;
   min-width: 80px;
 }
-.hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #92400E; }
-.hero-stat-label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #78716C; letter-spacing: 1.5px; margin-top: 2px; }
+.hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #10b981; }
+.hero-stat-label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 2px; }
 
 .loading-card { text-align: center; padding: 16px; }
-.loading-text { font-size: 14px; color: #78716C; }
+.loading-text { font-size: 14px; color: #9ca3af; }
 
 .certificates-grid {
   display: flex;
@@ -43,9 +41,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(184, 134, 11, 0.05);
+  background: #f9fafb;
   border-radius: 8px;
-  border: 1px solid rgba(184, 134, 11, 0.15);
+  border: 1px solid #f3f4f6;
 }
 
 .cert-info {
@@ -57,12 +55,12 @@
 .cert-name {
   font-size: 14px;
   font-weight: 700;
-  color: #3B2F1E;
+  color: #1f2937;
 }
 
 .cert-recipient {
   font-size: 11px;
-  color: #78716C;
+  color: #9ca3af;
 }
 
 .cert-badge {
@@ -73,8 +71,8 @@
   border-radius: 6px;
   letter-spacing: 0.5px;
 
-  &.valid { background: rgba(34, 197, 94, 0.12); color: #15803D; }
-  &.revoked { background: rgba(220, 38, 38, 0.1); color: #B91C1C; }
+  &.valid { background: #ecfdf5; color: #059669; }
+  &.revoked { background: #fef2f2; color: #dc2626; }
 }
 
 .connect-prompt {
