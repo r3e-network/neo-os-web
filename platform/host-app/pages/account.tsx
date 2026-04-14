@@ -36,7 +36,7 @@ export default function AccountPage() {
           <div className="grid gap-8 md:grid-cols-3">
             <div className="space-y-8 md:col-span-2">
               <Card className="glass-card overflow-hidden">
-                <CardHeader className="border-b border-gray-200 bg-neo/5 ">
+                <CardHeader className="border-b border-gray-200 bg-neo/5">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-gray-900">Neo Wallet</CardTitle>
@@ -48,7 +48,7 @@ export default function AccountPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-100 p-4 ">
+                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-100 p-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
                       <Wallet className="text-neo" size={24} aria-hidden="true" />
                     </div>
@@ -96,7 +96,7 @@ export default function AccountPage() {
 
             <div className="space-y-6">
               <Card className="glass-card overflow-hidden">
-                <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 ">
+                <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                       <Shield size={16} className="text-emerald-500" aria-hidden="true" />
@@ -125,13 +125,13 @@ export default function AccountPage() {
                 <CardContent className="space-y-3">
                   <Link
                     href="/miniapps"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 "
+                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200"
                   >
                     Browse live miniapps
                   </Link>
                   <Link
                     href="/docs"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 "
+                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200"
                   >
                     Read integration docs
                   </Link>
@@ -151,7 +151,7 @@ export default function AccountPage() {
                 </CardContent>
               </Card>
 
-              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-6 ">
+              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-6">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                   <Shield size={16} className="text-indigo-400" aria-hidden="true" />
                   Security Tip
