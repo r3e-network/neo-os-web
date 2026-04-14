@@ -8,8 +8,8 @@
   padding: 20px 12px;
   min-height: 300px;
   font-family: 'Syne', sans-serif;
-  background: linear-gradient(160deg, #0D0D1A 0%, #1A0A2E 40%, #0F172A 100%);
-  color: #E2E8F0;
+  background: #ffffff;
+  color: #1f2937;
   border-radius: 12px;
   position: relative;
   overflow: hidden;
@@ -19,16 +19,16 @@
 .hero-stat {
   text-align: center;
   padding: 10px 18px;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(6, 182, 212, 0.08) 100%);
+  background: #f9fafb;
   border-radius: 10px;
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  border: 1px solid #f3f4f6;
   min-width: 80px;
 }
-.hero-stat-value { display: block; font-size: 22px; font-weight: 800; color: #F0ABFC; }
-.hero-stat-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #67E8F9; letter-spacing: 1.5px; margin-top: 2px; }
+.hero-stat-value { display: block; font-size: 22px; font-weight: 800; color: #10b981; }
+.hero-stat-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 2px; }
 
 .loading-card { text-align: center; padding: 16px; }
-.loading-text { font-size: 14px; color: #94A3B8; }
+.loading-text { font-size: 14px; color: #9ca3af; }
 
 .tickets-grid {
   display: flex;
@@ -41,15 +41,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(236, 72, 153, 0.06);
+  background: #f9fafb;
   border-radius: 8px;
-  border: 1px solid rgba(236, 72, 153, 0.12);
+  border: 1px solid #f3f4f6;
 }
 
 .ticket-name {
   font-size: 13px;
   font-weight: 600;
-  color: #E2E8F0;
+  color: #1f2937;
 }
 
 .ticket-badge {
@@ -60,8 +60,8 @@
   border-radius: 6px;
   letter-spacing: 0.5px;
 
-  &.valid { background: rgba(34, 197, 94, 0.15); color: #4ADE80; }
-  &.used { background: rgba(148, 163, 184, 0.15); color: #94A3B8; }
+  &.valid { background: #ecfdf5; color: #059669; }
+  &.used { background: #f3f4f6; color: #9ca3af; }
 }
 
 .connect-prompt {

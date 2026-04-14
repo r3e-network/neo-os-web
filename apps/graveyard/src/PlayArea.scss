@@ -7,17 +7,17 @@
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
-  background: linear-gradient(180deg, #0A0A0A 0%, #0F0F0F 40%, #111111 100%);
-  color: #9CA3AF;
+  background: #ffffff;
+  color: #1f2937;
   border-radius: 12px;
   position: relative;
   overflow: hidden;
 }
 
 .hero-stats { display: flex; gap: 12px; flex-wrap: wrap; }
-.hero-stat { flex: 1; min-width: 80px; text-align: center; padding: 14px 10px; border-radius: 8px; border: 1px solid rgba(74, 222, 128, 0.08); background: linear-gradient(180deg, rgba(74, 222, 128, 0.03), rgba(0, 0, 0, 0.2)); }
-.hero-stat-value { font-size: 22px; font-weight: 800; color: #4ADE80; display: block; }
-.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6B7280; letter-spacing: 1.5px; margin-top: 4px; display: block; }
+.hero-stat { flex: 1; min-width: 80px; text-align: center; padding: 14px 10px; border-radius: 8px; border: 1px solid #f3f4f6; background: #f9fafb; }
+.hero-stat-value { font-size: 22px; font-weight: 800; color: #10b981; display: block; }
+.hero-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: 1.5px; margin-top: 4px; display: block; }
 
 .destroy-form {
   display: flex;
@@ -36,7 +36,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .type-options {
@@ -48,22 +48,22 @@
 .type-option {
   padding: 6px 14px;
   border-radius: 6px;
-  border: 1px solid rgba(74, 222, 128, 0.15);
-  background: rgba(74, 222, 128, 0.04);
-  color: #9CA3AF;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 
   &.active {
-    border-color: #4ADE80;
-    background: rgba(74, 222, 128, 0.12);
-    color: #4ADE80;
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #10b981;
   }
 
   &:hover {
-    border-color: rgba(74, 222, 128, 0.3);
+    border-color: #10b981;
   }
 }
 
