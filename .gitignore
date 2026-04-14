@@ -163,3 +163,8 @@ platform/host-app/coverage/
 platform/host-app/public/miniapp-assets/**/*.jpg
 platform/host-app/public/miniapp-assets/**/*.jpeg
 platform/host-app/public/miniapp-assets/**/*.png
+
+# Stale reference images
+lastsurvivor-*.png
+obsidian-terminal.png
+polymarket-layout.png
