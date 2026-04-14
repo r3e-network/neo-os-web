@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import {
@@ -266,28 +265,18 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                 {app.detail_template.hero.disclaimer}
               </p>
             )}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link
-                href={`/launch/${app.app_id}`}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-neo px-6 py-2.5 text-sm font-bold text-black shadow-[0_0_20px_rgba(0,229,153,0.3)] transition-all hover:shadow-[0_0_30px_rgba(0,229,153,0.5)] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-              >
-                Launch MiniApp
-                <span aria-hidden="true">&rarr;</span>
-              </Link>
-              {app.docs_url && (
+            {app.docs_url && (
+              <div className="mt-4">
                 <a
                   href={app.docs_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-full border border-gray-200/80 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:border-neo/40 hover:text-neo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-white/10 dark:text-gray-200 dark:hover:text-neo"
+                  className="inline-flex items-center text-xs font-medium text-gray-500 hover:text-neo transition-colors dark:text-gray-400 dark:hover:text-neo"
                 >
-                  Documentation
+                  View documentation &rarr;
                 </a>
-              )}
-            </div>
-            <p className="mt-4 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              This page combines the embedded surface, operations, permissions, and activity feed. Use Runtime Mode for a focused full-screen experience.
-            </p>
+              </div>
+            )}
           </section>
 
           <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
