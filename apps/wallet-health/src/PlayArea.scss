@@ -8,6 +8,7 @@
 .hero-container {
   margin-bottom: 20px;
   background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
+  text-align: center;
 }
 
 .health-gauge-scene { display: flex; justify-content: center; align-items: center; height: 100px; }
@@ -43,6 +44,19 @@
   text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
 }
 
+.network-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .risk-alert {
   display: flex;
   align-items: center;
@@ -56,8 +70,102 @@
 }
 
 .risk-icon { font-size: 16px; }
+
+/* Connect State */
 .empty-state { text-align: center; }
+
+.connect-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+}
+
+.connect-message {
+  font-size: 14px;
+  opacity: 0.7;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.connection-status {
+  font-size: 11px;
+  opacity: 0.4;
+  display: block;
+}
+
+/* Health Dashboard */
 .health-stack { @include console.stack(16px); }
+
+/* Wallet Info Card */
+.wallet-info-card {
+  padding: 0;
+}
+
+.wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-label {
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.info-value {
+  font-size: 13px;
+  font-weight: 500;
+
+  &.mono {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+  }
+}
+
+.balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.balance-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.balance-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+}
+
+.balance-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.balance-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Stats */
 .stats-grid { display: flex; flex-direction: column; gap: 8px; }
 .stat-item { @include console.stat-row; }
 .stat-label { @include console.stat-label; }
@@ -76,6 +184,7 @@
   .gauge-ring::before { width: 50px; height: 50px; }
   .gauge-value { font-size: 18px; }
   .health-gauge-scene { height: 80px; }
+  .balance-row { gap: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
