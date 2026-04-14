@@ -1,8 +1,0 @@
-[
-  {
-    "name": "MiniAppGovMerc",
-    "hash": "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62",
-    "app_manifest": "apps/gov-merc/neo-manifest.json",
-    "oracle_set": true
-  }
-]
