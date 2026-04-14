@@ -41,7 +41,7 @@ export function IconFeatureGrid({
           <div
             key={item.title}
             className={cn(
-              "rounded-xl border border-gray-200/80 bg-gray-50/80 transition-all dark:border-white/[0.06] dark:bg-white/[0.02] hover:border-gray-300 dark:hover:border-white/[0.1]",
+              "rounded-xl border border-gray-200/80 bg-gray-50/80 transition-all hover:border-gray-300",
               compact ? "flex items-center gap-4 p-4" : "p-5",
             )}
           >
@@ -55,10 +55,10 @@ export function IconFeatureGrid({
               <item.icon className={iconBgClass ? "text-white" : "text-neo"} size={compact ? 20 : 24} aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="font-semibold text-gray-900 dark:text-white">{item.title}</h4>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{item.description}</p>
+              <h4 className="font-semibold text-gray-900">{item.title}</h4>
+              <p className="mt-1 text-sm text-gray-500">{item.description}</p>
             </div>
-            {showChevron && <ChevronRight className="ml-auto text-gray-500 dark:text-gray-400" size={16} aria-hidden="true" />}
+            {showChevron && <ChevronRight className="ml-auto text-gray-500" size={16} aria-hidden="true" />}
           </div>
         );
       })}

@@ -148,7 +148,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       {/* Chat Panel */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
+          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Live chat"
@@ -179,7 +179,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                 ))}
               </div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+              <div className="text-center text-gray-500 py-8">
                 <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
                 <p>No messages yet</p>
                 <p className="text-xs mt-1">Be the first to say hi!</p>
@@ -191,7 +191,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-t border-gray-200">
             {walletAddress ? (
               <div className="flex items-center gap-2">
                 <input
@@ -204,7 +204,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   placeholder="Type a message..."
                   aria-label="Type a message"
                   maxLength={500}
-                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="flex-1 h-10 px-4 text-sm rounded-full border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 />
                 <button
                   type="button"
@@ -217,10 +217,10 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                 </button>
               </div>
             ) : (
-              <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">Connect wallet to chat</div>
+              <div className="text-center text-sm text-gray-500 py-2">Connect wallet to chat</div>
             )}
             {sendError && (
-              <div className="px-1 pt-1 text-xs text-red-500 dark:text-red-400">
+              <div className="px-1 pt-1 text-xs text-red-500">
                 {sendError}
               </div>
             )}
@@ -233,12 +233,12 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
 
 function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean }) {
   if (message.type === "system") {
-    return <div className="text-center text-xs text-gray-500 dark:text-gray-400 py-1">{message.content}</div>;
+    return <div className="text-center text-xs text-gray-500 py-1">{message.content}</div>;
   }
 
   if (message.type === "tip") {
     return (
-      <div className="flex items-center justify-center gap-2 text-xs text-amber-600 dark:text-amber-400 py-1">
+      <div className="flex items-center justify-center gap-2 text-xs text-amber-600 py-1">
         <Gift size={12} aria-hidden="true" />
         <span>
           {message.userName} tipped {message.tipAmount}
@@ -254,17 +254,17 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
       </div>
       <div className={cn("max-w-[70%]", isOwn && "text-right")}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className={cn("text-xs font-medium text-gray-700 dark:text-gray-300 truncate", isOwn && "order-2")}>
+          <span className={cn("text-xs font-medium text-gray-700 truncate", isOwn && "order-2")}>
             {message.userName}
           </span>
-          <span className={cn("text-xs text-gray-500 dark:text-gray-400", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
+          <span className={cn("text-xs text-gray-500", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
         </div>
         <div
           className={cn(
             "inline-block px-3 py-2 rounded-2xl text-sm break-words",
             isOwn
               ? "bg-emerald-500 text-white rounded-tr-sm"
-              : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-tl-sm",
+              : "bg-gray-100 text-gray-900 rounded-tl-sm",
           )}
         >
           {message.content}

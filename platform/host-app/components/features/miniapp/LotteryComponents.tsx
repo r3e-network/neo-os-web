@@ -26,19 +26,19 @@ export function LotteryPool({ data }: LotteryPoolProps) {
   return (
     <div className="rounded-xl border border-neo/30 bg-gradient-to-br from-neo/5 to-transparent p-6">
       <div className="text-center mb-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400">Prize Pool</p>
+        <p className="text-sm text-gray-500">Prize Pool</p>
         <p className="text-4xl font-extrabold text-neo">{data.prizePool}</p>
         <p className="text-xs text-gray-400 mt-1">50% to winner • 50% burned</p>
       </div>
 
       <div className="mb-4">
         <div className="flex justify-between text-sm mb-1">
-          <span className="text-gray-500 dark:text-gray-400">Tickets Sold</span>
-          <span className="text-gray-900 dark:text-white font-semibold">
+          <span className="text-gray-500">Tickets Sold</span>
+          <span className="text-gray-900 font-semibold">
             {data.ticketsSold.toLocaleString()} / {data.maxTickets.toLocaleString()}
           </span>
         </div>
-        <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-neo transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
@@ -47,13 +47,13 @@ export function LotteryPool({ data }: LotteryPoolProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="rounded-lg bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Ticket Price</p>
-          <p className="font-bold text-gray-900 dark:text-white">{data.ticketPrice}</p>
+        <div className="rounded-lg bg-white p-3 border border-gray-200">
+          <p className="text-xs text-gray-500">Ticket Price</p>
+          <p className="font-bold text-gray-900">{data.ticketPrice}</p>
         </div>
-        <div className="rounded-lg bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Max Per User</p>
-          <p className="font-bold text-gray-900 dark:text-white">{data.ticketsPerUser}</p>
+        <div className="rounded-lg bg-white p-3 border border-gray-200">
+          <p className="text-xs text-gray-500">Max Per User</p>
+          <p className="font-bold text-gray-900">{data.ticketsPerUser}</p>
         </div>
       </div>
     </div>
@@ -82,31 +82,31 @@ export function LotteryCountdown({ drawDate }: LotteryCountdownProps) {
 
   if (isEnded) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4 text-center">
-        <p className="text-lg font-bold text-gray-900 dark:text-white">Draw Complete</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+        <p className="text-lg font-bold text-gray-900">Draw Complete</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
-      <p className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">Time Until Draw</p>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <p className="text-xs text-gray-500 text-center mb-3">Time Until Draw</p>
       <div className="grid grid-cols-4 gap-2 text-center">
         <div>
           <div className="text-2xl font-bold text-neo">{days.toString().padStart(2, "0")}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Days</div>
+          <div className="text-xs text-gray-500">Days</div>
         </div>
         <div>
           <div className="text-2xl font-bold text-neo">{hours.toString().padStart(2, "0")}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Hours</div>
+          <div className="text-xs text-gray-500">Hours</div>
         </div>
         <div>
           <div className="text-2xl font-bold text-neo">{minutes.toString().padStart(2, "0")}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Mins</div>
+          <div className="text-xs text-gray-500">Mins</div>
         </div>
         <div>
           <div className="text-2xl font-bold text-neo">{seconds.toString().padStart(2, "0")}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">Secs</div>
+          <div className="text-xs text-gray-500">Secs</div>
         </div>
       </div>
     </div>
@@ -121,16 +121,16 @@ type UserTicketsProps = {
 export function UserTickets({ tickets, totalTickets }: UserTicketsProps) {
   if (totalTickets === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4 text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">You haven't bought any tickets yet</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+        <p className="text-sm text-gray-500">You haven't bought any tickets yet</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
       <div className="flex justify-between items-center mb-3">
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Your Tickets</h4>
+        <h4 className="text-sm font-semibold text-gray-900">Your Tickets</h4>
         <span className="text-sm font-bold text-neo">{totalTickets} tickets</span>
       </div>
       <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export function UserTickets({ tickets, totalTickets }: UserTicketsProps) {
           </div>
         ))}
         {tickets.length > 20 && (
-          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-200 text-gray-500 text-xs">
             +{tickets.length - 20}
           </div>
         )}
@@ -166,27 +166,27 @@ type PastDrawsProps = {
 export function PastDraws({ draws }: PastDrawsProps) {
   if (!draws.length) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4 text-center">
-        <p className="text-sm text-gray-500 dark:text-gray-400">No past draws yet</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
+        <p className="text-sm text-gray-500">No past draws yet</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Past Draws</h4>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <h4 className="text-sm font-semibold text-gray-900 mb-3">Past Draws</h4>
       <div className="space-y-2">
         {draws.map((draw) => (
-          <div key={draw.id} className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+          <div key={draw.id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
             <div>
-              <p className="text-sm text-gray-900 dark:text-white">{draw.date}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-900">{draw.date}</p>
+              <p className="text-xs text-gray-500">
                 Winner: {draw.winner.slice(0, 8)}...{draw.winner.slice(-6)}
               </p>
             </div>
             <div className="text-right">
               <p className="text-sm font-bold text-neo">{draw.prizePool}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{draw.ticketsSold} tickets</p>
+              <p className="text-xs text-gray-500">{draw.ticketsSold} tickets</p>
             </div>
           </div>
         ))}
