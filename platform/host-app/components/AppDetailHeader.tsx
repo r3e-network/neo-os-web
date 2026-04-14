@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
-import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
+import { buildMiniAppBannerSources, resolveMiniAppSlug } from "@/lib/miniapp-media";
 
 type Props = {
   app: MiniAppInfo;
@@ -79,11 +79,26 @@ export function AppDetailHeader({ app, onBack }: Props) {
         </button>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
-          <div className="flex h-20 w-20 sm:h-28 sm:w-28 shrink-0 items-center justify-center rounded-[2rem] bg-gradient-to-br from-white/60 to-white/10 dark:from-[#12131C] dark:to-[#0A0B10] text-[56px] sm:text-[72px] shadow-[0_8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-gray-200/50 dark:border-white/10 relative group">
+          <div className="flex h-20 w-20 sm:h-28 sm:w-28 shrink-0 items-center justify-center rounded-[2rem] bg-gradient-to-br from-white/60 to-white/10 dark:from-[#12131C] dark:to-[#0A0B10] shadow-[0_8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-gray-200/50 dark:border-white/10 relative group overflow-hidden p-2">
             <div className="absolute inset-0 rounded-[2rem] border border-neo/0 group-hover:border-neo/30 transition-colors duration-500" />
-            <span className="transform group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-500 drop-shadow-md">
-              {app.icon}
-            </span>
+            <img
+              src={`/miniapp-assets/${resolveMiniAppSlug(app.app_id, app.entry_url)}/logo.svg`}
+              alt={app.name}
+              className="w-full h-full rounded-xl transform group-hover:scale-110 transition-transform duration-500"
+              loading="eager"
+              decoding="async"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = "none";
+                const parent = target.parentElement;
+                if (parent) {
+                  const fallback = document.createElement("span");
+                  fallback.className = "text-[56px] sm:text-[72px] drop-shadow-md";
+                  fallback.textContent = app.icon || "📱";
+                  parent.appendChild(fallback);
+                }
+              }}
+            />
           </div>
 
           <div className="flex-1 min-w-0">
