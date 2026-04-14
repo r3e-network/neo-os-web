@@ -34,7 +34,7 @@
   display: block;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #00e599;
+  color: #10b981;
 }
 
 .council-hero-stat-label {
@@ -61,7 +61,7 @@
 .council-section-title {
   font-size: 0.875rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -73,7 +73,7 @@
   gap: 0.75rem;
   padding: 1rem;
   margin-bottom: 1rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #f3f4f6;
 }
@@ -82,7 +82,7 @@
 .council-empty {
   text-align: center;
   padding: 1.5rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: #9ca3af;
   font-size: 0.8125rem;
 }
 
@@ -94,13 +94,13 @@
 
 .council-proposal-item {
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #f3f4f6;
   transition: border-color 0.15s;
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(16, 185, 129, 0.15);
   }
 }
 
@@ -122,8 +122,8 @@
 }
 
 .council-status--active {
-  background: rgba(0, 229, 153, 0.15);
-  color: #00e599;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
 }
 
 .council-status--passed {
@@ -143,14 +143,14 @@
 
 .council-proposal-id {
   font-size: 0.6875rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: #9ca3af;
   font-family: monospace;
 }
 
 .council-proposal-title {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
   margin-bottom: 0.25rem;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .council-vote-bar-for {
-  background: #00e599;
+  background: #10b981;
 }
 
 .council-vote-counts {
@@ -192,7 +192,7 @@
 }
 
 .council-vote-for {
-  color: #00e599;
+  color: #10b981;
   font-weight: 600;
 }
 

@@ -7,10 +7,10 @@
 @mixin json-box($max-height: null) {
   width: 100%;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   padding: 12px;
-  color: inherit;
+  color: #1f2937;
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   line-height: 1.6;
@@ -24,7 +24,7 @@
 @mixin label {
   display: block;
   font-size: 11px;
-  opacity: 0.6;
+  color: #6b7280;
   text-transform: uppercase;
 }
 
@@ -32,6 +32,7 @@
   display: block;
   margin-top: 6px;
   font-size: 13px;
+  color: #1f2937;
   word-break: break-all;
   white-space: pre-wrap;
 }
@@ -77,8 +78,8 @@
 @mixin detail-card {
   padding: 14px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
 }
 
 // ── Console Play Area root ──
@@ -91,13 +92,13 @@
 
 // ── Console Output / Result panel ──
 @mixin console-output {
-  background: #0d1117;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
   font-family: 'JetBrains Mono', var(--font-mono, monospace);
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+  color: #1f2937;
   overflow-x: auto;
   white-space: pre-wrap;
 }
@@ -108,7 +109,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
   margin: 0;
 }
 
@@ -118,8 +119,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
   border-radius: 10px;
 }
 
@@ -128,11 +129,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
 }
 
 @mixin stat-value {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #1f2937;
 }

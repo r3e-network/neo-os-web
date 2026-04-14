@@ -6,16 +6,16 @@
 .summary {
   margin: 0;
   line-height: 1.6;
-  color: var(--text-secondary);
+  color: #6b7280;
 }
 
 .empty-state {
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border: 1px dashed #e5e7eb;
   border-radius: 14px;
   padding: 24px;
   text-align: center;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.02);
+  color: #9ca3af;
+  background: #f9fafb;
 }
 
 .listings {
