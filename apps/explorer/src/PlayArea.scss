@@ -3,6 +3,55 @@
 
 .explorer-play-area { @include console.play-area; min-height: 300px; }
 
+/* Network Stats Grid */
+.network-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  padding: 0;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-network-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 600;
+
+  &.mono {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+  }
+}
+
+/* Loading */
 .loading {
   text-align: center;
   padding: 20px;
@@ -17,8 +66,22 @@
   100% { opacity: 1; }
 }
 
+/* Recent TX count footer */
+.recent-count-footer {
+  text-align: center;
+  padding: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.recent-count-label {
+  font-size: 11px;
+  opacity: 0.4;
+  font-weight: 500;
+}
+
 @media (max-width: 480px) {
   .explorer-play-area { padding: 12px 8px; }
+  .network-stats { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
