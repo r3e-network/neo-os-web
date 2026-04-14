@@ -43,3 +43,34 @@
     pointer-events: none;
   }
 }
+
+.stats-bar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; padding: 10px 12px; flex: 1; min-width: 60px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 10px;
+}
+
+.stat-chip .stat-value {
+  font-size: 18px; font-weight: 700;
+  color: #10B981; font-variant-numeric: tabular-nums;
+}
+
+.stat-chip .stat-label {
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  color: #64748B; letter-spacing: 0.8px; margin-top: 2px;
+}
+
+.create-form-card {
+  position: relative; z-index: 1;
+}
+
+.create-form {
+  display: flex; flex-direction: column; gap: 10px;
+}

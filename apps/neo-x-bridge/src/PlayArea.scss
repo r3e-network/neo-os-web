@@ -1,10 +1,43 @@
 @use "@shared/styles/tokens.scss" as *;
+
 .bridge-play-area {
   display: flex;
   flex-direction: column;
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
+}
+
+.bridge-info-card {
+  margin: 0;
+}
+
+.bridge-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bridge-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.bridge-info-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.bridge-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 @media (max-width: 480px) {

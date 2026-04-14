@@ -4,4 +4,63 @@
 @use "./pages/index/neo-treasury-theme.scss" as *;
 
 .treasury-play-area { @include console.play-area; }
+
+.stats-bar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; flex: 1; min-width: 70px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 10px;
+}
+
+.stat-chip .stat-value {
+  font-size: 13px; font-weight: 700;
+  color: #10B981;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.stat-chip .stat-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+  opacity: 0.5; margin-top: 2px;
+}
+
+.section-title {
+  display: block;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  opacity: 0.7;
+}
+
+.categories-card {
+  display: flex; flex-direction: column;
+}
+
+.categories-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.category-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 12px; padding: 6px 8px; border-radius: 6px;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.category-name {
+  font-size: 13px; font-weight: 600;
+}
+
+.category-detail {
+  font-size: 11px; opacity: 0.6; text-align: right;
+}
+
+.last-updated {
+  font-size: 11px; opacity: 0.5; text-align: center;
+}
+
 .op-btn { width: 100%; }

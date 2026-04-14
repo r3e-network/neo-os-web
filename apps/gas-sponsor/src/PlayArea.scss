@@ -12,3 +12,82 @@
 
   > * { position: relative; z-index: 1; }
 }
+
+.gas-stats-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gas-stat {
+  flex: 1;
+  min-width: 80px;
+  text-align: center;
+  padding: 12px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.gas-stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary, #fff);
+}
+
+.gas-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.quota-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quota-bar-container {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.quota-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #22C55E, #16A34A);
+  transition: width 0.4s ease;
+}
+
+.quota-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quota-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.quota-reset {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.donate-form,
+.send-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

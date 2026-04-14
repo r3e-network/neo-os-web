@@ -14,3 +14,44 @@ body {
   padding: 20px 12px;
   min-height: 300px;
 }
+
+.pool-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pool-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.pool-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.pool-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.address-label {
+  font-family: monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
