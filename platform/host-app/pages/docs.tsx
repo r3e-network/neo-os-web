@@ -169,7 +169,7 @@ function GettingStartedContent() {
     <div className="prose prose-gray max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 prose-li:leading-[1.75]">
       <h2 className="!text-2xl font-extrabold text-gray-900 !mb-6 !mt-0 tracking-[-0.02em]">Getting Started</h2>
 
-      <div className="not-prose mb-8 p-5 rounded-xl bg-neo/[0.04] border border-neo/15 dark:bg-neo/[0.03]">
+      <div className="not-prose mb-8 p-5 rounded-xl bg-neo/[0.04] border border-neo/15">
         <div className="flex items-start gap-4">
           <div className="p-2.5 rounded-lg bg-neo/10 shrink-0">
             <Rocket className="text-neo" size={20} aria-hidden="true" />
@@ -228,7 +228,7 @@ console.log('TX Hash:', result.txid);`}
           </Button>
         </Link>
         <a href="https://github.com/neo-project/neo-miniapp-template" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" className="border-gray-300 dark:border-gray-700 text-sm">
+          <Button variant="outline" className="border-gray-300 text-sm">
             <Github size={15} className="mr-2" aria-hidden="true" />
             View Template
           </Button>
