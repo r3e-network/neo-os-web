@@ -32,8 +32,8 @@ describe("miniapp-definitions loader", () => {
           entry_url: "mf://manifest?app=miniapp-predictionmarket",
           content: {
             category: "defi",
-            logo_url: "/miniapp-assets/prediction-market/logo.jpg",
-            banner_url: "/miniapp-assets/prediction-market/banner.jpg",
+            logo_url: "/miniapp-assets/prediction-market/logo.svg",
+            banner_url: "/miniapp-assets/prediction-market/banner.svg",
           },
           frontend_spec: {
             format: "markdown",
@@ -53,8 +53,8 @@ describe("miniapp-definitions loader", () => {
         app_id: "miniapp-predictionmarket",
         name: "Prediction Market",
         category: "defi",
-        logo_url: "/miniapp-assets/prediction-market/logo.jpg",
-        banner_url: "/miniapp-assets/prediction-market/banner.jpg",
+        logo_url: "/miniapp-assets/prediction-market/logo.svg",
+        banner_url: "/miniapp-assets/prediction-market/banner.svg",
       }),
     );
     expect(getApp(apps, "miniapp-predictionmarket")?.detail_template?.tabs?.[0]).toEqual(

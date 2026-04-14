@@ -1,7 +1,7 @@
 // Card base pattern (found in 20+ components)
 @mixin card-base($radius: 12px, $padding: 16px) {
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--bg-card, #f9fafb);
+  border: 1px solid var(--border-color, #f3f4f6);
   border-radius: $radius;
   padding: $padding;
 }
@@ -12,7 +12,7 @@
   cursor: pointer;
   transition: background 0.2s ease;
   &:hover {
-    background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+    background: var(--bg-elevated, #f3f4f6);
   }
 }
 
@@ -31,7 +31,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--text-secondary, #6b7280);
   letter-spacing: 0.1em;
 }
 

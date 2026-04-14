@@ -10,8 +10,8 @@
   }
 
   &__card {
-    background: var(--bg-card, rgba(255, 255, 255, 0.02));
-    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    background: var(--bg-card, #f9fafb);
+    border: 1px solid var(--border-color, #f3f4f6);
     border-radius: var(--card-radius, 20px);
     padding: $spacing-4;
     backdrop-filter: blur(10px);
@@ -24,10 +24,10 @@
     font-weight: $font-weight-bold;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-primary, rgba(255, 255, 255, 0.9));
+    color: var(--text-primary, #1f2937);
     padding-bottom: $spacing-3;
     margin-bottom: $spacing-2;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    border-bottom: 1px solid var(--border-color, #f3f4f6);
   }
 
   &__extra {

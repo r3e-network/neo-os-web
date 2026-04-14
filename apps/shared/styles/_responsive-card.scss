@@ -181,17 +181,17 @@
 
 .variant-outlined {
   background: transparent;
-  border: 2px solid var(--card-border, var(--border-color, rgba(255, 255, 255, 0.15)));
+  border: 2px solid var(--card-border, var(--border-color, #e5e7eb));
 }
 
 .variant-filled {
-  background: var(--card-bg, var(--bg-primary, rgba(255, 255, 255, 0.1)));
+  background: var(--card-bg, var(--bg-primary, #e5e7eb));
   border: none;
 }
 
 .variant-glass {
-  background: rgba(255, 255, 255, 0.05);
+  background: #f3f4f6;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #e5e7eb;
 }

@@ -16,9 +16,9 @@
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --bg-active: rgba(255, 255, 255, 0.1);
+  --bg-card: #f9fafb;
+  --bg-hover: #f3f4f6;
+  --bg-active: #e5e7eb;
 
   /* Text Colors - Dark Mode */
   --text-primary: #f8fafc;
@@ -27,14 +27,14 @@
   --text-disabled: rgba(248, 250, 252, 0.3);
 
   /* Border Colors - Dark Mode */
-  --border-color: rgba(255, 255, 255, 0.1);
-  --border-color-hover: rgba(255, 255, 255, 0.15);
-  --border-color-active: rgba(255, 255, 255, 0.2);
-  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-color: #e5e7eb;
+  --border-color-hover: #e5e7eb;
+  --border-color-active: #d1d5db;
+  --border-subtle: #e5e7eb;
 
   /* Card Background Colors - Dark Mode */
-  --bg-card-hover: rgba(255, 255, 255, 0.04);
-  --bg-elevated: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: #f3f4f6;
+  --bg-elevated: #f3f4f6;
 
   /* Card-specific tokens */
   --card-shadow: var(--shadow-md);
@@ -58,8 +58,8 @@
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
 
   /* Effects */
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: #f3f4f6;
+  --glass-border: #e5e7eb;
   --backdrop-blur: blur(10px);
 
   /* Spacing */
@@ -104,7 +104,7 @@
   --bg-primary: #f8fafc;
   --bg-secondary: #e2e8f0;
   --bg-tertiary: #cbd5e1;
-  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card: #374151;
   --bg-hover: rgba(15, 23, 42, 0.04);
   --bg-active: rgba(15, 23, 42, 0.08);
 
