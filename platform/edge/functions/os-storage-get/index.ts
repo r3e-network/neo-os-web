@@ -1,16 +1,12 @@
-import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
-import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
+import { buildKernelStateRead } from "../_shared/kernel-rpc.ts";
+import { createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
-  { scopeName: "os-storage-get", permission: "storage", cacheable: true },
+  { scopeName: "os-storage-get", permission: "storage", method: "POST", cacheable: true, cacheTtl: 5 },
   async ({ appId, params }) => {
     const key = String(params.key ?? "").trim();
     if (!key) throw new Error("key required");
-
-    return invokeOSContractCached(OS_CONTRACTS.storage, "Get", [
-      { type: "String", value: appId },
-      { type: "String", value: key },
-    ]);
+    return buildKernelStateRead(appId, key);
   },
 );
 
