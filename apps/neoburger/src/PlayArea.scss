@@ -1,6 +1,7 @@
 @use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/playarea-base";
 @use "./pages/index/neoburger-theme.scss" as *;
 @use "./pages/index/neoburger-deep-overrides.scss" as *;
 @import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');

@@ -1,5 +1,6 @@
 @use "@shared/styles/console-common" as console;
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/playarea-base";
 
 .explorer-play-area { @include console.play-area; min-height: 300px; }
 

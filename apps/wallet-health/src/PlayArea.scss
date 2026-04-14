@@ -2,6 +2,7 @@
 @use "@shared/styles/hero" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/variables.scss" as *;
+@use "@shared/styles/playarea-base";
 
 .health-play-area { @include console.play-area; min-height: 300px; }
 

@@ -3,12 +3,11 @@
 @use "./pages/index/trustanchor-theme.scss" as *;
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
-body { background: var(--anchor-bg, var(--bg-primary)); }
+body { background: var(--anchor-bg, #ffffff); }
 
 .trustanchor-play-area {
   display: flex; flex-direction: column; gap: 20px; padding: 24px 16px;
   min-height: 300px; font-family: var(--anchor-font, 'Instrument Sans', sans-serif); position: relative;
-  &::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 250px; background: var(--anchor-depth-gradient, radial-gradient(ellipse at 50% 0%, rgba(3, 105, 161, 0.1) 0%, transparent 60%)); pointer-events: none; z-index: 0; }
   > * { position: relative; z-index: 1; }
 }
 
@@ -19,28 +18,28 @@ body { background: var(--anchor-bg, var(--bg-primary)); }
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
   padding: 10px 14px; flex: 1; min-width: 70px;
-  background: var(--anchor-card-bg, rgba(12, 24, 38, 0.85));
-  border: 1px solid var(--anchor-card-border, rgba(3, 105, 161, 0.2));
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
   border-radius: 12px;
 }
 
 .stat-value {
   font-size: 14px; font-weight: 700;
-  color: var(--anchor-ocean, #0369A1);
+  color: #10b981;
   font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--anchor-text-muted, var(--text-secondary));
+  color: #9ca3af;
   margin-top: 2px;
 }
 
 .section-header { display: flex; justify-content: space-between; align-items: center; }
-.section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--anchor-ocean, #0369A1); }
-.section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; opacity: 0.82; line-height: 1.7; display: block; color: var(--anchor-text-muted, var(--text-secondary)); }
+.section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #10b981; }
+.section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; line-height: 1.7; display: block; color: #6b7280; }
 
-.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: var(--anchor-card-bg, rgba(12, 24, 38, 0.85)); border: 1px solid var(--anchor-card-border, rgba(3, 105, 161, 0.2)); border-radius: 16px; box-shadow: var(--anchor-card-shadow, 0 8px 32px rgba(0, 0, 0, 0.25)); backdrop-filter: blur(12px); padding: 16px; }
+.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); padding: 16px; }
 .mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .px-1 { padding-left: 8px; padding-right: 8px; }
@@ -48,7 +47,7 @@ body { background: var(--anchor-bg, var(--bg-primary)); }
 .agent-badge {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 22px; height: 22px; border-radius: 11px; padding: 0 6px;
-  background: var(--anchor-ocean, #0369A1);
+  background: #10b981;
   color: #fff; font-size: 11px; font-weight: 700;
 }
 
@@ -59,21 +58,21 @@ body { background: var(--anchor-bg, var(--bg-primary)); }
 .agent-row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 6px 8px; border-radius: 6px;
-  background: rgba(3, 105, 161, 0.06);
+  background: #f9fafb;
 }
 
 .agent-address {
   font-size: 12px; font-family: monospace;
-  color: var(--anchor-text-muted, var(--text-secondary));
+  color: #6b7280;
 }
 
 .agent-status {
   font-size: 10px; font-weight: 600; text-transform: uppercase;
-  color: var(--anchor-ocean, #0369A1);
+  color: #10b981;
 }
 
 .more-agents {
-  font-size: 11px; color: var(--anchor-text-muted, var(--text-secondary));
+  font-size: 11px; color: #9ca3af;
   text-align: center; padding: 4px;
 }
 
