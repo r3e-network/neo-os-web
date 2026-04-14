@@ -97,17 +97,11 @@ const nextConfig = {
         source: "/miniapp-assets/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: MINIAPP_CORS_ORIGIN },
+          { key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400, immutable" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Content-Security-Policy", value: MiniAppCSP },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
         ],
-      },
-      {
-        source: "/miniapp-assets/:appId/static/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400, immutable" }],
       },
       {
         source: "/((?!miniapps|miniapp-assets).*)",

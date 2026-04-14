@@ -223,6 +223,7 @@ export function MiniAppLogo({ appId, category, entryUrl, logoUrl, manifest, size
           alt={appId}
           className="w-full h-full object-cover"
           loading="lazy"
+          decoding="async"
           onError={() => {
             setLogoIndex((prev) => (prev + 1 < logoSources.length ? prev + 1 : logoSources.length));
           }}

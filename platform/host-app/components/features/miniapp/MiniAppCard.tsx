@@ -66,6 +66,7 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
               alt={`${app.name} banner`}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
               loading="lazy"
+              decoding="async"
               onError={() => {
                 setBannerIndex((prev) => (prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length));
               }}
