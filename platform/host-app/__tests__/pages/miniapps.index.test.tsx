@@ -72,14 +72,14 @@ describe("MiniAppsPage", () => {
     jest.clearAllMocks();
   });
 
-  it("shows only flagship apps on the miniapps page", async () => {
+  it("shows flagship apps prominently and non-flagship apps in catalog", async () => {
     render(<MiniAppsPage />);
 
     await waitFor(() => {
       expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
     });
 
-    // Non-flagship apps should NOT appear on the flagship showcase page
-    expect(screen.queryByText("On-Chain Tarot")).not.toBeInTheDocument();
+    // Non-flagship apps appear in the catalog section below
+    expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
   });
 });
