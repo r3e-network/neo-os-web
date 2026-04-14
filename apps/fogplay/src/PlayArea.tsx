@@ -60,13 +60,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Stats row: Wins / Losses / Total Games / Total Won */}
       <div className="stats-row">
         <div className="stat-cell win">
-          <span className="stat-emoji" aria-hidden="true">&#x2705;</span>
+          <span className="stat-emoji" aria-hidden="true">+</span>
           <span className="stat-count">{wins}</span>
           <span className="stat-label">{t("wins") || "Wins"}</span>
         </div>
         <div className="stat-divider" />
         <div className="stat-cell loss">
-          <span className="stat-emoji" aria-hidden="true">&#x274C;</span>
+          <span className="stat-emoji" aria-hidden="true">&ndash;</span>
           <span className="stat-count">{losses}</span>
           <span className="stat-label">{t("losses") || "Losses"}</span>
         </div>
@@ -77,7 +77,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="stat-divider" />
         <div className="stat-cell won">
-          <span className="stat-emoji" aria-hidden="true">&#x26FD;</span>
+          <span className="stat-emoji" aria-hidden="true">&bull;</span>
           <span className="stat-count won-amount">{formattedTotalWon}</span>
           <span className="stat-label">{t("totalWon") || "Won"}</span>
         </div>
@@ -124,7 +124,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Game history table */}
       <div className="history-section">
         <div className="history-header">
-          <span className="history-icon" aria-hidden="true">&#x1F4DC;</span>
+          <span className="history-icon" aria-hidden="true">&bull;</span>
           <span className="history-title">{t("gameHistory") || "Recent Games"}</span>
         </div>
         {recentHistory.length === 0 ? (

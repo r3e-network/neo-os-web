@@ -102,7 +102,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-32 pb-40">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neo/10 via-background to-background dark:from-[#00E599]/10 dark:via-[#05050A] dark:to-[#05050A] -z-20" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neo/10 via-background to-background -z-20" />
         
         {/* Abstract 3D Orbs/Glows */}
         <motion.div style={{ y: y1 }} className="absolute top-[10%] left-[5%] w-[400px] h-[400px] bg-neo/20 blur-[150px] rounded-full mix-blend-screen pointer-events-none" />
@@ -115,14 +115,14 @@ export default function LandingPage() {
             animate={{ opacity: 1, scale: 1, y: 0 }} 
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <Badge variant="outline" className="mb-8 border-neo/30 bg-white/50 dark:bg-black/30 backdrop-blur-md text-neo px-5 py-1.5 text-sm font-medium shadow-[0_0_15px_rgba(0,229,153,0.15)] neo-glow cursor-default">
+            <Badge variant="outline" className="mb-8 border-neo/30 bg-white/50 backdrop-blur-md text-neo px-5 py-1.5 text-sm font-medium shadow-[0_0_15px_rgba(0,229,153,0.15)] neo-glow cursor-default">
               ✨ Welcome to the Intelligent Edge
             </Badge>
-            <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter text-gray-900 dark:text-white leading-[1.1]">
+            <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter text-gray-900 leading-[1.1]">
               The Operating System <br />
               <span className="neo-gradient-text drop-shadow-sm">For Web3</span>
             </h1>
-            <p className="mx-auto mt-8 max-w-3xl text-lg sm:text-xl text-gray-600 dark:text-gray-300 font-medium leading-relaxed">
+            <p className="mx-auto mt-8 max-w-3xl text-lg sm:text-xl text-gray-600 font-medium leading-relaxed">
               Experience the power of Neo N3 with unified identity, zero-friction wallet connectivity, and the most
               secure execution environment for decentralized apps.
             </p>
@@ -137,7 +137,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="glass-panel text-gray-900 dark:text-white hover:text-neo dark:hover:text-neo font-bold px-10 h-16 rounded-full text-lg hover:bg-white/90 dark:hover:bg-white/10 transition-all duration-300 group-hover:scale-105 border-gray-200/50 dark:border-white/10"
+                  className="glass-panel text-gray-900 hover:text-neo font-bold px-10 h-16 rounded-full text-lg hover:bg-white/90 transition-all duration-300 group-hover:scale-105 border-gray-200/50"
                 >
                   Start Building <Code2 className="ml-3 group-hover:rotate-12 transition-transform" width={20} height={20} aria-hidden="true" />
                 </Button>
@@ -154,7 +154,7 @@ export default function LandingPage() {
             {/* Sidebar Filters */}
             <aside className="hidden lg:block w-72 shrink-0 space-y-8">
               <div className="sticky top-24">
-                <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 dark:text-white mb-6 px-2">
+                <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 mb-6 px-2">
                   <Filter size={20} aria-hidden="true" className="text-neo" />
                   Ecosystems
                 </h2>
@@ -170,8 +170,8 @@ export default function LandingPage() {
                         className={cn(
                           "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
                           isActive
-                            ? "bg-neo/15 dark:bg-neo/20 text-neo font-bold shadow-[inset_0_0_20px_rgba(0,229,153,0.1)]"
-                            : "text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
+                            ? "bg-neo/15 text-neo font-bold shadow-[inset_0_0_20px_rgba(0,229,153,0.1)]"
+                            : "text-gray-600 hover:bg-white/50 hover:text-gray-900",
                         )}
                       >
                         <span className="flex items-center gap-3 text-sm">
@@ -180,7 +180,7 @@ export default function LandingPage() {
                         </span>
                         <span className={cn(
                           "text-xs px-2.5 py-1 rounded-full font-semibold",
-                          isActive ? "bg-neo/20 text-neo" : "bg-gray-200/50 dark:bg-white/10 text-gray-500 dark:text-gray-400",
+                          isActive ? "bg-neo/20 text-neo" : "bg-gray-200/50 text-gray-500",
                         )}>
                           {cat.count}
                         </span>
@@ -203,8 +203,8 @@ export default function LandingPage() {
                       className={cn(
                         "h-10 rounded-xl text-sm font-bold px-6 capitalize transition-all",
                         sortBy === opt
-                          ? "bg-white dark:bg-[#1A1C23] text-gray-900 dark:text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5",
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
                       )}
                     >
                       {opt}
@@ -213,7 +213,7 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex items-center gap-2 px-3">
-                  <div className="bg-gray-200/50 dark:bg-black/40 rounded-xl p-1.5 flex items-center border border-gray-300/30 dark:border-white/5">
+                  <div className="bg-gray-200/50 rounded-xl p-1.5 flex items-center border border-gray-300/30">
                     <button
                       type="button"
                       onClick={() => setViewMode("grid")}
@@ -221,8 +221,8 @@ export default function LandingPage() {
                       className={cn(
                         "p-2 rounded-lg transition-all focus-visible:outline-none",
                         viewMode === "grid"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow"
-                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                          ? "bg-white text-gray-900 shadow"
+                          : "text-gray-500 hover:text-gray-700",
                       )}
                     >
                       <LayoutGrid size={18} />
@@ -234,8 +234,8 @@ export default function LandingPage() {
                       className={cn(
                         "p-2 rounded-lg transition-all focus-visible:outline-none",
                         viewMode === "list"
-                          ? "bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow"
-                          : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300",
+                          ? "bg-white text-gray-900 shadow"
+                          : "text-gray-500 hover:text-gray-700",
                       )}
                     >
                       <List size={18} />
@@ -253,11 +253,11 @@ export default function LandingPage() {
                 {catalogLoading ? (
                   Array.from({ length: 6 }, (_, i) => (
                     <div key={i} className="glass-card rounded-3xl overflow-hidden">
-                      <div className="h-48 w-full bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                      <div className="h-48 w-full bg-gray-200/50 animate-pulse" />
                       <div className="p-6 space-y-4">
-                        <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
-                        <div className="h-4 w-full rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
-                        <div className="h-4 w-1/2 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                        <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 animate-pulse" />
+                        <div className="h-4 w-full rounded-lg bg-gray-200/50 animate-pulse" />
+                        <div className="h-4 w-1/2 rounded-lg bg-gray-200/50 animate-pulse" />
                       </div>
                     </div>
                   ))
@@ -275,8 +275,8 @@ export default function LandingPage() {
                     </motion.div>
                   ))
                 ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 dark:text-gray-400 glass-panel rounded-3xl">
-                    <LayoutGrid className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-700" />
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 glass-panel rounded-3xl">
+                    <LayoutGrid className="w-16 h-16 mb-4 text-gray-300" />
                     <p className="text-xl font-semibold">No apps found</p>
                     <p className="text-sm mt-2">Try adjusting your filters.</p>
                   </div>
@@ -293,15 +293,15 @@ export default function LandingPage() {
           <div className="mb-10 flex items-end justify-between gap-6">
             <div>
               <Badge variant="outline" className="mb-4 border-sky-400/30 bg-sky-500/5 px-4 py-1 text-sky-300">Operator Toolkit</Badge>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white">
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900">
                 Account & Oracle Tools
               </h2>
-              <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium">
+              <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 font-medium">
                 Focused miniapps for AA registration, permissions, relay checks, and Morpheus Oracle interaction.
               </p>
             </div>
             <Link href="/miniapps">
-              <Button variant="outline" className="rounded-full border-gray-200 dark:border-white/10">Browse All Tools</Button>
+              <Button variant="outline" className="rounded-full border-gray-200">Browse All Tools</Button>
             </Link>
           </div>
 
@@ -309,10 +309,10 @@ export default function LandingPage() {
             {catalogLoading ? (
               Array.from({ length: 3 }, (_, i) => (
                 <div key={i} className="glass-card rounded-3xl overflow-hidden">
-                  <div className="h-48 w-full bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                  <div className="h-48 w-full bg-gray-200/50 animate-pulse" />
                   <div className="p-6 space-y-4">
-                    <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
-                    <div className="h-4 w-full rounded-lg bg-gray-200/50 dark:bg-white/5 animate-pulse" />
+                    <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 animate-pulse" />
+                    <div className="h-4 w-full rounded-lg bg-gray-200/50 animate-pulse" />
                   </div>
                 </div>
               ))
@@ -327,8 +327,8 @@ export default function LandingPage() {
                 <MiniAppCard app={app} />
               </motion.div>
             )) : (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400 glass-panel rounded-3xl">
-                <Wrench className="w-12 h-12 mb-3 text-gray-300 dark:text-gray-700" />
+              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500 glass-panel rounded-3xl">
+                <Wrench className="w-12 h-12 mb-3 text-gray-300" />
                 <p className="text-base font-semibold">No tools available yet</p>
                 <p className="text-sm mt-1">Check back soon for new operator tools.</p>
               </div>
@@ -344,8 +344,8 @@ export default function LandingPage() {
 
         <div className="mx-auto max-w-7xl relative z-10">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white">Why <span className="neo-gradient-text">Build on Neo N3?</span></h2>
-            <p className="mt-6 text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto font-medium">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900">Why <span className="neo-gradient-text">Build on Neo N3?</span></h2>
+            <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto font-medium">
               A comprehensive toolkit for developers, bringing extreme performance and native capabilities to the web3 environment.
             </p>
           </div>
@@ -370,19 +370,19 @@ export default function LandingPage() {
               <Code2 width={340} height={340} aria-hidden="true" />
             </div>
             
-            <div className="relative z-10 bg-white/95 dark:bg-[#05050A]/95 backdrop-blur-2xl rounded-[2.2rem] h-full p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="relative z-10 bg-white/95 backdrop-blur-2xl rounded-[2.2rem] h-full p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
               <div className="max-w-2xl">
-                <h2 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight">
+                <h2 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
                   Supercharge Your Next <br/> Decentralized App.
                 </h2>
-                <p className="mt-6 text-gray-600 dark:text-gray-300 text-xl font-medium">
+                <p className="mt-6 text-gray-600 text-xl font-medium">
                   Use our React SDK to embed blockchain interactions, manage identity, and scale your application effortlessly.
                 </p>
                 <div className="mt-10 flex flex-wrap gap-4">
-                  <Button className="bg-gray-900 border border-gray-900 dark:bg-white dark:border-white text-white dark:text-gray-950 hover:bg-gray-800 dark:hover:bg-gray-200 px-10 h-14 rounded-full text-lg font-bold transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 block sm:inline-flex items-center justify-center">
+                  <Button className="bg-gray-900 border border-gray-900 text-white hover:bg-gray-800 px-10 h-14 rounded-full text-lg font-bold transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 block sm:inline-flex items-center justify-center">
                     Get Started <ChevronRight className="ml-2 w-5 h-5" />
                   </Button>
-                  <Button variant="outline" className="border-gray-200 dark:border-white/20 text-gray-900 dark:text-white bg-transparent hover:bg-gray-100 dark:hover:bg-white/10 px-8 h-14 rounded-full text-lg font-bold transition-all">
+                  <Button variant="outline" className="border-gray-200 text-gray-900 bg-transparent hover:bg-gray-100 px-8 h-14 rounded-full text-lg font-bold transition-all">
                     View Documentation
                   </Button>
                 </div>
@@ -404,13 +404,13 @@ export default function LandingPage() {
 
 function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ size?: number | string; className?: string }>; title: string; desc: string }) {
   return (
-    <Card className="glass-card hover:border-neo/50 p-8 border border-gray-200 dark:border-white/5 bg-white/50 dark:bg-[#0C0D14]/60 text-left hover:-translate-y-2 transition-all duration-500 rounded-[2rem] group relative overflow-hidden">
+    <Card className="glass-card hover:border-neo/50 p-8 border border-gray-200 bg-white/50 text-left hover:-translate-y-2 transition-all duration-500 rounded-[2rem] group relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-neo/5 group-hover:bg-neo/10 blur-[40px] rounded-full transition-all duration-500" />
-      <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center text-gray-900 dark:text-white mb-6 group-hover:scale-110 group-hover:bg-neo group-hover:text-dark-950 group-hover:border-neo transition-all duration-500 shadow-sm relative z-10">
+      <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-900 mb-6 group-hover:scale-110 group-hover:bg-neo group-hover:text-dark-950 group-hover:border-neo transition-all duration-500 shadow-sm relative z-10">
         <Icon size={26} aria-hidden="true" />
       </div>
-      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 relative z-10">{title}</h3>
-      <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed font-medium relative z-10">{desc}</p>
+      <h3 className="text-2xl font-bold text-gray-900 mb-4 relative z-10">{title}</h3>
+      <p className="text-gray-600 text-base leading-relaxed font-medium relative z-10">{desc}</p>
     </Card>
   );
 }

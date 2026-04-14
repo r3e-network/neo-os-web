@@ -106,6 +106,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Loading State */}
       {(isSearching || isLoading) && (
         <div className="loading" role="status" aria-live="polite">
+          <div className="loading-spinner" />
           <span>{t("searching") || "Searching..."}</span>
         </div>
       )}

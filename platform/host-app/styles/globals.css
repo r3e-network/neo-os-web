@@ -58,7 +58,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-white/10 rounded-full hover:bg-gray-400 dark:hover:bg-white/20 transition-colors;
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
 }
 
 @keyframes gradient-shift {
@@ -79,7 +79,7 @@
 /* Focus-visible ring utility for interactive elements */
 @layer utilities {
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
   }
 }
 
@@ -96,19 +96,9 @@
   font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-.dark .prose code:not(pre code) {
-  background: rgba(0, 229, 153, 0.08);
-  color: rgb(0, 229, 153);
-  border-color: rgba(0, 229, 153, 0.15);
-}
-
 /* Blockquote callout style in prose */
 .prose blockquote {
   @apply rounded-r-lg border-l-[3px] border-neo/50 bg-neo/[0.03] px-5 py-4;
-}
-
-.dark .prose blockquote {
-  @apply bg-neo/[0.02];
 }
 
 .prose blockquote p {
@@ -117,7 +107,7 @@
 
 /* Strong in prose docs */
 .prose strong {
-  @apply font-bold text-gray-900 dark:text-white;
+  @apply font-bold text-gray-900;
 }
 
 /* HR dividers */
