@@ -5,3 +5,73 @@
 
 .field-stack { @include console.stack; }
 .actions-row { @include console.actions-row; }
+
+/* Network Info */
+.network-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+
+.network-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.5;
+}
+
+.network-value {
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+/* Details Grid */
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+
+  &.mono {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-item {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .value { text-align: left; }
+}

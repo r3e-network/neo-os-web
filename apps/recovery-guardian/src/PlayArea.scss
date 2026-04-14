@@ -41,9 +41,44 @@
   pointer-events: none;
 }
 
+/* Guardian Details */
+.guardian-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+
+  &.mono {
+    font-family: 'Exo 2', monospace;
+    font-size: 11px;
+  }
+}
+
+/* Sections */
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }
+.result-section, .operation-section { position: relative; z-index: 1; }
 
+/* JSON Box */
 .json-box {
   @include console.json-box(520px);
   white-space: pre-wrap;
@@ -55,6 +90,7 @@
   font-size: 12px;
 }
 
+/* Note Box */
 .note-box {
   margin-bottom: 12px;
   border: 1px solid rgba(37, 99, 235, 0.15);
@@ -65,10 +101,51 @@
   z-index: 1;
 }
 
-.note-title { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; color: #60A5FA; font-family: 'Exo 2', sans-serif; }
+.note-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: #60A5FA;
+  font-family: 'Exo 2', sans-serif;
+}
+
 .note-text { font-size: 13px; line-height: 1.6; opacity: 0.8; }
-.link-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(37, 99, 235, 0.1); }
-.link-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; color: #93C5FD; font-family: 'Exo 2', sans-serif; }
-.link-value { font-size: 12px; line-height: 1.5; opacity: 0.88; word-break: break-all; color: #CBD5E1; }
-.link-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-.result-section, .operation-section { position: relative; z-index: 1; }
+
+.link-box {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(37, 99, 235, 0.1);
+}
+
+.link-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  color: #93C5FD;
+  font-family: 'Exo 2', sans-serif;
+}
+
+.link-value {
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.88;
+  word-break: break-all;
+  color: #CBD5E1;
+}
+
+.link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 480px) {
+  .guardian-play-area { padding: 16px 10px; }
+  .detail-row { flex-direction: column; gap: 2px; }
+  .value { text-align: left; }
+}

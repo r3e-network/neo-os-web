@@ -24,3 +24,158 @@
 
   > * { position: relative; z-index: 1; }
 }
+
+/* Status Banner */
+.status-banner {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+
+  &.status-success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #10b981;
+  }
+
+  &.status-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  &.status-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+  }
+}
+
+/* Tab Bar */
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Field Stack */
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Project List */
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-card {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.project-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &.active { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+  &.inactive { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+}
+
+.project-desc {
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1.5;
+}
+
+.project-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  opacity: 0.6;
+  flex-wrap: wrap;
+}
+
+.project-link {
+  font-size: 11px;
+  color: #818cf8;
+  word-break: break-all;
+}
+
+/* Selected Round Info */
+.selected-round-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(124, 58, 237, 0.06);
+  border: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.empty-state-text {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  opacity: 0.5;
+}
+
+.empty-text {
+  text-align: center;
+  display: block;
+  padding: 16px;
+  font-size: 13px;
+  opacity: 0.5;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 12px;
+  font-size: 13px;
+  opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+  .qf-play-area { padding: 16px 10px; }
+  .tab-bar { flex-wrap: wrap; }
+  .project-stats { flex-direction: column; gap: 4px; }
+}
