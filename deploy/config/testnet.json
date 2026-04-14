@@ -7,9 +7,6 @@
   ],
   "network_magic": 894710606,
   "contracts": {
-    "Governance": "0x2ec930202e6d03313d97198259b298cc3c29295e",
-    "AppRegistry": "0x9ceaabb583a9261b34380a9df2d32a75c1c04a3d",
-    "AutomationAnchor": "0xa016f7be94ad7c4d87ad2f8d38784797c2dc494b",
     "StorageService": "0x59d3e03b12f5803fb0b2b18e6f2211e2d0354d70",
     "PaymentService": "0x8e34688c49d4af4236c2ae3bdf9898e1e5710373",
     "ScriptEngine": "0x021360694a2dd418c00cb1bf5c8bc17bfbd7a0e4",
