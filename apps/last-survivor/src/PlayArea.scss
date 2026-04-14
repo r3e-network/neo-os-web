@@ -11,12 +11,30 @@
 }
 @keyframes hazard-scroll { 0% { background-position: 0 0; } 100% { background-position: 40px 0; } }
 
+/* Round info bar */
+.round-info-bar {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  width: 100%; max-width: 440px; padding: 12px 16px;
+  background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.15);
+  border-radius: 8px; position: relative; z-index: 1;
+}
+.round-info-item { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.round-info-label { font-size: 7px; font-weight: 900; letter-spacing: 0.15em; color: rgba(220, 38, 38, 0.5); text-transform: uppercase; }
+.round-info-value { font-size: 14px; font-weight: 800; color: #f5f5f5; font-family: "Orbitron", monospace; }
+.round-info-value.status-active { color: #22c55e; }
+.round-info-value.status-ended { color: #eab308; }
+.round-info-value.pot-value { color: #eab308; font-size: 13px; }
+.round-info-divider { width: 1px; height: 28px; background: rgba(220, 38, 38, 0.2); flex-shrink: 0; margin: 0 4px; }
+
+/* Hero container */
 .hero-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; text-align: center; gap: 24px; padding: 24px 16px; width: 100%; position: relative; z-index: 1;
   &::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, rgba(220, 38, 38, 0.12) 0%, transparent 70%); pointer-events: none; }
 }
 
+/* Buy keys card */
 .buy-keys-card { width: 100%; max-width: 400px; background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 4px; padding: 20px; backdrop-filter: blur(8px); position: relative; z-index: 1; box-shadow: 0 0 20px rgba(220, 38, 38, 0.08), inset 0 1px 0 rgba(234, 179, 8, 0.1); }
 
+/* Last buyer badge */
 .last-buyer-badge { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 8px; position: relative; z-index: 1; width: 100%; max-width: 400px; animation: leader-glow 3s ease-in-out infinite; }
 .last-buyer-icon { font-size: 22px; }
 .last-buyer-info { display: flex; flex-direction: column; flex: 1; }
@@ -24,4 +42,43 @@
 .last-buyer-address { font-size: 13px; font-weight: 800; font-family: "Orbitron", monospace; color: #eab308; filter: drop-shadow(0 0 6px rgba(234, 179, 8, 0.3)); }
 .last-buyer-hint { font-size: 8px; font-weight: 700; color: rgba(220, 38, 38, 0.6); text-transform: uppercase; letter-spacing: 0.08em; }
 @keyframes leader-glow { 0%, 100% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.1); } 50% { box-shadow: 0 0 18px rgba(234, 179, 8, 0.2); } }
+
+/* Participation stats bar */
+.participation-bar {
+  display: flex; align-items: center; justify-content: center; gap: 0;
+  width: 100%; max-width: 440px; padding: 12px 12px;
+  background: rgba(234, 179, 8, 0.04); border: 1px solid rgba(234, 179, 8, 0.12);
+  border-radius: 8px; position: relative; z-index: 1;
+}
+.participation-item { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.participation-icon { font-size: 18px; flex-shrink: 0; }
+.participation-detail { display: flex; flex-direction: column; gap: 1px; }
+.participation-label { font-size: 7px; font-weight: 900; letter-spacing: 0.12em; color: rgba(234, 179, 8, 0.5); text-transform: uppercase; }
+.participation-value { font-size: 16px; font-weight: 800; color: #f5f5f5; font-family: "Orbitron", monospace; }
+.participation-divider { width: 1px; height: 32px; background: rgba(234, 179, 8, 0.15); flex-shrink: 0; margin: 0 4px; }
+
+/* Claim card */
+.claim-card {
+  width: 100%; max-width: 400px; position: relative; z-index: 1;
+  background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.25);
+  border-radius: 8px; padding: 20px; animation: leader-glow 3s ease-in-out infinite;
+}
+.claim-card-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.claim-card-trophy { font-size: 36px; }
+.claim-card-text { font-size: 11px; font-weight: 700; color: rgba(234, 179, 8, 0.8); text-transform: uppercase; letter-spacing: 0.1em; line-height: 1.5; }
+
+/* History section */
+.history-section {
+  width: 100%; max-width: 440px; position: relative; z-index: 1;
+}
+.history-section-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(220, 38, 38, 0.15);
+}
+.history-section-icon { font-size: 18px; }
+.history-section-title {
+  font-size: 10px; font-weight: 900; letter-spacing: 0.15em;
+  color: rgba(220, 38, 38, 0.6); text-transform: uppercase;
+}
+
 @media (prefers-reduced-motion: reduce) { .survivor-play-area { &::before, &::after { animation: none; } } }
