@@ -31,7 +31,7 @@ export function DefinitionActionBar({
       </Button>
       <button
         type="button"
-        className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-white/10"
+        className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 px-3 py-2 text-xs hover:bg-gray-100"
         onClick={() => document.getElementById(importInputId)?.click()}
       >
         <Upload size={14} className="mr-1" aria-hidden="true" />

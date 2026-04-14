@@ -19,10 +19,10 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-  general: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300",
-  bug: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
-  feature: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
-  help: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+  general: "bg-gray-100 text-gray-700",
+  bug: "bg-red-100 text-red-700",
+  feature: "bg-purple-100 text-purple-700",
+  help: "bg-blue-100 text-blue-700",
 };
 
 export function ForumTab({ appId }: ForumTabProps) {
@@ -51,7 +51,7 @@ export function ForumTab({ appId }: ForumTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Discussions</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Discussions</h3>
         {walletAddress && (
           <button
             type="button"
@@ -75,7 +75,7 @@ export function ForumTab({ appId }: ForumTabProps) {
             className={`px-3 py-1 text-xs rounded-full capitalize transition-colors cursor-pointer ${
               filter === cat
                 ? "bg-emerald-500 text-white"
-                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50`}
           >
             {cat}
@@ -99,7 +99,7 @@ export function ForumTab({ appId }: ForumTabProps) {
         {loading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div key={i} className="p-4 rounded-lg border border-gray-200">
                 <div className="flex items-start gap-3">
                   <Skeleton className="h-8 w-8 rounded-lg" />
                   <div className="flex-1 space-y-2">
@@ -112,7 +112,7 @@ export function ForumTab({ appId }: ForumTabProps) {
             ))}
           </div>
         ) : threads.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-gray-500">
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
             <p>No discussions yet</p>
           </div>
@@ -138,7 +138,7 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
       type="button"
       onClick={onClick}
       aria-label={`Thread: ${thread.title} by ${thread.author_name}, ${thread.reply_count} replies`}
-      className="w-full text-left p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+      className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-500 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${categoryColors[thread.category]}`}>
@@ -147,11 +147,11 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {thread.is_pinned && <Pin size={12} className="text-amber-500" aria-hidden="true" />}
-            {thread.is_locked && <Lock size={12} className="text-gray-500 dark:text-gray-400" aria-hidden="true" />}
-            <h4 className="font-semibold text-gray-900 dark:text-white truncate" title={thread.title}>{thread.title}</h4>
+            {thread.is_locked && <Lock size={12} className="text-gray-500" aria-hidden="true" />}
+            <h4 className="font-semibold text-gray-900 truncate" title={thread.title}>{thread.title}</h4>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-1" title={thread.content}>{thread.content}</p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 truncate mt-1" title={thread.content}>{thread.content}</p>
+          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
             <span>{thread.author_name}</span>
             <span>{thread.reply_count} replies</span>
             <span>{formatTimeAgo(thread.created_at)}</span>
@@ -189,7 +189,7 @@ function NewThreadForm({
   };
 
   return (
-    <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
       <input
         id="thread-title"
         type="text"
@@ -197,7 +197,7 @@ function NewThreadForm({
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Thread title..."
         aria-label="Thread title"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         maxLength={200}
       />
       <textarea
@@ -206,12 +206,12 @@ function NewThreadForm({
         onChange={(e) => setContent(e.target.value)}
         placeholder="What's on your mind?"
         aria-label="Thread content"
-        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors resize-none placeholder-gray-500 dark:placeholder-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="w-full px-3 py-2 mb-3 rounded-lg border border-gray-200 bg-white text-gray-900 transition-colors resize-none placeholder-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         rows={4}
         maxLength={5000}
       />
       {submitError && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+        <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm">
           {submitError}
         </div>
       )}
@@ -221,7 +221,7 @@ function NewThreadForm({
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           aria-label="Thread category"
-          className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         >
           <option value="general">General</option>
           <option value="bug">Bug Report</option>
@@ -229,7 +229,7 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
             Cancel
           </button>
           <button
@@ -298,33 +298,33 @@ function ThreadDetail({
         ← Back to discussions
       </button>
 
-      <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white break-words">{thread.title}</h2>
-        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400">
+      <div className="p-4 bg-white rounded-lg border border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900 break-words">{thread.title}</h2>
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
           <span>{thread.author_name}</span>
           <span>•</span>
           <span>{formatTimeAgo(thread.created_at)}</span>
         </div>
-        <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{thread.content}</p>
+        <p className="mt-4 text-gray-700 whitespace-pre-wrap break-words">{thread.content}</p>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{replies.length} Replies</h3>
+        <h3 className="text-sm font-semibold text-gray-500">{replies.length} Replies</h3>
         {replies.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <div className="text-center py-8 text-gray-500">
             <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
             <p>No replies yet</p>
           </div>
         ) : (
           <ul className="space-y-3">
             {replies.map((reply) => (
-              <li key={reply.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{reply.author_name}</span>
+              <li key={reply.id} className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                  <span className="font-medium text-gray-700">{reply.author_name}</span>
                   <span>•</span>
                   <span>{formatTimeAgo(reply.created_at)}</span>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 break-words">{reply.content}</p>
+                <p className="text-sm text-gray-700 break-words">{reply.content}</p>
               </li>
             ))}
           </ul>
@@ -341,7 +341,7 @@ function ThreadDetail({
               onChange={(e) => { setReplyContent(e.target.value); setReplyError(null); }}
               placeholder="Write a reply..."
               aria-label="Reply"
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               maxLength={2000}
             />
             <button
@@ -354,7 +354,7 @@ function ThreadDetail({
             </button>
           </div>
           {replyError && (
-            <div className="mt-2 px-1 text-xs text-red-500 dark:text-red-400">
+            <div className="mt-2 px-1 text-xs text-red-500">
               {replyError}
             </div>
           )}

@@ -13,7 +13,7 @@ export function AppNewsList({ notifications, loading }: Props) {
     return (
       <div className="flex flex-col gap-4">
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="flex gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div key={i} className="flex gap-3 p-4 rounded-xl border border-gray-200">
             <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-1/2" />
@@ -28,7 +28,7 @@ export function AppNewsList({ notifications, loading }: Props) {
   if (notifications.length === 0) {
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+        <p className="text-sm text-gray-500 text-center py-8">
           No notifications yet
         </p>
       </div>
@@ -76,20 +76,20 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
   };
 
   return (
-    <div className="flex gap-3 p-4 bg-gray-50 dark:bg-gray-900/80 rounded-xl border border-gray-200 dark:border-gray-700">
+    <div className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
       <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-neo/10 text-2xl shrink-0">
         {getTypeIcon(notification.notification_type)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white truncate" title={notification.title}>
+          <h4 className="text-sm font-semibold text-gray-900 truncate" title={notification.title}>
             {notification.title}
           </h4>
-          <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+          <span className="text-xs text-gray-500 shrink-0">
             {getTimeAgo(notification.created_at)}
           </span>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed break-words">
+        <p className="text-xs text-gray-500 leading-relaxed break-words">
           {notification.content}
         </p>
         {notification.tx_hash && (

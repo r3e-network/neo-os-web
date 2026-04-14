@@ -92,12 +92,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
       // Default fallback UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-          <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
               <svg
                 aria-hidden="true"
-                className="w-6 h-6 text-red-600 dark:text-red-400"
+                className="w-6 h-6 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -111,26 +111,26 @@ export class ErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
 
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2">
+            <h2 className="text-xl font-bold text-gray-900 text-center mb-2">
               This page didn&apos;t load correctly
             </h2>
 
-            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+            <p className="text-gray-600 text-center mb-6">
               An unexpected error prevented this page from loading. You can try again, reload the page, or return home. If the problem persists, please report it.
             </p>
 
             {this.state.errorId && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 text-center mb-4">
-                Error ID: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">{this.state.errorId}</code>
+              <div className="text-xs text-gray-500 text-center mb-4">
+                Error ID: <code className="bg-gray-100 px-1 rounded">{this.state.errorId}</code>
               </div>
             )}
 
             {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mb-4 p-4 bg-gray-100 dark:bg-gray-900 rounded-lg text-xs overflow-auto">
-                <summary className="cursor-pointer font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              <details className="mb-4 p-4 bg-gray-100 rounded-lg text-xs overflow-auto">
+                <summary className="cursor-pointer font-semibold text-gray-700 mb-2">
                   Error Details (Development Only)
                 </summary>
-                <pre className="text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">
+                <pre className="text-red-600 whitespace-pre-wrap break-words">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
@@ -149,7 +149,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   Reload Page
                 </button>
@@ -158,14 +158,14 @@ export class ErrorBoundary extends Component<Props, State> {
                 <button
                   type="button"
                   onClick={() => (window.location.href = "/")}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   Go Home
                 </button>
                 <button
                   type="button"
                   onClick={this.handleReport}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                 >
                   Report Issue
                 </button>

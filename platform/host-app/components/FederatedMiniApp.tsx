@@ -40,9 +40,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
     if (!this.state.error) return this.props.children;
 
     return (
-      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
-        <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
-        <div className="text-xs text-red-600 dark:text-red-400">{this.state.error.message}</div>
+      <div className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md" role="alert">
+        <div className="font-semibold text-gray-900 mb-1.5">Failed to load federated MiniApp</div>
+        <div className="text-xs text-red-600">{this.state.error.message}</div>
       </div>
     );
   }
@@ -50,9 +50,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
 
 function NotConfiguredMessage() {
   return (
-    <div className="p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-center max-w-md">
-      <h3 className="m-0 mb-3 text-gray-600 dark:text-gray-300">Module Federation Not Configured</h3>
-      <p className="m-0 text-sm text-gray-500 dark:text-gray-400">
+    <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center max-w-md">
+      <h3 className="m-0 mb-3 text-gray-600">Module Federation Not Configured</h3>
+      <p className="m-0 text-sm text-gray-500">
         Set <code>NEXT_PUBLIC_MF_REMOTES</code> to enable federated MiniApps.
       </p>
     </div>
@@ -104,17 +104,17 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
   }, [remote]);
 
-  if (loading) return <p className="text-sm text-gray-500 dark:text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
+  if (loading) return <p className="text-sm text-gray-500" aria-busy="true">Loading federated MiniApp…</p>;
   if (error) {
     return (
-      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 max-w-md" role="alert">
-        <div className="font-semibold text-gray-900 dark:text-white mb-1.5">Failed to load federated MiniApp</div>
-        <div className="text-xs text-red-600 dark:text-red-400">{error}</div>
+      <div className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md" role="alert">
+        <div className="font-semibold text-gray-900 mb-1.5">Failed to load federated MiniApp</div>
+        <div className="text-xs text-red-600">{error}</div>
       </div>
     );
   }
 
-  if (!LoadedComponent) return <p className="text-sm text-gray-500 dark:text-gray-400">Module not available</p>;
+  if (!LoadedComponent) return <p className="text-sm text-gray-500">Module not available</p>;
   return <LoadedComponent appId={appId} view={view} remote={remote} />;
 }
 
@@ -127,7 +127,7 @@ export function FederatedMiniApp(props: Props) {
 
   if (!hasFederatedRemotes()) return <NotConfiguredMessage />;
   if (!mounted) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400" aria-busy="true">Loading federated MiniApp…</p>;
+    return <p className="text-sm text-gray-500" aria-busy="true">Loading federated MiniApp…</p>;
   }
   return (
     <RemoteErrorBoundary>

@@ -118,7 +118,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
           "relative p-2.5 rounded-xl border transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
           isOpen
             ? "bg-neo/10 border-neo/30 text-neo"
-            : "border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 hover:border-gray-200/50 dark:hover:border-white/10"
+            : "border-transparent text-gray-600 hover:bg-gray-100/50 hover:border-gray-200/50"
         )}
         aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
         aria-haspopup="true"
@@ -135,17 +135,17 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
       {/* Dropdown Panel */}
       <div
         className={cn(
-          "absolute right-0 top-[calc(100%+12px)] w-80 sm:w-96 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/90 dark:bg-[#0A0B10]/90 backdrop-blur-2xl shadow-2xl z-50 transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "absolute right-0 top-[calc(100%+12px)] w-80 sm:w-96 rounded-2xl border border-gray-200/50 bg-white/90 backdrop-blur-2xl shadow-2xl z-50 transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           isOpen ? "scale-100 opacity-100 pointer-events-auto" : "scale-95 opacity-0 pointer-events-none"
         )}
         aria-hidden={!isOpen}
       >
-        <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none rounded-2xl" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none rounded-2xl" />
 
         <div className="relative z-10 w-full flex flex-col max-h-[400px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50 dark:border-white/5">
-            <h3 className="font-bold text-[15px] text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50">
+            <h3 className="font-bold text-[15px] text-gray-900 flex items-center gap-2">
               Notifications
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-neo/20 text-neo text-[10px] font-black uppercase tracking-wider">{unreadCount} New</span>
@@ -162,7 +162,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
             )}
           </div>
           {notifError && (
-            <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs">
+            <div className="px-4 py-2 bg-red-50 text-red-600 text-xs">
               {notifError}
             </div>
           )}
@@ -172,7 +172,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
             {loading ? (
               <div className="p-3">
                 {Array.from({ length: 3 }, (_, i) => (
-                  <div key={i} className="flex items-start gap-4 px-4 py-3 rounded-xl mb-1 bg-gray-50/50 dark:bg-white/5">
+                  <div key={i} className="flex items-start gap-4 px-4 py-3 rounded-xl mb-1 bg-gray-50/50">
                     <Skeleton className="h-10 w-10 rounded-full shrink-0" />
                     <div className="flex-1 space-y-2.5 py-1">
                       <Skeleton className="h-3.5 w-3/4 rounded-md" />
@@ -183,11 +183,11 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
               </div>
             ) : notifications.length === 0 ? (
               <div className="p-10 flex flex-col items-center justify-center text-center">
-                <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-[#12131C] flex items-center justify-center mb-4">
-                  <Bell className="h-7 w-7 text-gray-400 dark:text-gray-600" aria-hidden="true" />
+                <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                  <Bell className="h-7 w-7 text-gray-400" aria-hidden="true" />
                 </div>
-                <p className="text-[15px] font-bold text-gray-900 dark:text-white mb-1">All caught up!</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">You have no new notifications.</p>
+                <p className="text-[15px] font-bold text-gray-900 mb-1">All caught up!</p>
+                <p className="text-sm text-gray-500">You have no new notifications.</p>
               </div>
             ) : (
               <ul className="p-2 space-y-1">
@@ -199,8 +199,8 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                     className={cn(
                       "flex items-start gap-4 px-4 py-3.5 rounded-xl cursor-pointer transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 group relative overflow-hidden",
                       !n.read
-                        ? "bg-neo/5 dark:bg-neo/10 hover:bg-neo/10 dark:hover:bg-neo/20"
-                        : "hover:bg-gray-100/50 dark:hover:bg-white/5 border border-transparent hover:border-gray-200/50 dark:hover:border-white/5"
+                        ? "bg-neo/5 hover:bg-neo/10"
+                        : "hover:bg-gray-100/50 border border-transparent hover:border-gray-200/50"
                     )}
                     onClick={() => !n.read && markAsRead(n.id)}
                     onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !n.read) { e.preventDefault(); markAsRead(n.id); } }}
@@ -209,7 +209,7 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-neo rounded-r-full shadow-[0_0_10px_rgba(0,229,153,0.5)]" />
                     )}
 
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#12131C] shadow-sm border border-gray-100 dark:border-white/5 text-xl group-hover:scale-110 transition-transform duration-300">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 text-xl group-hover:scale-110 transition-transform duration-300">
                       {typeIcons[n.type] || "📬"}
                     </div>
 
@@ -217,13 +217,13 @@ export function NotificationDropdown({ walletAddress }: NotificationDropdownProp
                       <div className="flex items-center justify-between gap-2 mb-0.5">
                         <p className={cn(
                           "text-sm truncate",
-                          !n.read ? "font-bold text-gray-900 dark:text-white" : "font-medium text-gray-700 dark:text-gray-300"
+                          !n.read ? "font-bold text-gray-900" : "font-medium text-gray-700"
                         )} title={n.title}>{n.title}</p>
-                        <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 shrink-0 uppercase tracking-wider">{timeAgo(n.createdAt)}</p>
+                        <p className="text-[10px] font-semibold text-gray-400 shrink-0 uppercase tracking-wider">{timeAgo(n.createdAt)}</p>
                       </div>
                       <p className={cn(
                         "text-xs truncate",
-                        !n.read ? "text-gray-600 dark:text-gray-400 font-medium" : "text-gray-500 dark:text-gray-500"
+                        !n.read ? "text-gray-600 font-medium" : "text-gray-500"
                       )} title={n.content}>{n.content}</p>
                     </div>
                   </li>

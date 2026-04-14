@@ -14,7 +14,7 @@ export function DeveloperDrawerFooter({ submitting, onCancel }: DeveloperDrawerF
         type="button"
         variant="outline"
         onClick={onCancel}
-        className="flex-1 border-gray-300 text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-white/10"
+        className="flex-1 border-gray-300 text-gray-600 transition-colors hover:bg-gray-100"
       >
         Cancel
       </Button>
