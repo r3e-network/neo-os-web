@@ -48,11 +48,11 @@
 
   /* Sidebar Specific */
   --desktop-sidebar-bg: rgba(30, 41, 59, 0.95);
-  --desktop-sidebar-border: rgba(255, 255, 255, 0.1);
+  --desktop-sidebar-border: #e5e7eb;
   --desktop-sidebar-glow: rgba(139, 92, 246, 0.3);
 
   /* Nav Item States */
-  --desktop-nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --desktop-nav-hover-bg: #f3f4f6;
   --desktop-nav-active-bg-start: rgba(139, 92, 246, 0.15);
   --desktop-nav-active-bg-end: rgba(59, 130, 246, 0.1);
   --desktop-nav-active-border: rgba(139, 92, 246, 0.2);
@@ -69,7 +69,7 @@
  */
 .theme-light,
 [data-theme="light"] {
-  --desktop-sidebar-bg: rgba(255, 255, 255, 0.95);
+  --desktop-sidebar-bg: #1f2937;
   --desktop-sidebar-border: rgba(15, 23, 42, 0.1);
   --desktop-sidebar-glow: rgba(139, 92, 246, 0.15);
   --desktop-nav-hover-bg: rgba(15, 23, 42, 0.04);
@@ -119,8 +119,8 @@
 }
 
 .desktop-card {
-  background: var(--bg-card, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--bg-card, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: var(--desktop-radius-md);
   padding: var(--desktop-card-padding);
   backdrop-filter: blur(10px);
@@ -134,8 +134,8 @@
     transform var(--desktop-transition-normal);
 
   &:hover {
-    background: var(--bg-hover, rgba(255, 255, 255, 0.06));
-    border-color: var(--border-color-hover, rgba(255, 255, 255, 0.15));
+    background: var(--bg-hover, #f3f4f6);
+    border-color: var(--border-color-hover, #e5e7eb);
     transform: translateY(-2px);
   }
 }

@@ -20,7 +20,7 @@
   height: 100%;
   font-weight: var(--font-weight-bold, 700);
   color: var(--icon-fallback-color, var(--text-secondary, rgba(248, 250, 252, 0.7)));
-  background: var(--icon-fallback-bg, var(--bg-tertiary, rgba(255, 255, 255, 0.1)));
+  background: var(--icon-fallback-bg, var(--bg-tertiary, #e5e7eb));
   border-radius: var(--radius-sm, 4px);
 }
 

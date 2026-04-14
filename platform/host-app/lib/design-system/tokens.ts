@@ -57,22 +57,22 @@ export const colors = {
   success: {
     DEFAULT: "#10B981",
     light: "#D1FAE5",
-    dark: "#047857",
+    "#047857",
   },
   warning: {
     DEFAULT: "#F59E0B",
     light: "#FEF3C7",
-    dark: "#B45309",
+    "#B45309",
   },
   error: {
     DEFAULT: "#EF4444",
     light: "#FEE2E2",
-    dark: "#B91C1C",
+    "#B91C1C",
   },
   info: {
     DEFAULT: "#3B82F6",
     light: "#DBEAFE",
-    dark: "#1D4ED8",
+    "#1D4ED8",
   },
 
   // Neutral Colors
@@ -91,7 +91,7 @@ export const colors = {
   },
 
   // Dark Mode Specific
-  dark: {
+  {
     50: "#1e293b",
     100: "#0f172a",
     200: "#020617",
@@ -103,42 +103,42 @@ export const colors = {
   background: {
     DEFAULT: "#020617",
     light: "#F8FAFC",
-    dark: "#020617",
+    "#020617",
   },
 
   // Foreground
   foreground: {
     DEFAULT: "#F8FAFC",
     light: "#1F2937",
-    dark: "#F8FAFC",
+    "#F8FAFC",
   },
 
   // Border
   border: {
     DEFAULT: "#334155",
     light: "#E5E7EB",
-    dark: "#334155",
+    "#334155",
   },
 
   // Input
   input: {
     DEFAULT: "#334155",
     light: "#D1D5DB",
-    dark: "#334155",
+    "#334155",
   },
 
   // Ring
   ring: {
     DEFAULT: "#00E599",
     light: "#00E599",
-    dark: "#00E599",
+    "#00E599",
   },
 
   // Card
   card: {
     DEFAULT: "rgba(15, 23, 42, 0.6)",
     light: "rgba(255, 255, 255, 1)",
-    dark: "rgba(15, 23, 42, 0.6)",
+    "rgba(15, 23, 42, 0.6)",
     foreground: "#F8FAFC",
   },
 } as const;
