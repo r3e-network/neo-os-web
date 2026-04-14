@@ -18,7 +18,7 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: conic-gradient(var(--health-accent, #00e599) calc(var(--score, 0) * 1%), rgba(255, 255, 255, 0.08) 0);
+  background: conic-gradient(var(--health-accent, #10b981) calc(var(--score, 0) * 1%), #f3f4f6 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,7 +32,7 @@
     width: 62px;
     height: 62px;
     border-radius: 50%;
-    background: var(--health-bg-start, #0a0a0a);
+    background: var(--health-bg-start, #ffffff);
   }
 }
 
@@ -41,7 +41,7 @@
   z-index: 1;
   font-size: 22px;
   font-weight: 900;
-  color: var(--health-accent-strong, #00e599);
+  color: var(--health-accent-strong, #10b981);
   text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
 }
 
@@ -54,8 +54,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
 }
 
 .risk-alert {
@@ -66,8 +66,8 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
 }
 
 .risk-icon { font-size: 16px; }
@@ -163,7 +163,7 @@
 .balance-divider {
   width: 1px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #e5e7eb;
 }
 
 /* Stats */

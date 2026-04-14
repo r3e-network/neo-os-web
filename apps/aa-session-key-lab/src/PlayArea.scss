@@ -10,21 +10,21 @@
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
   padding: 10px 14px; flex: 1; min-width: 80px;
-  background: rgba(99, 102, 241, 0.06);
-  border: 1px solid rgba(99, 102, 241, 0.12);
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
   border-radius: 10px;
 }
 
 .stat-chip .stat-value {
   font-size: 12px; font-weight: 700;
-  color: #818CF8;
+  color: #10b981;
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
 
 .stat-chip .stat-label {
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
-  opacity: 0.5; margin-top: 2px;
+  color: #9ca3af; margin-top: 2px;
 }
 
 .env-card { margin-bottom: 4px; }
@@ -39,24 +39,24 @@
 
 .env-label {
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-  opacity: 0.5; white-space: nowrap;
+  color: #9ca3af; white-space: nowrap;
 }
 
 .env-value {
   font-size: 11px; font-family: monospace;
-  word-break: break-all; opacity: 0.7; text-align: right;
+  word-break: break-all; color: #6b7280; text-align: right;
 }
 
 .detail-row {
   display: flex; justify-content: space-between; align-items: baseline;
-  padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 6px 0; border-bottom: 1px solid #f3f4f6;
   gap: 12px;
 }
 
 .detail-row:last-child { border-bottom: none; }
 
 .empty-hint {
-  font-size: 13px; opacity: 0.5; font-style: italic;
+  font-size: 13px; color: #9ca3af; font-style: italic;
   text-align: center; padding: 12px;
 }
 
