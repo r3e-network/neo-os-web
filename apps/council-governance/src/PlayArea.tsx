@@ -72,7 +72,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   if (isLoading) {
     return (
       <div className="council-play-area">
-        <div className="council-loading">{t("loading")}</div>
+        <div className="council-loading">
+          <div className="council-loading-spinner" />
+          <span>{t("loading") || "Loading..."}</span>
+        </div>
       </div>
     );
   }

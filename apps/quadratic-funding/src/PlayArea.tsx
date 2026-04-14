@@ -207,6 +207,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <NeoCard title={t("projectsList") || "Projects"}>
             {isRefreshingProjects && (
               <div className="loading-indicator">
+                <div className="loading-spinner" />
                 <span>{t("loading") || "Loading..."}</span>
               </div>
             )}

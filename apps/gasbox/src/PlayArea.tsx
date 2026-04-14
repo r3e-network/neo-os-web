@@ -81,18 +81,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const rarityIcon = (rarity: string | undefined) => {
     switch (rarity?.toLowerCase()) {
-      case "legendary": return "\uD83D\uDC51";
-      case "epic": return "\uD83D\uDC8E";
-      case "rare": return "\uD83C\uDF1F";
-      case "uncommon": return "\u2728";
-      default: return "\u25CB";
+      case "legendary": return "***";
+      case "epic": return "**";
+      case "rare": return "*";
+      case "uncommon": return "+";
+      default: return "-";
     }
   };
 
-  const machineIcon = (machine: Machine) => {
-    if (machine.itemCount > 10) return "\uD83C\uDFB0";
-    if (machine.priceRaw > 1) return "\uD83D\uDCB0";
-    return "\uD83D\uDCE6";
+  const machineIcon = (_machine: Machine) => {
+    return "";
   };
 
   // -- Loading state --
@@ -275,8 +273,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 onClick={handlePull}
               >
                 <div className="gasbox-pull-btn-content">
-                  <span className="gasbox-pull-btn-icon">
-                    {isPulling ? "\uD83C\uDFB2" : "\uD83C\uDFB0"}
+                  <span className="gasbox-pull-btn-icon" aria-hidden="true">
+                    {isPulling ? "..." : ">>"}
                   </span>
                   <span className="gasbox-pull-btn-text">
                     {isPulling
@@ -297,7 +295,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {!selectedMachine && machines.length > 0 && (
         <NeoCard variant="erobo" className="gasbox-select-prompt">
           <div className="gasbox-prompt-content">
-            <span className="gasbox-prompt-icon">{"\u2191"}</span>
+            <span className="gasbox-prompt-icon" aria-hidden="true">&uarr;</span>
             <p className="gasbox-prompt-text">
               {t("selectMachinePrompt") || "Select a machine above to start pulling!"}
             </p>

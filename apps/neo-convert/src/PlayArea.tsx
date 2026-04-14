@@ -84,7 +84,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <div className="convert-section">
           <NeoInput
             value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
+            onChange={(v) => setKeyInput(v)}
             placeholder={t("enterKeyPlaceholder") || "Enter WIF, hex, or address..."}
           />
           <NeoButton
@@ -106,7 +106,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       </NeoCard>
 
       {balancesLoading && (
-        <div className="loading-state">{t("loadingBalances") || "Loading balances..."}</div>
+        <div className="loading-state">
+          <div className="loading-spinner" />
+          <span>{t("loadingBalances") || "Loading balances..."}</span>
+        </div>
       )}
     </div>
   );

@@ -56,7 +56,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   if (isLoading) {
     return (
       <div className="burn-league-play-area">
-        <div className="burn-league-loading">{t("loading")}</div>
+        <div className="burn-league-loading">
+          <div className="burn-league-loading-spinner" />
+          <span>{t("loading") || "Loading..."}</span>
+        </div>
       </div>
     );
   }
