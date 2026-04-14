@@ -303,7 +303,7 @@ export function generateAllCSSVariables(isDark: boolean = false): string {
  */
 export function getThemedClass(darkClass: string, lightClass: string, isDark?: boolean): string {
   if (isDark === undefined) {
-    return `${darkClass} dark:${lightClass}`;
+    return `${darkClass}
   }
   return isDark ? darkClass : lightClass;
 }

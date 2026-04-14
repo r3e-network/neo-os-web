@@ -92,7 +92,7 @@
     align-items: center;
     justify-content: center;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: #e5e7eb;
     border-radius: $radius-md;
     color: inherit;
     font-size: $font-size-md;
@@ -100,7 +100,7 @@
     transition: background $transition-fast;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: #d1d5db;
     }
   }
 }
