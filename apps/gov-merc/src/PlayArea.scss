@@ -26,32 +26,32 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #f3f4f6;
 
   &:last-child { border-bottom: none; }
 }
 
 .pool-label {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #6b7280;
   font-weight: 500;
 }
 
 .pool-value {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1f2937;
 }
 
 .address-label {
   font-family: monospace;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
 }
 
 .loading-indicator {
   text-align: center;
   padding: 12px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #9ca3af;
 }

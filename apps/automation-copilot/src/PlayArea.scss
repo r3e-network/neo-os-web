@@ -15,8 +15,8 @@
   gap: 2px;
   padding: 10px 16px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
   flex: 1;
   min-width: 100px;
 }
@@ -26,13 +26,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
 }
 
 .stat-chip-value {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-primary, #fff);
+  color: #1f2937;
 }
 
 .info-grid {
@@ -46,7 +46,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid #f3f4f6;
 
   &:last-child { border-bottom: none; }
 }

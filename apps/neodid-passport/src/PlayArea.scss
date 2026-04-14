@@ -8,13 +8,13 @@
   padding: 24px 16px;
   min-height: 300px;
   font-family: 'OCR A Std', 'Courier New', monospace;
-  background: linear-gradient(160deg, #1E293B 0%, #0F172A 50%, #1A1F35 100%);
-  color: #CBD5E1;
+  background: #ffffff;
+  color: #1f2937;
   border-radius: 12px;
-  border: 2px solid #334155;
+  border: 1px solid #e5e7eb;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 .neodid-passport-play-area::before {
@@ -25,7 +25,7 @@
   transform: translateX(-50%);
   font-size: 8px;
   letter-spacing: 6px;
-  color: rgba(212, 168, 83, 0.25);
+  color: #9ca3af;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
@@ -38,9 +38,9 @@
   right: 16px;
   width: 36px;
   height: 36px;
-  border: 2px solid rgba(212, 168, 83, 0.2);
+  border: 2px solid #e5e7eb;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, rgba(212, 168, 83, 0.08), transparent);
+  background: radial-gradient(circle at 40% 40%, #f3f4f6, transparent);
   pointer-events: none;
 }
 
@@ -57,8 +57,8 @@
   flex-direction: column;
   align-items: center;
   padding: 10px 16px;
-  background: rgba(212, 168, 83, 0.06);
-  border: 1px solid rgba(212, 168, 83, 0.15);
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
   border-radius: 10px;
   flex: 1;
   min-width: 80px;
@@ -67,7 +67,7 @@
 .stat-value {
   font-size: 16px;
   font-weight: 700;
-  color: #D4A853;
+  color: #10b981;
   font-variant-numeric: tabular-nums;
 }
 
@@ -75,7 +75,7 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #64748B;
+  color: #9ca3af;
   margin-top: 2px;
 }
 
@@ -101,13 +101,13 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #64748B;
+  color: #9ca3af;
   white-space: nowrap;
 }
 
 .env-value {
   font-size: 11px;
-  color: #94A3B8;
+  color: #6b7280;
   text-align: right;
   word-break: break-all;
 }
@@ -122,7 +122,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #D4A853;
+  color: #10b981;
   margin-bottom: 8px;
   font-weight: 700;
 }
@@ -131,12 +131,12 @@
   @include console.json-box(520px);
   white-space: pre-wrap;
   word-break: break-word;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
   font-family: 'OCR A Std', 'Courier New', monospace;
   font-size: 12px;
-  color: #94A3B8;
+  color: #1f2937;
 }
 
 .operation-card {
@@ -161,7 +161,7 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #D4A853;
+  color: #10b981;
   margin-bottom: 12px;
   font-weight: 700;
 }

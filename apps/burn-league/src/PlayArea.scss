@@ -1,4 +1,5 @@
 @use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/playarea-base";
 
 .burn-league-play-area {
   padding: 1rem;
@@ -10,7 +11,7 @@
 .burn-league-loading {
   text-align: center;
   padding: 3rem 1rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: #6b7280;
   font-size: 0.875rem;
 }
 
@@ -24,22 +25,22 @@
 .burn-league-hero-stat {
   text-align: center;
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f9fafb;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid #f3f4f6;
 }
 
 .burn-league-hero-stat-value {
   display: block;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #00e599;
+  color: #10b981;
 }
 
 .burn-league-hero-stat-label {
   display: block;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 0.25rem;
@@ -66,7 +67,7 @@
 .burn-league-rank-hash {
   font-size: 1.25rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
+  color: #9ca3af;
 }
 
 .burn-league-rank-value {
@@ -87,12 +88,12 @@
 .burn-league-rank-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: #374151;
 }
 
 .burn-league-rank-subtitle {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
 }
 
 .burn-league-estimated-reward {
@@ -104,7 +105,7 @@
 
 .burn-league-reward-label {
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -112,7 +113,7 @@
 .burn-league-reward-value {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #00e599;
+  color: #10b981;
 }
 
 /* ── Action Card ── */
@@ -123,7 +124,7 @@
 .burn-league-section-title {
   font-size: 0.875rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.75rem;
@@ -143,7 +144,7 @@
 .burn-league-empty {
   text-align: center;
   padding: 1.5rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: #9ca3af;
   font-size: 0.8125rem;
 }
 
@@ -159,11 +160,11 @@
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.02);
+  background: #f9fafb;
   transition: background 0.15s;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #f9fafb;
   }
 }
 
@@ -177,13 +178,13 @@
 .burn-league-lb-address {
   flex: 1;
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #374151;
   font-family: monospace;
 }
 
 .burn-league-lb-amount {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #00e599;
+  color: #10b981;
   text-align: right;
 }
