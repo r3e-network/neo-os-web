@@ -19,7 +19,7 @@ type MediaOptions = {
 };
 
 const miniAppPathPattern = /\/(?:miniapps|miniapp-assets)\/([^/?#]+)/i;
-const imageExtensions = ["jpg", "png", "jpeg", "svg"] as const;
+const imageExtensions = ["svg", "jpg", "png", "jpeg"] as const;
 type AssetKind = "logo" | "banner";
 
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
@@ -244,9 +244,8 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
   if (!slug) return { logoURL: null, bannerURL: null };
 
   return {
-    // Prefer main branch convention (JPG under miniapp-assets).
-    logoURL: `/miniapp-assets/${slug}/logo.jpg`,
-    bannerURL: `/miniapp-assets/${slug}/banner.jpg`,
+    logoURL: `/miniapp-assets/${slug}/logo.svg`,
+    bannerURL: `/miniapp-assets/${slug}/banner.svg`,
   };
 }
 

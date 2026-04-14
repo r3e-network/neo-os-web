@@ -1,6 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FFAA33"/><stop offset="100%" stop-color="#DD7700"/></linearGradient></defs>
-  <circle cx="60" cy="60" r="56" fill="url(#bg)"/>
-  <path d="M38 50 L55 50 L50 40 L70 55 L55 55 L60 65 L38 50Z" fill="#fff" opacity="0.9"/>
-  <path d="M82 70 L65 70 L70 80 L50 65 L65 65 L60 55 L82 70Z" fill="#fff" opacity="0.7"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#FFAA33"/><stop offset="100%" stop-color="#DD7700"/></linearGradient></defs><circle cx="60" cy="60" r="56" fill="url(#bg)"/><path d="M38 50 L55 50 L50 40 L70 55 L55 55 L60 65 L38 50Z" fill="#fff" opacity="0.9"/><path d="M82 70 L65 70 L70 80 L50 65 L65 65 L60 55 L82 70Z" fill="#fff" opacity="0.7"/></svg>
