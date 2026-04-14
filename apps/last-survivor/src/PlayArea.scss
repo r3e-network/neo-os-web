@@ -82,3 +82,51 @@
 }
 
 @media (prefers-reduced-motion: reduce) { .survivor-play-area { &::before, &::after { animation: none; } } }
+
+/* Rules section */
+.rules-card {
+  margin-top: 1rem;
+}
+.rules-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+}
+.rules-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.rule-number {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.rule-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.rule-text strong {
+  font-size: 0.8125rem;
+  color: #1f2937;
+}
+.rule-text span {
+  font-size: 0.75rem;
+  color: #6b7280;
+  line-height: 1.4;
+}

@@ -193,6 +193,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
+      {/* Game rules */}
+      <NeoCard className="rules-card">
+        <h4 className="rules-title">{t("howItWorks") || "How It Works"}</h4>
+        <div className="rules-grid">
+          <div className="rule-item">
+            <span className="rule-number">1</span>
+            <div className="rule-text">
+              <strong>{t("ruleDeposit") || "Deposit 1 GAS"}</strong>
+              <span>{t("ruleDepositDesc") || "Each deposit resets the countdown timer. Initial prize pool is 5 GAS."}</span>
+            </div>
+          </div>
+          <div className="rule-item">
+            <span className="rule-number">2</span>
+            <div className="rule-text">
+              <strong>{t("ruleTimer") || "Timer Decreases"}</strong>
+              <span>{t("ruleTimerDesc") || "First bid adds 60 min. Each subsequent bid adds slightly less time (59 min, 58 min, ...) down to 1 min, then resets to 10 min."}</span>
+            </div>
+          </div>
+          <div className="rule-item">
+            <span className="rule-number">3</span>
+            <div className="rule-text">
+              <strong>{t("ruleWin") || "Last Bidder Wins"}</strong>
+              <span>{t("ruleWinDesc") || "When the timer hits zero, the last person who deposited wins the entire prize pool minus a 20% platform fee."}</span>
+            </div>
+          </div>
+        </div>
+      </NeoCard>
+
       {/* Recent winners / history section */}
       <div className="history-section">
         <div className="history-section-header">
