@@ -2,7 +2,8 @@
  * PlayArea.tsx -- Self Loan
  *
  * Self-custodial lending interface with platform stats, loan status card
- * with LTV and health factor, borrow form, and repay section.
+ * with LTV and health factor gauge, borrow form with LTV slider,
+ * repay section, and add-collateral section.
  */
 
 import { useState } from "react";
@@ -32,30 +33,52 @@ interface PlatformStatsData {
   avgLtv?: number;
 }
 
+interface StatsData {
+  totalLoans?: number;
+  totalBorrowed?: number;
+  totalRepaid?: number;
+  activeLoans?: number;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
+  /* ---------- Bound state ---------- */
   const isLoading = bool("isLoading");
   const isBorrowing = bool("isBorrowing");
   const isRepaying = bool("isRepaying");
   const isConnected = bool("isConnected");
+  const hasLoanDisplay = bool("hasLoanDisplay");
+
   const neoBalance = num("neoBalance");
   const neoPrice = num("neoPrice");
-  const selectedLtvPercent = num("selectedLtv");
+  const selectedLtvPercent = num("selectedLtvPercent");
   const healthFactor = num("healthFactor");
   const currentLTV = num("currentLTV");
+  const totalLoans = num("totalLoans");
+
+  const neoBalanceDisplay = str("neoBalanceDisplay");
+  const healthFactorDisplay = str("healthFactorDisplay");
+  const currentLTVDisplay = str("currentLTVDisplay");
+  const collateralDisplay = str("collateralDisplay");
+  const borrowedDisplay = str("borrowedDisplay");
+  const totalBorrowedDisplay = str("totalBorrowedDisplay");
+  const totalRepaidDisplay = str("totalRepaidDisplay");
   const borrowAmount = str("borrowAmount");
   const collateralAmount = str("collateralAmount");
 
   const loan = val<LoanData>("loan");
   const platformStats = val<PlatformStatsData>("platformStats");
+  const stats = val<StatsData>("stats");
+  const selectedLtv = val("selectedLtv");
 
-  // Local form state
+  /* ---------- Local form state ---------- */
   const [localBorrowAmt, setLocalBorrowAmt] = useState("");
   const [localCollateralAmt, setLocalCollateralAmt] = useState("");
   const [localRepayAmt, setLocalRepayAmt] = useState("");
   const [localAddCollateral, setLocalAddCollateral] = useState("");
 
+  /* ---------- Handlers ---------- */
   const handleBorrow = async () => {
     if (!localBorrowAmt || !localCollateralAmt) return;
     await dispatch("borrow", {
@@ -88,60 +111,121 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     dispatch("setCollateralAmount", v);
   };
 
-  // Health factor color
+  /* ---------- Derived health gauge ---------- */
+  const hf = healthFactor > 0 ? healthFactor : 0;
   const healthColor =
-    healthFactor >= 2 ? "#00e599" : healthFactor >= 1.2 ? "#f59e0b" : "#ef4444";
-  const healthPercent = Math.min(healthFactor / 3, 1) * 100;
+    hf >= 2 ? "#00e599" : hf >= 1.2 ? "#f59e0b" : "#ef4444";
+  const healthPercent = Math.min(hf / 3, 1) * 100;
+  const healthLabel =
+    hf >= 2
+      ? t("safe") || "Safe"
+      : hf >= 1.2
+        ? t("caution") || "Caution"
+        : t("danger") || "Danger";
+
+  /* ---------- Derived LTV ---------- */
+  const ltvPct = selectedLtvPercent > 0 ? selectedLtvPercent : currentLTV;
+  const ltvColor =
+    ltvPct <= 50 ? "#00e599" : ltvPct <= 75 ? "#f59e0b" : "#ef4444";
+
+  /* ---------- Display helpers ---------- */
+  const displayNeoBalance =
+    neoBalanceDisplay || (neoBalance > 0 ? neoBalance.toFixed(2) : "0");
+  const displayHealthFactor =
+    healthFactorDisplay || (hf > 0 ? hf.toFixed(2) : "--");
+  const displayCurrentLTV =
+    currentLTVDisplay || (currentLTV > 0 ? `${currentLTV.toFixed(1)}%` : "--");
+  const displayCollateral =
+    collateralDisplay ||
+    ((loan as LoanData)?.collateral?.toLocaleString() ?? "0");
+  const displayBorrowed =
+    borrowedDisplay ||
+    ((loan as LoanData)?.borrowed?.toLocaleString() ?? "0");
+  const displayTotalBorrowed =
+    totalBorrowedDisplay ||
+    (platformStats?.totalBorrowed?.toLocaleString() ??
+      (stats as StatsData)?.totalBorrowed?.toLocaleString() ??
+      "0");
+  const displayTotalRepaid =
+    totalRepaidDisplay ||
+    ((stats as StatsData)?.totalRepaid?.toLocaleString() ?? "0");
+  const displayTotalLoans =
+    totalLoans > 0
+      ? totalLoans
+      : (platformStats?.totalLoans ??
+          (stats as StatsData)?.totalLoans ??
+          0);
+
+  const hasLoan = hasLoanDisplay || !!loan;
 
   return (
     <div className="selfloan-play-area">
-      {/* Platform Stats */}
+      {/* ==================== Platform Stats ==================== */}
       <div className="selfloan-hero-stats">
         <div className="selfloan-hero-stat">
           <span className="selfloan-hero-stat-value">
             ${neoPrice > 0 ? neoPrice.toFixed(2) : "--"}
           </span>
-          <span className="selfloan-hero-stat-label">{t("neoPrice")}</span>
+          <span className="selfloan-hero-stat-label">
+            {t("neoPrice") || "NEO Price"}
+          </span>
         </div>
         <div className="selfloan-hero-stat">
           <span className="selfloan-hero-stat-value">
-            {platformStats?.totalBorrowed?.toLocaleString() ?? "0"}
+            {displayTotalLoans}
           </span>
-          <span className="selfloan-hero-stat-label">{t("totalBorrowed")}</span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalLoans") || "Total Loans"}
+          </span>
         </div>
         <div className="selfloan-hero-stat">
           <span className="selfloan-hero-stat-value">
-            {platformStats?.totalCollateral?.toLocaleString() ?? "0"}
+            {displayTotalBorrowed}
           </span>
-          <span className="selfloan-hero-stat-label">{t("totalCollateral")}</span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalBorrowed") || "Total Borrowed"}
+          </span>
         </div>
         <div className="selfloan-hero-stat">
           <span className="selfloan-hero-stat-value">
-            {neoBalance > 0 ? neoBalance.toFixed(2) : "0"}
+            {displayTotalRepaid}
           </span>
-          <span className="selfloan-hero-stat-label">{t("yourBalance")}</span>
+          <span className="selfloan-hero-stat-label">
+            {t("totalRepaid") || "Total Repaid"}
+          </span>
         </div>
       </div>
 
-      {/* Loan Status Card */}
-      {loan && (
-        <NeoCard variant="erobo" title={t("loanStatus")}>
+      {/* ==================== Loan Status Card ==================== */}
+      {hasLoan && (
+        <NeoCard
+          variant="erobo"
+          title={t("loanStatus") || "Your Loan"}
+        >
           <div className="selfloan-status">
             <div className="selfloan-status-row">
               <div className="selfloan-status-item">
-                <span className="selfloan-status-label">{t("currentLTV")}</span>
-                <span className="selfloan-status-value">{currentLTV.toFixed(1)}%</span>
-              </div>
-              <div className="selfloan-status-item">
-                <span className="selfloan-status-label">{t("borrowed")}</span>
+                <span className="selfloan-status-label">
+                  {t("collateral") || "Collateral"}
+                </span>
                 <span className="selfloan-status-value">
-                  {(loan as LoanData).borrowed?.toLocaleString() ?? "0"}
+                  {displayCollateral} NEO
                 </span>
               </div>
               <div className="selfloan-status-item">
-                <span className="selfloan-status-label">{t("collateral")}</span>
+                <span className="selfloan-status-label">
+                  {t("borrowed") || "Borrowed"}
+                </span>
                 <span className="selfloan-status-value">
-                  {(loan as LoanData).collateral?.toLocaleString() ?? "0"} NEO
+                  {displayBorrowed} GAS
+                </span>
+              </div>
+              <div className="selfloan-status-item">
+                <span className="selfloan-status-label">
+                  {t("currentLTV") || "Current LTV"}
+                </span>
+                <span className="selfloan-status-value">
+                  {displayCurrentLTV}
                 </span>
               </div>
             </div>
@@ -149,31 +233,49 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {/* Health Factor Gauge */}
             <div className="selfloan-health">
               <div className="selfloan-health-header">
-                <span className="selfloan-health-label">{t("healthFactor")}</span>
-                <span className="selfloan-health-value" style={{ color: healthColor }}>
-                  {healthFactor > 0 ? healthFactor.toFixed(2) : "--"}
+                <span className="selfloan-health-label">
+                  {t("healthFactor") || "Health Factor"}
+                </span>
+                <span
+                  className="selfloan-health-value"
+                  style={{ color: healthColor }}
+                >
+                  {displayHealthFactor}
                 </span>
               </div>
               <div className="selfloan-health-track">
                 <div
                   className="selfloan-health-bar"
-                  style={{ width: `${healthPercent}%`, background: healthColor }}
+                  style={{
+                    width: `${healthPercent}%`,
+                    background: healthColor,
+                  }}
                 />
               </div>
               <div className="selfloan-health-markers">
-                <span>{t("liquidation")}</span>
-                <span>{t("safe")}</span>
+                <span>{t("liquidation") || "Liquidation"}</span>
+                <span className="selfloan-health-status-label" style={{ color: healthColor }}>
+                  {healthLabel}
+                </span>
+                <span>{t("safe") || "Safe"}</span>
               </div>
             </div>
           </div>
         </NeoCard>
       )}
 
-      {/* Borrow Form */}
-      <NeoCard variant="erobo" title={t("borrow")}>
+      {/* ==================== Borrow Form ==================== */}
+      <NeoCard
+        variant="erobo"
+        title={t("borrow") || "Borrow"}
+      >
         <div className="selfloan-form">
+          <div className="selfloan-balance-hint">
+            {t("yourBalance") || "Your Balance"}:{" "}
+            <strong>{displayNeoBalance} NEO</strong>
+          </div>
           <NeoInput
-            label={t("collateralAmount")}
+            label={t("collateralAmount") || "Collateral (NEO)"}
             placeholder="0.00"
             type="number"
             value={localCollateralAmt || collateralAmount}
@@ -181,47 +283,69 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             onChange={handleSetCollateralAmount}
           />
           <NeoInput
-            label={t("borrowAmount")}
+            label={t("borrowAmount") || "Borrow Amount (GAS)"}
             placeholder="0.00"
             type="number"
             value={localBorrowAmt || borrowAmount}
-            suffix="USD"
+            suffix="GAS"
             onChange={handleSetBorrowAmount}
           />
-          {selectedLtvPercent > 0 && (
-            <div className="selfloan-ltv-indicator">
-              <span className="selfloan-ltv-label">{t("selectedLTV")}</span>
-              <span className="selfloan-ltv-value">{selectedLtvPercent}%</span>
-              <div className="selfloan-ltv-track">
-                <div
-                  className="selfloan-ltv-bar"
-                  style={{ width: `${Math.min(selectedLtvPercent, 100)}%` }}
-                />
-              </div>
+
+          {/* LTV Selector / Indicator */}
+          <div className="selfloan-ltv-indicator">
+            <span className="selfloan-ltv-label">
+              {t("selectedLTV") || "LTV Ratio"}
+            </span>
+            <span
+              className="selfloan-ltv-value"
+              style={{ color: ltvColor }}
+            >
+              {ltvPct > 0 ? `${ltvPct}%` : "--"}
+            </span>
+            <div className="selfloan-ltv-track">
+              <div
+                className="selfloan-ltv-bar"
+                style={{
+                  width: `${Math.min(ltvPct, 100)}%`,
+                  background: `linear-gradient(90deg, #00e599, ${ltvColor})`,
+                }}
+              />
             </div>
-          )}
+            <div className="selfloan-ltv-hints">
+              <span>{t("conservative") || "Conservative"}</span>
+              <span>{t("aggressive") || "Aggressive"}</span>
+            </div>
+          </div>
+
           <NeoButton
             variant="primary"
             block
             loading={isBorrowing}
-            disabled={!localCollateralAmt || !localBorrowAmt || isBorrowing || !isConnected}
+            disabled={
+              !localCollateralAmt || !localBorrowAmt || isBorrowing || !isConnected
+            }
             onClick={handleBorrow}
           >
-            {isConnected ? t("borrow") : t("connectWallet")}
+            {isConnected
+              ? t("borrow") || "Borrow"
+              : t("connectWallet") || "Connect Wallet"}
           </NeoButton>
         </div>
       </NeoCard>
 
-      {/* Repay Section */}
-      {loan && (
-        <NeoCard variant="erobo" title={t("repay")}>
+      {/* ==================== Repay Section ==================== */}
+      {hasLoan && (
+        <NeoCard
+          variant="erobo"
+          title={t("repay") || "Repay Loan"}
+        >
           <div className="selfloan-form">
             <NeoInput
-              label={t("repayAmount")}
+              label={t("repayAmount") || "Repay Amount"}
               placeholder="0.00"
               type="number"
               value={localRepayAmt}
-              suffix="USD"
+              suffix="GAS"
               onChange={setLocalRepayAmt}
             />
             <NeoButton
@@ -231,13 +355,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localRepayAmt || isRepaying}
               onClick={handleRepay}
             >
-              {t("repay")}
+              {t("repay") || "Repay"}
             </NeoButton>
+          </div>
+        </NeoCard>
+      )}
 
-            <div className="selfloan-divider" />
-
+      {/* ==================== Add Collateral Section ==================== */}
+      {hasLoan && (
+        <NeoCard
+          variant="erobo"
+          title={t("addCollateral") || "Add Collateral"}
+        >
+          <div className="selfloan-form">
+            <div className="selfloan-balance-hint">
+              {t("availableBalance") || "Available"}:{" "}
+              <strong>{displayNeoBalance} NEO</strong>
+            </div>
             <NeoInput
-              label={t("addCollateral")}
+              label={t("addCollateralAmount") || "Additional Collateral"}
               placeholder="0.00"
               type="number"
               value={localAddCollateral}
@@ -250,7 +386,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               disabled={!localAddCollateral}
               onClick={handleAddCollateral}
             >
-              {t("addCollateral")}
+              {t("addCollateral") || "Add Collateral"}
             </NeoButton>
           </div>
         </NeoCard>
@@ -260,7 +396,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {isLoading && (
         <div className="selfloan-loading-overlay">
           <div className="selfloan-loading-spinner" />
-          <span>{t("loading")}</span>
+          <span>{t("loading") || "Loading..."}</span>
         </div>
       )}
     </div>

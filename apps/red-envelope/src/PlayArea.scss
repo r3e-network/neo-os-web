@@ -20,10 +20,6 @@
   background: rgba(255, 255, 255, 0.03);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-
-  &--wide {
-    grid-column: span 2;
-  }
 }
 
 .redenv-hero-stat-value {
@@ -40,19 +36,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 0.25rem;
-}
-
-.redenv-hero-stat-pair {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-}
-
-.redenv-hero-stat-divider {
-  width: 1px;
-  height: 2rem;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 // ---------- Form ----------
@@ -126,6 +109,16 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+.redenv-envelope-memo {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .redenv-envelope-status {
   font-size: 0.625rem;
   font-weight: 600;
@@ -156,6 +149,131 @@
   display: flex;
   gap: 0.375rem;
   margin-top: 0.25rem;
+}
+
+// ---------- Pool List ----------
+.redenv-pool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.redenv-pool-item {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.redenv-pool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.redenv-pool-id {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.redenv-pool-status {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+
+  &--active {
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff6666;
+  }
+
+  &--depleted {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+.redenv-pool-bar-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.redenv-pool-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4444, #ff8844);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.redenv-pool-amounts {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+}
+
+// ---------- Activity Feed ----------
+.redenv-activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.redenv-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+}
+
+.redenv-activity-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4444;
+  flex-shrink: 0;
+}
+
+.redenv-activity-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.redenv-activity-text {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+
+  strong {
+    color: #ff6666;
+    font-weight: 700;
+  }
+}
+
+.redenv-activity-envelope {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.redenv-activity-time {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
 }
 
 // ---------- Modal ----------
@@ -223,10 +341,24 @@
   margin: 0;
 }
 
+.redenv-modal-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .redenv-modal-amount {
   font-size: 2rem;
   font-weight: 800;
   color: #ff4444;
+}
+
+.redenv-modal-memo {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  margin: 0;
 }
 
 @keyframes redenv-fade-in {
