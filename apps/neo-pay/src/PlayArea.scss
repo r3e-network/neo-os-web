@@ -78,13 +78,13 @@
   transition: all 0.15s;
 
   &:hover {
-    border-color: rgba(0, 229, 153, 0.3);
+    border-color: rgba(16, 185, 129, 0.3);
     color: #1f2937;
   }
 
   &--active {
     border-color: #10b981;
-    background: rgba(0, 229, 153, 0.1);
+    background: rgba(16, 185, 129, 0.1);
     color: #10b981;
   }
 }
@@ -117,7 +117,7 @@
   transition: border-color 0.2s;
 
   &:hover {
-    border-color: rgba(0, 229, 153, 0.2);
+    border-color: rgba(16, 185, 129, 0.2);
   }
 }
 
@@ -150,7 +150,7 @@
   color: #6b7280;
 
   &--active {
-    background: rgba(0, 229, 153, 0.15);
+    background: rgba(16, 185, 129, 0.15);
     color: #10b981;
   }
 

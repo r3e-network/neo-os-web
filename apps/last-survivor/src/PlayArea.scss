@@ -21,7 +21,7 @@
 }
 .round-info-item { flex: 1; text-align: center; display: flex; flex-direction: column; gap: 2px; }
 .round-info-label { font-size: 7px; font-weight: 900; letter-spacing: 0.15em; color: rgba(220, 38, 38, 0.5); text-transform: uppercase; }
-.round-info-value { font-size: 14px; font-weight: 800; color: #f5f5f5; font-family: "Orbitron", monospace; }
+.round-info-value { font-size: 14px; font-weight: 800; color: #1f2937; font-family: "Orbitron", monospace; }
 .round-info-value.status-active { color: #22c55e; }
 .round-info-value.status-ended { color: #eab308; }
 .round-info-value.pot-value { color: #eab308; font-size: 13px; }
@@ -55,7 +55,7 @@
 .participation-icon { font-size: 18px; flex-shrink: 0; }
 .participation-detail { display: flex; flex-direction: column; gap: 1px; }
 .participation-label { font-size: 7px; font-weight: 900; letter-spacing: 0.12em; color: rgba(234, 179, 8, 0.5); text-transform: uppercase; }
-.participation-value { font-size: 16px; font-weight: 800; color: #f5f5f5; font-family: "Orbitron", monospace; }
+.participation-value { font-size: 16px; font-weight: 800; color: #1f2937; font-family: "Orbitron", monospace; }
 .participation-divider { width: 1px; height: 32px; background: rgba(234, 179, 8, 0.15); flex-shrink: 0; margin: 0 4px; }
 
 /* Claim card */
