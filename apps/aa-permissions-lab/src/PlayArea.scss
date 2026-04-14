@@ -4,3 +4,47 @@
 .aa-permissions-play-area { @include console.play-area; }
 
 .stack { @include console.stack; }
+
+/* Details Grid */
+.details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.5;
+  white-space: nowrap;
+}
+
+.value {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+
+  &.mono {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-item {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .value { text-align: left; }
+}
