@@ -8,3 +8,24 @@
 .textarea-label, .label { @include console.label; }
 .value { @include console.value; }
 .response-grid { @include console.single-column-grid; }
+
+.infra-card { margin-bottom: 4px; }
+
+.infra-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.infra-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  word-break: break-all;
+}

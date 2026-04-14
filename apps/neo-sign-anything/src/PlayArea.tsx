@@ -1,8 +1,8 @@
 /**
- * PlayArea.tsx — React version of the Neo Sign Anything PlayArea.
+ * PlayArea.tsx — Neo Sign Anything
  *
- * Composes SignHero, SignResultCards, and SignOperationPanel.
- * Uses useStateBindings hook instead of Vue computed properties.
+ * Full interactive signing console: stats bar with sign/broadcast counts,
+ * hero section, result cards, and operation panel with sign/broadcast actions.
  */
 
 import { useState } from "react";
@@ -20,7 +20,7 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool } = useStateBindings(state);
+  const { str, bool, num } = useStateBindings(state);
   const [message, setMessage] = useState("");
 
   const address = str("address", "");
@@ -28,6 +28,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const txHash = str("txHash", "");
   const isSigning = bool("isSigning");
   const isBroadcasting = bool("isBroadcasting");
+  const signCount = num("signCount");
+  const broadcastCount = num("broadcastCount");
 
   const handleSign = async () => {
     await dispatch("signMessage", message);
@@ -43,6 +45,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="sign-play-area">
+      {/* Stats Bar */}
+      <div className="stats-bar">
+        <div className="stat-chip">
+          <span className="stat-value">{signCount}</span>
+          <span className="stat-label">{t("signCount") || "Signed"}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{broadcastCount}</span>
+          <span className="stat-label">{t("broadcastCount") || "Broadcast"}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{address ? address.slice(0, 8) + "..." : "--"}</span>
+          <span className="stat-label">{t("walletAddress") || "Wallet"}</span>
+        </div>
+      </div>
+
       <SignHero t={t} />
 
       <SignResultCards
