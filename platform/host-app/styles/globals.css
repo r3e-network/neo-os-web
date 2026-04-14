@@ -10,13 +10,8 @@
     --electric-purple: 266 100% 50%;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-  }
-
   * {
-    @apply border-gray-200 dark:border-gray-800;
+    @apply border-gray-200;
   }
 
   html {
@@ -25,17 +20,17 @@
   }
 
   body {
-    @apply bg-[#FCFDFF] dark:bg-[#05050A] text-gray-900 dark:text-white antialiased transition-colors duration-300;
+    @apply bg-[#FCFDFF] text-gray-900 antialiased;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-white/70 dark:bg-[#0A0B10]/60 backdrop-blur-2xl border border-white/20 dark:border-white/5 shadow-xl;
+    @apply bg-white/70 backdrop-blur-2xl border border-gray-200/50 shadow-xl;
   }
 
   .glass-card {
-    @apply bg-white/60 dark:bg-[#0C0D14]/50 backdrop-blur-xl border border-gray-200/50 dark:border-white/5 hover:border-neo/40 hover:bg-white/80 dark:hover:bg-[#12131C]/80 transition-all duration-500 shadow-lg hover:shadow-neo/10 dark:shadow-2xl;
+    @apply bg-white/60 backdrop-blur-xl border border-gray-200/50 hover:border-emerald-300 hover:bg-white/80 transition-all duration-500 shadow-lg hover:shadow-emerald-100;
   }
 
   .neo-gradient-text {
