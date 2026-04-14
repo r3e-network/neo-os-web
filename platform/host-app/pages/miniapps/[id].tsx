@@ -22,15 +22,15 @@ import { Layout } from "../../components/layout";
 // Lazy-load heavy tab components (only loaded when user navigates to that tab)
 const AppSecretsTab = dynamic(
   () => import("../../components/features/secrets/AppSecretsTab").then((m) => ({ default: m.AppSecretsTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
 );
 const ReviewsTab = dynamic(
   () => import("../../components/features/reviews").then((m) => ({ default: m.ReviewsTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
 );
 const ForumTab = dynamic(
   () => import("../../components/features/forum").then((m) => ({ default: m.ForumTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-white/5 rounded-xl" />, ssr: false },
+  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
 );
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
