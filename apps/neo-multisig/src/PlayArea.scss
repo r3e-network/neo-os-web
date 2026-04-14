@@ -1,8 +1,42 @@
 @use "@shared/styles/tokens.scss" as *;
+
 .multisig-play-area {
   display: flex;
   flex-direction: column;
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
+}
+
+.summary-card { margin: 0; }
+
+.summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.summary-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+
+  &.pending { color: #facc15; }
+  &.completed { color: #4ade80; }
 }

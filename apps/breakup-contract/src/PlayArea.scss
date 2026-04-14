@@ -14,7 +14,28 @@
   border: 1px solid #CBD5E1;
 }
 
-.hero-stats { display: flex; gap: 16px; justify-content: center; }
-.hero-stat { text-align: center; padding: 10px 18px; background: #FFFFFF; border-radius: 4px; border: 1px solid #CBD5E1; }
+.hero-stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-stat { text-align: center; padding: 10px 16px; background: #FFFFFF; border-radius: 4px; border: 1px solid #CBD5E1; min-width: 70px; }
 .hero-stat-value { display: block; font-size: 22px; font-weight: 700; color: #1E40AF; }
 .hero-stat-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748B; letter-spacing: 1.5px; margin-top: 2px; }
+
+.create-contract-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.contract-description {
+  font-size: 13px;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #94A3B8;
+  font-size: 14px;
+  font-style: italic;
+}

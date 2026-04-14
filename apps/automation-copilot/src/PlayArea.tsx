@@ -1,4 +1,4 @@
-import { NeoButton, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import "./PlayArea.scss";
@@ -16,27 +16,124 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const targetPrice = str("targetPrice", "20");
   const schedule = str("schedule", "0 */6 * * *");
   const actionName = str("actionName", "auto_repay_self_loan");
-  const isRequesting = bool("isRequesting");
+  const currentPrice = str("currentPrice");
   const renderedPayload = str("renderedPayload", "{}");
+  const isRequesting = bool("isRequesting");
+  const oracleHash = str("oracleHash");
+  const networkDisplay = str("networkDisplay", "N3 TestNet");
+  const datafeedHash = str("datafeedHash");
+  const publicApiUrl = str("publicApiUrl");
 
   return (
     <div className="automation-play-area">
-      {/* Result Panel */}
-      <pre className="json-box">{renderedPayload}</pre>
-
-      {/* Operation Panel */}
-      <div className="stack">
-        <NeoInput value={asset} label={t("asset")} placeholder={t("assetPlaceholder")} onChange={(val) => { if (state.asset) state.asset.set(val); }} />
-        <NeoInput value={targetPrice} label={t("targetPrice")} placeholder={t("targetPricePlaceholder")} onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }} />
-        <NeoInput value={schedule} label={t("schedule")} placeholder={t("schedulePlaceholder")} onChange={(val) => { if (state.schedule) state.schedule.set(val); }} />
-        <NeoInput value={actionName} label={t("actionName")} placeholder={t("actionNamePlaceholder")} onChange={(val) => { if (state.actionName) state.actionName.set(val); }} />
-        <div className="button-row">
-          <NeoButton variant="primary" loading={isRequesting} aria-label={t("fetchPrice")} onClick={() => dispatch("fetchCurrentPrice")}>{t("fetchPrice")}</NeoButton>
-          <NeoButton variant="secondary" loading={isRequesting} aria-label={t("previewRecipe")} onClick={() => dispatch("previewRecipePayload")}>{t("previewRecipe")}</NeoButton>
-          <NeoButton variant="secondary" loading={isRequesting} aria-label={t("requestRandomness")} onClick={() => dispatch("loadRandomness")}>{t("requestRandomness")}</NeoButton>
-          <NeoButton variant="secondary" loading={isRequesting} aria-label={t("fetchOracleKey")} onClick={() => dispatch("fetchOracleKey")}>{t("fetchOracleKey")}</NeoButton>
+      {/* Stats Bar */}
+      <div className="stats-bar">
+        <div className="stat-chip">
+          <span className="stat-chip-label">{t("network") || "Network"}</span>
+          <span className="stat-chip-value">{networkDisplay}</span>
         </div>
+        {currentPrice && (
+          <div className="stat-chip">
+            <span className="stat-chip-label">{t("currentPrice") || "Price"}</span>
+            <span className="stat-chip-value">${currentPrice}</span>
+          </div>
+        )}
       </div>
+
+      {/* Oracle Info */}
+      <NeoCard title={t("oracleInfo") || "Oracle Info"}>
+        <div className="info-grid">
+          {oracleHash && (
+            <div className="info-row">
+              <span className="label">{t("oracleHash") || "Oracle Hash"}</span>
+              <span className="value mono">{oracleHash}</span>
+            </div>
+          )}
+          {datafeedHash && (
+            <div className="info-row">
+              <span className="label">{t("datafeedHash") || "Datafeed Hash"}</span>
+              <span className="value mono">{datafeedHash}</span>
+            </div>
+          )}
+          {publicApiUrl && (
+            <div className="info-row">
+              <span className="label">{t("apiUrl") || "API URL"}</span>
+              <span className="value mono">{publicApiUrl}</span>
+            </div>
+          )}
+        </div>
+      </NeoCard>
+
+      {/* Recipe Builder */}
+      <NeoCard title={t("recipeBuilder") || "Recipe Builder"}>
+        <div className="stack">
+          <NeoInput
+            value={asset}
+            label={t("asset") || "Asset"}
+            placeholder={t("assetPlaceholder") || "NEO, GAS, etc."}
+            onChange={(val) => { if (state.asset) state.asset.set(val); }}
+          />
+          <NeoInput
+            value={targetPrice}
+            label={t("targetPrice") || "Target Price"}
+            placeholder={t("targetPricePlaceholder") || "20"}
+            onChange={(val) => { if (state.targetPrice) state.targetPrice.set(val); }}
+          />
+          <NeoInput
+            value={schedule}
+            label={t("schedule") || "Schedule (cron)"}
+            placeholder={t("schedulePlaceholder") || "0 */6 * * *"}
+            onChange={(val) => { if (state.schedule) state.schedule.set(val); }}
+          />
+          <NeoInput
+            value={actionName}
+            label={t("actionName") || "Action Name"}
+            placeholder={t("actionNamePlaceholder") || "auto_repay_self_loan"}
+            onChange={(val) => { if (state.actionName) state.actionName.set(val); }}
+          />
+        </div>
+      </NeoCard>
+
+      {/* Actions */}
+      <div className="button-row">
+        <NeoButton
+          variant="primary"
+          loading={isRequesting}
+          aria-label={t("fetchPrice") || "Fetch Price"}
+          onClick={() => dispatch("fetchCurrentPrice")}
+        >
+          {t("fetchPrice") || "Fetch Price"}
+        </NeoButton>
+        <NeoButton
+          variant="secondary"
+          loading={isRequesting}
+          aria-label={t("previewRecipe") || "Preview Recipe"}
+          onClick={() => dispatch("previewRecipePayload")}
+        >
+          {t("previewRecipe") || "Preview Recipe"}
+        </NeoButton>
+        <NeoButton
+          variant="secondary"
+          loading={isRequesting}
+          aria-label={t("requestRandomness") || "Randomness"}
+          onClick={() => dispatch("loadRandomness")}
+        >
+          {t("requestRandomness") || "Randomness"}
+        </NeoButton>
+        <NeoButton
+          variant="secondary"
+          loading={isRequesting}
+          aria-label={t("fetchOracleKey") || "Oracle Key"}
+          onClick={() => dispatch("fetchOracleKey")}
+        >
+          {t("fetchOracleKey") || "Oracle Key"}
+        </NeoButton>
+      </div>
+
+      {/* Result Display */}
+      <NeoCard title={t("payload") || "Payload"}>
+        <pre className="json-box">{renderedPayload}</pre>
+      </NeoCard>
     </div>
   );
 }

@@ -45,6 +45,41 @@
   pointer-events: none;
 }
 
+.latest-proof-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(212, 168, 83, 0.06);
+  border: 1px solid rgba(212, 168, 83, 0.12);
+  position: relative;
+  z-index: 1;
+}
+
+.latest-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(203, 213, 225, 0.5);
+}
+
+.latest-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #D4A853;
+  font-family: var(--font-mono, monospace);
+}
+
+.proof-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+
 .proof-list-container {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(212, 168, 83, 0.12);

@@ -12,6 +12,30 @@ body { background: var(--anchor-bg, var(--bg-primary)); }
   > * { position: relative; z-index: 1; }
 }
 
+.stats-bar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; flex: 1; min-width: 70px;
+  background: var(--anchor-card-bg, rgba(12, 24, 38, 0.85));
+  border: 1px solid var(--anchor-card-border, rgba(3, 105, 161, 0.2));
+  border-radius: 12px;
+}
+
+.stat-value {
+  font-size: 14px; font-weight: 700;
+  color: var(--anchor-ocean, #0369A1);
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--anchor-text-muted, var(--text-secondary));
+  margin-top: 2px;
+}
+
 .section-header { display: flex; justify-content: space-between; align-items: center; }
 .section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--anchor-ocean, #0369A1); }
 .section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; opacity: 0.82; line-height: 1.7; display: block; color: var(--anchor-text-muted, var(--text-secondary)); }
@@ -20,5 +44,37 @@ body { background: var(--anchor-bg, var(--bg-primary)); }
 .mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .px-1 { padding-left: 8px; padding-right: 8px; }
+
+.agent-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; border-radius: 11px; padding: 0 6px;
+  background: var(--anchor-ocean, #0369A1);
+  color: #fff; font-size: 11px; font-weight: 700;
+}
+
+.agent-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.agent-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px; border-radius: 6px;
+  background: rgba(3, 105, 161, 0.06);
+}
+
+.agent-address {
+  font-size: 12px; font-family: monospace;
+  color: var(--anchor-text-muted, var(--text-secondary));
+}
+
+.agent-status {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  color: var(--anchor-ocean, #0369A1);
+}
+
+.more-agents {
+  font-size: 11px; color: var(--anchor-text-muted, var(--text-secondary));
+  text-align: center; padding: 4px;
+}
 
 @media (prefers-reduced-motion: reduce) { .neo-card:hover { transform: none; } }
