@@ -3,14 +3,12 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
-import { Search, Moon, Sun, Menu, X, Globe } from "lucide-react";
+import { Search, Menu, X, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { useTheme } from "@/components/providers/ThemeProvider";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
-// Lazy-load wallet and notification components — neither needs SSR and both
-// depend on client-only state (wallet connection, notification polling).
+
 const NotificationDropdown = dynamic(
   () => import("@/components/features/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
   { ssr: false },
@@ -28,7 +26,6 @@ const navLinks = [
 
 export function Navbar() {
   const router = useRouter();
-  const { theme, toggleTheme } = useTheme();
   const { locale, setLocale, t } = useI18n();
   const { address: walletAddress } = useWalletStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,9 +33,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -70,34 +65,34 @@ export function Navbar() {
       className={cn(
         "fixed top-0 z-50 w-full transition-all duration-300",
         scrolled
-          ? "bg-white/70 dark:bg-[#0A0B10]/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/5 py-2 shadow-sm"
-          : "bg-transparent py-4 border-transparent"
+          ? "bg-white/80 backdrop-blur-xl border-b border-gray-200 py-2 shadow-sm"
+          : "bg-white/60 backdrop-blur-md py-4 border-b border-transparent"
       )}
     >
       <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo transition-transform hover:scale-105">
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#00E599] to-[#00A3FF] shadow-[0_0_15px_rgba(0,229,153,0.4)]">
+          <Link href="/" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105">
+            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
               <span className="text-base font-black text-white">R3E</span>
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-              R3E <span className="text-neo">Network</span>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">
+              R3E <span className="text-emerald-600">Network</span>
             </span>
           </Link>
 
           {/* Desktop Nav Links */}
-          <ul className="hidden md:flex items-center gap-1.5 p-1 bg-gray-100/50 dark:bg-[#12131C]/60 rounded-2xl border border-gray-200/50 dark:border-white/5">
+          <ul className="hidden md:flex items-center gap-1.5 p-1 bg-gray-100/60 rounded-2xl border border-gray-200/60">
             {navLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
                   className={cn(
-                    "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
+                    "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
                     router.pathname.startsWith(link.href)
-                      ? "text-gray-900 dark:text-white bg-white dark:bg-[#20222D] shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5",
+                      ? "text-gray-900 bg-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/60",
                   )}
                 >
                   {t(link.labelKey)}
@@ -110,37 +105,27 @@ export function Navbar() {
         {/* Search Bar */}
         <form onSubmit={handleSearch} role="search" className="hidden lg:flex flex-1 max-w-md mx-6">
           <div className="relative w-full group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 group-focus-within:text-neo transition-colors" aria-hidden="true" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" aria-hidden="true" />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("actions.search")}
               aria-label={t("actions.search")}
-              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-gray-200/80 dark:border-white/10 bg-gray-50/50 dark:bg-[#12131C]/80 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo hover:border-neo/30"
+              className="w-full h-10 pl-10 pr-4 text-sm rounded-2xl border border-gray-200 bg-gray-50/50 text-gray-900 placeholder-gray-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 hover:border-emerald-300"
             />
           </div>
         </form>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl border border-transparent hover:border-gray-200/50 dark:hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 transition-all cursor-pointer"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
-          {/* Notification Bell */}
           <NotificationDropdown walletAddress={walletAddress} />
 
           {/* Language Switcher */}
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="px-3 py-2 rounded-xl border border-transparent hover:border-gray-200/50 dark:hover:border-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5"
             aria-label="Switch language"
           >
             <Globe size={18} aria-hidden="true" />
@@ -153,7 +138,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo text-gray-600 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
             aria-label="Toggle navigation menu"
             aria-haspopup="true"
             aria-expanded={mobileMenuOpen}
@@ -166,20 +151,20 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div
-          className="md:hidden absolute top-full left-0 w-full border-b border-gray-200/50 dark:border-white/5 bg-white/95 dark:bg-[#0A0B10]/95 backdrop-blur-2xl px-4 py-4 shadow-xl"
+          className="md:hidden absolute top-full left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur-2xl px-4 py-4 shadow-xl"
           role="navigation"
           aria-label="Mobile navigation"
         >
           <form onSubmit={handleSearch} role="search" className="mb-4">
             <div className="relative group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400 group-focus-within:text-neo" aria-hidden="true" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500" aria-hidden="true" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t("actions.search")}
                 aria-label={t("actions.search")}
-                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
+                className="w-full h-11 pl-10 pr-4 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               />
             </div>
           </form>
@@ -191,10 +176,10 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
                   className={cn(
-                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
+                    "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
                     router.pathname.startsWith(link.href)
-                      ? "text-gray-900 dark:text-white bg-gray-100/80 dark:bg-white/10"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5",
+                      ? "text-gray-900 bg-gray-100"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
                   )}
                 >
                   {t(link.labelKey)}
