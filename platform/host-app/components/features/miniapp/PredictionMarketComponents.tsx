@@ -42,20 +42,20 @@ export function PredictionOutcomes({ data, onOutcomeSelect, selectedOutcome }: P
           className={`w-full text-left rounded-xl border p-4 transition-all ${
             selectedOutcome === outcome.id
               ? "border-neo bg-neo/5"
-              : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-600"
+              : "border-gray-200 bg-white hover:border-gray-300"
           }`}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-gray-900 dark:text-white">{outcome.label}</span>
+            <span className="font-semibold text-gray-900">{outcome.label}</span>
             <span className="text-lg font-bold text-neo">{(outcome.probability * 100).toFixed(1)}%</span>
           </div>
-          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-neo transition-all duration-300"
               style={{ width: `${outcome.probability * 100}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
             <span>Price: {outcome.price}</span>
             <span>Volume: {outcome.volume}</span>
           </div>
@@ -63,8 +63,8 @@ export function PredictionOutcomes({ data, onOutcomeSelect, selectedOutcome }: P
       ))}
 
       {data.isResolved && data.winningOutcome && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/70 dark:bg-emerald-900/20 p-4">
-          <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="text-sm font-semibold text-emerald-800">
             ✓ Resolved: {data.outcomes.find((o) => o.id === data.winningOutcome)?.label}
           </p>
         </div>
@@ -94,21 +94,21 @@ export function PredictionStats({ totalVolume, totalTrades, uniqueTraders, endDa
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-3">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Total Volume</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">{totalVolume}</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <p className="text-xs text-gray-500">Total Volume</p>
+        <p className="text-lg font-bold text-gray-900">{totalVolume}</p>
       </div>
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-3">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Total Trades</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">{totalTrades.toLocaleString()}</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <p className="text-xs text-gray-500">Total Trades</p>
+        <p className="text-lg font-bold text-gray-900">{totalTrades.toLocaleString()}</p>
       </div>
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-3">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Unique Traders</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">{uniqueTraders.toLocaleString()}</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <p className="text-xs text-gray-500">Unique Traders</p>
+        <p className="text-lg font-bold text-gray-900">{uniqueTraders.toLocaleString()}</p>
       </div>
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-3">
-        <p className="text-xs text-gray-500 dark:text-gray-400">Time Remaining</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">{timeRemaining || "N/A"}</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <p className="text-xs text-gray-500">Time Remaining</p>
+        <p className="text-lg font-bold text-gray-900">{timeRemaining || "N/A"}</p>
       </div>
     </div>
   );
@@ -123,10 +123,10 @@ export function PriceHistory({ data, height = 200 }: PriceHistoryProps) {
   if (!data.length) {
     return (
       <div
-        className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 flex items-center justify-center"
+        className="rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center"
         style={{ height }}
       >
-        <p className="text-sm text-gray-500 dark:text-gray-400">No price history available</p>
+        <p className="text-sm text-gray-500">No price history available</p>
       </div>
     );
   }
@@ -152,12 +152,12 @@ export function PriceHistory({ data, height = 200 }: PriceHistoryProps) {
     .join(" ");
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Price History</h4>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <h4 className="text-sm font-semibold text-gray-900 mb-3">Price History</h4>
       <svg viewBox={`0 0 ${width} 100`} preserveAspectRatio="none" style={{ height, width: "100%" }}>
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map((y) => (
-          <line key={y} x1="0" y1={y} x2={width} y2={y} stroke="currentColor" className="text-gray-200 dark:text-gray-700" strokeWidth="0.5" />
+          <line key={y} x1="0" y1={y} x2={width} y2={y} stroke="currentColor" className="text-gray-200" strokeWidth="0.5" />
         ))}
 
         {/* YES line */}
@@ -183,11 +183,11 @@ export function PriceHistory({ data, height = 200 }: PriceHistoryProps) {
       <div className="flex justify-center gap-6 mt-2">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-neo" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">YES</span>
+          <span className="text-xs text-gray-500">YES</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-red-500" />
-          <span className="text-xs text-gray-500 dark:text-gray-400">NO</span>
+          <span className="text-xs text-gray-500">NO</span>
         </div>
       </div>
     </div>
@@ -208,8 +208,8 @@ export function UserPosition({ yesShares, noShares, avgYesPrice, avgNoPrice, pnl
 
   if (!hasPosition) {
     return (
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
-        <p className="text-sm text-gray-500 dark:text-gray-400 text-center">No position held</p>
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <p className="text-sm text-gray-500 text-center">No position held</p>
       </div>
     );
   }
@@ -217,37 +217,37 @@ export function UserPosition({ yesShares, noShares, avgYesPrice, avgNoPrice, pnl
   const isPositive = parseFloat(pnl) >= 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/70 p-4">
-      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Your Position</h4>
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+      <h4 className="text-sm font-semibold text-gray-900 mb-3">Your Position</h4>
 
       {parseFloat(yesShares) > 0 && (
-        <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="mb-3 pb-3 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400">YES Shares</span>
+            <span className="text-sm text-gray-500">YES Shares</span>
             <span className="font-semibold text-neo">{yesShares}</span>
           </div>
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-400">Avg Price</span>
-            <span className="text-xs text-gray-600 dark:text-gray-300">{avgYesPrice}</span>
+            <span className="text-xs text-gray-600">{avgYesPrice}</span>
           </div>
         </div>
       )}
 
       {parseFloat(noShares) > 0 && (
-        <div className="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="mb-3 pb-3 border-b border-gray-200">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400">NO Shares</span>
+            <span className="text-sm text-gray-500">NO Shares</span>
             <span className="font-semibold text-red-500">{noShares}</span>
           </div>
           <div className="flex justify-between items-center mt-1">
             <span className="text-xs text-gray-400">Avg Price</span>
-            <span className="text-xs text-gray-600 dark:text-gray-300">{avgNoPrice}</span>
+            <span className="text-xs text-gray-600">{avgNoPrice}</span>
           </div>
         </div>
       )}
 
       <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500 dark:text-gray-400">P&L</span>
+        <span className="text-sm text-gray-500">P&L</span>
         <span className={`font-semibold ${isPositive ? "text-emerald-500" : "text-red-500"}`}>
           {isPositive ? "+" : ""}{pnl} ({isPositive ? "+" : ""}{pnlPercent}%)
         </span>

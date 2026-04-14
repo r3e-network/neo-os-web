@@ -43,9 +43,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
 
   if (created) {
     return (
-      <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
-        <h4 className="font-semibold text-emerald-800 dark:text-emerald-400">Secret Created!</h4>
-        <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">Your secret has been securely stored.</p>
+      <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <h4 className="font-semibold text-emerald-800">Secret Created!</h4>
+        <p className="mt-1 text-sm text-emerald-700">Your secret has been securely stored.</p>
         <Button size="sm" className="mt-3" onClick={onClose}>
           Done
         </Button>
@@ -54,11 +54,11 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-      <h4 className="font-semibold text-gray-900 dark:text-white">Create New Secret</h4>
+    <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-gray-200 p-4">
+      <h4 className="font-semibold text-gray-900">Create New Secret</h4>
       <div className="mt-3 space-y-3">
         <div>
-          <div className="block text-sm text-gray-600 dark:text-gray-400">Secret Type</div>
+          <div className="block text-sm text-gray-600">Secret Type</div>
           <div className="mt-1 grid grid-cols-3 gap-2">
             {SECRET_TYPES.map((type) => (
               <button
@@ -66,10 +66,10 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
                 type="button"
                 aria-pressed={secretType === type.value}
                 onClick={() => setSecretType(type.value)}
-                className={`rounded-lg border p-2 text-left text-sm text-gray-900 dark:text-white cursor-pointer transition-colors ${
+                className={`rounded-lg border p-2 text-left text-sm text-gray-900 cursor-pointer transition-colors ${
                   secretType === type.value
-                    ? "border-neo bg-neo/10 dark:bg-neo/20"
-                    : "border-gray-200 dark:border-gray-700 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                    ? "border-neo bg-neo/10"
+                    : "border-gray-200 hover:border-gray-300"
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50`}
               >
                 <type.icon size={18} />
@@ -79,18 +79,18 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label htmlFor="secret-name" className="block text-sm text-gray-600 dark:text-gray-400">Secret Name</label>
+          <label htmlFor="secret-name" className="block text-sm text-gray-600">Secret Name</label>
           <input
             id="secret-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="My API Token"
-            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
         </div>
         <div>
-          <label htmlFor="secret-value" className="block text-sm text-gray-600 dark:text-gray-400">Secret Value</label>
+          <label htmlFor="secret-value" className="block text-sm text-gray-600">Secret Value</label>
           <div className="relative mt-1">
             <input
               id="secret-value"
@@ -98,38 +98,38 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
               value={secretValue}
               onChange={(e) => setSecretValue(e.target.value)}
               placeholder="Enter your secret value"
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 pr-10 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             />
             <button
               type="button"
               onClick={() => setShowValue(!showValue)}
               aria-label={showValue ? "Hide secret" : "Show secret"}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
             >
               {showValue ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
         <div>
-          <label htmlFor="secret-app-scope" className="block text-sm text-gray-600 dark:text-gray-400">App Scope</label>
+          <label htmlFor="secret-app-scope" className="block text-sm text-gray-600">App Scope</label>
           <input
             id="secret-app-scope"
             type="text"
             value={appId}
             onChange={(e) => setAppId(e.target.value)}
             placeholder="Leave empty for global access"
-            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-gray-500">
             Restrict to specific MiniApp or leave empty for all apps
           </p>
         </div>
       </div>
       {validationError && (
-        <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{validationError}</p>
+        <p className="mt-3 text-sm text-red-600" role="alert">{validationError}</p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+        <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>
       )}
       <div className="mt-4 flex gap-2">
         <Button type="submit" disabled={loading || !name.trim() || !secretValue.trim()}>

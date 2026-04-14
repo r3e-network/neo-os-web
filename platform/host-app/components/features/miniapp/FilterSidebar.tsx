@@ -32,11 +32,11 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
   };
 
   return (
-    <aside className="w-72 flex-shrink-0 border-r border-gray-200/50 dark:border-white/5 bg-white/60 dark:bg-[#0A0B10]/60 backdrop-blur-xl overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo glass-panel" tabIndex={0}>
+    <aside className="w-72 flex-shrink-0 border-r border-gray-200/50 bg-white/60 backdrop-blur-xl overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo glass-panel" tabIndex={0}>
       <div className="p-6">
-        <h2 className="text-sm font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
           Filters
-          <div className="h-px bg-gray-200 dark:bg-white/10 flex-1" />
+          <div className="h-px bg-gray-200 flex-1" />
         </h2>
 
         {sections.map((section) => (
@@ -45,10 +45,10 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
               type="button"
               onClick={() => toggleSection(section.id)}
               aria-expanded={expanded[section.id]}
-              className="flex items-center justify-between w-full text-left py-2 mb-2 text-sm font-bold text-gray-900 dark:text-white hover:text-neo dark:hover:text-neo transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="flex items-center justify-between w-full text-left py-2 mb-2 text-sm font-bold text-gray-900 hover:text-neo transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
               {section.label}
-              <div className="p-1 rounded-md bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400">
+              <div className="p-1 rounded-md bg-gray-100 text-gray-500">
                 {expanded[section.id] ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
               </div>
             </button>
@@ -68,8 +68,8 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                       className={cn(
                         "flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl cursor-pointer text-sm transition-all duration-300 group border",
                         isSelected
-                          ? "bg-neo/10 dark:bg-neo/20 text-neo font-bold border-neo/30 shadow-[inset_0_0_10px_rgba(0,229,153,0.1)]"
-                          : "border-transparent text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white",
+                          ? "bg-neo/10 text-neo font-bold border-neo/30 shadow-[inset_0_0_10px_rgba(0,229,153,0.1)]"
+                          : "border-transparent text-gray-600 hover:bg-white/50 hover:text-gray-900",
                       )}
                     >
                       <input
@@ -81,7 +81,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                       <div className="flex items-center gap-3 flex-1 overflow-hidden">
                         <div className={cn(
                           "w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors shrink-0",
-                          isSelected ? "bg-neo border-neo text-gray-900" : "border-gray-300 dark:border-gray-600 group-hover:border-neo/50"
+                          isSelected ? "bg-neo border-neo text-gray-900" : "border-gray-300 group-hover:border-neo/50"
                         )}>
                           {isSelected && <Check size={12} strokeWidth={3} />}
                         </div>
@@ -90,7 +90,7 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                       {option.count !== undefined && (
                         <span className={cn(
                           "text-xs px-2 py-0.5 rounded-full font-medium transition-colors",
-                          isSelected ? "bg-neo/20 text-neo" : "bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:text-gray-300"
+                          isSelected ? "bg-neo/20 text-neo" : "bg-gray-100 text-gray-500 group-hover:text-gray-300"
                         )}>
                           {option.count}
                         </span>

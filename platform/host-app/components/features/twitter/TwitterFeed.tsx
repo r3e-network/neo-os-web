@@ -53,7 +53,7 @@ export function TwitterFeed() {
     return (
       <div className="animate-pulse space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div key={i} className="h-24 rounded-lg bg-gray-200" />
         ))}
       </div>
     );
@@ -63,9 +63,9 @@ export function TwitterFeed() {
     return (
       <div className="py-8 text-center">
         {error ? (
-          <p className="text-red-500 dark:text-red-400">{error}</p>
+          <p className="text-red-500">{error}</p>
         ) : (
-          <p className="text-gray-500 dark:text-gray-400">No tweets available</p>
+          <p className="text-gray-500">No tweets available</p>
         )}
       </div>
     );
@@ -79,17 +79,17 @@ export function TwitterFeed() {
             href={tweet.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 transition-colors hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="block rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">N</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900 dark:text-white">{tweet.author}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">@Neo_Blockchain</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">· {formatTime(tweet.created_at)}</span>
+                  <span className="font-semibold text-gray-900">{tweet.author}</span>
+                  <span className="text-sm text-gray-500">@Neo_Blockchain</span>
+                  <span className="text-sm text-gray-500">· {formatTime(tweet.created_at)}</span>
                 </div>
-                <p className="mt-1 text-gray-700 dark:text-gray-300">{tweet.text}</p>
+                <p className="mt-1 text-gray-700">{tweet.text}</p>
               </div>
             </div>
           </a>

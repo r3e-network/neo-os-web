@@ -12,7 +12,7 @@ export function NotificationSettings() {
   const [showVerify, setShowVerify] = useState(false);
 
   if (!preferences) {
-    return <div className="p-4 text-gray-500 dark:text-gray-400">Connect wallet to manage notifications</div>;
+    return <div className="p-4 text-gray-500">Connect wallet to manage notifications</div>;
   }
 
   const handleBindEmail = async () => {
@@ -38,15 +38,15 @@ export function NotificationSettings() {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>
+        <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+          <p className="text-sm text-red-600" role="alert">{error}</p>
         </div>
       )}
       {/* Email Section */}
       <SettingsSection title="Email Notifications" icon={<Mail size={18} aria-hidden="true" />}>
         {preferences.email && preferences.emailVerified ? (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{preferences.email}</span>
+            <span className="text-sm text-gray-600">{preferences.email}</span>
             <span className="text-xs text-emerald-500">✓ Verified</span>
           </div>
         ) : showVerify ? (
@@ -100,10 +100,10 @@ function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <span className="text-gray-500 dark:text-gray-400">{icon}</span>
-        <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <span className="text-gray-500">{icon}</span>
+        <h3 className="font-semibold text-gray-900">{title}</h3>
       </div>
       <div className="p-4 space-y-3">{children}</div>
     </div>
@@ -124,15 +124,15 @@ function ToggleItem({
   return (
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>
+        <p className="text-sm font-medium text-gray-900">{label}</p>
+        <p className="text-xs text-gray-500">{description}</p>
       </div>
       <button
         role="switch"
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 cursor-pointer rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"}`}
+        className={`relative w-10 h-6 cursor-pointer rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-gray-300"}`}
       >
         <span
           className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${checked ? "translate-x-4" : ""}`}
@@ -162,7 +162,7 @@ function EmailBindInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Enter email address"
         aria-label="Email address"
-        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
       />
       <button
         type="button"
@@ -189,7 +189,7 @@ function VerifyCodeInput({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-500 dark:text-gray-400">Enter the verification code sent to your email</p>
+      <p className="text-xs text-gray-500">Enter the verification code sent to your email</p>
       <div className="flex gap-2">
         <input
           id="verification-code"
@@ -199,7 +199,7 @@ function VerifyCodeInput({
           placeholder="6-digit code"
           aria-label="Verification code"
           maxLength={6}
-          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+          className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 bg-gray-50 text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
         />
         <button
           type="button"
@@ -231,13 +231,13 @@ function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChan
           onClick={() => onChange(opt.value)}
           className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
             value === opt.value
-              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-              : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              ? "border-emerald-500 bg-emerald-50"
+              : "border-gray-200 hover:bg-gray-50"
           }`}
         >
           <div className="text-left">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
+            <p className="text-sm font-medium text-gray-900">{opt.label}</p>
+            <p className="text-xs text-gray-500">{opt.desc}</p>
           </div>
           {value === opt.value && <span className="text-emerald-500">✓</span>}
         </button>

@@ -83,15 +83,15 @@ export const ActivityTicker = ({
 
   return (
     <div
-      className="bg-gray-100 dark:bg-black/40 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+      className="bg-gray-100 rounded-xl border border-gray-200 overflow-hidden"
       role="region"
       aria-label={`${title} ticker`}
     >
-      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20">
-        <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <span className="text-emerald-500 text-xs animate-pulse" aria-hidden="true">●</span><span className="sr-only">Live:</span> {title}
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">{activities.length} events</span>
+        <span className="text-xs text-gray-500">{activities.length} events</span>
       </div>
       <div
         ref={containerRef}
@@ -101,7 +101,7 @@ export const ActivityTicker = ({
         onMouseLeave={() => setIsPaused(false)}
       >
         {displayActivities.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">No activity yet</div>
+          <div className="p-6 text-center text-gray-500 text-sm">No activity yet</div>
         ) : (
           <ul>
             {displayActivities.map((activity) => (
@@ -119,19 +119,19 @@ const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) =>
   const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
 
   return (
-    <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-800">
+    <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100">
       <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center gap-2">
-          <span className="text-sm font-medium text-gray-900 dark:text-white truncate" title={activity.title}>{activity.title}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
+          <span className="text-sm font-medium text-gray-900 truncate" title={activity.title}>{activity.title}</span>
+          <span className="text-xs text-gray-500 shrink-0">
             {formatTimeAgo(activity.timestamp)}
           </span>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate" title={activity.description}>{activity.description}</div>
+        <div className="text-xs text-gray-500 mt-0.5 truncate" title={activity.description}>{activity.description}</div>
         {activity.tx_hash && (
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+            <span className="text-xs text-gray-500 font-mono">
               TX: {truncateHash(activity.tx_hash)}
             </span>
             {statusColor && (
