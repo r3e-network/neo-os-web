@@ -8,7 +8,7 @@
 
 .hero-container {
   margin-bottom: 20px;
-  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(0, 229, 153, 0.08)) 0%, transparent 55%);
+  background: radial-gradient(ellipse at 50% 40%, var(--health-accent-soft, rgba(16, 185, 129, 0.08)) 0%, transparent 55%);
   text-align: center;
 }
 
@@ -24,7 +24,7 @@
   justify-content: center;
   position: relative;
   animation: heartbeat-pulse 2.5s ease-in-out infinite;
-  box-shadow: 0 0 20px var(--health-accent-glow, rgba(0, 229, 153, 0.2));
+  box-shadow: 0 0 20px var(--health-accent-glow, rgba(16, 185, 129, 0.2));
 
   &::before {
     content: "";
@@ -42,7 +42,7 @@
   font-size: 22px;
   font-weight: 900;
   color: var(--health-accent-strong, #10b981);
-  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(0, 229, 153, 0.4));
+  text-shadow: 0 0 12px var(--health-accent-glow-strong, rgba(16, 185, 129, 0.4));
 }
 
 .network-badge {
