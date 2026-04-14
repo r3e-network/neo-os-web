@@ -45,6 +45,49 @@
   gap: 0.75rem;
 }
 
+// ---------- Token Selector ----------
+.neopay-token-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.neopay-token-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.neopay-token-options {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.neopay-token-option {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: rgba(0, 229, 153, 0.3);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  &--active {
+    border-color: #00e599;
+    background: rgba(0, 229, 153, 0.1);
+    color: #00e599;
+  }
+}
+
 // ---------- Loading / Empty ----------
 .neopay-loading,
 .neopay-empty {
@@ -134,19 +177,40 @@
 }
 
 // ---------- Progress Bar ----------
+.neopay-stream-progress-wrap {
+  margin-top: 0.5rem;
+}
+
 .neopay-stream-progress {
-  height: 3px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 2px;
-  margin-top: 0.5rem;
   overflow: hidden;
 }
 
 .neopay-stream-progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #00e599, #00c9ff);
   border-radius: 2px;
   transition: width 0.4s ease;
+}
+
+.neopay-stream-progress-label {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 0.25rem;
+}
+
+// ---------- Claimable ----------
+.neopay-stream-claimable {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+
+  strong {
+    color: #00e599;
+    font-weight: 700;
+  }
 }
 
 // ---------- Actions ----------
