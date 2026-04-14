@@ -1,119 +1,84 @@
 @use "../styles/tokens.scss" as *;
 
 .neo-card {
-  background: var(--bg-card, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-  border-radius: var(--card-radius, 20px);
-  box-shadow: 0 4px 20px var(--shadow-color, rgba(0, 0, 0, 0.1));
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--card-radius, 16px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  color: var(--text-primary, #ffffff);
+  transition: all 0.3s $ease-smooth;
+  color: #1f2937;
 
   &--flat {
     box-shadow: none;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    backdrop-filter: none;
+    border: 1px solid #f3f4f6;
   }
 
   &--hoverable {
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0, 229, 153, 0.12);
-      border-color: rgba(159, 157, 243, 0.35);
-      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      border-color: #d1d5db;
     }
     &:active {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      transform: translateY(0);
     }
     &:focus-visible {
-      outline: 2px solid var(--accent-primary, #3b82f6);
+      outline: 2px solid #10b981;
       outline-offset: 2px;
     }
   }
 
-  // Variants with E-Robo Glass Gradients
   &--accent {
-    background: linear-gradient(135deg, rgba(0, 229, 153, 0.1) 0%, rgba(0, 229, 153, 0.05) 100%);
-    border-color: rgba(0, 229, 153, 0.3);
-    box-shadow: 0 0 25px rgba(0, 229, 153, 0.15);
+    background: #ecfdf5;
+    border-color: #a7f3d0;
   }
 
   &--success {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
-    border-color: rgba(16, 185, 129, 0.3);
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+    background: #f0fdf4;
+    border-color: #bbf7d0;
   }
 
   &--warning {
-    background: linear-gradient(135deg, rgba(253, 224, 71, 0.15) 0%, rgba(253, 224, 71, 0.05) 100%);
-    border-color: rgba(253, 224, 71, 0.3);
-    box-shadow: 0 0 25px rgba(253, 224, 71, 0.15);
+    background: #fffbeb;
+    border-color: #fde68a;
   }
 
   &--danger {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
-    border-color: rgba(239, 68, 68, 0.3);
-    box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
+    background: #fef2f2;
+    border-color: #fecaca;
   }
 
-  // E-Robo Wallet Style Variants
   &--erobo {
-    background: linear-gradient(135deg, rgba(159, 157, 243, 0.15) 0%, rgba(123, 121, 209, 0.08) 100%);
-    border-color: rgba(159, 157, 243, 0.25);
-    box-shadow: 0 0 30px rgba(159, 157, 243, 0.15);
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
-
-    &.neo-card--hoverable:hover {
-      box-shadow: 0 0 40px rgba(159, 157, 243, 0.3);
-      border-color: rgba(159, 157, 243, 0.4);
-    }
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   }
 
   &--erobo-neo {
-    background: linear-gradient(135deg, rgba(0, 229, 153, 0.15) 0%, rgba(0, 179, 119, 0.08) 100%);
-    border-color: rgba(0, 229, 153, 0.25);
-    box-shadow: 0 0 30px rgba(0, 229, 153, 0.15);
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
-
-    &.neo-card--hoverable:hover {
-      box-shadow: 0 0 40px rgba(0, 229, 153, 0.3);
-      border-color: rgba(0, 229, 153, 0.4);
-    }
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border-color: #a7f3d0;
   }
 
   &--erobo-bitcoin {
-    background: linear-gradient(135deg, rgba(255, 228, 195, 0.15) 0%, rgba(255, 200, 140, 0.08) 100%);
-    border-color: rgba(255, 228, 195, 0.25);
-    box-shadow: 0 0 30px rgba(255, 228, 195, 0.15);
-    backdrop-filter: blur(50px);
-    -webkit-backdrop-filter: blur(50px);
-
-    &.neo-card--hoverable:hover {
-      box-shadow: 0 0 40px rgba(255, 228, 195, 0.3);
-      border-color: rgba(255, 228, 195, 0.4);
-    }
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #fde68a;
   }
 
   &__header {
-    padding: 20px;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    color: var(--text-primary, rgba(255, 255, 255, 0.9));
+    color: #374151;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-family: $font-family;
@@ -124,23 +89,17 @@
   }
 
   &__footer {
-    padding: 16px 20px;
-    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
-    background: var(--bg-secondary, rgba(255, 255, 255, 0.02));
+    padding: 14px 20px;
+    border-top: 1px solid #f3f4f6;
+    background: #f9fafb;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .neo-card {
     transition: none;
-
     &--hoverable {
-      &:hover {
-        transform: none;
-      }
-      &:active {
-        transform: none;
-      }
+      &:hover, &:active { transform: none; }
     }
   }
 }
