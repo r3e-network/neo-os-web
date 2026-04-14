@@ -22,6 +22,8 @@
   }
 }
 
+/* ── Ember Background ── */
+
 .flame-bg-effects {
   position: absolute;
   inset: 0;
@@ -73,6 +75,255 @@
   100% { opacity: 0; transform: translateY(-400px) scale(0.3); }
 }
 
+/* ── Streak Fire Ring ── */
+
+.checkin-streak-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-fire-ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 53, 0.08);
+  border: 3px solid rgba(255, 107, 53, 0.15);
+  transition: all 0.4s ease;
+
+  &.active {
+    border-color: rgba(255, 107, 53, 0.5);
+    box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
+  }
+
+  &.spark {
+    border-color: rgba(255, 165, 0, 0.5);
+    box-shadow: 0 0 20px rgba(255, 165, 0, 0.15);
+  }
+
+  &.blaze {
+    border-color: rgba(255, 107, 53, 0.6);
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.25), 0 0 80px rgba(255, 107, 53, 0.1);
+  }
+
+  &.inferno {
+    border-color: rgba(196, 30, 58, 0.7);
+    box-shadow: 0 0 50px rgba(196, 30, 58, 0.3), 0 0 100px rgba(255, 107, 53, 0.15);
+    animation: inferno-pulse 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes inferno-pulse {
+  0%, 100% { box-shadow: 0 0 50px rgba(196, 30, 58, 0.3), 0 0 100px rgba(255, 107, 53, 0.15); }
+  50% { box-shadow: 0 0 70px rgba(196, 30, 58, 0.45), 0 0 120px rgba(255, 107, 53, 0.25); }
+}
+
+.checkin-flame-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: absolute;
+  top: -8px;
+}
+
+.checkin-flame {
+  font-size: 24px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0.5));
+}
+
+.checkin-flame-core {
+  animation: flame-dance 0.8s ease-in-out infinite alternate;
+}
+
+.checkin-flame-outer {
+  font-size: 18px;
+  margin-top: -12px;
+  opacity: 0.7;
+  animation: flame-dance 1s ease-in-out infinite alternate-reverse;
+}
+
+.checkin-flame-inferno {
+  font-size: 14px;
+  margin-top: -10px;
+  opacity: 0.5;
+  animation: flame-dance 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes flame-dance {
+  from { transform: scaleY(1) scaleX(1); }
+  to { transform: scaleY(1.15) scaleX(0.9); }
+}
+
+.checkin-streak-number {
+  font-size: 36px;
+  font-weight: 900;
+  font-family: "Fredoka", sans-serif;
+  background: linear-gradient(135deg, #fbbf24, #ff6b35);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  line-height: 1;
+}
+
+.checkin-streak-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.checkin-tier-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+
+  &.spark {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+  }
+
+  &.blaze {
+    background: rgba(255, 107, 53, 0.15);
+    color: #ff6b35;
+  }
+
+  &.inferno {
+    background: rgba(196, 30, 58, 0.15);
+    color: #c41e3a;
+  }
+}
+
+.checkin-best-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Week Progress ── */
+
+.checkin-week-wrapper {
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-week-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.checkin-progress-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.checkin-week-complete-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.checkin-week-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.checkin-week-day-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 42px;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &.checked {
+    background: rgba(52, 211, 153, 0.1);
+    border-color: rgba(52, 211, 153, 0.25);
+  }
+
+  &.today {
+    border-color: rgba(255, 107, 53, 0.3);
+  }
+
+  &.today-ready {
+    border-color: rgba(255, 107, 53, 0.5);
+    box-shadow: 0 0 12px rgba(255, 107, 53, 0.15);
+    animation: slot-glow 2s ease-in-out infinite;
+  }
+
+  &.today-done {
+    border-color: rgba(52, 211, 153, 0.4);
+    background: rgba(52, 211, 153, 0.12);
+  }
+}
+
+@keyframes slot-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 107, 53, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
+}
+
+.checkin-day-icon {
+  font-size: 14px;
+}
+
+.checkin-day-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+}
+
+.checkin-bonus-star {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-size: 12px;
+}
+
+.checkin-week-connector {
+  margin-top: 6px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.checkin-connector-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #34d399, #fbbf24);
+  transition: width 0.4s ease;
+}
+
+/* ── Countdown ── */
+
 .countdown-section {
   display: flex;
   flex-direction: column;
@@ -108,6 +359,8 @@
   letter-spacing: 0.1em;
 }
 
+/* ── Status Pill ── */
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -138,6 +391,8 @@
   50% { box-shadow: 0 0 30px rgba(255, 107, 53, 0.35), 0 0 60px rgba(255, 107, 53, 0.15); }
 }
 
+/* ── Action Card + Check-in Button ── */
+
 .action-card {
   width: 100%;
   max-width: 400px;
@@ -152,6 +407,15 @@
 
 .checkin-btn {
   margin-top: 16px;
+
+  &.checkin-btn--ready {
+    animation: btn-breathe 2.5s ease-in-out infinite;
+  }
+}
+
+@keyframes btn-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 .btn-content {
@@ -165,13 +429,7 @@
   font-family: "Fredoka", sans-serif;
 }
 
-.checkin-calendar,
-.streak-display,
-.rewards-section,
-.countdown-timer {
-  position: relative;
-  z-index: 1;
-}
+/* ── Reward Preview ── */
 
 .reward-preview {
   display: flex;
@@ -219,6 +477,200 @@
   50% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.2); }
 }
 
+/* ── Stats Cards ── */
+
+.checkin-stats-card,
+.checkin-rewards-card,
+.checkin-milestones-card,
+.checkin-global-card,
+.checkin-history-card {
+  width: 100%;
+  max-width: 440px;
+  position: relative;
+  z-index: 1;
+}
+
+.checkin-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.checkin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.checkin-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.checkin-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff8a5c;
+  font-family: "Fredoka", sans-serif;
+}
+
+.checkin-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+/* ── Rewards ── */
+
+.checkin-rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.checkin-reward-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.checkin-reward-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fbbf24;
+  font-family: "Fredoka", sans-serif;
+
+  &.checkin-reward-value--unclaimed {
+    color: #34d399;
+    text-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
+  }
+}
+
+.checkin-reward-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+}
+
+.checkin-claim-btn {
+  margin-top: 4px;
+}
+
+/* ── Milestones ── */
+
+.checkin-milestones-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.checkin-milestone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  min-width: 90px;
+  transition: all 0.3s ease;
+
+  &.reached {
+    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(52, 211, 153, 0.25);
+  }
+
+  &.next {
+    border-color: rgba(255, 107, 53, 0.3);
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.1);
+  }
+}
+
+.checkin-milestone-icon {
+  font-size: 18px;
+}
+
+.checkin-milestone-day {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.checkin-milestone-reward {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fbbf24;
+  font-family: "Fredoka", sans-serif;
+}
+
+.checkin-milestone-cumulative {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── History ── */
+
+.checkin-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkin-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+}
+
+.checkin-history-date {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.checkin-history-streak {
+  color: #ff8a5c;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+
+.checkin-history-reward {
+  color: #34d399;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* ── Confetti ── */
+
 .confetti-container {
   position: fixed;
   top: 0;
@@ -243,9 +695,15 @@
   100% { opacity: 0; top: 100vh; transform: translateX(calc(-50px + 100px * var(--r, 0.5))) rotate(720deg); }
 }
 
+/* ── Reduced Motion ── */
+
 @media (prefers-reduced-motion: reduce) {
   .status-pill { animation: none; transition: none; }
   .ember { animation: none; display: none; }
   .confetti-container { display: none; }
   .reward-preview { animation: none; }
+  .checkin-fire-ring { animation: none; }
+  .checkin-flame { animation: none; }
+  .checkin-btn { animation: none; }
+  .checkin-week-day-slot { animation: none; }
 }

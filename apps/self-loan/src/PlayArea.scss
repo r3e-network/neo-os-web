@@ -127,11 +127,30 @@
   letter-spacing: 0.04em;
 }
 
+.selfloan-health-status-label {
+  font-weight: 700;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 // ---------- Form ----------
 .selfloan-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+// ---------- Balance Hint ----------
+.selfloan-balance-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 0.375rem 0;
+
+  strong {
+    color: #00e599;
+    font-weight: 600;
+  }
 }
 
 // ---------- LTV Indicator ----------
@@ -156,7 +175,6 @@
 .selfloan-ltv-value {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #00e599;
   margin-left: auto;
 }
 
@@ -170,16 +188,18 @@
 
 .selfloan-ltv-bar {
   height: 100%;
-  background: linear-gradient(90deg, #00e599, #f59e0b);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
-// ---------- Divider ----------
-.selfloan-divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.06);
-  margin: 0.25rem 0;
+.selfloan-ltv-hints {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 // ---------- Loading Overlay ----------
