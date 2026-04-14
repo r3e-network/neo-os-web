@@ -120,7 +120,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Last buyer / current leader badge */}
       {lastBuyer && isRoundActive && (
         <div className="last-buyer-badge">
-          <span className="last-buyer-icon" aria-hidden="true">&#x1F451;</span>
+          <span className="last-buyer-icon" aria-hidden="true">*</span>
           <div className="last-buyer-info">
             <span className="last-buyer-label">{t("lastBuyer") || "CURRENT LEADER"}</span>
             <span className="last-buyer-address">{formatBuyerAddress(lastBuyer)}</span>
@@ -132,7 +132,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* User participation stats */}
       <div className="participation-bar">
         <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&#x1F511;</span>
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
           <div className="participation-detail">
             <span className="participation-label">{t("yourKeys") || "YOUR KEYS"}</span>
             <span className="participation-value">{userKeys}</span>
@@ -140,7 +140,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="participation-divider" />
         <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&#x1F3DF;</span>
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
           <div className="participation-detail">
             <span className="participation-label">{t("totalKeys") || "TOTAL KEYS"}</span>
             <span className="participation-value">{keyCount}</span>
@@ -148,7 +148,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="participation-divider" />
         <div className="participation-item">
-          <span className="participation-icon" aria-hidden="true">&#x1F4CA;</span>
+          <span className="participation-icon" aria-hidden="true">&bull;</span>
           <div className="participation-detail">
             <span className="participation-label">{t("share") || "YOUR SHARE"}</span>
             <span className="participation-value">
@@ -177,7 +177,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {canClaim && !isClaiming && (
         <NeoCard variant="erobo" className="claim-card">
           <div className="claim-card-inner">
-            <span className="claim-card-trophy" aria-hidden="true">&#x1F3C6;</span>
+            <span className="claim-card-trophy" aria-hidden="true">*</span>
             <span className="claim-card-text">{t("roundEnded") || "Round ended! The last buyer wins the pot."}</span>
             <NeoButton
               variant="primary"
@@ -224,7 +224,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Recent winners / history section */}
       <div className="history-section">
         <div className="history-section-header">
-          <span className="history-section-icon" aria-hidden="true">&#x1F3C5;</span>
+          <span className="history-section-icon" aria-hidden="true">&bull;</span>
           <span className="history-section-title">{t("recentHistory") || "Recent Rounds"}</span>
         </div>
         <HistoryList history={history} t={t} />

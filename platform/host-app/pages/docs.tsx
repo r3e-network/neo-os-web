@@ -54,7 +54,7 @@ export default function DocsPage() {
         <title>Documentation | Neo MiniApp Platform</title>
       </Head>
 
-      <div className="min-h-screen bg-white dark:bg-gray-950">
+      <div className="min-h-screen bg-white">
         <PageHero
           align="center"
           eyebrow="Reference"
@@ -67,7 +67,7 @@ export default function DocsPage() {
           ]}
         >
           <div className="relative mx-auto max-w-xl">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400" size={20} aria-hidden="true" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} aria-hidden="true" />
             <input
               type="text"
               aria-label="Search documentation"
@@ -75,7 +75,7 @@ export default function DocsPage() {
               placeholder="Search documentation..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-100 pl-12 pr-4 text-gray-900 transition-all placeholder-gray-500 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
+              className="h-12 w-full rounded-xl border border-gray-200 bg-gray-100 pl-12 pr-4 text-gray-900 transition-all placeholder-gray-500 focus-visible:border-neo/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             />
           </div>
         </PageHero>
@@ -86,7 +86,7 @@ export default function DocsPage() {
             {/* Sidebar Navigation */}
             <aside className="lg:w-60 shrink-0">
               <nav aria-label="Documentation sections" className="sticky top-24 space-y-1">
-                <span className="mb-3 block px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-gray-500">Sections</span>
+                <span className="mb-3 block px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Sections</span>
                 {filteredSections.map((section) => {
                   const Icon = section.icon;
                   const isActive = activeSection === section.id;
@@ -98,7 +98,7 @@ export default function DocsPage() {
                       aria-current={isActive ? "page" : undefined}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left rounded-lg transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${isActive
                         ? "border-l-2 border-neo bg-neo/5 text-neo font-semibold"
-                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/[0.03] border-l-2 border-transparent"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50 border-l-2 border-transparent"
                         }`}
                     >
                       <Icon size={16} aria-hidden="true" />
@@ -108,13 +108,13 @@ export default function DocsPage() {
                 })}
 
                 {/* External Links */}
-                <div className="pt-5 mt-5 border-t border-gray-200 dark:border-gray-800 space-y-0.5">
-                  <span className="mb-2 block px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-gray-500">Resources</span>
+                <div className="pt-5 mt-5 border-t border-gray-200 space-y-0.5">
+                  <span className="mb-2 block px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400">Resources</span>
                   <a
                     href="https://github.com/neo-project"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <Github size={15} aria-hidden="true" />
                     GitHub
@@ -124,7 +124,7 @@ export default function DocsPage() {
                     href="https://discord.gg/neo"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-500 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
                   >
                     <MessageCircle size={15} aria-hidden="true" />
                     Discord
@@ -132,7 +132,7 @@ export default function DocsPage() {
                   </a>
                 </div>
                 {!filteredSections.length && (
-                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900/50 dark:text-gray-400">
+                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
                     No documentation sections match the current search.
                   </div>
                 )}
@@ -142,10 +142,10 @@ export default function DocsPage() {
             {/* Content Area */}
             <main className="flex-1 min-w-0 max-w-[820px]">
               {!filteredSections.length ? (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600 dark:border-gray-800 dark:bg-gray-900/50 dark:text-gray-400">
-                  Try searching for terms like <code className="rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold dark:bg-white/10">oracle</code>,
-                  <code className="ml-1 rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold dark:bg-white/10">wallet</code>, or
-                  <code className="ml-1 rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold dark:bg-white/10">deploy</code>.
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">
+                  Try searching for terms like <code className="rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold">oracle</code>,
+                  <code className="ml-1 rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold">wallet</code>, or
+                  <code className="ml-1 rounded-md bg-gray-200/60 px-1.5 py-0.5 text-xs font-semibold">deploy</code>.
                 </div>
               ) : (
                 <>
@@ -166,8 +166,8 @@ export default function DocsPage() {
 // Getting Started Content
 function GettingStartedContent() {
   return (
-    <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-li:leading-[1.75]">
-      <h2 className="!text-2xl font-extrabold text-gray-900 dark:text-white !mb-6 !mt-0 tracking-[-0.02em]">Getting Started</h2>
+    <div className="prose prose-gray max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 prose-li:leading-[1.75]">
+      <h2 className="!text-2xl font-extrabold text-gray-900 !mb-6 !mt-0 tracking-[-0.02em]">Getting Started</h2>
 
       <div className="not-prose mb-8 p-5 rounded-xl bg-neo/[0.04] border border-neo/15 dark:bg-neo/[0.03]">
         <div className="flex items-start gap-4">
@@ -175,24 +175,24 @@ function GettingStartedContent() {
             <Rocket className="text-neo" size={20} aria-hidden="true" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-0.5">Quick Start</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+            <h3 className="font-semibold text-gray-900 text-sm mb-0.5">Quick Start</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">
               Get your first MiniApp running in under 5 minutes
             </p>
           </div>
         </div>
       </div>
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">1. Install the SDK</h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">Install the Neo MiniApp SDK using npm or yarn:</p>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">1. Install the SDK</h3>
+      <p className="text-gray-600 mb-4">Install the Neo MiniApp SDK using npm or yarn:</p>
       <CodeBlock code="npm install @neo-miniapp/sdk" language="bash" />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">2. Create Your App</h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">Use our CLI to scaffold a new MiniApp project:</p>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">2. Create Your App</h3>
+      <p className="text-gray-600 mb-4">Use our CLI to scaffold a new MiniApp project:</p>
       <CodeBlock code="npx create-miniapp my-first-app\ncd my-first-app\nnpm run dev" language="bash" />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">3. Initialize the SDK</h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">Import and initialize the SDK in your app:</p>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">3. Initialize the SDK</h3>
+      <p className="text-gray-600 mb-4">Import and initialize the SDK in your app:</p>
       <CodeBlock
         code={`import { MiniApp } from '@neo-miniapp/sdk';
 
@@ -207,7 +207,7 @@ console.log('Connected:', account.address);`}
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">4. Make Your First Transaction</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">4. Make Your First Transaction</h3>
       <CodeBlock
         code={`// Transfer GAS
 const result = await app.wallet.transfer({
@@ -241,8 +241,8 @@ console.log('TX Hash:', result.txid);`}
 // SDK Reference Content
 function SDKReferenceContent() {
   return (
-    <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-li:leading-[1.75]">
-      <h2 className="!text-2xl font-extrabold text-gray-900 dark:text-white !mb-6 !mt-0 tracking-[-0.02em]">SDK Reference</h2>
+    <div className="prose prose-gray max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 prose-li:leading-[1.75]">
+      <h2 className="!text-2xl font-extrabold text-gray-900 !mb-6 !mt-0 tracking-[-0.02em]">SDK Reference</h2>
 
       <IconFeatureGrid
         className="not-prose mb-8"
@@ -258,8 +258,8 @@ function SDKReferenceContent() {
         ]}
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">MiniApp Class</h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">The main entry point for all SDK functionality:</p>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">MiniApp Class</h3>
+      <p className="text-gray-600 mb-4">The main entry point for all SDK functionality:</p>
       <CodeBlock
         code={`// Browser / host-injected SDK
 const sdk = window.MiniAppSDK;
@@ -286,7 +286,7 @@ sdk.privacy;
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Wallet API</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Wallet API</h3>
       <CodeBlock
         code={`// Connect wallet
 const account = await app.wallet.connect();
@@ -313,14 +313,14 @@ const tx = await app.wallet.transfer({
 // Smart Contracts Content
 function SmartContractsContent() {
   return (
-    <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-li:leading-[1.75]">
-      <h2 className="!text-2xl font-extrabold text-gray-900 dark:text-white !mb-6 !mt-0 tracking-[-0.02em]">Smart Contracts</h2>
+    <div className="prose prose-gray max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 prose-li:leading-[1.75]">
+      <h2 className="!text-2xl font-extrabold text-gray-900 !mb-6 !mt-0 tracking-[-0.02em]">Smart Contracts</h2>
 
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
+      <p className="text-gray-600 mb-6">
         Interact with Neo N3 smart contracts directly from your MiniApp.
       </p>
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Invoking Contracts</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Invoking Contracts</h3>
       <CodeBlock
         code={`// Invoke a contract method
 const result = await app.contract.invoke({
@@ -335,7 +335,7 @@ console.log('Balance:', result);`}
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Writing Your Own Contract</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Writing Your Own Contract</h3>
       <CodeBlock
         code={`// MyMiniApp.cs
 using Neo.SmartContract.Framework;
@@ -360,7 +360,7 @@ public class MyMiniApp : SmartContract
         language="csharp"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Deploy Contract</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Deploy Contract</h3>
       <CodeBlock
         code={`# Compile contract
 nccs MyMiniApp.cs
@@ -376,8 +376,8 @@ neo-cli deploy MyMiniApp.nef --network testnet`}
 // Platform Services Content
 function PlatformServicesContent() {
   return (
-    <div className="prose prose-gray dark:prose-invert max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-li:leading-[1.75]">
-      <h2 className="!text-2xl font-extrabold text-gray-900 dark:text-white !mb-6 !mt-0 tracking-[-0.02em]">Platform Services</h2>
+    <div className="prose prose-gray max-w-none prose-headings:tracking-tight prose-p:leading-[1.75] prose-p:text-gray-600 prose-li:leading-[1.75]">
+      <h2 className="!text-2xl font-extrabold text-gray-900 !mb-6 !mt-0 tracking-[-0.02em]">Platform Services</h2>
 
       <IconFeatureGrid
         className="not-prose mb-8"
@@ -411,7 +411,7 @@ function PlatformServicesContent() {
         ]}
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Using VRF</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Using VRF</h3>
       <CodeBlock
         code={`// End-user MiniApp flow
 const randomResult = await window.MiniAppSDK.rng.requestRandom("miniapp-lottery");
@@ -420,7 +420,7 @@ console.log(randomResult.request_id, randomResult.randomness);
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Using Oracle</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Using Oracle</h3>
       <CodeBlock
         code={`// Public DataFeed read through the platform gateway
 const price = await window.MiniAppSDK.datafeed.getPrice("NEO");
@@ -439,7 +439,7 @@ console.log(oracleRes.status_code, oracleRes.body);`}
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Using TEE</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Using TEE</h3>
       <CodeBlock
         code={`// Host-only inline compute
 const computeResult = await host.compute.execute({
@@ -454,7 +454,7 @@ console.log(computeResult.status, computeResult.output);
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Using AA Relay</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Using AA Relay</h3>
       <CodeBlock
         code={`// Same-origin host proxy to the external AA relay
 const relayResponse = await fetch("/api/aa/relay", {
@@ -470,7 +470,7 @@ console.log(relayResponse.txid);`}
         language="typescript"
       />
 
-      <h3 className="!text-lg font-bold text-gray-900 dark:text-white !mt-10 !mb-3">Using Privacy Relayer (zNEP17)</h3>
+      <h3 className="!text-lg font-bold text-gray-900 !mt-10 !mb-3">Using Privacy Relayer (zNEP17)</h3>
       <CodeBlock
         code={`// 1. Get Merkle path to construct zero-knowledge proof
 const path = await app.privacy.getMerklePath('0x...commitment');

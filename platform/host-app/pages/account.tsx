@@ -36,10 +36,10 @@ export default function AccountPage() {
           <div className="grid gap-8 md:grid-cols-3">
             <div className="space-y-8 md:col-span-2">
               <Card className="glass-card overflow-hidden">
-                <CardHeader className="border-b border-gray-200 bg-neo/5 dark:border-gray-700">
+                <CardHeader className="border-b border-gray-200 bg-neo/5 ">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-gray-900 dark:text-white">Neo Wallet</CardTitle>
+                      <CardTitle className="text-gray-900">Neo Wallet</CardTitle>
                       <CardDescription>Your primary on-chain identity</CardDescription>
                     </div>
                     <Badge variant="outline" className="border-neo/20 bg-neo/10 text-neo">
@@ -48,18 +48,18 @@ export default function AccountPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-900">
+                  <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-100 p-4 ">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neo/20">
                       <Wallet className="text-neo" size={24} aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Wallet Address</p>
-                      <p className="truncate text-lg font-mono text-gray-900 dark:text-white">{shortAddress}</p>
+                      <p className="text-sm text-gray-500">Wallet Address</p>
+                      <p className="truncate text-lg font-mono text-gray-900">{shortAddress}</p>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                      className="text-gray-500 hover:text-gray-900"
                       disabled={!address}
                       onClick={() => { if (address) { navigator.clipboard.writeText(address).catch((e: unknown) => { console.warn("[account] clipboard write failed:", e instanceof Error ? e.message : String(e)); }); } }}
                     >
@@ -71,7 +71,7 @@ export default function AccountPage() {
 
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="text-gray-900 dark:text-white">Social Connections</CardTitle>
+                  <CardTitle className="text-gray-900">Social Connections</CardTitle>
                   <CardDescription>Bind your accounts for OAuth and extra rewards</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -96,13 +96,13 @@ export default function AccountPage() {
 
             <div className="space-y-6">
               <Card className="glass-card overflow-hidden">
-                <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:border-gray-700">
+                <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 ">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                       <Shield size={16} className="text-emerald-500" aria-hidden="true" />
                       Access Summary
                     </CardTitle>
-                    <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <Badge className="border-emerald-500/30 bg-emerald-500/20 text-emerald-600">
                       {address ? "Ready" : "Connect"}
                     </Badge>
                   </div>
@@ -117,7 +117,7 @@ export default function AccountPage() {
 
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <Link2 size={16} className="text-amber-500" aria-hidden="true" />
                     Next actions
                   </CardTitle>
@@ -125,13 +125,13 @@ export default function AccountPage() {
                 <CardContent className="space-y-3">
                   <Link
                     href="/miniapps"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800"
+                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 "
                   >
                     Browse live miniapps
                   </Link>
                   <Link
                     href="/docs"
-                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-800"
+                    className="block rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 "
                   >
                     Read integration docs
                   </Link>
@@ -140,23 +140,23 @@ export default function AccountPage() {
 
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                  <CardTitle className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                     <BookOpen size={16} className="text-indigo-400" aria-hidden="true" />
                     Frontend policy
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                <CardContent className="space-y-2 text-xs leading-relaxed text-gray-500">
                   <p>The account page now focuses on identity, wallet access, and connected providers.</p>
                   <p>Platform statistics remain hidden until the data pipeline is rebuilt. Reviews and comments stay enabled inside each miniapp.</p>
                 </CardContent>
               </Card>
 
-              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-6 dark:border-gray-700">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 p-6 ">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                   <Shield size={16} className="text-indigo-400" aria-hidden="true" />
                   Security Tip
                 </h3>
-                <p className="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                <p className="mt-2 text-xs leading-relaxed text-gray-500">
                   Connect multiple socials to ensure you can always recover your account access.
                 </p>
               </div>

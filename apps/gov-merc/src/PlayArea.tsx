@@ -72,7 +72,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Loading state */}
       {dataLoading && (
         <div className="loading-indicator">
-          <span>{t("loadFailed") || "Loading..."}</span>
+          <div className="loading-spinner" />
+          <span>{t("loading") || "Loading..."}</span>
         </div>
       )}
 

@@ -44,7 +44,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       {/* Loading indicator */}
       {isLoading && (
         <NeoCard variant="default" className="loading-card">
-          <span className="loading-text">{t("lookingUp") || "Loading..."}</span>
+          <div className="loading-content">
+            <div className="loading-spinner" />
+            <span className="loading-text">{t("lookingUp") || "Loading..."}</span>
+          </div>
         </NeoCard>
       )}
 

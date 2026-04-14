@@ -587,12 +587,12 @@ export default function DeveloperPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Template Marketplace</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <h2 className="text-2xl font-bold text-gray-900">Template Marketplace</h2>
+              <p className="text-sm text-gray-600 mt-1">
                 Browse published frontend and contract templates, then install to builder in one click.
               </p>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs text-gray-600 dark:text-gray-300">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
               <Store size={14} aria-hidden="true" />
               Live Market Feed
             </div>
@@ -650,7 +650,7 @@ export default function DeveloperPage() {
 
       <section className="py-12 px-4">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8">Platform Features</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">Platform Features</h2>
           <IconFeatureGrid
             columns={4}
             items={features.map((feature) => ({
@@ -707,7 +707,7 @@ export default function DeveloperPage() {
               role="dialog"
               aria-modal="true"
               aria-label="Template Builder"
-              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-2xl bg-white dark:bg-gray-900/95 backdrop-blur-xl border-l border-gray-200 dark:border-gray-700 shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-2xl bg-white backdrop-blur-xl border-l border-gray-200 shadow-2xl overflow-y-auto"
               tabIndex={-1}
             >
               <DeveloperDrawerHeader onClose={() => setShowForm(false)} />
@@ -778,7 +778,7 @@ export default function DeveloperPage() {
                     onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
                   >
                     {categories.map((c) => (
-                      <option key={c} value={c} className="bg-white dark:bg-gray-900">{c}</option>
+                      <option key={c} value={c} className="bg-white">{c}</option>
                     ))}
                   </SelectField>
                   <SelectField
@@ -788,7 +788,7 @@ export default function DeveloperPage() {
                     onChange={(e) => setForm({ ...form, template_type: e.target.value as FormData["template_type"] })}
                   >
                     {templateTypes.map((t) => (
-                      <option key={t} value={t} className="bg-white dark:bg-gray-900">{t}</option>
+                      <option key={t} value={t} className="bg-white">{t}</option>
                     ))}
                   </SelectField>
                   <TextField
@@ -874,8 +874,8 @@ export default function DeveloperPage() {
                   />
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Developer Metadata</h3>
+                <div className="pt-4 border-t border-gray-200">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Developer Metadata</h3>
                   <div className="space-y-4">
                     <TextField
                       id="submit-dev-name"
@@ -907,9 +907,9 @@ export default function DeveloperPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">JSON / YAML Definition</h3>
+                    <h3 className="text-sm font-semibold text-gray-700">JSON / YAML Definition</h3>
                     <DefinitionModeToggle mode={definitionMode} onChange={setDefinitionMode} />
                   </div>
 

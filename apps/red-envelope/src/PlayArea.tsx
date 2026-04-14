@@ -198,7 +198,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       >
         {isLoading ? (
           <div className="redenv-loading">
-            {t("loading") || "Loading..."}
+            <div className="redenv-loading-spinner" />
+            <span>{t("loading") || "Loading..."}</span>
           </div>
         ) : activeEnvelopes.length === 0 ? (
           <div className="redenv-empty">

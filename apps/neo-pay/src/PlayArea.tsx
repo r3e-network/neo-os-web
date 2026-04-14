@@ -206,7 +206,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       >
         {isLoading ? (
           <div className="neopay-loading">
-            {t("loading") || "Loading..."}
+            <div className="neopay-loading-spinner" />
+            <span>{t("loading") || "Loading..."}</span>
           </div>
         ) : createdStreams.length === 0 ? (
           <div className="neopay-empty">
@@ -284,7 +285,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       >
         {isLoading ? (
           <div className="neopay-loading">
-            {t("loading") || "Loading..."}
+            <div className="neopay-loading-spinner" />
+            <span>{t("loading") || "Loading..."}</span>
           </div>
         ) : beneficiaryStreams.length === 0 ? (
           <div className="neopay-empty">

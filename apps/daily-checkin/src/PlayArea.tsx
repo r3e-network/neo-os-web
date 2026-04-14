@@ -138,9 +138,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       <div className="checkin-streak-section">
         <div className={`checkin-fire-ring ${streakTier}${currentStreak > 0 ? " active" : ""}`}>
           <div className="checkin-flame-stack" aria-hidden="true">
-            <span className="checkin-flame checkin-flame-core">{"\uD83D\uDD25"}</span>
-            {currentStreak >= 7 && <span className="checkin-flame checkin-flame-outer">{"\uD83D\uDD25"}</span>}
-            {currentStreak >= 30 && <span className="checkin-flame checkin-flame-inferno">{"\uD83D\uDD25"}</span>}
+            <span className="checkin-flame checkin-flame-core">*</span>
+            {currentStreak >= 7 && <span className="checkin-flame checkin-flame-outer">**</span>}
+            {currentStreak >= 30 && <span className="checkin-flame checkin-flame-inferno">***</span>}
           </div>
           <span className="checkin-streak-number">{currentStreak}</span>
         </div>
@@ -180,7 +180,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 </span>
                 <span className="checkin-day-label">{t("dayPrefix") || "D"}{day}</span>
                 {day === 7 && weekSlotFilled >= 7 && (
-                  <span className="checkin-bonus-star" aria-hidden="true">&#x2B50;</span>
+                  <span className="checkin-bonus-star" aria-hidden="true">*</span>
                 )}
               </div>
             );
@@ -350,7 +350,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div key={idx} className="checkin-history-row">
                 <span className="checkin-history-date">{entry.time}</span>
                 <span className="checkin-history-streak">
-                  {"\uD83D\uDD25"} {entry.streak} {t("dayStreak") || "day streak"}
+                  {entry.streak} {t("dayStreak") || "day streak"}
                 </span>
                 <span className="checkin-history-reward">
                   +{entry.reward} {t("tokenGas") || "GAS"}

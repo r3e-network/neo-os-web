@@ -78,7 +78,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   if (isLoading) {
     return (
       <div className="flashloan-play-area">
-        <div className="flashloan-loading">{t("loading")}</div>
+        <div className="flashloan-loading">
+          <div className="flashloan-loading-spinner" />
+          <span>{t("loading") || "Loading..."}</span>
+        </div>
       </div>
     );
   }
