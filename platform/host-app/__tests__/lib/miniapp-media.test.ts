@@ -34,8 +34,8 @@ describe("miniapp-media helpers", () => {
   describe("getMiniAppPrimaryAssets", () => {
     it("returns primary JPG paths under /miniapp-assets", () => {
       expect(getMiniAppPrimaryAssets("miniapp-lottery", "/miniapps/lottery/")).toEqual({
-        logoURL: "/miniapp-assets/lottery/logo.jpg",
-        bannerURL: "/miniapp-assets/lottery/banner.jpg",
+        logoURL: "/miniapp-assets/lottery/logo.svg",
+        bannerURL: "/miniapp-assets/lottery/banner.svg",
       });
     });
 
@@ -62,10 +62,10 @@ describe("miniapp-media helpers", () => {
       expect(result[0]).toBe("/custom/logo.png");
       expect(result).toEqual(
         expect.arrayContaining([
-          "/miniapp-assets/lottery/logo.jpg",
+          "/miniapp-assets/lottery/logo.svg",
           "/miniapp-assets/lottery/logo.png",
-          "/miniapps/lottery/logo.jpg",
-          "/miniapps/lottery/public/logo.jpg",
+          "/miniapps/lottery/logo.svg",
+          "/miniapps/lottery/public/logo.svg",
           "/miniapps/lottery/static/icon.svg",
         ]),
       );
@@ -119,10 +119,10 @@ describe("miniapp-media helpers", () => {
 
       expect(result).toEqual(
         expect.arrayContaining([
-          "/miniapp-assets/lottery/banner.jpg",
+          "/miniapp-assets/lottery/banner.svg",
           "/miniapp-assets/lottery/banner.png",
-          "/miniapps/lottery/banner.jpg",
-          "/miniapps/lottery/public/banner.jpg",
+          "/miniapps/lottery/banner.svg",
+          "/miniapps/lottery/public/banner.svg",
           "/miniapps/lottery/static/banner.svg",
         ]),
       );
@@ -170,8 +170,8 @@ describe("miniapp-media helpers", () => {
         category: "gaming",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/fogplay/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/fogplay/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/fogplay/logo.svg");
+      expect(app.banner_url).toBe("/miniapp-assets/fogplay/banner.svg");
     });
 
     it("fills manifest-mode app media from canonical aliases", () => {
@@ -184,8 +184,8 @@ describe("miniapp-media helpers", () => {
         category: "defi",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/prediction-market/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/prediction-market/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/prediction-market/logo.svg");
+      expect(app.banner_url).toBe("/miniapp-assets/prediction-market/banner.svg");
     });
   });
 });

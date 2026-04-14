@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0D9488"/><stop offset="100%" stop-color="#0F766E"/></linearGradient></defs>
-  <circle cx="60" cy="60" r="56" fill="url(#bg)"/>
-  <circle cx="60" cy="38" r="8" fill="none" stroke="#fff" stroke-width="3"/>
-  <line x1="60" y1="46" x2="60" y2="78" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-  <line x1="48" y1="56" x2="72" y2="56" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
-  <path d="M44 78 Q52 88 60 78 Q68 88 76 78" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0D9488"/><stop offset="100%" stop-color="#0F766E"/></linearGradient></defs><circle cx="60" cy="60" r="56" fill="url(#bg)"/><circle cx="60" cy="38" r="8" fill="none" stroke="#fff" stroke-width="3"/><line x1="60" y1="46" x2="60" y2="78" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><line x1="48" y1="56" x2="72" y2="56" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><path d="M44 78 Q52 88 60 78 Q68 88 76 78" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>

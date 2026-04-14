@@ -1,17 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.5">
-      <stop offset="0%" stop-color="#0A0A0A"/>
-      <stop offset="100%" stop-color="#0A1210"/>
-    </linearGradient>
-    <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
-      <circle cx="8" cy="8" r="1" fill="#6EE7B7" opacity="0.04"/>
-    </pattern>
-  </defs>
-  <rect width="600" height="200" fill="url(#bg)"/>
-  <rect width="600" height="200" fill="url(#dots)"/>
-  <rect x="455" y="55" width="70" height="90" rx="4" fill="none" stroke="#6EE7B7" stroke-width="2" opacity="0.1"/>
-  <path d="M468 80 L480 92 L510 65" fill="none" stroke="#6EE7B7" stroke-width="3" stroke-linecap="round" opacity="0.12"/>
-  <rect x="468" y="105" width="40" height="4" rx="2" fill="#6EE7B7" opacity="0.08"/>
-  <rect x="468" y="115" width="28" height="4" rx="2" fill="#6EE7B7" opacity="0.06"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="0.5"><stop offset="0%" stop-color="#0A0A0A"/><stop offset="100%" stop-color="#0A1210"/></linearGradient><pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="1" fill="#6EE7B7" opacity="0.04"/></pattern></defs><rect width="600" height="200" fill="url(#bg)"/><rect width="600" height="200" fill="url(#dots)"/><rect x="455" y="55" width="70" height="90" rx="4" fill="none" stroke="#6EE7B7" stroke-width="2" opacity="0.1"/><path d="M468 80 L480 92 L510 65" fill="none" stroke="#6EE7B7" stroke-width="3" stroke-linecap="round" opacity="0.12"/><rect x="468" y="105" width="40" height="4" rx="2" fill="#6EE7B7" opacity="0.08"/><rect x="468" y="115" width="28" height="4" rx="2" fill="#6EE7B7" opacity="0.06"/></svg>

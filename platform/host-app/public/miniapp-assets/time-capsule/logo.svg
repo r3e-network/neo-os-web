@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFA"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs>
-  <circle cx="60" cy="60" r="56" fill="url(#bg)"/>
-  <path d="M44 34 L76 34" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-  <path d="M44 86 L76 86" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
-  <path d="M48 34 Q60 60 48 86" fill="none" stroke="#fff" stroke-width="2.5"/>
-  <path d="M72 34 Q60 60 72 86" fill="none" stroke="#fff" stroke-width="2.5"/>
-  <path d="M52 62 L60 68 L68 62" fill="#fff" opacity="0.6"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFA"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><circle cx="60" cy="60" r="56" fill="url(#bg)"/><path d="M44 34 L76 34" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M44 86 L76 86" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M48 34 Q60 60 48 86" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M72 34 Q60 60 72 86" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M52 62 L60 68 L68 62" fill="#fff" opacity="0.6"/></svg>
