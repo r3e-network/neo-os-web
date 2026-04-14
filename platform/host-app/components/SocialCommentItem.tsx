@@ -42,20 +42,20 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const maxDepth = 3;
 
   return (
-    <div className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 dark:border-gray-700 pl-4" : ""}`}>
+    <div className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 pl-4" : ""}`}>
       <div className="py-3">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
           {comment.is_developer_reply && (
-            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded-full">
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
               Developer
             </span>
           )}
-          <span className="text-sm text-gray-500 dark:text-gray-400">{new Date(comment.created_at).toLocaleDateString()}</span>
+          <span className="text-sm text-gray-500">{new Date(comment.created_at).toLocaleDateString()}</span>
         </div>
 
         {/* Content */}
-        <p className="text-gray-800 dark:text-gray-200 mb-2 break-words">{comment.content}</p>
+        <p className="text-gray-800 mb-2 break-words">{comment.content}</p>
 
         {/* Actions */}
         <div className="flex items-center gap-4 text-sm">
@@ -63,7 +63,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             type="button"
             onClick={() => onVote(comment.id, "upvote")}
             aria-label={`Upvote (${comment.upvotes})`}
-            className="flex items-center gap-1 py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+            className="flex items-center gap-1 py-1 px-2 text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
           >
             ▲ {comment.upvotes}
           </button>
@@ -71,7 +71,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             type="button"
             onClick={() => onVote(comment.id, "downvote")}
             aria-label={`Downvote (${comment.downvotes})`}
-            className="flex items-center gap-1 py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+            className="flex items-center gap-1 py-1 px-2 text-gray-500 hover:text-red-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
           >
             ▼ {comment.downvotes}
           </button>
@@ -80,7 +80,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
               type="button"
               onClick={() => setShowReplyForm(!showReplyForm)}
               aria-expanded={showReplyForm}
-              className="py-1 px-2 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              className="py-1 px-2 text-gray-500 hover:text-emerald-600 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
             >
               Reply
             </button>
@@ -89,7 +89,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={handleLoadReplies}
-              className="py-1 px-2 text-emerald-600 dark:text-emerald-400 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              className="py-1 px-2 text-emerald-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
               disabled={loadingReplies}
             >
               {loadingReplies ? "Loading..." : `${comment.reply_count} replies`}
@@ -107,7 +107,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
             aria-label="Write a reply"
-            className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-colors resize-none placeholder-gray-500 dark:placeholder-gray-400 rounded-lg p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            className="w-full border border-gray-200 bg-white text-gray-900 transition-colors resize-none placeholder-gray-500 rounded-lg p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             rows={2}
             maxLength={2000}
           />
@@ -123,7 +123,7 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
             <button
               type="button"
               onClick={() => setShowReplyForm(false)}
-              className="px-3 py-1 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              className="px-3 py-1 border border-gray-200 text-gray-900 rounded-lg text-sm transition-colors hover:bg-gray-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
             >
               Cancel
             </button>

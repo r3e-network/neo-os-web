@@ -18,21 +18,21 @@ export default function AccountContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Connected via {provider}</div>
-                  <div className="font-mono text-lg text-gray-900 dark:text-white truncate" title={address}>{address}</div>
+                  <div className="text-sm text-gray-500">Connected via {provider}</div>
+                  <div className="font-mono text-lg text-gray-900 truncate" title={address}>{address}</div>
                 </div>
                 <div className="h-3 w-3 rounded-full bg-emerald-500" />
               </div>
 
               {balance && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">NEO</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white">{balance.neo}</div>
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="text-sm text-gray-500">NEO</div>
+                    <div className="text-xl font-bold text-gray-900">{balance.neo}</div>
                   </div>
-                  <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">GAS</div>
-                    <div className="text-xl font-bold text-gray-900 dark:text-white">{balance.gas}</div>
+                  <div className="rounded-lg bg-gray-50 p-4">
+                    <div className="text-sm text-gray-500">GAS</div>
+                    <div className="text-xl font-bold text-gray-900">{balance.gas}</div>
                   </div>
                 </div>
               )}
@@ -43,8 +43,8 @@ export default function AccountContent() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400 mb-4">No wallet connected</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Connect your wallet using the button in the navigation bar</p>
+              <p className="text-gray-500 mb-4">No wallet connected</p>
+              <p className="text-sm text-gray-500">Connect your wallet using the button in the navigation bar</p>
             </div>
           )}
         </CardContent>

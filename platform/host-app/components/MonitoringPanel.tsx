@@ -70,7 +70,7 @@ export function MonitoringPanel({
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 dark:bg-[#0A0B10]/80 backdrop-blur-xl border border-gray-200/50 dark:border-white/10 hover:border-neo/50 text-gray-900 dark:text-white rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white dark:hover:bg-white/5`}
+        className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 backdrop-blur-xl border border-gray-200/50 hover:border-neo/50 text-gray-900 rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white
         aria-label={isOpen ? "Close monitoring dashboard" : "Open monitoring dashboard"}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,16 +85,16 @@ export function MonitoringPanel({
 
       {/* Dashboard Panel */}
       {isOpen && (
-        <div className={`fixed ${positionClasses[position]} mt-16 w-96 bg-white/90 dark:bg-[#0A0B10]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden z-50 transition-all`}>
+        <div className={`fixed ${positionClasses[position]} mt-16 w-96 bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-200/50 overflow-hidden z-50 transition-all`}>
           {/* Tabs */}
-          <div className="flex border-b border-gray-200/50 dark:border-white/10">
+          <div className="flex border-b border-gray-200/50">
             {(["overview", "errors", "performance", "analytics"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-3 px-3 text-xs font-bold capitalize transition-all focus-visible:outline-none ${activeTab === tab
                     ? "text-neo border-b-2 border-neo bg-neo/5"
-                    : "text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-black/5"
                   }`}
               >
                 {tab}
@@ -151,23 +151,23 @@ function OverviewTab({
   return (
     <div className="space-y-4">
       {/* Session Info */}
-      <div className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4">
-        <h4 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+      <div className="bg-white/50 border border-gray-200/50 rounded-2xl p-4">
+        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">
           Session
         </h4>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">ID:</span>
+            <span className="text-gray-600">ID:</span>
             <span className="font-mono text-xs truncate max-w-[150px]" title={session?.id}>
               {session?.id.slice(0, 16)}...
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+            <span className="text-gray-600">Duration:</span>
             <span>{session ? formatDuration(Date.now() - session.startTime) : "N/A"}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">First Visit:</span>
+            <span className="text-gray-600">First Visit:</span>
             <span>{session?.firstVisit ? "Yes" : "No"}</span>
           </div>
         </div>
@@ -206,7 +206,7 @@ function OverviewTab({
 function ErrorsTab({ errors }: { errors: TrackedError[] }) {
   if (errors.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-8 text-gray-500">
         <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -221,8 +221,8 @@ function ErrorsTab({ errors }: { errors: TrackedError[] }) {
         <div
           key={error.id}
           className={`p-4 rounded-2xl border transition-all hover:scale-[1.02] ${error.severity === "critical" || error.severity === "high"
-              ? "bg-red-50/50 dark:bg-red-900/10 border-red-200/50 dark:border-red-900/30"
-              : "bg-white/50 dark:bg-[#1A1C25]/50 border-gray-200/50 dark:border-white/5 hover:border-gray-300 dark:hover:border-white/10"
+              ? "bg-red-50/50 border-red-200/50"
+              : "bg-white/50 border-gray-200/50 hover:border-gray-300"
             }`}
         >
           <div className="flex items-start justify-between mb-1">
@@ -237,14 +237,14 @@ function ErrorsTab({ errors }: { errors: TrackedError[] }) {
               x{error.count}
             </span>
           </div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+          <p className="text-sm font-medium text-gray-900 mb-1">
             {error.name}
           </p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+          <p className="text-xs text-gray-600 truncate">
             {error.message}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
               {error.category}
             </span>
             <span className="text-xs text-gray-500">
@@ -277,7 +277,7 @@ function PerformanceTab({ metrics }: { metrics: ReturnType<typeof getPerformance
 
   if (latest.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="text-center py-8 text-gray-500">
         <p>No performance metrics collected</p>
       </div>
     );
@@ -286,9 +286,9 @@ function PerformanceTab({ metrics }: { metrics: ReturnType<typeof getPerformance
   return (
     <div className="space-y-3">
       {latest.map((metric) => (
-        <div key={metric.name} className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4">
+        <div key={metric.name} className="bg-white/50 border border-gray-200/50 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold text-gray-900 dark:text-white">
+            <span className="text-sm font-bold text-gray-900">
               {metric.name}
             </span>
             <span className="text-xs text-gray-500">
@@ -329,15 +329,15 @@ function AnalyticsTab({
   return (
     <div className="space-y-4">
       {/* Event Types */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+      <div className="bg-gray-50 rounded-lg p-3">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
           Event Types ({events.length})
         </h4>
         <div className="flex flex-wrap gap-1">
           {Object.entries(eventTypes).map(([type, count]) => (
             <span
               key={type}
-              className="text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"
+              className="text-xs bg-gray-200 px-2 py-1 rounded"
             >
               {type}: {count}
             </span>
@@ -346,8 +346,8 @@ function AnalyticsTab({
       </div>
 
       {/* Recent Events */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+      <div className="bg-gray-50 rounded-lg p-3">
+        <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
           Recent Events
         </h4>
         <div className="space-y-1 max-h-40 overflow-y-auto">
@@ -376,11 +376,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white/50 dark:bg-[#1A1C25]/50 border border-gray-200/50 dark:border-white/5 rounded-2xl p-4 text-center hover:border-neo/30 transition-colors">
+    <div className="bg-white/50 border border-gray-200/50 rounded-2xl p-4 text-center hover:border-neo/30 transition-colors">
       <div className={`text-3xl font-black ${color}`}>
         {value}
       </div>
-      <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 mt-1">
+      <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mt-1">
         {label}
       </div>
     </div>

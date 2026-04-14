@@ -21,15 +21,15 @@ export function OAuthBindingItem({
   const isConnected = Boolean(account);
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-4 dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-4">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{provider.icon}</span>
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">{provider.name}</p>
+          <p className="text-sm font-medium text-gray-900">{provider.name}</p>
           {isConnected && account ? (
-            <p className="text-xs text-gray-500 dark:text-gray-400">{account.email || account.name}</p>
+            <p className="text-xs text-gray-500">{account.email || account.name}</p>
           ) : (
-            <p className="text-xs text-gray-500 dark:text-gray-400">Not connected</p>
+            <p className="text-xs text-gray-500">Not connected</p>
           )}
         </div>
       </div>
@@ -41,7 +41,7 @@ export function OAuthBindingItem({
         className={cn(
           "h-8 text-xs",
           isConnected
-            ? "border-gray-200 text-gray-500 transition-colors hover:border-red-400/30 hover:text-red-400 dark:border-gray-700 dark:text-gray-400"
+            ? "border-gray-200 text-gray-500 transition-colors hover:border-red-400/30 hover:text-red-400"
             : "bg-neo hover:bg-neo/90",
         )}
       >

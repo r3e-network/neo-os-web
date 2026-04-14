@@ -13,7 +13,7 @@ export function ExplorerSearchResults({ result }: { result: ExplorerSearchResult
   if (!result.found) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">No results found for this query</CardContent>
+        <CardContent className="py-8 text-center text-gray-500">No results found for this query</CardContent>
       </Card>
     );
   }
@@ -23,7 +23,7 @@ export function ExplorerSearchResults({ result }: { result: ExplorerSearchResult
       if (!result.data) {
         return (
           <Card>
-            <CardContent className="py-8 text-center text-gray-500 dark:text-gray-400">
+            <CardContent className="py-8 text-center text-gray-500">
               Transaction data unavailable
             </CardContent>
           </Card>
@@ -70,7 +70,7 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
           <CardContent>
             <div className="max-h-96 overflow-auto">
               <table className="w-full text-xs font-mono" aria-label="Opcode execution trace">
-                <thead className="sticky top-0 bg-white dark:bg-gray-900">
+                <thead className="sticky top-0 bg-white">
                   <tr className="border-b">
                     <th scope="col" className="p-2 text-left">Step</th>
                     <th scope="col" className="p-2 text-left">Opcode</th>
@@ -80,10 +80,10 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
                 </thead>
                 <tbody>
                   {data.opcode_traces.map((trace) => (
-                    <tr key={trace.step_index} className="border-b transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <tr key={trace.step_index} className="border-b transition-colors hover:bg-gray-50">
                       <td className="p-2">{trace.step_index}</td>
-                      <td className="p-2 text-emerald-600 dark:text-emerald-400">{trace.opcode}</td>
-                      <td className="p-2 text-gray-500 dark:text-gray-400">{trace.opcode_hex}</td>
+                      <td className="p-2 text-emerald-600">{trace.opcode}</td>
+                      <td className="p-2 text-gray-500">{trace.opcode_hex}</td>
                       <td className="p-2">{trace.instruction_ptr}</td>
                     </tr>
                   ))}
@@ -122,10 +122,10 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
               {data.syscalls.map((syscall) => (
                 <li
                   key={`${syscall.contract_hash}-${syscall.syscall_name}`}
-                  className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700"
+                  className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm"
                 >
                   <span className="font-mono">{syscall.syscall_name}</span>
-                  <span className="text-gray-500 dark:text-gray-400">{syscall.gas_consumed} GAS</span>
+                  <span className="text-gray-500">{syscall.gas_consumed} GAS</span>
                 </li>
               ))}
             </ul>
@@ -147,14 +147,14 @@ function AddressResult({ result }: { result: ExplorerSearchResult }) {
         {result.transactions && result.transactions.length > 0 ? (
           <ul className="space-y-2">
             {result.transactions.map((tx) => (
-              <li key={tx.tx_hash} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
+              <li key={tx.tx_hash} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm">
                 <span className="break-all font-mono text-xs">{tx.tx_hash}</span>
                 <Badge variant="outline">{tx.role}</Badge>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No transactions found</p>
+          <p className="text-sm text-gray-500">No transactions found</p>
         )}
       </CardContent>
     </Card>
@@ -172,14 +172,14 @@ function ContractResult({ result }: { result: ExplorerSearchResult }) {
         {result.calls && result.calls.length > 0 ? (
           <ul className="space-y-2">
             {result.calls.map((call) => (
-              <li key={`${call.contract_hash}-${call.method}`} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
+              <li key={`${call.contract_hash}-${call.method}`} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm">
                 <span className="font-medium">{call.method}</span>
                 <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No contract calls found</p>
+          <p className="text-sm text-gray-500">No contract calls found</p>
         )}
       </CardContent>
     </Card>
@@ -189,7 +189,7 @@ function ContractResult({ result }: { result: ExplorerSearchResult }) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <span className="text-gray-500 dark:text-gray-400">{label}:</span>
+      <span className="text-gray-500">{label}:</span>
       {value}
     </div>
   );
@@ -197,12 +197,12 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function ContractCallListItem({ call }: { call: ExplorerContractCall }) {
   return (
-    <li className="rounded-lg border border-gray-200 p-2 text-sm dark:border-gray-700">
+    <li className="rounded-lg border border-gray-200 p-2 text-sm">
       <div className="flex justify-between">
         <span className="font-medium">{call.method}</span>
         <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
       </div>
-      <p className="break-all font-mono text-xs text-gray-500 dark:text-gray-400">{call.contract_hash}</p>
+      <p className="break-all font-mono text-xs text-gray-500">{call.contract_hash}</p>
     </li>
   );
 }

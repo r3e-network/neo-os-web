@@ -24,17 +24,17 @@ export function OperationPanel({
   const activeOp = operations[activeTabIdx];
 
   return (
-    <div className={cn("bg-white dark:bg-[#1C1D22] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden", className)}>
+    <div className={cn("bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden", className)}>
       {showTitle && (
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white m-0">{title}</h3>
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900 m-0">{title}</h3>
         </div>
       )}
 
       {/* Segmented Control for Operations */}
       {operations.length > 1 && (
         <div className="p-2">
-          <div className="flex p-1 space-x-1 bg-gray-100 dark:bg-black/40 rounded-xl">
+          <div className="flex p-1 space-x-1 bg-gray-100 rounded-xl">
             {operations.map((op, idx) => (
               <button
                 key={op.name + idx}
@@ -43,7 +43,7 @@ export function OperationPanel({
                   "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none",
                   activeTabIdx === idx
                     ? getTabActiveColor(op.button_style)
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent"
+                    : "text-gray-500 hover:text-gray-700 bg-transparent"
                 )}
               >
                 {op.name}
@@ -62,10 +62,10 @@ export function OperationPanel({
 }
 
 function getTabActiveColor(style?: string) {
-  if (style === "danger") return "bg-white dark:bg-gray-800 text-red-500 shadow-sm";
-  if (style === "success") return "bg-white dark:bg-gray-800 text-emerald-500 shadow-sm";
-  if (style === "secondary") return "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm";
-  return "bg-white dark:bg-gray-800 text-neo shadow-sm";
+  if (style === "danger") return "bg-white text-red-500 shadow-sm";
+  if (style === "success") return "bg-white text-emerald-500 shadow-sm";
+  if (style === "secondary") return "bg-white text-gray-900 shadow-sm";
+  return "bg-white text-neo shadow-sm";
 }
 
 function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["onInvoke"] }) {
@@ -106,14 +106,14 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
   const getBtnClass = () => {
     if (op.button_style === "danger") return "bg-red-500 hover:bg-red-600 text-white";
     if (op.button_style === "success") return "bg-emerald-500 hover:bg-emerald-600 text-white";
-    if (op.button_style === "secondary") return "bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white";
+    if (op.button_style === "secondary") return "bg-gray-200 hover:bg-gray-300 text-gray-900";
     return "bg-neo hover:bg-neo/90 text-black";
   };
 
   return (
     <div className="flex flex-col space-y-4">
       {op.description && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+        <p className="text-sm text-gray-500 mb-2 leading-relaxed">
           {op.description}
         </p>
       )}
@@ -128,14 +128,14 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
       ))}
 
       {op.gas_cost && (
-        <div className="flex justify-between items-center py-3 border-t border-gray-100 dark:border-gray-800/60 mt-2">
-          <span className="text-sm text-gray-500 dark:text-gray-400">Network Fee</span>
-          <span className="text-sm font-medium text-gray-900 dark:text-white">{op.gas_cost} GAS</span>
+        <div className="flex justify-between items-center py-3 border-t border-gray-100 mt-2">
+          <span className="text-sm text-gray-500">Network Fee</span>
+          <span className="text-sm font-medium text-gray-900">{op.gas_cost} GAS</span>
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm break-words">
+        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm break-words">
           {error}
         </div>
       )}
@@ -169,14 +169,14 @@ function ParamInput({
 
   if (param.type === "boolean") {
     return (
-      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-800 cursor-pointer hover:border-neo/50 transition-colors">
+      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-neo/50 transition-colors">
         <input
           type="checkbox"
           className="w-5 h-5 rounded border-gray-300 text-neo focus:ring-neo focus:ring-offset-gray-900"
           checked={value === "true"}
           onChange={(e) => onChange(e.target.checked ? "true" : "false")}
         />
-        <span className="text-sm font-medium text-gray-900 dark:text-white">{label}</span>
+        <span className="text-sm font-medium text-gray-900">{label}</span>
       </label>
     );
   }
@@ -199,11 +199,11 @@ function ParamInput({
     const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
     return (
       <div className="flex flex-col space-y-1.5">
-        <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
+        <label htmlFor={selectId} className="text-sm font-medium text-gray-700">{label}</label>
         <div className="relative">
           <select
             id={selectId}
-            className="w-full appearance-none bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all"
+            className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all"
             value={value}
             onChange={(e) => onChange(e.target.value)}
           >
@@ -226,12 +226,12 @@ function ParamInput({
   const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="flex flex-col space-y-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-gray-700 dark:text-gray-400">{label}</label>
+      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">{label}</label>
       <input
         id={inputId}
         type={param.type === "amount" || param.type === "integer" ? "number" : "text"}
         step={param.type === "amount" ? "any" : "1"}
-        className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+        className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400"
         placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
