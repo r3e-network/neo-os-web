@@ -6,153 +6,79 @@
   justify-content: center;
   gap: $spacing-2;
   font-family: $font-family;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: 12px;
   position: relative;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: all 0.2s $ease-smooth;
 
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-  }
+  &:hover:not(:disabled) { transform: translateY(-1px); }
+  &:active:not(:disabled) { transform: translateY(0); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:focus-visible { outline: 2px solid #10b981; outline-offset: 2px; }
 
-  &:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(0.5);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #00e599);
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(0, 229, 153, 0.15);
-  }
-
-  &--block {
-    width: 100%;
-    display: flex;
-  }
+  &--block { width: 100%; display: flex; }
 
   // Sizes
-  &--sm {
-    height: 32px;
-    padding: 0 16px;
-    font-size: 11px;
-  }
+  &--sm { height: 32px; padding: 0 14px; font-size: 12px; }
+  &--md { height: 40px; padding: 0 20px; font-size: 13px; }
+  &--lg { height: 48px; padding: 0 28px; font-size: 14px; }
 
-  &--md {
-    height: 44px;
-    padding: 0 24px;
-    font-size: 13px;
-  }
-
-  &--lg {
-    height: 56px;
-    padding: 0 32px;
-    font-size: 15px;
-  }
-
-  // Variants
+  // Variants — light theme
   &--primary {
-    background: linear-gradient(135deg, var(--btn-primary-start, #9f9df3) 0%, var(--btn-primary-end, #f7aac7) 100%);
-    color: var(--btn-primary-color, #1b1b2f);
-    box-shadow: 0 12px 30px var(--btn-primary-shadow, rgba(159, 157, 243, 0.35));
-    border: none;
-
-    &:hover:not(:disabled) {
-      box-shadow: 0 18px 40px rgba(159, 157, 243, 0.45);
-      filter: brightness(1.1);
-    }
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    &:hover:not(:disabled) { background: #059669; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
   }
 
   &--secondary {
-    background: var(--bg-card, rgba(255, 255, 255, 0.05));
-    color: var(--text-primary, white);
-    border: 1px solid var(--border-color, rgba(159, 157, 243, 0.18));
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 10px var(--shadow-color, rgba(0, 0, 0, 0.1));
-
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: var(--border-color, rgba(255, 255, 255, 0.2));
-      box-shadow: 0 4px 15px var(--shadow-color, rgba(0, 0, 0, 0.2));
-    }
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    &:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
   }
 
   &--ghost {
     background: transparent;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-    border-color: transparent;
-    box-shadow: none;
-
-    &:hover:not(:disabled) {
-      color: var(--text-primary, white);
-      background: var(--bg-card, rgba(255, 255, 255, 0.05));
-      box-shadow: 0 0 15px rgba(0, 229, 153, 0.1);
-    }
+    color: #6b7280;
+    &:hover:not(:disabled) { color: #1f2937; background: #f3f4f6; }
   }
 
   &--danger {
-    background: linear-gradient(135deg, var(--accent-error, #ef4444) 0%, var(--accent-error-dark, #dc2626) 100%);
-    color: var(--button-on-danger, white);
-    box-shadow: 0 4px 15px var(--accent-error, rgba(239, 68, 68, 0.4));
-    border: none;
-
-    &:hover:not(:disabled) {
-      box-shadow: 0 6px 25px var(--accent-error, rgba(239, 68, 68, 0.6));
-      filter: brightness(1.1);
-    }
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+    &:hover:not(:disabled) { background: #dc2626; }
   }
 
   &--success {
-    background: linear-gradient(135deg, var(--accent-success, #10b981) 0%, var(--accent-success-dark, #059669) 100%);
-    color: var(--button-on-success, white);
-    box-shadow: 0 4px 15px var(--accent-success, rgba(16, 185, 129, 0.4));
-    border: none;
-
-    &:hover:not(:disabled) {
-      box-shadow: 0 6px 25px var(--accent-success, rgba(16, 185, 129, 0.6));
-      filter: brightness(1.1);
-    }
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+    &:hover:not(:disabled) { background: #059669; }
   }
 
   &--warning {
-    background: linear-gradient(135deg, var(--accent-warning, #f59e0b) 0%, var(--accent-warning-dark, #eab308) 100%);
-    color: var(--button-on-warning, #000);
-    box-shadow: 0 4px 15px var(--accent-warning, rgba(253, 224, 71, 0.4));
-    border: none;
-
-    &:hover:not(:disabled) {
-      box-shadow: 0 6px 25px var(--accent-warning, rgba(253, 224, 71, 0.6));
-      filter: brightness(1.1);
-    }
+    background: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+    &:hover:not(:disabled) { background: #d97706; }
   }
 
   &--erobo {
-    background: var(--btn-erobo-bg, #1b1b2f);
-    color: var(--btn-erobo-color, #fff);
-    box-shadow: 0 20px 50px var(--btn-erobo-shadow, rgba(27, 27, 47, 0.35));
-    border: none;
-
-    &:hover:not(:disabled) {
-      box-shadow: 0 28px 65px rgba(27, 27, 47, 0.45);
-      filter: brightness(1.1);
-    }
+    background: #1f2937;
+    color: #ffffff;
+    &:hover:not(:disabled) { background: #111827; }
   }
 
-  // Loading spinner
+  // Spinner
   &__spinner {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 2px solid currentColor;
     border-top-color: transparent;
     border-radius: 50%;
@@ -161,21 +87,12 @@
 }
 
 @keyframes neo-btn-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .neo-btn {
     transition: none;
-
-    &:hover:not(:disabled) {
-      transform: none;
-    }
-
-    &:active:not(:disabled) {
-      transform: none;
-    }
+    &:hover:not(:disabled), &:active:not(:disabled) { transform: none; }
   }
 }
