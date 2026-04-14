@@ -1,8 +1,8 @@
 @use "../styles/tokens.scss" as *;
 
 .form-card {
-  background: var(--bg-card, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+  background: var(--bg-card, #f9fafb);
+  border: 1px solid var(--border-color, #f3f4f6);
   border-radius: var(--card-radius, 20px);
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -13,7 +13,7 @@
     align-items: flex-start;
     justify-content: space-between;
     padding: $spacing-5;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    border-bottom: 1px solid var(--border-color, #f3f4f6);
   }
 
   &__header-text {
@@ -25,7 +25,7 @@
   &__title {
     font-size: $font-size-md;
     font-weight: $font-weight-bold;
-    color: var(--text-primary, rgba(255, 255, 255, 0.9));
+    color: var(--text-primary, #1f2937);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-family: $font-family;
@@ -33,7 +33,7 @@
 
   &__description {
     font-size: $font-size-sm;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    color: var(--text-secondary, #6b7280);
     line-height: 1.4;
   }
 
@@ -64,7 +64,7 @@
   &__spinner {
     width: 24px;
     height: 24px;
-    border: 2px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border: 2px solid var(--border-color, #e5e7eb);
     border-top-color: var(--text-primary, #ffffff);
     border-radius: 50%;
     animation: formCardSpin 0.8s linear infinite;
@@ -84,7 +84,7 @@
 
   &__actions {
     padding: $spacing-4 $spacing-5;
-    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    border-top: 1px solid var(--border-color, #f3f4f6);
     background: var(--bg-secondary, rgba(0, 0, 0, 0.2));
     display: flex;
     gap: $spacing-3;

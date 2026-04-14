@@ -10,9 +10,9 @@
     min-width: 92px;
     text-align: center;
     padding: 8px 16px;
-    background: var(--hero-stat-bg, rgba(255, 255, 255, 0.08));
+    background: var(--hero-stat-bg, #e5e7eb);
     border-radius: 8px;
-    border: 1px solid var(--hero-stat-border, rgba(255, 255, 255, 0.15));
+    border: 1px solid var(--hero-stat-border, #e5e7eb);
     box-shadow: var(--hero-stat-shadow, none);
   }
 
@@ -35,7 +35,7 @@
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    color: var(--hero-stat-label-color, var(--text-secondary, rgba(255, 255, 255, 0.6)));
+    color: var(--hero-stat-label-color, var(--text-secondary, #6b7280));
     letter-spacing: 1px;
     margin-top: 2px;
   }

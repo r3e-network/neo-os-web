@@ -23,8 +23,8 @@
 
   &__item {
     .stats-display--grid & {
-      background: var(--bg-card, rgba(255, 255, 255, 0.03));
-      border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+      background: var(--bg-card, #f9fafb);
+      border: 1px solid var(--border-color, #f3f4f6);
       border-radius: $spacing-3;
       padding: $spacing-3;
       text-align: center;
@@ -33,7 +33,7 @@
 
       &:hover {
         transform: translateY(-2px);
-        background: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+        background: var(--bg-elevated, #f3f4f6);
         border-color: rgba(159, 157, 243, 0.3);
       }
     }
@@ -43,7 +43,7 @@
       justify-content: space-between;
       align-items: center;
       padding: $spacing-3 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid #f3f4f6;
 
       &:last-child {
         border-bottom: none;
@@ -137,7 +137,7 @@
     }
     &--neutral::before {
       content: "\2014";
-      color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+      color: var(--text-secondary, #6b7280);
     }
   }
 
@@ -145,7 +145,7 @@
     display: block;
     font-size: $font-size-xs;
     font-weight: 600;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
+    color: var(--text-secondary, #6b7280);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 
@@ -185,7 +185,7 @@
     width: 60%;
     height: 18px;
     margin: 0 auto 6px;
-    background: rgba(255, 255, 255, 0.06);
+    background: #f3f4f6;
     border-radius: 4px;
     animation: statsDisplayPulse 1s ease-in-out infinite;
   }
@@ -194,7 +194,7 @@
     width: 80%;
     height: 11px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.04);
+    background: #f3f4f6;
     border-radius: 3px;
     animation: statsDisplayPulse 1s ease-in-out infinite 0.2s;
   }
