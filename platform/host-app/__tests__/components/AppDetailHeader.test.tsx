@@ -20,7 +20,7 @@ describe("AppDetailHeader", () => {
     render(<AppDetailHeader app={mockApp} onBack={onBack} />);
 
     expect(screen.getByText("Test App")).toBeInTheDocument();
-    expect(screen.getByText("🎮")).toBeInTheDocument();
+    expect(screen.getByAltText("Test App")).toBeInTheDocument();
     expect(screen.getByText("gaming")).toBeInTheDocument();
   });
 
