@@ -1,8 +1,89 @@
 @use "@shared/styles/tokens.scss" as *;
+
 .dev-tipping-play-area {
   display: flex;
   flex-direction: column;
   gap: 24px;
   padding: 20px 12px;
   min-height: 300px;
+}
+
+.tipping-stats {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tipping-stat {
+  text-align: center;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 80px;
+}
+
+.tipping-stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tipping-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1.2px;
+  margin-top: 2px;
+}
+
+.wallet-card { margin: 0; }
+
+.wallet-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wallet-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.wallet-value {
+  font-family: monospace;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.recent-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recent-tip-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-child { border-bottom: none; }
+}
+
+.recent-tip-from {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.recent-tip-amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4ade80;
 }

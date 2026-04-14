@@ -1,4 +1,5 @@
 @use "@shared/styles/tokens.scss" as *;
+
 .vault-play-area {
   display: flex;
   flex-direction: column;
@@ -7,11 +8,78 @@
   min-height: 300px;
 }
 
+.vault-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vault-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
 .vault-list-container {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 20px;
+}
+
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vault-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.vault-id {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+}
+
+.vault-status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
 }
 
 .empty-state {

@@ -1,5 +1,8 @@
 /**
- * PlayArea.tsx — React version of the Neo Treasury PlayArea.
+ * PlayArea.tsx — Neo Treasury
+ *
+ * Full interactive treasury dashboard: stats bar with USD/NEO/GAS totals,
+ * hero section, category breakdown, loading/error states, and refresh action.
  */
 
 import { NeoButton, NeoCard } from "@shared/components-react";
@@ -25,11 +28,15 @@ interface PlayAreaProps {
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { bool, str, val } = useStateBindings(state);
+  const { bool, str, num, val } = useStateBindings(state);
 
   const data = val<TreasuryData>("data");
   const loading = bool("loading");
   const error = str("error");
+  const totalUsdDisplay = str("totalUsdDisplay");
+  const totalNeoDisplay = str("totalNeoDisplay");
+  const totalGasDisplay = str("totalGasDisplay");
+  const founderCount = num("founderCount");
 
   const handleRefresh = async () => {
     await dispatch("refresh");
@@ -37,6 +44,27 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="treasury-play-area">
+      {/* Stats Bar */}
+      <div className="stats-bar">
+        <div className="stat-chip">
+          <span className="stat-value">{totalUsdDisplay || "--"}</span>
+          <span className="stat-label">{t("sidebarTotalUsd") || "Total USD"}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{totalNeoDisplay || "--"}</span>
+          <span className="stat-label">{t("tokenNeo") || "NEO"}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{totalGasDisplay || "--"}</span>
+          <span className="stat-label">{t("tokenGas") || "GAS"}</span>
+        </div>
+        <div className="stat-chip">
+          <span className="stat-value">{founderCount}</span>
+          <span className="stat-label">{t("categories") || "Categories"}</span>
+        </div>
+      </div>
+
+      {/* Hero */}
       <TreasuryHero
         t={t}
         totalUsd={data?.totalUsd}
@@ -46,9 +74,34 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       {/* Main Content */}
       {data ? (
-        <div>
+        <>
           <TreasuryLoadingState t={t} loading={loading} error="" hasData={true} />
-        </div>
+
+          {/* Category Breakdown */}
+          {data.categories && data.categories.length > 0 && (
+            <NeoCard variant="erobo" className="categories-card">
+              <span className="section-title">{t("treasuryBreakdown") || "Treasury Breakdown"}</span>
+              <div className="categories-list">
+                {data.categories.map((cat: { name: string; [key: string]: unknown }, idx: number) => (
+                  <div key={idx} className="category-row">
+                    <span className="category-name">{cat.name}</span>
+                    <span className="category-detail">
+                      {Object.entries(cat)
+                        .filter(([k]) => k !== "name")
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(" | ")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </NeoCard>
+          )}
+
+          {/* Last Updated */}
+          {data.lastUpdated && (
+            <span className="last-updated">{t("lastUpdated") || "Last updated"}: {data.lastUpdated}</span>
+          )}
+        </>
       ) : (
         <TreasuryLoadingState
           t={t}
@@ -59,16 +112,17 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         />
       )}
 
-      {/* Operation Panel Inline */}
-      <NeoCard variant="erobo">
+      {/* Operation Panel */}
+      <NeoCard variant="erobo" className="operation-card">
         <NeoButton
           size="sm"
           variant="primary"
           className="op-btn"
           disabled={loading}
           onClick={handleRefresh}
+          aria-label={loading ? (t("refreshing") || "Refreshing...") : (t("refreshData") || "Refresh")}
         >
-          {loading ? t("refreshing") : t("refreshData")}
+          {loading ? (t("refreshing") || "Refreshing...") : (t("refreshData") || "Refresh Data")}
         </NeoButton>
       </NeoCard>
     </div>

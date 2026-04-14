@@ -28,6 +28,128 @@ body { background: var(--swap-bg-start); }
   > * { position: relative; z-index: 1; }
 }
 
+.swap-form-card { margin: 0; }
+
+.swap-field {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+  &:last-of-type { border-bottom: none; }
+}
+
+.swap-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.swap-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+.swap-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+
+  .neo-input { flex: 1; }
+}
+
+.swap-balance {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4px;
+  display: block;
+}
+
+.swap-direction {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.swap-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+}
+
+.swap-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.swap-detail-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.swap-detail-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.token-selector {
+  position: relative;
+  z-index: 10;
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.selector-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.token-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.token-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(255, 255, 255, 0.06); }
+}
+
+.token-symbol {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.token-bal {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .neo-swap-play-area::before { animation: none; }
 }

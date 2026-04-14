@@ -3,6 +3,58 @@
 
 .automation-play-area { @include console.play-area; min-height: 300px; }
 
+.stats-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex: 1;
+  min-width: 100px;
+}
+
+.stat-chip-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-chip-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child { border-bottom: none; }
+}
+
+.label { @include console.label; }
+.value { @include console.value; }
+.mono { font-family: var(--font-mono, monospace); font-size: 12px; }
+
 .stack { @include console.stack; }
 .button-row { @include console.button-grid(2); }
 .json-box {
