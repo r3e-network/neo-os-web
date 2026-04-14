@@ -217,7 +217,7 @@ export function MiniAppLogo({ appId, category, entryUrl, logoUrl, manifest, size
   const logoSource = logoSources[logoIndex];
   if (logoSource) {
     return (
-      <div className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 ${className}`}>
+      <div className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 ${className}`}>
         <img
           src={logoSource}
           alt={appId}
