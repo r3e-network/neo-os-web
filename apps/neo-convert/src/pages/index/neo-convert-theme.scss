@@ -31,7 +31,7 @@
 
 :global(.theme-light .theme-neo-convert),
 :global([data-theme="light"] .theme-neo-convert) {
-  --convert-hero-gradient: linear-gradient(135deg, #1b1b2f 0%, #4a4a63 100%);
+  --convert-hero-gradient: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
   --convert-label: #5a58a3;
   --convert-error: #dc2626;
   --convert-panel-bg: rgba(27, 27, 47, 0.04);
