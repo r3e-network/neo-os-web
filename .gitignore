@@ -168,3 +168,4 @@ platform/host-app/public/miniapp-assets/**/*.png
 lastsurvivor-*.png
 obsidian-terminal.png
 polymarket-layout.png
+apps/*/dist/
