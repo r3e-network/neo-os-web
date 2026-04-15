@@ -9,5 +9,4 @@ export { BadgeProxy } from "./BadgeProxy";
 export { LeaderboardProxy } from "./LeaderboardProxy";
 export { CheckinProxy } from "./CheckinProxy";
 export { NFTProxy } from "./NFTProxy";
-export { ScriptProxy } from "./ScriptProxy";
 export type { OSServices } from "./types";
