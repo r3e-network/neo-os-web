@@ -7,7 +7,6 @@ import type { BadgeProxy } from "./BadgeProxy";
 import type { LeaderboardProxy } from "./LeaderboardProxy";
 import type { CheckinProxy } from "./CheckinProxy";
 import type { NFTProxy } from "./NFTProxy";
-import type { ScriptProxy } from "./ScriptProxy";
 
 /** All OS services available through PlatformContext.os */
 export interface OSServices {
@@ -20,5 +19,4 @@ export interface OSServices {
   leaderboard: LeaderboardProxy;
   checkin: CheckinProxy;
   nft: NFTProxy;
-  script: ScriptProxy;
 }
