@@ -1,4 +1,4 @@
-import { NeoButton, NeoCard } from "@shared/components-react";
+import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TarotHero from "./components/TarotHero";
