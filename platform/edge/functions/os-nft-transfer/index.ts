@@ -1,7 +1,7 @@
-import { getEnv } from "../_shared/env.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getEnv("CONTRACT_NFT_SERVICE_HASH") ?? "";
+const CONTRACT_HASH = getKernelHash();
 
 export const handler = createOSHandler(
   { scopeName: "os-nft-transfer", permission: "nft" },
