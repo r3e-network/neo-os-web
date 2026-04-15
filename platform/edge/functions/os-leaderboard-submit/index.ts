@@ -1,4 +1,4 @@
-import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
@@ -9,7 +9,7 @@ export const handler = createOSHandler(
     const scoreInt = Number(score);
     if (!Number.isFinite(scoreInt)) throw new Error("score must be a number");
 
-    return buildInvocationIntent(OS_CONTRACTS.leaderboard, "SubmitScore", [
+    return buildInvocationIntent(getKernelHash(), "SubmitScore", [
       { type: "String", value: appId },
       { type: "Hash160", value: userId },
       { type: "Integer", value: String(Math.floor(scoreInt)) },

@@ -1,4 +1,4 @@
-import { OS_CONTRACTS } from "../_shared/os-contracts.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
@@ -7,7 +7,7 @@ export const handler = createOSHandler(
     const badgeId = String(params.badge_id ?? params.badgeId ?? "").trim();
     if (!badgeId) throw new Error("badge_id required");
 
-    return buildInvocationIntent(OS_CONTRACTS.badge, "AwardBadge", [
+    return buildInvocationIntent(getKernelHash(), "AwardBadge", [
       { type: "String", value: appId },
       { type: "String", value: badgeId },
       { type: "Hash160", value: userId },
