@@ -45,7 +45,6 @@ import { BadgeProxy } from "./os/BadgeProxy";
 import { LeaderboardProxy } from "./os/LeaderboardProxy";
 import { CheckinProxy } from "./os/CheckinProxy";
 import { NFTProxy } from "./os/NFTProxy";
-import { ScriptProxy } from "./os/ScriptProxy";
 import type { OSServices } from "./os/types";
 
 // ---------------------------------------------------------------------------
@@ -131,7 +130,6 @@ export class PlatformServices {
       leaderboard: new LeaderboardProxy(appId, edge),
       checkin: new CheckinProxy(appId, edge),
       nft: new NFTProxy(appId, edge),
-      script: new ScriptProxy(appId, edge),
     };
   }
 
