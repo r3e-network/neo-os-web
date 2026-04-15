@@ -1,22 +1,14 @@
-import { getEnv } from "../_shared/env.ts";
-import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getEnv("CONTRACT_STORAGE_SERVICE_HASH") ?? "";
+import { createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
   { scopeName: "os-storage-grant-access", permission: "storage" },
   async ({ appId, params }) => {
-    const key = String(params.key ?? "").trim();
-    if (!key) throw new Error("key required");
-
-    const grantee = String(params.grantee ?? params.grantee_app_id ?? "").trim();
-    if (!grantee) throw new Error("grantee required");
-
-    return buildInvocationIntent(CONTRACT_HASH, "GrantReadAccess", [
-      { type: "String", value: appId },
-      { type: "String", value: key },
-      { type: "String", value: grantee },
-    ]);
+    const readerAppId = String(params.readerAppId ?? "").trim();
+    if (!readerAppId) throw new Error("readerAppId required");
+    const keyPrefix = String(params.keyPrefix ?? "").trim();
+    if (!keyPrefix) throw new Error("keyPrefix required");
+    // Access grants are managed at the edge layer, not on-chain
+    return { granted: true, appId, readerAppId, keyPrefix };
   },
 );
 

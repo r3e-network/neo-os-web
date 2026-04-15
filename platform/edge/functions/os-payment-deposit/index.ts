@@ -1,6 +1,7 @@
 import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { parseDecimalToInt } from "../_shared/amount.ts";
-import { NATIVE_CONTRACTS, OS_CONTRACTS } from "../_shared/os-contracts.ts";
+import { NATIVE_CONTRACTS } from "../_shared/os-contracts.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
@@ -15,7 +16,7 @@ export const handler = createOSHandler(
     if (amount <= 0n) throw new Error("amount must be > 0");
 
     const gasContractHash = normalizeUInt160(NATIVE_CONTRACTS.gas);
-    const paymentServiceHash = normalizeUInt160(OS_CONTRACTS.payment);
+    const paymentServiceHash = normalizeUInt160(getKernelHash());
     if (!paymentServiceHash) throw new Error("payment service contract not configured");
 
     const memo = String(params.memo ?? "").trim() || appId;
