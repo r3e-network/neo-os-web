@@ -1,7 +1,7 @@
-import { getEnv } from "../_shared/env.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { createOSHandler, invokeOSContract } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getEnv("CONTRACT_SCRIPT_ENGINE_HASH") ?? "";
+const CONTRACT_HASH = getKernelHash();
 
 export const handler = createOSHandler(
   { scopeName: "os-script-list", permission: "scripts" },

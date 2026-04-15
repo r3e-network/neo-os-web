@@ -1,25 +1,20 @@
-import { getEnv } from "../_shared/env.ts";
-import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getEnv("CONTRACT_STORAGE_SERVICE_HASH") ?? "";
-
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT = 200;
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
+import { createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
   { scopeName: "os-storage-list", permission: "storage", cacheable: true },
   async ({ appId, params }) => {
     const prefix = String(params.prefix ?? "").trim();
-
-    let limit = Number(params.limit ?? DEFAULT_LIMIT);
-    if (!Number.isFinite(limit) || limit < 1) limit = DEFAULT_LIMIT;
-    if (limit > MAX_LIMIT) limit = MAX_LIMIT;
-
-    return invokeOSContractCached(CONTRACT_HASH, "ListKeys", [
-      { type: "String", value: appId },
-      { type: "String", value: prefix },
-      { type: "Integer", value: String(Math.floor(limit)) },
-    ]);
+    const limit = Math.min(Math.max(Number(params.limit) || 50, 1), 200);
+    return {
+      contract: getKernelHash(),
+      operation: "GetMiniAppState",
+      args: [
+        { type: "String", value: appId },
+        { type: "ByteArray", value: Array.from(new TextEncoder().encode(prefix)).map(b => b.toString(16).padStart(2, "0")).join("") },
+      ],
+      meta: { list: true, limit },
+    };
   },
 );
 

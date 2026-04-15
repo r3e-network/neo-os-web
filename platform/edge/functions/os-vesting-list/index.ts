@@ -1,7 +1,7 @@
-import { getEnv } from "../_shared/env.ts";
+import { getKernelHash } from "../_shared/kernel-rpc.ts";
 import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
 
-const CONTRACT_HASH = getEnv("CONTRACT_VESTING_SERVICE_HASH") ?? "";
+const CONTRACT_HASH = getKernelHash();
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
