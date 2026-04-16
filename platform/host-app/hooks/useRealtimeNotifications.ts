@@ -221,9 +221,8 @@ export function useRealtimeNotifications(
             logger.info("Realtime notifications: Connected");
           } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
             setIsConnected(false);
-            const errorObj = err || new Error("Channel subscription error");
-            setError(errorObj);
-            logger.error("Realtime notifications: Channel error", errorObj);
+            setError(err || null);
+            logger.warn("Realtime notifications: Channel unavailable — running without live updates");
 
             // Schedule reconnection with exponential backoff
             const delay = getRetryDelay();
