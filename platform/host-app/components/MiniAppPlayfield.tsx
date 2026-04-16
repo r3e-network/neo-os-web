@@ -201,26 +201,30 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
       }
 
       case "miniapp-redenvelope": {
+        const paused = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
-          { label: "Status", value: "Online", accent: true },
+          { label: "Status", value: paused ? "Paused" : "Active", accent: !paused },
         ];
       }
 
       case "miniapp-dailycheckin": {
+        const paused2 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
-          { label: "Status", value: "Online", accent: true },
+          { label: "Status", value: paused2 ? "Paused" : "Active", accent: !paused2 },
         ];
       }
 
       case "miniapp-fogplay": {
+        const paused3 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
-          { label: "Status", value: "Online", accent: true },
+          { label: "Status", value: paused3 ? "Paused" : "Active", accent: !paused3 },
         ];
       }
 
       case "miniapp-self-loan": {
+        const paused4 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
-          { label: "Status", value: "Online", accent: true },
+          { label: "Status", value: paused4 ? "Paused" : "Active", accent: !paused4 },
         ];
       }
 
