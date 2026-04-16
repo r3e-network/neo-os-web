@@ -89,7 +89,7 @@ export function PerformanceReportPanel({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle performance monitor"
-        className={`fixed ${positionClasses[position]} z-50 p-2 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-colors ${
+        className={`fixed ${positionClasses[position]} z-50 p-2 bg-white text-gray-900 border border-gray-200 rounded-full shadow-lg hover:bg-gray-50 transition-colors ${
           errorCount > 0 ? "animate-pulse" : ""
         }`}
         title="Performance Monitor"
