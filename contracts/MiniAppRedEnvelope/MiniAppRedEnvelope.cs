@@ -435,7 +435,7 @@ namespace NeoMiniAppPlatform.Contracts
                 EnvelopeData envelope = GetEnvelope(envelopeId);
 
                 // Skip if envelope doesn't exist, not ready, or not expired
-                if (envelope.Creator == null || !envelope.Ready)
+                if (envelope.Creator == UInt160.Zero || !envelope.Ready)
                 {
                     continue;
                 }

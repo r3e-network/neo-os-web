@@ -115,9 +115,12 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger elapsed = Runtime.Time - capsule.LastCompoundTime;
             if (elapsed <= 0) return;
 
-            // Calculate yield: principal * APY * elapsed / year
+            // Calculate yield: (principal * APY * elapsed) / (10000 * yearSeconds)
+            // Multiply before dividing to preserve precision for small intervals
             BigInteger yearSeconds = 365 * 86400;
-            BigInteger yieldAmount = capsule.Principal * capsule.ApyBps * elapsed / (10000 * yearSeconds);
+            BigInteger numerator = capsule.Principal * capsule.ApyBps * elapsed;
+            BigInteger denominator = 10000 * yearSeconds;
+            BigInteger yieldAmount = numerator / denominator;
 
             if (yieldAmount > 0)
             {

@@ -19,6 +19,7 @@ namespace NeoMiniAppPlatform.Contracts
 
         private static BigInteger GetLtvForTier(BigInteger tier)
         {
+            ExecutionEngine.Assert(tier >= 1 && tier <= 3, "invalid LTV tier (1-3)");
             if (tier == 1) return LTV_TIER1_BPS;
             if (tier == 2) return LTV_TIER2_BPS;
             return LTV_TIER3_BPS;
