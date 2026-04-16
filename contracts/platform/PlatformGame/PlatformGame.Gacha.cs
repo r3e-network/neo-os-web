@@ -638,7 +638,7 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(count > 0, "no tokens to pop");
 
             // Read the last token
-            byte[] tokenKey = Helper.Concat(
+            byte[] tokenKey = (byte[])Helper.Concat(
                 (ByteString)AppKeyIdId(appId, GA_PREFIX_ITEM_TOKENS, machineId, itemIndex),
                 (ByteString)count.ToByteArray());
             string tokenId = Storage.Get(Storage.CurrentContext, tokenKey);

@@ -643,7 +643,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static void AcquireReentrancyLock(string appId)
         {
-            byte[] key = Helper.Concat((ByteString)PREFIX_REENTRANCY, (ByteString)appId);
+            byte[] key = (byte[])Helper.Concat((ByteString)PREFIX_REENTRANCY, (ByteString)appId);
             ByteString val = Storage.Get(Storage.CurrentContext, key);
             ExecutionEngine.Assert(val == null || (BigInteger)val == 0, "reentrancy");
             Storage.Put(Storage.CurrentContext, key, 1);
@@ -654,7 +654,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static void ReleaseReentrancyLock(string appId)
         {
-            byte[] key = Helper.Concat((ByteString)PREFIX_REENTRANCY, (ByteString)appId);
+            byte[] key = (byte[])Helper.Concat((ByteString)PREFIX_REENTRANCY, (ByteString)appId);
             Storage.Delete(Storage.CurrentContext, key);
         }
 
