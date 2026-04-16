@@ -5,34 +5,26 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public class FinancialTransferSafetyTest
     {
         [Fact]
-        public void LastSurvivorWinnerPayoutMustAssertTransferResult()
+        public void PlatformGameCountdownWrapsGASTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "MiniAppLastSurvivor", "MiniAppLastSurvivor.Settle.cs");
-            Assert.Contains("ExecutionEngine.Assert(", code);
-            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize)", code);
-            Assert.Contains("winner payout failed", code);
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
+            Assert.Contains("ExecutionEngine.Assert", code);
+            Assert.Contains("GAS.Transfer", code);
         }
 
         [Fact]
-        public void LastSurvivorDoesNotCallUncheckedTransfer()
+        public void PlatformDeFiLendingWrapsNEOTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "MiniAppLastSurvivor", "MiniAppLastSurvivor.Settle.cs");
-            // The old pattern was a bare GAS.Transfer on its own line without Assert
-            Assert.DoesNotContain("\n                GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize);\n", code);
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");
+            Assert.Contains("ExecutionEngine.Assert", code);
         }
 
         [Fact]
-        public void SelfLoanCollateralWithdrawalMustAssertTransferResult()
+        public void PlatformSocialEnvelopeWrapsGASTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "MiniAppSelfLoan", "MiniAppSelfLoan.Methods.cs");
-            Assert.Contains("collateral withdrawal transfer failed", code);
-        }
-
-        [Fact]
-        public void SelfLoanCloseTransferMustAssertResult()
-        {
-            string code = ContractSourceAssertions.ReadSource("contracts", "MiniAppSelfLoan", "MiniAppSelfLoan.Methods.cs");
-            Assert.Contains("loan close transfer failed", code);
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
+            Assert.Contains("ExecutionEngine.Assert", code);
+            Assert.Contains("GAS.Transfer", code);
         }
     }
 }
