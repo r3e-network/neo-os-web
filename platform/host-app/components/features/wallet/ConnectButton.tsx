@@ -6,7 +6,6 @@ import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/stor
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
 import { LogOut, Wallet, Mail, X } from "lucide-react";
-import { connectNeoX } from "./NeoXConnect";
 
 export function ConnectButton() {
   const { user } = useUser();
@@ -120,34 +119,7 @@ export function ConnectButton() {
     await auth.loginWallet(provider);
   };
 
-  const handleNeoXConnect = async () => {
-    try {
-      setShowConnectModal(false);
-      useAuthStore.setState({ loading: true });
-      const address = await connectNeoX();
-      useAuthStore.setState({
-        authenticated: true,
-        method: "wallet",
-        walletAddress: address,
-        walletType: "external",
-        loading: false,
-      });
-    } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : typeof e === "string" ? e : "";
-      const lower = raw.toLowerCase();
-      let message: string;
-      if (lower.includes("rejected") || lower.includes("denied")) {
-        message = "Wallet connection was rejected. Please try again and approve the connection request.";
-      } else if (lower.includes("not found") || lower.includes("not installed")) {
-        message = "Wallet not detected. Please install a compatible Neo wallet extension.";
-      } else if (lower.includes("timeout")) {
-        message = "Connection timed out. Please check your wallet is unlocked and try again.";
-      } else {
-        message = "Could not connect wallet. Please try again or use a different wallet.";
-      }
-      useAuthStore.setState({ loading: false, error: message });
-    }
-  };
+  // Neo X / EVM wallet support is not available yet — Neo N3 only
 
   return (
     <>
@@ -240,16 +212,7 @@ export function ConnectButton() {
                     </button>
                   ))}
 
-                  {/* Neo X Option */}
-                  <button
-                    onClick={handleNeoXConnect}
-                    className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
-                  >
-                    <div className="h-8 w-8 rounded-full bg-[#1A1C25] flex items-center justify-center">
-                      <span className="text-white font-black text-xs leading-none">X</span>
-                    </div>
-                    <span className="text-xs font-bold text-gray-700">Neo X</span>
-                  </button>
+                  {/* Neo N3 wallets only — Neo X/EVM not supported yet */}
                 </div>
               </div>
             </div>

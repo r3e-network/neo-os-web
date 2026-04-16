@@ -7,7 +7,6 @@ export const TOOL_MINIAPP_IDS = [
   "miniapp-aa-market-hub",
   "miniapp-aa-relay-console",
   "miniapp-aa-session-key-lab",
-  "miniapp-neo-x-bridge",
   "miniapp-flamingo-swap",
   "miniapp-flamingo-lend",
   "miniapp-flamingo-earn",
