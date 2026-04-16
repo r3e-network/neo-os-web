@@ -1,19 +1,60 @@
 #!/usr/bin/env node
 
+/**
+ * Audits the deployed flagship contract on-chain ABI against the methods the
+ * frontend / live-flow validator actually invokes. Source-side per-app contract
+ * directories no longer exist after the platform-contract consolidation, so this
+ * script reads the on-chain manifest via getcontractstate and compares it to a
+ * curated list of expected methods per flagship.
+ *
+ * Network is selected from the manifest (or NEO_TARGET_NETWORK / FLAGSHIP_NETWORK).
+ */
+
 const fs = require("fs");
 const path = require("path");
 const { getManifestContractHash, getNetworkConfig, getTargetNetwork } = require("./lib/neo_network");
 
 const root = path.resolve(__dirname, "..", "..");
 
+// One row per flagship. expectedMethods are the methods the frontend / live
+// flow validator depends on — if the on-chain ABI is missing one, the page
+// or the smoke test will break.
 const items = [
-  { brand: "LastSurvivor", manifest: "apps/last-survivor/neo-manifest.json", buildManifest: "contracts/build/MiniAppLastSurvivor.manifest.json" },
-  { brand: "GASBOX", manifest: "apps/gasbox/neo-manifest.json", buildManifest: "contracts/build/MiniAppGASBox.manifest.json" },
-  { brand: "Red Envelope", manifest: "apps/red-envelope/neo-manifest.json", buildManifest: "contracts/build/MiniAppRedEnvelope.manifest.json" },
-  { brand: "Daily Check-in", manifest: "apps/daily-checkin/neo-manifest.json", buildManifest: "contracts/build/MiniAppDailyCheckin.manifest.json" },
-  { brand: "FogPlay", manifest: "apps/fogplay/neo-manifest.json", buildManifest: "contracts/build/MiniAppFogPlay.manifest.json" },
-  { brand: "SelfLoan", manifest: "apps/self-loan/neo-manifest.json", buildManifest: "contracts/build/MiniAppSelfLoan.manifest.json" },
-  { brand: "NeoPay", manifest: "apps/neo-pay/neo-manifest.json", buildManifest: "contracts/build/MiniAppNeoPay.manifest.json" },
+  {
+    brand: "LastSurvivor",
+    manifest: "apps/last-survivor/neo-manifest.json",
+    expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "totalPotDistributed", "totalPlayers", "getCurrentKeyPrice"],
+  },
+  {
+    brand: "GASBOX",
+    manifest: "apps/gasbox/neo-manifest.json",
+    expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay", "getMachine"],
+  },
+  {
+    brand: "Red Envelope",
+    manifest: "apps/red-envelope/neo-manifest.json",
+    expectedMethods: ["isPaused", "createEnvelope", "claim", "getEnvelope"],
+  },
+  {
+    brand: "Daily Check-in",
+    manifest: "apps/daily-checkin/neo-manifest.json",
+    expectedMethods: ["isPaused", "checkIn", "getPlatformStats"],
+  },
+  {
+    brand: "FogPlay",
+    manifest: "apps/fogplay/neo-manifest.json",
+    expectedMethods: ["isPaused", "placeBet", "getBet"],
+  },
+  {
+    brand: "SelfLoan",
+    manifest: "apps/self-loan/neo-manifest.json",
+    expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails", "getPlatformStats"],
+  },
+  {
+    brand: "NeoPay",
+    manifest: "apps/neo-pay/neo-manifest.json",
+    expectedMethods: ["totalStreams", "createStream", "claimStream", "cancelStream", "getStreamDetails"],
+  },
 ];
 
 async function getContractState(rpcUrl, hash) {
@@ -40,53 +81,47 @@ async function main() {
 
   for (const item of items) {
     const manifest = JSON.parse(fs.readFileSync(path.join(root, item.manifest), "utf8"));
-    const buildManifest = JSON.parse(fs.readFileSync(path.join(root, item.buildManifest), "utf8"));
     const targetNetwork = getTargetNetwork(manifest);
     const networkConfig = getNetworkConfig(targetNetwork);
     const deployedHash = getManifestContractHash(manifest, targetNetwork);
+
+    const row = {
+      brand: item.brand,
+      manifestId: manifest.id,
+      targetNetwork: networkConfig.key,
+      deployedHash: deployedHash || "missing",
+      contractName: "",
+      methodCount: 0,
+      missingMethods: [],
+      problems: [],
+    };
+
     if (!deployedHash) {
-      rows.push({
-        brand: item.brand,
-        targetNetwork: networkConfig.key,
-        deployedHash: "missing",
-        problems: [`manifest missing ${networkConfig.key} hash`],
-      });
+      row.problems.push(`manifest missing ${networkConfig.key} hash`);
       failed = true;
+      rows.push(row);
       continue;
     }
 
     try {
       const remote = await getContractState(networkConfig.rpcUrl, deployedHash);
-      const toSignature = (method) => `${method.name}/${Array.isArray(method.parameters) ? method.parameters.length : 0}`;
-      const localMethods = buildManifest.abi.methods || [];
-      const remoteMethods = remote.manifest?.abi?.methods || [];
-      const localSignatures = localMethods.map(toSignature);
-      const remoteSignatures = remoteMethods.map(toSignature);
-      const missing = localSignatures.filter((sig) => !remoteSignatures.includes(sig));
-      const extra = remoteSignatures.filter((sig) => !localSignatures.includes(sig));
-      const problems = [];
-      if (missing.length) problems.push(`missing signatures: ${missing.slice(0, 10).join(",")}`);
-      if (extra.length) problems.push(`extra signatures: ${extra.slice(0, 10).join(",")}`);
-      if (problems.length) failed = true;
-
-      rows.push({
-        brand: item.brand,
-        targetNetwork: networkConfig.key,
-        deployedHash,
-        remoteContractName: remote.manifest?.name || null,
-        localMethodCount: localSignatures.length,
-        remoteMethodCount: remoteSignatures.length,
-        problems,
-      });
-    } catch (error) {
+      const remoteMethods = Array.isArray(remote?.manifest?.abi?.methods)
+        ? remote.manifest.abi.methods.map((m) => String(m.name || ""))
+        : [];
+      row.contractName = String(remote?.manifest?.name || "");
+      row.methodCount = remoteMethods.length;
+      const missing = item.expectedMethods.filter((name) => !remoteMethods.includes(name));
+      row.missingMethods = missing;
+      if (missing.length) {
+        row.problems.push(`missing ABI methods: ${missing.join(",")}`);
+        failed = true;
+      }
+    } catch (err) {
+      row.problems.push(`rpc error: ${err.message}`);
       failed = true;
-      rows.push({
-        brand: item.brand,
-        targetNetwork: networkConfig.key,
-        deployedHash,
-        problems: [error instanceof Error ? error.message : String(error)],
-      });
     }
+
+    rows.push(row);
   }
 
   console.log(JSON.stringify(rows, null, 2));
