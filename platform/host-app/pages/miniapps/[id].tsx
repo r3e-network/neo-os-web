@@ -47,7 +47,6 @@ import {
 } from "../../lib/chain";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
-import { invokeEvmContract } from "../../lib/wallet/evm";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -197,13 +196,8 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
 
         const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
 
-        // Neo X (EVM) Branch
-        if (walletAddress.startsWith("0x") || app.contract_hash.startsWith("0x")) {
-          const result = await invokeEvmContract(app.contract_hash, operation.method, args, walletAddress);
-          txid = result.txid;
-        } 
-        // Neo N3 Branch
-        else {
+        // Neo N3 only (Neo X / EVM not supported yet)
+        {
           const adapter = getWalletAdapter();
           if (!adapter) {
             throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");

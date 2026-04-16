@@ -131,7 +131,7 @@ export class Web3AuthAdapter implements WalletAdapter {
     if (!this.provider) throw new WalletConnectionError("Not connected to Web3Auth");
 
     try {
-      throw new Error("Generic smart contract invocation via Web3Auth/NeoX requires EVM ABI definitions which are not provided in this payload.");
+      throw new Error("Smart contract invocation via Web3Auth is not supported. Use a Neo N3 wallet extension instead.");
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       throw new WalletConnectionError(`Web3Auth invocation failed: ${msg}`);

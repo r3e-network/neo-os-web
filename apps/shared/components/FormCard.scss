@@ -3,10 +3,17 @@
 .form-card {
   background: var(--bg-card, #f9fafb);
   border: 1px solid var(--border-color, #f3f4f6);
-  border-radius: var(--card-radius, 20px);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
   overflow: hidden;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  }
 
   &__header {
     display: flex;
@@ -94,7 +101,7 @@
     flex: 1;
     height: 44px;
     padding: 0 20px;
-    border-radius: 10px;
+    border-radius: $radius-md;
     background: var(--accent-primary, #3b82f6);
     color: var(--text-primary, #fff);
     font-size: $font-size-sm;
@@ -103,7 +110,7 @@
     letter-spacing: 0.05em;
     text-align: center;
     cursor: pointer;
-    transition: filter 0.15s ease;
+    transition: filter 0.15s ease, transform 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -111,6 +118,11 @@
 
     &:hover {
       filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: scale(0.97);
     }
 
     &:focus-visible {
