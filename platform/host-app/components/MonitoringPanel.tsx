@@ -70,7 +70,7 @@ export function MonitoringPanel({
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 backdrop-blur-xl border border-gray-200/50 hover:border-neo/50 text-gray-900 rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white
+        className={`fixed ${positionClasses[position]} z-50 p-3 bg-white/80 backdrop-blur-xl border border-gray-200/50 hover:border-neo/50 text-gray-900 rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-white`}
         aria-label={isOpen ? "Close monitoring dashboard" : "Open monitoring dashboard"}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
