@@ -29,9 +29,13 @@ export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
 
 /* ── RPC helper ──────────────────────────────────────────────────────── */
 
-async function invokeRead(rpcUrl: string, contractHash: string, method: string, params: Array<{ type: string; value: string }> = []): Promise<unknown[]> {
-  const body = { jsonrpc: "2.0", id: 1, method: "invokefunction", params: [contractHash, method, params] };
-  const resp = await fetch(rpcUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+async function invokeRead(_rpcUrl: string, contractHash: string, method: string, params: Array<{ type: string; value: string }> = []): Promise<unknown[]> {
+  const resp = await fetch("/api/rpc/neo-read", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contractHash, method, params }),
+    signal: AbortSignal.timeout(10000),
+  });
   const data = await resp.json();
   if (data?.result?.state !== "HALT") return [];
   return data.result.stack || [];
@@ -159,90 +163,70 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
 
 async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string): Promise<Array<{ label: string; value: string; accent?: boolean }>> {
   const fmtGas = (v: number) => (v / 100000000).toFixed(2);
-  const fmtAddr = (v: string) => v.length > 10 ? `${v.slice(0, 6)}...${v.slice(-4)}` : v || "---";
 
   try {
     switch (appId) {
       case "miniapp-last-survivor": {
-        const [round, pot, active, buyer, deadline] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getCurrentRound").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "getTotalPot").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "isRoundActive").then((s) => stackInt(s) !== 0),
-          invokeRead(rpcUrl, contractHash, "getLastBuyer").then((s) => stackStr(s)),
-          invokeRead(rpcUrl, contractHash, "getDeadline").then((s) => stackInt(s)),
+        const [round, remaining, keysSold, potDistributed, players, keyPrice] = await Promise.all([
+          invokeRead(rpcUrl, contractHash, "currentRoundId").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "timeRemaining").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "totalKeysSold").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "totalPotDistributed").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "totalPlayers").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "getCurrentKeyPrice").then((s) => stackInt(s)),
         ]);
-        const now = Math.floor(Date.now() / 1000);
-        const remaining = Math.max(0, deadline - now);
-        const hours = Math.floor(remaining / 3600);
-        const mins = Math.floor((remaining % 3600) / 60);
-        const secs = remaining % 60;
-        const countdown = active ? `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}` : "Ended";
+        const active = remaining > 0;
+        const h = Math.floor(remaining / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const sec = remaining % 60;
+        const countdown = active ? `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : "Round Ended";
         return [
-          { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: true },
           { label: "Countdown", value: countdown, accent: active },
+          { label: "Total Distributed", value: `${fmtGas(potDistributed)} GAS`, accent: true },
           { label: "Round", value: `#${round}` },
-          { label: "Current Leader", value: fmtAddr(buyer) },
+          { label: "Keys Sold", value: String(keysSold) },
+          { label: "Players", value: String(players) },
+          { label: "Key Price", value: `${fmtGas(keyPrice)} GAS` },
           { label: "Status", value: active ? "Active" : "Ended" },
         ];
       }
 
       case "miniapp-gasbox": {
-        const [totalPulls, machineCount] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalPulls").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "getMachineCount").then((s) => stackInt(s)),
+        const [machines] = await Promise.all([
+          invokeRead(rpcUrl, contractHash, "totalMachines").then((s) => stackInt(s)),
         ]);
         return [
-          { label: "Total Pulls", value: totalPulls.toLocaleString(), accent: true },
-          { label: "Machines", value: String(machineCount) },
+          { label: "Machines", value: String(machines), accent: true },
         ];
       }
 
       case "miniapp-redenvelope": {
-        const [totalCreated, totalClaimed] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalCreated").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "getTotalClaimed").then((s) => stackInt(s)),
-        ]);
         return [
-          { label: "Envelopes Created", value: String(totalCreated), accent: true },
-          { label: "Total Claimed", value: String(totalClaimed) },
-          { label: "Unclaimed", value: String(Math.max(0, totalCreated - totalClaimed)) },
+          { label: "Status", value: "Online", accent: true },
         ];
       }
 
       case "miniapp-dailycheckin": {
-        const [totalCheckins, totalUsers] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalCheckins").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "getTotalUsers").then((s) => stackInt(s)),
-        ]);
         return [
-          { label: "Total Check-ins", value: totalCheckins.toLocaleString(), accent: true },
-          { label: "Active Users", value: totalUsers.toLocaleString() },
+          { label: "Status", value: "Online", accent: true },
         ];
       }
 
       case "miniapp-fogplay": {
-        const [totalGames] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalGames").then((s) => stackInt(s)),
-        ]);
         return [
-          { label: "Total Games", value: totalGames.toLocaleString(), accent: true },
+          { label: "Status", value: "Online", accent: true },
         ];
       }
 
       case "miniapp-self-loan": {
-        const [totalLoans, totalBorrowed] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalLoans").then((s) => stackInt(s)),
-          invokeRead(rpcUrl, contractHash, "getTotalBorrowed").then((s) => stackInt(s)),
-        ]);
         return [
-          { label: "Total Loans", value: String(totalLoans), accent: true },
-          { label: "Total Borrowed", value: `${fmtGas(totalBorrowed)} GAS` },
+          { label: "Status", value: "Online", accent: true },
         ];
       }
 
       case "miniapp-neo-pay": {
         const [totalStreams] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getTotalStreams").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "totalStreams").then((s) => stackInt(s)),
         ]);
         return [
           { label: "Total Streams", value: String(totalStreams), accent: true },
@@ -252,7 +236,8 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
       default:
         return [{ label: "Contract", value: "Active" }];
     }
-  } catch {
+  } catch (err) {
+    console.warn("[LiveContractView] fetchAppStats failed for", appId, err);
     return [{ label: "Status", value: "Online" }];
   }
 }
