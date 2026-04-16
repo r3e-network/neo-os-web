@@ -23,15 +23,20 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
             ExecutionEngine.Assert(callbackMethod != null && callbackMethod.Length > 0, "callback method required");
 
-            // Anti-abuse: Check loan cooldown
+            // Anti-abuse: Check loan cooldown and reentrancy guard
             ValidateLoanCooldown(borrower);
+
+            // Reentrancy guard: mark borrower as in-flight BEFORE any external calls
+            ByteString reentrancyKey = Helper.Concat((ByteString)new byte[] { 0xFE }, (ByteString)(byte[])borrower);
+            ExecutionEngine.Assert(Storage.Get(Storage.CurrentContext, reentrancyKey) == null, "reentrancy rejected");
+            Storage.Put(Storage.CurrentContext, reentrancyKey, 1);
 
             BigInteger poolBalance = GetPoolBalance();
             ExecutionEngine.Assert(amount <= poolBalance, "insufficient pool balance");
             BigInteger contractGasBefore = GAS.BalanceOf(Runtime.ExecutingScriptHash);
             ExecutionEngine.Assert(contractGasBefore >= amount, "insufficient GAS backing");
 
-            // Record loan for rate limiting
+            // Record loan for rate limiting BEFORE external calls
             RecordLoanRequest(borrower);
 
             BigInteger loanId = (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_LOAN_ID) + 1;
@@ -53,7 +58,10 @@ namespace NeoMiniAppPlatform.Contracts
             BorrowerStats borrowerStats = GetBorrowerStats(loan.Borrower);
             bool isNewBorrower = borrowerStats.JoinTime == 0;
 
+            // Store loan state BEFORE external calls (checks-effects-interactions)
+            StoreLoan(loanId, loan);
             OnLoanRequested(loanId, borrower, amount);
+
             bool funded = GAS.Transfer(
                 Runtime.ExecutingScriptHash,
                 callbackContract,
@@ -66,6 +74,9 @@ namespace NeoMiniAppPlatform.Contracts
 
             BigInteger contractGasAfter = GAS.BalanceOf(Runtime.ExecutingScriptHash);
             ExecutionEngine.Assert(contractGasAfter == contractGasBefore + fee, "loan not repaid with exact fee");
+
+            // Clear reentrancy guard
+            Storage.Delete(Storage.CurrentContext, reentrancyKey);
 
             loan.Success = true;
             StoreLoan(loanId, loan);
