@@ -8,16 +8,16 @@ import { resolveMiniAppSlug } from "@/lib/miniapp-media";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
 
-const flagshipAccents: Record<string, { gradient: string; glow: string; text: string }> = {
-  "miniapp-last-survivor":  { gradient: "from-red-500 to-rose-600",    glow: "shadow-red-200",    text: "text-red-600" },
-  "miniapp-fogplay":        { gradient: "from-indigo-500 to-purple-600", glow: "shadow-indigo-200", text: "text-indigo-600" },
-  "miniapp-gasbox":         { gradient: "from-amber-400 to-orange-500", glow: "shadow-amber-200",  text: "text-amber-600" },
-  "miniapp-redenvelope":    { gradient: "from-red-400 to-pink-500",    glow: "shadow-red-200",    text: "text-red-500" },
-  "miniapp-dailycheckin":   { gradient: "from-emerald-400 to-teal-500", glow: "shadow-emerald-200", text: "text-emerald-600" },
-  "miniapp-self-loan":      { gradient: "from-blue-500 to-cyan-500",   glow: "shadow-blue-200",   text: "text-blue-600" },
-  "miniapp-neo-pay":        { gradient: "from-green-400 to-emerald-500", glow: "shadow-green-200", text: "text-green-600" },
+const flagshipAccents: Record<string, { gradient: string; text: string }> = {
+  "miniapp-last-survivor":  { gradient: "from-red-500 to-rose-600",     text: "text-red-600" },
+  "miniapp-fogplay":        { gradient: "from-indigo-500 to-purple-600", text: "text-indigo-600" },
+  "miniapp-gasbox":         { gradient: "from-amber-400 to-orange-500", text: "text-amber-600" },
+  "miniapp-redenvelope":    { gradient: "from-red-400 to-pink-500",     text: "text-red-500" },
+  "miniapp-dailycheckin":   { gradient: "from-emerald-400 to-teal-500", text: "text-emerald-600" },
+  "miniapp-self-loan":      { gradient: "from-blue-500 to-cyan-500",    text: "text-blue-600" },
+  "miniapp-neo-pay":        { gradient: "from-green-400 to-emerald-500", text: "text-green-600" },
 };
-const defaultAccent = { gradient: "from-gray-400 to-gray-500", glow: "shadow-gray-200", text: "text-gray-600" };
+const defaultAccent = { gradient: "from-gray-400 to-gray-500", text: "text-gray-600" };
 
 /* ── Flagship card ───────────────────────────────────────────────────── */
 
@@ -29,7 +29,7 @@ function FlagshipCard({ app, large = false }: { app: MiniAppInfo; large?: boolea
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
-      className={`group relative flex flex-col rounded-2xl bg-white border border-gray-200/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:${accent.glow} ${large ? "sm:flex-row col-span-full" : ""}`}
+      className={`group relative flex flex-col rounded-2xl bg-white border border-gray-200/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${large ? "sm:flex-row col-span-full" : ""}`}
     >
       {/* Colored header band */}
       <div className={`relative bg-gradient-to-br ${accent.gradient} ${large ? "sm:w-2/5 min-h-[200px]" : "h-32"} flex items-center justify-center p-6`}>
@@ -63,80 +63,12 @@ function FlagshipCard({ app, large = false }: { app: MiniAppInfo; large?: boolea
   );
 }
 
-/* ── Category colors ─────────────────────────────────────────────────── */
-
-const catBg: Record<string, string> = {
-  gaming: "bg-purple-50 text-purple-700 border-purple-200",
-  defi: "bg-blue-50 text-blue-700 border-blue-200",
-  social: "bg-pink-50 text-pink-700 border-pink-200",
-  governance: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  utility: "bg-gray-100 text-gray-600 border-gray-200",
-  oracle: "bg-violet-50 text-violet-700 border-violet-200",
-  console: "bg-indigo-50 text-indigo-700 border-indigo-200",
-  nft: "bg-teal-50 text-teal-700 border-teal-200",
-  data: "bg-cyan-50 text-cyan-700 border-cyan-200",
-  other: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const catGradient: Record<string, string> = {
-  gaming: "from-purple-500 to-indigo-500",
-  defi: "from-blue-500 to-cyan-500",
-  social: "from-pink-500 to-rose-500",
-  governance: "from-emerald-500 to-teal-500",
-  utility: "from-gray-400 to-gray-500",
-  oracle: "from-violet-500 to-purple-500",
-  console: "from-indigo-500 to-blue-500",
-  nft: "from-teal-500 to-emerald-500",
-  data: "from-cyan-500 to-sky-500",
-  other: "from-gray-400 to-gray-500",
-};
-
-/* ── Catalog mini-card ───────────────────────────────────────────────── */
-
-function CatalogCard({ app }: { app: MiniAppInfo }) {
-  const slug = resolveMiniAppSlug(app.app_id, app.entry_url);
-  const logoUrl = `/miniapp-assets/${slug}/logo.svg`;
-  const gradient = catGradient[app.category] || catGradient.other;
-
-  return (
-    <Link
-      href={`/miniapps/${app.app_id}`}
-      className="group flex items-center gap-3.5 rounded-xl border border-gray-200/80 bg-white p-3 transition-all hover:border-emerald-200 hover:shadow-md"
-    >
-      <div className={`w-10 h-10 shrink-0 rounded-lg bg-gradient-to-br ${gradient} p-1.5 shadow-sm`}>
-        <img src={logoUrl} alt="" className="w-full h-full rounded-md" loading="lazy" decoding="async" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{app.name}</h4>
-        <p className="text-[11px] text-gray-400 truncate">{app.description}</p>
-      </div>
-      <span className={`shrink-0 hidden sm:inline rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${catBg[app.category] || catBg.other}`}>
-        {app.category}
-      </span>
-    </Link>
-  );
-}
-
-/* ── Category filter pills ───────────────────────────────────────────── */
-
-const CATEGORIES = [
-  { key: "all", label: "All" },
-  { key: "defi", label: "DeFi" },
-  { key: "gaming", label: "Gaming" },
-  { key: "governance", label: "Governance" },
-  { key: "oracle", label: "Oracle" },
-  { key: "console", label: "Console" },
-  { key: "social", label: "Social" },
-  { key: "utility", label: "Utility" },
-];
-
 /* ── Page ─────────────────────────────────────────────────────────────── */
 
 export default function MiniAppsPage() {
   const [allApps, setAllApps] = useState<MiniAppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [filter, setFilter] = useState("all");
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -154,10 +86,9 @@ export default function MiniAppsPage() {
   }, []);
 
   const flagships = useMemo(() => sortMiniApps(allApps.filter((a) => isFlagshipMiniApp(a.app_id)), "featured"), [allApps]);
-  const catalog = useMemo(() => {
-    const rest = allApps.filter((a) => !isFlagshipMiniApp(a.app_id));
-    return filter === "all" ? rest : rest.filter((a) => a.category === filter);
-  }, [allApps, filter]);
+
+  const hero = flagships[0];
+  const rest = flagships.slice(1);
 
   return (
     <Layout>
@@ -199,50 +130,10 @@ export default function MiniAppsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {flagships[0] && <FlagshipCard app={flagships[0]} large />}
-                {flagships.slice(1).map((app) => (
+                {hero && <FlagshipCard app={hero} large />}
+                {rest.map((app) => (
                   <FlagshipCard key={app.app_id} app={app} />
                 ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ── Catalog ───────────────────────────────────────────────── */}
-        <section className="border-t border-gray-200 bg-white px-4 py-10 sm:px-6 sm:py-14">
-          <div className="mx-auto max-w-5xl">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">All Apps</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{catalog.length} app{catalog.length !== 1 ? "s" : ""}</p>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    onClick={() => setFilter(c.key)}
-                    className={`cursor-pointer rounded-full px-3 py-1 text-[11px] font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
-                      filter === c.key
-                        ? "bg-gray-900 text-white"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
-                    }`}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-16 rounded-xl bg-gray-50 animate-pulse" />)}
-              </div>
-            ) : catalog.length === 0 ? (
-              <div className="rounded-xl border border-gray-100 bg-gray-50 py-10 text-center text-sm text-gray-400">No apps in this category.</div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {catalog.map((app) => <CatalogCard key={app.app_id} app={app} />)}
               </div>
             )}
           </div>
