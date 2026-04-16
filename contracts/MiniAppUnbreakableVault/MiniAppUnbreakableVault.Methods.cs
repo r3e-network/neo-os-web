@@ -126,9 +126,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             VaultData vault = GetVault(vaultId);
             ExecutionEngine.Assert(!vault.Broken && !vault.Expired, "vault closed");
-            ExecutionEngine.Assert(amount > 0, "invalid amount");
-
-            ValidateUserOrAbstractAccount(vault.Creator);
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            ExecutionEngine.Assert(Runtime.CheckWitness(vault.Creator) || IsAbstractAccountAuthorized(vault.Creator), "only vault creator can increase bounty");
 
             ConsumeDirectGasCredit(vault.Creator, amount);
 
