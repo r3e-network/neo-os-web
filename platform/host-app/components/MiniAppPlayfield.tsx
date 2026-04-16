@@ -192,11 +192,13 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
       }
 
       case "miniapp-gasbox": {
-        const [machines] = await Promise.all([
+        const [machines, paused] = await Promise.all([
           invokeRead(rpcUrl, contractHash, "totalMachines").then((s) => stackInt(s)),
+          invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false),
         ]);
         return [
           { label: "Machines", value: String(machines), accent: true },
+          { label: "Status", value: paused ? "Paused" : "Ready to Play" },
         ];
       }
 
@@ -204,6 +206,7 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const paused = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
           { label: "Status", value: paused ? "Paused" : "Active", accent: !paused },
+          { label: "Create", value: "Send GAS red envelopes" },
         ];
       }
 
@@ -211,6 +214,7 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const paused2 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
           { label: "Status", value: paused2 ? "Paused" : "Active", accent: !paused2 },
+          { label: "Reward", value: "1 GAS at 7-day streak" },
         ];
       }
 
@@ -218,6 +222,7 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const paused3 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
           { label: "Status", value: paused3 ? "Paused" : "Active", accent: !paused3 },
+          { label: "Game", value: "Coin flip — 2x payout" },
         ];
       }
 
@@ -225,6 +230,8 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const paused4 = await invokeRead(rpcUrl, contractHash, "isPaused").then((s) => stackInt(s) !== 0).catch(() => false);
         return [
           { label: "Status", value: paused4 ? "Paused" : "Active", accent: !paused4 },
+          { label: "Collateral", value: "NEO" },
+          { label: "Borrow", value: "GAS" },
         ];
       }
 
@@ -234,6 +241,7 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         ]);
         return [
           { label: "Total Streams", value: String(totalStreams), accent: true },
+          { label: "Assets", value: "GAS / NEO" },
         ];
       }
 
