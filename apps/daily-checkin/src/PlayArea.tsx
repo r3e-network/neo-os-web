@@ -142,7 +142,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             {currentStreak >= 7 && <span className="checkin-flame checkin-flame-outer">**</span>}
             {currentStreak >= 30 && <span className="checkin-flame checkin-flame-inferno">***</span>}
           </div>
-          <span className="checkin-streak-number">{currentStreak}</span>
+          <span key={currentStreak} className="checkin-streak-number">{currentStreak}</span>
         </div>
         <span className="checkin-streak-text">{t("dayStreak") || "Day Streak"}</span>
         {streakTierLabel && (

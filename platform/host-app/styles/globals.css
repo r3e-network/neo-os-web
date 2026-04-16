@@ -26,11 +26,11 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-white/70 backdrop-blur-2xl border border-gray-200/50 shadow-xl;
+    @apply bg-white/75 backdrop-blur-3xl border border-gray-100 shadow-2xl;
   }
 
   .glass-card {
-    @apply bg-white/60 backdrop-blur-xl border border-gray-200/50 hover:border-emerald-300 hover:bg-white/80 transition-all duration-500 shadow-lg hover:shadow-emerald-100;
+    @apply bg-white/60 backdrop-blur-xl border border-gray-200/50 hover:border-emerald-400 hover:bg-white/95 transition-all duration-300 shadow-md hover:shadow-2xl hover:-translate-y-1.5 active:scale-[0.98];
   }
 
   .neo-gradient-text {
