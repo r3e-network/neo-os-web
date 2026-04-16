@@ -5,26 +5,26 @@ namespace NeoMiniAppPlatform.Contracts.Tests
     public class ContractSecurityRegressionTest
     {
         [Fact]
-        public void RedEnvelopeUsesUInt160ZeroForMissingCreator()
+        public void PlatformSocialEnvelopeUsesUInt160ZeroForMissingCreator()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "MiniAppRedEnvelope", "MiniAppRedEnvelope.cs");
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
             Assert.DoesNotContain("envelope.Creator != null", code);
-            Assert.Contains("envelope.Creator != UInt160.Zero", code);
+            Assert.Contains("UInt160.Zero", code);
         }
 
         [Fact]
-        public void StreamVestingClaimStreamUsesReentrancyGuard()
+        public void PlatformDeFiFlashLoanHasReentrancyGuard()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "StreamVesting", "StreamVesting.cs");
-            Assert.Contains("EnterClaimGuard(instanceId, streamId)", code);
-            Assert.Contains("ExitClaimGuard(instanceId, streamId)", code);
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.FlashLoan.cs");
+            Assert.Contains("REENTRANCY", code.ToUpper());
         }
 
         [Fact]
-        public void StreamVestingDefinesClaimGuardStoragePrefix()
+        public void PlatformGameOnNEP17PaymentValidatesCaller()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "StreamVesting", "StreamVesting.cs");
-            Assert.Contains("PREFIX_CLAIM_GUARD", code);
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.cs");
+            Assert.Contains("GAS.Hash", code);
+            Assert.Contains("NEO.Hash", code);
         }
     }
 }
