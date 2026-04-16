@@ -456,7 +456,13 @@ namespace NeoMiniAppPlatform.Contracts
         #region Token Receivers
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
-            if (Runtime.CallingScriptHash == GAS.Hash)
+            // Only accept payments from known NEP-17 token contracts
+            UInt160 caller = Runtime.CallingScriptHash;
+            ExecutionEngine.Assert(
+                caller == GAS.Hash || caller == NEO.Hash || ContractManagement.GetContract(caller) != null,
+                "only token contracts can call onNEP17Payment");
+
+            if (caller == GAS.Hash)
             {
                 string memo = ReadPaymentMemo(data);
                 if (memo.StartsWith(APP_ID + ":"))
@@ -468,7 +474,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (from == Runtime.ExecutingScriptHash) return;
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
-            CreditPendingAsset(from, Runtime.CallingScriptHash, amount);
+            CreditPendingAsset(from, caller, amount);
         }
 
         public static void OnNEP11Payment(UInt160 from, ByteString tokenId, object data)
