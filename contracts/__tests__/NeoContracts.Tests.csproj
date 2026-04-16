@@ -19,8 +19,4 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../MiniAppTemplates/MiniAppTemplates.csproj" />
-    <ProjectReference Include="../MiniAppFactoryV2/MiniAppFactoryV2.csproj" />
-  </ItemGroup>
 </Project>

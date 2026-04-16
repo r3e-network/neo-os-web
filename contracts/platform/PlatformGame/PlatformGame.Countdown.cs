@@ -463,7 +463,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// <summary>Award a badge if not already held.</summary>
         private static void AwardCountdownBadge(string appId, UInt160 player, BigInteger badgeType, string badgeName)
         {
-            byte[] badgeKey = Helper.Concat(
+            byte[] badgeKey = (byte[])Helper.Concat(
                 (ByteString)AppKey(appId, CD_PREFIX_PLAYER_BADGES, player),
                 (ByteString)badgeType.ToByteArray());
 
