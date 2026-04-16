@@ -30,7 +30,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static byte[] AppKey(string appId, byte[] prefix)
         {
-            return Helper.Concat((ByteString)appId, (ByteString)prefix);
+            return (byte[])Helper.Concat((ByteString)appId, (ByteString)prefix);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static byte[] AppKey(string appId, byte[] prefix, BigInteger id)
         {
-            return Helper.Concat(
+            return (byte[])Helper.Concat(
                 (ByteString)AppKey(appId, prefix),
                 (ByteString)id.ToByteArray());
         }
@@ -50,7 +50,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static byte[] AppKey(string appId, byte[] prefix, UInt160 addr)
         {
-            return Helper.Concat(
+            return (byte[])Helper.Concat(
                 (ByteString)AppKey(appId, prefix),
                 (ByteString)(byte[])addr);
         }
@@ -144,7 +144,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static byte[] AppKeyAddrId(string appId, byte[] prefix, UInt160 addr, BigInteger id)
         {
-            return Helper.Concat(
+            return (byte[])Helper.Concat(
                 (ByteString)AppKey(appId, prefix, addr),
                 (ByteString)id.ToByteArray());
         }
@@ -155,7 +155,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         private static byte[] AppKeyIdId(string appId, byte[] prefix, BigInteger id1, BigInteger id2)
         {
-            return Helper.Concat(
+            return (byte[])Helper.Concat(
                 (ByteString)AppKey(appId, prefix, id1),
                 (ByteString)id2.ToByteArray());
         }
