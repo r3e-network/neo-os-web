@@ -1,13 +1,26 @@
+@use "@shared/styles/tokens.scss" as *;
+
 .neo-card {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: $radius-xl; // 24px from our new tokens
   padding: 24px;
   margin-bottom: 20px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 229, 153, 0.3);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  }
 
   @media (prefers-reduced-motion: reduce) {
     backdrop-filter: none;
+    transition: none;
+    transform: none !important;
   }
 
   &-title {

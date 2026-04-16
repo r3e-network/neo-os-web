@@ -59,6 +59,16 @@ module.exports = {
         "2xl": "1.5rem",
         "3xl": "2rem",
       },
+      boxShadow: {
+        sm: "0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03)",
+        md: "0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03)",
+        lg: "0 12px 24px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04)",
+        xl: "0 24px 48px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.04)",
+        "2xl": "0 32px 64px rgba(0, 0, 0, 0.15)",
+        neo: "0 0 25px rgba(0, 229, 153, 0.25)",
+        "neo-sm": "0 0 15px rgba(0, 229, 153, 0.15)",
+        "purple-sm": "0 0 15px rgba(112, 0, 255, 0.15)",
+      },
       animation: {
         "pulse-slow": "pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "border-glow": "border-glow 4s ease infinite",

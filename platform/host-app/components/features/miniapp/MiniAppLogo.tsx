@@ -144,7 +144,6 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-guardianpolicy": ClipboardList,
   "miniapp-unbreakablevault": Lock,
   "miniapp-zkbadge": Award,
-  "miniapp-neo-x-bridge": Repeat,
 };
 
 // Category fallback icons
