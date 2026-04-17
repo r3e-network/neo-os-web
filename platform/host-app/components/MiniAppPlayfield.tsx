@@ -173,7 +173,7 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
   const contractHash = getMiniAppContractHash(app.app_id);
   const rpcUrl = getRpcUrl();
 
-  const loadContractData = useCallback(async () => {
+  const loadContractData = useCallback(async ({ isInitial = false } = {}) => {
     if (!contractHash) {
       setStats([]);
       setActivity(null);
@@ -181,7 +181,10 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
       return;
     }
     try {
-      setLoading(true);
+      // Only show the skeleton on the very first fetch. Subsequent
+      // background refreshes swap the stats/activity in place so the
+      // hero + stats grid don't flicker every 15 s.
+      if (isInitial) setLoading(true);
       const [appStats, appActivity] = await Promise.all([
         fetchAppStats(app.app_id, rpcUrl, contractHash),
         fetchAppActivity(app.app_id, rpcUrl, contractHash).catch(() => null),
@@ -190,15 +193,17 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
       setActivity(appActivity);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      // Keep existing data on refresh failures — only surface errors on
+      // the initial load when there's nothing to show yet.
+      if (isInitial) setError(e instanceof Error ? e.message : "Failed to load");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   }, [app.app_id, contractHash, rpcUrl]);
 
   useEffect(() => {
-    loadContractData();
-    const interval = setInterval(loadContractData, 15000);
+    loadContractData({ isInitial: true });
+    const interval = setInterval(() => loadContractData(), 15000);
     return () => clearInterval(interval);
   }, [loadContractData]);
 
@@ -253,7 +258,7 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
         ) : error ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400">{error}</p>
-            <button type="button" onClick={loadContractData} className="mt-2 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer">Retry</button>
+            <button type="button" onClick={() => loadContractData({ isInitial: true })} className="mt-2 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer">Retry</button>
           </div>
         ) : stats.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
