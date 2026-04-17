@@ -39,12 +39,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "success",
+            "content": "Show up once per UTC day to keep your streak alive. At the 7-day milestone you claim a GAS bonus and unlock loyalty NFT badges. Miss a day and the streak resets."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Fee",
+                "value": "0.001 GAS per check-in"
+              },
+              {
+                "key": "Streak Reset",
+                "value": "After 14 days of inactivity"
+              },
+              {
+                "key": "7-Day Reward",
+                "value": "1 GAS"
+              },
+              {
+                "key": "14-Day Reward",
+                "value": "2 GAS"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to play",
+            "items": [
+              "Connect your wallet once per UTC day.",
+              "Tap Check In \u2014 a tiny fee transfer books your day on-chain.",
+              "Keep the streak going to unlock escalating GAS rewards and NFT loyalty badges."
+            ]
+          }
+        ]
       },
       {
         "id": "streak",
         "label": "Streak",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Your current streak and check-in history live on-chain. Every check-in emits a CheckedIn event that you can verify via the contract hash on NeoTube."
+          }
+        ]
       },
       {
         "id": "reviews",

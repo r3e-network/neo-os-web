@@ -40,12 +40,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "FogPlay is a provably-fair coin flip. Pick a side, lock a stake, and settle via the Morpheus VRF oracle. Win and walk away with 2\u00d7 your stake."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Payout",
+                "value": "2\u00d7 on win"
+              },
+              {
+                "key": "Randomness",
+                "value": "Morpheus VRF"
+              },
+              {
+                "key": "Settlement",
+                "value": "On-chain oracle callback"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to play",
+            "items": [
+              "Pick Heads or Tails and set your wager (0.05 \u2013 100 GAS).",
+              "Transfer your GAS to the contract \u2014 an oracle request fires automatically.",
+              "Once the VRF callback lands, the result is posted on-chain and winners claim their 2\u00d7 payout."
+            ]
+          }
+        ]
       },
       {
         "id": "history",
         "label": "History",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Every flip is recorded on-chain. Inspect individual bets by opening the contract on NeoTube \u2014 notifications carry bet id, player, amount, and outcome."
+          }
+        ]
       },
       {
         "id": "reviews",

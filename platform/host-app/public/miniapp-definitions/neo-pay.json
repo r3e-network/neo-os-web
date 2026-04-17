@@ -39,12 +39,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "NeoPay is on-chain payroll / subscriptions / vesting. Configure a total amount, release rate, interval, and beneficiary. Funds drip out per second on a deterministic schedule \u2014 recipients claim accrued amounts whenever they want."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Assets",
+                "value": "GAS / NEO"
+              },
+              {
+                "key": "Cadence",
+                "value": "Per-second drip"
+              },
+              {
+                "key": "Minimum Interval",
+                "value": "86400 s (1 day)"
+              },
+              {
+                "key": "Owner actions",
+                "value": "Cancel anytime"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to stream",
+            "items": [
+              "Fund the contract with the total amount you want to stream.",
+              "Call createStream with beneficiary, amount, rate, interval, title, notes.",
+              "Beneficiaries claim accrued amounts at will; creators can cancel and reclaim any unreleased balance."
+            ]
+          }
+        ]
       },
       {
         "id": "streams",
         "label": "Streams",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Recent streams (beneficiary, released-vs-total, status) are visible in the live play area above."
+          }
+        ]
       },
       {
         "id": "reviews",
