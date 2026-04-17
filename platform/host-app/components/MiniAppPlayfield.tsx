@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { ExternalMiniAppFrame } from "./ExternalMiniAppFrame";
 import { FederatedMiniApp } from "./FederatedMiniApp";
 import { parseFederatedEntryUrl } from "../lib/miniapp";
@@ -6,6 +6,7 @@ import { isManifestMiniAppEntryUrl } from "../lib/miniapp-entry-url";
 import { MiniAppInfo } from "./types";
 import { getMiniAppContractHash, getRpcUrl } from "@/lib/rpc-helpers";
 import { resolveMiniAppSlug } from "@/lib/miniapp-media";
+import { FlagshipHero } from "./playarea/FlagshipHero";
 
 export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
   const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
@@ -201,6 +202,24 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
     return () => clearInterval(interval);
   }, [loadContractData]);
 
+  // Flatten the stats array into a label→value map so the per-flagship hero
+  // can pick the fields it cares about without duplicating the RPC reads.
+  const statsMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of stats) m[s.label] = s.value;
+    return m;
+  }, [stats]);
+
+  // Pull a leader hint out of the activity feed when present (e.g. for the
+  // LastSurvivor hero, the first row's primary text starts with
+  // "Current leader: …").
+  const leader = useMemo(() => {
+    const first = activity?.rows.find((row) => row.icon === "👑");
+    if (!first) return undefined;
+    const m = first.primary.match(/Current leader:\s*(.+)/i);
+    return m ? m[1].trim() : undefined;
+  }, [activity]);
+
   return (
     <div className="w-full rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-sm">
       {/* Header */}
@@ -217,6 +236,13 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
           </span>
         )}
       </div>
+
+      {/* Hero (per-flagship attractive band) */}
+      {!loading && stats.length > 0 && (
+        <div className="px-6 pt-6">
+          <FlagshipHero appId={app.app_id} stats={statsMap} leader={leader} />
+        </div>
+      )}
 
       {/* Stats */}
       <div className="p-6">
