@@ -53,45 +53,32 @@
       }
     ],
     "operation_panel": {
-      "title": "Create Envelope",
-      "subtitle": "Create social gifting links and manage claims directly on-chain.",
+      "title": "Claim Envelope",
+      "subtitle": "Enter an envelope ID to claim your random share.",
       "cta_label": "Open Red Envelope",
       "operations": []
     }
   },
   "operations": [
     {
-      "name": "Create Envelope",
-      "method": "createEnvelope",
+      "name": "Claim",
+      "method": "claim",
       "button_style": "primary",
       "params": [
         {
-          "name": "totalAmount",
-          "type": "amount",
-          "label": "Total Amount (GAS)",
-          "required": true,
-          "placeholder": "10"
-        },
-        {
-          "name": "packetCount",
-          "type": "integer",
-          "label": "Packet Count",
-          "required": true,
-          "placeholder": "10"
-        }
-      ]
-    },
-    {
-      "name": "Claim",
-      "method": "claim",
-      "button_style": "secondary",
-      "params": [
-        {
           "name": "envelopeId",
-          "type": "string",
+          "type": "integer",
           "label": "Envelope ID",
           "required": true,
-          "placeholder": "Enter code"
+          "placeholder": "1"
+        },
+        {
+          "name": "claimer",
+          "type": "hash160",
+          "label": "Claimer",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
         }
       ]
     }
@@ -107,5 +94,13 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/red-envelope"
+  "docs_url": "https://docs.r3e.network/red-envelope",
+  "detail_template": {
+    "operation_panel": {
+      "title": "Claim Envelope",
+      "subtitle": "Enter an envelope ID to claim your random share.",
+      "cta_label": "Open Red Envelope",
+      "operations": []
+    }
+  }
 }

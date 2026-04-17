@@ -28,69 +28,52 @@ function gaming(notice: string, kvExtra: KV[], steps: string[], ops: OperationEn
   };
 }
 
-const T_LOTTERY = gaming("Experience the thrill of provably fair lottery draws.", [{ key: "Randomness", value: "VRF" }], ["Buy tickets.", "Wait for the draw.", "Claim your prize."], [op("Buy Tickets", "buyTicket", "primary", [int("tickets", "Number of Tickets", "1")])]);
-const T_COINFLIP = gaming("Classic 50/50 coin flip.", [{ key: "Randomness", value: "VRF" }], ["Choose Heads or Tails.", "Set your wager.", "Flip and win double."], [op("Flip", "flip", "primary", [sel("side", "Side", ["Heads", "Tails"]), amt()])]);
-const T_DICE = gaming("Roll the dice and test your luck.", [{ key: "Randomness", value: "VRF" }], ["Choose your winning range.", "Place your bet.", "Watch the VRF-powered dice."], [op("Roll", "roll", "primary", [int("range", "Range (1-100)", "50"), amt()])]);
+const T_COINFLIP = gaming("Classic 50/50 coin flip with a 2x payout — resolved via Morpheus VRF.", [{ key: "Randomness", value: "VRF" }, { key: "Payout", value: "2x on win" }], ["Choose Heads or Tails.", "Set your wager (0.05 – 100 GAS).", "Flip — win 2x or lose your stake."], [op("Place Bet", "placeBet", "primary", [sel("side", "Side", ["Heads", "Tails"]), amt()])]);
 
-const T_PREDICTION: AppTemplate = {
-  detail_template: {
-    layout: "prediction",
-    hero: { eyebrow: "Prediction Market", disclaimer: "Probabilities are market-implied." },
-    tabs: [{ id: "market-info", label: "Market Info", type: "content" }, { id: "reviews", label: "Reviews", type: "reviews" }],
-    operation_panel: { title: "Trade Position", subtitle: "Choose side, set amount, submit on-chain.", cta_label: "Open Full Experience", operations: [] }
-  },
-  operations: [op("Buy YES", "buyYes", "success", [amt()]), op("Buy NO", "buyNo", "danger", [amt()])]
-};
-
-const T_AIRDROP: AppTemplate = {
+const T_RED_ENVELOPE: AppTemplate = {
   detail_template: {
     layout: "default",
     tabs: [
       { id: "overview", label: "Overview", type: "content", blocks: [
-        { type: "notice", tone: "success", content: "Claim Multi-Chain Tokens & NFTs directly to your wallet." },
-        { type: "key_value", title: "Eligibility", items: [{ key: "Status", value: "Active" }, { key: "Network", value: "Neo N3 & Neo X" }] },
+        { type: "notice", tone: "success", content: "Send GAS red envelopes to friends. Recipients claim a random share using Morpheus VRF — lucky, transparent, on-chain." },
+        { type: "key_value", title: "Quick Facts", items: [{ key: "Asset", value: "GAS" }, { key: "Randomness", value: "VRF" }, { key: "Flow", value: "create → share link → recipients claim" }] },
+        { type: "bullet_list", title: "How It Works", items: [
+          "Create an envelope with a total amount and number of recipients.",
+          "Share the envelope ID with your friends.",
+          "Each claimer gets a random share until the envelope is empty.",
+        ] },
       ]},
       { id: "reviews", label: "Reviews", type: "reviews" }
     ],
-    operation_panel: { title: "Claim", subtitle: "Check eligibility and claim tokens.", cta_label: "Connect to Claim", operations: [] },
+    operation_panel: { title: "Claim Envelope", subtitle: "Enter an envelope ID to claim your random share.", cta_label: "Open Red Envelope", operations: [] },
   },
-  operations: [op("Claim Tokens", "claim", "primary", [])]
-};
-
-const T_DAO: AppTemplate = {
-  detail_template: {
-    layout: "prediction", // Reuse prediction layout for split view
-    hero: { eyebrow: "Governance", disclaimer: "1 Token = 1 Vote" },
-    tabs: [
-      { id: "proposal", label: "Proposal Info", type: "content", blocks: [
-        { type: "markdown", title: "Summary", content: "Should we allocate 1,000 GAS to the community developer fund?" }
-      ]},
-      { id: "votes", label: "Votes", type: "content" }
-    ],
-    operation_panel: { title: "Cast Vote", subtitle: "Voting power is determined by snapshot.", cta_label: "Vote Now", operations: [] }
-  },
-  operations: [op("Vote FOR", "voteFor", "success", []), op("Vote AGAINST", "voteAgainst", "danger", []), op("Abstain", "abstain", "secondary", [])]
+  operations: [op("Claim", "claim", "primary", [int("envelopeId", "Envelope ID", "1")])]
 };
 
 const T_GACHA: AppTemplate = {
   detail_template: {
     layout: "default",
     tabs: [
-      { id: "prizes", label: "Prize Pool", type: "content", blocks: [
-        { type: "key_value", title: "Drop Rates", items: [{ key: "Legendary NFT", value: "1%" }, { key: "100 GAS", value: "5%" }, { key: "Common Item", value: "94%" }] }
+      { id: "prizes", label: "How It Works", type: "content", blocks: [
+        { type: "notice", tone: "info", content: "GASBox is a two-step gacha: you initiate a pull, then settle it after the VRF randomness arrives. Use the full app to pick a machine and draw." },
+        { type: "key_value", title: "Quick Facts", items: [{ key: "Asset", value: "GAS" }, { key: "Randomness", value: "VRF" }, { key: "Flow", value: "initiate → settle" }] }
       ]},
       { id: "history", label: "Recent Drops", type: "content" }
     ],
-    operation_panel: { title: "Draw", subtitle: "Open blind boxes to win on-chain prizes.", cta_label: "Open Gacha", operations: [] }
+    operation_panel: { title: "Draw", subtitle: "Pick a machine, pay the cost, and pull. Use the full app below for the two-step flow.", cta_label: "Open GASBox", operations: [] }
   },
-  operations: [op("Draw x1", "drawOne", "primary", [amt("fee", "Cost", "1.0")]), op("Draw x10", "drawTen", "primary", [amt("fee", "Cost", "10.0")])]
+  operations: []
 };
 
 const T_LAST_SURVIVOR = gaming(
-  "Every contribution grows the jackpot and resets the 24-hour timer. Last buyer standing wins the pot.",
-  [{ key: "Mode", value: "Countdown jackpot" }],
-  ["Buy keys to reset the timer.", "Track the live countdown and pot size.", "Be the last buyer before expiry to win everything."],
-  [op("Buy Keys", "buyKeys", "primary", [int("keyCount", "Key Count", "1")])]
+  "Every contribution grows the jackpot and resets the countdown timer. Last buyer standing wins the pot.",
+  [{ key: "Mode", value: "Countdown jackpot" }, { key: "Asset", value: "GAS" }],
+  [
+    "Each GAS transfer buys 1 key and resets the timer.",
+    "First bid adds 60 min; each next bid adds slightly less, down to 1 min.",
+    "When the timer hits zero, the last bidder wins the pot (minus platform fee).",
+  ],
+  []
 );
 
 const T_DAILY_CHECKIN: AppTemplate = {
@@ -120,9 +103,9 @@ const T_SELF_LOAN: AppTemplate = {
       { id: "health", label: "Health", type: "content" },
       { id: "reviews", label: "Reviews", type: "reviews" }
     ],
-    operation_panel: { title: "Open Loan", subtitle: "Choose your NEO collateral and borrow against future yield.", cta_label: "Start SelfLoan", operations: [] },
+    operation_panel: { title: "Manage Loan", subtitle: "Repay debt or top up collateral on an existing loan.", cta_label: "Open SelfLoan", operations: [] },
   },
-  operations: [op("Create Loan", "createLoan", "primary", [int("neoAmount", "Collateral (NEO)", "10")]), op("Repay", "repay", "secondary", [amt()])],
+  operations: [op("Repay Debt", "repayDebt", "primary", [int("loanId", "Loan ID", "1"), amt("amount", "Repay Amount (GAS)", "1")]), op("Add Collateral", "addCollateral", "secondary", [int("loanId", "Loan ID", "1"), int("neoAmount", "NEO", "1")])],
 };
 
 const T_NEOPAY: AppTemplate = {
@@ -136,9 +119,9 @@ const T_NEOPAY: AppTemplate = {
       { id: "streams", label: "Streams", type: "content" },
       { id: "reviews", label: "Reviews", type: "reviews" }
     ],
-    operation_panel: { title: "Create Stream", subtitle: "Configure amount, cadence, and beneficiary.", cta_label: "Open NeoPay", operations: [] },
+    operation_panel: { title: "Manage Streams", subtitle: "Claim from incoming streams or cancel ones you created.", cta_label: "Open NeoPay", operations: [] },
   },
-  operations: [op("Create Stream", "createStream", "primary", [amt("totalAmount", "Total Amount", "100"), sel("schedule", "Schedule", ["Monthly", "Weekly"]), int("installments", "Installments", "12")])],
+  operations: [op("Claim Stream", "claimStream", "primary", [int("streamId", "Stream ID", "1")]), op("Cancel Stream", "cancelStream", "danger", [int("streamId", "Stream ID", "1")])],
 };
 
 const T_NEODID_PASSPORT: AppTemplate = {
@@ -336,7 +319,7 @@ export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
   "miniapp-dailycheckin": T_DAILY_CHECKIN,
   "miniapp-last-survivor": T_LAST_SURVIVOR,
   "miniapp-gasbox": T_GACHA,
-  "miniapp-redenvelope": T_AIRDROP,
+  "miniapp-redenvelope": T_RED_ENVELOPE,
   "miniapp-self-loan": T_SELF_LOAN,
   "miniapp-neo-pay": T_NEOPAY,
   "miniapp-neodid-passport": T_NEODID_PASSPORT,

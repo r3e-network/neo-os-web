@@ -54,8 +54,8 @@
       }
     ],
     "operation_panel": {
-      "title": "Buy Keys",
-      "subtitle": "Reset the countdown and fight for the last spot.",
+      "title": "LastSurvivor",
+      "subtitle": "Each GAS transfer buys 1 key and resets the timer.",
       "cta_label": "Open LastSurvivor",
       "operations": []
     }
@@ -72,5 +72,11 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/lastsurvivor"
+  "docs_url": "https://docs.r3e.network/lastsurvivor",
+  "detail_template": {
+    "operation_panel": {
+      "title": "LastSurvivor",
+      "subtitle": "Each GAS transfer buys 1 key and resets the timer."
+    }
+  }
 }

@@ -39,6 +39,7 @@ import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
 import { logger } from "../../lib/logger";
 import {
+  addressToScriptHash,
   buildSharedInvokeArgs,
   isSharedModeApp,
   resolveSharedModeRuntime,
@@ -365,17 +366,13 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                   </div>
                 )}
 
-                {operations.length > 0 ? (
+                {operations.length > 0 && (
                   <OperationPanel
                     operations={operations}
                     onInvoke={handleInvoke}
                     showTitle={false}
                     className="mt-4"
                   />
-                ) : (
-                  <p className="mt-4 text-xs text-gray-500">
-                    No operation schema is configured for this MiniApp.
-                  </p>
                 )}
 
                 {!walletConnected && (
@@ -628,10 +625,12 @@ function buildInvokeArgs(
     }
 
     if (param.type === "hash160") {
-      return {
-        type: "Hash160",
-        value,
-      };
+      const source = value === "$wallet" ? walletAddress : value;
+      const hash = source.startsWith("0x") ? source.toLowerCase() : addressToScriptHash(source);
+      if (!/^0x[0-9a-f]{40}$/.test(hash)) {
+        throw new Error(`${param.label || param.name} must be a Neo N3 address or 0x-prefixed Hash160.`);
+      }
+      return { type: "Hash160", value: hash };
     }
 
     if (param.type === "hash256") {

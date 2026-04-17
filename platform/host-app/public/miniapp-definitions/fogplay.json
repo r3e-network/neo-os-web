@@ -54,8 +54,8 @@
       }
     ],
     "operation_panel": {
-      "title": "Flip",
-      "subtitle": "Oracle callback settlement with a focused single-player flow.",
+      "title": "Place Bet",
+      "subtitle": "Pick a side, set your wager, flip \u2014 2x payout.",
       "cta_label": "Open FogPlay",
       "operations": []
     }
@@ -67,20 +67,12 @@
       "button_style": "primary",
       "params": [
         {
-          "name": "side",
-          "type": "select",
-          "label": "Side",
+          "name": "player",
+          "type": "hash160",
+          "label": "Player",
           "required": true,
-          "options": [
-            {
-              "label": "Heads",
-              "value": "heads"
-            },
-            {
-              "label": "Tails",
-              "value": "tails"
-            }
-          ]
+          "default_value": "$wallet",
+          "hidden": true
         },
         {
           "name": "amount",
@@ -88,6 +80,13 @@
           "label": "Wager (GAS)",
           "required": true,
           "placeholder": "1"
+        },
+        {
+          "name": "choice",
+          "type": "boolean",
+          "label": "Heads",
+          "required": true,
+          "default_value": "true"
         }
       ]
     }
@@ -103,5 +102,11 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/fogplay"
+  "docs_url": "https://docs.r3e.network/fogplay",
+  "detail_template": {
+    "operation_panel": {
+      "title": "Place Bet",
+      "subtitle": "Pick a side, set your wager, flip \u2014 2x payout."
+    }
+  }
 }

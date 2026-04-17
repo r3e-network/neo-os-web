@@ -118,7 +118,7 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
         </p>
       )}
       
-      {(op.params ?? []).map((param) => (
+      {(op.params ?? []).filter((param) => !param.hidden).map((param) => (
         <ParamInput
           key={param.name}
           param={param}
