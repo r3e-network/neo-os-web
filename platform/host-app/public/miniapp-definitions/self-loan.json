@@ -39,12 +39,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "SelfLoan lets you unlock GAS from your NEO holdings without liquidation risk. Lock NEO, borrow GAS up front, and the NEO yield slowly repays the loan. NEO unlocks automatically once the debt is cleared."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Collateral",
+                "value": "NEO"
+              },
+              {
+                "key": "Borrow Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "LTV Tiers",
+                "value": "20% \u00b7 30% \u00b7 40%"
+              },
+              {
+                "key": "Liquidation",
+                "value": "None \u2014 yield repays"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How it works",
+            "items": [
+              "Transfer NEO to the contract as collateral.",
+              "Pick an LTV tier (1 = conservative, 3 = aggressive) and call createLoan to draw GAS.",
+              "NEO staking rewards flow to the contract and repay the debt. Once repaid, the NEO is released back to you."
+            ]
+          }
+        ]
       },
       {
         "id": "loans",
         "label": "Loans",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Recent loans (borrower, collateral, debt, open/repaid) are visible in the live play area above. Loan health and repay progress are on-chain."
+          }
+        ]
       },
       {
         "id": "reviews",

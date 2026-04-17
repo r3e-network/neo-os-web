@@ -40,12 +40,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Last Survivor is a countdown jackpot. Every GAS transfer buys a key, resets the timer, and crowns the sender as the heir. When the timer hits zero, the last bidder wins the entire pot."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Mode",
+                "value": "Countdown jackpot"
+              },
+              {
+                "key": "Timer",
+                "value": "Starts at 60 min, decays per bid"
+              },
+              {
+                "key": "Platform Fee",
+                "value": "20% of the pot"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to play",
+            "items": [
+              "Connect your Neo N3 wallet and fund it with GAS.",
+              "Transfer GAS to the contract \u2014 the amount covers one key at the current price.",
+              "Each bid resets the timer. If you're the last bidder when it hits zero, you win the pot (minus platform fee)."
+            ]
+          }
+        ]
       },
       {
         "id": "history",
         "label": "History",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Past rounds and their winners appear in the Live Round + Recent Winners panel on the play area above. Verify any round on NeoTube by opening the contract hash."
+          }
+        ]
       },
       {
         "id": "reviews",
