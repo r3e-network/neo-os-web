@@ -57,22 +57,22 @@ export const colors = {
   success: {
     DEFAULT: "#10B981",
     light: "#D1FAE5",
-    "#047857",
+    dark: "#047857",
   },
   warning: {
     DEFAULT: "#F59E0B",
     light: "#FEF3C7",
-    "#B45309",
+    dark: "#B45309",
   },
   error: {
     DEFAULT: "#EF4444",
     light: "#FEE2E2",
-    "#B91C1C",
+    dark: "#B91C1C",
   },
   info: {
     DEFAULT: "#3B82F6",
     light: "#DBEAFE",
-    "#1D4ED8",
+    dark: "#1D4ED8",
   },
 
   // Neutral Colors
@@ -90,56 +90,41 @@ export const colors = {
     950: "#030712",
   },
 
-  // Dark Mode Specific
-  {
-    50: "#1e293b",
-    100: "#0f172a",
-    200: "#020617",
-    surface: "#0f172a",
-    surfaceElevated: "#1e293b",
-  },
-
   // Background
   background: {
-    DEFAULT: "#020617",
+    DEFAULT: "#F8FAFC",
     light: "#F8FAFC",
-    "#020617",
   },
 
   // Foreground
   foreground: {
-    DEFAULT: "#F8FAFC",
+    DEFAULT: "#1F2937",
     light: "#1F2937",
-    "#F8FAFC",
   },
 
   // Border
   border: {
-    DEFAULT: "#334155",
+    DEFAULT: "#E5E7EB",
     light: "#E5E7EB",
-    "#334155",
   },
 
   // Input
   input: {
-    DEFAULT: "#334155",
+    DEFAULT: "#D1D5DB",
     light: "#D1D5DB",
-    "#334155",
   },
 
   // Ring
   ring: {
     DEFAULT: "#00E599",
     light: "#00E599",
-    "#00E599",
   },
 
   // Card
   card: {
-    DEFAULT: "rgba(15, 23, 42, 0.6)",
+    DEFAULT: "rgba(255, 255, 255, 1)",
     light: "rgba(255, 255, 255, 1)",
-    "rgba(15, 23, 42, 0.6)",
-    foreground: "#F8FAFC",
+    foreground: "#1F2937",
   },
 } as const;
 
