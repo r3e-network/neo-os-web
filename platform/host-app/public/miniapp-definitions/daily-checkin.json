@@ -53,8 +53,8 @@
       }
     ],
     "operation_panel": {
-      "title": "Check In",
-      "subtitle": "One tap per UTC day to keep the streak alive.",
+      "title": "Daily Check-in",
+      "subtitle": "One tap per UTC day to maintain your streak.",
       "cta_label": "Open Daily Check-in",
       "operations": []
     }
@@ -64,13 +64,31 @@
       "name": "Check In",
       "method": "checkIn",
       "button_style": "primary",
-      "params": []
+      "params": [
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        }
+      ]
     },
     {
       "name": "Claim Rewards",
       "method": "claimRewards",
       "button_style": "secondary",
-      "params": []
+      "params": [
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        }
+      ]
     }
   ],
   "integration": {
@@ -84,5 +102,11 @@
       "total_transactions"
     ]
   },
-  "docs_url": "https://docs.r3e.network/daily-check-in"
+  "docs_url": "https://docs.r3e.network/daily-check-in",
+  "detail_template": {
+    "operation_panel": {
+      "title": "Daily Check-in",
+      "subtitle": "One tap per UTC day to maintain your streak."
+    }
+  }
 }
