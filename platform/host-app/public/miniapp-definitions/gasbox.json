@@ -40,12 +40,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "GASBox is a two-step gacha. Pick a machine, initiate a pull, and wait for the VRF callback to reveal your prize. Each machine has its own prize pool with transparent drop rates."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Flow",
+                "value": "initiate \u2192 VRF \u2192 settle"
+              },
+              {
+                "key": "Randomness",
+                "value": "Morpheus VRF"
+              },
+              {
+                "key": "Drop Rates",
+                "value": "On-chain, auditable per machine"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to play",
+            "items": [
+              "Open the full GASBox app and browse the available machines.",
+              "Pick a machine and transfer its entry cost in GAS to initiate a pull.",
+              "Once the VRF callback lands, your prize is credited automatically \u2014 NFTs land in your wallet, GAS prizes land as balance."
+            ]
+          }
+        ]
       },
       {
         "id": "machines",
         "label": "Machines",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Machines are configured by admins. Drop rates, item pools, and prices are on-chain and visible in the live play area above."
+          }
+        ]
       },
       {
         "id": "reviews",

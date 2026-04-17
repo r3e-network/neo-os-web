@@ -39,12 +39,57 @@
       {
         "id": "overview",
         "label": "Overview",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "success",
+            "content": "Red Envelope turns GAS gifting into a lucky draw. Wrap GAS into a packet, set how many recipients can claim, and share the envelope ID. Each claimer pulls a random share through VRF until the envelope is empty."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "GAS"
+              },
+              {
+                "key": "Mode",
+                "value": "Lucky packets"
+              },
+              {
+                "key": "Randomness",
+                "value": "Morpheus VRF"
+              },
+              {
+                "key": "Recipients",
+                "value": "Any address with the envelope ID"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How to use",
+            "items": [
+              "Create an envelope: set total GAS and how many packets (claimers) you want.",
+              "Share the envelope ID with recipients \u2014 anyone with the ID can claim once.",
+              "Each claim pulls a random share until all packets are taken or the envelope expires."
+            ]
+          }
+        ]
       },
       {
         "id": "claims",
         "label": "Claims",
-        "type": "content"
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "The Recent Envelopes list above shows envelopes created on-chain with their creator, claimed-vs-total packets, and GAS remaining."
+          }
+        ]
       },
       {
         "id": "reviews",

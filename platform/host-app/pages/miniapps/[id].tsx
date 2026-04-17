@@ -280,9 +280,11 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                 <MiniAppPlayfield app={app} />
               </section>
 
-              <section>
-                <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
-              </section>
+              {appActivities && appActivities.length > 0 && (
+                <section>
+                  <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
+                </section>
+              )}
 
               <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-5 shadow-sm">
                 <div role="tablist" className="mb-6 flex flex-wrap gap-1 p-1 rounded-2xl bg-gray-100/50 border border-gray-200/50">
