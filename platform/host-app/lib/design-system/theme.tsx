@@ -295,20 +295,6 @@ export function generateAllCSSVariables(isDark: boolean = false): string {
 }
 
 // ============================================================================
-// Theme Class Names Helper
-// ============================================================================
-
-/**
- * Get class name based on theme
- */
-export function getThemedClass(darkClass: string, lightClass: string, isDark?: boolean): string {
-  if (isDark === undefined) {
-    return `${darkClass}
-  }
-  return isDark ? darkClass : lightClass;
-}
-
-// ============================================================================
 // Export Theme Colors for Direct Usage
 // ============================================================================
 
