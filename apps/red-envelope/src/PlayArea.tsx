@@ -84,10 +84,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     setFormMemo("");
   };
 
-  const handleOpen = async (id: string) => {
-    await dispatch("openEnvelope", id);
-  };
-
   const handleClaim = async (id: string) => {
     await dispatch("claimEnvelope", id);
   };
@@ -233,13 +229,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                   </span>
                 </div>
                 <div className="redenv-envelope-actions">
-                  <NeoButton
-                    variant="warning"
-                    size="sm"
-                    onClick={() => handleOpen(env.id)}
-                  >
-                    {t("open") || "Open"}
-                  </NeoButton>
                   <NeoButton
                     variant="success"
                     size="sm"

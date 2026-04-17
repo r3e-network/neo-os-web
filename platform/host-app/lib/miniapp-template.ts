@@ -169,6 +169,7 @@ function coerceOperationParam(raw: unknown): OperationParam | null {
     default_value: asOptionalString(obj.default_value),
     placeholder: asOptionalString(obj.placeholder),
     options: options.length > 0 ? options : undefined,
+    hidden: asOptionalBoolean(obj.hidden),
   };
 }
 

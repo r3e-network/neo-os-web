@@ -51,6 +51,7 @@ export type OperationParam = {
   default_value?: string;
   placeholder?: string;
   options?: { label: string; value: string }[];
+  hidden?: boolean;
 };
 
 export type OperationEntry = {

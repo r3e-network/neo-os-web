@@ -30,13 +30,6 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("openEnvelope", async (id: unknown) => {
-      await ctx.services.notify.guard(
-        () => envelope.openEnvelope(String(id)),
-        "envelopeOpened",
-      );
-    });
-
     ctx.registerAction("claimEnvelope", async (id: unknown) => {
       await ctx.services.notify.guard(
         () => envelope.claimEnvelope(String(id)),

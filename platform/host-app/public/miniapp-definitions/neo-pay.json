@@ -53,40 +53,54 @@
       }
     ],
     "operation_panel": {
-      "title": "Create Stream",
-      "subtitle": "Create recurring on-chain streams with GAS or NEO.",
+      "title": "Manage Streams",
+      "subtitle": "Claim from incoming streams or cancel ones you created.",
       "cta_label": "Open NeoPay",
       "operations": []
     }
   },
   "operations": [
     {
-      "name": "Create Stream",
-      "method": "createStream",
+      "name": "Claim Stream",
+      "method": "claimStream",
       "button_style": "primary",
       "params": [
         {
-          "name": "amount",
-          "type": "amount",
-          "label": "Per-Period Amount",
+          "name": "beneficiary",
+          "type": "hash160",
+          "label": "Beneficiary",
           "required": true,
-          "placeholder": "100"
+          "default_value": "$wallet",
+          "hidden": true
         },
         {
-          "name": "schedule",
-          "type": "select",
-          "label": "Schedule",
+          "name": "streamId",
+          "type": "integer",
+          "label": "Stream ID",
           "required": true,
-          "options": [
-            {
-              "label": "Weekly",
-              "value": "weekly"
-            },
-            {
-              "label": "Monthly",
-              "value": "monthly"
-            }
-          ]
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Cancel Stream",
+      "method": "cancelStream",
+      "button_style": "danger",
+      "params": [
+        {
+          "name": "creator",
+          "type": "hash160",
+          "label": "Creator",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "streamId",
+          "type": "integer",
+          "label": "Stream ID",
+          "required": true,
+          "placeholder": "1"
         }
       ]
     }
@@ -101,5 +115,11 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/neopay"
+  "docs_url": "https://docs.r3e.network/neopay",
+  "detail_template": {
+    "operation_panel": {
+      "title": "Manage Streams",
+      "subtitle": "Claim from incoming streams or cancel ones you created."
+    }
+  }
 }
