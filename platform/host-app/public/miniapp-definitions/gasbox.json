@@ -54,28 +54,13 @@
       }
     ],
     "operation_panel": {
-      "title": "Spin",
-      "subtitle": "Provably fair blind-box draws with direct wallet play.",
-      "cta_label": "Open GASBOX",
+      "title": "GASBox",
+      "subtitle": "Two-step VRF gacha. Use the full app to pick a machine and draw.",
+      "cta_label": "Open GASBox",
       "operations": []
     }
   },
-  "operations": [
-    {
-      "name": "Spin x1",
-      "method": "playMachine",
-      "button_style": "primary",
-      "params": [
-        {
-          "name": "machineId",
-          "type": "integer",
-          "label": "Machine ID",
-          "required": true,
-          "placeholder": "1"
-        }
-      ]
-    }
-  ],
+  "operations": [],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
@@ -87,5 +72,13 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/gasbox"
+  "docs_url": "https://docs.r3e.network/gasbox",
+  "detail_template": {
+    "operation_panel": {
+      "title": "GASBox",
+      "subtitle": "Two-step VRF gacha. Use the full app to pick a machine and draw.",
+      "cta_label": "Open GASBox",
+      "operations": []
+    }
+  }
 }

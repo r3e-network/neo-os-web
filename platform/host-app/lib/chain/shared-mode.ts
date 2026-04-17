@@ -163,7 +163,7 @@ function parseJSONArray(value: string): unknown[] | null {
   }
 }
 
-function addressToScriptHash(address: string): string {
+export function addressToScriptHash(address: string): string {
   if (!address) return "";
   if (address.startsWith("0x")) return address.toLowerCase();
   try {

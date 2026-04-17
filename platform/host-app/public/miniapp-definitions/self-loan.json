@@ -53,24 +53,39 @@
       }
     ],
     "operation_panel": {
-      "title": "Open Loan",
-      "subtitle": "Borrow GAS against future NEO yield with no liquidation.",
+      "title": "Manage Loan",
+      "subtitle": "Repay debt or top up collateral on an existing loan.",
       "cta_label": "Open SelfLoan",
       "operations": []
     }
   },
   "operations": [
     {
-      "name": "Create Loan",
-      "method": "createLoan",
+      "name": "Repay Debt",
+      "method": "repayDebt",
       "button_style": "primary",
       "params": [
         {
-          "name": "neoAmount",
+          "name": "loanId",
           "type": "integer",
-          "label": "Collateral (NEO)",
+          "label": "Loan ID",
           "required": true,
-          "placeholder": "10"
+          "placeholder": "1"
+        },
+        {
+          "name": "payer",
+          "type": "hash160",
+          "label": "Payer",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Repay Amount (GAS)",
+          "required": true,
+          "placeholder": "1"
         }
       ]
     }
@@ -86,5 +101,11 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/self-loan"
+  "docs_url": "https://docs.r3e.network/self-loan",
+  "detail_template": {
+    "operation_panel": {
+      "title": "Manage Loan",
+      "subtitle": "Repay debt or top up collateral on an existing loan."
+    }
+  }
 }
