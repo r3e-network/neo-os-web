@@ -169,3 +169,6 @@ lastsurvivor-*.png
 obsidian-terminal.png
 polymarket-layout.png
 apps/*/dist/
+
+# Multi-user-sim daemon runtime output (per-iter JSON + logs)
+docs/reports/multi-user-sim/
