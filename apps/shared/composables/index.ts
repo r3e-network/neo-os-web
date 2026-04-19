@@ -14,14 +14,17 @@ export type { UseTickerOptions } from "./useTicker";
 export { useContractInteraction } from "./useContractInteraction";
 export type { ContractInteractionOptions } from "./useContractInteraction";
 
-// Advanced platform capabilities (AA, Oracle, Keeper)
+// Advanced platform capabilities
 export { useAbstractAccount } from "./useAbstractAccount";
 export type { AAConfig } from "./useAbstractAccount";
-export { useOracle } from "./useOracle";
-export type { OracleConfig, VRFResult, TEEResult } from "./useOracle";
 
-// Focused Oracle sub-composables (also available via useOracle barrel)
-export { useVRF } from "./useVRF";
-export { useDataFeed } from "./useDataFeed";
-export { useOracleQuery } from "./useOracleQuery";
-export { useCompute } from "./useCompute";
+// On-chain Morpheus DataFeed reader (replaces the old off-chain
+// useDataFeed/useOracle/useVRF/useOracleQuery/useCompute composables —
+// the platform now reads oracle data directly from the deployed Morpheus
+// contracts via JSON-RPC, with VRF/HTTP-query/compute mediated by
+// flagship contracts on-chain rather than HTTP shortcuts to a TEE).
+export { useMorpheusDataFeed } from "./useMorpheusDataFeed";
+export type {
+  UseMorpheusDataFeedConfig,
+  MorpheusDataFeedHandle,
+} from "./useMorpheusDataFeed";

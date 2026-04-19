@@ -17,10 +17,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const price = usePriceConsole({
-      oracle: ctx.services.oracle,
-      t: ctx.t,
-    });
+    const price = usePriceConsole({ t: ctx.t });
 
     ctx.registerAction("fetchPrice", async () => {
       await ctx.services.notify.guard(() => price.fetchPrice(), "priceLoaded");
@@ -34,11 +31,11 @@ defineMiniApp({
       state: {
         asset: price.asset,
         priceDisplay: price.priceDisplay,
-        oracleHash: price.oracleHash,
         networkDisplay: price.networkDisplay,
         datafeedHash: price.datafeedHash,
         datafeedShort: price.datafeedShort,
-        publicApiUrl: price.publicApiUrl,
+        sourceLabel: price.sourceLabel,
+        errorMsg: price.errorMsg,
         isRequesting: price.isRequesting,
       },
       loadData: price.loadAll,

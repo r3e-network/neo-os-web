@@ -46,7 +46,7 @@ import type { GameProxy } from "@shared/services/os/GameProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import type { OracleService, EventBus } from "@shared/services";
+import type { EventBus } from "@shared/services";
 import { formatNum, toFixed8 } from "@shared/utils/format";
 
 // ============================================================================
@@ -92,8 +92,6 @@ export interface UseCoinFlipOptions {
   storageService: StorageProxy;
   /** OS BadgeProxy instance from ctx.os.badge */
   badgeService: BadgeProxy;
-  /** OracleService instance from ctx.services.oracle (VRF randomness) */
-  oracle: OracleService;
   /** EventBus instance from ctx.services.events */
   eventBus: EventBus;
   /** Translation function */
@@ -145,7 +143,6 @@ export function useCoinFlip({
   paymentService,
   storageService,
   badgeService,
-  oracle,
   eventBus,
   t,
 }: UseCoinFlipOptions) {
@@ -310,11 +307,12 @@ export function useCoinFlip({
       const betId = String((betPoolState as unknown as { betId?: string })?.betId ?? "");
       if (!betId) throw new Error(t("betMissing"));
 
-      // -- Step 3: Request oracle VRF randomness ---
-      // This triggers the Morpheus Oracle to generate verifiable random bytes.
-      // The oracle callback will invoke the contract's resolve function,
-      // which emits a BetResolved event with the outcome.
-      await oracle.requestRandom(`${APP_ID}:${betId}`);
+      // -- Step 3: (No frontend oracle call needed) ---
+      // The fogplay contract itself invokes MorpheusOracle.request()
+      // inside placeBet(); the oracle then calls back into the contract,
+      // which emits BetResolved. The frontend just waits for that event.
+      // Direct frontend → oracle HTTP calls have been removed in favor
+      // of the standard on-chain mediated pattern.
 
       // -- Step 4: Poll for oracle callback (BetResolved) via GameProxy ---
       // The edge function translates getPoolState("resolve:<betId>") into

@@ -1,8 +1,12 @@
 /**
- * Price data utilities for fetching and caching token prices
+ * Price data utilities for fetching and caching token prices.
+ *
+ * Reads directly from the on-chain MorpheusDataFeed contract — no
+ * off-chain HTTP shortcut. Same source-of-truth that any on-chain
+ * consumer would read.
  */
 
-import { useDataFeed } from "../composables/useDataFeed";
+import { useMorpheusDataFeed } from "../composables/useMorpheusDataFeed";
 
 export interface PriceData {
   neo: number;
@@ -40,7 +44,7 @@ export async function getPrices(): Promise<PriceData> {
     return priceCache;
   }
 
-  const { getPrice } = useDataFeed();
+  const { getPrice } = useMorpheusDataFeed();
   try {
     const neoPrice = await getPrice("NEO");
     const gasPrice = await getPrice("GAS");

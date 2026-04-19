@@ -22,7 +22,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const oracleHash = str("oracleHash");
   const networkDisplay = str("networkDisplay", "N3 TestNet");
   const datafeedHash = str("datafeedHash");
-  const publicApiUrl = str("publicApiUrl");
 
   return (
     <div className="automation-play-area">
@@ -53,12 +52,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="info-row">
               <span className="label">{t("datafeedHash") || "Datafeed Hash"}</span>
               <span className="value mono">{datafeedHash}</span>
-            </div>
-          )}
-          {publicApiUrl && (
-            <div className="info-row">
-              <span className="label">{t("apiUrl") || "API URL"}</span>
-              <span className="value mono">{publicApiUrl}</span>
             </div>
           )}
         </div>
@@ -115,18 +108,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoButton
           variant="secondary"
           loading={isRequesting}
-          aria-label={t("requestRandomness") || "Randomness"}
-          onClick={() => dispatch("loadRandomness")}
+          aria-label={t("requestRandomness") || "Jitter"}
+          onClick={() => dispatch("loadJitter")}
         >
-          {t("requestRandomness") || "Randomness"}
-        </NeoButton>
-        <NeoButton
-          variant="secondary"
-          loading={isRequesting}
-          aria-label={t("fetchOracleKey") || "Oracle Key"}
-          onClick={() => dispatch("fetchOracleKey")}
-        >
-          {t("fetchOracleKey") || "Oracle Key"}
+          {t("requestRandomness") || "Jitter"}
         </NeoButton>
       </div>
 
