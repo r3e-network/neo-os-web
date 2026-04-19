@@ -17,13 +17,21 @@ function hasAcceptedLayout(filePath) {
 }
 
 function hasCurrentRuntimeLayout(appRoot) {
-  const mainPath = path.join(appRoot, "src", "main.ts");
-  const playAreaPath = path.join(appRoot, "src", "PlayArea.vue");
-  if (!fs.existsSync(mainPath)) return false;
-  if (!fs.existsSync(playAreaPath)) return false;
-
-  const mainSource = fs.readFileSync(mainPath, "utf8");
-  return mainSource.includes("defineMiniApp(");
+  // The platform migrated from Vue 3 (*.vue + src/main.ts) to React
+  // (*.tsx + src/main.tsx) in late-2025. Accept either shape — both
+  // still use the shared defineMiniApp(...) contract.
+  const candidates = [
+    { main: "main.tsx", play: "PlayArea.tsx" },
+    { main: "main.ts",  play: "PlayArea.vue" },
+  ];
+  for (const { main, play } of candidates) {
+    const mainPath = path.join(appRoot, "src", main);
+    const playPath = path.join(appRoot, "src", play);
+    if (!fs.existsSync(mainPath) || !fs.existsSync(playPath)) continue;
+    const mainSource = fs.readFileSync(mainPath, "utf8");
+    if (mainSource.includes("defineMiniApp(")) return true;
+  }
+  return false;
 }
 
 function main() {
