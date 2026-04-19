@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-const MAINNET_RPC_URL = process.env.NEO_MAINNET_RPC_URL || "https://mainnet1.neo.coz.io:443";
+const MAINNET_RPC_URL = process.env.NEO_MAINNET_RPC_URL || "https://mainnet2.neo.coz.io:443";
 const TESTNET_RPC_URL = process.env.NEO_TESTNET_RPC_URL || process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 
 /**

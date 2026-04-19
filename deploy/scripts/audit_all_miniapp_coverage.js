@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const APPS_DIR = path.join(ROOT, "apps");
 const CONTRACTS_DIR = path.join(ROOT, "contracts");
 const TESTNET_RPC = process.env.NEO_RPC_TESTNET || process.env.NEO_RPC_URL || "https://n3seed1.ngd.network:20332";
-const MAINNET_RPC = process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
+const MAINNET_RPC = process.env.NEO_RPC_MAINNET || "https://mainnet2.neo.coz.io:443";
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));

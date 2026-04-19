@@ -59,7 +59,7 @@ NEP-11 event tickets with QR check-in.
 | Property | Value |
 |----------|-------|
 | **Contract** | `Pending deployment` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | `https://www.neo3scan.com` |
 
 > Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
