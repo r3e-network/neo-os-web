@@ -56,7 +56,14 @@ export function useNeoburgerCore({ chain, eventBus, balance, t }: UseNeoburgerCo
     await chain.ensureWallet();
     const contractAddr = chain.contractAddress.value;
     if (!contractAddr) throw new Error(t("contractUnavailable"));
-    await chain.invoke("claimReward", [], { scriptHash: contractAddr });
+    const account = chain.address.value;
+    if (!account) throw new Error(t("walletNotConnected"));
+    // BurgerNEO mainnet ABI exposes `reward(account: Hash160)`, not
+    // `claimReward()`. Calling the wrong name FAULTed with
+    // "method not found"; the contract has no claimReward in its ABI.
+    await chain.invoke("reward", [
+      { type: "Hash160", value: account },
+    ], { scriptHash: contractAddr });
     return { success: true };
   };
 
