@@ -90,7 +90,7 @@ API model:
 - edge fallback: `edge.meshmini.app/<network>`
 - control-plane ingress: `control.meshmini.app/<network>`
 - Oracle attestation explorer: `https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093`
-- DataFeed attestation explorer: `https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56`
+- DataFeed attestation explorer: `https://cloud.phala.com/explorer/app_ac5b6886a2832df36e479294206611652400178f`
 
 Legacy split-service env vars are still tolerated by the platform edge layer,
 but they are no longer the preferred production model.

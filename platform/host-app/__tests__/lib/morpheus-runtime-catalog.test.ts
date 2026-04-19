@@ -7,6 +7,9 @@ describe('morpheus runtime catalog', () => {
     expect(EXTERNAL_INTEGRATIONS.testnet.morpheusEnvelopeVersion).toBe('2026-04-tee-v1');
     expect(EXTERNAL_INTEGRATIONS.testnet.morpheusRiskPlane).toBe('independent_observer');
     expect(EXTERNAL_INTEGRATIONS.testnet.morpheusAutomationTriggerKinds).toEqual(['interval', 'threshold']);
+    expect(MORPHEUS_PUBLIC_RUNTIME_CATALOG.networks.mainnet.morpheus.datafeedCvmId).toBe(
+      'ac5b6886a2832df36e479294206611652400178f'
+    );
     expect(MORPHEUS_PUBLIC_RUNTIME_CATALOG.topology).toEqual({
       ingressPlane: 'edge_gateway',
       orchestrationPlane: 'control_plane',
