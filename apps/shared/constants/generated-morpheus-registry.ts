@@ -23,9 +23,9 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "oracleCvmId": "ddff154546fe22d15b65667156dd4b7c611e6093",
       "oracleCvmName": "oracle-morpheus-neo-r3e",
       "oracleAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
-      "datafeedCvmId": "28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedCvmId": "ac5b6886a2832df36e479294206611652400178f",
       "datafeedCvmName": "datafeed-morpheus-neo-r3e",
-      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ac5b6886a2832df36e479294206611652400178f",
       "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
     },
     "contracts": {
@@ -69,9 +69,9 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "oracleCvmId": "ddff154546fe22d15b65667156dd4b7c611e6093",
       "oracleCvmName": "oracle-morpheus-neo-r3e",
       "oracleAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ddff154546fe22d15b65667156dd4b7c611e6093",
-      "datafeedCvmId": "28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedCvmId": "ac5b6886a2832df36e479294206611652400178f",
       "datafeedCvmName": "datafeed-morpheus-neo-r3e",
-      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_28294e89d490924b79c85cdee057ce55723b3d56",
+      "datafeedAttestationExplorerUrl": "https://cloud.phala.com/explorer/app_ac5b6886a2832df36e479294206611652400178f",
       "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
     },
     "contracts": {
