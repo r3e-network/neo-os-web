@@ -174,9 +174,13 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     isLoading.set(true);
     try {
       await chain.ensureWallet();
-      const result = await chain.invoke("setTarget", [
+      // The on-chain NameService ABI is `setRecord(name, type, data)` —
+      // there is no `setTarget`. Type 1 is the "A" record (Neo address
+      // as string). Calling the wrong name FAULTed with method-not-found.
+      const result = await chain.invoke("setRecord", [
         { type: "String", value: domain.name },
-        { type: "Hash160", value: targetAddress },
+        { type: "Integer", value: 1 },
+        { type: "String", value: targetAddress },
       ], { scriptHash: contractHash });
       if (result.success) {
         eventBus.emit("neo-ns:recordSet", { action: t("targetSet"), domain: domain.name, target: targetAddress });
