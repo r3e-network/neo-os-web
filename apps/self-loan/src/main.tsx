@@ -19,7 +19,6 @@ defineMiniApp({
       lendingService: ctx.os.lending,
       paymentService: ctx.os.payment,
       storageService: ctx.os.storage,
-      oracleService: ctx.services.oracle,
       t: ctx.t,
     });
 
