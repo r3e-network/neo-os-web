@@ -13,11 +13,6 @@ export const TOOL_MINIAPP_IDS = [
   "miniapp-flamingo-analytics",
   "miniapp-flamingo-action-center",
   "miniapp-oracle-price-console",
-  "miniapp-oracle-seal-console",
-  "miniapp-oracle-neodid-console",
-  "miniapp-oracle-http-console",
-  "miniapp-oracle-compute-lab",
-  "miniapp-oracle-vrf-console",
 ] as const;
 
 type MiniAppSortMode = "featured" | "name" | "recent";
