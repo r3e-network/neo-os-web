@@ -62,7 +62,7 @@ Gas Sponsor 为低余额的 Neo 新用户提供免费 GAS。每天可请求最�
 | 属性 | 值 |
 |------|-----|
 | **合约地址** | `0x80ea8435a88334b9b80077220097d88c440615f1` |
-| **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
+| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
 | **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x80ea8435a88334b9b80077220097d88c440615f1) |
 | **网络魔数** | `860833102` |
 

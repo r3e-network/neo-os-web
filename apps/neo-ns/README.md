@@ -200,7 +200,7 @@ Neo Name Service is built on Neo N3 as a NEP-11 (NFT) contract:
 | Property | Value |
 |----------|-------|
 | **Contract** | `0x50ac1c37690cc2cfc594472833cf57505d5f46de` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x50ac1c37690cc2cfc594472833cf57505d5f46de) |
 | **Network Magic** | `860833102` |
 

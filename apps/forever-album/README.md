@@ -50,7 +50,7 @@ Store photo memories on Neo per wallet address, with optional AES-GCM encryption
 | Property | Value |
 |----------|-------|
 | **Contract** | `0x254421a4aeb4e731f89182776b7bc6042c40c797` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x254421a4aeb4e731f89182776b7bc6042c40c797) |
 | **Network Magic** | `860833102` |
 

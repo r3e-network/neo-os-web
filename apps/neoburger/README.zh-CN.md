@@ -61,7 +61,7 @@ NeoBurger 是一个流动性质押协议，让您质押 NEO 并获得 bNEO 代�
 | 属性 | 值 |
 |------|-----|
 | **合约地址** | `0x48c40d4666f93408be1bef038b6722404d9a4c2a` |
-| **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
+| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
 | **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x48c40d4666f93408be1bef038b6722404d9a4c2a) |
 | **网络魔数** | `860833102` |
 

@@ -190,7 +190,7 @@ For technical issues, contact the Neo MiniApp team.
 | Property | Value |
 |----------|-------|
 | **Contract** | `0x48c40d4666f93408be1bef038b6722404d9a4c2a` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x48c40d4666f93408be1bef038b6722404d9a4c2a) |
 | **Network Magic** | `860833102` |
 

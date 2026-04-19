@@ -1,6 +1,6 @@
 "use strict";
 
-const MAINNET_RPC_URL = "https://mainnet1.neo.coz.io:443";
+const MAINNET_RPC_URL = "https://mainnet2.neo.coz.io:443";
 const TESTNET_RPC_URL = "https://testnet1.neo.coz.io:443";
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
