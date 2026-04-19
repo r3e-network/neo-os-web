@@ -1,8 +1,8 @@
 /**
- * PlayArea.tsx -- Oracle Price Console
+ * PlayArea.tsx -- Oracle Price Console (on-chain MorpheusDataFeed reader)
  *
- * Uses all state: asset, priceDisplay, oracleHash, networkDisplay,
- * datafeedHash, datafeedShort, publicApiUrl, isRequesting.
+ * Uses state: asset, priceDisplay, networkDisplay, datafeedHash,
+ * datafeedShort, sourceLabel, isRequesting, errorMsg.
  * Actions: fetchPrice, updateAsset.
  */
 
@@ -22,11 +22,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const asset = str("asset", "NEO");
   const priceDisplay = str("priceDisplay", t("notAvailable") || "N/A");
-  const oracleHash = str("oracleHash", "");
   const networkDisplay = str("networkDisplay", "");
   const datafeedHash = str("datafeedHash", "");
   const datafeedShort = str("datafeedShort", "");
-  const publicApiUrl = str("publicApiUrl", "");
+  const sourceLabel = str("sourceLabel", "");
+  const errorMsg = str("errorMsg", "");
   const isRequesting = bool("isRequesting");
 
   return (
@@ -46,26 +46,23 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <span className="infra-value">{networkDisplay}</span>
             </div>
           )}
-          {oracleHash && (
-            <div className="infra-row">
-              <span className="infra-label">Oracle</span>
-              <span className="infra-value mono">{oracleHash.slice(0, 12)}...{oracleHash.slice(-8)}</span>
-            </div>
-          )}
           {datafeedShort && (
             <div className="infra-row">
               <span className="infra-label">{t("overviewDataFeed") || "DataFeed"}</span>
               <span className="infra-value mono">{datafeedShort}</span>
             </div>
           )}
-          {publicApiUrl && (
+          {sourceLabel && (
             <div className="infra-row">
-              <span className="infra-label">API</span>
-              <span className="infra-value mono">{publicApiUrl}</span>
+              <span className="infra-label">Source</span>
+              <span className="infra-value mono">{sourceLabel}</span>
             </div>
           )}
         </div>
       </NeoCard>
+      {errorMsg && (
+        <div className="error-banner mono">{errorMsg}</div>
+      )}
 
       {/* Operation Section */}
       <div className="stack">

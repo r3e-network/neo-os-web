@@ -1,25 +1,29 @@
 /**
- * usePriceConsole — React hook for Oracle Price Console domain logic.
+ * usePriceConsole — React hook for the on-chain Morpheus DataFeed price console.
  *
- * Equivalent to the Vue composable but uses createObservable instead of ref/computed.
- * Called once during setup, returns observables that React components subscribe to.
+ * Reads prices DIRECTLY from the deployed MorpheusDataFeed contract via
+ * Neo N3 JSON-RPC. No off-chain HTTP, no Phala dependency, no edge proxy.
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { OracleService } from "@shared/services";
+import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
+import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 
 export interface UsePriceConsoleOptions {
-  oracle: OracleService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function usePriceConsole({ oracle, t }: UsePriceConsoleOptions) {
+export function usePriceConsole({ t }: UsePriceConsoleOptions) {
+  const network = getNetwork();
+  const integration = EXTERNAL_INTEGRATIONS[network];
+  const datafeed = useMorpheusDataFeed({ network });
+
   const asset = createObservable("NEO");
   const latestPrice = createObservable<number | null>(null);
   const isRequesting = createObservable(false);
+  const errorMsg = createObservable<string | null>(null);
 
-  // Derived observables (recomputed on access)
   const priceDisplay: Observable<string> = {
     get: () => {
       const price = latestPrice.get();
@@ -29,42 +33,41 @@ export function usePriceConsole({ oracle, t }: UsePriceConsoleOptions) {
     subscribe: (fn) => latestPrice.subscribe(fn),
   };
 
-  const oracleHash: Observable<string> = {
-    get: () => oracle.integration.contracts.morpheusOracle,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
-  const networkDisplay: Observable<string> = {
-    get: () => oracle.network,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
   const datafeedHash: Observable<string> = {
-    get: () => oracle.integration.contracts.morpheusDatafeed,
+    get: () => integration.contracts.morpheusDatafeed,
     set: () => {},
     subscribe: () => () => {},
   };
 
   const datafeedShort: Observable<string> = {
-    get: () => `${oracle.integration.contracts.morpheusDatafeed.slice(0, 10)}...`,
+    get: () => `${integration.contracts.morpheusDatafeed.slice(0, 10)}...`,
     set: () => {},
     subscribe: () => () => {},
   };
 
-  const publicApiUrl: Observable<string> = {
-    get: () => oracle.integration.morpheusPublicApiUrl,
+  const networkDisplay: Observable<string> = {
+    get: () => network,
+    set: () => {},
+    subscribe: () => () => {},
+  };
+
+  const sourceLabel: Observable<string> = {
+    get: () => `on-chain · ${integration.rpcUrl}`,
     set: () => {},
     subscribe: () => () => {},
   };
 
   async function fetchPrice() {
     isRequesting.set(true);
+    errorMsg.set(null);
     try {
-      const result = await oracle.getPrice(asset.get());
-      latestPrice.set(result.price);
+      const price = await datafeed.getPrice(asset.get());
+      latestPrice.set(price);
       return { success: true };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "fetch failed";
+      errorMsg.set(msg);
+      return { success: false, error: msg };
     } finally {
       isRequesting.set(false);
     }
@@ -76,12 +79,12 @@ export function usePriceConsole({ oracle, t }: UsePriceConsoleOptions) {
     asset,
     latestPrice,
     priceDisplay,
-    oracleHash,
-    networkDisplay,
     datafeedHash,
     datafeedShort,
-    publicApiUrl,
+    networkDisplay,
+    sourceLabel,
     isRequesting,
+    errorMsg,
     fetchPrice,
     loadAll,
   };

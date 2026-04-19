@@ -19,10 +19,7 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const copilot = useAutomationCopilot({
-      oracle: ctx.services.oracle,
-      t: ctx.t,
-    });
+    const copilot = useAutomationCopilot({ t: ctx.t });
 
     registerActions(ctx, {
       fetchCurrentPrice: {
@@ -35,15 +32,10 @@ defineMiniApp({
         successKey: "recipeBuilt",
         errorKey: "recipeFailed",
       },
-      loadRandomness: {
-        handler: () => copilot.loadRandomness(),
+      loadJitter: {
+        handler: () => copilot.loadJitter(),
         successKey: "randomnessReady",
         errorKey: "randomnessFailed",
-      },
-      fetchOracleKey: {
-        handler: () => copilot.fetchOracleKey(),
-        successKey: "keyLoaded",
-        errorKey: "keyFailed",
       },
     });
 
@@ -59,7 +51,6 @@ defineMiniApp({
         oracleHash: copilot.oracleHash,
         networkDisplay: copilot.networkDisplay,
         datafeedHash: copilot.datafeedHash,
-        publicApiUrl: copilot.publicApiUrl,
       },
       loadData: copilot.loadAll,
     };
