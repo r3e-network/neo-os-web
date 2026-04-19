@@ -20,7 +20,6 @@ defineMiniApp({
       paymentService: ctx.os.payment,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
-      oracle: ctx.services.oracle,
       eventBus: ctx.services.events,
       t: ctx.t,
     });

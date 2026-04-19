@@ -1,26 +1,43 @@
 /**
- * useAutomationCopilot -- Domain logic for Automation Copilot
+ * useAutomationCopilot — Domain logic for Automation Copilot.
  *
- * Uses createObservable instead of Vue ref/computed.
- * Called once during setup, returns observables that React components subscribe to.
+ * Reads price feed directly from on-chain MorpheusDataFeed (no off-chain
+ * HTTP). Randomness is derived locally from crypto.getRandomValues for
+ * the recipe-jitter use case (this is a UI/recipe preview tool — the
+ * actual on-chain VRF flow lives in flagship contracts like fogplay).
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { OracleService } from "@shared/services";
+import { useMorpheusDataFeed } from "@shared/composables/useMorpheusDataFeed";
+import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 
 export interface UseAutomationCopilotOptions {
-  oracle: OracleService;
   t: (key: string, params?: Record<string, string | number>) => string;
 }
 
-export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions) {
+function jitterBytesHex(): string {
+  const bytes = new Uint8Array(32);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
+  const network = getNetwork();
+  const integration = EXTERNAL_INTEGRATIONS[network];
+  const datafeed = useMorpheusDataFeed({ network });
+
   const asset = createObservable("NEO");
   const targetPrice = createObservable("20");
   const schedule = createObservable("0 */6 * * *");
   const actionName = createObservable("auto_repay_self_loan");
   const latestPayload = createObservable<Record<string, unknown> | null>(null);
   const latestPrice = createObservable<number | null>(null);
+  const isRequestingRaw = createObservable(false);
 
   const priceDisplay: Observable<string> = {
     get: () => latestPrice.get() == null ? t("notAvailable") : `$${latestPrice.get()!.toFixed(4)}`,
@@ -34,43 +51,43 @@ export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions)
     subscribe: (fn) => latestPayload.subscribe(fn),
   };
 
-  const oracleHash: Observable<string> = {
-    get: () => oracle.integration.contracts.morpheusOracle,
-    set: () => {},
-    subscribe: () => () => {},
-  };
-
   const networkDisplay: Observable<string> = {
-    get: () => oracle.network,
+    get: () => network,
     set: () => {},
     subscribe: () => () => {},
   };
 
   const datafeedHash: Observable<string> = {
-    get: () => oracle.integration.contracts.morpheusDatafeed,
+    get: () => integration.contracts.morpheusDatafeed,
     set: () => {},
     subscribe: () => () => {},
   };
 
-  const publicApiUrl: Observable<string> = {
-    get: () => oracle.integration.morpheusPublicApiUrl,
+  const oracleHash: Observable<string> = {
+    get: () => integration.contracts.morpheusOracle,
     set: () => {},
     subscribe: () => () => {},
   };
 
   async function fetchCurrentPrice() {
-    const price = await oracle.getPrice(asset.get());
-    latestPrice.set(price.price);
-    latestPayload.set({
-      kind: "price",
-      asset: asset.get(),
-      current_price: latestPrice.get(),
-      target_price: Number(targetPrice.get() || "0"),
-      schedule: schedule.get(),
-      action_name: actionName.get(),
-      network: oracle.network,
-    });
-    return { success: true };
+    isRequestingRaw.set(true);
+    try {
+      const price = await datafeed.getPrice(asset.get());
+      latestPrice.set(price);
+      latestPayload.set({
+        kind: "price",
+        asset: asset.get(),
+        current_price: price,
+        target_price: Number(targetPrice.get() || "0"),
+        schedule: schedule.get(),
+        action_name: actionName.get(),
+        network,
+        source: `on-chain MorpheusDataFeed @ ${integration.contracts.morpheusDatafeed}`,
+      });
+      return { success: true };
+    } finally {
+      isRequestingRaw.set(false);
+    }
   }
 
   function previewRecipePayload() {
@@ -90,36 +107,27 @@ export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions)
         datafeed_priority: "highest",
         request_response_isolation: true,
       },
-      network: oracle.network,
+      network,
     });
     return { success: true };
   }
 
-  async function loadRandomness() {
-    const result = await oracle.requestRandom("automation-jitter");
+  function loadJitter() {
+    // Local-only jitter (32 random bytes) for recipe scheduling preview.
+    // For verifiable on-chain randomness, see how flagship contracts like
+    // fogplay invoke the MorpheusOracle directly via a contract callback.
     latestPayload.set({
-      kind: "randomness",
+      kind: "jitter",
       asset: asset.get(),
-      randomness: result.randomBytes,
-      proof: result.proof,
-      request_id: result.requestId,
+      jitter_bytes_hex: jitterBytesHex(),
+      note: "local pseudorandomness for recipe preview only — not verifiable randomness",
     });
-    return { success: true };
-  }
-
-  async function fetchOracleKey() {
-    const keyData = await oracle.getOraclePublicKey();
-    latestPayload.set(keyData as unknown as Record<string, unknown>);
     return { success: true };
   }
 
   const loadAll = async () => {};
 
-  const isRequesting: Observable<boolean> = {
-    get: () => oracle.isRequesting,
-    set: () => {},
-    subscribe: () => () => {},
-  };
+  const isRequesting: Observable<boolean> = isRequestingRaw;
 
   return {
     asset,
@@ -133,14 +141,10 @@ export function useAutomationCopilot({ oracle, t }: UseAutomationCopilotOptions)
     oracleHash,
     networkDisplay,
     datafeedHash,
-    publicApiUrl,
     isRequesting,
     fetchCurrentPrice,
     previewRecipePayload,
-    loadRandomness,
-    fetchOracleKey,
+    loadJitter,
     loadAll,
   };
 }
-
-export type UseAutomationCopilotReturn = ReturnType<typeof useAutomationCopilot>;

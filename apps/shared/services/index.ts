@@ -20,15 +20,10 @@ export { BalanceService } from "./BalanceService";
 
 export { TransferService } from "./TransferService";
 
-export { OracleService } from "./OracleService";
-export type { RandomResult, PriceResult, ComputeParams, ComputeResult } from "./OracleService";
-export type {
-  OracleQueryRequest,
-  OracleQueryResponse,
-  OraclePublicKeyResponse,
-  ConfidentialStoreRequest,
-  ConfidentialStoreResponse,
-} from "../composables/useOracle";
+// OracleService + off-chain composable types removed: miniapp platform
+// is now self-contained. Oracle integrations go directly on-chain via
+// composables/useMorpheusDataFeed.ts and the standard contract.invoke
+// pattern (see flagship miniapps for the on-chain-mediated VRF flow).
 
 export { AAService } from "./AAService";
 export type { SponsorshipStatus, SponsorshipResult, RelayResult } from "./AAService";

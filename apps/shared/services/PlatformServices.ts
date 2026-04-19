@@ -29,7 +29,6 @@ import { EventBus } from "./EventBus";
 import { ChainService } from "./ChainService";
 import { BalanceService } from "./BalanceService";
 import { TransferService } from "./TransferService";
-import { OracleService } from "./OracleService";
 import { AAService } from "./AAService";
 import { LifecycleService } from "./LifecycleService";
 import { NotificationService } from "./NotificationService";
@@ -77,7 +76,6 @@ export class PlatformServices {
   readonly chain: ChainService;
   readonly balance: BalanceService;
   readonly transfer: TransferService;
-  readonly oracle: OracleService;
   readonly aa: AAService;
   readonly lifecycle: LifecycleService;
   readonly notify: NotificationService;
@@ -103,7 +101,6 @@ export class PlatformServices {
     this.transfer = new TransferService(this.chain, this.events);
 
     // External integrations (depend on events)
-    this.oracle = new OracleService(appId, this.events);
     this.aa = new AAService(appId, this.events);
 
     // Lifecycle (depends on events)
