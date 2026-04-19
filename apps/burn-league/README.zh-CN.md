@@ -42,7 +42,7 @@
 | 属性 | 值 |
 |------|-----|
 | **合约地址** | `0xd829b7a8c0d9fa3c67a29c703a277de3f922f173` |
-| **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
+| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
 | **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xd829b7a8c0d9fa3c67a29c703a277de3f922f173) |
 | **网络魔数** | `860833102` |
 

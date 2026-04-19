@@ -22,7 +22,7 @@ const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const FIXED8 = 100_000_000;
 
 const RPC_URLS: Record<string, string> = {
-  "neo-n3-mainnet": "https://mainnet1.neo.coz.io:443",
+  "neo-n3-mainnet": "https://mainnet2.neo.coz.io:443",
   "neo-n3-testnet": "https://testnet1.neo.coz.io:443",
 };
 

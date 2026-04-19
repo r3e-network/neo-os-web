@@ -62,7 +62,7 @@ Neo 域名服务让您注册易记的 .neo 域名，映射到您的钱包地址�
 | 属性 | 值 |
 |------|-----|
 | **合约地址** | `0x50ac1c37690cc2cfc594472833cf57505d5f46de` |
-| **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
+| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
 | **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x50ac1c37690cc2cfc594472833cf57505d5f46de) |
 | **网络魔数** | `860833102` |
 

@@ -5,7 +5,7 @@ import { standardLimit } from "@/lib/rate-limit";
 
 function getNeoRPCURL(network: "testnet" | "mainnet"): string {
   if (network === "mainnet") {
-    return process.env.NEO_RPC_MAINNET || "https://mainnet1.neo.coz.io:443";
+    return process.env.NEO_RPC_MAINNET || "https://mainnet2.neo.coz.io:443";
   }
   return process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443";
 }

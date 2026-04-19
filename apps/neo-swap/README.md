@@ -193,7 +193,7 @@ Note: Wallet access is required to sign the swap transaction.
 | Property | Value |
 |----------|-------|
 | **Contract** | `0xf970f4ccecd765b63732b821775dc38c25d74f23` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
 | **Network Magic** | `860833102` |
 

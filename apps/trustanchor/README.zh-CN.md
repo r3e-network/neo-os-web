@@ -57,7 +57,7 @@ TrustAnchor 正在重构为 **verification-script agent 账户** 模型，而不
 | 属性 | 值 |
 |------|----|
 | **合约** | `verification-script agent 账户版本待上线` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **浏览器** | `https://www.neo3scan.com` |
 | **网络魔数** | `860833102` |
 

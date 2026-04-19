@@ -38,7 +38,7 @@
 | 属性 | 值 |
 |------|----|
 | **合约** | `待部署` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **浏览器** | `https://www.neo3scan.com` |
 
 > 测试网现已部署并验证通过。主网地址仍保持为空，等待后续单独上线。
