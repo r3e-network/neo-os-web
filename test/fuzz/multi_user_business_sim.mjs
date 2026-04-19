@@ -46,7 +46,22 @@ const { createWaitForLog, asTxid } = await import(
   path.join(repoRoot, "deploy", "scripts", "lib", "live_neo.js")
 );
 
-const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
+// Multi-endpoint RPC pool with auto-failover. The 2026-04-18 run hit a
+// 7.5-hour testnet RPC outage at iter 2135–2507 that turned ~1,464 of
+// 4 scenarios × 366 iters into "fail" entries, none of which were
+// contract-logic failures. With this pool the sim rotates to the next
+// healthy endpoint on `fetch failed` / `aborted` mid-iteration.
+const RPC_ENDPOINTS = (
+  process.env.NEO_RPC_ENDPOINTS
+  || process.env.NEO_RPC_URL
+  || [
+    "https://testnet1.neo.coz.io:443",
+    "https://testnet2.neo.coz.io:443",
+    "https://rpc.t5.n3.nspcc.ru:20331",
+    "https://neo3-testnet.unifra.io",
+  ].join(",")
+).split(",").map((s) => s.trim()).filter(Boolean);
+
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || Neon.CONST.MAGIC_NUMBER.TestNet);
 
 const FUNDER_WIF = process.env.NEO_TESTNET_WIF || process.env.TEST_FUZZ_WIF
@@ -74,28 +89,72 @@ const HISTORY_LOG = path.join(REPORT_DIR, "history.log");
 const ACCOUNT_STATE_FILE = path.join(REPORT_DIR, "sim-users.json");
 
 const funder = new Neon.wallet.Account(FUNDER_WIF);
-const rpcClient = new Neon.rpc.RPCClient(RPC_URL);
+
+let currentEndpointIdx = 0;
+function currentRpcUrl() { return RPC_ENDPOINTS[currentEndpointIdx]; }
+let rpcClient = new Neon.rpc.RPCClient(currentRpcUrl());
+
+function ts() { return new Date().toISOString(); }
+function log(line) { console.log(`[${ts()}] ${line}`); }
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function isTransientNetErr(err) {
+  const msg = String(err?.message || err || "");
+  return /fetch failed|operation was aborted|ECONN|ETIMEDOUT|socket hang up|ENOTFOUND|getaddrinfo|network|EAI_AGAIN/i.test(msg);
+}
+
+function rotateEndpoint(reason) {
+  if (RPC_ENDPOINTS.length <= 1) return;
+  const failed = currentRpcUrl();
+  currentEndpointIdx = (currentEndpointIdx + 1) % RPC_ENDPOINTS.length;
+  rpcClient = new Neon.rpc.RPCClient(currentRpcUrl());
+  log(`  rpc-failover ${failed} → ${currentRpcUrl()} (${reason})`);
+}
+
+// Wrap any RPC call so that on a transient network error we rotate to the
+// next endpoint and retry. We cap attempts at 2*endpoints.length to give
+// concurrent callers (e.g. Promise.all in fundIfLow) a chance to settle.
+//
+// Race-safety: if a parallel caller already rotated past the URL we used,
+// don't rotate again — just retry on the now-current endpoint.
+async function withRpcFailover(fn, label) {
+  let lastErr;
+  for (let attempt = 0; attempt < RPC_ENDPOINTS.length * 2; attempt++) {
+    const usedUrl = currentRpcUrl();
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientNetErr(err)) throw err;
+      if (currentRpcUrl() === usedUrl) {
+        rotateEndpoint(`${label}: ${String(err?.message || err).slice(0, 80)}`);
+      }
+    }
+  }
+  throw lastErr;
+}
+
 const waitForLog = createWaitForLog({
-  getApplicationLog: (txid) => rpcClient.getApplicationLog(txid),
+  getApplicationLog: (txid) =>
+    withRpcFailover(() => rpcClient.getApplicationLog(txid), "getApplicationLog"),
   label: "multi-user-sim",
 });
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
 
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
-function ts() { return new Date().toISOString(); }
-function log(line) { console.log(`[${ts()}] ${line}`); }
-
 function smartContract(hash, account) {
   return new Neon.experimental.SmartContract(hash, {
-    rpcAddress: RPC_URL,
+    rpcAddress: currentRpcUrl(),
     networkMagic: NETWORK_MAGIC,
     account,
   });
 }
 
 async function invokeRead(scriptHash, operation, args = []) {
-  return rpcClient.invokeFunction(scriptHash, operation, args);
+  return withRpcFailover(
+    () => rpcClient.invokeFunction(scriptHash, operation, args),
+    `invokeRead:${operation}`,
+  );
 }
 
 async function waitForTx(txid) {
@@ -105,18 +164,22 @@ async function waitForTx(txid) {
 }
 
 async function transferAsset(account, assetHash, toHash, amount, data = null) {
-  const contract = smartContract(assetHash, account);
-  return contract.invoke("transfer", [
-    Neon.sc.ContractParam.hash160(account.scriptHash),
-    Neon.sc.ContractParam.hash160(toHash),
-    Neon.sc.ContractParam.integer(amount.toString()),
-    data === null ? Neon.sc.ContractParam.any(null) : data,
-  ]);
+  return withRpcFailover(() => {
+    const contract = smartContract(assetHash, account);
+    return contract.invoke("transfer", [
+      Neon.sc.ContractParam.hash160(account.scriptHash),
+      Neon.sc.ContractParam.hash160(toHash),
+      Neon.sc.ContractParam.integer(amount.toString()),
+      data === null ? Neon.sc.ContractParam.any(null) : data,
+    ]);
+  }, `transfer:${assetHash.slice(0, 10)}`);
 }
 
 async function invokeMethod(account, contractHash, operation, args) {
-  const contract = smartContract(contractHash, account);
-  return contract.invoke(operation, args);
+  return withRpcFailover(() => {
+    const contract = smartContract(contractHash, account);
+    return contract.invoke(operation, args);
+  }, `invoke:${operation}`);
 }
 
 async function getBalance(assetHash, scriptHash) {
@@ -447,7 +510,7 @@ async function runIteration(users, iteration) {
 async function main() {
   log("multi-user business sim starting");
   log(`  funder=${funder.address}`);
-  log(`  rpc=${RPC_URL}`);
+  log(`  rpc-pool=[${RPC_ENDPOINTS.join(", ")}]  initial=${currentRpcUrl()}`);
   log(`  users=${SIM_USERS} iterations=${SIM_ITERATIONS || "continuous"} delay=${SIM_LOOP_DELAY}ms`);
 
   const users = ensureSubAccounts();
