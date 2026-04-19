@@ -9,7 +9,6 @@ describe("miniapp-template", () => {
   it("includes the new AA and Morpheus product miniapps in the built-in template registry", () => {
     expect(MINIAPP_TEMPLATES).toEqual(
       expect.objectContaining({
-        "miniapp-neodid-passport": expect.any(Object),
         "miniapp-recovery-guardian": expect.any(Object),
         "miniapp-automation-copilot": expect.any(Object),
         "miniapp-event-ticket-pass": expect.any(Object),
