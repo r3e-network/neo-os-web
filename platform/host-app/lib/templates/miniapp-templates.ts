@@ -124,28 +124,6 @@ const T_NEOPAY: AppTemplate = {
   operations: [op("Claim Stream", "claimStream", "primary", [int("streamId", "Stream ID", "1")]), op("Cancel Stream", "cancelStream", "danger", [int("streamId", "Stream ID", "1")])],
 };
 
-const T_NEODID_PASSPORT: AppTemplate = {
-  detail_template: {
-    layout: "default",
-    tabs: [
-      { id: "overview", label: "Overview", type: "content", blocks: [
-        { type: "notice", tone: "info", content: "Bind a Web2 login into a NeoDID identity root, attach verifier-ready proofs, and reuse the same identity across AA, zklogin, and private oracle flows." },
-        { type: "key_value", title: "Identity Surface", items: [{ key: "Root", value: "NeoDID + Web2 login" }, { key: "Proofs", value: "Web3Auth / zklogin / attestation" }, { key: "Reuse", value: "AA + oracle + miniapps" }] },
-      ]},
-      { id: "passport", label: "Passport Flow", type: "content", blocks: [
-        { type: "bullet_list", title: "Core Flow", items: ["Connect Web2 identity.", "Bind NeoDID root.", "Generate verifier payloads.", "Reuse the same identity across apps."] },
-      ]},
-      { id: "reviews", label: "Reviews", type: "reviews" }
-    ],
-    operation_panel: { title: "Passport Actions", subtitle: "Bind identity, resolve DID, or prepare verifier payloads.", cta_label: "Open Passport", operations: [] },
-  },
-  operations: [
-    op("Bind NeoDID", "bindDid", "primary"),
-    op("Resolve DID", "resolveDid", "secondary", [{ name: "did", type: "string", label: "DID", required: true, placeholder: "did:morpheus:neo_n3:service:neodid" }]),
-    op("Prepare zkLogin Payload", "prepareZkLogin", "secondary"),
-  ],
-};
-
 const T_RECOVERY_GUARDIAN: AppTemplate = {
   detail_template: {
     layout: "default",
@@ -322,7 +300,6 @@ export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
   "miniapp-redenvelope": T_RED_ENVELOPE,
   "miniapp-self-loan": T_SELF_LOAN,
   "miniapp-neo-pay": T_NEOPAY,
-  "miniapp-neodid-passport": T_NEODID_PASSPORT,
   "miniapp-recovery-guardian": T_RECOVERY_GUARDIAN,
   "miniapp-automation-copilot": T_AUTOMATION_COPILOT,
   "miniapp-event-ticket-pass": T_EVENT_TICKET_PASS,

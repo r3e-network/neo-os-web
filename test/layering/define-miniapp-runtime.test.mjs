@@ -58,7 +58,6 @@ test("miniapp context typing exposes the real shared service surface", () => {
 
 test("representative miniapps consume ctx.services instead of constructing PlatformServices manually", () => {
   for (const file of [
-    "apps/oracle-compute-lab/src/main.ts",
     "apps/red-envelope/src/main.ts",
     "apps/fogplay/src/main.ts",
     "apps/daily-checkin/src/main.ts",

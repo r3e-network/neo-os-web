@@ -24,16 +24,10 @@ const APP_ALLOWLIST_FOR_DIRECT_WALLET = new Set([
   "neo-ns",
   "neo-pay",
   "neo-swap",
-  "oracle-compute-lab",
-  "oracle-http-console",
-  "oracle-neodid-console",
   "oracle-price-console",
-  "oracle-seal-console",
-  "oracle-vrf-console",
   "recovery-guardian",
   "soulbound-certificate",
   "event-ticket-pass",
-  "neodid-passport",
 ]);
 
 const findings = [];
