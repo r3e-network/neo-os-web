@@ -7,16 +7,17 @@ fixed, and re-run to green.
 
 ## Headline result
 
-**All gates green on testnet AND mainnet.** The platform — host-app,
-admin-console, deploy scripts, on-chain contracts, oracle integration,
-and live user flows — passes its full validation suite end-to-end
-against live Neo N3 testnet (12 tiers, 7/7 user-flows) AND live Neo N3
-mainnet (3 additional tiers, 6/7 user-flows broadcast + 1 deferred-on-
-funding). Mainnet drove real on-chain transactions across the
-production flagship contracts using the funder wallet
-`NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn`. Three production-code fixes
-landed in this run to make the mainnet sweep work automatically and
-resiliently — see "Mainnet live user-flow results" below.
+**All gates green on testnet AND mainnet — 7/7 flagships broadcast
+end-to-end on both networks.** The platform — host-app, admin-console,
+deploy scripts, on-chain contracts, oracle integration, and live user
+flows — passes its full validation suite end-to-end against live Neo N3
+testnet (12 tiers, 7/7 user-flows) AND live Neo N3 mainnet (14
+additional tiers, 7/7 user-flows broadcast). Mainnet drove real on-
+chain transactions across the production flagship contracts using the
+funder wallet `NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn` (now funded with
+5 NEO + ~275 GAS, with selfLoan #1 actively held on mainnet). Multiple
+production-code fixes landed in this run to make the mainnet sweep
+work automatically and resiliently — see the per-tier breakdown below.
 
 ## Multi-user simulator (the run that just ended)
 
@@ -71,6 +72,7 @@ it up on next restart).
 | 23 | all-miniapp catalog + page-load sweep (added this revision) | ✅ 54/54 | for every app under `apps/<name>/`: `/api/miniapps/catalog?app_id=<id>` returns 200 with the contract_hash matching the bundled `neo-manifest.json` mainnet hash (where one is declared); `/miniapps/<id>` page loads HTTP 200. Page-load failures: 0. Hash mismatches: 0. Catalog-fixes from tier 22 propagate platform-wide — every app's detail page now serves the correct contract hash from a single source of truth. |
 | 24 | admin-console build + tests (re-validated this revision) | ✅ 197/197 | `npx vitest run` 197 tests across 20 suites pass; `npx next build` produces clean static + dynamic route bundles. No regression from the broader platform changes this session. |
 | 25 | security headers + production posture spot-check (added this revision) | ✅ all present + correct | host-app emits all six required security headers on every page: Content-Security-Policy (with full platform origin allowlist + wss for realtime), Strict-Transport-Security (max-age 2 years + includeSubDomains + preload), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy: camera/microphone/geolocation denied. Confirmed via direct `curl -I` against a flagship miniapp page. |
+| 26 | selfLoan mainnet broadcast (added this revision — deferral lifted) | ✅ 36s | with the funder wallet now holding 5 NEO + 275 GAS, the selfLoan flow ran end-to-end on mainnet for the first time: collateral tx `0xd74f96fec0908c5c5b1405f96ee0081cef0fd6be57ffe12e632a8eefa684c4ca`, createLoan tx `0xf78d93b7c6c0b0da4768d3c27c015bfec848c05f1ddfd55c45be499d5df89517`. Loan #1 active on mainnet: 1 NEO collateral, 0.2 GAS debt, LTV 2000 bps, health factor 500. **All 7 flagships now broadcast successfully on mainnet — no more deferred items.** |
 
 ### Live user-flow results (test #09)
 
@@ -400,11 +402,9 @@ Run with `node docs/reports/full-validation-2026-04-19/frontend-contract-consist
 - Add GASBox + RedEnvelope oracle-gated scenarios to the sim (deferred
   in `942a3aae` because they require oracle-fee top-up automation
   that doesn't fit the current sim shape).
-- **Fund the mainnet funder wallet with ≥1 NEO** to lift the selfLoan
-  deferral and complete a true 7/7 mainnet broadcast sweep. Address:
-  `NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn`. The selfLoan contract itself
-  is verified production-ready via testnet 7/7 + mainnet ABI parity
-  + mainnet read probes — only the live-broadcast test step waits.
+- ~~Fund the mainnet funder wallet with ≥1 NEO to lift the selfLoan
+  deferral~~ — **landed**: user deposited 5 NEO; selfLoan #1 created
+  on mainnet (tier 26).
 - **Redeploy testnet contracts from current source** for the 10 apps
   whose user-facing methods diverge from mainnet (gov-merc, graveyard,
   memorial-shrine, time-capsule, on-chain-tarot, unbreakable-vault,
