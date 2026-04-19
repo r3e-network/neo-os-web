@@ -57,7 +57,7 @@ There is no candidate ranking page and no old agent-contract management page any
 | Property | Value |
 |----------|-------|
 | **Contract** | `Pending verification-script agent-account rollout` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | `https://www.neo3scan.com` |
 | **Network Magic** | `860833102` |
 

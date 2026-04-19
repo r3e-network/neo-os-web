@@ -65,7 +65,7 @@ Encrypted memory burial with paid forgetting
 | Property | Value |
 |----------|-------|
 | **Contract** | `0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1) |
 | **Network Magic** | `860833102` |
 

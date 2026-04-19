@@ -63,7 +63,7 @@ Neo Swap 提供 NEO 与 GAS 的直接兑换，通过 Flamingo 链上路由执行
 | 属性 | 值 |
 |------|-----|
 | **合约地址** | `0xf970f4ccecd765b63732b821775dc38c25d74f23` |
-| **RPC 节点** | `https://mainnet1.neo.coz.io:443` |
+| **RPC 节点** | `https://mainnet2.neo.coz.io:443` |
 | **区块浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
 | **网络魔数** | `860833102` |
 

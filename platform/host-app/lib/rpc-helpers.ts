@@ -6,7 +6,12 @@
  * 2. KERNEL-REGISTERED apps (17+) — read from Morpheus Oracle kernel state
  */
 
-const NEO_MAINNET_RPC = "https://mainnet1.neo.coz.io:443";
+// mainnet1.neo.coz.io has been returning HTTP 502 since the 2026-04-19
+// validation run; default to mainnet2 and let ops override via env if a
+// different healthy endpoint is preferred.
+const NEO_MAINNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_MAINNET
+  || process.env.NEO_RPC_MAINNET
+  || "https://mainnet2.neo.coz.io:443";
 
 const MORPHEUS_KERNEL_MAINNET = "0x017520f068fd602082fe5572596185e62a4ad991";
 const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";

@@ -42,7 +42,7 @@ Burn-to-earn league - destroy GAS for platform equity
 | Property | Value |
 |----------|-------|
 | **Contract** | `0xd829b7a8c0d9fa3c67a29c703a277de3f922f173` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xd829b7a8c0d9fa3c67a29c703a277de3f922f173) |
 | **Network Magic** | `860833102` |
 

@@ -42,7 +42,7 @@ Governance mercenary - vote rental marketplace like Curve War
 | Property | Value |
 |----------|-------|
 | **Contract** | `0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0` |
-| **RPC** | `https://mainnet1.neo.coz.io:443` |
+| **RPC** | `https://mainnet2.neo.coz.io:443` |
 | **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0) |
 | **Network Magic** | `860833102` |
 
