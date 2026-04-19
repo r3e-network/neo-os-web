@@ -14,7 +14,14 @@ export type { UseTickerOptions } from "./useTicker";
 export { useContractInteraction } from "./useContractInteraction";
 export type { ContractInteractionOptions } from "./useContractInteraction";
 
-// Oracle capabilities
+// Advanced platform capabilities (AA, Oracle, Keeper)
+export { useAbstractAccount } from "./useAbstractAccount";
+export type { AAConfig } from "./useAbstractAccount";
 export { useOracle } from "./useOracle";
 export type { OracleConfig, VRFResult, TEEResult } from "./useOracle";
+
+// Focused Oracle sub-composables (also available via useOracle barrel)
+export { useVRF } from "./useVRF";
+export { useDataFeed } from "./useDataFeed";
+export { useOracleQuery } from "./useOracleQuery";
 export { useCompute } from "./useCompute";
