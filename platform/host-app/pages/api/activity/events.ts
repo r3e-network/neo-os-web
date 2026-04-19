@@ -63,13 +63,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         signal: AbortSignal.timeout(15000),
       });
 
-      try {
-        data = await upstream.json();
-      } catch {
-        return apiError.internal(res, "Failed to parse upstream response");
-      }
-      if (!upstream.ok) {
-        return apiError.internal(res, "Upstream request failed");
+      // 404 = feature route isn't deployed on the configured edge
+      // (e.g. Cloudflare gateway only proxies runtime, not Supabase
+      // functions). Degrade gracefully to empty data so the page
+      // renders instead of erroring; nothing to show is fine.
+      if (upstream.status === 404) {
+        data = { events: [], total: 0 };
+      } else {
+        try {
+          data = await upstream.json();
+        } catch {
+          return apiError.internal(res, "Failed to parse upstream response");
+        }
+        if (!upstream.ok) {
+          return apiError.internal(res, "Upstream request failed");
+        }
       }
     } else if (typeof app_id === "string" && FLAGSHIP_APPS[app_id] && tx_hash) {
       const appLog = await rpcCall<{

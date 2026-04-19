@@ -45,8 +45,34 @@ function buildCSP(nonce: string): string {
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
-  if (supabaseUrl) connectSources.push(supabaseUrl);
-  else if (isDev) connectSources.push("https:");
+  if (supabaseUrl) {
+    // Project-specific Supabase URL (https) — Realtime needs the wss
+    // counterpart on the same origin, otherwise the websocket fails CSP.
+    connectSources.push(supabaseUrl);
+    try {
+      const wssOrigin = new URL(supabaseUrl).origin.replace(/^https:/, "wss:");
+      connectSources.push(wssOrigin);
+    } catch {/* malformed env, fall through */}
+  } else if (isDev) {
+    connectSources.push("https:");
+    connectSources.push("wss:");
+  }
+  // Wildcard Supabase + platform infrastructure origins. Without these
+  // the realtime websocket, edge gateway, sentry, and Neo RPCs all
+  // fail at the CSP layer when a project-specific override is set.
+  connectSources.push(
+    "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://*.r3e.network",
+    "https://*.neo.coz.io",
+    "https://*.sentry.io",
+    "https://rpc*.seed.r3e.network",
+    "https://mainnet*.neo.coz.io",
+    "https://testnet*.neo.coz.io",
+    "https://oracle.meshmini.app",
+    "https://edge.meshmini.app",
+    "https://control.meshmini.app",
+  );
   connectSources.push(...federatedOrigins);
   const auth0Issuer = (process.env.AUTH0_ISSUER_BASE_URL || "").trim();
   if (auth0Issuer) {
