@@ -27,6 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const upstream = await fetch(url.toString(), { method: "GET", headers: forwardAuthHeaders(req), signal: AbortSignal.timeout(15000) });
+    if (upstream.status === 404) {
+      // Edge route not deployed in this environment — degrade gracefully.
+      res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+      return res.status(200).json({ items: [], total: 0 });
+    }
     let payload: unknown;
     try {
       payload = await upstream.json();

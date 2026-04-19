@@ -50,6 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       signal: AbortSignal.timeout(15000),
     });
 
+    if (upstream.status === 404) {
+      // Edge route not deployed in this environment — return empty.
+      res.setHeader("Cache-Control", "no-store, private");
+      return res.status(200).json({ transactions: [], total: 0 });
+    }
     if (!upstream.ok) {
       return apiError.internal(res, "Upstream request failed");
     }
