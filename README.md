@@ -222,10 +222,6 @@ Current AA / Oracle operator tools surfaced directly on the host home page:
 - `miniapp-aa-relay-console`
 - `miniapp-aa-session-key-lab`
 - `miniapp-oracle-price-console`
-- `miniapp-oracle-seal-console` (local ciphertext sealing + short `encrypted_*_ref` preparation)
-- `miniapp-oracle-neodid-console`
-- `miniapp-oracle-http-console`
-- `miniapp-oracle-compute-lab`
 - `miniapp-oracle-vrf-console`
 
 ## Quick Start
