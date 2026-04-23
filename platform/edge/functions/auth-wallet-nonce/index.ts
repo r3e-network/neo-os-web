@@ -18,14 +18,14 @@ export async function handler(req: Request): Promise<Response> {
 
   const isEVM = address.startsWith("0x");
   if (!isEVM && !/^N[A-HJ-NP-Za-km-z1-9]{33}$/.test(address)) {
-    return error(400, "valid Neo N3 or Neo X address required", "INVALID_INPUT", req);
+    return error(400, "valid Neo N3 or EVM-format address required", "INVALID_INPUT", req);
   }
 
   const supabase = supabaseServiceClient();
   const nonce = crypto.randomUUID();
   const timestamp = Math.floor(Date.now() / 1000);
   
-  const network = isEVM ? "Neo X" : "Neo N3";
+  const network = isEVM ? "embedded EVM" : "Neo N3";
   const message = `Sign this message to log in with your ${network} wallet.\n\nAddress: ${address}\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
 
   // Find or create account by wallet address

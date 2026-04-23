@@ -119,7 +119,7 @@ export function ConnectButton() {
     await auth.loginWallet(provider);
   };
 
-  // Neo X / EVM wallet support is not available yet — Neo N3 only
+  // Wallet actions remain Neo N3-first; social login stays on the Auth0 path above.
 
   return (
     <>
@@ -134,7 +134,7 @@ export function ConnectButton() {
 
       {/* Polymarket-style Global Login Modal */}
       {showConnectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowConnectModal(false)}
@@ -144,18 +144,20 @@ export function ConnectButton() {
             aria-label="Close modal"
           />
           <div
-            className="relative w-full max-w-[440px] rounded-3xl bg-white border border-gray-200 shadow-2xl p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-200"
+            className="relative max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:p-8"
             role="dialog"
             aria-modal="true"
             aria-label="Connect wallet"
           >
-            <button
-              onClick={() => setShowConnectModal(false)}
-              aria-label="Close login modal"
-              className="absolute right-6 top-6 p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
-            >
-              <X size={20} />
-            </button>
+            <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
+              <button
+                onClick={() => setShowConnectModal(false)}
+                aria-label="Close login modal"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome to R3E</h2>
@@ -212,7 +214,7 @@ export function ConnectButton() {
                     </button>
                   ))}
 
-                  {/* Neo N3 wallets only — Neo X/EVM not supported yet */}
+                  {/* Neo N3 wallet extensions only */}
                 </div>
               </div>
             </div>

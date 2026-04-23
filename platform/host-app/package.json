@@ -20,9 +20,6 @@
     "@sentry/nextjs": "^10.48.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.13",
-    "@web3auth/base": "^9.7.0",
-    "@web3auth/ethereum-provider": "^9.7.0",
-    "@web3auth/modal": "^9.7.0",
     "autoprefixer": "^10.4.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -37,7 +34,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.6.0",
-    "resend": "^6.9.3",
+    "resend": "6.1.3",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^3.4.0",
     "webpack": "^5.105.4",
@@ -61,9 +58,18 @@
     "typescript": "^5.8.2"
   },
   "overrides": {
+    "axios": {
+      "follow-redirects": "1.16.0"
+    },
+    "@opentelemetry/otlp-transformer": {
+      "protobufjs": "7.5.5"
+    },
     "socket.io-parser": "4.2.6",
     "glob": "^11.0.0",
     "minimatch": "^10.2.1",
-    "axios": "1.15.0"
+    "axios": "1.15.0",
+    "follow-redirects": "1.16.0",
+    "dompurify": "3.4.0",
+    "protobufjs": "7.5.5"
   }
 }

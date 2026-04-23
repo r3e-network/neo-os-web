@@ -8,9 +8,9 @@ The platform allows configuring complex decentralized applications (MiniApps) li
 
 ## Directory Structure
 
-- **`host-app/`**: Next.js-based dynamic rendering host. Fetches JSON configurations and dynamically instantiates Polymarket-styled layouts, interactive operation sidebars, and multi-chain wallet authenticators (Auth0 + N3 + Neo X).
+- **`host-app/`**: Next.js-based dynamic rendering host. Fetches JSON configurations and dynamically instantiates Polymarket-styled layouts, interactive operation sidebars, and wallet authenticators for Auth0 social login plus Neo N3 wallet extensions.
 - **`admin-console/`**: React-based zero-code DApp issuer. Features a built-in Template Marketplace to assemble app manifests visually and interact with contract templates dynamically via JSON Schema rendering.
-- **`edge/`**: Supabase Edge Functions handling routing, limits, anti-abuse, Auth0 sync, and NeoX/N3 nonce derivations.
+- **`edge/`**: Supabase Edge Functions handling routing, limits, anti-abuse, Auth0 sync, and wallet nonce derivations for Neo N3 plus embedded EVM-format signers.
 - **`sdk/`**: Client side SDK enabling direct integrations.
 - **Manifest runtime + external remotes**: the host runtime now loads MiniApps from manifests (and optional external Module Federation remotes) without a dedicated legacy local remote workspace.
 
@@ -25,7 +25,7 @@ Configs are pushed to `miniapp-definitions/` and the DB.
 `host-app` handles universal login:
 - Social (Google/GitHub) via Auth0 -> Hosted Wallet
 - Neo N3 Ecosystem Wallets
-- Neo X (EVM) via MetaMask `NeoXConnect.ts`
+- Auth0 social login plus Neo N3 extension wallets
 
 ### 3. Smart Contract Factories
 Found in `/contracts/MiniAppTemplates/`.

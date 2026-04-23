@@ -1,6 +1,6 @@
 /* eslint-disable */
 // Generated from neo-morpheus-oracle/scripts/export-public-network-registry.mjs.
-// Do not edit manually; re-export from the Morpheus canonical network registry.
+// Do not edit manually; re-export from the Morpheus canonical oracle workspace.
 
 export const MORPHEUS_PUBLIC_REGISTRY = {
   "mainnet": {
