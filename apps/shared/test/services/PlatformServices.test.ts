@@ -52,7 +52,6 @@ describe("PlatformServices", () => {
     expect(services.os.leaderboard).toBeDefined();
     expect(services.os.checkin).toBeDefined();
     expect(services.os.nft).toBeDefined();
-    expect(services.os.script).toBeDefined();
   });
 
   it("should destroy all services on destroy()", () => {
@@ -105,11 +104,10 @@ describe("PlatformServices", () => {
     svc.destroy();
   });
 
-  it("should expose chain, balance, transfer, oracle, aa, and lifecycle services", () => {
+  it("should expose chain, balance, transfer, aa, and lifecycle services", () => {
     expect(services.chain).toBeDefined();
     expect(services.balance).toBeDefined();
     expect(services.transfer).toBeDefined();
-    expect(services.oracle).toBeDefined();
     expect(services.aa).toBeDefined();
     expect(services.lifecycle).toBeDefined();
   });
