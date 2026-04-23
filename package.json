@@ -5,6 +5,7 @@
     "platform/*"
   ],
   "scripts": {
+    "verify:repo": "bash scripts/verify_repo.sh",
     "test": "npm run -s test:deploy-scripts && npm run -s test:host-app && npm run -s test:admin-console",
     "test:go": "node -e \"console.log('Legacy Go service layer moved to external repos; root Go test suite is no longer part of neo-miniapps-platform.')\"",
     "test:testnet:local-gates": "bash deploy/scripts/run_local_validation_gates.sh",
@@ -62,6 +63,9 @@
     "serialize-javascript": "7.0.4",
     "socket.io-parser": "4.2.6",
     "axios": "1.15.0",
+    "follow-redirects": "1.16.0",
+    "dompurify": "3.4.0",
+    "protobufjs": "7.5.5",
     "picomatch": "4.0.4",
     "micromatch": {
       "picomatch": "2.3.2"

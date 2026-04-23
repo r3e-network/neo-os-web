@@ -1,31 +1,8 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defineComponent, h, nextTick } from "vue";
-import { defineMiniApp } from "../utils/defineMiniApp";
+import { defineMiniApp } from "../react/defineMiniApp";
 import { PlatformServices } from "../services";
-
-vi.mock("@shared/composables/useI18n", () => ({
-  createUseI18n: () => () => ({
-    locale: { value: "en" },
-    t: (key: string) => key,
-    setLocale: () => {},
-  }),
-  useI18n: () => ({
-    locale: { value: "en" },
-    t: (key: string) => key,
-    setLocale: () => {},
-  }),
-}));
-
-vi.mock("../components/ErrorBoundary.vue", () => ({
-  default: defineComponent({
-    name: "MockErrorBoundary",
-    setup(_props, { slots }) {
-      return () => slots.default?.();
-    },
-  }),
-}));
 
 describe("defineMiniApp service ownership", () => {
   let mountTarget: HTMLDivElement;
@@ -72,20 +49,14 @@ describe("defineMiniApp service ownership", () => {
     let setupServices: unknown;
     let playAreaServices: unknown;
 
-    const PlayArea = defineComponent({
-      name: "TestPlayArea",
-      props: {
-        services: { type: Object, required: true },
-      },
-      setup(props) {
-        playAreaServices = props.services;
-        return () => h("div", "play-area");
-      },
-    });
+    const PlayArea = (props: Record<string, unknown>) => {
+      playAreaServices = props.services;
+      return null;
+    };
 
-    const app = defineMiniApp({
+    const root = defineMiniApp({
       appId: "miniapp-test-service-ownership",
-      playArea: PlayArea,
+      playArea: PlayArea as never,
       manifest: {
         name: "Test App",
         description: "Test app",
@@ -101,14 +72,19 @@ describe("defineMiniApp service ownership", () => {
       },
     });
 
-    await nextTick();
+    // Flush React effects (useEffect runs asynchronously)
+    await vi.waitFor(() => {
+      expect(setupServices).toBeDefined();
+    });
 
-    expect(createSpy).toHaveBeenCalledTimes(1);
+    // React StrictMode double-invokes the component body in development,
+    // so PlatformServices.create may be called more than once.
+    expect(createSpy).toHaveBeenCalled();
     expect(setupServices).toBe(fakeServices);
     expect(playAreaServices).toBe(fakeServices);
     expect(fakeServices.lifecycle.mount).toHaveBeenCalledTimes(1);
 
-    app.unmount();
+    root.unmount();
 
     expect(fakeServices.destroy).toHaveBeenCalledTimes(1);
   });

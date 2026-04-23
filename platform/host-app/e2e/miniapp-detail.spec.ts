@@ -88,9 +88,145 @@ test.describe("MiniApp Detail", () => {
       });
     });
 
-    await page.goto("/miniapps/miniapp-neo-pay-shared-example");
+    await page.route("**testnet1.neo.coz.io:443*", async (route) => {
+      const request = route.request();
+      const body = request.postDataJSON() as {
+        id?: number;
+        jsonrpc?: string;
+        method?: string;
+        params?: unknown[];
+      };
 
-    await expect(page.getByText("Shared Runtime")).toBeVisible();
+      if (body?.method !== "invokefunction") {
+        await route.abort();
+        return;
+      }
+
+      const [contractHash, operation, params] = body.params || [];
+      const firstParamValue = Array.isArray(params) && params[0] && typeof params[0] === "object"
+        ? (params[0] as { value?: string }).value
+        : undefined;
+
+      let stack;
+      if (
+        contractHash === "0x5b9a6d1ca5fdbc95d4307990551682a3b7a1d5d6" &&
+        operation === "getInstance" &&
+        firstParamValue === "neopay:testnet:default"
+      ) {
+        stack = [
+          {
+            type: "Struct",
+            value: [
+              { type: "ByteString", value: Buffer.from("neopay:testnet:default").toString("base64") },
+              { type: "ByteString", value: Buffer.from("miniapp-neo-pay").toString("base64") },
+              { type: "ByteString", value: Buffer.from("recipe.payment_streams.v1").toString("base64") },
+              { type: "ByteString", value: Buffer.from("1.0.0").toString("base64") },
+              { type: "ByteString", value: Buffer.from("shared").toString("base64") },
+              { type: "ByteString", value: Buffer.from("6d065ef6dd91469cb1c90c41e574380613f43738", "hex").reverse().toString("base64") },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: Buffer.from("6d065ef6dd91469cb1c90c41e574380613f43738", "hex").reverse().toString("base64") },
+              { type: "ByteString", value: "" },
+              {
+                type: "ByteString",
+                value: Buffer.from(
+                  JSON.stringify({
+                    vault: { module_id: "module.funding_vault", version: "1.0.0" },
+                    stream: { module_id: "module.stream_vesting", version: "1.0.0" },
+                  }),
+                ).toString("base64"),
+              },
+              { type: "ByteString", value: Buffer.from("ab".repeat(32), "hex").toString("base64") },
+              { type: "ByteString", value: Buffer.from("miniapp-neo-pay@2.0.0").toString("base64") },
+              { type: "Integer", value: "1" },
+              { type: "Boolean", value: false },
+              { type: "Integer", value: "1774597315173" },
+            ],
+          },
+        ];
+      } else if (
+        contractHash === "0xe22bc8072f616974a64c0da1dfda845945d4215f" &&
+        operation === "getRecipe" &&
+        firstParamValue === "recipe.payment_streams.v1"
+      ) {
+        stack = [
+          {
+            type: "Struct",
+            value: [
+              { type: "ByteString", value: Buffer.from("recipe.payment_streams.v1").toString("base64") },
+              { type: "ByteString", value: Buffer.from("1.0.0").toString("base64") },
+              { type: "ByteString", value: Buffer.from(JSON.stringify([{ binding: "vault" }, { binding: "stream" }])).toString("base64") },
+              { type: "ByteString", value: Buffer.from(JSON.stringify({ required: ["escrow_assets"] })).toString("base64") },
+              { type: "ByteString", value: Buffer.from(JSON.stringify({ actions: ["createStream"] })).toString("base64") },
+              { type: "ByteString", value: Buffer.from("shared").toString("base64") },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: Buffer.from(JSON.stringify({ app_id: "miniapp-neo-pay" })).toString("base64") },
+              { type: "Boolean", value: true },
+            ],
+          },
+        ];
+      } else if (
+        contractHash === "0x7666a46644dca58e8c3b308b34e83db440e04991" &&
+        operation === "getModule" &&
+        firstParamValue === "module.funding_vault"
+      ) {
+        stack = [
+          {
+            type: "Struct",
+            value: [
+              { type: "ByteString", value: Buffer.from("module.funding_vault").toString("base64") },
+              { type: "ByteString", value: Buffer.from("1.0.0").toString("base64") },
+              { type: "ByteString", value: Buffer.from("958bccb2ec9292461977ef1d2f1222d4e7861537", "hex").reverse().toString("base64") },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: Buffer.from("custody").toString("base64") },
+              { type: "ByteString", value: Buffer.from(JSON.stringify({ accepted_assets: ["NEO", "GAS"] })).toString("base64") },
+              { type: "Boolean", value: true },
+            ],
+          },
+        ];
+      } else if (
+        contractHash === "0x7666a46644dca58e8c3b308b34e83db440e04991" &&
+        operation === "getModule" &&
+        firstParamValue === "module.stream_vesting"
+      ) {
+        stack = [
+          {
+            type: "Struct",
+            value: [
+              { type: "ByteString", value: Buffer.from("module.stream_vesting").toString("base64") },
+              { type: "ByteString", value: Buffer.from("1.0.0").toString("base64") },
+              { type: "ByteString", value: Buffer.from("4fa6544b133457b561e4f9db0248483eca3d33cf", "hex").reverse().toString("base64") },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: "" },
+              { type: "ByteString", value: Buffer.from("payments").toString("base64") },
+              { type: "ByteString", value: Buffer.from(JSON.stringify({ recipe: "recipe.payment_streams.v1" })).toString("base64") },
+              { type: "Boolean", value: true },
+            ],
+          },
+        ];
+      } else {
+        await route.abort();
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: body.id ?? 1,
+          result: {
+            script: "",
+            state: "HALT",
+            gasconsumed: "1",
+            stack,
+          },
+        }),
+      });
+    });
+
+    await page.goto("/miniapps/miniapp-neo-pay-shared-example");
+    await expect(page.getByRole("heading", { name: "Shared Runtime" })).toBeVisible();
     await expect(page.getByText("recipe.payment_streams.v1@1.0.0")).toBeVisible();
     await expect(page.getByText("module.stream_vesting@1.0.0")).toBeVisible();
 

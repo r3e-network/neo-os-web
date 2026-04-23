@@ -1,6 +1,6 @@
 /* eslint-disable */
 // Generated from neo-morpheus-oracle/scripts/export-public-runtime-catalog.mjs.
-// Do not edit manually; re-export from the Morpheus canonical runtime catalog.
+// Do not edit manually; re-export from the Morpheus canonical oracle workspace.
 
 export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
   "envelope": {
