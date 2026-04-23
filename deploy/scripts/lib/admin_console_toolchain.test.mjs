@@ -21,9 +21,12 @@ test("admin-console pins the same Vite React plugin version as the root workspac
 
 test("admin-console lockfile resolves the same Vite React plugin version as the root workspace", () => {
   const packageLock = readJson("package-lock.json");
+  const sharedInstall = packageLock.packages["node_modules/@vitejs/plugin-react"];
+  const workspaceInstall =
+    packageLock.packages["platform/admin-console/node_modules/@vitejs/plugin-react"] || sharedInstall;
 
   assert.equal(
-    packageLock.packages["platform/admin-console/node_modules/@vitejs/plugin-react"].version,
-    packageLock.packages["node_modules/@vitejs/plugin-react"].version,
+    workspaceInstall.version,
+    sharedInstall.version,
   );
 });

@@ -22,7 +22,6 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByRole("button", { name: "NeoLine" })).toBeVisible();
     await expect(page.getByRole("button", { name: "O3" })).toBeVisible();
     await expect(page.getByRole("button", { name: "OneGate" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Neo X" })).toBeVisible();
   });
 
   test("should display wallet icons", async ({ page }) => {

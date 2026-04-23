@@ -1,21 +1,13 @@
-import { createApp, defineComponent, h, nextTick } from "vue";
+import React from "react";
+import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { mergeMessages } from "@shared/locale/base-messages";
 
-vi.mock("@shared/components/ErrorBoundary.vue", () => ({
-  default: defineComponent({
-    name: "StubErrorBoundary",
-    template: `<div><slot /></div>`,
-  }),
-}));
-
-import MiniAppRoot from "@shared/react/MiniAppRoot";
+import { MiniAppRoot } from "@shared/react/MiniAppRoot";
 import { EventBus } from "@shared/services/EventBus";
 
-const DummyPlayArea = defineComponent({
-  name: "DummyPlayArea",
-  template: `<div data-testid="play-area">play area</div>`,
-});
+const DummyPlayArea = () =>
+  React.createElement("div", { "data-testid": "play-area" }, "play area");
 
 const manifest = {
   name: "Runtime Test App",
@@ -25,11 +17,6 @@ const manifest = {
   tabs: [
     { key: "play", labelKey: "play", icon: "play", default: true },
   ],
-  sidebar: {
-    items: [
-      { labelKey: "counter", valueKey: "counter", format: "number" },
-    ],
-  },
   permissions: {
     payments: true,
     aa: true,
@@ -62,37 +49,36 @@ describe("MiniAppRoot runtime-owned services", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
 
-    createApp({
-      render() {
-        return h(MiniAppRoot as any, {
-          appId: "miniapp-runtime-test",
-          playArea: DummyPlayArea,
-          manifest,
-          messages,
-          setupFn: async (ctx: Record<string, any>) => {
-            capturedCtx = ctx;
-            return {
-              state: {
-                counter: { value: 1 },
-              },
-            };
-          },
-        });
-      },
-    }).mount(container);
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-test",
+        playArea: DummyPlayArea as any,
+        manifest,
+        messages,
+        setupFn: async (ctx: Record<string, any>) => {
+          capturedCtx = ctx;
+          return {
+            state: {
+              counter: { value: 1 },
+            },
+          };
+        },
+      }),
+    );
 
-    await nextTick();
-    await Promise.resolve();
-    await nextTick();
-
-    expect(capturedCtx).not.toBeNull();
+    // Flush React effects
+    await vi.waitFor(() => {
+      expect(capturedCtx).not.toBeNull();
+    });
 
     await capturedCtx!.services.notify.guard(async () => "ok", "actionComplete");
-    await nextTick();
-    await Promise.resolve();
-    await nextTick();
+    await vi.waitFor(() => {
+      expect(container.innerHTML).toContain("Action complete");
+    });
 
-    expect(container.innerHTML).toContain("Action complete");
+    root.unmount();
+    container.remove();
   });
 
   it("surfaces platform error events through the universal status toast", async () => {
@@ -100,37 +86,39 @@ describe("MiniAppRoot runtime-owned services", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
 
-    createApp({
-      render() {
-        return h(MiniAppRoot as any, {
-          appId: "miniapp-runtime-error-test",
-          playArea: DummyPlayArea,
-          manifest,
-          messages,
-          setupFn: async (ctx: Record<string, any>) => {
-            capturedCtx = ctx;
-            return {
-              state: {
-                counter: { value: 1 },
-              },
-            };
-          },
-        });
-      },
-    }).mount(container);
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-error-test",
+        playArea: DummyPlayArea as any,
+        manifest,
+        messages,
+        setupFn: async (ctx: Record<string, any>) => {
+          capturedCtx = ctx;
+          return {
+            state: {
+              counter: { value: 1 },
+            },
+          };
+        },
+      }),
+    );
 
-    await nextTick();
-    await Promise.resolve();
-    await nextTick();
+    // Flush React effects
+    await vi.waitFor(() => {
+      expect(capturedCtx).not.toBeNull();
+    });
 
     capturedCtx!.services.events.emit(EventBus.ERROR, {
       error: new Error("boom"),
       context: "test",
     });
-    await nextTick();
-    await Promise.resolve();
-    await nextTick();
 
-    expect(container.innerHTML).toContain("boom");
+    await vi.waitFor(() => {
+      expect(container.innerHTML).toContain("boom");
+    });
+
+    root.unmount();
+    container.remove();
   });
 });

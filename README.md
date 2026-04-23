@@ -257,9 +257,13 @@ See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) for the current flow.
 
 ## Production/Testnet Verification
 
+`npm run verify:repo` is the preferred local verification entrypoint before any live/testnet validation.
+
 Use these commands to verify readiness and live testnet workflows:
 
 ```bash
+npm run verify:repo
+
 set -a; source .env; set +a
 
 # Current flagship live testnet validation (7 flagship MiniApps)

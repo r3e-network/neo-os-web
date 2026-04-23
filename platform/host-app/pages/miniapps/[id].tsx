@@ -197,7 +197,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
 
         const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
 
-        // Neo N3 only (Neo X / EVM not supported yet)
+        // Neo N3 execution only; embedded EVM auth is not a transaction path here.
         {
           const adapter = getWalletAdapter();
           if (!adapter) {
