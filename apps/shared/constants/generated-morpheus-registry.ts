@@ -34,6 +34,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaSessionKeyVerifier": "0xe82b9d056c011819ff3652427682224daad0cd1f",
       "aaSocialRecoveryVerifier": "0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3",
       "morpheusOracle": "0x017520f068fd602082fe5572596185e62a4ad991",
+      "oracleCallbackConsumer": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
       "morpheusDatafeed": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
       "morpheusNeoDid": "0xb81f31ea81e279793b30411b82c2e82078b63105"
     },
@@ -80,6 +81,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaSessionKeyVerifier": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
       "aaSocialRecoveryVerifier": "",
       "morpheusOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      "oracleCallbackConsumer": "0x8c506f224d82e67200f20d9d5361f767f0756e3b",
       "morpheusDatafeed": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
       "morpheusNeoDid": ""
     },
@@ -95,6 +97,4 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "neodid": ""
     }
   }
-} as const;
-
-export type MorpheusPublicRegistry = typeof MORPHEUS_PUBLIC_REGISTRY;
+};
