@@ -38,7 +38,7 @@ jobs:
           node - <<'NODE'
           const fs = require('fs');
           const catalog = fs.readFileSync('apps/shared/constants/generated-morpheus-runtime-catalog.ts', 'utf8');
-          for (const fragment of ['generated-morpheus-runtime-catalog', '2026-04-tee-v1', 'automation.upkeep', 'paymaster.authorize']) {
+          for (const fragment of ['MORPHEUS_PUBLIC_RUNTIME_CATALOG', '2026-04-tee-v1', 'automation.upkeep', 'paymaster.authorize']) {
             if (!catalog.includes(fragment)) {
               throw new Error(`missing runtime catalog fragment: ${fragment}`);
             }
