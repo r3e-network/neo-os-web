@@ -34,7 +34,7 @@ export interface MiniAppContext {
   /** Register an action handler for operation panel buttons */
   registerAction: (
     key: string,
-    handler: (...args: unknown[]) => Promise<void>,
+    handler: (...args: unknown[]) => Promise<unknown>,
   ) => void;
 }
 

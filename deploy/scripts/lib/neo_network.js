@@ -13,7 +13,7 @@ const NETWORK_DEFAULTS = {
     oracleHash: (
       process.env.MORPHEUS_ORACLE_MAINNET_HASH
       || process.env.CONTRACT_MORPHEUS_ORACLE_MAINNET_HASH
-      || "0x017520f068fd602082fe5572596185e62a4ad991"
+      || "0x5b492098fc094c760402e01f7e0b631b939d2bea"
     ).trim(),
   },
   testnet: {

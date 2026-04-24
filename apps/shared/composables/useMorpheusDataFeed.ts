@@ -60,7 +60,11 @@ function normalizeAsset(asset: string): string {
 
 function decodeBase64String(b64: string): string {
   if (typeof globalThis.atob === "function") return globalThis.atob(b64);
-  return Buffer.from(b64, "base64").toString("utf8");
+  const { Buffer: bufferCtor } = globalThis as unknown as {
+    Buffer?: { from(value: string, encoding: "base64"): { toString(encoding: "utf8"): string } };
+  };
+  if (bufferCtor) return bufferCtor.from(b64, "base64").toString("utf8");
+  throw new Error("Base64 decoding is not available in this runtime");
 }
 
 async function rpcCall<T>(rpcUrl: string, method: string, params: unknown[]): Promise<T> {

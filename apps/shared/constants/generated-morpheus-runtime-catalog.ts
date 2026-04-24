@@ -1,8 +1,8 @@
 /* eslint-disable */
-// Generated from neo-morpheus-oracle/apps/web/public/morpheus-runtime-catalog.json.
-// Do not edit manually.
+// Generated from neo-morpheus-oracle/scripts/export-public-runtime-catalog.mjs.
+// Do not edit manually; re-export from the Morpheus canonical oracle workspace.
 
-export const MORPHEUS_RUNTIME_CATALOG = {
+export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
   "envelope": {
     "version": "2026-04-tee-v1"
   },
@@ -61,7 +61,7 @@ export const MORPHEUS_RUNTIME_CATALOG = {
         "aaWeb3AuthVerifier": "0xb4107cb2cb4bace0ebe15bc4842890734abe133a",
         "aaSessionKeyVerifier": "0xe82b9d056c011819ff3652427682224daad0cd1f",
         "aaSocialRecoveryVerifier": "0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3",
-        "morpheusOracle": "0x017520f068fd602082fe5572596185e62a4ad991",
+        "morpheusOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
         "oracleCallbackConsumer": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
         "morpheusDatafeed": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
         "morpheusNeoDid": "0xb81f31ea81e279793b30411b82c2e82078b63105"
@@ -373,4 +373,6 @@ export const MORPHEUS_RUNTIME_CATALOG = {
       }
     }
   ]
-};
+} as const;
+
+export type MorpheusPublicRuntimeCatalog = typeof MORPHEUS_PUBLIC_RUNTIME_CATALOG;

@@ -13,7 +13,7 @@ const NEO_MAINNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_MAINNET
   || process.env.NEO_RPC_MAINNET
   || "https://mainnet2.neo.coz.io:443";
 
-const MORPHEUS_KERNEL_MAINNET = "0x017520f068fd602082fe5572596185e62a4ad991";
+const MORPHEUS_KERNEL_MAINNET = "0x5b492098fc094c760402e01f7e0b631b939d2bea";
 const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";
 
 /** Apps with their own deployed smart contracts (atomic GAS handling) */

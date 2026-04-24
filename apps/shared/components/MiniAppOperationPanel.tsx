@@ -38,13 +38,14 @@ export interface MiniAppOperationPanelProps {
 function initFormData(operations: OperationDefinition[]): Record<string, Record<string, unknown>> {
   const data: Record<string, Record<string, unknown>> = {};
   for (const operation of operations) {
-    data[operation.key] = {};
+    const operationData: Record<string, unknown> = {};
+    data[operation.key] = operationData;
     if (operation.fields) {
       for (const field of operation.fields) {
         if (field.default !== undefined) {
-          data[operation.key][field.key] = field.default;
+          operationData[field.key] = field.default;
         } else {
-          data[operation.key][field.key] = field.type === "toggle" ? false : "";
+          operationData[field.key] = field.type === "toggle" ? false : "";
         }
       }
     }

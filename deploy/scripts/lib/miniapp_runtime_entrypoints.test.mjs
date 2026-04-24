@@ -65,3 +65,17 @@ test("flagship miniapp composables stay free of syntax errors", () => {
     );
   }
 });
+
+test("burn league entrypoint matches its OS-service composable and rendered state shape", () => {
+  const mainSource = read("apps/burn-league/src/main.tsx");
+  const playAreaSource = read("apps/burn-league/src/PlayArea.tsx");
+
+  assert.match(mainSource, /nftService:\s*ctx\.os\.nft/);
+  assert.match(mainSource, /burn\.burnTokens/);
+  assert.match(mainSource, /burnCount:\s*burn\.burnCount/);
+  assert.doesNotMatch(mainSource, /paymentService|storageService|burnGas/);
+
+  assert.match(playAreaSource, /burned:\s*number/);
+  assert.match(playAreaSource, /entry\.burned/);
+  assert.doesNotMatch(playAreaSource, /entry\.amount/);
+});

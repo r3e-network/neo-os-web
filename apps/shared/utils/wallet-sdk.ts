@@ -644,7 +644,7 @@ export function useEvents() {
         tx_hash: txHash,
         limit: 1,
       });
-      if (result.events.length > 0) return result.events[0];
+      if (result.events.length > 0) return result.events[0] ?? null;
       // Wait 2500ms or until signal fires, whichever comes first
       let aborted = false;
       let timer: ReturnType<typeof setTimeout> | undefined;

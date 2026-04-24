@@ -2,20 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..', '..');
 const oracleRoot = path.resolve(repoRoot, '..', 'neo-morpheus-oracle');
 
-function runCanonicalExport(scriptName) {
-  const scriptPath = path.join(oracleRoot, 'scripts', scriptName);
-  const result = spawnSync(process.execPath, [scriptPath], {
-    cwd: oracleRoot,
-    encoding: 'utf8',
-  });
+async function loadCanonicalModule(moduleName, exportName) {
+  const modulePath = path.join(oracleRoot, 'scripts', moduleName);
+  const module = await import(pathToFileURL(modulePath).href);
+  const loader = module[exportName];
 
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  return JSON.parse(result.stdout);
+  assert.equal(typeof loader, 'function');
+  return loader({ oracleRoot });
 }
 
 function parseGeneratedJsonExport(filePath, exportName) {
@@ -35,12 +33,15 @@ function parseGeneratedJsonExport(filePath, exportName) {
 test(
   'generated Morpheus public registry stays synchronized with the canonical oracle export',
   { skip: !fs.existsSync(oracleRoot) },
-  () => {
+  async () => {
     const generatedRegistry = parseGeneratedJsonExport(
       path.join(repoRoot, 'apps/shared/constants/generated-morpheus-registry.ts'),
       'MORPHEUS_PUBLIC_REGISTRY'
     );
-    const canonicalRegistry = runCanonicalExport('export-public-network-registry.mjs');
+    const canonicalRegistry = await loadCanonicalModule(
+      'lib-public-network-registry.mjs',
+      'loadPublicNetworkRegistry'
+    );
 
     assert.deepEqual(generatedRegistry, canonicalRegistry);
   }
@@ -49,12 +50,15 @@ test(
 test(
   'generated Morpheus runtime catalog stays synchronized with the canonical oracle export',
   { skip: !fs.existsSync(oracleRoot) },
-  () => {
+  async () => {
     const generatedCatalog = parseGeneratedJsonExport(
       path.join(repoRoot, 'apps/shared/constants/generated-morpheus-runtime-catalog.ts'),
       'MORPHEUS_PUBLIC_RUNTIME_CATALOG'
     );
-    const canonicalCatalog = runCanonicalExport('export-public-runtime-catalog.mjs');
+    const canonicalCatalog = await loadCanonicalModule(
+      'lib-public-runtime-catalog.mjs',
+      'loadPublicRuntimeCatalog'
+    );
 
     assert.deepEqual(generatedCatalog, canonicalCatalog);
   }

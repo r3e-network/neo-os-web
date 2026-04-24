@@ -93,9 +93,9 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       const accountId = `0x${accountIdHash}`;
 
       const [verifierResult, hookResult, backupResult] = await Promise.all([
-        chain.invokeRead(aaCore, "getVerifier", [{ type: "Hash160", value: accountId }]),
-        chain.invokeRead(aaCore, "getHook", [{ type: "Hash160", value: accountId }]),
-        chain.invokeRead(aaCore, "getBackupOwner", [{ type: "Hash160", value: accountId }]),
+        chain.read("getVerifier", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+        chain.read("getHook", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
+        chain.read("getBackupOwner", [{ type: "Hash160", value: accountId }], { scriptHash: aaCore }),
       ]);
 
       currentVerifier.set(String(parseInvokeResult(verifierResult) || t("notAvailable")));
@@ -125,14 +125,18 @@ export function useAAAccountLab({ chain, storageService, t }: UseAAAccountLabOpt
       const escapeTimelock = parseInt(registerForm.escapeTimelock, 10) || 2592000;
       const verifierParams = registerForm.verifierParamsHex.trim().replace(/^0x/, "");
 
-      await chain.invokeWrite(aaCore, "registerAccount", [
-        { type: "Hash160", value: `0x${accountIdHash}` },
-        { type: "Hash160", value: verifierHash },
-        { type: "ByteArray", value: verifierParams },
-        { type: "Hash160", value: hookHash },
-        { type: "Hash160", value: backupOwner },
-        { type: "Integer", value: String(escapeTimelock) },
-      ]);
+      await chain.invoke(
+        "registerAccount",
+        [
+          { type: "Hash160", value: `0x${accountIdHash}` },
+          { type: "Hash160", value: verifierHash },
+          { type: "ByteArray", value: verifierParams },
+          { type: "Hash160", value: hookHash },
+          { type: "Hash160", value: backupOwner },
+          { type: "Integer", value: String(escapeTimelock) },
+        ],
+        { scriptHash: aaCore },
+      );
 
       storageService.set(`registered:${accountIdHash}`, {
         verifier: verifierHash,
