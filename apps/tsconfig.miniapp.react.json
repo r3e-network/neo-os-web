@@ -13,6 +13,9 @@
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "skipLibCheck": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true
   },
   "include": [

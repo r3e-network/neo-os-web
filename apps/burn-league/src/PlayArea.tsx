@@ -18,7 +18,7 @@ interface PlayAreaProps {
 
 interface LeaderboardEntry {
   address: string;
-  amount: number;
+  burned: number;
   rank: number;
 }
 
@@ -139,7 +139,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               <div key={entry.address || i} className="burn-league-leaderboard-row">
                 <span className="burn-league-lb-rank">#{entry.rank}</span>
                 <span className="burn-league-lb-address">{truncateAddress(entry.address)}</span>
-                <span className="burn-league-lb-amount">{entry.amount}</span>
+                <span className="burn-league-lb-amount">{entry.burned}</span>
               </div>
             ))}
           </div>

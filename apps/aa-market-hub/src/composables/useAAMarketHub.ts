@@ -196,22 +196,24 @@ export function useAAMarketHub({ chain, eventBus, t }: UseAAMarketHubOptions) {
       }
       isLoading.set(true);
       listings.set(await listAddressListings(wallet, marketHash.get(), walletAddress.get()));
+      const currentListings = listings.get();
+      const firstListing = currentListings[0];
 
       if (selectedListingId.get()) {
-        const nextSelected = listings.get().find((l) => l.id === selectedListingId.get());
+        const nextSelected = currentListings.find((l) => l.id === selectedListingId.get());
         if (nextSelected) {
           selectListing(nextSelected);
-        } else if (listings.get()[0]) {
-          selectListing(listings.get()[0]);
+        } else if (firstListing) {
+          selectListing(firstListing);
         } else {
           selectedListingId.set("");
         }
-      } else if (listings.get()[0]) {
-        selectListing(listings.get()[0]);
+      } else if (firstListing) {
+        selectListing(firstListing);
       }
 
       persistConfig();
-      eventBus.emit("listings:loaded", { count: listings.get().length });
+      eventBus.emit("listings:loaded", { count: currentListings.length });
     } catch (error: unknown) {
       eventBus.emit("listings:error", { message: formatErrorMessage(error, t("loadListingsFailed")) });
       throw error;

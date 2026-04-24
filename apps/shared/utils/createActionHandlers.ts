@@ -23,8 +23,8 @@
 import type { MiniAppContext } from "@shared/types/miniapp-context";
 
 export interface ActionDef {
-  /** The async function to execute when the action is triggered */
-  handler: (...args: unknown[]) => Promise<unknown>;
+  /** The function to execute when the action is triggered */
+  handler: (...args: unknown[]) => unknown | Promise<unknown>;
   /** i18n key for the success status message (if omitted, no success toast) */
   successKey?: string;
   /** i18n key for the fallback error message (defaults to "error") */

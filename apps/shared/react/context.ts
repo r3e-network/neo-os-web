@@ -141,7 +141,7 @@ export interface MiniAppContextValue {
   /** Register an action handler for operation panel buttons */
   registerAction: (
     key: string,
-    handler: (...args: unknown[]) => Promise<void>,
+    handler: (...args: unknown[]) => Promise<unknown>,
   ) => void;
 }
 
@@ -161,7 +161,7 @@ MiniAppManifestContext.displayName = "MiniAppManifestContext";
 
 /** Provides the action handler registry */
 export const MiniAppActionsContext = createContext<
-  Map<string, (...args: unknown[]) => Promise<void>>
+  Map<string, (...args: unknown[]) => Promise<unknown>>
 >(new Map());
 MiniAppActionsContext.displayName = "MiniAppActionsContext";
 
