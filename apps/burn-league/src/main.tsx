@@ -17,16 +17,15 @@ defineMiniApp({
   setup(ctx) {
     const burn = useBurnLeague({
       gameService: ctx.os.game,
-      paymentService: ctx.os.payment,
+      nftService: ctx.os.nft,
       leaderboardService: ctx.os.leaderboard,
-      storageService: ctx.os.storage,
       badgeService: ctx.os.badge,
       t: ctx.t,
     });
 
     ctx.registerAction("burn", async (amount: unknown) => {
       await ctx.services.notify.guard(
-        () => burn.burnGas(String(amount)),
+        () => burn.burnTokens(String(amount)),
         "burnSuccess",
       );
     });
@@ -41,6 +40,7 @@ defineMiniApp({
         userBurned: burn.userBurned,
         rewardPool: burn.rewardPool,
         rank: burn.rank,
+        burnCount: burn.burnCount,
         leaderboard: burn.leaderboard,
         burnAmount: burn.burnAmount,
         isBurning: burn.isBurning,

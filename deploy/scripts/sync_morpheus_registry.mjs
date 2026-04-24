@@ -2,7 +2,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..');
 const defaultOracleRoot = path.resolve(repoRoot, '..', 'neo-morpheus-oracle');
@@ -10,22 +10,19 @@ const oracleRoot = process.env.MORPHEUS_ORACLE_ROOT
   ? path.resolve(process.env.MORPHEUS_ORACLE_ROOT)
   : defaultOracleRoot;
 
-function runOracleExport(scriptName) {
-  const scriptPath = path.join(oracleRoot, 'scripts', scriptName);
-  if (!fs.existsSync(scriptPath)) {
-    throw new Error(`Missing canonical export script: ${scriptPath}`);
+async function loadOracleModule(moduleName, exportName) {
+  const modulePath = path.join(oracleRoot, 'scripts', moduleName);
+  if (!fs.existsSync(modulePath)) {
+    throw new Error(`Missing canonical module: ${modulePath}`);
   }
 
-  const result = spawnSync(process.execPath, [scriptPath], {
-    cwd: oracleRoot,
-    encoding: 'utf8',
-  });
-
-  if (result.status !== 0) {
-    throw new Error(result.stderr || result.stdout || `Failed to run ${scriptName}`);
+  const module = await import(pathToFileURL(modulePath).href);
+  const loader = module[exportName];
+  if (typeof loader !== 'function') {
+    throw new Error(`Missing export ${exportName} in ${modulePath}`);
   }
 
-  return JSON.parse(result.stdout);
+  return loader({ oracleRoot });
 }
 
 function writeGeneratedTs(targetPath, exportName, typeName, value, commentLine) {
@@ -43,9 +40,9 @@ function writeGeneratedTs(targetPath, exportName, typeName, value, commentLine) 
   fs.writeFileSync(targetPath, body, 'utf8');
 }
 
-function main() {
-  const registry = runOracleExport('export-public-network-registry.mjs');
-  const catalog = runOracleExport('export-public-runtime-catalog.mjs');
+async function main() {
+  const registry = await loadOracleModule('lib-public-network-registry.mjs', 'loadPublicNetworkRegistry');
+  const catalog = await loadOracleModule('lib-public-runtime-catalog.mjs', 'loadPublicRuntimeCatalog');
 
   writeGeneratedTs(
     path.join(repoRoot, 'apps/shared/constants/generated-morpheus-registry.ts'),
@@ -66,4 +63,7 @@ function main() {
   console.log(`Synced Morpheus generated config from ${oracleRoot}`);
 }
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exitCode = 1;
+});

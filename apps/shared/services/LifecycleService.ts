@@ -191,8 +191,10 @@ export class LifecycleService {
 
     // Run unmount callbacks in reverse order
     for (let i = this.unmountCallbacks.length - 1; i >= 0; i--) {
+      const callback = this.unmountCallbacks[i];
+      if (!callback) continue;
       try {
-        this.unmountCallbacks[i]();
+        callback();
       } catch (err) {
         console.error(`[LifecycleService] Unmount callback error in ${this.appId}:`, err);
       }
