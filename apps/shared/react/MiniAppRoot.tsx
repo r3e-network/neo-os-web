@@ -43,6 +43,7 @@ import { manifestToTemplateConfig } from "../utils/manifestToTemplateConfig";
 import { StandardAppShell } from "../templates/StandardAppShell";
 import { MiniAppPage } from "../components/MiniAppPage";
 import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
+import type { TranslationMap } from "../utils/i18n";
 
 // ============================================================================
 // Props
@@ -69,7 +70,7 @@ interface MiniAppRootProps {
   /** Declarative manifest driving platform-rendered sections */
   manifest: MiniAppManifest;
   /** i18n messages keyed by locale */
-  messages: Record<string, Record<string, string>>;
+  messages: TranslationMap;
   /** Optional setup function from the miniapp definition */
   setupFn?: (ctx: MiniAppSetupContext) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
 }
@@ -84,7 +85,7 @@ export interface MiniAppSetupContext {
   clearStatus: () => void;
   registerAction: (
     key: string,
-    handler: (...args: unknown[]) => Promise<void>,
+    handler: (...args: unknown[]) => Promise<unknown>,
   ) => void;
 }
 
@@ -144,7 +145,7 @@ const FORMAT_MAP: Record<string, FormatFn> = {
 };
 
 function getFormatter(format?: string): FormatFn {
-  return FORMAT_MAP[format ?? "text"] ?? FORMAT_MAP.text;
+  return FORMAT_MAP[format ?? "text"] ?? FORMAT_MAP.text!;
 }
 
 // ============================================================================
@@ -213,7 +214,7 @@ export function MiniAppRoot({
 
   const appStateRef = useRef<ObservableState>({});
   const actionHandlersRef = useRef(
-    new Map<string, (...args: unknown[]) => Promise<void>>(),
+    new Map<string, (...args: unknown[]) => Promise<unknown>>(),
   );
   const loadErrorRef = useRef(createObservable<Error | null>(null));
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -226,7 +227,7 @@ export function MiniAppRoot({
   }, []);
 
   const registerAction = useCallback(
-    (key: string, handler: (...args: unknown[]) => Promise<void>) => {
+    (key: string, handler: (...args: unknown[]) => Promise<unknown>) => {
       actionHandlersRef.current.set(key, handler);
     },
     [],

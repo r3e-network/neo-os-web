@@ -40,6 +40,7 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import type { ComponentType } from "react";
 import type { MiniAppManifest } from "../types/miniapp-manifest";
+import type { TranslationMap } from "../utils/i18n";
 import { MiniAppRoot } from "./MiniAppRoot";
 import type {
   MiniAppSetupContext,
@@ -72,8 +73,8 @@ export interface MiniAppDefinition {
   /** Declarative manifest driving all platform-rendered sections */
   manifest: MiniAppManifest;
 
-  /** Optional i18n messages keyed by locale (e.g. { en: {...}, zh: {...} }) */
-  messages?: Record<string, Record<string, string>>;
+  /** Optional i18n messages keyed by translation id */
+  messages?: TranslationMap;
 
   /** Optional setup hook called after services are initialized */
   setup?: (
