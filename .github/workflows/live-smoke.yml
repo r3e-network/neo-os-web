@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Preflight secrets and scope
         id: preflight
@@ -135,9 +135,9 @@ jobs:
 
       - name: Set up Node
         if: steps.preflight.outputs.should_run == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies

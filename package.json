@@ -76,6 +76,9 @@
     "readdirp": {
       "picomatch": "2.3.2"
     },
+    "next": {
+      "postcss": "8.5.10"
+    },
     "postcss": "8.5.10"
   }
 }
