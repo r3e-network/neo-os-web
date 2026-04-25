@@ -48,8 +48,7 @@
     "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "turbo": "^2.8.11",
-    "vite-plugin-node-polyfills": "^0.25.0"
+    "turbo": "^2.8.11"
   },
   "dependencies": {
     "@r3e/neo-js-sdk": "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
