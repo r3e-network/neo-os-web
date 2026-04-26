@@ -471,6 +471,7 @@ namespace NeoMiniAppPlatform.Contracts
         /// </summary>
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
+            if (from == null || from == UInt160.Zero) return;
             // Self-transfers are internal bookkeeping
             if (from == Runtime.ExecutingScriptHash) return;
 

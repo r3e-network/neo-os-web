@@ -16,9 +16,10 @@ defineMiniApp({
 
   setup(ctx) {
     const loan = useSelfLoan({
-      lendingService: ctx.os.lending,
       paymentService: ctx.os.payment,
+      escrowService: ctx.os.escrow,
       storageService: ctx.os.storage,
+      badgeService: ctx.os.badge,
       t: ctx.t,
     });
 
@@ -77,6 +78,7 @@ defineMiniApp({
         totalLoans: loan.totalLoans,
         totalBorrowedDisplay: loan.totalBorrowedDisplay,
         totalRepaidDisplay: loan.totalRepaidDisplay,
+        profitAnchorValue: loan.profitAnchorValue,
         healthColor: loan.healthColor,
         healthArc: loan.healthArc,
       },

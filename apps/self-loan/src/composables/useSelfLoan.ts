@@ -110,7 +110,11 @@ export function useSelfLoan({
 
   // ── Core State ──────────────────────────────────────────────────────
   const isLoading = createObservable(false);
+  const isBorrowing = createObservable(false);
+  const isRepaying = createObservable(false);
+  const borrowAmount = createObservable<string>("");
   const neoBalance = createObservable(0);
+  const neoPrice = createObservable(0);
   const platformStats = createObservable<PlatformStats>({
     ltvTier1Bps: 2000,
     ltvTier2Bps: 3000,
@@ -127,7 +131,7 @@ export function useSelfLoan({
   const loanHistory = createObservable<LoanHistoryEntry[]>([]);
 
   // ── Computed: LTV Options ───────────────────────────────────────────
-  const ltvOptions = computed<LtvOption[]>(() => [
+  const ltvOptions = createDerived<LtvOption[]>(() => [
     {
       tier: 1,
       percent: Number((platformStats.get().ltvTier1Bps / 100).toFixed(1)),
@@ -146,27 +150,27 @@ export function useSelfLoan({
       label: t("ltvTierAggressive"),
       desc: t("ltvTierAggressiveDesc"),
     },
-  ]);
+  ], [platformStats]);
 
   const selectedLtvPercent = createDerived(() => {
     const option = ltvOptions.get().find((entry) => entry.tier === selectedTier.get());
     return option?.percent ?? 20;
-  }, []);
+  }, [ltvOptions, selectedTier]);
 
   const minDurationHours = createDerived(() =>
     Math.max(1, Math.round(platformStats.get().minLoanDurationSeconds / 3600)),
-  );
+  [platformStats]);
   const platformFeeBps = createDerived(() => platformStats.get().platformFeeBps, []);
 
-  const borrowTerms = computed<Terms>(() => ({
+  const borrowTerms = createDerived<Terms>(() => ({
     ltvPercent: selectedLtvPercent.get(),
     minDurationHours: minDurationHours.get(),
-  }));
+  }), [selectedLtvPercent, minDurationHours]);
 
-  const positionTerms = computed<Terms>(() => ({
+  const positionTerms = createDerived<Terms>(() => ({
     ltvPercent: loan.get().ltvPercent ?? selectedLtvPercent.get(),
     minDurationHours: minDurationHours.get(),
-  }));
+  }), [loan, selectedLtvPercent, minDurationHours]);
 
   // ── Computed: Position Metrics ──────────────────────────────────────
   const healthFactor = createDerived(() => {
@@ -204,12 +208,13 @@ export function useSelfLoan({
 
   const hasLoanDisplay = createDerived(() =>
     loan.get().active ? t("yes") : t("no"),
-  );
+  [loan]);
 
   const neoBalanceDisplay = createDerived(() => fmt(neoBalance.get(), 0), []);
   const totalLoans = createDerived(() => stats.get().totalLoans, []);
   const totalBorrowedDisplay = createDerived(() => fmt(stats.get().totalBorrowed), []);
   const totalRepaidDisplay = createDerived(() => fmt(stats.get().totalRepaid), []);
+  const profitAnchorValue = createObservable(t("profitAnchorValue"));
 
   // ── Computed: Health Gauge ──────────────────────────────────────────
   const healthColor = createDerived(() => {
@@ -464,6 +469,40 @@ export function useSelfLoan({
     }
   };
 
+  const borrow = async (formData: Record<string, unknown>) => {
+    const nextCollateral = String(formData.collateralAmount ?? "").trim();
+    const nextBorrow = String(formData.borrowAmount ?? "").trim();
+    if (nextCollateral) collateralAmount.set(nextCollateral);
+    if (nextBorrow) borrowAmount.set(nextBorrow);
+
+    try {
+      isBorrowing.set(true);
+      await takeLoan();
+    } finally {
+      isBorrowing.set(false);
+    }
+  };
+
+  const repay = async (amount: string) => {
+    const value = String(amount || "").trim();
+    if (!value || Number(value) <= 0) throw new Error(t("enterValidAmount"));
+    try {
+      isRepaying.set(true);
+      await paymentService.deposit(value, "self-loan:repay");
+      await loadAll();
+    } finally {
+      isRepaying.set(false);
+    }
+  };
+
+  const addCollateral = async (amount: string) => {
+    const value = String(amount || "").trim();
+    const validation = validateCollateral(value, neoBalance.get());
+    if (validation) throw new Error(validation);
+    await paymentService.deposit(value, "self-loan:add-collateral");
+    await loadAll();
+  };
+
   // ── Lifecycle ───────────────────────────────────────────────────────
 
   /**
@@ -480,10 +519,16 @@ export function useSelfLoan({
   return {
     // Core refs
     isLoading,
+    isBorrowing,
+    isRepaying,
     neoBalance,
+    neoPrice,
+    platformStats,
     loan,
+    borrowAmount,
     collateralAmount,
     selectedTier,
+    selectedLtv: selectedTier,
     ltvOptions,
     selectedLtvPercent,
     minDurationHours,
@@ -511,6 +556,7 @@ export function useSelfLoan({
     totalLoans,
     totalBorrowedDisplay,
     totalRepaidDisplay,
+    profitAnchorValue,
 
     // Gauge computeds
     healthColor,
@@ -518,6 +564,9 @@ export function useSelfLoan({
 
     // Actions
     takeLoan,
+    borrow,
+    repay,
+    addCollateral,
 
     // Lifecycle
     loadAll,

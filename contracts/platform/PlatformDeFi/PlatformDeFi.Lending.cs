@@ -219,6 +219,77 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         #endregion
 
+        #region ProfitAnchor Integration
+
+        /// <summary>
+        /// Configure the ProfitAnchor app that supplies the highest-profit
+        /// candidate for SelfLoan collateral voting. This does not transfer
+        /// collateral to ProfitAnchor.
+        /// </summary>
+        public static void SetProfitAnchor(string appId, UInt160 profitAnchorContract, string profitAnchorAppId)
+        {
+            ValidateApp(appId, ProductType_Lending);
+            ValidateAppAuthority(appId);
+            ValidateAddress(profitAnchorContract);
+            ExecutionEngine.Assert(profitAnchorAppId != null && profitAnchorAppId.Length > 0, "profit appId required");
+
+            PutAddress(AppKey(appId, PREFIX_PROFIT_ANCHOR_CONTRACT), profitAnchorContract);
+            Put(AppKey(appId, PREFIX_PROFIT_ANCHOR_APP_ID), (ByteString)profitAnchorAppId!);
+
+            OnProfitAnchorConfigured(appId, profitAnchorContract, profitAnchorAppId!);
+        }
+
+        /// <summary>
+        /// Vote the SelfLoan contract's own NEO balance according to the
+        /// ProfitAnchor best-candidate view. User collateral remains in
+        /// SelfLoan custody and is still withdrawable only through loan close.
+        /// </summary>
+        public static void SyncProfitAnchorVote(string appId)
+        {
+            ValidateApp(appId, ProductType_Lending);
+            ValidateAppAuthority(appId);
+
+            UInt160 profitAnchorContract = GetProfitAnchorContract(appId);
+            string profitAnchorAppId = GetProfitAnchorAppId(appId);
+            ValidateAddress(profitAnchorContract);
+            ExecutionEngine.Assert(profitAnchorAppId != null && profitAnchorAppId.Length > 0, "profit anchor not configured");
+
+            ByteString candidate = (ByteString)Contract.Call(
+                profitAnchorContract,
+                "getBestCandidate",
+                CallFlags.ReadStates,
+                new object[] { profitAnchorAppId! })!;
+            ExecutionEngine.Assert(candidate != null && candidate.Length == 33, "profit candidate missing");
+            ExecutionEngine.Assert(NEO.Vote(Runtime.ExecutingScriptHash, (ECPoint)candidate!), "collateral vote failed");
+
+            OnProfitAnchorVoteSynced(appId, profitAnchorContract, profitAnchorAppId!, candidate!);
+        }
+
+        [Safe]
+        public static UInt160 GetProfitAnchorContract(string appId) =>
+            ReadAddress(AppKey(appId, PREFIX_PROFIT_ANCHOR_CONTRACT));
+
+        [Safe]
+        public static string GetProfitAnchorAppId(string appId)
+        {
+            ByteString data = GetRaw(AppKey(appId, PREFIX_PROFIT_ANCHOR_APP_ID));
+            return data == null ? "" : (string)data;
+        }
+
+        [Safe]
+        public static Map<string, object> GetProfitAnchor(string appId)
+        {
+            Map<string, object> result = new Map<string, object>();
+            UInt160 contractHash = GetProfitAnchorContract(appId);
+            string profitAnchorAppId = GetProfitAnchorAppId(appId);
+            result["contract"] = contractHash;
+            result["appId"] = profitAnchorAppId;
+            result["enabled"] = contractHash != UInt160.Zero && profitAnchorAppId.Length > 0;
+            return result;
+        }
+
+        #endregion
+
         #region Lending Read Methods
 
         [Safe]
@@ -254,6 +325,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             stats["minHealthFactor"] = MIN_HEALTH_FACTOR;
             stats["minCollateral"] = MIN_COLLATERAL;
             stats["lendingFeeBps"] = LENDING_FEE_BPS;
+            stats["profitAnchor"] = GetProfitAnchor(appId);
             return stats;
         }
 

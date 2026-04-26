@@ -1,0 +1,79 @@
+@use "@shared/styles/tokens.scss" as *;
+@use "@shared/styles/variables.scss" as *;
+@use "./pages/index/profitanchor-theme.scss" as *;
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+body { background: var(--anchor-bg, #ffffff); }
+
+.profitanchor-play-area {
+  display: flex; flex-direction: column; gap: 20px; padding: 24px 16px;
+  min-height: 300px; font-family: var(--anchor-font, 'Instrument Sans', sans-serif); position: relative;
+  > * { position: relative; z-index: 1; }
+}
+
+.stats-bar {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 14px; flex: 1; min-width: 70px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+}
+
+.stat-value {
+  font-size: 14px; font-weight: 700;
+  color: #10b981;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.section-header { display: flex; justify-content: space-between; align-items: center; }
+.section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #10b981; }
+.section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; line-height: 1.7; display: block; color: #6b7280; }
+
+.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04); padding: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+.px-1 { padding-left: 8px; padding-right: 8px; }
+
+.agent-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; border-radius: 11px; padding: 0 6px;
+  background: #10b981;
+  color: #fff; font-size: 11px; font-weight: 700;
+}
+
+.agent-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.agent-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px; border-radius: 6px;
+  background: #f9fafb;
+}
+
+.agent-address {
+  font-size: 12px; font-family: monospace;
+  color: #6b7280;
+}
+
+.agent-status {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  color: #10b981;
+}
+
+.more-agents {
+  font-size: 11px; color: #9ca3af;
+  text-align: center; padding: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) { .neo-card:hover { transform: none; } }
