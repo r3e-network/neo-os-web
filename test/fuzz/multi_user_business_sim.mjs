@@ -20,9 +20,9 @@
  *   - SelfLoan:       NEO collateral transfer → createLoan
  *   - LastSurvivor:   transfer 1 GAS → round state read-back
  *
- * Oracle-gated flows (FogPlay / GASBox / RedEnvelope) are intentionally
- * excluded here because their VRF callbacks require a live Phala runtime;
- * they're covered separately by deploy/scripts/live_validate_flagship_user_flows.js.
+ * FogPlay is included as a contract-to-oracle integration check. The sim
+ * pre-funds the oracle request fee and verifies OracleRequested, while full
+ * callback settlement remains covered by deploy/scripts/live_validate_flagship_user_flows.js.
  *
  * Env:
  *   NEO_TESTNET_WIF  — master funder WIF (default: built-in testnet key)
@@ -41,7 +41,11 @@ const repoRoot = path.resolve(scriptDir, "..", "..");
 
 // Load the same neon-compat shim the live validator uses, so we inherit
 // its SmartContract.invoke flow (preview + estimate fees + sign + send).
-const Neon = (await import(path.join(repoRoot, "deploy", "scripts", "lib", "neon-compat.mjs"))).default;
+const Neon = (
+  await import(
+    path.join(repoRoot, "deploy", "scripts", "lib", "neon-compat.mjs")
+  )
+).default;
 const { createWaitForLog, asTxid, findNotification } = await import(
   path.join(repoRoot, "deploy", "scripts", "lib", "live_neo.js")
 );
@@ -52,20 +56,27 @@ const { createWaitForLog, asTxid, findNotification } = await import(
 // contract-logic failures. With this pool the sim rotates to the next
 // healthy endpoint on `fetch failed` / `aborted` mid-iteration.
 const RPC_ENDPOINTS = (
-  process.env.NEO_RPC_ENDPOINTS
-  || process.env.NEO_RPC_URL
-  || [
+  process.env.NEO_RPC_ENDPOINTS ||
+  process.env.NEO_RPC_URL ||
+  [
     "https://testnet1.neo.coz.io:443",
     "https://testnet2.neo.coz.io:443",
     "https://rpc.t5.n3.nspcc.ru:20331",
     "https://neo3-testnet.unifra.io",
   ].join(",")
-).split(",").map((s) => s.trim()).filter(Boolean);
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || Neon.CONST.MAGIC_NUMBER.TestNet);
+const NETWORK_MAGIC = Number(
+  process.env.NEO_NETWORK_MAGIC || Neon.CONST.MAGIC_NUMBER.TestNet,
+);
 
-const FUNDER_WIF = process.env.NEO_TESTNET_WIF || process.env.TEST_FUZZ_WIF
-  || "L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ";
+const FUNDER_WIF =
+  process.env.NEO_TESTNET_WIF ||
+  process.env.TEST_FUZZ_WIF ||
+  "L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ";
 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -73,9 +84,9 @@ const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const CONTRACTS = {
   lastSurvivor: "0xd55df731978582ea81719a5d87ce49b248e91275",
   dailyCheckin: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-  selfLoan:     "0xd097c63ea89251d23632826ebed99a7e7ce536f7",
-  neoPay:       "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-  fogplay:      "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
+  selfLoan: "0xd097c63ea89251d23632826ebed99a7e7ce536f7",
+  neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
+  fogplay: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
 };
 
 // Morpheus VRF oracle on testnet — used by FogPlay/RedEnvelope/GASBox
@@ -83,14 +94,17 @@ const CONTRACTS = {
 // fires (OracleRequested notification); it doesn't block on the TEE-side
 // callback to keep iteration cadence under a minute.
 const ORACLE_HASH = (
-  process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52"
+  process.env.MORPHEUS_ORACLE_HASH ||
+  "0x4b882e94ed766807c4fd728768f972e13008ad52"
 ).trim();
 
 const FOGPLAY_BET = "5000000"; // 0.05 GAS
 
-const SIM_USERS       = parseInt(process.env.SIM_USERS || "3", 10);
-const SIM_ITERATIONS  = process.env.SIM_ITERATIONS ? parseInt(process.env.SIM_ITERATIONS, 10) : 0;
-const SIM_LOOP_DELAY  = parseInt(process.env.SIM_LOOP_DELAY_MS || "30000", 10);
+const SIM_USERS = parseInt(process.env.SIM_USERS || "3", 10);
+const SIM_ITERATIONS = process.env.SIM_ITERATIONS
+  ? parseInt(process.env.SIM_ITERATIONS, 10)
+  : 0;
+const SIM_LOOP_DELAY = parseInt(process.env.SIM_LOOP_DELAY_MS || "30000", 10);
 const SIM_GAS_PER_USR = BigInt(process.env.SIM_GAS_PER_USER || "2000000000"); // 20 GAS
 const SIM_NEO_PER_USR = BigInt(process.env.SIM_NEO_PER_USER || "3");
 
@@ -102,16 +116,26 @@ const ACCOUNT_STATE_FILE = path.join(REPORT_DIR, "sim-users.json");
 const funder = new Neon.wallet.Account(FUNDER_WIF);
 
 let currentEndpointIdx = 0;
-function currentRpcUrl() { return RPC_ENDPOINTS[currentEndpointIdx]; }
+function currentRpcUrl() {
+  return RPC_ENDPOINTS[currentEndpointIdx];
+}
 let rpcClient = new Neon.rpc.RPCClient(currentRpcUrl());
 
-function ts() { return new Date().toISOString(); }
-function log(line) { console.log(`[${ts()}] ${line}`); }
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function ts() {
+  return new Date().toISOString();
+}
+function log(line) {
+  console.log(`[${ts()}] ${line}`);
+}
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 function isTransientNetErr(err) {
   const msg = String(err?.message || err || "");
-  return /fetch failed|operation was aborted|ECONN|ETIMEDOUT|socket hang up|ENOTFOUND|getaddrinfo|network|EAI_AGAIN/i.test(msg);
+  return /fetch failed|operation was aborted|ECONN|ETIMEDOUT|socket hang up|ENOTFOUND|getaddrinfo|network|EAI_AGAIN/i.test(
+    msg,
+  );
 }
 
 function rotateEndpoint(reason) {
@@ -147,7 +171,10 @@ async function withRpcFailover(fn, label) {
 
 const waitForLog = createWaitForLog({
   getApplicationLog: (txid) =>
-    withRpcFailover(() => rpcClient.getApplicationLog(txid), "getApplicationLog"),
+    withRpcFailover(
+      () => rpcClient.getApplicationLog(txid),
+      "getApplicationLog",
+    ),
   label: "multi-user-sim",
 });
 
@@ -175,15 +202,23 @@ async function waitForTx(txid) {
 }
 
 async function transferAsset(account, assetHash, toHash, amount, data = null) {
-  return withRpcFailover(() => {
-    const contract = smartContract(assetHash, account);
-    return contract.invoke("transfer", [
-      Neon.sc.ContractParam.hash160(account.scriptHash),
-      Neon.sc.ContractParam.hash160(toHash),
-      Neon.sc.ContractParam.integer(amount.toString()),
-      data === null ? Neon.sc.ContractParam.any(null) : data,
-    ]);
-  }, `transfer:${assetHash.slice(0, 10)}`);
+  return withRpcFailover(
+    () => {
+      const contract = smartContract(assetHash, account);
+      return contract.invoke("transfer", [
+        Neon.sc.ContractParam.hash160(account.scriptHash),
+        Neon.sc.ContractParam.hash160(toHash),
+        Neon.sc.ContractParam.integer(amount.toString()),
+        data === null ? Neon.sc.ContractParam.any(null) : data,
+      ]);
+    },
+    `transfer:${assetHash.slice(0, 10)}`,
+  );
+}
+
+async function readInteger(scriptHash, operation, args = []) {
+  const res = await invokeRead(scriptHash, operation, args);
+  return BigInt(String(res.stack?.[0]?.value || "0"));
 }
 
 async function invokeMethod(account, contractHash, operation, args) {
@@ -194,7 +229,9 @@ async function invokeMethod(account, contractHash, operation, args) {
 }
 
 async function getBalance(assetHash, scriptHash) {
-  const res = await invokeRead(assetHash, "balanceOf", [Neon.sc.ContractParam.hash160(scriptHash)]);
+  const res = await invokeRead(assetHash, "balanceOf", [
+    Neon.sc.ContractParam.hash160(scriptHash),
+  ]);
   if (String(res?.state || "").toUpperCase() !== "HALT") return 0n;
   return BigInt(res.stack?.[0]?.value || "0");
 }
@@ -203,7 +240,9 @@ function readMap(stackItem) {
   if (!stackItem || stackItem.type !== "Map") return {};
   const out = {};
   for (const kv of stackItem.value || []) {
-    const key = Buffer.from(String(kv.key?.value || ""), "base64").toString("utf8");
+    const key = Buffer.from(String(kv.key?.value || ""), "base64").toString(
+      "utf8",
+    );
     out[key] = kv.value?.value;
     out[`__type__${key}`] = kv.value?.type;
   }
@@ -244,7 +283,9 @@ function ensureSubAccounts() {
   let accounts = loadSubAccounts();
   if (accounts.length < SIM_USERS) {
     const needed = SIM_USERS - accounts.length;
-    log(`generating ${needed} new sub-account(s) (current pool: ${accounts.length})`);
+    log(
+      `generating ${needed} new sub-account(s) (current pool: ${accounts.length})`,
+    );
     accounts.push(...generateSubAccounts(needed));
     saveSubAccounts(accounts);
   }
@@ -258,14 +299,26 @@ async function fundIfLow(account) {
   ]);
   const actions = [];
   if (gas < SIM_GAS_PER_USR / 2n) {
-    log(`  fund GAS → ${account.address} (${SIM_GAS_PER_USR} sat; current ${gas})`);
-    const txid = await transferAsset(funder, GAS_HASH, account.scriptHash, SIM_GAS_PER_USR);
+    log(
+      `  fund GAS → ${account.address} (${SIM_GAS_PER_USR} sat; current ${gas})`,
+    );
+    const txid = await transferAsset(
+      funder,
+      GAS_HASH,
+      account.scriptHash,
+      SIM_GAS_PER_USR,
+    );
     await waitForTx(txid);
     actions.push({ asset: "GAS", txid, amount: SIM_GAS_PER_USR.toString() });
   }
   if (neo < SIM_NEO_PER_USR) {
     log(`  fund NEO → ${account.address} (${SIM_NEO_PER_USR}; current ${neo})`);
-    const txid = await transferAsset(funder, NEO_HASH, account.scriptHash, SIM_NEO_PER_USR);
+    const txid = await transferAsset(
+      funder,
+      NEO_HASH,
+      account.scriptHash,
+      SIM_NEO_PER_USR,
+    );
     await waitForTx(txid);
     actions.push({ asset: "NEO", txid, amount: SIM_NEO_PER_USR.toString() });
   }
@@ -282,10 +335,15 @@ async function runDailyCheckin(user) {
     { type: "Hash160", value: `0x${user.scriptHash}` },
   ]);
   if (String(statusRes?.state || "").toUpperCase() !== "HALT") {
-    return { ok: false, step: "getCheckinStatus", reason: statusRes?.exception };
+    return {
+      ok: false,
+      step: "getCheckinStatus",
+      reason: statusRes?.exception,
+    };
   }
   const statusMap = readMap(statusRes.stack?.[0]);
-  const canCheckin = statusMap.canCheckin === true || statusMap.canCheckin === "true";
+  const canCheckin =
+    statusMap.canCheckin === true || statusMap.canCheckin === "true";
   const lastDay = String(statusMap.lastCheckinDay ?? "0");
   const currentDay = String(statusMap.currentUtcDay ?? "0");
   if (!canCheckin && lastDay === currentDay) {
@@ -304,7 +362,12 @@ async function runDailyCheckin(user) {
   );
   const execution = await waitForTx(txid);
   if (execution.vmstate !== "HALT") {
-    return { ok: false, step: "fee_transfer", txid, exception: execution.exception };
+    return {
+      ok: false,
+      step: "fee_transfer",
+      txid,
+      exception: execution.exception,
+    };
   }
 
   const streakRes = await invokeRead(hash, "getUserStreak", [
@@ -319,12 +382,17 @@ async function runNeoPayFlow(creator, beneficiary) {
   const hash = CONTRACTS.neoPay;
   // Contract enforces interval >= 86400s (1 day) — match the live flow shape.
   const totalAmount = "100000000"; // 1 GAS
-  const rateAmount  = "100000000"; // single full release per interval
+  const rateAmount = "100000000"; // single full release per interval
   const intervalSec = "86400";
 
   // Fund the contract first (covers escrowed amount). Memo must be null for
   // NeoPay — anything else is treated as an unknown transfer and rejected.
-  const fundTxid = await transferAsset(creator, GAS_HASH, hash, BigInt(totalAmount));
+  const fundTxid = await transferAsset(
+    creator,
+    GAS_HASH,
+    hash,
+    BigInt(totalAmount),
+  );
   await waitForTx(fundTxid);
 
   const createTxid = await invokeMethod(creator, hash, "createStream", [
@@ -423,7 +491,11 @@ async function runLastSurvivorFlow(player) {
   const statusMap = readMap(statusRes.stack?.[0]);
   const active = statusMap.active === true || statusMap.active === "true";
   if (!active) {
-    return { ok: true, step: "round_inactive", note: "no active round to buy into" };
+    return {
+      ok: true,
+      step: "round_inactive",
+      note: "no active round to buy into",
+    };
   }
 
   // Compute current key cost: basePrice + totalKeys * (basePrice * 10 / 10000)
@@ -467,6 +539,33 @@ async function runLastSurvivorFlow(player) {
 
 async function runFogPlayFlow(player) {
   const hash = CONTRACTS.fogplay;
+  const requestFee = await readInteger(ORACLE_HASH, "requestFee");
+  const feeCredit = await readInteger(ORACLE_HASH, "feeCreditOf", [
+    Neon.sc.ContractParam.hash160(hash),
+  ]);
+  let oracleFeeTx = null;
+  if (requestFee > 0n && feeCredit < requestFee) {
+    const callbackBytes = Buffer.from(
+      hash.replace(/^0x/i, ""),
+      "hex",
+    ).reverse();
+    oracleFeeTx = await transferAsset(
+      player,
+      GAS_HASH,
+      ORACLE_HASH,
+      requestFee,
+      Neon.sc.ContractParam.byteArray(callbackBytes.toString("base64")),
+    );
+    const oracleFeeExec = await waitForTx(oracleFeeTx);
+    if (oracleFeeExec.vmstate !== "HALT") {
+      return {
+        ok: false,
+        step: "oracle_fee_topup",
+        txid: oracleFeeTx,
+        exception: oracleFeeExec.exception,
+      };
+    }
+  }
 
   // Bet payment first — memo gates the onNEP17Payment branch.
   const transferTx = await transferAsset(
@@ -478,7 +577,12 @@ async function runFogPlayFlow(player) {
   );
   const transferExec = await waitForTx(transferTx);
   if (transferExec.vmstate !== "HALT") {
-    return { ok: false, step: "fee_transfer", txid: transferTx, exception: transferExec.exception };
+    return {
+      ok: false,
+      step: "fee_transfer",
+      txid: transferTx,
+      exception: transferExec.exception,
+    };
   }
 
   const betTx = await invokeMethod(player, hash, "placeBet", [
@@ -493,13 +597,22 @@ async function runFogPlayFlow(player) {
     // pollute the pass-rate.
     const exception = String(betExec.exception || "");
     if (exception.includes("request_in_progress")) {
-      return { ok: true, step: "oracle_request_in_progress", txid: betTx, transferTx };
+      return {
+        ok: true,
+        step: "oracle_request_in_progress",
+        txid: betTx,
+        transferTx,
+      };
     }
     return { ok: false, step: "placeBet", txid: betTx, exception };
   }
 
   const betPlaced = findNotification(betExec, hash, "BetPlaced");
-  const oracleRequested = findNotification(betExec, ORACLE_HASH, "OracleRequested");
+  const oracleRequested = findNotification(
+    betExec,
+    ORACLE_HASH,
+    "OracleRequested",
+  );
   if (!betPlaced || !oracleRequested) {
     return {
       ok: false,
@@ -517,6 +630,8 @@ async function runFogPlayFlow(player) {
   return {
     ok: true,
     step: "bet_placed",
+    oracleFeeTx,
+    requestFee: requestFee.toString(),
     transferTx,
     betTx,
     requestId: String(oracleRequested.state?.value?.[0]?.value || ""),
@@ -527,10 +642,13 @@ async function runFogPlayFlow(player) {
 
 const SCENARIOS = [
   { name: "dailyCheckin", run: (users) => runDailyCheckin(users[0]) },
-  { name: "neoPay",       run: (users) => runNeoPayFlow(users[0], users[1] || users[0]) },
+  {
+    name: "neoPay",
+    run: (users) => runNeoPayFlow(users[0], users[1] || users[0]),
+  },
   { name: "lastSurvivor", run: (users) => runLastSurvivorFlow(users[0]) },
-  { name: "selfLoan",     run: (users) => runSelfLoanFlow(users[0]) },
-  { name: "fogplay",      run: (users) => runFogPlayFlow(users[0]) },
+  { name: "selfLoan", run: (users) => runSelfLoanFlow(users[0]) },
+  { name: "fogplay", run: (users) => runFogPlayFlow(users[0]) },
 ];
 
 function rotate(users, offset) {
@@ -556,7 +674,9 @@ async function runIteration(users, iteration) {
         elapsedMs: Date.now() - scenarioStart,
         ...outcome,
       };
-      log(`  ${scenario.name}: ok=${outcome.ok} step=${outcome.step}${outcome.note ? " note=" + outcome.note : ""}`);
+      log(
+        `  ${scenario.name}: ok=${outcome.ok} step=${outcome.step}${outcome.note ? " note=" + outcome.note : ""}`,
+      );
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       result.scenarios[scenario.name] = {
@@ -571,8 +691,15 @@ async function runIteration(users, iteration) {
 
   result.elapsedMs = Date.now() - started;
   const stamp = new Date(started).toISOString().replace(/[:.]/g, "-");
-  fs.writeFileSync(path.join(REPORT_DIR, `iter-${stamp}.json`), JSON.stringify(result, null, 2));
-  const summary = `${result.startedAt} iter=${iteration} elapsed=${result.elapsedMs}ms ${Object.entries(result.scenarios).map(([k, v]) => `${k}:${v.ok ? "pass" : "fail"}`).join(" ")}\n`;
+  fs.writeFileSync(
+    path.join(REPORT_DIR, `iter-${stamp}.json`),
+    JSON.stringify(result, null, 2),
+  );
+  const summary = `${result.startedAt} iter=${iteration} elapsed=${result.elapsedMs}ms ${Object.entries(
+    result.scenarios,
+  )
+    .map(([k, v]) => `${k}:${v.ok ? "pass" : "fail"}`)
+    .join(" ")}\n`;
   fs.appendFileSync(HISTORY_LOG, summary);
   return result;
 }
@@ -581,10 +708,14 @@ async function main() {
   log("multi-user business sim starting");
   log(`  funder=${funder.address}`);
   log(`  rpc-pool=[${RPC_ENDPOINTS.join(", ")}]  initial=${currentRpcUrl()}`);
-  log(`  users=${SIM_USERS} iterations=${SIM_ITERATIONS || "continuous"} delay=${SIM_LOOP_DELAY}ms`);
+  log(
+    `  users=${SIM_USERS} iterations=${SIM_ITERATIONS || "continuous"} delay=${SIM_LOOP_DELAY}ms`,
+  );
 
   const users = ensureSubAccounts();
-  log(`sub-accounts: ${users.map((u, i) => `U${i + 1}=${u.address}`).join(", ")}`);
+  log(
+    `sub-accounts: ${users.map((u, i) => `U${i + 1}=${u.address}`).join(", ")}`,
+  );
 
   log("funding pass (floors)");
   for (const u of users) {
@@ -592,18 +723,30 @@ async function main() {
   }
 
   let iter = 0;
+  let hadScenarioFailure = false;
   while (true) {
     iter++;
     log(`── iteration ${iter} ──`);
-    await runIteration(users, iter);
+    const iterationResult = await runIteration(users, iter);
+    if (
+      Object.values(iterationResult.scenarios).some((scenario) => !scenario.ok)
+    ) {
+      hadScenarioFailure = true;
+    }
 
     if (SIM_ITERATIONS > 0 && iter >= SIM_ITERATIONS) {
       log(`reached SIM_ITERATIONS=${SIM_ITERATIONS}, exiting`);
+      if (hadScenarioFailure) {
+        log("one or more scenarios failed");
+        process.exit(1);
+      }
       break;
     }
 
     for (const u of users) {
-      await fundIfLow(u).catch((e) => log(`  refund failed for ${u.address}: ${e.message}`));
+      await fundIfLow(u).catch((e) =>
+        log(`  refund failed for ${u.address}: ${e.message}`),
+      );
     }
     await sleep(SIM_LOOP_DELAY);
   }

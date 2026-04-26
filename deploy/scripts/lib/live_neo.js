@@ -31,11 +31,15 @@ function stackValue(item) {
       return Boolean(item.value);
     case "ByteString": {
       const bytes = stackBytes(item);
+      const text = bytes.toString("utf8");
+      if (/^[\x20-\x7E]+$/.test(text)) {
+        return text;
+      }
       if (bytes.length === 20) {
         return `0x${Buffer.from(bytes).reverse().toString("hex")}`;
       }
       try {
-        return bytes.toString("utf8");
+        return text;
       } catch {
         return item.value ?? null;
       }
@@ -45,11 +49,21 @@ function stackValue(item) {
       return Array.isArray(item.value) ? item.value.map(stackValue) : [];
     case "Map":
       return Object.fromEntries(
-        (item.value || []).map((entry) => [stackValue(entry.key), stackValue(entry.value)])
+        (item.value || []).map((entry) => [stackMapKey(entry.key), stackValue(entry.value)])
       );
     default:
       return item.value ?? null;
   }
+}
+
+function stackMapKey(item) {
+  if (!item || typeof item !== "object") return "";
+  if (item.type === "ByteString" || item.type === "Buffer") {
+    const bytes = stackBytes(item);
+    const text = bytes.toString("utf8");
+    if (/^[\x20-\x7E]+$/.test(text)) return text;
+  }
+  return String(stackValue(item) ?? "");
 }
 
 function executionReturnedTrue(execution) {
@@ -99,6 +113,7 @@ module.exports = {
   asTxid,
   stackBytes,
   stackValue,
+  stackMapKey,
   executionReturnedTrue,
   findNotification,
   createWaitForLog,

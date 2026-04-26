@@ -24,6 +24,9 @@ const items = [
     brand: "LastSurvivor",
     manifest: "apps/last-survivor/neo-manifest.json",
     expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "totalPotDistributed", "totalPlayers", "getCurrentKeyPrice"],
+    expectedMethodsByNetwork: {
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
+    },
   },
   {
     brand: "GASBOX",
@@ -49,6 +52,21 @@ const items = [
     brand: "SelfLoan",
     manifest: "apps/self-loan/neo-manifest.json",
     expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails", "getPlatformStats"],
+    expectedMethodsByNetwork: {
+      "neo-n3-testnet": ["isPaused", "createLoan", "repayLoan", "getLoan", "getLendingStats", "setProfitAnchor", "syncProfitAnchorVote"],
+    },
+  },
+  {
+    brand: "ProfitAnchor",
+    manifest: "apps/profitanchor/neo-manifest.json",
+    deploymentOptional: true,
+    expectedMethods: ["getAnchorStats", "registerAgent", "setAgentProfitScore", "voteBestProfitCandidate", "withdrawCredit", "claimRewards"],
+  },
+  {
+    brand: "TrustAnchor",
+    manifest: "apps/trustanchor/neo-manifest.json",
+    deploymentOptional: true,
+    expectedMethods: ["getAnchorStats", "registerAgent", "votePooledStake", "withdrawCredit", "claimRewards"],
   },
   {
     brand: "NeoPay",
@@ -75,6 +93,10 @@ async function getContractState(rpcUrl, hash) {
   return data.result;
 }
 
+function expectedMethodsFor(item, networkKey) {
+  return item.expectedMethodsByNetwork?.[networkKey] || item.expectedMethods || [];
+}
+
 async function main() {
   const rows = [];
   let failed = false;
@@ -92,9 +114,16 @@ async function main() {
       deployedHash: deployedHash || "missing",
       contractName: "",
       methodCount: 0,
+      checkedAbiMethods: expectedMethodsFor(item, networkConfig.key),
       missingMethods: [],
       problems: [],
     };
+
+    if (!deployedHash && item.deploymentOptional) {
+      row.contractName = "PlatformAnchor (source-ready)";
+      rows.push(row);
+      continue;
+    }
 
     if (!deployedHash) {
       row.problems.push(`manifest missing ${networkConfig.key} hash`);
@@ -110,7 +139,7 @@ async function main() {
         : [];
       row.contractName = String(remote?.manifest?.name || "");
       row.methodCount = remoteMethods.length;
-      const missing = item.expectedMethods.filter((name) => !remoteMethods.includes(name));
+      const missing = row.checkedAbiMethods.filter((name) => !remoteMethods.includes(name));
       row.missingMethods = missing;
       if (missing.length) {
         row.problems.push(`missing ABI methods: ${missing.join(",")}`);
