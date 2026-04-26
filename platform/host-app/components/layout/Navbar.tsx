@@ -75,9 +75,9 @@ export function Navbar() {
           : "bg-white/60 backdrop-blur-md py-4 border-b border-transparent",
       )}
     >
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex min-w-0 max-w-[1600px] items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-8">
+        <div className="flex min-w-0 items-center gap-4 xl:gap-8">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
@@ -117,7 +117,7 @@ export function Navbar() {
         <form
           onSubmit={handleSearch}
           role="search"
-          className="hidden lg:flex flex-1 max-w-md mx-6"
+          className="hidden min-w-0 flex-1 max-w-[280px] mx-4 lg:flex 2xl:mx-6 2xl:max-w-md"
         >
           <div className="relative w-full group">
             <Search
@@ -136,7 +136,7 @@ export function Navbar() {
         </form>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <NotificationDropdown walletAddress={walletAddress} />
 
           {/* Language Switcher */}

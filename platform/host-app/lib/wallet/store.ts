@@ -5,11 +5,13 @@ import {
   NeoLineAdapter,
   O3Adapter,
   OneGateAdapter,
+  WifAdapter,
   WalletBalance,
+  WalletConnectionError,
   WalletNotInstalledError,
 } from "./adapters";
 
-export type WalletProvider = "neoline" | "o3" | "onegate";
+export type WalletProvider = "neoline" | "o3" | "onegate" | "wif";
 
 interface WalletState {
   connected: boolean;
@@ -23,6 +25,7 @@ interface WalletState {
 
 interface WalletActions {
   connect: (provider: WalletProvider) => Promise<void>;
+  connectWif: (wif: string) => Promise<void>;
   disconnect: () => void;
   refreshBalance: () => Promise<void>;
   clearError: () => void;
@@ -34,6 +37,7 @@ const adapters: Record<WalletProvider, WalletAdapter> = {
   neoline: new NeoLineAdapter(),
   o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
+  wif: new WifAdapter(),
 };
 
 export const useWalletStore = create<WalletStore>()(
@@ -55,6 +59,9 @@ export const useWalletStore = create<WalletStore>()(
         const adapter = adapters[provider];
 
         try {
+          if (provider === "wif") {
+            throw new WalletConnectionError("Use connectWif() for direct WIF wallets");
+          }
           const account = await adapter.connect();
           const balance = await adapter.getBalance(account.address);
 
@@ -73,6 +80,41 @@ export const useWalletStore = create<WalletStore>()(
               : "Wallet connection failed";
 
           set({ loading: false, error: message });
+        }
+      },
+
+      connectWif: async (wif: string) => {
+        set({ loading: true, error: null });
+
+        const adapter = adapters.wif as WifAdapter;
+
+        try {
+          const account = await adapter.connectWithWif(wif);
+          const balance = await adapter.getBalance(account.address);
+
+          set({
+            connected: true,
+            address: account.address,
+            publicKey: account.publicKey,
+            provider: "wif",
+            balance,
+            loading: false,
+          });
+        } catch (err) {
+          const raw = err instanceof Error ? err.message : String(err);
+          const message = raw.toLowerCase().includes("invalid wif")
+            ? "Invalid WIF. Use a funded test wallet WIF and never paste production keys."
+            : "Direct WIF connection failed";
+
+          set({
+            connected: false,
+            address: "",
+            publicKey: "",
+            provider: null,
+            balance: null,
+            loading: false,
+            error: message,
+          });
         }
       },
 
@@ -109,7 +151,7 @@ export const useWalletStore = create<WalletStore>()(
     {
       name: "neo-wallet",
       partialize: (state) => ({
-        provider: state.provider,
+        provider: state.provider === "wif" ? null : state.provider,
       }),
     },
   ),
