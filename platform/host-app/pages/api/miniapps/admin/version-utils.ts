@@ -1,22 +1,31 @@
 import type { NextApiRequest } from "next";
 
 export const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
-export const VERSION_ID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+export const VERSION_ID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 
 export function asTrimmedString(value: unknown): string {
   if (value === undefined || value === null) return "";
   return String(value).trim();
 }
 
-export function parseReleaseChannel(value: unknown): "all" | "draft" | "published" {
+export function parseReleaseChannel(
+  value: unknown,
+): "all" | "draft" | "published" {
   const normalized = asTrimmedString(value).toLowerCase();
-  if (normalized === "draft" || normalized === "published" || normalized === "all") {
+  if (
+    normalized === "draft" ||
+    normalized === "published" ||
+    normalized === "all"
+  ) {
     return normalized;
   }
   return "all";
 }
 
-export function parseRollbackReleaseChannel(value: unknown): "draft" | "published" {
+export function parseRollbackReleaseChannel(
+  value: unknown,
+): "draft" | "published" {
   const channel = parseReleaseChannel(value);
   return channel === "draft" ? "draft" : "published";
 }

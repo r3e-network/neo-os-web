@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
+import {
+  forwardEdgeRpcHeaders,
+  getEdgeFunctionsBaseUrl,
+  isEdgeRpcAllowed,
+} from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -34,8 +38,12 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-function extractFnFromJsonBody(rawBody: Buffer | undefined, contentType: string) {
-  if (!rawBody || !contentType.toLowerCase().includes("application/json")) return null;
+function extractFnFromJsonBody(
+  rawBody: Buffer | undefined,
+  contentType: string,
+) {
+  if (!rawBody || !contentType.toLowerCase().includes("application/json"))
+    return null;
   try {
     const parsed: RPCJsonBody = JSON.parse(rawBody.toString("utf8"));
     if (!parsed || typeof parsed !== "object") return null;
@@ -51,13 +59,19 @@ function extractFnFromJsonBody(rawBody: Buffer | undefined, contentType: string)
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
 
   let fn = String(req.query.fn ?? "").trim();
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    apiError.internal(res, "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured");
+    apiError.internal(
+      res,
+      "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured",
+    );
     return;
   }
 
@@ -115,13 +129,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
-    const blockedHeaders = new Set(["transfer-encoding", "connection", "set-cookie", "access-control-allow-origin", "cache-control"]);
+    const blockedHeaders = new Set([
+      "transfer-encoding",
+      "connection",
+      "set-cookie",
+      "access-control-allow-origin",
+      "cache-control",
+    ]);
     upstream.headers.forEach((value, key) => {
       if (blockedHeaders.has(key)) return;
       res.setHeader(key, value);
     });
 
-    const contentLength = parseInt(upstream.headers.get("content-length") || "0", 10);
+    const contentLength = parseInt(
+      upstream.headers.get("content-length") || "0",
+      10,
+    );
     if (contentLength > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
@@ -129,9 +152,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (buf.length > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
-    return res.send(buf);
+    res.send(buf);
+    return;
   } catch (err) {
-    logger.error("RPC relay error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "RPC relay error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     if (controller.signal.aborted) {
       return apiError.gatewayError(res, "upstream request timed out");
     } else {

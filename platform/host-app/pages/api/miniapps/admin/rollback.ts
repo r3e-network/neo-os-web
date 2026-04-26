@@ -6,7 +6,10 @@ import { logger } from "@/lib/logger";
 import { rollbackMiniAppVersion } from "@/lib/miniapp-versioning";
 import { coerceMiniAppInfo } from "@/lib/miniapp";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 import {
   APP_ID_REGEX,
   VERSION_ID_REGEX,
@@ -22,7 +25,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -42,7 +48,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const versionId = asTrimmedString(payload.version_id).toLowerCase();
   const versionNo = parseVersionNo(payload.version_no);
   if (!versionId && versionNo === null) {
-    return apiError.badRequest(res, "Either version_id or version_no is required");
+    return apiError.badRequest(
+      res,
+      "Either version_id or version_no is required",
+    );
   }
   if (versionId && !VERSION_ID_REGEX.test(versionId)) {
     return apiError.badRequest(res, "Invalid version_id format");
@@ -53,7 +62,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   try {
@@ -69,21 +81,32 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { data: upserted, error: upsertError } = await supabase
       .from("miniapps")
       .upsert(rolled.row, { onConflict: "app_id" })
-      .select("app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,manifest")
+      .select(
+        "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,manifest",
+      )
       .single();
 
     if (upsertError || !upserted) {
-      logger.error("miniapp rollback upsert failed:", upsertError instanceof Error ? upsertError.message : "unknown error");
-      return apiError.internal(res, "Rollback snapshot applied but failed to update miniapp row");
+      logger.error(
+        "miniapp rollback upsert failed:",
+        upsertError instanceof Error ? upsertError.message : "unknown error",
+      );
+      return apiError.internal(
+        res,
+        "Rollback snapshot applied but failed to update miniapp row",
+      );
     }
 
     const app = coerceMiniAppInfo(upserted);
     if (!app) {
-      return apiError.internal(res, "Rollback applied but failed to normalize miniapp response");
+      return apiError.internal(
+        res,
+        "Rollback applied but failed to normalize miniapp response",
+      );
     }
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       app,
       rollback: {
@@ -94,8 +117,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         release_channel: releaseChannel,
       },
     });
+    return;
   } catch (error) {
-    logger.error("miniapp rollback failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "miniapp rollback failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to rollback miniapp version");
   }
 }

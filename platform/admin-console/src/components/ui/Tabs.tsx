@@ -1,6 +1,9 @@
 "use client";
 
-interface Tab { label: string; value: string }
+interface Tab {
+  label: string;
+  value: string;
+}
 
 interface TabsProps {
   tabs: Tab[];
@@ -9,7 +12,12 @@ interface TabsProps {
   "aria-label"?: string;
 }
 
-export function Tabs({ tabs, value, onChange, "aria-label": ariaLabel = "Tab navigation" }: TabsProps) {
+export function Tabs({
+  tabs,
+  value,
+  onChange,
+  "aria-label": ariaLabel = "Tab navigation",
+}: TabsProps) {
   const activeIndex = tabs.findIndex((t) => t.value === value);
 
   function handleKeyDown(e: React.KeyboardEvent, idx: number) {
@@ -30,7 +38,11 @@ export function Tabs({ tabs, value, onChange, "aria-label": ariaLabel = "Tab nav
   }
 
   return (
-    <div role="tablist" aria-label={ariaLabel} className="flex border-b border-gray-200 dark:border-gray-700 gap-0">
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex border-b border-gray-200 dark:border-gray-700 gap-0"
+    >
       {tabs.map((t, idx) => (
         <button
           key={t.value}

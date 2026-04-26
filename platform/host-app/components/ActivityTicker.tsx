@@ -65,7 +65,10 @@ export const ActivityTicker = ({
           scrollRef.current += scrollSpeed / 1000;
           container.scrollTop = scrollRef.current;
 
-          if (container.scrollTop >= container.scrollHeight - container.clientHeight) {
+          if (
+            container.scrollTop >=
+            container.scrollHeight - container.clientHeight
+          ) {
             scrollRef.current = 0;
             container.scrollTop = 0;
           }
@@ -89,9 +92,17 @@ export const ActivityTicker = ({
     >
       <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 bg-gray-50">
         <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <span className="text-emerald-500 text-xs animate-pulse" aria-hidden="true">●</span><span className="sr-only">Live:</span> {title}
+          <span
+            className="text-emerald-500 text-xs animate-pulse"
+            aria-hidden="true"
+          >
+            ●
+          </span>
+          <span className="sr-only">Live:</span> {title}
         </span>
-        <span className="text-xs text-gray-500">{activities.length} events</span>
+        <span className="text-xs text-gray-500">
+          {activities.length} events
+        </span>
       </div>
       <div
         ref={containerRef}
@@ -101,7 +112,9 @@ export const ActivityTicker = ({
         onMouseLeave={() => setIsPaused(false)}
       >
         {displayActivities.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 text-sm">No activity yet</div>
+          <div className="p-6 text-center text-gray-500 text-sm">
+            No activity yet
+          </div>
         ) : (
           <ul>
             {displayActivities.map((activity) => (
@@ -114,36 +127,52 @@ export const ActivityTicker = ({
   );
 };
 
-const ActivityItem = React.memo(({ activity }: { activity: OnChainActivity }) => {
-  const icon = ACTIVITY_ICONS[activity.type] || "📌";
-  const statusColor = activity.status ? STATUS_COLORS[activity.status] : undefined;
+const ActivityItem = React.memo(
+  ({ activity }: { activity: OnChainActivity }) => {
+    const icon = ACTIVITY_ICONS[activity.type] || "📌";
+    const statusColor = activity.status
+      ? STATUS_COLORS[activity.status]
+      : undefined;
 
-  return (
-    <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100">
-      <div className="text-base w-6 text-center shrink-0">{activity.app_icon || icon}</div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center gap-2">
-          <span className="text-sm font-medium text-gray-900 truncate" title={activity.title}>{activity.title}</span>
-          <span className="text-xs text-gray-500 shrink-0">
-            {formatTimeAgo(activity.timestamp)}
-          </span>
+    return (
+      <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100">
+        <div className="text-base w-6 text-center shrink-0">
+          {activity.app_icon || icon}
         </div>
-        <div className="text-xs text-gray-500 mt-0.5 truncate" title={activity.description}>{activity.description}</div>
-        {activity.tx_hash && (
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-gray-500 font-mono">
-              TX: {truncateHash(activity.tx_hash)}
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center gap-2">
+            <span
+              className="text-sm font-medium text-gray-900 truncate"
+              title={activity.title}
+            >
+              {activity.title}
             </span>
-            {statusColor && (
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-md text-white font-semibold uppercase ${statusColor}`}
-              >
-                {activity.status}
-              </span>
-            )}
+            <span className="text-xs text-gray-500 shrink-0">
+              {formatTimeAgo(activity.timestamp)}
+            </span>
           </div>
-        )}
-      </div>
-    </li>
-  );
-});
+          <div
+            className="text-xs text-gray-500 mt-0.5 truncate"
+            title={activity.description}
+          >
+            {activity.description}
+          </div>
+          {activity.tx_hash && (
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-500 font-mono">
+                TX: {truncateHash(activity.tx_hash)}
+              </span>
+              {statusColor && (
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-md text-white font-semibold uppercase ${statusColor}`}
+                >
+                  {activity.status}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </li>
+    );
+  },
+);

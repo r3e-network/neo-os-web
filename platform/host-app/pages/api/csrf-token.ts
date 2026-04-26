@@ -17,5 +17,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const token = generateCsrfToken();
   setCsrfCookie(res, token);
 
-  return res.status(200).json({ csrfToken: token });
+  res.status(200).json({ csrfToken: token });
+  return;
 }

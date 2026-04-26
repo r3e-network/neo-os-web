@@ -4,7 +4,10 @@ import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 import {
   createTemplatePublishRequest,
   isTemplateApprovalRequired,
@@ -37,15 +40,32 @@ function asBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") return true;
-    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") return false;
+    if (
+      normalized === "true" ||
+      normalized === "1" ||
+      normalized === "yes" ||
+      normalized === "on"
+    )
+      return true;
+    if (
+      normalized === "false" ||
+      normalized === "0" ||
+      normalized === "no" ||
+      normalized === "off"
+    )
+      return false;
   }
   return fallback;
 }
 
 function parseStatus(value: unknown): TemplatePublishRequestStatus | "all" {
   const raw = asTrimmedString(value).toLowerCase();
-  if (raw === "pending" || raw === "approved" || raw === "rejected" || raw === "cancelled") {
+  if (
+    raw === "pending" ||
+    raw === "approved" ||
+    raw === "rejected" ||
+    raw === "cancelled"
+  ) {
     return raw;
   }
   return "all";
@@ -60,17 +80,25 @@ function parseListLimit(value: unknown, fallback = 100): number {
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const mode = asTrimmedString(req.query.mode).toLowerCase() || "templates";
-  const kind = normalizeTemplateKind(req.query.kind) || (asTrimmedString(req.query.kind).toLowerCase() === "all" ? "all" : null);
+  const kind =
+    normalizeTemplateKind(req.query.kind) ||
+    (asTrimmedString(req.query.kind).toLowerCase() === "all" ? "all" : null);
   const templateId = normalizeTemplateId(req.query.template_id);
   const category = asTrimmedString(req.query.category);
   const sourceRaw = asTrimmedString(req.query.source).toLowerCase();
-  const source = sourceRaw === "miniapp" || sourceRaw === "community" || sourceRaw === "verified"
-    ? sourceRaw
-    : "all";
+  const source =
+    sourceRaw === "miniapp" ||
+    sourceRaw === "community" ||
+    sourceRaw === "verified"
+      ? sourceRaw
+      : "all";
   const active = asTrimmedString(req.query.active).toLowerCase();
   const verified = asTrimmedString(req.query.verified).toLowerCase();
   const status = parseStatus(req.query.status);
@@ -84,10 +112,11 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
         status,
         limit,
       });
-      return res.status(200).json({
+      res.status(200).json({
         mode,
         requests,
       });
+      return;
     }
 
     const templates = await listTemplateEntries(supabase, {
@@ -101,21 +130,32 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
       limit,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       mode: "templates",
       templates,
       approval_required: isTemplateApprovalRequired(),
     });
+    return;
   } catch (error) {
-    logger.error("template market get failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "template market get failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to load template market data");
   }
 }
 
-async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: string) {
+async function handlePost(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  actor: string,
+) {
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const body = req.body;
@@ -131,10 +171,12 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
 
   if (action === "upsert_template") {
     const kind = normalizeTemplateKind(payload.kind);
-    if (!kind) return apiError.badRequest(res, "kind must be frontend or contract");
+    if (!kind)
+      return apiError.badRequest(res, "kind must be frontend or contract");
 
     const templateId = normalizeTemplateId(payload.template_id);
-    if (!templateId) return apiError.badRequest(res, "Invalid template_id format");
+    if (!templateId)
+      return apiError.badRequest(res, "Invalid template_id format");
 
     const version = asTrimmedString(payload.version) || "1.0.0";
     const name = asTrimmedString(payload.name) || templateId;
@@ -142,7 +184,11 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
     const category = asTrimmedString(payload.category) || "utility";
     const sourceType = normalizeTemplateSourceType(payload.source_type);
     const tags = Array.isArray(payload.tags)
-      ? Array.from(new Set(payload.tags.map((item) => asTrimmedString(item)).filter(Boolean)))
+      ? Array.from(
+          new Set(
+            payload.tags.map((item) => asTrimmedString(item)).filter(Boolean),
+          ),
+        )
       : [];
     const schema = asObject(payload.schema);
     const uiSchema = asObject(payload.ui_schema);
@@ -150,7 +196,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
     const ownerUserId = asTrimmedString(payload.owner_user_id) || null;
     const isActive = asBoolean(payload.is_active, true);
     const isVerified = asBoolean(payload.is_verified, false);
-    const factoryTemplateRef = asTrimmedString(payload.factory_template_ref) || null;
+    const factoryTemplateRef =
+      asTrimmedString(payload.factory_template_ref) || null;
 
     if (!manifest || !Object.keys(manifest).length) {
       return apiError.badRequest(res, "manifest is required");
@@ -176,12 +223,13 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
       });
 
       if (!isTemplateApprovalRequired()) {
-        return res.status(201).json({
+        res.status(201).json({
           success: true,
           action,
           template: saved,
           approval_required: false,
         });
+        return;
       }
 
       const request = await createTemplatePublishRequest(supabase, {
@@ -190,30 +238,42 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
         requestedBy: actor,
       });
 
-      return res.status(202).json({
+      res.status(202).json({
         success: true,
         action: "publish_requested",
         template: saved,
         request,
         approval_required: true,
       });
+      return;
     } catch (error) {
-      logger.error("template-market upsert failed:", error instanceof Error ? error.message : "unknown error");
-      const message = error instanceof Error ? error.message : "Failed to upsert template";
+      logger.error(
+        "template-market upsert failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+      const message =
+        error instanceof Error ? error.message : "Failed to upsert template";
       return apiError.badRequest(res, message);
     }
   }
 
   if (action === "review_request") {
     if (!isTemplateReviewer(actor)) {
-      return apiError.forbidden(res, "Actor is not allowed to review template publish requests");
+      return apiError.forbidden(
+        res,
+        "Actor is not allowed to review template publish requests",
+      );
     }
 
     const requestId = asTrimmedString(payload.request_id).toLowerCase();
     if (!requestId) return apiError.badRequest(res, "request_id is required");
 
     const decision = asTrimmedString(payload.decision).toLowerCase();
-    if (decision !== "approve" && decision !== "reject" && decision !== "cancel") {
+    if (
+      decision !== "approve" &&
+      decision !== "reject" &&
+      decision !== "cancel"
+    ) {
       return apiError.badRequest(res, "decision must be approve/reject/cancel");
     }
 
@@ -232,22 +292,36 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
     }
 
     if (asTrimmedString(existing.status).toLowerCase() !== "pending") {
-      return apiError.badRequest(res, "Template publish request is not pending");
+      return apiError.badRequest(
+        res,
+        "Template publish request is not pending",
+      );
     }
 
     const kind = normalizeTemplateKind(existing.template_kind);
     if (!kind) {
-      return apiError.internal(res, "Template publish request has invalid kind");
+      return apiError.internal(
+        res,
+        "Template publish request has invalid kind",
+      );
     }
 
-    const status = decision === "approve" ? "approved" : decision === "reject" ? "rejected" : "cancelled";
+    const status =
+      decision === "approve"
+        ? "approved"
+        : decision === "reject"
+          ? "rejected"
+          : "cancelled";
     try {
-      const updatedRequest = await updateTemplatePublishRequestStatus(supabase, {
-        requestId,
-        status,
-        reviewer: actor,
-        reviewNote: asTrimmedString(payload.review_note) || null,
-      });
+      const updatedRequest = await updateTemplatePublishRequestStatus(
+        supabase,
+        {
+          requestId,
+          status,
+          reviewer: actor,
+          reviewNote: asTrimmedString(payload.review_note) || null,
+        },
+      );
 
       let template = null;
       if (decision === "approve") {
@@ -259,15 +333,22 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, actor: stri
         });
       }
 
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         action,
         request: updatedRequest,
         template,
       });
+      return;
     } catch (error) {
-      logger.error("template market review failed:", error instanceof Error ? error.message : "unknown error");
-      return apiError.internal(res, "Failed to review template publish request");
+      logger.error(
+        "template market review failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+      return apiError.internal(
+        res,
+        "Failed to review template publish request",
+      );
     }
   }
 
@@ -281,7 +362,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for template market workflows");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for template market workflows",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -293,7 +377,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleGet(req, res);
   }
 
-  return handlePost(req, res, admin.kind === "wallet" ? admin.value : "api_key");
+  return handlePost(
+    req,
+    res,
+    admin.kind === "wallet" ? admin.value : "api_key",
+  );
 }
 
 export default withCsrfProtection(handler);

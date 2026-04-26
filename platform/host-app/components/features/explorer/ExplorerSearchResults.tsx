@@ -9,11 +9,17 @@ import type {
   ExplorerTransactionData,
 } from "./types";
 
-export function ExplorerSearchResults({ result }: { result: ExplorerSearchResult }) {
+export function ExplorerSearchResults({
+  result,
+}: {
+  result: ExplorerSearchResult;
+}) {
   if (!result.found) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">No results found for this query</CardContent>
+        <CardContent className="py-8 text-center text-gray-500">
+          No results found for this query
+        </CardContent>
       </Card>
     );
   }
@@ -51,9 +57,26 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-            <Field label="Hash" value={<p className="break-all font-mono text-xs">{data.hash}</p>} />
-            <Field label="Sender" value={<p className="break-all font-mono text-xs">{data.sender}</p>} />
-            <Field label="Status" value={<Badge variant={data.vm_state === "HALT" ? "default" : "destructive"}>{data.vm_state}</Badge>} />
+            <Field
+              label="Hash"
+              value={<p className="break-all font-mono text-xs">{data.hash}</p>}
+            />
+            <Field
+              label="Sender"
+              value={
+                <p className="break-all font-mono text-xs">{data.sender}</p>
+              }
+            />
+            <Field
+              label="Status"
+              value={
+                <Badge
+                  variant={data.vm_state === "HALT" ? "default" : "destructive"}
+                >
+                  {data.vm_state}
+                </Badge>
+              }
+            />
             <Field label="Gas" value={<p>{data.gas_consumed}</p>} />
           </div>
         </CardContent>
@@ -69,18 +92,32 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
           </CardHeader>
           <CardContent>
             <div className="max-h-96 overflow-auto">
-              <table className="w-full text-xs font-mono" aria-label="Opcode execution trace">
+              <table
+                className="w-full text-xs font-mono"
+                aria-label="Opcode execution trace"
+              >
                 <thead className="sticky top-0 bg-white">
                   <tr className="border-b">
-                    <th scope="col" className="p-2 text-left">Step</th>
-                    <th scope="col" className="p-2 text-left">Opcode</th>
-                    <th scope="col" className="p-2 text-left">Hex</th>
-                    <th scope="col" className="p-2 text-left">IP</th>
+                    <th scope="col" className="p-2 text-left">
+                      Step
+                    </th>
+                    <th scope="col" className="p-2 text-left">
+                      Opcode
+                    </th>
+                    <th scope="col" className="p-2 text-left">
+                      Hex
+                    </th>
+                    <th scope="col" className="p-2 text-left">
+                      IP
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.opcode_traces.map((trace) => (
-                    <tr key={trace.step_index} className="border-b transition-colors hover:bg-gray-50">
+                    <tr
+                      key={trace.step_index}
+                      className="border-b transition-colors hover:bg-gray-50"
+                    >
                       <td className="p-2">{trace.step_index}</td>
                       <td className="p-2 text-emerald-600">{trace.opcode}</td>
                       <td className="p-2 text-gray-500">{trace.opcode_hex}</td>
@@ -102,7 +139,10 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
           <CardContent>
             <ul className="space-y-2">
               {data.contract_calls.map((call) => (
-                <ContractCallListItem key={`${call.contract_hash}-${call.method}`} call={call} />
+                <ContractCallListItem
+                  key={`${call.contract_hash}-${call.method}`}
+                  call={call}
+                />
               ))}
             </ul>
           </CardContent>
@@ -125,7 +165,9 @@ function TransactionResult({ data }: { data: ExplorerTransactionData }) {
                   className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm"
                 >
                   <span className="font-mono">{syscall.syscall_name}</span>
-                  <span className="text-gray-500">{syscall.gas_consumed} GAS</span>
+                  <span className="text-gray-500">
+                    {syscall.gas_consumed} GAS
+                  </span>
                 </li>
               ))}
             </ul>
@@ -147,8 +189,13 @@ function AddressResult({ result }: { result: ExplorerSearchResult }) {
         {result.transactions && result.transactions.length > 0 ? (
           <ul className="space-y-2">
             {result.transactions.map((tx) => (
-              <li key={tx.tx_hash} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm">
-                <span className="break-all font-mono text-xs">{tx.tx_hash}</span>
+              <li
+                key={tx.tx_hash}
+                className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm"
+              >
+                <span className="break-all font-mono text-xs">
+                  {tx.tx_hash}
+                </span>
                 <Badge variant="outline">{tx.role}</Badge>
               </li>
             ))}
@@ -172,9 +219,14 @@ function ContractResult({ result }: { result: ExplorerSearchResult }) {
         {result.calls && result.calls.length > 0 ? (
           <ul className="space-y-2">
             {result.calls.map((call) => (
-              <li key={`${call.contract_hash}-${call.method}`} className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm">
+              <li
+                key={`${call.contract_hash}-${call.method}`}
+                className="flex justify-between rounded-lg border border-gray-200 p-2 text-sm"
+              >
                 <span className="font-medium">{call.method}</span>
-                <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
+                <Badge variant={call.success ? "default" : "destructive"}>
+                  {call.success ? "Success" : "Failed"}
+                </Badge>
               </li>
             ))}
           </ul>
@@ -200,9 +252,13 @@ function ContractCallListItem({ call }: { call: ExplorerContractCall }) {
     <li className="rounded-lg border border-gray-200 p-2 text-sm">
       <div className="flex justify-between">
         <span className="font-medium">{call.method}</span>
-        <Badge variant={call.success ? "default" : "destructive"}>{call.success ? "Success" : "Failed"}</Badge>
+        <Badge variant={call.success ? "default" : "destructive"}>
+          {call.success ? "Success" : "Failed"}
+        </Badge>
       </div>
-      <p className="break-all font-mono text-xs text-gray-500">{call.contract_hash}</p>
+      <p className="break-all font-mono text-xs text-gray-500">
+        {call.contract_hash}
+      </p>
     </li>
   );
 }

@@ -8,7 +8,10 @@ function getSponsorConfig() {
   return {
     sponsoredWIF: process.env.SPONSORED_WIF || "",
     // Neo N3 TestNet T5 network magic
-    networkMagic: parseInt(process.env.NEXT_PUBLIC_NETWORK_MAGIC || "894710606", 10),
+    networkMagic: parseInt(
+      process.env.NEXT_PUBLIC_NETWORK_MAGIC || "894710606",
+      10,
+    ),
   };
 }
 
@@ -38,7 +41,10 @@ type SponsorTransaction = {
   witnesses: SponsorWitnessLike[];
   networkFee: bigint | number;
   serialize: (signed?: boolean) => string;
-  sign: (signingKey: string | { privateKey: string }, networkMagic: number) => void;
+  sign: (
+    signingKey: string | { privateKey: string },
+    networkMagic: number,
+  ) => void;
 };
 
 const normalizeAccount = (account: unknown): string => String(account ?? "");
@@ -51,7 +57,10 @@ function resetStatsIfNeeded() {
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
@@ -71,17 +80,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (authenticatedWallet !== userAddress) {
-      return apiError.unauthorized(res, "Authenticated wallet does not match requested sponsor address");
+      return apiError.unauthorized(
+        res,
+        "Authenticated wallet does not match requested sponsor address",
+      );
     }
 
     resetStatsIfNeeded();
 
     if (sponsorStats.dailyGasSpent >= MAX_GAS_PER_DAY) {
-      return apiError.rateLimited(res, "Global daily sponsorship limit reached");
+      return apiError.rateLimited(
+        res,
+        "Global daily sponsorship limit reached",
+      );
     }
 
     const currentHour = new Date().getUTCHours();
-    const userStats = sponsorStats.userTxCounts.get(userAddress) || { count: 0, hour: currentHour };
+    const userStats = sponsorStats.userTxCounts.get(userAddress) || {
+      count: 0,
+      hour: currentHour,
+    };
 
     if (userStats.hour !== currentHour) {
       userStats.count = 0;
@@ -93,18 +111,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const sponsorAccount = new wallet.Account(sponsoredWIF);
-    const transaction = tx.Transaction.deserialize(txBase64) as SponsorTransaction;
+    const transaction = tx.Transaction.deserialize(
+      txBase64,
+    ) as SponsorTransaction;
 
     const userSignerIndex = transaction.signers.findIndex(
-      (signer) => wallet.getAddressFromScriptHash(normalizeAccount(signer.account)) === userAddress,
+      (signer) =>
+        wallet.getAddressFromScriptHash(normalizeAccount(signer.account)) ===
+        userAddress,
     );
     if (userSignerIndex < 0) {
-      return apiError.badRequest(res, "Transaction does not belong to the user");
+      return apiError.badRequest(
+        res,
+        "Transaction does not belong to the user",
+      );
     }
 
     const userWitness = transaction.witnesses?.[userSignerIndex];
-    if (!userWitness?.invocationScript || String(userWitness.invocationScript).length === 0) {
-      return apiError.badRequest(res, "Transaction must include a signed user witness");
+    if (
+      !userWitness?.invocationScript ||
+      String(userWitness.invocationScript).length === 0
+    ) {
+      return apiError.badRequest(
+        res,
+        "Transaction must include a signed user witness",
+      );
     }
 
     const sponsorScriptHash = sponsorAccount.scriptHash;
@@ -124,7 +155,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? Buffer.from(sponsorAccount.contract.script, "base64").toString("hex")
       : `21${String(sponsorAccount.publicKey)}ac`;
 
-    const sizingTransaction = tx.Transaction.deserialize(transaction.serialize(true)) as SponsorTransaction;
+    const sizingTransaction = tx.Transaction.deserialize(
+      transaction.serialize(true),
+    ) as SponsorTransaction;
     sizingTransaction.signers = [...transaction.signers];
     sizingTransaction.witnesses = transaction.signers.map((signer) =>
       normalizeAccount(signer.account) === sponsorAccount.scriptHash
@@ -139,12 +172,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     const size = sizingTransaction.serialize(true).length / 2;
-    const calculatedFee = (size * feePerByte) + 100000;
+    const calculatedFee = size * feePerByte + 100000;
 
     const requestedFeeGas = calculatedFee / 100000000;
 
     if (requestedFeeGas > MAX_GAS_PER_TX) {
-      return apiError.badRequest(res, `Transaction fee exceeds maximum sponsored amount (${MAX_GAS_PER_TX} GAS)`);
+      return apiError.badRequest(
+        res,
+        `Transaction fee exceeds maximum sponsored amount (${MAX_GAS_PER_TX} GAS)`,
+      );
     }
 
     transaction.networkFee = BigInt(Math.floor(calculatedFee));
@@ -154,15 +190,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     userStats.count += 1;
     sponsorStats.userTxCounts.set(userAddress, userStats);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       sponsoredTxBase64: transaction.serialize(true),
       witnesses: transaction.witnesses.map((witness) =>
         typeof witness?.toJSON === "function" ? witness.toJSON() : witness,
       ),
     });
+    return;
   } catch (error) {
-    logger.error("Sponsor API error:", error instanceof Error ? error.message : "unknown");
+    logger.error(
+      "Sponsor API error:",
+      error instanceof Error ? error.message : "unknown",
+    );
     return apiError.internal(res, "Failed to sponsor transaction");
   }
 }

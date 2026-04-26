@@ -2,7 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 import {
   listTemplateEntries,
   normalizeTemplateKind,
@@ -65,7 +68,9 @@ function parseLimit(value: string, fallback = 60): number {
   return Math.max(1, Math.min(parsed, 200));
 }
 
-function toPublicTemplate(item: TemplateCatalogItem): PublicTemplateMarketResponse["templates"][number] {
+function toPublicTemplate(
+  item: TemplateCatalogItem,
+): PublicTemplateMarketResponse["templates"][number] {
   return {
     template_kind: item.template_kind,
     template_id: item.template_id,
@@ -89,7 +94,9 @@ function toPublicTemplate(item: TemplateCatalogItem): PublicTemplateMarketRespon
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<PublicTemplateMarketResponse | { error: { code: string; message: string } }>,
+  res: NextApiResponse<
+    PublicTemplateMarketResponse | { error: { code: string; message: string } }
+  >,
 ) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
@@ -103,7 +110,9 @@ export default async function handler(
   const rawKind = normalizeSimple(pickQueryString(req.query.kind) || "all");
   const rawCategory = pickQueryString(req.query.category);
   const rawSource = normalizeSimple(pickQueryString(req.query.source) || "all");
-  const rawVerified = normalizeSimple(pickQueryString(req.query.verified) || "all");
+  const rawVerified = normalizeSimple(
+    pickQueryString(req.query.verified) || "all",
+  );
   const rawSearch = pickQueryString(req.query.search);
   const limit = parseLimit(pickQueryString(req.query.limit), 60);
 
@@ -117,13 +126,18 @@ export default async function handler(
     return apiError.badRequest(res, "Invalid verified filter");
   }
 
-  const kind = rawKind === "all" ? "all" : normalizeTemplateKind(rawKind) || "all";
-  const source = rawSource === "all" ? "all" : normalizeTemplateSourceType(rawSource);
+  const kind =
+    rawKind === "all" ? "all" : normalizeTemplateKind(rawKind) || "all";
+  const source =
+    rawSource === "all" ? "all" : normalizeTemplateSourceType(rawSource);
   const verified = rawVerified === "all" ? "all" : rawVerified;
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   try {
@@ -138,7 +152,7 @@ export default async function handler(
     });
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    return res.status(200).json({
+    res.status(200).json({
       templates: templates.map(toPublicTemplate),
       filters: {
         kind,
@@ -149,8 +163,12 @@ export default async function handler(
         limit,
       },
     });
+    return;
   } catch (error) {
-    logger.error("public template market query failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "public template market query failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to load template marketplace");
   }
 }

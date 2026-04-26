@@ -3,14 +3,23 @@
  * Supports various input types, states, and validation
  */
 
-import React, { forwardRef, useCallback, useId, useState, useMemo } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useId,
+  useState,
+  useMemo,
+} from "react";
 import { cn } from "@/lib/utils";
 import { keyboardNavigation } from "@/lib/design-system/a11y";
 
 export type InputSize = "sm" | "md" | "lg";
 export type InputVariant = "default" | "filled" | "outline" | "ghost";
 
-export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "prefix"> {
+export interface InputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size" | "prefix"
+> {
   /** Input size */
   size?: InputSize;
   /** Input visual variant */
@@ -76,7 +85,8 @@ const variantStyles: Record<InputVariant, { base: string; focus: string }> = {
 
 const stateStyles = {
   error: "border-red-500 focus:border-red-500 focus:ring-red-500/20",
-  success: "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/20",
+  success:
+    "border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/20",
 };
 
 // ============================================================================
@@ -104,7 +114,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       type = "text",
       ...props
     },
-    ref
+    ref,
   ) => {
     const generatedId = useId();
     const inputId = id || generatedId;
@@ -112,14 +122,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const errorId = `${inputId}-error`;
 
     const [isFocused, setIsFocused] = useState(false);
-    const [hasValue, setHasValue] = useState(!!props.value || !!props.defaultValue);
+    const [hasValue, setHasValue] = useState(
+      !!props.value || !!props.defaultValue,
+    );
 
     const handleFocus = useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(true);
         props.onFocus?.(e);
       },
-      [props.onFocus]
+      [props.onFocus],
     );
 
     const handleBlur = useCallback(
@@ -127,7 +139,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         setIsFocused(false);
         props.onBlur?.(e);
       },
-      [props.onBlur]
+      [props.onBlur],
     );
 
     const handleChange = useCallback(
@@ -135,7 +147,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         setHasValue(e.target.value.length > 0);
         props.onChange?.(e);
       },
-      [props.onChange]
+      [props.onChange],
     );
 
     const handleClear = useCallback(() => {
@@ -147,7 +159,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       keyboardNavigation.escape(() => {
         // Blur on escape
       }),
-      []
+      [],
     );
 
     const variantStyle = useMemo(() => variantStyles[variant], [variant]);
@@ -169,7 +181,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className="block text-sm font-medium text-gray-300 mb-1.5"
           >
             {label}
-            {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
+            {required && (
+              <span className="text-red-500 ml-1" aria-hidden="true">
+                *
+              </span>
+            )}
           </label>
         )}
 
@@ -207,7 +223,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               leftAddon && "pl-10",
               (rightAddon || showClear || loading) && "pr-10",
               // Class
-              className
+              className,
             )}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -281,7 +297,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={error ? errorId : helperId}
             className={cn(
               "mt-1.5 text-sm",
-              error ? "text-red-400" : "text-gray-500"
+              error ? "text-red-400" : "text-gray-500",
             )}
             role={error ? "alert" : undefined}
           >
@@ -290,7 +306,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 Input.displayName = "Input";
@@ -299,8 +315,10 @@ Input.displayName = "Input";
 // Textarea Component
 // ============================================================================
 
-export interface TextareaProps
-  extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "size"> {
+export interface TextareaProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "size"
+> {
   /** Textarea size */
   size?: InputSize;
   /** Error message */
@@ -335,14 +353,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       defaultValue,
       ...props
     },
-    ref
+    ref,
   ) => {
     const generatedId = useId();
     const helperId = `${generatedId}-helper`;
     const errorId = `${generatedId}-error`;
 
     const [charCount, setCharCount] = useState(
-      String(value || defaultValue || "").length
+      String(value || defaultValue || "").length,
     );
 
     const handleChange = useCallback(
@@ -350,7 +368,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         setCharCount(e.target.value.length);
         props.onChange?.(e);
       },
-      [props.onChange]
+      [props.onChange],
     );
 
     return (
@@ -380,9 +398,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             "bg-gray-800 border border-gray-700 text-white placeholder-gray-500 rounded-xl",
             "focus:outline-none focus:border-neo focus:ring-1 focus:ring-neo",
             sizeStyles[size],
-            error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+            error &&
+              "border-red-500 focus:border-red-500 focus:ring-red-500/20",
             props.disabled && "opacity-50 cursor-not-allowed",
-            className
+            className,
           )}
           onChange={handleChange}
           {...props}
@@ -399,7 +418,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {(error || helperText) && (
           <p
             id={error ? errorId : helperId}
-            className={cn("mt-1.5 text-sm", error ? "text-red-400" : "text-gray-500")}
+            className={cn(
+              "mt-1.5 text-sm",
+              error ? "text-red-400" : "text-gray-500",
+            )}
             role={error ? "alert" : undefined}
           >
             {error || helperText}
@@ -407,7 +429,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 Textarea.displayName = "Textarea";

@@ -1,6 +1,6 @@
 /**
  * Example API route demonstrating the new security utilities
- * 
+ *
  * This shows how to use:
  * - createApiHandler for standardized route handling
  * - Input validation with schemas
@@ -66,9 +66,9 @@ const querySchema: Record<string, FieldSchema> = {
  */
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
   const { status = "active", limit = "50" } = req.query;
-  
+
   // Validate query params are already handled by createApiHandler
-  
+
   // In production, fetch from database
   const data = {
     apps: [],
@@ -76,8 +76,9 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
     status,
     limit: parseInt(limit as string, 10),
   };
-  
-  return res.status(200).json(data);
+
+  res.status(200).json(data);
+  return;
 }
 
 /**
@@ -86,19 +87,19 @@ async function handleGet(req: NextApiRequest, res: NextApiResponse) {
 async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   // Validate request body
   const validationResult = validateObject(req.body, createMiniAppSchema);
-  
+
   if (!validationResult.valid) {
     apiError.badRequest(res, validationResult.errors.join("; "));
     return;
   }
-  
+
   // Get authenticated wallet
   const wallet = await requireWalletAuth(req, res);
   if (!wallet) return;
-  
+
   // Check role
   const role = getRoleForWallet(wallet);
-  
+
   // Log the action
   logDataModification(req, true, {
     actor: wallet,
@@ -110,7 +111,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
       role,
     },
   });
-  
+
   // In production, create in database
   const newApp = {
     app_id: `app-${Date.now()}`,
@@ -122,13 +123,14 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     status: role === Roles.ADMIN ? "active" : "pending",
     created_at: new Date().toISOString(),
   };
-  
+
   logger.info(`MiniApp created: ${newApp.app_id} by ${wallet}`);
-  
-  return res.status(201).json({
+
+  res.status(201).json({
     success: true,
     app: newApp,
   });
+  return;
 }
 
 /**
@@ -139,10 +141,10 @@ const handler = createApiHandler(
     switch (req.method) {
       case "GET":
         return handleGet(req, res);
-      
+
       case "POST":
         return handlePost(req, res);
-      
+
       default:
         return apiError.methodNotAllowed(res);
     }
@@ -152,7 +154,7 @@ const handler = createApiHandler(
     requireCsrf: true,
     rateLimit: true,
     querySchema,
-  }
+  },
 );
 
 export default handler;

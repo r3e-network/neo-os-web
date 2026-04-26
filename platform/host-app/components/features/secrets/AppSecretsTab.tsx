@@ -13,7 +13,8 @@ interface AppSecretsTabProps {
 
 export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
   const { connected } = useWalletStore();
-  const { tokens, loading, fetchTokens, revokeToken, error, clearError } = useSecretsStore();
+  const { tokens, loading, fetchTokens, revokeToken, error, clearError } =
+    useSecretsStore();
   const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
@@ -23,12 +24,16 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
     }
   }, [connected, appId, fetchTokens, clearError]);
 
-  const appTokens = tokens.filter((t) => t.appId === appId || t.appId === "global");
+  const appTokens = tokens.filter(
+    (t) => t.appId === appId || t.appId === "global",
+  );
 
   if (!connected) {
     return (
       <div className="py-4">
-        <p className="text-center text-gray-500 py-6">Connect wallet to manage secrets for {appName}</p>
+        <p className="text-center text-gray-500 py-6">
+          Connect wallet to manage secrets for {appName}
+        </p>
       </div>
     );
   }
@@ -36,7 +41,9 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
   return (
     <div className="py-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Secrets for {appName}</h3>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Secrets for {appName}
+        </h3>
         <button
           type="button"
           className="px-4 py-2 bg-neo text-gray-900 font-medium rounded-md hover:bg-neo/90 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
@@ -46,16 +53,27 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
         </button>
       </div>
 
-      {showCreate && <CreateTokenForm onClose={() => setShowCreate(false)} defaultAppId={appId} />}
+      {showCreate && (
+        <CreateTokenForm
+          onClose={() => setShowCreate(false)}
+          defaultAppId={appId}
+        />
+      )}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-600" role="alert">{error}</p>
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
         </div>
       )}
       {loading && <p className="text-center text-gray-500 py-6">Loading...</p>}
 
-      {!loading && !error && appTokens.length === 0 && <p className="text-center text-gray-500 py-6">No secrets configured for this app</p>}
+      {!loading && !error && appTokens.length === 0 && (
+        <p className="text-center text-gray-500 py-6">
+          No secrets configured for this app
+        </p>
+      )}
 
       {appTokens.length > 0 && (
         <ul className="flex flex-col gap-3">
@@ -66,17 +84,29 @@ export function AppSecretsTab({ appId, appName }: AppSecretsTabProps) {
       )}
 
       <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-        <p>Secrets are encrypted and stored securely for TEE confidential computing.</p>
+        <p>
+          Secrets are encrypted and stored securely for TEE confidential
+          computing.
+        </p>
       </div>
     </div>
   );
 }
 
-function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: string) => void }) {
+function SecretItem({
+  token,
+  onRevoke,
+}: {
+  token: SecretToken;
+  onRevoke: (id: string) => void;
+}) {
   const [revoking, setRevoking] = useState(false);
   const [revokeErr, setRevokeErr] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const typeIcons: Record<string, React.ComponentType<{ size?: number | string; className?: string }>> = {
+  const typeIcons: Record<
+    string,
+    React.ComponentType<{ size?: number | string; className?: string }>
+  > = {
     api_key: Key,
     encryption_key: Lock,
     custom: FileText,
@@ -101,9 +131,15 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
         <div className="flex items-center gap-3 min-w-0">
           <Icon size={20} className="text-gray-500 shrink-0" />
           <div className="min-w-0">
-            <div className="font-semibold text-gray-900 truncate" title={token.name}>{token.name}</div>
+            <div
+              className="font-semibold text-gray-900 truncate"
+              title={token.name}
+            >
+              {token.name}
+            </div>
             <div className="text-xs text-gray-500 truncate">
-              {token.appId === "global" ? "Global" : token.appId} • {token.secretType}
+              {token.appId === "global" ? "Global" : token.appId} •{" "}
+              {token.secretType}
             </div>
           </div>
         </div>
@@ -113,7 +149,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
               "text-xs px-2 py-0.5 rounded-full",
               token.status === "active"
                 ? "bg-emerald-100 text-emerald-800"
-                : "bg-red-100 text-red-800"
+                : "bg-red-100 text-red-800",
             )}
           >
             {token.status}
@@ -130,9 +166,7 @@ function SecretItem({ token, onRevoke }: { token: SecretToken; onRevoke: (id: st
           )}
         </div>
       </div>
-      {revokeErr && (
-        <p className="text-xs text-red-600">{revokeErr}</p>
-      )}
+      {revokeErr && <p className="text-xs text-red-600">{revokeErr}</p>}
 
       <ConfirmModal
         isOpen={showConfirm}

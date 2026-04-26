@@ -21,15 +21,28 @@ const StarSvg: React.FC<{ filled: boolean }> = ({ filled }) => (
   </svg>
 );
 
-const StarIcon: React.FC<{ filled: boolean; onClick?: () => void; label?: string }> = ({ filled, onClick, label }) => {
+const StarIcon: React.FC<{
+  filled: boolean;
+  onClick?: () => void;
+  label?: string;
+}> = ({ filled, onClick, label }) => {
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} aria-label={label} className="bg-transparent border-none p-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className="bg-transparent border-none p-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+      >
         <StarSvg filled={filled} />
       </button>
     );
   }
-  return <span role="img" aria-label={label}><StarSvg filled={filled} /></span>;
+  return (
+    <span role="img" aria-label={label}>
+      <StarSvg filled={filled} />
+    </span>
+  );
 };
 
 export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
@@ -40,8 +53,12 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
   error = null,
   onClearError,
 }) => {
-  const [selectedValue, setSelectedValue] = useState(rating.user_rating?.rating_value || 0);
-  const [reviewText, setReviewText] = useState(rating.user_rating?.review_text || "");
+  const [selectedValue, setSelectedValue] = useState(
+    rating.user_rating?.rating_value || 0,
+  );
+  const [reviewText, setReviewText] = useState(
+    rating.user_rating?.review_text || "",
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -62,7 +79,10 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
     <div className="bg-white rounded-xl shadow-sm p-4">
       {/* Error Display */}
       {displayError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg" role="alert">
+        <div
+          className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
+          role="alert"
+        >
           <div className="flex items-center justify-between">
             <span className="text-red-600 text-sm">{displayError}</span>
             <button
@@ -82,14 +102,22 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
 
       {/* Rating Summary */}
       <div className="flex items-center gap-4 mb-4">
-        <div className="text-4xl font-bold text-gray-900">{rating.avg_rating.toFixed(1)}</div>
+        <div className="text-4xl font-bold text-gray-900">
+          {rating.avg_rating.toFixed(1)}
+        </div>
         <div>
           <div className="flex">
             {[1, 2, 3, 4, 5].map((i) => (
-              <StarIcon key={i} filled={i <= Math.round(rating.avg_rating)} label={`${i} star`} />
+              <StarIcon
+                key={i}
+                filled={i <= Math.round(rating.avg_rating)}
+                label={`${i} star`}
+              />
             ))}
           </div>
-          <div className="text-sm text-gray-500">{rating.total_ratings} ratings</div>
+          <div className="text-sm text-gray-500">
+            {rating.total_ratings} ratings
+          </div>
         </div>
       </div>
 
@@ -97,12 +125,16 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
       <div className="space-y-1 mb-4">
         {[5, 4, 3, 2, 1].map((star) => {
           const count = rating.distribution[star.toString()] || 0;
-          const pct = rating.total_ratings > 0 ? (count / rating.total_ratings) * 100 : 0;
+          const pct =
+            rating.total_ratings > 0 ? (count / rating.total_ratings) * 100 : 0;
           return (
             <div key={star} className="flex items-center gap-2 text-sm">
               <span className="w-3">{star}</span>
               <div className="flex-1 bg-gray-200 rounded-full h-2">
-                <div className="bg-yellow-400 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                <div
+                  className="bg-yellow-400 h-2 rounded-full"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
               <span className="w-8 text-gray-500">{count}</span>
             </div>
@@ -117,7 +149,12 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
             <div className="space-y-3">
               <div className="flex gap-1">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <StarIcon key={i} filled={i <= selectedValue} onClick={() => setSelectedValue(i)} label={`Rate ${i} star${i > 1 ? "s" : ""}`} />
+                  <StarIcon
+                    key={i}
+                    filled={i <= selectedValue}
+                    onClick={() => setSelectedValue(i)}
+                    label={`Rate ${i} star${i > 1 ? "s" : ""}`}
+                  />
                 ))}
               </div>
               <textarea
@@ -149,14 +186,22 @@ export const SocialRatingWidget: React.FC<RatingWidgetProps> = ({
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setIsEditing(true)} className="text-emerald-600 text-sm transition-colors cursor-pointer hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="text-emerald-600 text-sm transition-colors cursor-pointer hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+            >
               {rating.user_rating ? "Edit your rating" : "Rate this app"}
             </button>
           )}
         </div>
       )}
 
-      {!canRate && <div className="border-t border-gray-200 pt-4 text-sm text-gray-500">Use this app to leave a rating</div>}
+      {!canRate && (
+        <div className="border-t border-gray-200 pt-4 text-sm text-gray-500">
+          Use this app to leave a rating
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,14 @@
  * Provides theme configuration, switching, and context
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { colors } from "./tokens";
 
 // ============================================================================
@@ -142,7 +149,9 @@ export function ThemeProvider({
 
   const [systemPreference, setSystemPreference] = useState<ColorScheme>(() => {
     if (typeof window === "undefined") return "dark";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   });
 
   // Calculate color scheme based on mode
@@ -161,7 +170,7 @@ export function ThemeProvider({
       colors: isDark ? darkThemeColors : lightThemeColors,
       isDark,
     }),
-    [mode, isDark]
+    [mode, isDark],
   );
 
   // Handle system preference changes
@@ -180,10 +189,10 @@ export function ThemeProvider({
   // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
-    
+
     // Set color scheme for CSS
     root.style.setProperty("color-scheme", colorScheme);
-    
+
     // Set dark class on html element
     if (isDark) {
       root.classList.add("dark");
@@ -230,10 +239,12 @@ export function ThemeProvider({
       toggleTheme,
       isDark,
     }),
-    [theme, mode, colorScheme, setMode, toggleTheme, isDark]
+    [theme, mode, colorScheme, setMode, toggleTheme, isDark],
   );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 // ============================================================================
@@ -255,7 +266,9 @@ export function useTheme(): ThemeContextValue {
 /**
  * Generate CSS variables as a string for inline styles
  */
-export function getCSSVariables(isDark: boolean = false): Record<string, string> {
+export function getCSSVariables(
+  isDark: boolean = false,
+): Record<string, string> {
   const themeColors = isDark ? darkThemeColors : lightThemeColors;
   const result: Record<string, string> = {};
 
@@ -272,25 +285,25 @@ export function getCSSVariables(isDark: boolean = false): Record<string, string>
 export function generateAllCSSVariables(isDark: boolean = false): string {
   const themeColors = isDark ? darkThemeColors : lightThemeColors;
   const tokens = colors as Record<string, Record<string, string>>;
-  
+
   let css = ":root {\n";
-  
+
   // Theme colors
   Object.entries(themeColors).forEach(([key, value]) => {
-    css += `  --ds-${key}: ${value};\n`;
+    css += ` --ds-${key}: ${value};\n`;
   });
-  
+
   css += "\n";
-  
+
   // Color tokens
   Object.entries(tokens).forEach(([category, shades]) => {
     Object.entries(shades).forEach(([shade, value]) => {
-      css += `  --ds-${category}-${shade}: ${value};\n`;
+      css += ` --ds-${category}-${shade}: ${value};\n`;
     });
   });
-  
+
   css += "}\n";
-  
+
   return css;
 }
 

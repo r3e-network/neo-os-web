@@ -6,7 +6,11 @@
 import React, { useEffect, useCallback, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import { useFocusTrap, keyboardNavigation, generateAriaId } from "@/lib/design-system/a11y";
+import {
+  useFocusTrap,
+  keyboardNavigation,
+  generateAriaId,
+} from "@/lib/design-system/a11y";
 import { IconButton } from "./button";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";
@@ -152,7 +156,7 @@ export const Modal: React.FC<ModalProps> = ({
         onClose();
       }
     },
-    [closeOnOverlayClick, onClose]
+    [closeOnOverlayClick, onClose],
   );
 
   // Animation classes
@@ -196,7 +200,7 @@ export const Modal: React.FC<ModalProps> = ({
           // Animation
           animationClass,
           // Class
-          className
+          className,
         )}
         data-modal-focus
       >
@@ -204,10 +208,7 @@ export const Modal: React.FC<ModalProps> = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
             {title && (
-              <h2
-                id={titleId}
-                className="text-lg font-semibold text-white"
-              >
+              <h2 id={titleId} className="text-lg font-semibold text-white">
                 {title}
               </h2>
             )}
@@ -236,9 +237,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-          {children}
-        </div>
+        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">{children}</div>
 
         {/* Footer */}
         {footer && (
@@ -248,7 +247,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -308,7 +307,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             "px-4 py-2 text-sm font-semibold rounded-lg transition-colors",
             confirmVariant === "danger"
               ? "bg-red-500 hover:bg-red-600 text-white"
-              : "bg-neo hover:bg-neo/90 text-gray-900"
+              : "bg-neo hover:bg-neo/90 text-gray-900",
           )}
         >
           {confirmText}

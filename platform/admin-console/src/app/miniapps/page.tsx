@@ -47,9 +47,7 @@ import {
   PERMISSION_KEYS,
   SOFT_DELETE_WARNING,
 } from "./lib/page-config";
-import {
-  parseJSONObjectText,
-} from "./lib/media-utils";
+import { parseJSONObjectText } from "./lib/media-utils";
 import { downloadJsonFile } from "./lib/download-utils";
 import { useMiniAppBatchImportController } from "./lib/use-miniapp-batch-import-controller";
 import { useMiniAppPublishReviewController } from "./lib/use-miniapp-publish-review-controller";
@@ -99,10 +97,13 @@ export default function MiniAppsPage() {
   const [panel, setPanel] = useState<Panel>("none");
   const [selectedApp, setSelectedApp] = useState<MiniApp | null>(null);
   const [importError, setImportError] = useState("");
-  const [importResult, setImportResult] = useState<MiniAppDefinitionImportResult | null>(null);
+  const [importResult, setImportResult] =
+    useState<MiniAppDefinitionImportResult | null>(null);
   const [templateInstallInfo, setTemplateInstallInfo] = useState("");
   const [publishInfo, setPublishInfo] = useState("");
-  const [liveSmokeReports, setLiveSmokeReports] = useState<LiveSmokeReportRow[]>([]);
+  const [liveSmokeReports, setLiveSmokeReports] = useState<
+    LiveSmokeReportRow[]
+  >([]);
   const [liveSmokeLoading, setLiveSmokeLoading] = useState(true);
   const [liveSmokeError, setLiveSmokeError] = useState("");
   const {
@@ -127,14 +128,25 @@ export default function MiniAppsPage() {
     createMutation,
     updateMutation,
     mediaUploadMutation,
-    onPublishRequested: () => setPublishInfo("Publish request submitted for approval."),
+    onPublishRequested: () =>
+      setPublishInfo("Publish request submitted for approval."),
   });
-  const [versionChannel, setVersionChannel] = useState<"all" | "draft" | "published">("all");
+  const [versionChannel, setVersionChannel] = useState<
+    "all" | "draft" | "published"
+  >("all");
   const [versionError, setVersionError] = useState("");
-  const [publishRequestStatus, setPublishRequestStatus] = useState<"all" | "pending" | "approved" | "rejected" | "applied" | "cancelled">("pending");
-  const [publishDetailRequestId, setPublishDetailRequestId] = useState<string | null>(null);
-  const [selectedDiffVersionId, setSelectedDiffVersionId] = useState<string | null>(null);
-  const [diffScope, setDiffScope] = useState<"all" | "manifest" | "operations" | "layout" | "admin">("all");
+  const [publishRequestStatus, setPublishRequestStatus] = useState<
+    "all" | "pending" | "approved" | "rejected" | "applied" | "cancelled"
+  >("pending");
+  const [publishDetailRequestId, setPublishDetailRequestId] = useState<
+    string | null
+  >(null);
+  const [selectedDiffVersionId, setSelectedDiffVersionId] = useState<
+    string | null
+  >(null);
+  const [diffScope, setDiffScope] = useState<
+    "all" | "manifest" | "operations" | "layout" | "admin"
+  >("all");
   const {
     publishReviewError,
     publishReminderResult,
@@ -174,13 +186,21 @@ export default function MiniAppsPage() {
     const url = new URL(window.location.href);
     if (!url.searchParams.has("installed_template")) return;
 
-    const raw = window.localStorage.getItem(MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY);
+    const raw = window.localStorage.getItem(
+      MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY,
+    );
     window.localStorage.removeItem(MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY);
     url.searchParams.delete("installed_template");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    window.history.replaceState(
+      {},
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
 
     if (!raw) {
-      setTemplateInstallInfo("Template install draft not found. Please install from Template Studio again.");
+      setTemplateInstallInfo(
+        "Template install draft not found. Please install from Template Studio again.",
+      );
       return;
     }
 
@@ -208,7 +228,11 @@ export default function MiniAppsPage() {
         `Installed ${draft.template_kind} template ${draft.template_id}@${draft.version || "1.0.0"} into builder draft.`,
       );
     } catch (error) {
-      setTemplateInstallInfo(error instanceof Error ? error.message : "Failed to apply installed template draft");
+      setTemplateInstallInfo(
+        error instanceof Error
+          ? error.message
+          : "Failed to apply installed template draft",
+      );
     }
   }, []);
 
@@ -231,7 +255,11 @@ export default function MiniAppsPage() {
         }
       } catch (error) {
         if (!cancelled) {
-          setLiveSmokeError(error instanceof Error ? error.message : "Failed to load live smoke reports");
+          setLiveSmokeError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load live smoke reports",
+          );
         }
       } finally {
         if (!cancelled) {
@@ -257,14 +285,22 @@ export default function MiniAppsPage() {
   };
 
   const handleExport = (app: MiniApp) => {
-    const manifest = app.manifest && Object.keys(app.manifest).length > 0
-      ? app.manifest
-      : { app_id: app.app_id, entry_url: app.entry_url, permissions: app.permissions, limits: app.limits, assets_allowed: app.assets_allowed };
+    const manifest =
+      app.manifest && Object.keys(app.manifest).length > 0
+        ? app.manifest
+        : {
+            app_id: app.app_id,
+            entry_url: app.entry_url,
+            permissions: app.permissions,
+            limits: app.limits,
+            assets_allowed: app.assets_allowed,
+          };
     downloadJsonFile(manifest, `${app.app_id}.json`);
   };
 
   const handleDelete = (app: MiniApp) => {
-    if (!window.confirm(`Hide "${app.app_id}"?\n\n${SOFT_DELETE_WARNING}`)) return;
+    if (!window.confirm(`Hide "${app.app_id}"?\n\n${SOFT_DELETE_WARNING}`))
+      return;
     deleteMutation.mutate(app.app_id);
   };
 
@@ -285,7 +321,9 @@ export default function MiniAppsPage() {
     setPanel("create");
   };
 
-  const handleUpdate = async (action: "save_draft" | "publish" = "save_draft") => {
+  const handleUpdate = async (
+    action: "save_draft" | "publish" = "save_draft",
+  ) => {
     const ok = await handleUpdateInternal(action);
     if (ok) resetPanel();
   };
@@ -297,13 +335,19 @@ export default function MiniAppsPage() {
       setImportResult(result);
     } catch (err) {
       setImportResult(null);
-      setImportError(err instanceof Error ? err.message : "Failed to import definition files");
+      setImportError(
+        err instanceof Error
+          ? err.message
+          : "Failed to import definition files",
+      );
     }
   };
 
   const handleRollback = async (version: MiniAppVersionSummary) => {
     if (!selectedApp) return;
-    const confirmed = window.confirm(`Rollback ${selectedApp.app_id} to version #${version.version_no}?`);
+    const confirmed = window.confirm(
+      `Rollback ${selectedApp.app_id} to version #${version.version_no}?`,
+    );
     if (!confirmed) return;
 
     setVersionError("");
@@ -358,7 +402,9 @@ export default function MiniAppsPage() {
         importResultText={importResultText}
         batchImportError={batchImportError}
         batchImportInfo={batchImportInfo}
-        rollbackPlanCount={batchImportResult?.rollback_plan?.targets?.length ?? 0}
+        rollbackPlanCount={
+          batchImportResult?.rollback_plan?.targets?.length ?? 0
+        }
         onBatchFilesSelected={handleBatchFilesSelected}
         onValidateBatch={() => handleBatchImport(true)}
         onImportBatch={() => handleBatchImport(false)}
@@ -372,7 +418,9 @@ export default function MiniAppsPage() {
         importBatchPending={importBatchMutation.isPending}
         batchFilesCount={batchFiles.length}
         rollbackBatchPending={rollbackImportBatchMutation.isPending}
-        canRollbackBatch={Boolean(batchImportResult?.rollback_plan?.targets?.length)}
+        canRollbackBatch={Boolean(
+          batchImportResult?.rollback_plan?.targets?.length,
+        )}
         importDefinitionsPending={importDefinitionsMutation.isPending}
       />
 
@@ -393,9 +441,17 @@ export default function MiniAppsPage() {
           form={form}
           setForm={setForm}
           formError={formError}
-          loading={panel === "edit" ? updateMutation.isPending : createMutation.isPending}
-          onSubmit={panel === "edit" ? () => handleUpdate("save_draft") : handleCreate}
-          onPublish={panel === "edit" ? () => handleUpdate("publish") : undefined}
+          loading={
+            panel === "edit"
+              ? updateMutation.isPending
+              : createMutation.isPending
+          }
+          onSubmit={
+            panel === "edit" ? () => handleUpdate("save_draft") : handleCreate
+          }
+          onPublish={
+            panel === "edit" ? () => handleUpdate("publish") : undefined
+          }
           onCancel={resetPanel}
           jsonText={jsonText}
           setJsonText={setJsonText}
@@ -466,10 +522,16 @@ export default function MiniAppsPage() {
           onVerifyPublishAudit={handleVerifyPublishAudit}
           verifyPublishAuditPending={verifyPublishAuditMutation.isPending}
           onTriggerPublishReminders={handleTriggerPublishReminders}
-          triggerPublishRemindersPending={triggerPublishRemindersMutation.isPending}
+          triggerPublishRemindersPending={
+            triggerPublishRemindersMutation.isPending
+          }
           onViewPublishRequest={setPublishDetailRequestId}
-          onApprovePublishRequest={(request) => handleReviewPublishRequest(request, "approve")}
-          onRejectPublishRequest={(request) => handleReviewPublishRequest(request, "reject")}
+          onApprovePublishRequest={(request) =>
+            handleReviewPublishRequest(request, "approve")
+          }
+          onRejectPublishRequest={(request) =>
+            handleReviewPublishRequest(request, "reject")
+          }
           reviewPublishRequestPending={reviewPublishRequestMutation.isPending}
           publishDetailRequestId={publishDetailRequestId}
           selectedPublishRequest={selectedPublishRequest}

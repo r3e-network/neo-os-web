@@ -9,7 +9,13 @@ interface CommentItemProps {
   depth?: number;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onLoadReplies, depth = 0 }) => {
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  onVote,
+  onReply,
+  onLoadReplies,
+  depth = 0,
+}) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replies, setReplies] = useState<SocialComment[]>([]);
@@ -23,7 +29,10 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
       const data = await onLoadReplies(comment.id);
       setReplies(data);
     } catch (_e: unknown) {
-      console.warn("[SocialCommentItem] failed to load replies:", _e instanceof Error ? _e.message : String(_e));
+      console.warn(
+        "[SocialCommentItem] failed to load replies:",
+        _e instanceof Error ? _e.message : String(_e),
+      );
     } finally {
       setLoadingReplies(false);
     }
@@ -42,7 +51,9 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
   const maxDepth = 3;
 
   return (
-    <div className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 pl-4" : ""}`}>
+    <div
+      className={`${depth > 0 ? "ml-6 border-l-2 border-gray-200 pl-4" : ""}`}
+    >
       <div className="py-3">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
@@ -51,7 +62,9 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
               Developer
             </span>
           )}
-          <span className="text-sm text-gray-500">{new Date(comment.created_at).toLocaleDateString()}</span>
+          <span className="text-sm text-gray-500">
+            {new Date(comment.created_at).toLocaleDateString()}
+          </span>
         </div>
 
         {/* Content */}
@@ -132,16 +145,17 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment, onVote, onReply, onL
       )}
 
       {/* Nested Replies */}
-      {replies.length > 0 && replies.map((reply) => (
-        <CommentItem
-          key={reply.id}
-          comment={reply}
-          onVote={onVote}
-          onReply={onReply}
-          onLoadReplies={onLoadReplies}
-          depth={depth + 1}
-        />
-      ))}
+      {replies.length > 0 &&
+        replies.map((reply) => (
+          <CommentItem
+            key={reply.id}
+            comment={reply}
+            onVote={onVote}
+            onReply={onReply}
+            onLoadReplies={onLoadReplies}
+            depth={depth + 1}
+          />
+        ))}
     </div>
   );
 };

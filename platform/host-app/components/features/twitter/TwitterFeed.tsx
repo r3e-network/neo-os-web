@@ -28,7 +28,10 @@ export function TwitterFeed() {
         if (!active) return;
         setTweets(data.tweets || []);
       } catch (err) {
-        if (active) { logger.warn("Failed to fetch tweets:", err); setError("Failed to load tweets"); }
+        if (active) {
+          logger.warn("Failed to fetch tweets:", err);
+          setError("Failed to load tweets");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -82,12 +85,18 @@ export function TwitterFeed() {
             className="block rounded-xl border border-gray-200 bg-white p-4 transition-colors hover:border-blue-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">N</div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">
+                N
+              </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-gray-900">{tweet.author}</span>
+                  <span className="font-semibold text-gray-900">
+                    {tweet.author}
+                  </span>
                   <span className="text-sm text-gray-500">@Neo_Blockchain</span>
-                  <span className="text-sm text-gray-500">· {formatTime(tweet.created_at)}</span>
+                  <span className="text-sm text-gray-500">
+                    · {formatTime(tweet.created_at)}
+                  </span>
                 </div>
                 <p className="mt-1 text-gray-700">{tweet.text}</p>
               </div>

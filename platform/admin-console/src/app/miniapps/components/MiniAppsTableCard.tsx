@@ -4,7 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { formatDate, truncate } from "@/lib/utils";
 import type { MiniApp } from "@/types";
 
@@ -44,9 +51,13 @@ export function MiniAppsTableCard({
         {isLoading ? (
           <Spinner />
         ) : error ? (
-          <div className="text-center text-danger-600 dark:text-danger-400">Failed to load MiniApps</div>
+          <div className="text-center text-danger-600 dark:text-danger-400">
+            Failed to load MiniApps
+          </div>
         ) : !miniapps?.length ? (
-          <p className="py-8 text-center text-gray-500 dark:text-gray-400">No MiniApps registered yet</p>
+          <p className="py-8 text-center text-gray-500 dark:text-gray-400">
+            No MiniApps registered yet
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <Table aria-label="MiniApps list">
@@ -64,11 +75,22 @@ export function MiniAppsTableCard({
                 {miniapps.map((app) => (
                   <TableRow key={app.app_id}>
                     <TableCell className="font-medium">{app.app_id}</TableCell>
-                    <TableCell className="text-sm text-gray-500 dark:text-gray-400" title={app.entry_url}>
+                    <TableCell
+                      className="text-sm text-gray-500 dark:text-gray-400"
+                      title={app.entry_url}
+                    >
                       {truncate(app.entry_url, 35)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={app.status === "active" ? "success" : app.status === "pending" ? "warning" : "danger"}>
+                      <Badge
+                        variant={
+                          app.status === "active"
+                            ? "success"
+                            : app.status === "pending"
+                              ? "warning"
+                              : "danger"
+                        }
+                      >
                         {app.status}
                       </Badge>
                     </TableCell>
@@ -78,25 +100,54 @@ export function MiniAppsTableCard({
                         .map(([key]) => key)
                         .join(", ") || "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatDate(app.created_at)}</TableCell>
+                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(app.created_at)}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => window.location.href = `/miniapps/${app.app_id}`}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            (window.location.href = `/miniapps/${app.app_id}`)
+                          }
+                        >
                           Configure
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => onEdit(app)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onEdit(app)}
+                        >
                           Edit
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => onClone(app)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onClone(app)}
+                        >
                           Clone
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => onView(app)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onView(app)}
+                        >
                           View
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => onExport(app)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onExport(app)}
+                        >
                           Export
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => onToggleStatus(app)} disabled={statusPending}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onToggleStatus(app)}
+                          disabled={statusPending}
+                        >
                           {app.status === "active" ? "Disable" : "Enable"}
                         </Button>
                         <Button

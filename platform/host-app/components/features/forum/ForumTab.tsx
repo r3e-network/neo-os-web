@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { MessageSquare, Plus, Pin, Lock, Bug, Lightbulb, HelpCircle } from "lucide-react";
+import {
+  MessageSquare,
+  Plus,
+  Pin,
+  Lock,
+  Bug,
+  Lightbulb,
+  HelpCircle,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useForum } from "./useForum";
 import { useWalletStore } from "@/lib/wallet/store";
@@ -27,9 +35,14 @@ const categoryColors = {
 
 export function ForumTab({ appId }: ForumTabProps) {
   const { address: walletAddress } = useWalletStore();
-  const { threads, loading, fetchThreads, createThread } = useForum({ appId, walletAddress });
+  const { threads, loading, fetchThreads, createThread } = useForum({
+    appId,
+    walletAddress,
+  });
   const [showNewThread, setShowNewThread] = useState(false);
-  const [selectedThread, setSelectedThread] = useState<ForumThread | null>(null);
+  const [selectedThread, setSelectedThread] = useState<ForumThread | null>(
+    null,
+  );
   const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -113,14 +126,20 @@ export function ForumTab({ appId }: ForumTabProps) {
           </div>
         ) : threads.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+            <MessageSquare
+              className="mx-auto mb-2 h-8 w-8 opacity-50"
+              aria-hidden="true"
+            />
             <p>No discussions yet</p>
           </div>
         ) : threads && threads.length > 0 ? (
           <ul className="space-y-2">
             {threads.map((thread) => (
               <li key={thread.id}>
-                <ThreadItem thread={thread} onClick={() => setSelectedThread(thread)} />
+                <ThreadItem
+                  thread={thread}
+                  onClick={() => setSelectedThread(thread)}
+                />
               </li>
             ))}
           </ul>
@@ -130,7 +149,13 @@ export function ForumTab({ appId }: ForumTabProps) {
   );
 }
 
-const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread: ForumThread; onClick: () => void }) {
+const ThreadItem = React.memo(function ThreadItem({
+  thread,
+  onClick,
+}: {
+  thread: ForumThread;
+  onClick: () => void;
+}) {
   const Icon = categoryIcons[thread.category] || MessageSquare;
 
   return (
@@ -146,11 +171,25 @@ const ThreadItem = React.memo(function ThreadItem({ thread, onClick }: { thread:
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            {thread.is_pinned && <Pin size={12} className="text-amber-500" aria-hidden="true" />}
-            {thread.is_locked && <Lock size={12} className="text-gray-500" aria-hidden="true" />}
-            <h4 className="font-semibold text-gray-900 truncate" title={thread.title}>{thread.title}</h4>
+            {thread.is_pinned && (
+              <Pin size={12} className="text-amber-500" aria-hidden="true" />
+            )}
+            {thread.is_locked && (
+              <Lock size={12} className="text-gray-500" aria-hidden="true" />
+            )}
+            <h4
+              className="font-semibold text-gray-900 truncate"
+              title={thread.title}
+            >
+              {thread.title}
+            </h4>
           </div>
-          <p className="text-sm text-gray-500 truncate mt-1" title={thread.content}>{thread.content}</p>
+          <p
+            className="text-sm text-gray-500 truncate mt-1"
+            title={thread.content}
+          >
+            {thread.content}
+          </p>
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
             <span>{thread.author_name}</span>
             <span>{thread.reply_count} replies</span>
@@ -229,7 +268,11 @@ function NewThreadForm({
           <option value="help">Help</option>
         </select>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+          >
             Cancel
           </button>
           <button
@@ -266,8 +309,19 @@ function ThreadDetail({
 
   useEffect(() => {
     mountedRef.current = true;
-    fetchReplies(thread.id).then((r: import("./types").ForumReply[]) => { if (mountedRef.current) setReplies(r); }).catch((e: unknown) => { console.warn("[ForumTab] fetchReplies failed:", e instanceof Error ? e.message : String(e)); });
-    return () => { mountedRef.current = false; };
+    fetchReplies(thread.id)
+      .then((r: import("./types").ForumReply[]) => {
+        if (mountedRef.current) setReplies(r);
+      })
+      .catch((e: unknown) => {
+        console.warn(
+          "[ForumTab] fetchReplies failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+      });
+    return () => {
+      mountedRef.current = false;
+    };
   }, [fetchReplies, thread.id]);
 
   const handleReply = async () => {
@@ -281,7 +335,10 @@ function ThreadDetail({
         setReplyContent("");
       }
     } catch (_e: unknown) {
-      console.warn("[ForumTab] failed to post reply:", _e instanceof Error ? _e.message : String(_e));
+      console.warn(
+        "[ForumTab] failed to post reply:",
+        _e instanceof Error ? _e.message : String(_e),
+      );
       setReplyError("Failed to post reply. Please try again.");
     } finally {
       setSubmitting(false);
@@ -299,20 +356,29 @@ function ThreadDetail({
       </button>
 
       <div className="p-4 bg-white rounded-lg border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 break-words">{thread.title}</h2>
+        <h2 className="text-xl font-bold text-gray-900 break-words">
+          {thread.title}
+        </h2>
         <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
           <span>{thread.author_name}</span>
           <span>•</span>
           <span>{formatTimeAgo(thread.created_at)}</span>
         </div>
-        <p className="mt-4 text-gray-700 whitespace-pre-wrap break-words">{thread.content}</p>
+        <p className="mt-4 text-gray-700 whitespace-pre-wrap break-words">
+          {thread.content}
+        </p>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-500">{replies.length} Replies</h3>
+        <h3 className="text-sm font-semibold text-gray-500">
+          {replies.length} Replies
+        </h3>
         {replies.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+            <MessageSquare
+              className="mx-auto mb-2 h-8 w-8 opacity-50"
+              aria-hidden="true"
+            />
             <p>No replies yet</p>
           </div>
         ) : (
@@ -320,11 +386,15 @@ function ThreadDetail({
             {replies.map((reply) => (
               <li key={reply.id} className="p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                  <span className="font-medium text-gray-700">{reply.author_name}</span>
+                  <span className="font-medium text-gray-700">
+                    {reply.author_name}
+                  </span>
                   <span>•</span>
                   <span>{formatTimeAgo(reply.created_at)}</span>
                 </div>
-                <p className="text-sm text-gray-700 break-words">{reply.content}</p>
+                <p className="text-sm text-gray-700 break-words">
+                  {reply.content}
+                </p>
               </li>
             ))}
           </ul>
@@ -338,7 +408,10 @@ function ThreadDetail({
               id="reply-content"
               type="text"
               value={replyContent}
-              onChange={(e) => { setReplyContent(e.target.value); setReplyError(null); }}
+              onChange={(e) => {
+                setReplyContent(e.target.value);
+                setReplyError(null);
+              }}
               placeholder="Write a reply..."
               aria-label="Reply"
               className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
@@ -354,9 +427,7 @@ function ThreadDetail({
             </button>
           </div>
           {replyError && (
-            <div className="mt-2 px-1 text-xs text-red-500">
-              {replyError}
-            </div>
+            <div className="mt-2 px-1 text-xs text-red-500">{replyError}</div>
           )}
         </>
       )}

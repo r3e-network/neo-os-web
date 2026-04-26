@@ -10,7 +10,8 @@ import { InfoCard } from "./InfoCard";
 
 export default function SecretsContent() {
   const { connected } = useWalletStore();
-  const { tokens, loading, error, fetchTokens, revokeToken, clearError } = useSecretsStore();
+  const { tokens, loading, error, fetchTokens, revokeToken, clearError } =
+    useSecretsStore();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedApp, setSelectedApp] = useState<string>("all");
 
@@ -29,13 +30,17 @@ export default function SecretsContent() {
   }, [connected, selectedApp, fetchTokens]);
 
   const filteredTokens =
-    selectedApp === "all" ? tokens : tokens.filter((t) => t.appId === selectedApp || t.appId === "global");
+    selectedApp === "all"
+      ? tokens
+      : tokens.filter((t) => t.appId === selectedApp || t.appId === "global");
 
   if (!connected) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <p className="text-gray-500">Connect your wallet to manage secret tokens</p>
+          <p className="text-gray-500">
+            Connect your wallet to manage secret tokens
+          </p>
         </CardContent>
       </Card>
     );
@@ -44,7 +49,10 @@ export default function SecretsContent() {
   return (
     <div className="space-y-6">
       {error && (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3">
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-3"
+        >
           <p className="text-sm text-red-600">{error}</p>
           <button
             type="button"
@@ -66,7 +74,12 @@ export default function SecretsContent() {
         <CardContent>
           {/* MiniApp Filter */}
           <div className="mb-4">
-            <label htmlFor="secrets-app-filter" className="block text-sm text-gray-600 mb-2">Filter by MiniApp</label>
+            <label
+              htmlFor="secrets-app-filter"
+              className="block text-sm text-gray-600 mb-2"
+            >
+              Filter by MiniApp
+            </label>
             <select
               id="secrets-app-filter"
               value={selectedApp}
@@ -93,7 +106,10 @@ export default function SecretsContent() {
           {loading && (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+                >
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32" />
                     <Skeleton className="h-3 w-24" />
@@ -105,9 +121,13 @@ export default function SecretsContent() {
             </div>
           )}
 
-          {!loading && filteredTokens.length === 0 && <p className="text-gray-500 py-4">No tokens created yet</p>}
+          {!loading && filteredTokens.length === 0 && (
+            <p className="text-gray-500 py-4">No tokens created yet</p>
+          )}
 
-          {filteredTokens.length > 0 && <TokenList tokens={filteredTokens} onRevoke={revokeToken} />}
+          {filteredTokens.length > 0 && (
+            <TokenList tokens={filteredTokens} onRevoke={revokeToken} />
+          )}
         </CardContent>
       </Card>
 

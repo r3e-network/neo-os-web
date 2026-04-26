@@ -8,20 +8,29 @@ import { logger } from "../lib/logger";
 
 export default function FederatedMiniApp() {
   const router = useRouter();
-  const appId = typeof router.query.app === "string" ? router.query.app : undefined;
-  const view = typeof router.query.view === "string" ? router.query.view : undefined;
-  const remote = typeof router.query.remote === "string" ? router.query.remote : undefined;
+  const appId =
+    typeof router.query.app === "string" ? router.query.app : undefined;
+  const view =
+    typeof router.query.view === "string" ? router.query.view : undefined;
+  const remote =
+    typeof router.query.remote === "string" ? router.query.remote : undefined;
   useEffect(() => {
     if (!appId) return;
     let mounted = true;
 
     const loadPermissions = async () => {
       try {
-        const res = await fetch(`/api/miniapps/catalog?app_id=${encodeURIComponent(appId)}`, { signal: AbortSignal.timeout(30000) });
+        const res = await fetch(
+          `/api/miniapps/catalog?app_id=${encodeURIComponent(appId)}`,
+          { signal: AbortSignal.timeout(30000) },
+        );
         const payload = await res.json();
         const info = coerceMiniAppInfo(payload?.app);
         if (!mounted) return;
-        installMiniAppSDK({ appId: info?.app_id ?? appId, permissions: info?.permissions });
+        installMiniAppSDK({
+          appId: info?.app_id ?? appId,
+          permissions: info?.permissions,
+        });
       } catch (err) {
         logger.warn("Failed to load miniapp permissions:", err);
         if (!mounted) return;
@@ -45,12 +54,14 @@ export default function FederatedMiniApp() {
       <main className="p-6 font-sans max-w-[960px]">
         <h1 className="mb-3">Federated MiniApp Host</h1>
         <p className="mb-3 text-sm">
-          Platform MiniApps can be served as Module Federation remotes. This page loads the <code>miniapp/App</code>{" "}
-          module from the configured remote.
+          Platform MiniApps can be served as Module Federation remotes. This
+          page loads the <code>miniapp/App</code> module from the configured
+          remote.
         </p>
         <div className="mb-3 text-xs">
           <div>
-            <strong>Expected remote:</strong> <code>{remote || "miniapp"}</code> exposing <code>./App</code>
+            <strong>Expected remote:</strong> <code>{remote || "miniapp"}</code>{" "}
+            exposing <code>./App</code>
           </div>
         </div>
         <FederatedMiniAppRenderer appId={appId} view={view} remote={remote} />

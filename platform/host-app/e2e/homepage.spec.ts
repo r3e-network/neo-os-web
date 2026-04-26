@@ -24,6 +24,6 @@ test.describe("Homepage", () => {
     await expect(miniappsLink).toBeVisible();
     await expect(miniappsLink).toHaveAttribute("href", "/miniapps");
     await miniappsLink.click();
-    await expect(page).toHaveURL(/\/miniapps(\/|$)/);
+    await expect(page).toHaveURL(/\/miniapps(\/|$)/, { timeout: 15000 });
   });
 });

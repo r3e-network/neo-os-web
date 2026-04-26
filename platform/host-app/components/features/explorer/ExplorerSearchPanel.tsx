@@ -32,7 +32,11 @@ export function ExplorerSearchPanel({
           className="flex-1"
         />
         <Button aria-label="Search" onClick={onSearch} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
         </Button>
       </div>
 

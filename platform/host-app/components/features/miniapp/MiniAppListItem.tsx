@@ -26,7 +26,9 @@ const statusColors = {
   beta: "bg-sky-100 text-sky-800 border-sky-300",
 };
 
-export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppListItemProps) {
+export const MiniAppListItem = memo(function MiniAppListItem({
+  app,
+}: MiniAppListItemProps) {
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
@@ -36,7 +38,15 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
       <div className="flex items-center gap-5 px-5 py-4 relative z-10">
         {/* Logo */}
         <div className="shrink-0 p-1.5 bg-white/80 rounded-xl shadow-sm border border-gray-100 group-hover:scale-105 transition-transform duration-300">
-          <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} manifest={app.manifest || null} size="md" className="rounded-lg" />
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            size="md"
+            className="rounded-lg"
+          />
         </div>
 
         {/* Content Grid */}
@@ -44,19 +54,39 @@ export const MiniAppListItem = memo(function MiniAppListItem({ app }: MiniAppLis
           {/* Main Info */}
           <div className="min-w-0 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-1.5">
-              <h3 className="font-bold text-lg text-gray-900 truncate group-hover:text-neo transition-colors" title={app.name}>
+              <h3
+                className="font-bold text-lg text-gray-900 truncate group-hover:text-neo transition-colors"
+                title={app.name}
+              >
                 {app.name}
               </h3>
-              <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-2 py-0.5 text-[10px] font-bold font-mono tracking-tight")} variant="secondary">
+              <Badge
+                className={cn(
+                  categoryColors[app.category],
+                  "border border-transparent capitalize px-2 py-0.5 text-[10px] font-bold font-mono ",
+                )}
+                variant="secondary"
+              >
                 {app.category}
               </Badge>
               {app.status === "beta" && (
-                <Badge className={cn(statusColors.beta, "px-2 py-0.5 text-[10px] font-bold uppercase tracking-tight")} variant="outline">
+                <Badge
+                  className={cn(
+                    statusColors.beta,
+                    "px-2 py-0.5 text-[10px] font-bold uppercase ",
+                  )}
+                  variant="outline"
+                >
                   Beta
                 </Badge>
               )}
             </div>
-            <p className="text-sm font-medium text-gray-500 truncate" title={app.description}>{app.description}</p>
+            <p
+              className="text-sm font-medium text-gray-500 truncate"
+              title={app.description}
+            >
+              {app.description}
+            </p>
           </div>
 
           <div className="hidden sm:flex items-center gap-6 text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">

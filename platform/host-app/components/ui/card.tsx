@@ -6,7 +6,12 @@
 import React, { forwardRef, useId } from "react";
 import { cn } from "@/lib/utils";
 
-export type CardVariant = "default" | "elevated" | "outlined" | "ghost" | "glass";
+export type CardVariant =
+  | "default"
+  | "elevated"
+  | "outlined"
+  | "ghost"
+  | "glass";
 export type CardPadding = "none" | "sm" | "md" | "lg" | "xl";
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -75,7 +80,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     return (
       <div
@@ -92,15 +97,16 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           // Interactive/Hoverable
           (interactive || hoverable) &&
             "cursor-pointer hover:border-gray-600 hover:shadow-lg",
-          interactive && "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900",
-          className
+          interactive &&
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-neo focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900",
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 Card.displayName = "Card";
@@ -123,14 +129,14 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
           "flex flex-col gap-1 mb-4",
           align === "center" && "items-center text-center",
           align === "right" && "items-end text-right",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 CardHeader.displayName = "CardHeader";
@@ -149,16 +155,13 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
     return (
       <Tag
         ref={ref}
-        className={cn(
-          "text-xl font-semibold text-white",
-          className
-        )}
+        className={cn("text-xl font-semibold text-white", className)}
         {...props}
       >
         {children}
       </Tag>
     );
-  }
+  },
 );
 
 CardTitle.displayName = "CardTitle";
@@ -169,19 +172,16 @@ CardTitle.displayName = "CardTitle";
 
 export interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
-export const CardDescription = forwardRef<HTMLParagraphElement, CardDescriptionProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
-      <p
-        ref={ref}
-        className={cn("text-sm text-gray-400", className)}
-        {...props}
-      >
-        {children}
-      </p>
-    );
-  }
-);
+export const CardDescription = forwardRef<
+  HTMLParagraphElement,
+  CardDescriptionProps
+>(({ className, children, ...props }, ref) => {
+  return (
+    <p ref={ref} className={cn("text-sm text-gray-400", className)} {...props}>
+      {children}
+    </p>
+  );
+});
 
 CardDescription.displayName = "CardDescription";
 
@@ -198,7 +198,7 @@ export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 
 CardContent.displayName = "CardContent";
@@ -222,14 +222,14 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
           align === "center" && "justify-center",
           align === "right" && "justify-end",
           align === "between" && "justify-between",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 CardFooter.displayName = "CardFooter";
@@ -243,7 +243,10 @@ export interface CardMediaProps extends React.HTMLAttributes<HTMLDivElement> {
   aspectRatio?: "auto" | "square" | "video" | "wide";
 }
 
-const aspectRatioStyles: Record<NonNullable<CardMediaProps["aspectRatio"]>, string> = {
+const aspectRatioStyles: Record<
+  NonNullable<CardMediaProps["aspectRatio"]>,
+  string
+> = {
   auto: "",
   square: "aspect-square",
   video: "aspect-video",
@@ -258,14 +261,14 @@ export const CardMedia = forwardRef<HTMLDivElement, CardMediaProps>(
         className={cn(
           "overflow-hidden",
           aspectRatioStyles[aspectRatio],
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 CardMedia.displayName = "CardMedia";
@@ -290,14 +293,14 @@ export const CardActions = forwardRef<HTMLDivElement, CardActionsProps>(
           align === "right" && "justify-end",
           align === "left" && "justify-start",
           align === "full" && "w-full [&>button]:flex-1",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </div>
     );
-  }
+  },
 );
 
 CardActions.displayName = "CardActions";
@@ -311,7 +314,10 @@ export interface CardBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "success" | "warning" | "error" | "info";
 }
 
-const badgeVariantStyles: Record<NonNullable<CardBadgeProps["variant"]>, string> = {
+const badgeVariantStyles: Record<
+  NonNullable<CardBadgeProps["variant"]>,
+  string
+> = {
   default: "bg-gray-700 text-gray-300",
   success: "bg-emerald-500/20 text-emerald-400",
   warning: "bg-amber-500/20 text-amber-400",
@@ -327,14 +333,14 @@ export const CardBadge = forwardRef<HTMLSpanElement, CardBadgeProps>(
         className={cn(
           "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
           badgeVariantStyles[variant],
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </span>
     );
-  }
+  },
 );
 
 CardBadge.displayName = "CardBadge";
@@ -343,7 +349,10 @@ CardBadge.displayName = "CardBadge";
 // Composite Card (Complete Card with all parts)
 // ============================================================================
 
-export interface CompositeCardProps extends Omit<CardProps, "title" | "content"> {
+export interface CompositeCardProps extends Omit<
+  CardProps,
+  "title" | "content"
+> {
   /** Card header content */
   header?: React.ReactNode;
   /** Card title */
@@ -373,7 +382,7 @@ export const CompositeCard: React.FC<CompositeCardProps> = ({
   return (
     <Card interactive={!!onClick} onClick={onClick} {...props}>
       {media && <CardMedia>{media}</CardMedia>}
-      
+
       {(header || title || description) && (
         <CardHeader>
           {header}
@@ -381,9 +390,9 @@ export const CompositeCard: React.FC<CompositeCardProps> = ({
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
       )}
-      
+
       {content && <CardContent>{content}</CardContent>}
-      
+
       {footer && <CardFooter>{footer}</CardFooter>}
     </Card>
   );

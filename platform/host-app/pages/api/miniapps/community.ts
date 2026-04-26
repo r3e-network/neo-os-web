@@ -25,7 +25,10 @@ type CommunityApp = {
   permissions: Record<string, unknown>;
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -33,22 +36,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!isSupabaseConfigured) {
     // Graceful degradation: return empty list when Supabase is not configured
-    return res.status(200).json({ apps: [] });
+    res.status(200).json({ apps: [] });
+    return;
   }
 
-  const status = String(req.query.status || "active").trim().toLowerCase();
+  const status = String(req.query.status || "active")
+    .trim()
+    .toLowerCase();
   const allowedStatuses = ["active", "pending", "rejected"];
   if (!allowedStatuses.includes(status)) {
     return apiError.badRequest(res, "Invalid status value");
   }
-  const category = String(req.query.category || "").trim().toLowerCase();
+  const category = String(req.query.category || "")
+    .trim()
+    .toLowerCase();
 
   try {
     if (status === "active") {
       const catalog = await loadMiniAppCatalog("active");
       const apps = catalog
         .filter((app) => app.app_id.startsWith("community-"))
-        .filter((app) => !category || category === "all" || app.category === category)
+        .filter(
+          (app) => !category || category === "all" || app.category === category,
+        )
         .map((app) => ({
           app_id: app.app_id,
           name: app.name,
@@ -69,14 +79,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           permissions: app.permissions || {},
         }));
 
-      res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-      return res.status(200).json({ apps });
+      res.setHeader(
+        "Cache-Control",
+        "s-maxage=300, stale-while-revalidate=600",
+      );
+      res.status(200).json({ apps });
+      return;
     }
 
     const submissionStatus = status === "rejected" ? "rejected" : "pending";
     let query = supabase
       .from("miniapp_submissions")
-      .select("app_id,name,description,icon,category,entry_url,contract_hash,status,developer_name,developer_address,permissions")
+      .select(
+        "app_id,name,description,icon,category,entry_url,contract_hash,status,developer_name,developer_address,permissions",
+      )
       .eq("source", "community")
       .eq("status", submissionStatus);
 
@@ -84,11 +100,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       query = query.eq("category", category);
     }
 
-    const { data, error } = await query.order("submitted_at", { ascending: false }).limit(200);
+    const { data, error } = await query
+      .order("submitted_at", { ascending: false })
+      .limit(200);
     if (error) {
       logger.warn("Community submissions query failed:", error.message);
       // Graceful degradation: return empty list on DB error so UI remains functional
-      return res.status(200).json({ apps: [] });
+      res.status(200).json({ apps: [] });
+      return;
     }
 
     const apps: CommunityApp[] = (data || []).map((row) => ({
@@ -112,10 +131,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    return res.status(200).json({ apps });
+    res.status(200).json({ apps });
+    return;
   } catch (error) {
-    logger.warn("Fetch community apps error:", error instanceof Error ? error.message : "unknown error");
+    logger.warn(
+      "Fetch community apps error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     // Graceful degradation: return empty list on error so UI remains functional
-    return res.status(200).json({ apps: [] });
+    res.status(200).json({ apps: [] });
+    return;
   }
 }

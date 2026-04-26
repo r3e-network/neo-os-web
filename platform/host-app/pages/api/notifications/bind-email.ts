@@ -1,6 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { bindEmail } from "@/lib/notifications/supabase-service";
-import { generateCode, storeCode } from "@/lib/notifications/verification-service";
+import {
+  generateCode,
+  storeCode,
+} from "@/lib/notifications/verification-service";
 import { sendEmail, verificationEmail } from "@/lib/email";
 import { isValidEmail, sanitizeInput } from "@/lib/utils";
 import { withCsrfProtection } from "@/lib/csrf";
@@ -29,7 +32,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -57,15 +63,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     await sendEmail({ to: sanitizedEmail, ...template });
   } catch (err) {
-    logger.error("Failed to send verification email:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Failed to send verification email:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.gatewayError(res, "Failed to send verification email");
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     success: true,
     message: "Verification code sent to email.",
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

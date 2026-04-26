@@ -9,15 +9,17 @@ test.describe("MiniApps List", () => {
   test("should display the flagship catalog hero", async ({ page }) => {
     await expect(page.getByText("Neo N3 Mainnet")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Flagship MiniApps" })).toBeVisible();
-    await expect(page.getByText("Seven production apps with live smart contracts. Pick one and start using it.")).toBeVisible();
+    await expect(page.getByText("Nine flagship miniapps with production workflows. Pick one and start using it.")).toBeVisible();
   });
 
   test("should render the canonical flagship cards", async ({ page }) => {
     const cards = page.locator('a[href^="/miniapps/miniapp-"]');
-    await expect(cards).toHaveCount(7);
+    await expect(cards).toHaveCount(9);
     await expect(page.locator('a[href="/miniapps/miniapp-last-survivor"]')).toBeVisible();
     await expect(page.locator('a[href="/miniapps/miniapp-fogplay"]')).toBeVisible();
     await expect(page.locator('a[href="/miniapps/miniapp-neo-pay"]')).toBeVisible();
+    await expect(page.locator('a[href="/miniapps/miniapp-profitanchor"]')).toBeVisible();
+    await expect(page.locator('a[href="/miniapps/miniapp-trustanchor"]')).toBeVisible();
   });
 
   test("should link flagship cards to their detail pages", async ({ page }) => {

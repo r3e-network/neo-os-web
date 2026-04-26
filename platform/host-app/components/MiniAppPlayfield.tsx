@@ -4,19 +4,25 @@ import { FederatedMiniApp } from "./FederatedMiniApp";
 import { parseFederatedEntryUrl } from "../lib/miniapp";
 import { isManifestMiniAppEntryUrl } from "../lib/miniapp-entry-url";
 import { MiniAppInfo } from "./types";
-import { getMiniAppContractHash, getRpcUrl } from "@/lib/rpc-helpers";
-import { resolveMiniAppSlug } from "@/lib/miniapp-media";
+import { getMiniAppContractHash, getRpcNetwork, getRpcUrl } from "@/lib/rpc-helpers";
+import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import { FlagshipHero } from "./playarea/FlagshipHero";
 
 export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
   const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
-  const federated = isManifestMode ? null : parseFederatedEntryUrl(app.entry_url, app.app_id);
+  const federated = isManifestMode
+    ? null
+    : parseFederatedEntryUrl(app.entry_url, app.app_id);
   const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
 
   if (federated) {
     return (
       <div className="w-full h-[600px] rounded-2xl overflow-hidden bg-white relative border border-gray-200 shadow-sm">
-        <FederatedMiniApp appId={federated.appId} view={federated.view} remote={federated.remote} />
+        <FederatedMiniApp
+          appId={federated.appId}
+          view={federated.view}
+          remote={federated.remote}
+        />
       </div>
     );
   }
@@ -30,11 +36,17 @@ export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
 
 /* ── RPC helpers ─────────────────────────────────────────────────────── */
 
-async function invokeRead(_rpcUrl: string, contractHash: string, method: string, params: Array<{ type: string; value: string }> = []): Promise<unknown[]> {
+async function invokeRead(
+  _rpcUrl: string,
+  contractHash: string,
+  method: string,
+  params: Array<{ type: string; value: string }> = [],
+  network: "mainnet" | "testnet" = getRpcNetwork(),
+): Promise<unknown[]> {
   const resp = await fetch("/api/rpc/neo-read", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contractHash, method, params }),
+    body: JSON.stringify({ contractHash, method, params, network }),
     signal: AbortSignal.timeout(10000),
   });
   const data = await resp.json();
@@ -57,14 +69,33 @@ function stackBool(stack: unknown[], index = 0): boolean {
   return String(item.value || "0") !== "0";
 }
 
+function stackItemBool(item: StackItem | undefined): boolean {
+  if (!item) return false;
+  if (item.type === "Boolean") return Boolean(item.value);
+  return String(item.value || "0") !== "0";
+}
+
+function stackArray(stack: unknown[], index = 0): StackItem[] {
+  const item = (stack as StackItem[])[index];
+  if (!item || (item.type !== "Struct" && item.type !== "Array")) return [];
+  return Array.isArray(item.value) ? (item.value as StackItem[]) : [];
+}
+
 function decodeMap(stack: unknown[], index = 0): Record<string, unknown> {
   const item = (stack as StackItem[])[index];
   if (!item || item.type !== "Map") return {};
   const out: Record<string, unknown> = {};
-  for (const kv of (item.value as Array<{ key: StackItem; value: StackItem }>) || []) {
+  for (const kv of (item.value as Array<{
+    key: StackItem;
+    value: StackItem;
+  }>) || []) {
     let key = String(kv.key?.value || "");
     if (kv.key?.type === "ByteString" && key) {
-      try { key = atob(key); } catch { /* ignore */ }
+      try {
+        key = atob(key);
+      } catch {
+        /* ignore */
+      }
     }
     out[key] = kv.value?.value;
     (out as Record<string, unknown>)[`__type__${key}`] = kv.value?.type;
@@ -80,16 +111,20 @@ function fmtGas(units: number | string | undefined): string {
 
 function fmtAddr(b64OrHex: string | undefined): string {
   if (!b64OrHex) return "—";
-  if (b64OrHex.startsWith("0x") && b64OrHex.length === 42) return `${b64OrHex.slice(0, 6)}…${b64OrHex.slice(-4)}`;
+  if (b64OrHex.startsWith("0x") && b64OrHex.length === 42)
+    return `${b64OrHex.slice(0, 6)}…${b64OrHex.slice(-4)}`;
   // base64 hash160 → render as 0x-prefixed scripthash (first6…last4)
   try {
     const bin = atob(b64OrHex);
     if (bin.length === 20) {
       let hex = "";
-      for (let i = 0; i < bin.length; i++) hex += bin.charCodeAt(i).toString(16).padStart(2, "0");
+      for (let i = 0; i < bin.length; i++)
+        hex += bin.charCodeAt(i).toString(16).padStart(2, "0");
       return `0x${hex.slice(0, 6)}…${hex.slice(-4)}`;
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   return `${b64OrHex.slice(0, 8)}…${b64OrHex.slice(-4)}`;
 }
 
@@ -99,9 +134,12 @@ function isZeroAddr(b64: string | undefined): boolean {
   try {
     const bin = atob(b64);
     if (bin.length !== 20) return false;
-    for (let i = 0; i < bin.length; i++) if (bin.charCodeAt(i) !== 0) return false;
+    for (let i = 0; i < bin.length; i++)
+      if (bin.charCodeAt(i) !== 0) return false;
     return true;
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 }
 
 function fmtCountdown(seconds: number): string {
@@ -126,29 +164,65 @@ function timeAgo(msTimestamp: number): string {
 
 /* ── Stat card ───────────────────────────────────────────────────────── */
 
-function Stat({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
-      <div className={`text-2xl font-black ${accent ? "text-emerald-600" : "text-gray-900"}`}>{value}</div>
-      <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">{label}</div>
+      <div
+        className={`text-2xl font-black ${accent ? "text-emerald-600" : "text-gray-900"}`}
+      >
+        {value}
+      </div>
+      <div className="text-[11px] font-semibold text-gray-400 uppercase mt-1">
+        {label}
+      </div>
     </div>
   );
 }
 
 /* ── Activity row ────────────────────────────────────────────────────── */
 
-function ActivityRow({ icon, primary, secondary, amount, accent = false }: { icon: string; primary: string; secondary?: string; amount?: string; accent?: boolean }) {
+function ActivityRow({
+  icon,
+  primary,
+  secondary,
+  amount,
+  accent = false,
+}: {
+  icon: string;
+  primary: string;
+  secondary?: string;
+  amount?: string;
+  accent?: boolean;
+}) {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black ${accent ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+      <div
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black ${accent ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+      >
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{primary}</div>
-        {secondary && <div className="text-[11px] text-gray-400 truncate">{secondary}</div>}
+        <div className="text-sm font-semibold text-gray-900 truncate">
+          {primary}
+        </div>
+        {secondary && (
+          <div className="text-[11px] text-gray-400 truncate">{secondary}</div>
+        )}
       </div>
       {amount && (
-        <div className={`text-sm font-bold tabular-nums ${accent ? "text-emerald-600" : "text-gray-900"}`}>{amount}</div>
+        <div
+          className={`text-sm font-bold tabular-nums ${accent ? "text-emerald-600" : "text-gray-900"}`}
+        >
+          {amount}
+        </div>
       )}
     </div>
   );
@@ -158,48 +232,60 @@ function ActivityRow({ icon, primary, secondary, amount, accent = false }: { ico
 
 type Activity = {
   title: string;
-  rows: Array<{ icon: string; primary: string; secondary?: string; amount?: string; accent?: boolean }>;
+  rows: Array<{
+    icon: string;
+    primary: string;
+    secondary?: string;
+    amount?: string;
+    accent?: boolean;
+  }>;
   emptyText?: string;
 };
 
+const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
+
 function LiveContractView({ app }: { app: MiniAppInfo }) {
-  const [stats, setStats] = useState<Array<{ label: string; value: string; accent?: boolean }>>([]);
+  const [stats, setStats] = useState<
+    Array<{ label: string; value: string; accent?: boolean }>
+  >([]);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const slug = resolveMiniAppSlug(app.app_id, app.entry_url);
-  const logoUrl = `/miniapp-assets/${slug}/logo.svg`;
-  const contractHash = getMiniAppContractHash(app.app_id);
+  const contractHash = getMiniAppContractHash(app.app_id) || app.contract_hash || null;
   const rpcUrl = getRpcUrl();
 
-  const loadContractData = useCallback(async ({ isInitial = false } = {}) => {
-    if (!contractHash) {
-      setStats([]);
-      setActivity(null);
-      setLoading(false);
-      return;
-    }
-    try {
-      // Only show the skeleton on the very first fetch. Subsequent
-      // background refreshes swap the stats/activity in place so the
-      // hero + stats grid don't flicker every 15 s.
-      if (isInitial) setLoading(true);
-      const [appStats, appActivity] = await Promise.all([
-        fetchAppStats(app.app_id, rpcUrl, contractHash),
-        fetchAppActivity(app.app_id, rpcUrl, contractHash).catch(() => null),
-      ]);
-      setStats(appStats);
-      setActivity(appActivity);
-      setError(null);
-    } catch (e) {
-      // Keep existing data on refresh failures — only surface errors on
-      // the initial load when there's nothing to show yet.
-      if (isInitial) setError(e instanceof Error ? e.message : "Failed to load");
-    } finally {
-      if (isInitial) setLoading(false);
-    }
-  }, [app.app_id, contractHash, rpcUrl]);
+  const loadContractData = useCallback(
+    async ({ isInitial = false } = {}) => {
+      if (!contractHash) {
+        setStats([]);
+        setActivity(null);
+        setLoading(false);
+        return;
+      }
+      try {
+        // Only show the skeleton on the very first fetch. Subsequent
+        // background refreshes swap the stats/activity in place so the
+        // hero + stats grid don't flicker every 15 s.
+        if (isInitial) setLoading(true);
+        const [appStats, appActivity] = await Promise.all([
+          fetchAppStats(app.app_id, rpcUrl, contractHash),
+          fetchAppActivity(app.app_id, rpcUrl, contractHash).catch(() => null),
+        ]);
+        setStats(appStats);
+        setActivity(appActivity);
+        setError(null);
+      } catch (e) {
+        // Keep existing data on refresh failures — only surface errors on
+        // the initial load when there's nothing to show yet.
+        if (isInitial)
+          setError(e instanceof Error ? e.message : "Failed to load");
+      } finally {
+        if (isInitial) setLoading(false);
+      }
+    },
+    [app.app_id, contractHash, rpcUrl],
+  );
 
   useEffect(() => {
     loadContractData({ isInitial: true });
@@ -229,15 +315,26 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
     <div className="w-full rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-sm">
       {/* Header */}
       <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
-        <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl" />
+        <MiniAppLogo
+          appId={app.app_id}
+          category={app.category}
+          entryUrl={app.entry_url}
+          logoUrl={app.logo_url}
+          manifest={app.manifest || null}
+          alt={app.name}
+          className="w-10 h-10 rounded-xl"
+        />
         <div className="flex-1">
           <h3 className="text-lg font-bold text-gray-900">{app.name}</h3>
           <p className="text-xs text-gray-400">{app.description}</p>
         </div>
         {contractHash && (
-          <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-            <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
-            Live on Mainnet
+          <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            Live on {getRpcNetwork() === "testnet" ? "Testnet" : "Mainnet"}
           </span>
         )}
       </div>
@@ -253,20 +350,34 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
       <div className="p-6">
         {loading && stats.length === 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => <div key={i} className="h-20 rounded-xl bg-gray-50 animate-pulse" />)}
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-20 rounded-xl bg-gray-50 animate-pulse"
+              />
+            ))}
           </div>
         ) : error ? (
           <div className="text-center py-8">
             <p className="text-sm text-gray-400">{error}</p>
-            <button type="button" onClick={() => loadContractData({ isInitial: true })} className="mt-2 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer">Retry</button>
+            <button
+              type="button"
+              onClick={() => loadContractData({ isInitial: true })}
+              className="mt-2 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer"
+            >
+              Retry
+            </button>
           </div>
         ) : stats.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {stats.map((s, i) => <Stat key={i} label={s.label} value={s.value} accent={s.accent} />)}
+            {stats.map((s, i) => (
+              <Stat key={i} label={s.label} value={s.value} accent={s.accent} />
+            ))}
           </div>
         ) : (
           <div className="text-center py-8 text-sm text-gray-400">
-            No contract deployed on mainnet yet. Use the operations panel to interact.
+            No contract deployed on mainnet yet. Use the operations panel to
+            interact.
           </div>
         )}
 
@@ -275,16 +386,26 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
           <div className="mt-6 pt-6 border-t border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                </span>
                 {activity.title}
               </h4>
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{activity.rows.length} {activity.rows.length === 1 ? "item" : "items"}</span>
+              <span className="text-[10px] font-semibold text-gray-400 uppercase">
+                {activity.rows.length}{" "}
+                {activity.rows.length === 1 ? "item" : "items"}
+              </span>
             </div>
             {activity.rows.length === 0 ? (
-              <div className="text-center py-6 text-xs text-gray-400">{activity.emptyText || "Nothing yet — be the first."}</div>
+              <div className="text-center py-6 text-xs text-gray-400">
+                {activity.emptyText || "Nothing yet — be the first."}
+              </div>
             ) : (
               <div className="space-y-2">
-                {activity.rows.map((row, i) => <ActivityRow key={i} {...row} />)}
+                {activity.rows.map((row, i) => (
+                  <ActivityRow key={i} {...row} />
+                ))}
               </div>
             )}
           </div>
@@ -292,7 +413,9 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
 
         {contractHash && (
           <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-[11px] text-gray-300 font-mono">{contractHash}</span>
+            <span className="text-[11px] text-gray-300 font-mono">
+              {contractHash}
+            </span>
             <a
               href={`https://neotube.io/contract/${contractHash}`}
               target="_blank"
@@ -310,25 +433,96 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
 
 /* ── Per-app contract reads ──────────────────────────────────────────── */
 
-async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string): Promise<Array<{ label: string; value: string; accent?: boolean }>> {
+async function fetchAppStats(
+  appId: string,
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Array<{ label: string; value: string; accent?: boolean }>> {
   try {
     switch (appId) {
       case "miniapp-last-survivor": {
-        const stateStack = await invokeRead(rpcUrl, contractHash, "getRoundStateForFrontend");
+        if (getRpcNetwork() === "testnet") {
+          const [stateStack, pausedStack] = await Promise.all([
+            invokeRead(rpcUrl, contractHash, "getCountdownStatus", [
+              { type: "String", value: LAST_SURVIVOR_APP_ID },
+            ]),
+            invokeRead(rpcUrl, contractHash, "isPaused", [
+              { type: "String", value: LAST_SURVIVOR_APP_ID },
+            ]),
+          ]);
+          const state = decodeMap(stateStack);
+          const round = parseInt(String(state.roundId ?? "0"), 10);
+          const active = Boolean(state.active);
+          const paused = stackBool(pausedStack);
+          const pot = parseInt(String(state.pot ?? "0"), 10);
+          const totalKeys = parseInt(String(state.totalKeys ?? "0"), 10);
+          const endTime = parseInt(String(state.endTime ?? "0"), 10);
+          const currentKeyPrice = parseInt(String(state.currentKeyPrice ?? "0"), 10);
+          const totalPlayers = parseInt(String(state.totalPlayers ?? "0"), 10);
+          const totalDistributed = parseInt(String(state.totalPotDistributed ?? "0"), 10);
+          const expiredButOpen =
+            active &&
+            (String(state.status || "").toLowerCase() === "ending" ||
+              (endTime > 0 && endTime < Date.now()));
+          const remainingSec =
+            active && !expiredButOpen && endTime > 0
+              ? Math.max(0, Math.floor((endTime - Date.now()) / 1000))
+              : 0;
+
+          const status = paused
+            ? "Paused"
+            : !active
+              ? "Awaiting Restart"
+              : expiredButOpen
+                ? "Awaiting Settlement"
+                : "Open for Bids";
+
+          return [
+            {
+              label: "Countdown",
+              value:
+                active && !expiredButOpen
+                  ? fmtCountdown(remainingSec)
+                  : "Round Ended",
+              accent: active && !expiredButOpen,
+            },
+            { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: pot > 0 },
+            { label: "Round", value: `#${round}` },
+            { label: "Keys This Round", value: String(totalKeys) },
+            { label: "Total Players", value: String(totalPlayers) },
+            { label: "Key Price", value: `${fmtGas(currentKeyPrice)} GAS` },
+            {
+              label: "Total Distributed",
+              value: `${fmtGas(totalDistributed)} GAS`,
+              accent: true,
+            },
+            { label: "Status", value: status, accent: !paused && active && !expiredButOpen },
+          ];
+        }
+
+        const stateStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "getRoundStateForFrontend",
+        );
         const state = decodeMap(stateStack);
         const round = parseInt(String(state.roundId ?? "0"), 10);
         const active = Boolean(state.active);
         const pot = parseInt(String(state.pot ?? "0"), 10);
         const totalKeys = parseInt(String(state.totalKeys ?? "0"), 10);
         const endTime = parseInt(String(state.endTime ?? "0"), 10);
-        const remainingSec = active && endTime > 0 ? Math.max(0, Math.floor((endTime - Date.now()) / 1000)) : 0;
+        const remainingSec =
+          active && endTime > 0
+            ? Math.max(0, Math.floor((endTime - Date.now()) / 1000))
+            : 0;
         const expiredButOpen = active && endTime > 0 && endTime < Date.now();
 
-        const [keyPriceStack, totalPlayersStack, totalDistStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getCurrentKeyPrice"),
-          invokeRead(rpcUrl, contractHash, "totalPlayers"),
-          invokeRead(rpcUrl, contractHash, "totalPotDistributed"),
-        ]);
+        const [keyPriceStack, totalPlayersStack, totalDistStack] =
+          await Promise.all([
+            invokeRead(rpcUrl, contractHash, "getCurrentKeyPrice"),
+            invokeRead(rpcUrl, contractHash, "totalPlayers"),
+            invokeRead(rpcUrl, contractHash, "totalPotDistributed"),
+          ]);
 
         const status = !active
           ? "Awaiting Restart"
@@ -337,13 +531,30 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
             : "Open for Bids";
 
         return [
-          { label: "Countdown", value: active && !expiredButOpen ? fmtCountdown(remainingSec) : "Round Ended", accent: active && !expiredButOpen },
+          {
+            label: "Countdown",
+            value:
+              active && !expiredButOpen
+                ? fmtCountdown(remainingSec)
+                : "Round Ended",
+            accent: active && !expiredButOpen,
+          },
           { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: pot > 0 },
           { label: "Round", value: `#${round}` },
           { label: "Keys This Round", value: String(totalKeys) },
-          { label: "Total Players", value: String(stackInt(totalPlayersStack)) },
-          { label: "Key Price", value: `${fmtGas(stackInt(keyPriceStack))} GAS` },
-          { label: "Total Distributed", value: `${fmtGas(stackInt(totalDistStack))} GAS`, accent: true },
+          {
+            label: "Total Players",
+            value: String(stackInt(totalPlayersStack)),
+          },
+          {
+            label: "Key Price",
+            value: `${fmtGas(stackInt(keyPriceStack))} GAS`,
+          },
+          {
+            label: "Total Distributed",
+            value: `${fmtGas(stackInt(totalDistStack))} GAS`,
+            accent: true,
+          },
           { label: "Status", value: status, accent: active && !expiredButOpen },
         ];
       }
@@ -356,8 +567,16 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const machines = stackInt(machinesStack);
         const paused = stackBool(pausedStack);
         return [
-          { label: "Total Machines", value: String(machines), accent: machines > 0 },
-          { label: "Status", value: paused ? "Paused" : "Ready to Play", accent: !paused },
+          {
+            label: "Total Machines",
+            value: String(machines),
+            accent: machines > 0,
+          },
+          {
+            label: "Status",
+            value: paused ? "Paused" : "Ready to Play",
+            accent: !paused,
+          },
           { label: "Asset", value: "GAS" },
           { label: "Randomness", value: "VRF" },
         ];
@@ -366,7 +585,11 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
       case "miniapp-redenvelope": {
         const pausedStack = await invokeRead(rpcUrl, contractHash, "isPaused");
         return [
-          { label: "Status", value: stackBool(pausedStack) ? "Paused" : "Active", accent: !stackBool(pausedStack) },
+          {
+            label: "Status",
+            value: stackBool(pausedStack) ? "Paused" : "Active",
+            accent: !stackBool(pausedStack),
+          },
           { label: "Asset", value: "GAS" },
           { label: "Distribution", value: "Random (VRF)" },
           { label: "Mode", value: "Lucky packets" },
@@ -384,10 +607,22 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const totalRewarded = parseInt(String(m.totalRewarded ?? "0"), 10);
         const weekReward = parseInt(String(m.weekReward ?? "0"), 10);
         return [
-          { label: "Total Users", value: String(totalUsers), accent: totalUsers > 0 },
+          {
+            label: "Total Users",
+            value: String(totalUsers),
+            accent: totalUsers > 0,
+          },
           { label: "Total Check-ins", value: String(totalCheckins) },
-          { label: "Total Rewarded", value: `${fmtGas(totalRewarded)} GAS`, accent: true },
-          { label: "Status", value: stackBool(pausedStack) ? "Paused" : "Active", accent: !stackBool(pausedStack) },
+          {
+            label: "Total Rewarded",
+            value: `${fmtGas(totalRewarded)} GAS`,
+            accent: true,
+          },
+          {
+            label: "Status",
+            value: stackBool(pausedStack) ? "Paused" : "Active",
+            accent: !stackBool(pausedStack),
+          },
           { label: "7-Day Reward", value: `${fmtGas(weekReward)} GAS` },
           { label: "Cadence", value: "1 / UTC day" },
         ];
@@ -408,16 +643,33 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
           maxBet = parseInt(arr[1]?.value || "0", 10);
         }
         return [
-          { label: "Status", value: stackBool(pausedStack) ? "Paused" : "Active", accent: !stackBool(pausedStack) },
-          { label: "Min Bet", value: minBet > 0 ? `${fmtGas(minBet)} GAS` : "—" },
-          { label: "Max Bet", value: maxBet > 0 ? `${fmtGas(maxBet)} GAS` : "—" },
+          {
+            label: "Status",
+            value: stackBool(pausedStack) ? "Paused" : "Active",
+            accent: !stackBool(pausedStack),
+          },
+          {
+            label: "Min Bet",
+            value: minBet > 0 ? `${fmtGas(minBet)} GAS` : "—",
+          },
+          {
+            label: "Max Bet",
+            value: maxBet > 0 ? `${fmtGas(maxBet)} GAS` : "—",
+          },
           { label: "Payout", value: "2× on win", accent: true },
         ];
       }
 
       case "miniapp-self-loan": {
         const [statsStack, pausedStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getPlatformStats"),
+          invokeRead(rpcUrl, contractHash, "getLendingStats", [
+            { type: "String", value: "miniapp-self-loan" },
+          ]).then((stack) => {
+            const stats = decodeMap(stack);
+            return Object.keys(stats).length
+              ? stack
+              : invokeRead(rpcUrl, contractHash, "getPlatformStats");
+          }),
           invokeRead(rpcUrl, contractHash, "isPaused"),
         ]);
         const m = decodeMap(statsStack);
@@ -429,22 +681,97 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
         const ltvT1 = parseInt(String(m.ltvTier1Bps ?? "0"), 10);
         const ltvT3 = parseInt(String(m.ltvTier3Bps ?? "0"), 10);
         return [
-          { label: "Total Loans", value: String(totalLoans), accent: totalLoans > 0 },
+          {
+            label: "Total Loans",
+            value: String(totalLoans),
+            accent: totalLoans > 0,
+          },
           { label: "Borrowers", value: String(totalBorrowers) },
-          { label: "Collateral Locked", value: `${totalCollateral} NEO`, accent: totalCollateral > 0 },
+          {
+            label: "Collateral Locked",
+            value: `${totalCollateral} NEO`,
+            accent: totalCollateral > 0,
+          },
           { label: "Outstanding Debt", value: `${fmtGas(totalDebt)} GAS` },
-          { label: "Total Repaid", value: `${fmtGas(totalRepaid)} GAS`, accent: true },
-          { label: "LTV Range", value: ltvT1 && ltvT3 ? `${ltvT1 / 100}% – ${ltvT3 / 100}%` : "—" },
+          {
+            label: "Total Repaid",
+            value: `${fmtGas(totalRepaid)} GAS`,
+            accent: true,
+          },
+          {
+            label: "LTV Range",
+            value: ltvT1 && ltvT3 ? `${ltvT1 / 100}% – ${ltvT3 / 100}%` : "—",
+          },
           { label: "Liquidation", value: "None — yield repays" },
-          { label: "Status", value: stackBool(pausedStack) ? "Paused" : "Active", accent: !stackBool(pausedStack) },
+          {
+            label: "Status",
+            value: stackBool(pausedStack) ? "Paused" : "Active",
+            accent: !stackBool(pausedStack),
+          },
+        ];
+      }
+
+      case "miniapp-trustanchor":
+      case "miniapp-profitanchor": {
+        const statsStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "getAnchorStats",
+          [{ type: "String", value: appId }],
+        );
+        const m = decodeMap(statsStack);
+        const totalStaked = parseInt(String(m.totalStaked ?? "0"), 10);
+        const totalStakers = parseInt(String(m.totalStakers ?? "0"), 10);
+        const rewardReserve = parseInt(String(m.rewardReserve ?? "0"), 10);
+        const agentCount = parseInt(String(m.agentCount ?? "0"), 10);
+        const bestAgentId = parseInt(String(m.bestAgentId ?? "0"), 10);
+        const mode = parseInt(String(m.mode ?? "0"), 10);
+        const paused = Boolean(m.paused);
+        return [
+          {
+            label: "Total Staked",
+            value: `${totalStaked} NEO`,
+            accent: totalStaked > 0,
+          },
+          { label: "Stakers", value: String(totalStakers) },
+          { label: "Agents", value: String(agentCount), accent: agentCount > 0 },
+          {
+            label: "Reward Reserve",
+            value: `${fmtGas(rewardReserve)} GAS`,
+            accent: rewardReserve > 0,
+          },
+          {
+            label: appId === "miniapp-profitanchor" ? "Best Agent" : "Mode",
+            value:
+              appId === "miniapp-profitanchor" && bestAgentId > 0
+                ? `#${bestAgentId}`
+                : mode === 1
+                  ? "Trust"
+                  : mode === 2
+                    ? "Profit"
+                    : "Unregistered",
+          },
+          {
+            label: "Status",
+            value: paused ? "Paused" : "Ready",
+            accent: !paused,
+          },
         ];
       }
 
       case "miniapp-neo-pay": {
-        const totalStreamsStack = await invokeRead(rpcUrl, contractHash, "totalStreams");
+        const totalStreamsStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "totalStreams",
+        );
         const totalStreams = stackInt(totalStreamsStack);
         return [
-          { label: "Total Streams", value: String(totalStreams), accent: totalStreams > 0 },
+          {
+            label: "Total Streams",
+            value: String(totalStreams),
+            accent: totalStreams > 0,
+          },
           { label: "Assets", value: "GAS / NEO" },
           { label: "Schedule", value: "Per-second drip" },
           { label: "Status", value: "Active", accent: true },
@@ -462,7 +789,11 @@ async function fetchAppStats(appId: string, rpcUrl: string, contractHash: string
 
 /* ── Activity feed (recent on-chain items) ──────────────────────────── */
 
-async function fetchAppActivity(appId: string, rpcUrl: string, contractHash: string): Promise<Activity | null> {
+async function fetchAppActivity(
+  appId: string,
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity | null> {
   try {
     switch (appId) {
       case "miniapp-last-survivor":
@@ -475,6 +806,9 @@ async function fetchAppActivity(appId: string, rpcUrl: string, contractHash: str
         return await fetchSelfLoanActivity(rpcUrl, contractHash);
       case "miniapp-neo-pay":
         return await fetchNeoPayActivity(rpcUrl, contractHash);
+      case "miniapp-trustanchor":
+      case "miniapp-profitanchor":
+        return await fetchAnchorActivity(appId, rpcUrl, contractHash);
       default:
         return null;
     }
@@ -484,8 +818,112 @@ async function fetchAppActivity(appId: string, rpcUrl: string, contractHash: str
   }
 }
 
-async function fetchLastSurvivorActivity(rpcUrl: string, contractHash: string): Promise<Activity> {
-  const stateStack = await invokeRead(rpcUrl, contractHash, "getRoundStateForFrontend");
+async function fetchAnchorActivity(
+  appId: string,
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
+  const statsStack = await invokeRead(rpcUrl, contractHash, "getAnchorStats", [
+    { type: "String", value: appId },
+  ]);
+  const stats = decodeMap(statsStack);
+  const agentCount = Math.min(5, parseInt(String(stats.agentCount ?? "0"), 10));
+  const bestAgentId = parseInt(String(stats.bestAgentId ?? "0"), 10);
+  const rows: Activity["rows"] = [];
+
+  if (appId === "miniapp-profitanchor" && bestAgentId > 0) {
+    rows.push({
+      icon: "↗",
+      primary: `Best profit route: agent #${bestAgentId}`,
+      secondary: "Pooled ProfitAnchor votes must follow this route",
+      accent: true,
+    });
+  }
+
+  const checks = [];
+  for (let id = 1; id <= agentCount; id++) {
+    checks.push(
+      invokeRead(rpcUrl, contractHash, "getAgent", [
+        { type: "String", value: appId },
+        { type: "Integer", value: String(id) },
+      ])
+        .then((s) => ({ id, map: decodeMap(s) }))
+        .catch(() => ({ id, map: {} as Record<string, unknown> })),
+    );
+  }
+
+  const agents = await Promise.all(checks);
+  for (const agent of agents) {
+    if (!agent.map.account) continue;
+    rows.push({
+      icon: "V",
+      primary: `Agent #${agent.id}: ${fmtAddr(String(agent.map.account || ""))}`,
+      secondary: `Candidate ${fmtAddr(String(agent.map.candidate || ""))}`,
+      amount:
+        appId === "miniapp-profitanchor" && agent.map.profitScore
+          ? `score ${agent.map.profitScore}`
+          : undefined,
+      accent: agent.id === bestAgentId,
+    });
+  }
+
+  return {
+    title: appId === "miniapp-profitanchor" ? "Profit Routes" : "Trust Routes",
+    rows,
+    emptyText: "No AA agent routes registered yet.",
+  };
+}
+
+async function fetchLastSurvivorActivity(
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
+  if (getRpcNetwork() === "testnet") {
+    const stateStack = await invokeRead(
+      rpcUrl,
+      contractHash,
+      "getCountdownStatus",
+      [{ type: "String", value: LAST_SURVIVOR_APP_ID }],
+    );
+    const state = decodeMap(stateStack);
+    const currentRound = parseInt(String(state.roundId ?? "0"), 10);
+    const lastBuyer = String(state.lastBuyer || "");
+    const active = Boolean(state.active);
+    const pot = parseInt(String(state.pot ?? "0"), 10);
+    const totalKeys = parseInt(String(state.totalKeys ?? "0"), 10);
+    const currentKeyPrice = parseInt(String(state.currentKeyPrice ?? "0"), 10);
+
+    const rows: Activity["rows"] = [];
+    if (currentRound > 0 && active && !isZeroAddr(lastBuyer)) {
+      rows.push({
+        icon: "👑",
+        primary: `Current leader: ${fmtAddr(lastBuyer)}`,
+        secondary: `Round #${currentRound} — wins if timer hits zero`,
+        amount: `${fmtGas(pot)} GAS`,
+        accent: true,
+      });
+    }
+    if (currentRound > 0) {
+      rows.push({
+        icon: "K",
+        primary: `${totalKeys} keys sold this round`,
+        secondary: "PlatformGame countdown pool",
+        amount: `${fmtGas(currentKeyPrice)} GAS/key`,
+      });
+    }
+
+    return {
+      title: "Live Countdown",
+      rows,
+      emptyText: "No live key purchases yet — be the first contributor.",
+    };
+  }
+
+  const stateStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "getRoundStateForFrontend",
+  );
   const state = decodeMap(stateStack);
   const currentRound = parseInt(String(state.roundId ?? "0"), 10);
   const lastBuyer = String(state.lastBuyer || "");
@@ -507,7 +945,9 @@ async function fetchLastSurvivorActivity(rpcUrl: string, contractHash: string): 
   const historyChecks = [];
   for (let id = currentRound - 1; id >= start; id--) {
     historyChecks.push(
-      invokeRead(rpcUrl, contractHash, "getRoundDetails", [{ type: "Integer", value: String(id) }])
+      invokeRead(rpcUrl, contractHash, "getRoundDetails", [
+        { type: "Integer", value: String(id) },
+      ])
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -532,23 +972,34 @@ async function fetchLastSurvivorActivity(rpcUrl: string, contractHash: string): 
   };
 }
 
-async function fetchRedEnvelopeActivity(rpcUrl: string, contractHash: string): Promise<Activity> {
+async function fetchRedEnvelopeActivity(
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
   // RedEnvelope contract doesn't expose a totalEnvelopes counter, so we probe a
   // bounded range in parallel. Tuned to cover the active testnet/mainnet IDs
   // (~50–60 today) with headroom while keeping per-page-load cost predictable.
   const PROBE_MAX = 60;
   const PROBE_LIMIT = 8;
-  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> = [];
+  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> =
+    [];
   for (let id = PROBE_MAX; id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getEnvelope", [{ type: "Integer", value: String(id) }])
+      invokeRead(rpcUrl, contractHash, "getEnvelope", [
+        { type: "Integer", value: String(id) },
+      ])
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
   }
   const results = await Promise.all(checks);
   const found = results
-    .filter((r) => r.map && Object.keys(r.map).length > 0 && !isZeroAddr(String(r.map.creator || "")))
+    .filter(
+      (r) =>
+        r.map &&
+        Object.keys(r.map).length > 0 &&
+        !isZeroAddr(String(r.map.creator || "")),
+    )
     .slice(0, PROBE_LIMIT);
 
   const rows: Activity["rows"] = found.map((env) => {
@@ -575,16 +1026,23 @@ async function fetchRedEnvelopeActivity(rpcUrl: string, contractHash: string): P
   };
 }
 
-async function fetchGasBoxActivity(rpcUrl: string, contractHash: string): Promise<Activity> {
+async function fetchGasBoxActivity(
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
   const totalStack = await invokeRead(rpcUrl, contractHash, "totalMachines");
   const total = stackInt(totalStack);
-  if (total === 0) return { title: "Gacha Machines", rows: [], emptyText: "No machines yet." };
+  if (total === 0)
+    return { title: "Gacha Machines", rows: [], emptyText: "No machines yet." };
 
-  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> = [];
+  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> =
+    [];
   const limit = Math.min(total, 8);
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getMachine", [{ type: "Integer", value: String(id) }])
+      invokeRead(rpcUrl, contractHash, "getMachine", [
+        { type: "Integer", value: String(id) },
+      ])
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -613,17 +1071,55 @@ async function fetchGasBoxActivity(rpcUrl: string, contractHash: string): Promis
   };
 }
 
-async function fetchSelfLoanActivity(rpcUrl: string, contractHash: string): Promise<Activity> {
-  const totalStack = await invokeRead(rpcUrl, contractHash, "totalLoans");
-  const total = stackInt(totalStack);
-  if (total === 0) return { title: "Recent Loans", rows: [], emptyText: "No loans opened yet." };
+async function fetchSelfLoanActivity(
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
+  let platformDeFi = false;
+  let totalStack = await invokeRead(rpcUrl, contractHash, "totalLoans");
+  let total = stackInt(totalStack);
+  if (total === 0) {
+    const statsStack = await invokeRead(rpcUrl, contractHash, "getLendingStats", [
+      { type: "String", value: "miniapp-self-loan" },
+    ]);
+    const stats = decodeMap(statsStack);
+    const platformTotal = parseInt(String(stats.totalLoans ?? "0"), 10);
+    if (platformTotal > 0) {
+      platformDeFi = true;
+      total = platformTotal;
+    }
+  }
+  if (total === 0)
+    return {
+      title: "Recent Loans",
+      rows: [],
+      emptyText: "No loans opened yet.",
+    };
 
-  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> = [];
+  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> =
+    [];
   const limit = Math.min(total, 6);
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getLoanDetails", [{ type: "Integer", value: String(id) }])
-        .then((s) => ({ id, map: decodeMap(s) }))
+      (platformDeFi
+        ? invokeRead(rpcUrl, contractHash, "getLoan", [
+            { type: "String", value: "miniapp-self-loan" },
+            { type: "Integer", value: String(id) },
+          ]).then((s) => {
+            const loan = stackArray(s);
+            return {
+              id,
+              map: {
+                borrower: loan[0]?.value,
+                collateral: loan[1]?.value,
+                debt: loan[2]?.value,
+                active: stackItemBool(loan[9]),
+              },
+            };
+          })
+        : invokeRead(rpcUrl, contractHash, "getLoanDetails", [
+            { type: "Integer", value: String(id) },
+          ]).then((s) => ({ id, map: decodeMap(s) })))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
   }
@@ -651,16 +1147,27 @@ async function fetchSelfLoanActivity(rpcUrl: string, contractHash: string): Prom
   };
 }
 
-async function fetchNeoPayActivity(rpcUrl: string, contractHash: string): Promise<Activity> {
+async function fetchNeoPayActivity(
+  rpcUrl: string,
+  contractHash: string,
+): Promise<Activity> {
   const totalStack = await invokeRead(rpcUrl, contractHash, "totalStreams");
   const total = stackInt(totalStack);
-  if (total === 0) return { title: "Recent Streams", rows: [], emptyText: "No streams yet — create one above." };
+  if (total === 0)
+    return {
+      title: "Recent Streams",
+      rows: [],
+      emptyText: "No streams yet — create one above.",
+    };
 
-  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> = [];
+  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> =
+    [];
   const limit = Math.min(total, 6);
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getStreamDetails", [{ type: "Integer", value: String(id) }])
+      invokeRead(rpcUrl, contractHash, "getStreamDetails", [
+        { type: "Integer", value: String(id) },
+      ])
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );

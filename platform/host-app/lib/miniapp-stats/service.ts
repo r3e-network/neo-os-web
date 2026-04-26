@@ -7,7 +7,7 @@ import type { MiniAppStats, MiniAppLiveStatus } from "./types";
 import { statsCache, CACHE_TTL } from "./collector";
 import { supabase, isSupabaseConfigured } from "../supabase";
 import {
-  FLAGSHIP_APPS,
+  getFlagshipApps,
   getContractStats,
   getLiveStatus as getChainLiveStatus,
   getSharedModeContractStats,
@@ -41,7 +41,7 @@ export async function getMiniAppStats(
   }
 
   // Return default stats if not found
-  const flagship = FLAGSHIP_APPS[appId];
+  const flagship = getFlagshipApps(network)[appId];
   if (flagship) {
     const chainStats = await getContractStats(flagship.contract, network, appId);
     return {

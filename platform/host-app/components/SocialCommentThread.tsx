@@ -53,14 +53,21 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm">
       <div className="p-4 border-b border-gray-200">
-        <h3 className="font-semibold text-gray-900">Comments ({comments.length})</h3>
+        <h3 className="font-semibold text-gray-900">
+          Comments ({comments.length})
+        </h3>
       </div>
 
       {/* Error Display */}
       {displayError && (
-        <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div
+          role="alert"
+          className="p-3 bg-red-50 border border-red-200 rounded-lg"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-red-600 text-sm break-words">{displayError}</span>
+            <span className="text-red-600 text-sm break-words">
+              {displayError}
+            </span>
             <button
               type="button"
               onClick={() => {
@@ -99,12 +106,19 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
         </div>
       )}
 
-      {!canComment && <div className="p-4 border-b border-gray-200 text-gray-500 text-sm">Use this app to leave comments</div>}
+      {!canComment && (
+        <div className="p-4 border-b border-gray-200 text-gray-500 text-sm">
+          Use this app to leave comments
+        </div>
+      )}
 
       {/* Comments List */}
       {comments.length === 0 ? (
         <div className="p-8 text-center text-gray-500">
-          <MessageSquare className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+          <MessageSquare
+            className="mx-auto mb-2 h-8 w-8 opacity-50"
+            aria-hidden="true"
+          />
           <p>No comments yet</p>
         </div>
       ) : (
@@ -112,13 +126,23 @@ export const SocialCommentThread: React.FC<CommentThreadProps> = ({
           <ul className="divide-y divide-gray-200">
             {comments.map((comment) => (
               <li key={comment.id} className="px-4">
-                <CommentItem comment={comment} onVote={onVote} onReply={onReply} onLoadReplies={onLoadReplies} />
+                <CommentItem
+                  comment={comment}
+                  onVote={onVote}
+                  onReply={onReply}
+                  onLoadReplies={onLoadReplies}
+                />
               </li>
             ))}
           </ul>
           {hasMore && (
             <div className="p-4 text-center">
-              <button type="button" onClick={onLoadMore} disabled={loading} className="text-emerald-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg">
+              <button
+                type="button"
+                onClick={onLoadMore}
+                disabled={loading}
+                className="text-emerald-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+              >
                 {loading ? "Loading..." : "Load more comments"}
               </button>
             </div>

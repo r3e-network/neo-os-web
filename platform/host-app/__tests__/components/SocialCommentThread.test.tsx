@@ -80,13 +80,19 @@ describe("SocialCommentThread", () => {
   describe("Comment Form", () => {
     it("shows comment form when canComment is true", () => {
       render(<SocialCommentThread {...defaultProps} />);
-      expect(screen.getByPlaceholderText("Write a comment...")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("Write a comment..."),
+      ).toBeInTheDocument();
     });
 
     it("hides comment form when canComment is false", () => {
       render(<SocialCommentThread {...defaultProps} canComment={false} />);
-      expect(screen.queryByPlaceholderText("Write a comment...")).not.toBeInTheDocument();
-      expect(screen.getByText("Use this app to leave comments")).toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText("Write a comment..."),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText("Use this app to leave comments"),
+      ).toBeInTheDocument();
     });
 
     it("submits comment when clicking Post Comment", async () => {
@@ -104,7 +110,9 @@ describe("SocialCommentThread", () => {
     it("clears textarea after successful submit", async () => {
       render(<SocialCommentThread {...defaultProps} />);
 
-      const textarea = screen.getByPlaceholderText("Write a comment...") as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText(
+        "Write a comment...",
+      ) as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: "New comment" } });
       fireEvent.click(screen.getByText("Post Comment"));
 
@@ -122,7 +130,13 @@ describe("SocialCommentThread", () => {
 
   describe("Load More", () => {
     it("shows Load More button when hasMore is true", () => {
-      render(<SocialCommentThread {...defaultProps} hasMore={true} onLoadMore={mockOnLoadMore} />);
+      render(
+        <SocialCommentThread
+          {...defaultProps}
+          hasMore={true}
+          onLoadMore={mockOnLoadMore}
+        />,
+      );
       expect(screen.getByText("Load more comments")).toBeInTheDocument();
     });
 
@@ -132,7 +146,13 @@ describe("SocialCommentThread", () => {
     });
 
     it("calls onLoadMore when clicking Load More", async () => {
-      render(<SocialCommentThread {...defaultProps} hasMore={true} onLoadMore={mockOnLoadMore} />);
+      render(
+        <SocialCommentThread
+          {...defaultProps}
+          hasMore={true}
+          onLoadMore={mockOnLoadMore}
+        />,
+      );
 
       fireEvent.click(screen.getByText("Load more comments"));
 
@@ -142,7 +162,14 @@ describe("SocialCommentThread", () => {
     });
 
     it("shows Loading... when loading is true", () => {
-      render(<SocialCommentThread {...defaultProps} hasMore={true} loading={true} onLoadMore={mockOnLoadMore} />);
+      render(
+        <SocialCommentThread
+          {...defaultProps}
+          hasMore={true}
+          loading={true}
+          onLoadMore={mockOnLoadMore}
+        />,
+      );
       expect(screen.getByText("Loading...")).toBeInTheDocument();
     });
   });

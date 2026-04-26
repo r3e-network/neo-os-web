@@ -39,7 +39,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -50,18 +53,30 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // Validate required fields
-  if (!body.name || !body.description || !body.entry_url || !body.developer_address) {
+  if (
+    !body.name ||
+    !body.description ||
+    !body.entry_url ||
+    !body.developer_address
+  ) {
     return apiError.badRequest(res, "Missing required fields");
   }
 
   // Length limits
   if (body.name.length > 64 || body.description.length > 2000) {
-    return apiError.badRequest(res, "Name max 64 chars, description max 2000 chars");
+    return apiError.badRequest(
+      res,
+      "Name max 64 chars, description max 2000 chars",
+    );
   }
   if (body.developer_name && body.developer_name.length > 128) {
     return apiError.badRequest(res, "developer_name max 128 chars");
   }
-  if (body.icon && (body.icon.length > 64 || /[<>"']|:\/\/|^(javascript|data|vbscript):/i.test(body.icon))) {
+  if (
+    body.icon &&
+    (body.icon.length > 64 ||
+      /[<>"']|:\/\/|^(javascript|data|vbscript):/i.test(body.icon))
+  ) {
     return apiError.badRequest(res, "Invalid icon value");
   }
 
@@ -76,7 +91,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return apiError.badRequest(res, "Invalid developer_address format");
   }
   if (body.developer_address !== authedWallet) {
-    return apiError.forbidden(res, "developer_address must match authenticated wallet");
+    return apiError.forbidden(
+      res,
+      "developer_address must match authenticated wallet",
+    );
   }
 
   // Contract hash format (optional)
@@ -85,7 +103,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   // Category validation
-  const validCategories = ["gaming", "defi", "social", "nft", "governance", "utility"];
+  const validCategories = [
+    "gaming",
+    "defi",
+    "social",
+    "nft",
+    "governance",
+    "utility",
+  ];
   if (body.category && !validCategories.includes(body.category)) {
     return apiError.badRequest(res, "Invalid category");
   }
@@ -111,20 +136,26 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         status: "pending",
         submitted_at: new Date().toISOString(),
       })
-      .select("app_id,name,description,icon,category,entry_url,contract_hash,developer_address,developer_name,permissions,source,status,submitted_at")
+      .select(
+        "app_id,name,description,icon,category,entry_url,contract_hash,developer_address,developer_name,permissions,source,status,submitted_at",
+      )
       .single();
 
     if (error) throw error;
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       app_id,
       message: "MiniApp submitted for review",
       submission: data,
     });
+    return;
   } catch (error) {
-    logger.error("Submit error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Submit error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to submit MiniApp");
   }
 }

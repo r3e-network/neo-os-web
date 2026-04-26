@@ -10,11 +10,15 @@ jest.mock("next/router", () => ({
 }));
 
 jest.mock("../../components/layout", () => ({
-  Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+  Layout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }));
 
 jest.mock("../../components/AppDetailHeader", () => ({
-  AppDetailHeader: ({ app }: { app: { name: string } }) => <div data-testid="detail-header">{app.name}</div>,
+  AppDetailHeader: ({ app }: { app: { name: string } }) => (
+    <div data-testid="detail-header">{app.name}</div>
+  ),
 }));
 
 jest.mock("../../components/MiniAppPlayfield", () => ({
@@ -47,7 +51,10 @@ jest.mock("../../hooks/useActivityFeed", () => ({
 
 jest.mock("../../lib/wallet/store", () => ({
   useWalletStore: jest.fn((selector?: (state: any) => any) => {
-    const state = { connected: true, address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX" };
+    const state = {
+      connected: true,
+      address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+    };
     return typeof selector === "function" ? selector(state) : state;
   }),
   getWalletAdapter: jest.fn(() => ({
@@ -76,7 +83,14 @@ describe("MiniAppDetailPage shared invoke", () => {
           permissions: { payments: true },
           detail_template: {
             layout: "default",
-            tabs: [{ id: "overview", label: "Overview", type: "content", blocks: [] }],
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
             operation_panel: { title: "Create Shared Stream", operations: [] },
           },
           operations: [
@@ -84,17 +98,37 @@ describe("MiniAppDetailPage shared invoke", () => {
               name: "Create Stream",
               method: "createSharedStream",
               params: [
-                { name: "beneficiary", type: "address", label: "Beneficiary Address", required: true },
+                {
+                  name: "beneficiary",
+                  type: "address",
+                  label: "Beneficiary Address",
+                  required: true,
+                },
                 {
                   name: "asset",
                   type: "select",
                   label: "Asset",
                   required: true,
                   default_value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
-                  options: [{ label: "GAS", value: "0xd2a4cff31913016155e38e474a2c06d08be276cf" }],
+                  options: [
+                    {
+                      label: "GAS",
+                      value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+                    },
+                  ],
                 },
-                { name: "totalAmount", type: "amount", label: "Total Amount", required: true },
-                { name: "rateAmount", type: "amount", label: "Release Per Interval", required: true },
+                {
+                  name: "totalAmount",
+                  type: "amount",
+                  label: "Total Amount",
+                  required: true,
+                },
+                {
+                  name: "rateAmount",
+                  type: "amount",
+                  label: "Release Per Interval",
+                  required: true,
+                },
                 {
                   name: "intervalSeconds",
                   type: "select",
@@ -103,8 +137,18 @@ describe("MiniAppDetailPage shared invoke", () => {
                   default_value: "2592000",
                   options: [{ label: "Monthly", value: "2592000" }],
                 },
-                { name: "title", type: "string", label: "Stream Name", required: true },
-                { name: "notes", type: "string", label: "Notes", required: false },
+                {
+                  name: "title",
+                  type: "string",
+                  label: "Stream Name",
+                  required: true,
+                },
+                {
+                  name: "notes",
+                  type: "string",
+                  label: "Notes",
+                  required: false,
+                },
               ],
             },
           ],
@@ -203,9 +247,18 @@ describe("MiniAppDetailPage shared invoke", () => {
         operation: "createStream",
         args: [
           { type: "String", value: "neopay:testnet:default" },
-          { type: "Hash160", value: "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56" },
-          { type: "Hash160", value: "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56" },
-          { type: "Hash160", value: "0xd2a4cff31913016155e38e474a2c06d08be276cf" },
+          {
+            type: "Hash160",
+            value: "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+          },
+          {
+            type: "Hash160",
+            value: "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+          },
+          {
+            type: "Hash160",
+            value: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          },
           { type: "Integer", value: "2000000000" },
           { type: "Integer", value: "150000000" },
           { type: "Integer", value: "2592000" },

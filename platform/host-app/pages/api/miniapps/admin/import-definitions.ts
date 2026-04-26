@@ -8,7 +8,10 @@ import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { loadMiniAppDefinitionPayloads } from "@/lib/miniapp-definitions";
 import { validateMiniAppDefinitionAgainstSchema } from "@/lib/miniapp-schema-validator";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 import schema from "@/public/miniapp-definitions/miniapp-config.schema.json";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
@@ -51,9 +54,13 @@ type MiniAppConfigSchema = {
 
 const miniAppConfigSchema = schema as MiniAppConfigSchema;
 const REQUIRED_TOP_LEVEL_FIELDS = Array.isArray(miniAppConfigSchema.required)
-  ? miniAppConfigSchema.required.filter((field): field is string => typeof field === "string" && field.length > 0)
+  ? miniAppConfigSchema.required.filter(
+      (field): field is string => typeof field === "string" && field.length > 0,
+    )
   : [];
-const TEMPLATE_TYPE_ENUM = Array.isArray(miniAppConfigSchema.properties?.template_type?.enum)
+const TEMPLATE_TYPE_ENUM = Array.isArray(
+  miniAppConfigSchema.properties?.template_type?.enum,
+)
   ? new Set(
       miniAppConfigSchema.properties?.template_type?.enum
         ?.filter((value): value is string => typeof value === "string")
@@ -72,7 +79,12 @@ function parseBoolean(value: unknown): boolean {
   if (typeof value === "number") return value === 1;
   if (typeof value !== "string") return false;
   const normalized = value.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -88,7 +100,11 @@ function validateDefinitionPayload(payload: unknown): string | null {
 
   for (const requiredField of REQUIRED_TOP_LEVEL_FIELDS) {
     const value = obj[requiredField];
-    if (value === undefined || value === null || asTrimmedString(value).length === 0) {
+    if (
+      value === undefined ||
+      value === null ||
+      asTrimmedString(value).length === 0
+    ) {
       return `Missing required field: ${requiredField}`;
     }
   }
@@ -111,8 +127,13 @@ function validateDefinitionPayload(payload: unknown): string | null {
   return null;
 }
 
-function resolveDryRun(req: NextApiRequest, body: Record<string, unknown>): boolean {
-  const rawQueryValue = Array.isArray(req.query.dry_run) ? req.query.dry_run[0] : req.query.dry_run;
+function resolveDryRun(
+  req: NextApiRequest,
+  body: Record<string, unknown>,
+): boolean {
+  const rawQueryValue = Array.isArray(req.query.dry_run)
+    ? req.query.dry_run[0]
+    : req.query.dry_run;
   if (rawQueryValue !== undefined) return parseBoolean(rawQueryValue);
   return parseBoolean(body.dry_run);
 }
@@ -124,14 +145,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
   if (!admin) return;
 
   const body = req.body;
-  if (body !== undefined && (typeof body !== "object" || body === null || Array.isArray(body))) {
+  if (
+    body !== undefined &&
+    (typeof body !== "object" || body === null || Array.isArray(body))
+  ) {
     return apiError.badRequest(res, "Invalid request body");
   }
   const bodyObj = (body as Record<string, unknown> | undefined) || {};
@@ -139,7 +166,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const loaded = await loadMiniAppDefinitionPayloads();
@@ -179,7 +209,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         .maybeSingle();
 
       if (error) {
-        logger.error("miniapp import existing fetch error:", error instanceof Error ? error.message : String(error));
+        logger.error(
+          "miniapp import existing fetch error:",
+          error instanceof Error ? error.message : String(error),
+        );
         results.push({
           file: definition.fileName,
           app_id: rawAppId,
@@ -194,7 +227,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const normalized = normalizeMiniAppAdminPayload(definition.payload, {
       existing,
       actor: admin.kind === "wallet" ? admin.value : "api_key",
-      defaultDeveloperUserId: process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
+      defaultDeveloperUserId:
+        process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
     });
 
     const normalizedAppId = normalized.ok ? normalized.row.app_id : rawAppId;
@@ -220,7 +254,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       continue;
     }
 
-    const { error: upsertError } = await supabase.from("miniapps").upsert(normalized.row, { onConflict: "app_id" });
+    const { error: upsertError } = await supabase
+      .from("miniapps")
+      .upsert(normalized.row, { onConflict: "app_id" });
     if (upsertError) {
       logger.error("miniapp import upsert failed:", upsertError.message);
       results.push({
@@ -274,13 +310,14 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   );
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     success: summary.failed === 0,
     dry_run: dryRun,
     definitions_dir: loaded.definitionsDir,
     summary,
     results,
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

@@ -20,7 +20,11 @@ function parseFederatedOrigins(): string[] {
     .filter(Boolean);
 
   for (const entry of entries) {
-    const separator = entry.includes("@") ? "@" : entry.includes("=") ? "=" : null;
+    const separator = entry.includes("@")
+      ? "@"
+      : entry.includes("=")
+        ? "="
+        : null;
     if (!separator) continue;
     const [, urlRaw] = entry.split(separator);
     const url = String(urlRaw || "").trim();
@@ -41,7 +45,11 @@ function buildCSP(nonce: string): string {
   const federatedOrigins = parseFederatedOrigins();
 
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
-  const frameSrc = frameOrigins ? `'self' ${frameOrigins}` : isDev ? "'self' https:" : "'self'";
+  const frameSrc = frameOrigins
+    ? `'self' ${frameOrigins}`
+    : isDev
+      ? "'self' https:"
+      : "'self'";
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
@@ -52,7 +60,9 @@ function buildCSP(nonce: string): string {
     try {
       const wssOrigin = new URL(supabaseUrl).origin.replace(/^https:/, "wss:");
       connectSources.push(wssOrigin);
-    } catch {/* malformed env, fall through */}
+    } catch {
+      /* malformed env, fall through */
+    }
   } else if (isDev) {
     connectSources.push("https:");
     connectSources.push("wss:");
@@ -64,11 +74,9 @@ function buildCSP(nonce: string): string {
     "https://*.supabase.co",
     "wss://*.supabase.co",
     "https://*.r3e.network",
+    "https://*.seed.r3e.network",
     "https://*.neo.coz.io",
     "https://*.sentry.io",
-    "https://rpc*.seed.r3e.network",
-    "https://mainnet*.neo.coz.io",
-    "https://testnet*.neo.coz.io",
     "https://oracle.meshmini.app",
     "https://edge.meshmini.app",
     "https://control.meshmini.app",
@@ -108,15 +116,25 @@ function buildCSP(nonce: string): string {
 function setSecurityHeaders(res: NextResponse): void {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set(
+    "Strict-Transport-Security",
+    "max-age=63072000; includeSubDomains; preload",
+  );
+  res.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
   res.headers.set("X-Frame-Options", "DENY");
 }
 
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
-  if (pathname.startsWith("/_next/") || pathname.startsWith("/favicon") || pathname.startsWith("/robots")) {
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/robots")
+  ) {
     const res = NextResponse.next();
     setSecurityHeaders(res);
     return res;

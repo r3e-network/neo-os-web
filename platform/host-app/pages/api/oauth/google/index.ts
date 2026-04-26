@@ -17,7 +17,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const state = generateState();
 
   res.setHeader("Cache-Control", "no-store, private");
-  res.setHeader("Set-Cookie", `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`);
+  res.setHeader(
+    "Set-Cookie",
+    `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600${process.env.NODE_ENV === "production" ? "; Secure" : ""}`,
+  );
 
   const authUrl =
     `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -29,7 +32,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     `access_type=offline&` +
     `prompt=consent`;
 
-  return res.redirect(authUrl);
+  res.redirect(authUrl);
+  return;
 }
 
 function generateState(): string {

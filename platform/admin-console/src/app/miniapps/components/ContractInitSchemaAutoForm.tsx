@@ -84,17 +84,27 @@ export function ContractInitSchemaAutoForm({
               ) : (
                 <input
                   id={`field-${field.key}`}
-                  type={field.type === "number" || field.type === "integer" ? "number" : "text"}
+                  type={
+                    field.type === "number" || field.type === "integer"
+                      ? "number"
+                      : "text"
+                  }
                   step={field.type === "number" ? "any" : undefined}
                   value={displayValue}
                   onChange={(event) => onChange(field, event.target.value)}
-                  placeholder={field.defaultValue !== undefined ? String(field.defaultValue) : ""}
+                  placeholder={
+                    field.defaultValue !== undefined
+                      ? String(field.defaultValue)
+                      : ""
+                  }
                   className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2 text-sm dark:bg-gray-800 dark:text-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                   aria-label={field.label}
                 />
               )}
               {field.description ? (
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">{field.description}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {field.description}
+                </p>
               ) : null}
             </div>
           );

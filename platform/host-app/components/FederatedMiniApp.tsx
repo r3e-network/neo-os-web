@@ -29,7 +29,10 @@ type RemoteContainer = {
   __initialized?: boolean;
 };
 
-class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: Error }> {
+class RemoteErrorBoundary extends Component<
+  { children: ReactNode },
+  { error?: Error }
+> {
   state: { error?: Error } = {};
 
   static getDerivedStateFromError(error: Error) {
@@ -40,8 +43,13 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
     if (!this.state.error) return this.props.children;
 
     return (
-      <div className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md" role="alert">
-        <div className="font-semibold text-gray-900 mb-1.5">Failed to load federated MiniApp</div>
+      <div
+        className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md"
+        role="alert"
+      >
+        <div className="font-semibold text-gray-900 mb-1.5">
+          Failed to load federated MiniApp
+        </div>
         <div className="text-xs text-red-600">{this.state.error.message}</div>
       </div>
     );
@@ -51,7 +59,9 @@ class RemoteErrorBoundary extends Component<{ children: ReactNode }, { error?: E
 function NotConfiguredMessage() {
   return (
     <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center max-w-md">
-      <h3 className="m-0 mb-3 text-gray-600">Module Federation Not Configured</h3>
+      <h3 className="m-0 mb-3 text-gray-600">
+        Module Federation Not Configured
+      </h3>
       <p className="m-0 text-sm text-gray-500">
         Set <code>NEXT_PUBLIC_MF_REMOTES</code> to enable federated MiniApps.
       </p>
@@ -60,7 +70,8 @@ function NotConfiguredMessage() {
 }
 
 function FederatedLoader({ remote, appId, view }: Props) {
-  const [LoadedComponent, setLoadedComponent] = useState<React.ComponentType<Props> | null>(null);
+  const [LoadedComponent, setLoadedComponent] =
+    useState<React.ComponentType<Props> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,14 +95,20 @@ function FederatedLoader({ remote, appId, view }: Props) {
         const mod = await loadFederatedModule(remoteConfig, "App");
         if (mounted) {
           const component =
-            (mod as { default?: React.ComponentType<Props>; App?: React.ComponentType<Props> }).default ??
-            (mod as { App?: React.ComponentType<Props> }).App;
+            (
+              mod as {
+                default?: React.ComponentType<Props>;
+                App?: React.ComponentType<Props>;
+              }
+            ).default ?? (mod as { App?: React.ComponentType<Props> }).App;
           setLoadedComponent(() => component ?? null);
           setLoading(false);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : "Failed to load module");
+          setError(
+            err instanceof Error ? err.message : "Failed to load module",
+          );
           setLoading(false);
         }
       }
@@ -104,17 +121,28 @@ function FederatedLoader({ remote, appId, view }: Props) {
     };
   }, [remote]);
 
-  if (loading) return <p className="text-sm text-gray-500" aria-busy="true">Loading federated MiniApp…</p>;
+  if (loading)
+    return (
+      <p className="text-sm text-gray-500" aria-busy="true">
+        Loading federated MiniApp…
+      </p>
+    );
   if (error) {
     return (
-      <div className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md" role="alert">
-        <div className="font-semibold text-gray-900 mb-1.5">Failed to load federated MiniApp</div>
+      <div
+        className="p-3 border border-red-200 rounded-lg bg-red-50 max-w-md"
+        role="alert"
+      >
+        <div className="font-semibold text-gray-900 mb-1.5">
+          Failed to load federated MiniApp
+        </div>
         <div className="text-xs text-red-600">{error}</div>
       </div>
     );
   }
 
-  if (!LoadedComponent) return <p className="text-sm text-gray-500">Module not available</p>;
+  if (!LoadedComponent)
+    return <p className="text-sm text-gray-500">Module not available</p>;
   return <LoadedComponent appId={appId} view={view} remote={remote} />;
 }
 
@@ -127,7 +155,11 @@ export function FederatedMiniApp(props: Props) {
 
   if (!hasFederatedRemotes()) return <NotConfiguredMessage />;
   if (!mounted) {
-    return <p className="text-sm text-gray-500" aria-busy="true">Loading federated MiniApp…</p>;
+    return (
+      <p className="text-sm text-gray-500" aria-busy="true">
+        Loading federated MiniApp…
+      </p>
+    );
   }
   return (
     <RemoteErrorBoundary>
@@ -135,7 +167,6 @@ export function FederatedMiniApp(props: Props) {
     </RemoteErrorBoundary>
   );
 }
-
 
 function resolveRemote(remoteName: string): RemoteConfig | null {
   const remotes = parseRemotes(process.env.NEXT_PUBLIC_MF_REMOTES || "");
@@ -151,14 +182,20 @@ function parseRemotes(raw: string): RemoteConfig[] {
 
   const remotes: RemoteConfig[] = [];
   for (const entry of entries) {
-    const separator = entry.includes("@") ? "@" : entry.includes("=") ? "=" : null;
+    const separator = entry.includes("@")
+      ? "@"
+      : entry.includes("=")
+        ? "="
+        : null;
     if (!separator) continue;
     const [nameRaw, urlRaw] = entry.split(separator);
     const name = String(nameRaw || "").trim();
     const url = String(urlRaw || "").trim();
     if (!name || !url) continue;
 
-    const normalizedURL = url.endsWith(".js") ? url : `${url.replace(/\/$/, "")}/_next/static/chunks/remoteEntry.js`;
+    const normalizedURL = url.endsWith(".js")
+      ? url
+      : `${url.replace(/\/$/, "")}/_next/static/chunks/remoteEntry.js`;
     remotes.push({ name, entry: normalizedURL });
   }
 
@@ -174,7 +211,10 @@ async function loadFederatedModule(remote: RemoteConfig, module: string) {
   const container = await loadRemoteContainer(remote);
 
   if (!container.__initialized) {
-    const shareScope = typeof __webpack_share_scopes__ !== "undefined" ? __webpack_share_scopes__.default : undefined;
+    const shareScope =
+      typeof __webpack_share_scopes__ !== "undefined"
+        ? __webpack_share_scopes__.default
+        : undefined;
     await container.init(shareScope);
     container.__initialized = true;
   }
@@ -212,7 +252,9 @@ function loadRemoteContainer(remote: RemoteConfig): Promise<RemoteContainer> {
   }
 
   const loader = new Promise<RemoteContainer>((resolve, reject) => {
-    const existing = (window as unknown as Record<string, unknown>)[remote.name] as RemoteContainer | undefined;
+    const existing = (window as unknown as Record<string, unknown>)[
+      remote.name
+    ] as RemoteContainer | undefined;
     if (existing) {
       resolve(existing);
       return;
@@ -231,7 +273,9 @@ function loadRemoteContainer(remote: RemoteConfig): Promise<RemoteContainer> {
     };
     script.onload = () => {
       pendingScripts.delete(cacheKey);
-      const container = (window as unknown as Record<string, unknown>)[remote.name] as RemoteContainer | undefined;
+      const container = (window as unknown as Record<string, unknown>)[
+        remote.name
+      ] as RemoteContainer | undefined;
       if (!container) {
         cleanup();
         reject(new Error(`Remote container "${remote.name}" not found`));

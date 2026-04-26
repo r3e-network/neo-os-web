@@ -36,13 +36,13 @@
   .neo-gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-[#00E599] via-[#00D4FF] to-[#7000FF];
   }
-  
+
   .neo-glow {
     @apply relative after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[0_0_20px_rgba(0,229,153,0.3)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 after:z-[-1];
   }
 
   .animated-gradient-bg {
-    background: linear-gradient(-45deg, #00E599, #00D4FF, #7000FF, #FF00E5);
+    background: linear-gradient(-45deg, #00e599, #00d4ff, #7000ff, #ff00e5);
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
   }
@@ -62,9 +62,15 @@
 }
 
 @keyframes gradient-shift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Hide scrollbar utility */
@@ -84,8 +90,8 @@
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   Docs Page — Professional Typography
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+ Docs Page — Professional Typography
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 /* Inline code pills within prose sections */
 .prose code:not(pre code) {
@@ -93,7 +99,7 @@
   background: rgba(0, 229, 153, 0.06);
   color: rgb(0, 180, 120);
   border: 1px solid rgba(0, 229, 153, 0.12);
-  font-family: ui-monospace, 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
 }
 
 /* Blockquote callout style in prose */
@@ -114,7 +120,12 @@
 .prose hr {
   @apply !my-10 border-none;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0, 229, 153, 0.15), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 229, 153, 0.15),
+    transparent
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -6,13 +6,25 @@ import { useNotificationStore } from "@/lib/notifications/store";
 import type { DigestFrequency } from "@/lib/notifications/types";
 
 export function NotificationSettings() {
-  const { preferences, updatePreferences, bindEmail, verifyEmail, loading, error, clearError } = useNotificationStore();
+  const {
+    preferences,
+    updatePreferences,
+    bindEmail,
+    verifyEmail,
+    loading,
+    error,
+    clearError,
+  } = useNotificationStore();
   const [emailInput, setEmailInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [showVerify, setShowVerify] = useState(false);
 
   if (!preferences) {
-    return <div className="p-4 text-gray-500">Connect wallet to manage notifications</div>;
+    return (
+      <div className="p-4 text-gray-500">
+        Connect wallet to manage notifications
+      </div>
+    );
   }
 
   const handleBindEmail = async () => {
@@ -39,25 +51,43 @@ export function NotificationSettings() {
     <div className="space-y-6">
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-600" role="alert">{error}</p>
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
         </div>
       )}
       {/* Email Section */}
-      <SettingsSection title="Email Notifications" icon={<Mail size={18} aria-hidden="true" />}>
+      <SettingsSection
+        title="Email Notifications"
+        icon={<Mail size={18} aria-hidden="true" />}
+      >
         {preferences.email && preferences.emailVerified ? (
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">{preferences.email}</span>
             <span className="text-xs text-emerald-500">✓ Verified</span>
           </div>
         ) : showVerify ? (
-          <VerifyCodeInput code={codeInput} onChange={setCodeInput} onVerify={handleVerify} loading={loading} />
+          <VerifyCodeInput
+            code={codeInput}
+            onChange={setCodeInput}
+            onVerify={handleVerify}
+            loading={loading}
+          />
         ) : (
-          <EmailBindInput email={emailInput} onChange={setEmailInput} onBind={handleBindEmail} loading={loading} />
+          <EmailBindInput
+            email={emailInput}
+            onChange={setEmailInput}
+            onBind={handleBindEmail}
+            loading={loading}
+          />
         )}
       </SettingsSection>
 
       {/* Notification Types */}
-      <SettingsSection title="Notification Types" icon={<Bell size={18} aria-hidden="true" />}>
+      <SettingsSection
+        title="Notification Types"
+        icon={<Bell size={18} aria-hidden="true" />}
+      >
         <ToggleItem
           label="MiniApp Results"
           description="Wins, losses, and game outcomes"
@@ -79,7 +109,10 @@ export function NotificationSettings() {
       </SettingsSection>
 
       {/* Digest Frequency */}
-      <SettingsSection title="Digest Frequency" icon={<Clock size={18} aria-hidden="true" />}>
+      <SettingsSection
+        title="Digest Frequency"
+        icon={<Clock size={18} aria-hidden="true" />}
+      >
         <FrequencySelector
           value={preferences.digestFrequency}
           onChange={(v) => updatePreferences({ digestFrequency: v })}
@@ -189,7 +222,9 @@ function VerifyCodeInput({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-500">Enter the verification code sent to your email</p>
+      <p className="text-xs text-gray-500">
+        Enter the verification code sent to your email
+      </p>
       <div className="flex gap-2">
         <input
           id="verification-code"
@@ -214,7 +249,13 @@ function VerifyCodeInput({
   );
 }
 
-function FrequencySelector({ value, onChange }: { value: DigestFrequency; onChange: (v: DigestFrequency) => void }) {
+function FrequencySelector({
+  value,
+  onChange,
+}: {
+  value: DigestFrequency;
+  onChange: (v: DigestFrequency) => void;
+}) {
   const options: { value: DigestFrequency; label: string; desc: string }[] = [
     { value: "instant", label: "Instant", desc: "Get notified immediately" },
     { value: "hourly", label: "Hourly", desc: "Digest every hour" },

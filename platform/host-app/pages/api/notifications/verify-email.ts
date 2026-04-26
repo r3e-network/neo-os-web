@@ -15,7 +15,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const { wallet, code } = req.body;
 
-  if (!wallet || typeof wallet !== "string" || !code || typeof code !== "string") {
+  if (
+    !wallet ||
+    typeof wallet !== "string" ||
+    !code ||
+    typeof code !== "string"
+  ) {
     return apiError.badRequest(res, "Wallet and code required");
   }
 
@@ -28,7 +33,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -49,7 +57,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({ success: true });
+  res.status(200).json({ success: true });
+  return;
 }
 
 export default withCsrfProtection(handler);

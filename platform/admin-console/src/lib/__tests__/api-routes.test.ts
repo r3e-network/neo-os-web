@@ -11,13 +11,25 @@ const API_KEY = "test-admin-key-123";
 function authedRequest(url: string, init?: RequestInit) {
   return new Request(url, {
     ...init,
-    headers: { "x-admin-key": API_KEY, ...(init?.headers as Record<string, string>) },
+    headers: {
+      "x-admin-key": API_KEY,
+      ...(init?.headers as Record<string, string>),
+    },
   });
 }
 
 /** Minimal mock Response with optional content-range header. */
-function mockJsonResponse(body: unknown, { ok = true, status = 200, contentRange }: { ok?: boolean; status?: number; contentRange?: string } = {}) {
-  const headersInit: Record<string, string> = { "content-type": "application/json" };
+function mockJsonResponse(
+  body: unknown,
+  {
+    ok = true,
+    status = 200,
+    contentRange,
+  }: { ok?: boolean; status?: number; contentRange?: string } = {},
+) {
+  const headersInit: Record<string, string> = {
+    "content-type": "application/json",
+  };
   if (contentRange) {
     headersInit["content-range"] = contentRange;
   }
@@ -27,7 +39,8 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200, contentRange
     status,
     statusText: ok ? "OK" : "Error",
     json: () => Promise.resolve(body),
-    text: () => Promise.resolve(typeof body === "string" ? body : JSON.stringify(body)),
+    text: () =>
+      Promise.resolve(typeof body === "string" ? body : JSON.stringify(body)),
     headers: new Headers(headersInit),
   } as Response);
 }
@@ -43,7 +56,10 @@ beforeEach(() => {
   vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "srk");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://supabase.test");
   vi.stubEnv("MINIAPP_HOST_APP_BASE_URL", "http://host-app.test");
-  vi.stubEnv("CONTRACT_APPREGISTRY_HASH", "0x1111111111111111111111111111111111111111");
+  vi.stubEnv(
+    "CONTRACT_APPREGISTRY_HASH",
+    "0x1111111111111111111111111111111111111111",
+  );
   vi.stubEnv("MINIAPP_PUBLISH_APPROVAL_REQUIRED", "true");
   fetchSpy = vi.fn();
   vi.stubGlobal("fetch", fetchSpy);
@@ -59,7 +75,7 @@ afterEach(() => {
 // Dynamic import helper – must be called AFTER env vars are set so
 // admin-auth picks up the key at module evaluation time.
 async function importRoute<T>(path: string): Promise<T> {
-  return await import(path) as T;
+  return (await import(path)) as T;
 }
 
 function routeParams(id: string): Promise<{ id: string }> {
@@ -72,13 +88,17 @@ function routeParams(id: string): Promise<{ id: string }> {
 
 describe("Admin auth (shared)", () => {
   it("missing auth header → 401", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const res = await GET(new Request("http://localhost/api/analytics"));
     expect(res.status).toBe(401);
   });
 
   it("invalid auth header → 401", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const req = new Request("http://localhost/api/analytics", {
       headers: { "x-admin-key": "wrong-key" },
     });
@@ -87,8 +107,12 @@ describe("Admin auth (shared)", () => {
   });
 
   it("valid auth header → not 401", async () => {
-    fetchSpy.mockImplementation(() => mockJsonResponse([], { contentRange: "0-0/0" }));
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    fetchSpy.mockImplementation(() =>
+      mockJsonResponse([], { contentRange: "0-0/0" }),
+    );
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const res = await GET(authedRequest("http://localhost/api/analytics"));
     expect(res.status).not.toBe(401);
   });
@@ -102,7 +126,9 @@ describe("GET /api/analytics", () => {
   it("returns analytics data with correct shape", async () => {
     fetchSpy.mockImplementation((url: string) => {
       if (url.includes("rpc/get_usage_by_app")) {
-        return mockJsonResponse([{ app_id: "a", total_gas: 10, user_count: 1 }]);
+        return mockJsonResponse([
+          { app_id: "a", total_gas: 10, user_count: 1 },
+        ]);
       }
       if (url.includes("miniapp_usage") && url.includes("gte.")) {
         return mockJsonResponse([{ usage_date: "2026-02-15", gas_used: 5 }]);
@@ -114,7 +140,9 @@ describe("GET /api/analytics", () => {
       return mockJsonResponse([], { contentRange: "0-0/7" });
     });
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const res = await GET(authedRequest("http://localhost/api/analytics"));
     const data = await res.json();
 
@@ -131,7 +159,9 @@ describe("GET /api/analytics", () => {
 
   it("handles Supabase timeout gracefully → 500", async () => {
     fetchSpy.mockRejectedValue(new Error("timeout"));
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const res = await GET(authedRequest("http://localhost/api/analytics"));
     expect(res.status).toBe(500);
   });
@@ -143,7 +173,9 @@ describe("GET /api/analytics", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.resetModules();
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/route");
     const res = await GET(authedRequest("http://localhost/api/analytics"));
     const data = await res.json();
 
@@ -162,8 +194,12 @@ describe("GET /api/analytics/by-app", () => {
     const payload = [{ app_id: "x", gas_used: 50, tx_count: 3 }];
     fetchSpy.mockReturnValue(mockJsonResponse(payload));
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");
-    const res = await GET(authedRequest("http://localhost/api/analytics/by-app"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/by-app/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/analytics/by-app"),
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -171,10 +207,16 @@ describe("GET /api/analytics/by-app", () => {
   });
 
   it("handles Supabase error → 500", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ error: "db" }, { ok: false, status: 502 }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({ error: "db" }, { ok: false, status: 502 }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");
-    const res = await GET(authedRequest("http://localhost/api/analytics/by-app"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/by-app/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/analytics/by-app"),
+    );
     expect(res.status).toBe(500);
   });
 
@@ -185,8 +227,12 @@ describe("GET /api/analytics/by-app", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     vi.resetModules();
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/analytics/by-app/route");
-    const res = await GET(authedRequest("http://localhost/api/analytics/by-app"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/analytics/by-app/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/analytics/by-app"),
+    );
     const data = await res.json();
 
     expect(res.status).toBe(500);
@@ -202,28 +248,44 @@ describe("GET /api/analytics/by-app", () => {
 describe("GET /api/services/health", () => {
   it("returns health check array", async () => {
     fetchSpy.mockImplementation(() =>
-      mockJsonResponse([{ name: "service-a", status: "healthy", version: "1.0.0" }]),
+      mockJsonResponse([
+        { name: "service-a", status: "healthy", version: "1.0.0" },
+      ]),
     );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/services/health/route");
-    const res = await GET(authedRequest("http://localhost/api/services/health"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/services/health/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/services/health"),
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
-    expect(data[0]).toMatchObject({ name: expect.any(String), status: "healthy" });
+    expect(data[0]).toMatchObject({
+      name: expect.any(String),
+      status: "healthy",
+    });
   });
 
-  it("handles service timeout -> unhealthy status, not crash", async () => {
+  it("handles service timeout with fallback health rows, not crash", async () => {
     fetchSpy.mockRejectedValue(new Error("timeout"));
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/services/health/route");
-    const res = await GET(authedRequest("http://localhost/api/services/health"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/services/health/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/services/health"),
+    );
     const data = await res.json();
 
-    expect(res.status).toBe(500);
-    expect(data.error).toContain("timeout");
+    expect(res.status).toBe(200);
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toMatchObject({ status: "unknown" });
+    expect(data[0].error).toContain("timeout");
   });
 });
 
@@ -243,7 +305,9 @@ describe("POST /api/miniapps/update-status", () => {
   }
 
   it("missing body → 400", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/update-status/route");
     // Send request with no body – req.json() will throw
     const req = authedRequest(url, { method: "POST" });
     const res = await POST(req);
@@ -251,20 +315,26 @@ describe("POST /api/miniapps/update-status", () => {
   });
 
   it("invalid appId format → 400", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/update-status/route");
     const res = await POST(postReq({ appId: "INVALID!!!", status: "active" }));
     expect(res.status).toBe(400);
   });
 
   it("invalid status value → 400", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/update-status/route");
     const res = await POST(postReq({ appId: "my-app", status: "deleted" }));
     expect(res.status).toBe(400);
   });
 
   it("valid request → 200", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/update-status/route");
     const res = await POST(postReq({ appId: "my-app", status: "active" }));
     expect(res.status).toBe(200);
     const payload = await res.json();
@@ -272,16 +342,26 @@ describe("POST /api/miniapps/update-status", () => {
       success: true,
     });
 
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/status");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body).toEqual({ app_id: "my-app", status: "active" });
   });
 
   it("forwards host-admin errors", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ error: "Host denied status change" }, { ok: false, status: 403 }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse(
+        { error: "Host denied status change" },
+        { ok: false, status: 403 },
+      ),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/update-status/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/update-status/route");
     const res = await POST(postReq({ appId: "my-app", status: "active" }));
 
     expect(res.status).toBe(403);
@@ -308,16 +388,23 @@ describe("POST /api/miniapps/create", () => {
   it("proxies create to host admin upsert", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/create/route");
-    const res = await POST(postReq({
-      app_id: "miniapp-create-test",
-      name: "Create Test",
-      entry_url: "https://example.com/create",
-      template_type: "default",
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+    const res = await POST(
+      postReq({
+        app_id: "miniapp-create-test",
+        name: "Create Test",
+        entry_url: "https://example.com/create",
+        template_type: "default",
+      }),
+    );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/upsert");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.app_id).toBe("miniapp-create-test");
@@ -327,14 +414,18 @@ describe("POST /api/miniapps/create", () => {
   it("preserves explicit action when provided", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/create/route");
-    const res = await POST(postReq({
-      app_id: "miniapp-create-test",
-      name: "Create Test",
-      entry_url: "https://example.com/create",
-      template_type: "default",
-      action: "publish",
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+    const res = await POST(
+      postReq({
+        app_id: "miniapp-create-test",
+        name: "Create Test",
+        entry_url: "https://example.com/create",
+        template_type: "default",
+        action: "publish",
+      }),
+    );
 
     expect(res.status).toBe(200);
     const [, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -343,23 +434,34 @@ describe("POST /api/miniapps/create", () => {
   });
 
   it("rejects invalid create payload", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/create/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
     const res = await POST(postReq({}));
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("passes through publish-request response status", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ success: true, action: "publish_requested" }, { status: 202 }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse(
+        { success: true, action: "publish_requested" },
+        { status: 202 },
+      ),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/create/route");
-    const res = await POST(postReq({
-      app_id: "miniapp-create-test",
-      name: "Create Test",
-      entry_url: "https://example.com/create",
-      template_type: "default",
-      action: "publish",
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/create/route");
+    const res = await POST(
+      postReq({
+        app_id: "miniapp-create-test",
+        name: "Create Test",
+        entry_url: "https://example.com/create",
+        template_type: "default",
+        action: "publish",
+      }),
+    );
 
     expect(res.status).toBe(202);
     const payload = await res.json();
@@ -373,16 +475,28 @@ describe("POST /api/miniapps/create", () => {
 
 describe("GET /api/miniapps/versions", () => {
   it("rejects invalid app_id", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/versions/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/versions?app_id=INVALID!!!"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/versions/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/miniapps/versions?app_id=INVALID!!!"),
+    );
     expect(res.status).toBe(400);
   });
 
   it("proxies version list request to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ app_id: "my-app", versions: [] }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({ app_id: "my-app", versions: [] }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/versions/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/versions?app_id=my-app&release_channel=published"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/versions/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/versions?app_id=my-app&release_channel=published",
+      ),
+    );
 
     expect(res.status).toBe(200);
     const [calledUrl] = fetchSpy.mock.calls[0] as [string];
@@ -393,8 +507,14 @@ describe("GET /api/miniapps/versions", () => {
   });
 
   it("rejects invalid release_channel", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/versions/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/versions?app_id=my-app&release_channel=invalid"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/versions/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/versions?app_id=my-app&release_channel=invalid",
+      ),
+    );
     expect(res.status).toBe(400);
   });
 });
@@ -415,7 +535,9 @@ describe("POST /api/miniapps/rollback", () => {
   }
 
   it("rejects rollback payload without version selector", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/rollback/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/rollback/route");
     const res = await POST(postReq({ app_id: "my-app" }));
     expect(res.status).toBe(400);
   });
@@ -423,15 +545,22 @@ describe("POST /api/miniapps/rollback", () => {
   it("proxies rollback request to host admin endpoint", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/rollback/route");
-    const res = await POST(postReq({
-      app_id: "my-app",
-      version_id: "a1b2c3d4-e5f6-4711-8222-aabbccddeeff",
-      release_channel: "published",
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/rollback/route");
+    const res = await POST(
+      postReq({
+        app_id: "my-app",
+        version_id: "a1b2c3d4-e5f6-4711-8222-aabbccddeeff",
+        release_channel: "published",
+      }),
+    );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/rollback");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.app_id).toBe("my-app");
@@ -446,20 +575,28 @@ describe("POST /api/miniapps/rollback", () => {
 
 describe("/api/miniapps/publish-requests", () => {
   it("GET proxies publish request list", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      status: "pending",
-      requests: [],
-      sla: {
-        minutes: 60,
-        escalation_minutes: 180,
-        pending: 0,
-        sla_breached: 0,
-        escalated: 0,
-      },
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        status: "pending",
+        requests: [],
+        sla: {
+          minutes: 60,
+          escalation_minutes: 180,
+          pending: 0,
+          sla_breached: 0,
+          escalated: 0,
+        },
+      }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests?app_id=my-app&status=pending"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests?app_id=my-app&status=pending",
+      ),
+    );
 
     expect(res.status).toBe(200);
     const [calledUrl] = fetchSpy.mock.calls[0] as [string];
@@ -471,20 +608,28 @@ describe("/api/miniapps/publish-requests", () => {
   it("POST proxies publish request review decision", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/route");
-    const req = authedRequest("http://localhost/api/miniapps/publish-requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        request_id: "11111111-1111-4111-8111-111111111111",
-        decision: "approve",
-      }),
-    });
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/route");
+    const req = authedRequest(
+      "http://localhost/api/miniapps/publish-requests",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request_id: "11111111-1111-4111-8111-111111111111",
+          decision: "approve",
+        }),
+      },
+    );
 
     const res = await POST(req);
     expect(res.status).toBe(200);
 
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/publish-requests");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.request_id).toBe("11111111-1111-4111-8111-111111111111");
@@ -492,15 +637,20 @@ describe("/api/miniapps/publish-requests", () => {
   });
 
   it("POST validates publish request review payload", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/route");
-    const req = authedRequest("http://localhost/api/miniapps/publish-requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        request_id: "bad-id",
-        decision: "approve",
-      }),
-    });
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/route");
+    const req = authedRequest(
+      "http://localhost/api/miniapps/publish-requests",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request_id: "bad-id",
+          decision: "approve",
+        }),
+      },
+    );
 
     const res = await POST(req);
     expect(res.status).toBe(400);
@@ -509,18 +659,28 @@ describe("/api/miniapps/publish-requests", () => {
 
 describe("POST /api/miniapps/publish-requests/remind", () => {
   it("proxies reminder trigger to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ success: true, reminders: [] }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({ success: true, reminders: [] }),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/remind/route");
-    const req = authedRequest("http://localhost/api/miniapps/publish-requests/remind", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dry_run: true }),
-    });
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/remind/route");
+    const req = authedRequest(
+      "http://localhost/api/miniapps/publish-requests/remind",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dry_run: true }),
+      },
+    );
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/publish-reminders");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.dry_run).toBe(true);
@@ -531,8 +691,14 @@ describe("GET /api/miniapps/publish-requests/verify-audit", () => {
   it("proxies audit verification request", async () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ ok: true, issues: [] }));
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/verify-audit/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests/verify-audit?app_id=my-app&limit=100"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/verify-audit/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests/verify-audit?app_id=my-app&limit=100",
+      ),
+    );
 
     expect(res.status).toBe(200);
     const [calledUrl] = fetchSpy.mock.calls[0] as [string];
@@ -542,16 +708,33 @@ describe("GET /api/miniapps/publish-requests/verify-audit", () => {
   });
 
   it("rejects invalid request_id format", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/verify-audit/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests/verify-audit?request_id=bad"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/verify-audit/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests/verify-audit?request_id=bad",
+      ),
+    );
     expect(res.status).toBe(400);
   });
 
   it("forwards audit verification non-200 errors", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ error: "audit chain mismatch" }, { ok: false, status: 409 }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse(
+        { error: "audit chain mismatch" },
+        { ok: false, status: 409 },
+      ),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/verify-audit/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests/verify-audit?app_id=my-app"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/verify-audit/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests/verify-audit?app_id=my-app",
+      ),
+    );
     expect(res.status).toBe(409);
     const payload = await res.json();
     expect(payload.error).toBe("audit chain mismatch");
@@ -560,22 +743,34 @@ describe("GET /api/miniapps/publish-requests/verify-audit", () => {
 
 describe("GET /api/miniapps/publish-requests/export", () => {
   it("returns csv export payload", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      requests: [
-        {
-          id: "11111111-1111-4111-8111-111111111111",
-          app_id: "my-app",
-          status: "pending",
-          requested_version_no: 2,
-          requested_by: "api_key",
-          requested_at: "2026-02-22T00:00:00.000Z",
-          timing: { ageMinutes: 30, isSlaBreached: false, isEscalated: false },
-        },
-      ],
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        requests: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            app_id: "my-app",
+            status: "pending",
+            requested_version_no: 2,
+            requested_by: "api_key",
+            requested_at: "2026-02-22T00:00:00.000Z",
+            timing: {
+              ageMinutes: 30,
+              isSlaBreached: false,
+              isEscalated: false,
+            },
+          },
+        ],
+      }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/export/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests/export?app_id=my-app&status=pending"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/export/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests/export?app_id=my-app&status=pending",
+      ),
+    );
 
     expect(res.status).toBe(200);
     const contentType = res.headers.get("content-type") || "";
@@ -586,8 +781,14 @@ describe("GET /api/miniapps/publish-requests/export", () => {
   });
 
   it("validates export status filter", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/publish-requests/export/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/publish-requests/export?status=invalid"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/publish-requests/export/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/publish-requests/export?status=invalid",
+      ),
+    );
     expect(res.status).toBe(400);
   });
 });
@@ -598,14 +799,22 @@ describe("GET /api/miniapps/publish-requests/export", () => {
 
 describe("GET /api/miniapps", () => {
   it("rejects invalid app_id filter → 400", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps?app_id=INVALID!!!"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/miniapps?app_id=INVALID!!!"),
+    );
     expect(res.status).toBe(400);
   });
 
   it("rejects invalid status filter → 400", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps?status=deleted"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/miniapps?status=deleted"),
+    );
     expect(res.status).toBe(400);
   });
 
@@ -616,8 +825,14 @@ describe("GET /api/miniapps", () => {
       }),
     );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps?status=active&search=miniapp"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps?status=active&search=miniapp",
+      ),
+    );
 
     expect(res.status).toBe(200);
     const payload = await res.json();
@@ -647,10 +862,15 @@ describe("PATCH /api/miniapps/[id]", () => {
 
   it("rejects invalid path app_id → 400", async () => {
     const { PATCH } = await importRoute<{
-      PATCH: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      PATCH: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
-    const res = await PATCH(patchReq({ name: "ok-name" }), { params: routeParams("INVALID!!!") });
+    const res = await PATCH(patchReq({ name: "ok-name" }), {
+      params: routeParams("INVALID!!!"),
+    });
     expect(res.status).toBe(400);
   });
 
@@ -658,7 +878,10 @@ describe("PATCH /api/miniapps/[id]", () => {
     fetchSpy.mockImplementation(() => mockJsonResponse({ success: true }));
 
     const { PATCH } = await importRoute<{
-      PATCH: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      PATCH: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
     const res = await PATCH(
@@ -671,7 +894,10 @@ describe("PATCH /api/miniapps/[id]", () => {
     );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/upsert");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.app_id).toBe("my-app");
@@ -685,11 +911,18 @@ describe("PATCH /api/miniapps/[id]", () => {
     fetchSpy.mockImplementation(() => mockJsonResponse({ success: true }));
 
     const { PATCH } = await importRoute<{
-      PATCH: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      PATCH: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
     const res = await PATCH(
-      patchReq({ action: "publish", name: "Publish Name", entry_url: "https://example.com/publish" }),
+      patchReq({
+        action: "publish",
+        name: "Publish Name",
+        entry_url: "https://example.com/publish",
+      }),
       { params: routeParams("my-app") },
     );
 
@@ -707,10 +940,15 @@ describe("PATCH /api/miniapps/[id]", () => {
 
 describe("GET /api/miniapps/[id]", () => {
   it("proxies detail request to host catalog", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ app: { app_id: "my-app", name: "My App" } }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({ app: { app_id: "my-app", name: "My App" } }),
+    );
 
     const { GET } = await importRoute<{
-      GET: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      GET: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
     const req = authedRequest("http://localhost/api/miniapps/my-app");
@@ -727,11 +965,16 @@ describe("GET /api/miniapps/[id]", () => {
 
   it("rejects invalid app id format", async () => {
     const { GET } = await importRoute<{
-      GET: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      GET: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
     const req = authedRequest("http://localhost/api/miniapps/bad");
-    const res = await GET(req, { params: Promise.resolve({ id: "INVALID!!!" }) });
+    const res = await GET(req, {
+      params: Promise.resolve({ id: "INVALID!!!" }),
+    });
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -746,14 +989,24 @@ describe("DELETE /api/miniapps/[id]", () => {
     fetchSpy.mockReturnValue(mockJsonResponse({ success: true }));
 
     const { DELETE } = await importRoute<{
-      DELETE: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      DELETE: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
-    const req = authedRequest("http://localhost/api/miniapps/my-app", { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: "my-app" }) });
+    const req = authedRequest("http://localhost/api/miniapps/my-app", {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: "my-app" }),
+    });
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/status");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body).toEqual({ app_id: "my-app", status: "disabled" });
@@ -761,11 +1014,18 @@ describe("DELETE /api/miniapps/[id]", () => {
 
   it("rejects invalid app id for delete", async () => {
     const { DELETE } = await importRoute<{
-      DELETE: (r: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
+      DELETE: (
+        r: Request,
+        ctx: { params: Promise<{ id: string }> },
+      ) => Promise<Response>;
     }>("@/app/api/miniapps/[id]/route");
 
-    const req = authedRequest("http://localhost/api/miniapps/invalid", { method: "DELETE" });
-    const res = await DELETE(req, { params: Promise.resolve({ id: "INVALID!!!" }) });
+    const req = authedRequest("http://localhost/api/miniapps/invalid", {
+      method: "DELETE",
+    });
+    const res = await DELETE(req, {
+      params: Promise.resolve({ id: "INVALID!!!" }),
+    });
 
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -788,31 +1048,44 @@ describe("POST /api/miniapps/import-batch", () => {
   }
 
   it("validates request payload", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/import-batch/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/import-batch/route");
     const res = await POST(postReq({ definitions: [] }));
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("proxies batch import request to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      success: true,
-      dry_run: true,
-      stop_on_error: false,
-      summary: { total: 1, failed: 0, validated: 1, imported: 0 },
-      results: [],
-      rollback_plan: null,
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        success: true,
+        dry_run: true,
+        stop_on_error: false,
+        summary: { total: 1, failed: 0, validated: 1, imported: 0 },
+        results: [],
+        rollback_plan: null,
+      }),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/import-batch/route");
-    const res = await POST(postReq({
-      dry_run: true,
-      stop_on_error: false,
-      definitions: [{ file_name: "miniapp-a.yaml", content: "app_id: miniapp-a" }],
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/import-batch/route");
+    const res = await POST(
+      postReq({
+        dry_run: true,
+        stop_on_error: false,
+        definitions: [
+          { file_name: "miniapp-a.yaml", content: "app_id: miniapp-a" },
+        ],
+      }),
+    );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/import-batch");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.definitions).toHaveLength(1);
@@ -836,33 +1109,50 @@ describe("POST /api/miniapps/import-batch/rollback", () => {
   }
 
   it("validates rollback payload", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/import-batch/rollback/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/import-batch/rollback/route");
     const res = await POST(postReq({ targets: [{ app_id: "INVALID!!!" }] }));
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("proxies rollback request to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      success: true,
-      summary: { total: 1, failed: 0, rolled_back: 1, disabled_created_app: 0, noop: 0 },
-      results: [{ app_id: "miniapp-a", status: "rolled_back" }],
-    }));
-
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/import-batch/rollback/route");
-    const res = await POST(postReq({
-      targets: [
-        {
-          app_id: "miniapp-a",
-          mode: "update",
-          rollback_version_id: "11111111-1111-4111-8111-111111111111",
-          rollback_release_channel: "draft",
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        success: true,
+        summary: {
+          total: 1,
+          failed: 0,
+          rolled_back: 1,
+          disabled_created_app: 0,
+          noop: 0,
         },
-      ],
-    }));
+        results: [{ app_id: "miniapp-a", status: "rolled_back" }],
+      }),
+    );
+
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/import-batch/rollback/route");
+    const res = await POST(
+      postReq({
+        targets: [
+          {
+            app_id: "miniapp-a",
+            mode: "update",
+            rollback_version_id: "11111111-1111-4111-8111-111111111111",
+            rollback_release_channel: "draft",
+          },
+        ],
+      }),
+    );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/import-batch-rollback");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.targets).toHaveLength(1);
@@ -876,24 +1166,48 @@ describe("POST /api/miniapps/import-batch/rollback", () => {
 
 describe("/api/miniapps/template-market", () => {
   it("GET validates query filters", async () => {
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/template-market/route");
-    const res = await GET(authedRequest("http://localhost/api/miniapps/template-market?mode=invalid"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/template-market/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/miniapps/template-market?mode=invalid",
+      ),
+    );
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("GET proxies templates mode and applies local source/search filtering", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      templates: [
-        { template_id: "prediction.alpha", name: "Prediction Alpha", source_type: "community", category: "defi", tags: ["prediction"] },
-        { template_id: "prediction.beta", name: "Prediction Beta", source_type: "verified", category: "defi", tags: ["prediction"] },
-      ],
-      approval_required: true,
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        templates: [
+          {
+            template_id: "prediction.alpha",
+            name: "Prediction Alpha",
+            source_type: "community",
+            category: "defi",
+            tags: ["prediction"],
+          },
+          {
+            template_id: "prediction.beta",
+            name: "Prediction Beta",
+            source_type: "verified",
+            category: "defi",
+            tags: ["prediction"],
+          },
+        ],
+        approval_required: true,
+      }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/template-market/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/template-market/route");
     const res = await GET(
-      authedRequest("http://localhost/api/miniapps/template-market?mode=templates&kind=frontend&source=community&search=alpha&limit=50"),
+      authedRequest(
+        "http://localhost/api/miniapps/template-market?mode=templates&kind=frontend&source=community&search=alpha&limit=50",
+      ),
     );
 
     expect(res.status).toBe(200);
@@ -910,25 +1224,31 @@ describe("/api/miniapps/template-market", () => {
   });
 
   it("GET proxies requests mode", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      requests: [
-        {
-          id: "11111111-1111-4111-8111-111111111111",
-          template_kind: "frontend",
-          template_row_id: "22222222-2222-4222-8222-222222222222",
-          status: "pending",
-          requested_by: "api_key",
-          reviewed_by: null,
-          review_note: null,
-          created_at: "2026-02-22T00:00:00.000Z",
-          reviewed_at: null,
-        },
-      ],
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        requests: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            template_kind: "frontend",
+            template_row_id: "22222222-2222-4222-8222-222222222222",
+            status: "pending",
+            requested_by: "api_key",
+            reviewed_by: null,
+            review_note: null,
+            created_at: "2026-02-22T00:00:00.000Z",
+            reviewed_at: null,
+          },
+        ],
+      }),
+    );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/miniapps/template-market/route");
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/template-market/route");
     const res = await GET(
-      authedRequest("http://localhost/api/miniapps/template-market?mode=requests&kind=frontend&status=pending"),
+      authedRequest(
+        "http://localhost/api/miniapps/template-market?mode=requests&kind=frontend&status=pending",
+      ),
     );
 
     expect(res.status).toBe(200);
@@ -941,9 +1261,16 @@ describe("/api/miniapps/template-market", () => {
   });
 
   it("POST proxies upsert template payload to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({ success: true, approval_required: true }, { status: 201 }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse(
+        { success: true, approval_required: true },
+        { status: 201 },
+      ),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/template-market/route");
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/template-market/route");
     const req = authedRequest("http://localhost/api/miniapps/template-market", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -959,7 +1286,10 @@ describe("/api/miniapps/template-market", () => {
 
     const res = await POST(req);
     expect(res.status).toBe(201);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/template-market");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.action).toBe("upsert_template");
@@ -983,37 +1313,51 @@ describe("POST /api/miniapps/admin/media/upload-url", () => {
   }
 
   it("validates media upload payload", async () => {
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/admin/media/upload-url/route");
-    const res = await POST(postReq({
-      app_id: "INVALID!!!",
-      asset_type: "logo",
-      content_type: "image/png",
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/admin/media/upload-url/route");
+    const res = await POST(
+      postReq({
+        app_id: "INVALID!!!",
+        asset_type: "logo",
+        content_type: "image/png",
+      }),
+    );
 
     expect(res.status).toBe(400);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("proxies upload-url request to host admin endpoint", async () => {
-    fetchSpy.mockReturnValue(mockJsonResponse({
-      success: true,
-      upload_url: "https://signed.example/upload",
-      public_url: "https://meshmini.app/miniapp-assets/miniapp-a/logo.dark.png",
-      key: "miniapp-assets/miniapp-a/logo.dark.png",
-      expires_in: 900,
-    }));
+    fetchSpy.mockReturnValue(
+      mockJsonResponse({
+        success: true,
+        upload_url: "https://signed.example/upload",
+        public_url:
+          "https://meshmini.app/miniapp-assets/miniapp-a/logo.dark.png",
+        key: "miniapp-assets/miniapp-a/logo.dark.png",
+        expires_in: 900,
+      }),
+    );
 
-    const { POST } = await importRoute<{ POST: (r: Request) => Promise<Response> }>("@/app/api/miniapps/admin/media/upload-url/route");
-    const res = await POST(postReq({
-      app_id: "miniapp-a",
-      asset_type: "logo",
-      content_type: "image/png",
-      file_name: "logo.png",
-      variant: { theme: "dark", density: "2x" },
-    }));
+    const { POST } = await importRoute<{
+      POST: (r: Request) => Promise<Response>;
+    }>("@/app/api/miniapps/admin/media/upload-url/route");
+    const res = await POST(
+      postReq({
+        app_id: "miniapp-a",
+        asset_type: "logo",
+        content_type: "image/png",
+        file_name: "logo.png",
+        variant: { theme: "dark", density: "2x" },
+      }),
+    );
 
     expect(res.status).toBe(200);
-    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0] as [
+      string,
+      RequestInit,
+    ];
     expect(calledUrl).toContain("/api/miniapps/admin/media/upload-url");
     const body = JSON.parse(String(calledInit.body || "{}"));
     expect(body.app_id).toBe("miniapp-a");
@@ -1026,17 +1370,29 @@ describe("POST /api/miniapps/admin/media/upload-url", () => {
 // ==========================================================================
 
 describe("GET /api/reports/live-smoke", () => {
-  const liveSmokeRoot = path.join(process.cwd(), "docs", "reports", "live-smoke");
+  const liveSmokeRoot = path.join(
+    process.cwd(),
+    "docs",
+    "reports",
+    "live-smoke",
+  );
 
   afterEach(() => {
     for (const run of ["zzzz-test-live-smoke-a", "zzzz-test-live-smoke-b"]) {
-      fs.rmSync(path.join(liveSmokeRoot, run), { recursive: true, force: true });
+      fs.rmSync(path.join(liveSmokeRoot, run), {
+        recursive: true,
+        force: true,
+      });
     }
   });
 
   it("returns the latest available live smoke summary", async () => {
-    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), { recursive: true });
-    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-b"), { recursive: true });
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-b"), {
+      recursive: true,
+    });
     fs.writeFileSync(
       path.join(liveSmokeRoot, "zzzz-test-live-smoke-a", "summary.json"),
       JSON.stringify({ generatedAt: "2026-03-27T00:00:00.000Z", stage: "a" }),
@@ -1046,26 +1402,41 @@ describe("GET /api/reports/live-smoke", () => {
       JSON.stringify({ generatedAt: "2026-03-27T01:00:00.000Z", stage: "b" }),
     );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/reports/live-smoke/route");
-    const res = await GET(authedRequest("http://localhost/api/reports/live-smoke"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/reports/live-smoke/route");
+    const res = await GET(
+      authedRequest("http://localhost/api/reports/live-smoke"),
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);
     expect(data.latestRun).toBe("zzzz-test-live-smoke-b");
     expect(data.run).toBe("zzzz-test-live-smoke-b");
-    expect(data.availableRuns).toEqual(["zzzz-test-live-smoke-b", "zzzz-test-live-smoke-a"]);
+    expect(data.availableRuns).toEqual([
+      "zzzz-test-live-smoke-b",
+      "zzzz-test-live-smoke-a",
+    ]);
     expect(data.summary).toMatchObject({ stage: "b" });
   });
 
   it("supports selecting a specific run", async () => {
-    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), { recursive: true });
+    fs.mkdirSync(path.join(liveSmokeRoot, "zzzz-test-live-smoke-a"), {
+      recursive: true,
+    });
     fs.writeFileSync(
       path.join(liveSmokeRoot, "zzzz-test-live-smoke-a", "summary.json"),
       JSON.stringify({ generatedAt: "2026-03-27T00:00:00.000Z", stage: "a" }),
     );
 
-    const { GET } = await importRoute<{ GET: (r: Request) => Promise<Response> }>("@/app/api/reports/live-smoke/route");
-    const res = await GET(authedRequest("http://localhost/api/reports/live-smoke?run=zzzz-test-live-smoke-a"));
+    const { GET } = await importRoute<{
+      GET: (r: Request) => Promise<Response>;
+    }>("@/app/api/reports/live-smoke/route");
+    const res = await GET(
+      authedRequest(
+        "http://localhost/api/reports/live-smoke?run=zzzz-test-live-smoke-a",
+      ),
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);

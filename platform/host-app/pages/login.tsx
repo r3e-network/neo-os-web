@@ -3,20 +3,40 @@ import { WalletProvider, walletOptions } from "@/lib/wallet/store";
 import Head from "next/head";
 
 const socialProviders = [
-  { id: "google", name: "Google", bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors", text: "text-gray-800" },
-  { id: "twitter", name: "Twitter", bg: "bg-sky-500 hover:bg-sky-600 transition-colors", text: "text-white" },
-  { id: "github", name: "GitHub", bg: "bg-gray-900 hover:bg-gray-800 transition-colors", text: "text-white" },
+  {
+    id: "google",
+    name: "Google",
+    bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors",
+    text: "text-gray-800",
+  },
+  {
+    id: "twitter",
+    name: "Twitter",
+    bg: "bg-sky-500 hover:bg-sky-600 transition-colors",
+    text: "text-white",
+  },
+  {
+    id: "github",
+    name: "GitHub",
+    bg: "bg-gray-900 hover:bg-gray-800 transition-colors",
+    text: "text-white",
+  },
 ];
 
 export default function LoginPage() {
-  const { loginSocial, loginWallet, loading, error, clearError } = useAuthStore();
+  const { loginSocial, loginWallet, loading, error, clearError } =
+    useAuthStore();
 
   return (
     <>
-      <Head><title>Log In</title></Head>
+      <Head>
+        <title>Log In</title>
+      </Head>
       <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl bg-white p-8 shadow-lg">
-          <h1 className="text-center text-2xl font-extrabold text-gray-900">Log in</h1>
+          <h1 className="text-center text-2xl font-extrabold text-gray-900">
+            Log in
+          </h1>
 
           <div className="space-y-3">
             {socialProviders.map((p) => (
@@ -47,17 +67,37 @@ export default function LoginPage() {
                 disabled={loading}
                 className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               >
-                <img src={w.icon} alt={w.name} width={20} height={20} className="h-5 w-5 rounded-full" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                <img
+                  src={w.icon}
+                  alt={w.name}
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 rounded-full"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
                 {w.name}
               </button>
             ))}
           </div>
 
-          {loading && <p className="text-center text-sm text-gray-500">Connecting...</p>}
+          {loading && (
+            <p className="text-center text-sm text-gray-500">Connecting...</p>
+          )}
           {error && (
-            <div role="alert" className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+            <div
+              role="alert"
+              className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600"
+            >
               {error}
-              <button type="button" onClick={clearError} className="ml-2 underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">dismiss</button>
+              <button
+                type="button"
+                onClick={clearError}
+                className="ml-2 underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+              >
+                dismiss
+              </button>
             </div>
           )}
         </div>
