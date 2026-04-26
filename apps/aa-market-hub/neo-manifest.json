@@ -9,21 +9,32 @@
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "market", "escrow", "listings", "wallet"],
+  "tags": [
+    "aa",
+    "market",
+    "escrow",
+    "listings",
+    "wallet"
+  ],
   "developer": {
     "name": "R3E Network",
     "email": "dev@r3e.network",
     "website": "https://r3e.network"
   },
   "contracts": {},
-  "supported_networks": ["neo-n3-testnet"],
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/aa-market-hub/index.html",
-    "icon": "/miniapps/explorer/logo.jpg",
-    "banner": "/miniapps/explorer/banner.jpg"
+    "icon": "/miniapps/aa-market-hub/logo.jpg",
+    "banner": "/miniapps/aa-market-hub/banner.jpg"
   },
-  "permissions": ["read:blockchain", "write:blockchain"],
+  "permissions": [
+    "read:blockchain",
+    "write:blockchain"
+  ],
   "features": {
     "stateless": false,
     "offlineSupport": false,
@@ -32,7 +43,9 @@
   "stateSource": {
     "type": "n3index",
     "chain": "neo-n3-testnet",
-    "endpoints": ["https://api.n3index.dev"]
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
   },
   "platform": {
     "analytics": true,

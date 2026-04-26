@@ -29,8 +29,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/recovery-guardian/index.html",
-    "icon": "/miniapps/wallet-health/logo.jpg",
-    "banner": "/miniapps/wallet-health/banner.jpg"
+    "icon": "/miniapps/recovery-guardian/logo.jpg",
+    "banner": "/miniapps/recovery-guardian/banner.jpg"
   },
   "permissions": [
     "read:blockchain"

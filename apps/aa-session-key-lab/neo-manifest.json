@@ -9,21 +9,30 @@
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "session-key", "verifier", "sponsor"],
+  "tags": [
+    "aa",
+    "session-key",
+    "verifier",
+    "sponsor"
+  ],
   "developer": {
     "name": "R3E Network",
     "email": "dev@r3e.network",
     "website": "https://r3e.network"
   },
   "contracts": {},
-  "supported_networks": ["neo-n3-testnet"],
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/aa-session-key-lab/index.html",
-    "icon": "/miniapps/explorer/logo.jpg",
-    "banner": "/miniapps/explorer/banner.jpg"
+    "icon": "/miniapps/aa-session-key-lab/logo.jpg",
+    "banner": "/miniapps/aa-session-key-lab/banner.jpg"
   },
-  "permissions": ["read:blockchain"],
+  "permissions": [
+    "read:blockchain"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,
@@ -32,7 +41,9 @@
   "stateSource": {
     "type": "api",
     "chain": "neo-n3-testnet",
-    "endpoints": ["https://api.n3index.dev"]
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
   },
   "platform": {
     "analytics": true,
