@@ -18,6 +18,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void LoanRepaidHandler(string appId, BigInteger loanId, BigInteger repaid, BigInteger remaining);
     public delegate void LoanClosedHandler(string appId, BigInteger loanId, UInt160 borrower);
     public delegate void CollateralAddedHandler(string appId, BigInteger loanId, BigInteger amount, BigInteger newTotal);
+    public delegate void ProfitAnchorConfiguredHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId);
+    public delegate void ProfitAnchorVoteSyncedHandler(string appId, UInt160 profitAnchorContract, string profitAnchorAppId, ByteString candidate);
 
     // FlashLoan events
     public delegate void FlashLoanExecutedHandler(string appId, BigInteger loanId, UInt160 borrower, BigInteger amount, BigInteger fee, bool success);
@@ -76,6 +78,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_TOTAL_DEBT = new byte[] { 0x25 };
         private static readonly byte[] PREFIX_TOTAL_REPAID = new byte[] { 0x26 };
         private static readonly byte[] PREFIX_TOTAL_BORROWERS = new byte[] { 0x27 };
+        private static readonly byte[] PREFIX_PROFIT_ANCHOR_CONTRACT = new byte[] { 0x28 };
+        private static readonly byte[] PREFIX_PROFIT_ANCHOR_APP_ID = new byte[] { 0x29 };
         #endregion
 
         #region FlashLoan Prefixes (0x30-0x3F)
@@ -201,6 +205,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("CollateralAdded")]
         public static event CollateralAddedHandler OnCollateralAdded;
 
+        [DisplayName("ProfitAnchorConfigured")]
+        public static event ProfitAnchorConfiguredHandler OnProfitAnchorConfigured;
+
+        [DisplayName("ProfitAnchorVoteSynced")]
+        public static event ProfitAnchorVoteSyncedHandler OnProfitAnchorVoteSynced;
+
         // FlashLoan events
         [DisplayName("FlashLoanExecuted")]
         public static event FlashLoanExecutedHandler OnFlashLoanExecuted;
@@ -258,6 +268,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static void ValidateAddress(UInt160 addr)
         {
             ExecutionEngine.Assert(addr != UInt160.Zero && addr.IsValid, "invalid address");
+        }
+
+        private static void ValidateAppAuthority(string appId)
+        {
+            UInt160 admin = Admin();
+            UInt160 appAdmin = GetAppAdmin(appId);
+            bool isAdmin = admin != UInt160.Zero && Runtime.CheckWitness(admin);
+            bool isAppAdmin = appAdmin != UInt160.Zero && Runtime.CheckWitness(appAdmin);
+            ExecutionEngine.Assert(isAdmin || isAppAdmin, "unauthorized");
         }
 
         private static void ValidateNotPaused()
@@ -318,6 +337,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(AppKey(appId, PREFIX_TOTAL_DEBT), 0);
                 Put(AppKey(appId, PREFIX_TOTAL_REPAID), 0);
                 Put(AppKey(appId, PREFIX_TOTAL_BORROWERS), 0);
+                PutAddress(AppKey(appId, PREFIX_PROFIT_ANCHOR_CONTRACT), UInt160.Zero);
+                Put(AppKey(appId, PREFIX_PROFIT_ANCHOR_APP_ID), (ByteString)"");
             }
             else if (productType == ProductType_FlashLoan)
             {
@@ -356,12 +377,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void SetAppPaused(string appId, bool paused)
         {
-            // Only platform admin or app admin can pause
-            UInt160 admin = Admin();
-            UInt160 appAdmin = GetAppAdmin(appId);
-            bool isAdmin = admin != UInt160.Zero && Runtime.CheckWitness(admin);
-            bool isAppAdmin = appAdmin != UInt160.Zero && Runtime.CheckWitness(appAdmin);
-            ExecutionEngine.Assert(isAdmin || isAppAdmin, "unauthorized");
+            ValidateAppAuthority(appId);
 
             Put(AppKey(appId, PREFIX_APP_PAUSED), paused ? 1 : 0);
             OnAppPaused(appId, paused);
@@ -388,6 +404,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
         {
+            if (from == null || from == UInt160.Zero) return;
             if (from == Runtime.ExecutingScriptHash) return;
             ExecutionEngine.Assert(amount > 0, "amount must be > 0");
 

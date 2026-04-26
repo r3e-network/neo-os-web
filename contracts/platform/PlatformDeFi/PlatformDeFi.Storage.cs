@@ -40,6 +40,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static void Put(ByteString key, ByteString value) =>
             Storage.Put(Storage.CurrentContext, key, value);
 
+        private static void PutAddress(ByteString key, UInt160 value) =>
+            Storage.Put(Storage.CurrentContext, key, value);
+
         private static BigInteger GetBigInteger(ByteString key)
         {
             ByteString data = Storage.Get(Storage.CurrentContext, key);
@@ -57,6 +60,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         #region Address Read Helper
 
         private static UInt160 ReadAddress(byte[] key)
+        {
+            ByteString value = Storage.Get(Storage.CurrentContext, key);
+            return value == null ? UInt160.Zero : (UInt160)value;
+        }
+
+        private static UInt160 ReadAddress(ByteString key)
         {
             ByteString value = Storage.Get(Storage.CurrentContext, key);
             return value == null ? UInt160.Zero : (UInt160)value;

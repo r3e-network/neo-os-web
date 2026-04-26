@@ -1,49 +1,30 @@
 # TrustAnchor Deployment Notes
 
-## Current Direction
+TrustAnchor deploys through the shared `PlatformAnchor` contract.
 
-TrustAnchor is no longer planned around one deployed agent contract per candidate.
+## Required Setup
 
-The target architecture is:
+1. Deploy `PlatformAnchor`.
+2. Call `registerAnchorApp("miniapp-trustanchor", 1, appAdmin)`.
+3. Register AA-generated agent accounts with `registerAgent`.
+4. Sync governance votes with `voteAgent` or `votePooledStake`.
+5. Write the deployed `PlatformAnchor` hash into the app manifest and host
+   definition for the target network.
 
-1. 21 verification-script agent accounts.
-2. Each agent account maps to one candidate target.
-3. Fresh deposits enter the agent account for candidate 21 first.
-4. Admin rebalances exposure only by moving real NEO from agent A to agent B.
-5. No synthetic weight register and no child agent-contract fleet.
+User staking can be a single NEO transfer when the transfer data is
+`miniapp-trustanchor`. The contract credits the sender and immediately stakes
+that credit after checking the sender witness.
 
-## What This Means Operationally
+## Custody Boundary
 
-- Account provisioning is an account-generation problem, not a contract-deployment problem.
-- Agent accounts should be generated from the final verification-script scheme used by operations.
-- The miniapp frontend can ship before the live contract hash is assigned, because the UI now documents the new routing model directly.
-
-## Testnet Rollout Checklist
-
-- Finalize the verification-script account construction scheme.
-- Generate and archive all 21 verification-script agent account addresses.
-- Bind one candidate public key to each agent account.
-- Verify the agent account for candidate 21 is the default ingress route for all fresh deposits.
-- Confirm the admin rebalance flow is implemented as real transfers from agent A to agent B.
-- Validate reward accounting against the final on-chain contract.
-- Only then write the testnet contract hash back into `neo-manifest.json`.
+- Admins can register agents, update candidates, set display weights, pause the
+  app, and sync votes.
+- Admins cannot withdraw user-staked NEO.
+- Admins cannot claim or redirect user reward GAS.
+- User withdrawals and reward claims require the user witness.
 
 ## Status
 
-The trustanchor miniapp frontend has already been refactored to the verification-script agent-account model.
-
-The testnet contract is live at `0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2`.
-
-All 21 verification-script agent accounts have been generated from one admin key and written into the testnet contract state.
-
-Current verified behavior:
-
-- fresh user stake auto-routes into agent 21
-- withdraw can queue when core liquidity is unavailable
-- reward accounting follows the single-contract RPS model
-
-Still pending before mainnet:
-
-- production operating procedure for returning NEO from agent accounts to the core contract
-- fee strategy for agent-account initiated return transactions
-- full operator playbook for rebalancing and pending-withdraw settlement
+The shared contract compiles to `contracts/build/PlatformAnchor.nef`. Mainnet
+and testnet hashes remain intentionally empty until deployment is performed and
+the app is registered on-chain.

@@ -1,20 +1,20 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-trustanchor",
-  "name": "TrustAnchor",
-  "name_zh": "信任锚点",
+  "id": "miniapp-profitanchor",
+  "name": "ProfitAnchor",
+  "name_zh": "收益锚",
   "version": "1.0.0",
-  "description": "AA-agent NEO staking and governance routing where admins can register agents and sync votes, but cannot transfer user stake or reward GAS.",
-  "description_zh": "信任锚 — 使用 AA agent 账户进行 NEO 质押和治理路由；管理员只能注册 agent 并同步投票，不能转移用户质押或奖励 GAS。",
-  "category": "governance",
-  "category_name": "Governance",
-  "category_name_zh": "治理",
+  "description": "Profit-optimized NEO voting anchor that uses AA-generated agent accounts and exposes the highest expected GAS candidate for staked NEO.",
+  "description_zh": "收益锚 — 使用 AA 生成的 agent 账户，为质押 NEO 暴露预期 GAS 收益最高的投票候选人。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "DeFi",
   "tags": [
     "staking",
     "voting",
-    "governance",
-    "aa",
-    "zero-fee"
+    "gas-yield",
+    "profit",
+    "aa"
   ],
   "developer": {
     "name": "R3E Network",
@@ -31,9 +31,9 @@
   ],
   "default_network": "neo-n3-testnet",
   "urls": {
-    "entry": "/miniapps/trustanchor/index.html",
-    "icon": "/miniapps/trustanchor/logo.jpg",
-    "banner": "/miniapps/trustanchor/banner.jpg"
+    "entry": "/miniapps/profitanchor/index.html",
+    "icon": "/miniapps/profitanchor/logo.jpg",
+    "banner": "/miniapps/profitanchor/banner.jpg"
   },
   "permissions": [
     "invoke:primary",
@@ -44,7 +44,7 @@
   "features": {
     "stateless": false,
     "offlineSupport": false,
-    "deeplink": "neomainapp://trustanchor"
+    "deeplink": "neomainapp://profitanchor"
   },
   "stateSource": {
     "type": "n3index",
@@ -59,6 +59,6 @@
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
+  "createdAt": "2026-04-25T00:00:00Z",
   "updatedAt": "2026-04-25T00:00:00Z"
 }

@@ -192,6 +192,12 @@ export const APP_IDS = {
 
   /** Self-loan miniapp */
   SELF_LOAN: "miniapp-self-loan",
+
+  /** Governance anchor miniapp */
+  TRUST_ANCHOR: "miniapp-trustanchor",
+
+  /** Profit-optimized voting anchor miniapp */
+  PROFIT_ANCHOR: "miniapp-profitanchor",
 } as const;
 
 /**
