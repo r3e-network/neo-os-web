@@ -22,6 +22,8 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByRole("button", { name: "NeoLine" })).toBeVisible();
     await expect(page.getByRole("button", { name: "O3" })).toBeVisible();
     await expect(page.getByRole("button", { name: "OneGate" })).toBeVisible();
+    await expect(page.getByText("Direct WIF Testing")).toBeVisible();
+    await expect(page.getByLabel("Direct WIF")).toBeVisible();
   });
 
   test("should display wallet icons", async ({ page }) => {
@@ -40,5 +42,22 @@ test.describe("Wallet Connection", () => {
 
     await page.getByRole("button", { name: /close login modal/i }).click();
     await expect(page.getByRole("heading", { name: "Welcome to R3E" })).not.toBeVisible();
+  });
+
+  test("should keep the direct WIF path local-only and show invalid input safely", async ({ page }) => {
+    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    await connectButton.click();
+
+    const wifInput = page.getByLabel("Direct WIF");
+    const directConnect = page.getByRole("button", { name: "Connect" });
+    await expect(directConnect).toBeDisabled();
+
+    await wifInput.fill("not-a-valid-wif");
+    await expect(directConnect).toBeEnabled();
+    await directConnect.click();
+
+    await expect(page.locator('div[role="alert"]')).toContainText("Invalid WIF");
+    const localStorageDump = await page.evaluate(() => JSON.stringify(window.localStorage));
+    expect(localStorageDump).not.toContain("not-a-valid-wif");
   });
 });
