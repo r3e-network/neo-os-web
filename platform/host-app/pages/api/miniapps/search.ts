@@ -21,7 +21,10 @@ export interface SearchResponse {
   suggestions?: string[];
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<SearchResponse | { error: string }>) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<SearchResponse | { error: string }>,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -29,11 +32,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   if (standardLimit(req, res)) return;
 
   const { q, category, limit = "20" } = req.query;
-  const query = (typeof q === "string" ? q : "").slice(0, 200).toLowerCase().trim();
-  const maxResults = Math.max(1, Math.min(parseInt(limit as string) || 20, 100));
+  const query = (typeof q === "string" ? q : "")
+    .slice(0, 200)
+    .toLowerCase()
+    .trim();
+  const maxResults = Math.max(
+    1,
+    Math.min(parseInt(limit as string) || 20, 100),
+  );
 
   if (!query) {
-    return res.status(200).json({ results: [], total: 0, query: "", suggestions: getPopularSearches() });
+    res
+      .status(200)
+      .json({
+        results: [],
+        total: 0,
+        query: "",
+        suggestions: getPopularSearches(),
+      });
+    return;
   }
 
   try {
@@ -42,63 +59,81 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const suggestions = generateSuggestions(catalog, query);
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    return res.status(200).json({
+    res.status(200).json({
       results,
       total: results.length,
       query,
       suggestions,
     });
+    return;
   } catch (err) {
-    logger.error("Failed to search miniapps:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Failed to search miniapps:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res);
   }
 }
 
 /** Full-text search across apps */
 function searchApps(
-  apps: Array<{ app_id: string; name: string; description: string; category: string; icon: string }>,
+  apps: Array<{
+    app_id: string;
+    name: string;
+    description: string;
+    category: string;
+    icon: string;
+  }>,
   query: string,
   category: string | undefined,
   limit: number,
 ): SearchResult[] {
   const terms = query.split(/\s+/).filter(Boolean);
 
-  const scored = apps.map((app) => {
-    let score = 0;
-    const highlights: { field: string; snippet: string }[] = [];
+  const scored = apps
+    .map((app) => {
+      let score = 0;
+      const highlights: { field: string; snippet: string }[] = [];
 
-    // Category filter
-    if (category && app.category !== category) return null;
+      // Category filter
+      if (category && app.category !== category) return null;
 
-    for (const term of terms) {
-      // Name match (highest weight)
-      if (app.name.toLowerCase().includes(term)) {
-        score += 10;
-        highlights.push({ field: "name", snippet: highlightTerm(app.name, term) });
+      for (const term of terms) {
+        // Name match (highest weight)
+        if (app.name.toLowerCase().includes(term)) {
+          score += 10;
+          highlights.push({
+            field: "name",
+            snippet: highlightTerm(app.name, term),
+          });
+        }
+        // Description match
+        if (app.description.toLowerCase().includes(term)) {
+          score += 5;
+          highlights.push({
+            field: "description",
+            snippet: highlightTerm(app.description, term),
+          });
+        }
+        // Category match
+        if (app.category.toLowerCase().includes(term)) {
+          score += 3;
+        }
       }
-      // Description match
-      if (app.description.toLowerCase().includes(term)) {
-        score += 5;
-        highlights.push({ field: "description", snippet: highlightTerm(app.description, term) });
-      }
-      // Category match
-      if (app.category.toLowerCase().includes(term)) {
-        score += 3;
-      }
-    }
 
-    if (score === 0) return null;
+      if (score === 0) return null;
 
-    return {
-      app_id: app.app_id,
-      name: app.name,
-      description: app.description,
-      category: app.category as string,
-      icon: app.icon,
-      score,
-      highlights,
-    } as SearchResult;
-  }).filter((r): r is SearchResult => r !== null);
+      return {
+        app_id: app.app_id,
+        name: app.name,
+        description: app.description,
+        category: app.category as string,
+        icon: app.icon,
+        score,
+        highlights,
+      } as SearchResult;
+    })
+    .filter((r): r is SearchResult => r !== null);
 
   return scored.sort((a, b) => b.score - a.score).slice(0, limit);
 }
@@ -109,7 +144,11 @@ function highlightTerm(text: string, term: string): string {
   if (idx === -1) return text.slice(0, 50);
   const start = Math.max(0, idx - 20);
   const end = Math.min(text.length, idx + term.length + 30);
-  return (start > 0 ? "..." : "") + text.slice(start, end) + (end < text.length ? "..." : "");
+  return (
+    (start > 0 ? "..." : "") +
+    text.slice(start, end) +
+    (end < text.length ? "..." : "")
+  );
 }
 
 /** Generate search suggestions based on query */

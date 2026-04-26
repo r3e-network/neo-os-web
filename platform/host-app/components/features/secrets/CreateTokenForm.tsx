@@ -4,9 +4,24 @@ import { useSecretsStore } from "@/lib/secrets";
 import { Key, Lock, FileText, Eye, EyeOff } from "lucide-react";
 
 const SECRET_TYPES = [
-  { value: "api_key", label: "API Key", icon: Key, desc: "External service API keys" },
-  { value: "encryption_key", label: "Encryption Key", icon: Lock, desc: "For confidential computing" },
-  { value: "custom", label: "Custom Secret", icon: FileText, desc: "Custom key-value secret" },
+  {
+    value: "api_key",
+    label: "API Key",
+    icon: Key,
+    desc: "External service API keys",
+  },
+  {
+    value: "encryption_key",
+    label: "Encryption Key",
+    icon: Lock,
+    desc: "For confidential computing",
+  },
+  {
+    value: "custom",
+    label: "Custom Secret",
+    icon: FileText,
+    desc: "Custom key-value secret",
+  },
 ] as const;
 
 interface CreateTokenFormProps {
@@ -14,7 +29,10 @@ interface CreateTokenFormProps {
   defaultAppId?: string;
 }
 
-export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps) {
+export function CreateTokenForm({
+  onClose,
+  defaultAppId,
+}: CreateTokenFormProps) {
   const { createToken, loading, error, clearError } = useSecretsStore();
   const [name, setName] = useState("");
   const [appId, setAppId] = useState(defaultAppId || "");
@@ -45,7 +63,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
     return (
       <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
         <h4 className="font-semibold text-emerald-800">Secret Created!</h4>
-        <p className="mt-1 text-sm text-emerald-700">Your secret has been securely stored.</p>
+        <p className="mt-1 text-sm text-emerald-700">
+          Your secret has been securely stored.
+        </p>
         <Button size="sm" className="mt-3" onClick={onClose}>
           Done
         </Button>
@@ -54,7 +74,10 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-gray-200 p-4">
+    <form
+      onSubmit={handleSubmit}
+      className="mb-6 rounded-lg border border-gray-200 p-4"
+    >
       <h4 className="font-semibold text-gray-900">Create New Secret</h4>
       <div className="mt-3 space-y-3">
         <div>
@@ -79,7 +102,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label htmlFor="secret-name" className="block text-sm text-gray-600">Secret Name</label>
+          <label htmlFor="secret-name" className="block text-sm text-gray-600">
+            Secret Name
+          </label>
           <input
             id="secret-name"
             type="text"
@@ -90,7 +115,9 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           />
         </div>
         <div>
-          <label htmlFor="secret-value" className="block text-sm text-gray-600">Secret Value</label>
+          <label htmlFor="secret-value" className="block text-sm text-gray-600">
+            Secret Value
+          </label>
           <div className="relative mt-1">
             <input
               id="secret-value"
@@ -111,7 +138,12 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
           </div>
         </div>
         <div>
-          <label htmlFor="secret-app-scope" className="block text-sm text-gray-600">App Scope</label>
+          <label
+            htmlFor="secret-app-scope"
+            className="block text-sm text-gray-600"
+          >
+            App Scope
+          </label>
           <input
             id="secret-app-scope"
             type="text"
@@ -126,13 +158,20 @@ export function CreateTokenForm({ onClose, defaultAppId }: CreateTokenFormProps)
         </div>
       </div>
       {validationError && (
-        <p className="mt-3 text-sm text-red-600" role="alert">{validationError}</p>
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {validationError}
+        </p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>
+        <p className="mt-3 text-sm text-red-600" role="alert">
+          {error}
+        </p>
       )}
       <div className="mt-4 flex gap-2">
-        <Button type="submit" disabled={loading || !name.trim() || !secretValue.trim()}>
+        <Button
+          type="submit"
+          disabled={loading || !name.trim() || !secretValue.trim()}
+        >
           {loading ? "Creating..." : "Create Secret"}
         </Button>
         <Button type="button" variant="outline" onClick={onClose}>

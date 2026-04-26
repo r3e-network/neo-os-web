@@ -12,7 +12,11 @@ export default function StatsPage() {
         title="Statistics Are Temporarily Unavailable"
         description="Frontend statistics have been removed for now while the platform data pipeline is being reworked. Ratings, reviews, comments, and MiniApp operations remain available."
         primaryAction={{ href: "/miniapps", label: "Browse MiniApps" }}
-        secondaryAction={{ href: "/docs", label: "Read Docs", variant: "outline" }}
+        secondaryAction={{
+          href: "/docs",
+          label: "Read Docs",
+          variant: "outline",
+        }}
       />
     </Layout>
   );

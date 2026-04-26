@@ -7,7 +7,10 @@ type DeveloperDrawerFooterProps = {
   onCancel: () => void;
 };
 
-export function DeveloperDrawerFooter({ submitting, onCancel }: DeveloperDrawerFooterProps) {
+export function DeveloperDrawerFooter({
+  submitting,
+  onCancel,
+}: DeveloperDrawerFooterProps) {
   return (
     <div className="flex gap-3 pt-4">
       <Button

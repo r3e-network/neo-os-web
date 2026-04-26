@@ -6,6 +6,25 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Header } from "../Header";
 
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => "/"),
+}));
+
+vi.mock("next/link", () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 // Mock i18n
 vi.mock("../../../../../shared/i18n/react", () => ({
   useTranslation: () => ({
@@ -13,6 +32,13 @@ vi.mock("../../../../../shared/i18n/react", () => ({
       const map: Record<string, string> = {
         "dashboard.title": "Admin Dashboard",
         "dashboard.overview": "Monitor and manage your MiniApp platform",
+        "navigation.dashboard": "Dashboard",
+        "navigation.services": "Services",
+        "navigation.miniapps": "MiniApps",
+        "navigation.templateStudio": "Template Studio",
+        "navigation.users": "Users",
+        "navigation.analytics": "Analytics",
+        "navigation.contracts": "Contracts",
       };
       return map[key] ?? key;
     },
@@ -39,7 +65,9 @@ describe("Header Component", () => {
 
   it("should display subtitle", () => {
     render(<Header />);
-    expect(screen.getByText("Monitor and manage your MiniApp platform")).toBeInTheDocument();
+    expect(
+      screen.getByText("Monitor and manage your MiniApp platform"),
+    ).toBeInTheDocument();
   });
 
   it("should display environment indicator", () => {

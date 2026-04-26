@@ -3,16 +3,29 @@ import { apiError } from "@/lib/api-response";
 import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
-import { classifyPublishRequestTiming, listPublishRequests } from "@/lib/miniapp-publish-approval";
+import {
+  classifyPublishRequestTiming,
+  listPublishRequests,
+} from "@/lib/miniapp-publish-approval";
 import { appendPublishApprovalAuditEvent } from "@/lib/publish-approval-audit";
 import { sendPublishReminders } from "@/lib/publish-reminder";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 function parseDryRun(value: unknown): boolean {
   if (typeof value === "boolean") return value;
-  const normalized = String(value || "").trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -22,21 +35,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for publish reminder workflows");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for publish reminder workflows",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
   if (!admin) return;
 
   const body = req.body;
-  const payload = body && typeof body === "object" && !Array.isArray(body)
-    ? body as Record<string, unknown>
-    : {};
+  const payload =
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : {};
   const dryRun = parseDryRun(payload.dry_run);
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   try {
@@ -73,9 +93,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(result.success ? 200 : 502).json(result);
+    res.status(result.success ? 200 : 502).json(result);
+    return;
   } catch (error) {
-    logger.error("miniapp publish reminder trigger failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "miniapp publish reminder trigger failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to trigger publish reminders");
   }
 }

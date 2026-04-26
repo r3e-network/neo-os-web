@@ -4,7 +4,10 @@ import { checkChainStatus, sendChainAlerts } from "@/lib/chain/monitor";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET" && req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
@@ -16,7 +19,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const authHeader = String(req.headers.authorization || "");
   const expected = `Bearer ${cronSecret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return apiError.unauthorized(res, "Unauthorized");
   }
 
@@ -26,9 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mainnet: await checkAndAlert("mainnet"),
     };
 
-    return res.status(200).json({ success: true, results });
+    res.status(200).json({ success: true, results });
+    return;
   } catch (err) {
-    logger.error("Monitor check failed:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Monitor check failed:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Monitor check failed");
   }
 }

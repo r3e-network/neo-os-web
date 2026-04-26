@@ -6,6 +6,8 @@ type KV = { key: string; value: string };
 const amt = (name = "amount", label = "Amount (GAS)", ph = "1"): OperationParam => ({ name, type: "amount", label, required: true, placeholder: ph });
 const sel = (name: string, label: string, opts: string[]): OperationParam => ({ name, type: "select", label, required: true, options: opts.map(o => ({ label: o, value: o.toLowerCase().replace(/\s+/g, "_") })) });
 const int = (name: string, label: string, ph = ""): OperationParam => ({ name, type: "integer", label, required: true, placeholder: ph });
+const str = (name: string, label: string, value?: string, hidden = false): OperationParam => ({ name, type: "string", label, required: true, default_value: value, hidden });
+const wallet = (name = "user", label = "User"): OperationParam => ({ name, type: "hash160", label, required: true, default_value: "$wallet", hidden: true });
 
 const op = (name: string, method: string, style: OperationEntry["button_style"] = "primary", params: OperationParam[] = []): OperationEntry => ({ name, method, button_style: style, params });
 
@@ -97,15 +99,15 @@ const T_SELF_LOAN: AppTemplate = {
     layout: "default",
     tabs: [
       { id: "overview", label: "Overview", type: "content", blocks: [
-        { type: "notice", tone: "info", content: "Lock NEO, borrow GAS up front, and let staking rewards repay the debt over time." },
-        { type: "key_value", title: "Loan Terms", items: [{ key: "Collateral", value: "NEO" }, { key: "Borrow Asset", value: "GAS" }, { key: "Risk", value: "No liquidation" }] },
+        { type: "notice", tone: "info", content: "Lock NEO, borrow GAS up front, and let staking rewards repay the debt over time. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody." },
+        { type: "key_value", title: "Loan Terms", items: [{ key: "Collateral", value: "NEO" }, { key: "Borrow Asset", value: "GAS" }, { key: "Risk", value: "No liquidation" }, { key: "Vote Signal", value: "ProfitAnchor" }] },
       ]},
       { id: "health", label: "Health", type: "content" },
       { id: "reviews", label: "Reviews", type: "reviews" }
     ],
     operation_panel: { title: "Manage Loan", subtitle: "Repay debt or top up collateral on an existing loan.", cta_label: "Open SelfLoan", operations: [] },
   },
-  operations: [op("Repay Debt", "repayDebt", "primary", [int("loanId", "Loan ID", "1"), amt("amount", "Repay Amount (GAS)", "1")]), op("Add Collateral", "addCollateral", "secondary", [int("loanId", "Loan ID", "1"), int("neoAmount", "NEO", "1")])],
+  operations: [op("Repay Debt", "repayDebt", "primary", [int("loanId", "Loan ID", "1"), amt("amount", "Repay Amount (GAS)", "1")]), op("Add Collateral", "addCollateral", "secondary", [int("loanId", "Loan ID", "1"), int("neoAmount", "NEO", "1")]), op("Sync Profit Vote", "syncProfitAnchorVote", "secondary", [str("appId", "App ID", "miniapp-self-loan", true)])],
 };
 
 const T_NEOPAY: AppTemplate = {
@@ -214,19 +216,45 @@ const T_TRUSTANCHOR: AppTemplate = {
     layout: "default",
     tabs: [
       { id: "overview", label: "Overview", type: "content", blocks: [
-        { type: "notice", tone: "info", content: "Stake through a verification-script trust anchor, keep governance alignment visible, and avoid operational complexity of per-candidate agent contracts." },
-        { type: "key_value", title: "Trust Anchor Model", items: [{ key: "Mode", value: "Zero-fee anchor pool" }, { key: "Asset", value: "NEO stake" }, { key: "Goal", value: "Governance + trust routing" }] },
+        { type: "notice", tone: "info", content: "Stake through AA agent vote routes while user NEO and reward GAS remain user-controlled. Admins manage agents and votes only." },
+        { type: "key_value", title: "Trust Anchor Model", items: [{ key: "Mode", value: "Governance anchor pool" }, { key: "Asset", value: "NEO stake" }, { key: "Admin scope", value: "Vote routing only" }] },
       ]},
       { id: "governance", label: "Governance", type: "content", blocks: [
-        { type: "bullet_list", title: "What It Adds", items: ["Verification-script routed deposits.", "Shared governance visibility.", "Cleaner candidate operations.", "Transparent pool state."] },
+        { type: "bullet_list", title: "What It Adds", items: ["AA-generated agent vote identities.", "Shared governance visibility.", "Cleaner candidate operations.", "No admin transfer path for user stake or rewards."] },
       ]},
       { id: "reviews", label: "Reviews", type: "reviews" }
     ],
     operation_panel: { title: "Anchor Actions", subtitle: "Stake, review routing, and inspect governance posture.", cta_label: "Open Trust Anchor", operations: [] },
   },
   operations: [
-    op("Stake NEO", "stake", "primary", [{ name: "neoAmount", type: "integer", label: "Stake (NEO)", required: true, placeholder: "10" }]),
-    op("Inspect Anchor", "inspectAnchor", "secondary"),
+    op("Stake NEO", "stake", "primary", [str("appId", "App ID", "miniapp-trustanchor", true), wallet(), int("amount", "Stake (NEO)", "10")]),
+    op("Withdraw NEO", "withdraw", "secondary", [str("appId", "App ID", "miniapp-trustanchor", true), wallet(), int("amount", "NEO", "1")]),
+    op("Withdraw Credit", "withdrawCredit", "secondary", [wallet(), str("asset", "Asset", "NEO", true), int("amount", "Amount", "1")]),
+    op("Claim GAS", "claimRewards", "secondary", [str("appId", "App ID", "miniapp-trustanchor", true), wallet()]),
+  ],
+};
+
+const T_PROFITANCHOR: AppTemplate = {
+  detail_template: {
+    layout: "default",
+    tabs: [
+      { id: "overview", label: "Overview", type: "content", blocks: [
+        { type: "notice", tone: "success", content: "ProfitAnchor routes pooled NEO votes to the highest recorded GAS-yield candidate while preserving the same user withdrawal and reward boundaries as TrustAnchor." },
+        { type: "key_value", title: "Profit Anchor Model", items: [{ key: "Mode", value: "Highest-profit voting" }, { key: "Asset", value: "NEO stake" }, { key: "SelfLoan", value: "Best-candidate signal" }] },
+      ]},
+      { id: "profit", label: "Profit Routing", type: "content", blocks: [
+        { type: "bullet_list", title: "Controls", items: ["Admins update candidate profit scores.", "Only the current best-profit agent can receive pooled ProfitAnchor votes.", "SelfLoan reads the best candidate and votes collateral from SelfLoan custody."] },
+      ]},
+      { id: "reviews", label: "Reviews", type: "reviews" }
+    ],
+    operation_panel: { title: "Profit Actions", subtitle: "Stake NEO, claim user-earned GAS, or sync the best-profit vote.", cta_label: "Open ProfitAnchor", operations: [] },
+  },
+  operations: [
+    op("Stake NEO", "stake", "primary", [str("appId", "App ID", "miniapp-profitanchor", true), wallet(), int("amount", "Stake (NEO)", "10")]),
+    op("Vote Best Candidate", "voteBestProfitCandidate", "secondary", [str("appId", "App ID", "miniapp-profitanchor", true)]),
+    op("Withdraw NEO", "withdraw", "secondary", [str("appId", "App ID", "miniapp-profitanchor", true), wallet(), int("amount", "NEO", "1")]),
+    op("Withdraw Credit", "withdrawCredit", "secondary", [wallet(), str("asset", "Asset", "NEO", true), int("amount", "Amount", "1")]),
+    op("Claim GAS", "claimRewards", "secondary", [str("appId", "App ID", "miniapp-profitanchor", true), wallet()]),
   ],
 };
 
@@ -299,6 +327,7 @@ export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
   "miniapp-gasbox": T_GACHA,
   "miniapp-redenvelope": T_RED_ENVELOPE,
   "miniapp-self-loan": T_SELF_LOAN,
+  "miniapp-profitanchor": T_PROFITANCHOR,
   "miniapp-neo-pay": T_NEOPAY,
   "miniapp-recovery-guardian": T_RECOVERY_GUARDIAN,
   "miniapp-automation-copilot": T_AUTOMATION_COPILOT,

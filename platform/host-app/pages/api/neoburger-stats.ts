@@ -4,28 +4,39 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") return apiError.methodNotAllowed(res);
   if (relaxedLimit(req, res)) return;
 
   const apiBase = getEdgeFunctionsBaseUrl();
   if (!apiBase) {
     // Graceful degradation: return zero stats when edge runtime is not configured
-    return res.status(200).json({ apy: "0", total_staked_formatted: "0" });
+    res.status(200).json({ apy: "0", total_staked_formatted: "0" });
+    return;
   }
 
   try {
-    const response = await fetch(`${apiBase}/neoburger-stats`, { signal: AbortSignal.timeout(10000) });
+    const response = await fetch(`${apiBase}/neoburger-stats`, {
+      signal: AbortSignal.timeout(10000),
+    });
     if (!response.ok) throw new Error(`Upstream error: ${response.status}`);
     const data = await response.json();
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-    return res.status(200).json(data);
+    res.status(200).json(data);
+    return;
   } catch (err) {
-    logger.warn("Failed to fetch neoburger stats:", err instanceof Error ? err.message : "unknown error");
+    logger.warn(
+      "Failed to fetch neoburger stats:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     // Graceful degradation: return optimistic fallback stats on upstream failure
-    return res.status(200).json({
+    res.status(200).json({
       apy: "8.5",
       total_staked_formatted: "12.5M",
     });
+    return;
   }
 }

@@ -16,7 +16,10 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { RealtimeChannel, REALTIME_SUBSCRIBE_STATES } from "@supabase/supabase-js";
+import {
+  RealtimeChannel,
+  REALTIME_SUBSCRIBE_STATES,
+} from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { MiniAppNotification } from "../components";
 import { logger } from "../lib/logger";
@@ -51,13 +54,32 @@ const MAX_NOTIFICATIONS = 50;
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 
+function normalizeNotificationRows(payload: unknown): MiniAppNotification[] {
+  if (!payload || typeof payload !== "object") return [];
+  const record = payload as {
+    notifications?: unknown;
+    items?: unknown;
+    data?: unknown;
+  };
+  const rows = record.notifications ?? record.items ?? record.data;
+  return Array.isArray(rows)
+    ? (rows.slice(0, MAX_NOTIFICATIONS) as MiniAppNotification[])
+    : [];
+}
+
 /**
  * Custom hook for subscribing to realtime MiniApp notifications
  */
 export function useRealtimeNotifications(
   options: UseRealtimeNotificationsOptions = {},
 ): UseRealtimeNotificationsReturn {
-  const { onNotification, appId, userId, enabled = true, skipInitialFetch = false } = options;
+  const {
+    onNotification,
+    appId,
+    userId,
+    enabled = true,
+    skipInitialFetch = false,
+  } = options;
 
   // Check if running on client side
   const isClient = typeof window !== "undefined";
@@ -77,7 +99,10 @@ export function useRealtimeNotifications(
    * Calculate exponential backoff delay
    */
   const getRetryDelay = useCallback((): number => {
-    const delay = Math.min(INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCountRef.current), MAX_RETRY_DELAY_MS);
+    const delay = Math.min(
+      INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCountRef.current),
+      MAX_RETRY_DELAY_MS,
+    );
     return delay;
   }, []);
 
@@ -109,7 +134,11 @@ export function useRealtimeNotifications(
         retryCountRef.current = 0;
       } catch (err) {
         logger.error("Error processing notification:", err);
-        setError(err instanceof Error ? err : new Error("Unknown error processing notification"));
+        setError(
+          err instanceof Error
+            ? err
+            : new Error("Unknown error processing notification"),
+        );
       }
     },
     [appId, onNotification],
@@ -124,6 +153,24 @@ export function useRealtimeNotifications(
 
     setLoading(true);
     try {
+      if (appId && !userId) {
+        const response = await fetch(
+          `/api/app/${encodeURIComponent(appId)}/news?limit=${MAX_NOTIFICATIONS}`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`news API returned ${response.status}`);
+        }
+        const payload = await response.json();
+        if (!mountedRef.current) return;
+        setNotifications(normalizeNotificationRows(payload));
+        initialFetchDoneRef.current = true;
+        return;
+      }
+
       let query = supabase
         .from("miniapp_notifications")
         .select("*")
@@ -222,12 +269,16 @@ export function useRealtimeNotifications(
           } else if (status === REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR) {
             setIsConnected(false);
             setError(err || null);
-            logger.warn("Realtime notifications: Channel unavailable — running without live updates");
+            logger.warn(
+              "Realtime notifications: Channel unavailable — running without live updates",
+            );
 
             // Schedule reconnection with exponential backoff
             const delay = getRetryDelay();
             retryCountRef.current += 1;
-            logger.debug(`Reconnecting in ${delay}ms (attempt ${retryCountRef.current})...`);
+            logger.debug(
+              `Reconnecting in ${delay}ms (attempt ${retryCountRef.current})...`,
+            );
 
             retryTimeoutRef.current = setTimeout(() => {
               if (mountedRef.current && enabled) {
@@ -256,7 +307,11 @@ export function useRealtimeNotifications(
       channelRef.current = channel;
     } catch (err) {
       logger.error("Failed to create Realtime channel:", err);
-      setError(err instanceof Error ? err : new Error("Failed to create Realtime channel"));
+      setError(
+        err instanceof Error
+          ? err
+          : new Error("Failed to create Realtime channel"),
+      );
       setIsConnected(false);
     }
   }, [enabled, isClient, userId, handleInsert, getRetryDelay]);

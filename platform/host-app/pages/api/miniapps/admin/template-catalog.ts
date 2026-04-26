@@ -78,7 +78,10 @@ const frontendTemplateCatalog = [
   },
 ];
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -88,11 +91,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!admin) return;
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     actor: admin.kind,
     frontend_templates: frontendTemplateCatalog,
     contract_templates: contractTemplateCatalog,
     blueprints: listMiniAppBlueprints(),
     note: "This endpoint is the backend-driven catalog source for a future visual miniapp/template builder and template marketplace.",
   });
+  return;
 }

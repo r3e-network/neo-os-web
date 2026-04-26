@@ -16,7 +16,12 @@ type Props = {
   recentWinner?: { address: string; prize: string } | null;
 };
 
-export function FlagshipHero({ appId, stats, leader, recentWinner: _recentWinner }: Props) {
+export function FlagshipHero({
+  appId,
+  stats,
+  leader,
+  recentWinner: _recentWinner,
+}: Props) {
   switch (appId) {
     case "miniapp-last-survivor":
       return <LastSurvivorHero stats={stats} leader={leader} />;
@@ -30,6 +35,10 @@ export function FlagshipHero({ appId, stats, leader, recentWinner: _recentWinner
       return <DailyCheckinHero stats={stats} />;
     case "miniapp-self-loan":
       return <SelfLoanHero stats={stats} />;
+    case "miniapp-profitanchor":
+      return <AnchorHero stats={stats} mode="profit" />;
+    case "miniapp-trustanchor":
+      return <AnchorHero stats={stats} mode="trust" />;
     case "miniapp-neo-pay":
       return <NeoPayHero stats={stats} />;
     default:
@@ -38,10 +47,16 @@ export function FlagshipHero({ appId, stats, leader, recentWinner: _recentWinner
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  LastSurvivor — big countdown ring + prize pool jackpot                */
+/* LastSurvivor — big countdown ring + prize pool jackpot */
 /* ────────────────────────────────────────────────────────────────────── */
 
-function LastSurvivorHero({ stats, leader }: { stats: HeroStats; leader?: string }) {
+function LastSurvivorHero({
+  stats,
+  leader,
+}: {
+  stats: HeroStats;
+  leader?: string;
+}) {
   const countdown = stats["Countdown"] || "—";
   const prizePool = stats["Prize Pool"] || "0 GAS";
   const round = stats["Round"] || "#0";
@@ -56,25 +71,40 @@ function LastSurvivorHero({ stats, leader }: { stats: HeroStats; leader?: string
         <CountdownRing label={countdown} active={live} />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-rose-700">{round}</span>
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${live ? "bg-rose-600 text-white" : "bg-gray-200 text-gray-600"}`}>{status}</span>
+            <span className="text-[10px] font-black uppercase text-rose-700">
+              {round}
+            </span>
+            <span
+              className={`text-[10px] font-black uppercase text px-2 py-0.5 rounded-full ${live ? "bg-rose-600 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              {status}
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-rose-700/80 uppercase tracking-wider mb-0.5">Prize Pool</div>
-            <div className="text-4xl sm:text-5xl font-black text-gray-900 tabular-nums">{prizePool}</div>
+            <div className="text-[11px] font-semibold text-rose-700/80 uppercase mb-0.5">
+              Prize Pool
+            </div>
+            <div className="text-4xl sm:text-5xl font-black text-gray-900 tabular-nums">
+              {prizePool}
+            </div>
           </div>
           {leader && (
             <div className="inline-flex items-center gap-2 rounded-xl bg-white/80 px-3 py-2 border border-rose-100 shadow-sm">
               <span className="text-base">👑</span>
               <div className="leading-tight">
-                <div className="text-[9px] font-bold uppercase tracking-widest text-rose-700">Current Leader</div>
-                <div className="text-xs font-semibold text-gray-900 font-mono">{leader}</div>
+                <div className="text-[9px] font-bold uppercase text-rose-700">
+                  Current Leader
+                </div>
+                <div className="text-xs font-semibold text-gray-900 font-mono">
+                  {leader}
+                </div>
               </div>
             </div>
           )}
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
-            Each GAS transfer buys 1 key, resets the timer, and crowns you as the heir to the pot.
-            Be the last bidder when the timer hits zero — you take everything.
+            Each GAS transfer buys 1 key, extends the timer, and crowns you as
+            the current leader. Be the last bidder when the timer hits zero to
+            win the contract-defined payout.
           </p>
         </div>
       </div>
@@ -92,8 +122,12 @@ function CountdownRing({ label, active }: { label: string; active: boolean }) {
       <div className="absolute inset-1.5 rounded-full bg-white" />
       <div className="absolute inset-3 rounded-full bg-gradient-to-br from-white to-rose-50/40" />
       <div className="relative z-10 text-center">
-        <div className="text-[9px] font-bold uppercase tracking-widest text-rose-600/80">Countdown</div>
-        <div className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight mt-1">{label}</div>
+        <div className="text-[9px] font-bold uppercase text-rose-600/80">
+          Countdown
+        </div>
+        <div className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums leading-tight mt-1">
+          {label}
+        </div>
       </div>
       {active && (
         <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
@@ -106,7 +140,7 @@ function CountdownRing({ label, active }: { label: string; active: boolean }) {
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  FogPlay — animated coin + 2× payout callout                           */
+/* FogPlay — animated coin + 2× payout callout */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function FogPlayHero({ stats }: { stats: HeroStats }) {
@@ -123,21 +157,37 @@ function FogPlayHero({ stats }: { stats: HeroStats }) {
         <FlippingCoin />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${live ? "bg-emerald-400 text-emerald-950" : "bg-white/20 text-white/70"}`}>{status}</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Coin Flip · VRF</span>
+            <span
+              className={`text-[10px] font-black uppercase text px-2 py-0.5 rounded-full ${live ? "bg-emerald-400 text-emerald-950" : "bg-white/20 text-white/70"}`}
+            >
+              {status}
+            </span>
+            <span className="text-[10px] font-black uppercase text-white/60">
+              Coin Flip · VRF
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-white/60 uppercase tracking-wider mb-0.5">Pick a side, double or zero</div>
-            <div className="text-4xl sm:text-5xl font-black tabular-nums">2<span className="text-purple-300">×</span> <span className="text-2xl sm:text-3xl text-white/80">payout</span></div>
+            <div className="text-[11px] font-semibold text-white/60 uppercase mb-0.5">
+              Pick a side, double or zero
+            </div>
+            <div className="text-4xl sm:text-5xl font-black tabular-nums">
+              2<span className="text-purple-300">×</span>{" "}
+              <span className="text-2xl sm:text-3xl text-white/80">payout</span>
+            </div>
           </div>
           <div className="inline-flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2 border border-white/10 backdrop-blur-sm">
             <div className="leading-tight">
-              <div className="text-[9px] font-bold uppercase tracking-widest text-white/50">Bet range</div>
-              <div className="text-sm font-semibold tabular-nums">{minBet} <span className="text-white/40">–</span> {maxBet}</div>
+              <div className="text-[9px] font-bold uppercase text-white/50">
+                Bet range
+              </div>
+              <div className="text-sm font-semibold tabular-nums">
+                {minBet} <span className="text-white/40">–</span> {maxBet}
+              </div>
             </div>
           </div>
           <p className="text-xs text-white/70 max-w-md leading-relaxed">
-            Pick heads or tails, lock your stake, and wait for the Morpheus VRF callback to settle on-chain. Win and double your stake instantly.
+            Pick heads or tails, lock your stake, and wait for the Morpheus VRF
+            callback to settle on-chain. Win and double your stake instantly.
           </p>
         </div>
       </div>
@@ -147,17 +197,33 @@ function FogPlayHero({ stats }: { stats: HeroStats }) {
 
 function FlippingCoin() {
   return (
-    <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 shrink-0" style={{ perspective: "600px" }}>
+    <div
+      className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 shrink-0"
+      style={{ perspective: "600px" }}
+    >
       <div
         className="absolute inset-0 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 shadow-[0_0_60px_rgba(251,191,36,0.5)]"
         style={{ animation: "coinFlip 4s ease-in-out infinite" }}
       />
-      <div className="absolute inset-3 rounded-full bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500" style={{ animation: "coinFlip 4s ease-in-out infinite" }} />
-      <div className="relative z-10 text-4xl sm:text-5xl font-black text-amber-900" style={{ animation: "coinFlip 4s ease-in-out infinite" }}>¢</div>
+      <div
+        className="absolute inset-3 rounded-full bg-gradient-to-br from-amber-200 via-yellow-300 to-amber-500"
+        style={{ animation: "coinFlip 4s ease-in-out infinite" }}
+      />
+      <div
+        className="relative z-10 text-4xl sm:text-5xl font-black text-amber-900"
+        style={{ animation: "coinFlip 4s ease-in-out infinite" }}
+      >
+        ¢
+      </div>
       <style jsx>{`
         @keyframes coinFlip {
-          0%, 100% { transform: rotateY(0deg); }
-          50% { transform: rotateY(180deg); }
+          0%,
+          100% {
+            transform: rotateY(0deg);
+          }
+          50% {
+            transform: rotateY(180deg);
+          }
         }
       `}</style>
     </div>
@@ -165,7 +231,7 @@ function FlippingCoin() {
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  GASBox — gacha capsule + machine count                                */
+/* GASBox — gacha capsule + machine count */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function GasBoxHero({ stats }: { stats: HeroStats }) {
@@ -180,18 +246,32 @@ function GasBoxHero({ stats }: { stats: HeroStats }) {
         <GachaCapsule />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${live ? "bg-amber-500 text-white" : "bg-gray-200 text-gray-600"}`}>{status}</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700/80">Gacha · VRF</span>
+            <span
+              className={`text-[10px] font-black uppercase text px-2 py-0.5 rounded-full ${live ? "bg-amber-500 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              {status}
+            </span>
+            <span className="text-[10px] font-black uppercase text-amber-700/80">
+              Gacha · VRF
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-amber-700/80 uppercase tracking-wider mb-0.5">Live machines on-chain</div>
+            <div className="text-[11px] font-semibold text-amber-700/80 uppercase mb-0.5">
+              Live machines on-chain
+            </div>
             <div className="flex items-baseline gap-3">
-              <div className="text-5xl sm:text-6xl font-black text-gray-900 tabular-nums">{machines}</div>
-              <div className="text-sm font-semibold text-amber-700">machine{machines === "1" ? "" : "s"}</div>
+              <div className="text-5xl sm:text-6xl font-black text-gray-900 tabular-nums">
+                {machines}
+              </div>
+              <div className="text-sm font-semibold text-amber-700">
+                machine{machines === "1" ? "" : "s"}
+              </div>
             </div>
           </div>
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
-            Pick a machine, drop GAS into the slot, and let provably-fair VRF randomness reveal your prize. Each machine has its own item pool and drop rates.
+            Pick a machine, drop GAS into the slot, and let provably-fair VRF
+            randomness reveal your prize. Each machine has its own item pool and
+            drop rates.
           </p>
         </div>
       </div>
@@ -220,7 +300,7 @@ function GachaCapsule() {
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  RedEnvelope — opening envelope with floating coins                    */
+/* RedEnvelope — opening envelope with floating coins */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function RedEnvelopeHero({ stats }: { stats: HeroStats }) {
@@ -235,15 +315,27 @@ function RedEnvelopeHero({ stats }: { stats: HeroStats }) {
         <RedEnvelopeVisual />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${live ? "bg-red-600 text-white" : "bg-gray-200 text-gray-600"}`}>{status}</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-red-700/80">Lucky · VRF</span>
+            <span
+              className={`text-[10px] font-black uppercase text px-2 py-0.5 rounded-full ${live ? "bg-red-600 text-white" : "bg-gray-200 text-gray-600"}`}
+            >
+              {status}
+            </span>
+            <span className="text-[10px] font-black uppercase text-red-700/80">
+              Lucky · VRF
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-red-700/80 uppercase tracking-wider mb-0.5">Send GAS the lucky way</div>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">Wrap. Share. Reveal.</div>
+            <div className="text-[11px] font-semibold text-red-700/80 uppercase mb-0.5">
+              Send GAS the lucky way
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+              Wrap. Share. Reveal.
+            </div>
           </div>
           <p className="text-xs text-gray-700 max-w-md leading-relaxed">
-            Drop GAS into a packet, pick how many recipients, and share the envelope ID. Each claimer pulls a random share through VRF until the envelope is empty.
+            Drop GAS into a packet, pick how many recipients, and share the
+            envelope ID. Each claimer pulls a random share through VRF until the
+            envelope is empty.
           </p>
         </div>
       </div>
@@ -257,18 +349,42 @@ function RedEnvelopeVisual() {
       {/* Envelope body */}
       <div className="absolute inset-x-2 inset-y-4 rounded-xl bg-gradient-to-b from-red-600 via-red-700 to-red-800 shadow-xl" />
       {/* Flap */}
-      <div className="absolute top-3 inset-x-2 h-12 rounded-t-xl bg-gradient-to-b from-red-500 via-red-600 to-red-700"
-           style={{ clipPath: "polygon(0 0, 50% 80%, 100% 0)" }} />
+      <div
+        className="absolute top-3 inset-x-2 h-12 rounded-t-xl bg-gradient-to-b from-red-500 via-red-600 to-red-700"
+        style={{ clipPath: "polygon(0 0, 50% 80%, 100% 0)" }}
+      />
       {/* Gold seal */}
-      <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 shadow-md flex items-center justify-center text-sm font-black text-amber-900">福</div>
+      <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 shadow-md flex items-center justify-center text-sm font-black text-amber-900">
+        福
+      </div>
       {/* Floating coins */}
-      <span className="absolute top-1 left-2 text-base" style={{ animation: "floatY 3s ease-in-out infinite" }}>✨</span>
-      <span className="absolute top-2 right-3 text-base" style={{ animation: "floatY 2.5s ease-in-out 0.7s infinite" }}>💰</span>
-      <span className="absolute bottom-2 left-3 text-base" style={{ animation: "floatY 2.7s ease-in-out 1.2s infinite" }}>🪙</span>
+      <span
+        className="absolute top-1 left-2 text-base"
+        style={{ animation: "floatY 3s ease-in-out infinite" }}
+      >
+        ✨
+      </span>
+      <span
+        className="absolute top-2 right-3 text-base"
+        style={{ animation: "floatY 2.5s ease-in-out 0.7s infinite" }}
+      >
+        💰
+      </span>
+      <span
+        className="absolute bottom-2 left-3 text-base"
+        style={{ animation: "floatY 2.7s ease-in-out 1.2s infinite" }}
+      >
+        🪙
+      </span>
       <style jsx>{`
         @keyframes floatY {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-6px);
+          }
         }
       `}</style>
     </div>
@@ -276,7 +392,7 @@ function RedEnvelopeVisual() {
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  DailyCheckin — streak fire + 7-day calendar                           */
+/* DailyCheckin — streak fire + 7-day calendar */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function DailyCheckinHero({ stats }: { stats: HeroStats }) {
@@ -292,12 +408,23 @@ function DailyCheckinHero({ stats }: { stats: HeroStats }) {
         <FireRing label={totalCheckins} />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500 text-white">Active</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700/80">Streak · Daily</span>
+            <span className="text-[10px] font-black uppercase text px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+              Active
+            </span>
+            <span className="text-[10px] font-black uppercase text-emerald-700/80">
+              Streak · Daily
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-emerald-700/80 uppercase tracking-wider mb-0.5">Show up daily, claim {weekReward}</div>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">{totalUsers} <span className="text-base sm:text-lg text-emerald-700/80 font-semibold">users keeping streaks alive</span></div>
+            <div className="text-[11px] font-semibold text-emerald-700/80 uppercase mb-0.5">
+              Show up daily, claim {weekReward}
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+              {totalUsers}{" "}
+              <span className="text-base sm:text-lg text-emerald-700/80 font-semibold">
+                users keeping streaks alive
+              </span>
+            </div>
           </div>
           <div className="inline-flex flex-wrap items-center gap-3">
             <Pill label="Rewarded" value={totalRewarded} />
@@ -305,7 +432,8 @@ function DailyCheckinHero({ stats }: { stats: HeroStats }) {
             <Pill label="7-Day reward" value={weekReward} />
           </div>
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
-            One tap per UTC day, no gas needed. Hit the 7-day milestone to claim a GAS bonus and unlock loyalty NFT badges.
+            One tap per UTC day, no gas needed. Hit the 7-day milestone to claim
+            a GAS bonus and unlock loyalty NFT badges.
           </p>
         </div>
       </div>
@@ -316,13 +444,20 @@ function DailyCheckinHero({ stats }: { stats: HeroStats }) {
 function FireRing({ label }: { label: string }) {
   return (
     <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 shrink-0">
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400" style={{ animation: "spin 18s linear infinite" }} />
+      <div
+        className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400"
+        style={{ animation: "spin 18s linear infinite" }}
+      />
       <div className="absolute inset-1.5 rounded-full bg-white" />
       <div className="absolute inset-3 rounded-full bg-gradient-to-br from-emerald-50 to-white" />
       <div className="relative z-10 text-center">
         <div className="text-3xl mb-1">🔥</div>
-        <div className="text-2xl font-black text-emerald-700 tabular-nums">{label}</div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-emerald-700/70 mt-1">Total Check-ins</div>
+        <div className="text-2xl font-black text-emerald-700 tabular-nums">
+          {label}
+        </div>
+        <div className="text-[9px] font-bold uppercase text-emerald-700/70 mt-1">
+          Total Check-ins
+        </div>
       </div>
     </div>
   );
@@ -331,14 +466,18 @@ function FireRing({ label }: { label: string }) {
 function Pill({ label, value }: { label: string; value: string }) {
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 border border-emerald-100 shadow-sm">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/70">{label}</span>
-      <span className="text-xs font-black text-gray-900 tabular-nums">{value}</span>
+      <span className="text-[10px] font-bold uppercase text-emerald-700/70">
+        {label}
+      </span>
+      <span className="text-xs font-black text-gray-900 tabular-nums">
+        {value}
+      </span>
     </div>
   );
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  SelfLoan — health gauge + collateral / debt summary                   */
+/* SelfLoan — health gauge + collateral / debt summary */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function SelfLoanHero({ stats }: { stats: HeroStats }) {
@@ -355,12 +494,20 @@ function SelfLoanHero({ stats }: { stats: HeroStats }) {
         <VaultIcon label={totalLoans} />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-sky-500 text-white">Active</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-sky-700/80">DeFi · No-liquidation</span>
+            <span className="text-[10px] font-black uppercase text px-2 py-0.5 rounded-full bg-sky-500 text-white">
+              Active
+            </span>
+            <span className="text-[10px] font-black uppercase text-sky-700/80">
+              DeFi · No-liquidation
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-sky-700/80 uppercase tracking-wider mb-0.5">Borrow GAS, NEO yield repays it</div>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">Lock NEO. <span className="text-sky-700">Get GAS today.</span></div>
+            <div className="text-[11px] font-semibold text-sky-700/80 uppercase mb-0.5">
+              Borrow GAS, NEO yield repays it
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+              Lock NEO. <span className="text-sky-700">Get GAS today.</span>
+            </div>
           </div>
           <div className="inline-flex flex-wrap items-center gap-2">
             <Pill label="Collateral" value={collateral} />
@@ -369,7 +516,9 @@ function SelfLoanHero({ stats }: { stats: HeroStats }) {
             <Pill label="LTV" value={ltvRange} />
           </div>
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
-            Lock NEO, draw GAS, and let staking rewards repay your loan over time. NEO unlocks automatically once the debt is cleared — no liquidation risk.
+            Lock NEO, draw GAS, and let staking rewards repay your loan over
+            time. NEO unlocks automatically once the debt is cleared — no
+            liquidation risk.
           </p>
         </div>
       </div>
@@ -384,15 +533,122 @@ function VaultIcon({ label }: { label: string }) {
       <div className="absolute inset-2 rounded-xl border-4 border-white/30 bg-gradient-to-br from-sky-400 to-blue-500" />
       <div className="relative z-10 text-center text-white">
         <div className="text-3xl">🔒</div>
-        <div className="text-2xl font-black tabular-nums leading-tight mt-1">{label}</div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-white/80 mt-0.5">Loans</div>
+        <div className="text-2xl font-black tabular-nums leading-tight mt-1">
+          {label}
+        </div>
+        <div className="text-[9px] font-bold uppercase text-white/80 mt-0.5">
+          Loans
+        </div>
       </div>
     </div>
   );
 }
 
 /* ────────────────────────────────────────────────────────────────────── */
-/*  NeoPay — streaming pipe + total streams                               */
+/* Anchors — AA agent voting + protected stake/reward boundary */
+/* ────────────────────────────────────────────────────────────────────── */
+
+function AnchorHero({
+  stats,
+  mode,
+}: {
+  stats: HeroStats;
+  mode: "trust" | "profit";
+}) {
+  const totalStaked = stats["Total Staked"] || "0 NEO";
+  const agents = stats["Agents"] || "0";
+  const rewardReserve = stats["Reward Reserve"] || "0 GAS";
+  const status = stats["Status"] || "—";
+  const isProfit = mode === "profit";
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 border ${
+        isProfit
+          ? "bg-gradient-to-br from-emerald-50 via-teal-50 to-lime-50 border-emerald-100"
+          : "bg-gradient-to-br from-slate-50 via-teal-50 to-cyan-50 border-teal-100"
+      }`}
+    >
+      <div className="absolute inset-0 opacity-40 pointer-events-none bg-[linear-gradient(135deg,rgba(255,255,255,0.8)_0,rgba(255,255,255,0)_45%)]" />
+      <div className="relative grid grid-cols-1 sm:grid-cols-[auto,1fr] gap-6 sm:gap-8 items-center">
+        <AnchorMark label={agents} profit={isProfit} />
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-[10px] font-black uppercase text px-2 py-0.5 rounded-full ${
+                isProfit ? "bg-emerald-500 text-white" : "bg-teal-600 text-white"
+              }`}
+            >
+              {status}
+            </span>
+            <span
+              className={`text-[10px] font-black uppercase ${
+                isProfit ? "text-emerald-700/80" : "text-teal-700/80"
+              }`}
+            >
+              AA agents · Vote-only admin
+            </span>
+          </div>
+          <div>
+            <div
+              className={`text-[11px] font-semibold uppercase mb-0.5 ${
+                isProfit ? "text-emerald-700/80" : "text-teal-700/80"
+              }`}
+            >
+              {isProfit
+                ? "Highest expected GAS route"
+                : "Governance routing with custody boundaries"}
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+              {isProfit ? "Vote for profit." : "Vote with trust."}
+            </div>
+          </div>
+          <div className="inline-flex flex-wrap items-center gap-2">
+            <Pill label="Staked" value={totalStaked} />
+            <Pill label="Agents" value={agents} />
+            <Pill label="Rewards" value={rewardReserve} />
+          </div>
+          <p className="text-xs text-gray-600 max-w-md leading-relaxed">
+            {isProfit
+              ? "ProfitAnchor keeps NEO voting focused on the best recorded GAS yield while preserving user-only withdrawal and reward claims."
+              : "TrustAnchor makes governance routing explicit: admins manage AA agent vote routes, not user stake or reward withdrawals."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnchorMark({ label, profit }: { label: string; profit: boolean }) {
+  return (
+    <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 shrink-0">
+      <div
+        className={`absolute inset-0 rounded-3xl ${
+          profit
+            ? "bg-gradient-to-br from-emerald-500 via-teal-500 to-lime-400"
+            : "bg-gradient-to-br from-slate-600 via-teal-600 to-cyan-500"
+        } shadow-xl`}
+      />
+      <div className="absolute inset-3 rounded-2xl bg-white/90" />
+      <div className="relative z-10 text-center">
+        <div
+          className={`mx-auto mb-2 h-12 w-12 rounded-full border-8 ${
+            profit ? "border-lime-400" : "border-teal-500"
+          }`}
+        />
+        <div className="text-2xl font-black text-gray-900 tabular-nums leading-tight">
+          {label}
+        </div>
+        <div className="text-[9px] font-bold uppercase text-gray-500 mt-0.5">
+          Agents
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────── */
+/* NeoPay — streaming pipe + total streams */
 /* ────────────────────────────────────────────────────────────────────── */
 
 function NeoPayHero({ stats }: { stats: HeroStats }) {
@@ -405,15 +661,25 @@ function NeoPayHero({ stats }: { stats: HeroStats }) {
         <StreamPipe label={totalStreams} />
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500 text-white">Active</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700/80">Payment · Per-second</span>
+            <span className="text-[10px] font-black uppercase text px-2 py-0.5 rounded-full bg-emerald-500 text-white">
+              Active
+            </span>
+            <span className="text-[10px] font-black uppercase text-emerald-700/80">
+              Payment · Per-second
+            </span>
           </div>
           <div>
-            <div className="text-[11px] font-semibold text-emerald-700/80 uppercase tracking-wider mb-0.5">On-chain payroll, subscriptions, vesting</div>
-            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">Stream <span className="text-emerald-700">GAS / NEO</span></div>
+            <div className="text-[11px] font-semibold text-emerald-700/80 uppercase mb-0.5">
+              On-chain payroll, subscriptions, vesting
+            </div>
+            <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
+              Stream <span className="text-emerald-700">GAS / NEO</span>
+            </div>
           </div>
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
-            Configure total amount, cadence, and beneficiary. Funds drip out per second on a deterministic schedule. Recipients claim accrued amounts whenever they want.
+            Configure total amount, cadence, and beneficiary. Funds drip out per
+            second on a deterministic schedule. Recipients claim accrued amounts
+            whenever they want.
           </p>
         </div>
       </div>
@@ -429,18 +695,45 @@ function StreamPipe({ label }: { label: string }) {
       <div className="absolute inset-3 rounded-full bg-gradient-to-br from-emerald-50 via-white to-emerald-50" />
       <div className="relative z-10 text-center">
         <div className="text-3xl">💸</div>
-        <div className="text-2xl font-black text-emerald-700 tabular-nums leading-tight mt-1">{label}</div>
-        <div className="text-[9px] font-bold uppercase tracking-widest text-emerald-700/70 mt-0.5">Streams</div>
+        <div className="text-2xl font-black text-emerald-700 tabular-nums leading-tight mt-1">
+          {label}
+        </div>
+        <div className="text-[9px] font-bold uppercase text-emerald-700/70 mt-0.5">
+          Streams
+        </div>
       </div>
       {/* Drip particles */}
-      <span className="absolute bottom-1 left-6 text-xs" style={{ animation: "drip 2s ease-in 0s infinite" }}>·</span>
-      <span className="absolute bottom-1 left-12 text-xs" style={{ animation: "drip 2s ease-in 0.6s infinite" }}>·</span>
-      <span className="absolute bottom-1 left-20 text-xs" style={{ animation: "drip 2s ease-in 1.2s infinite" }}>·</span>
+      <span
+        className="absolute bottom-1 left-6 text-xs"
+        style={{ animation: "drip 2s ease-in 0s infinite" }}
+      >
+        ·
+      </span>
+      <span
+        className="absolute bottom-1 left-12 text-xs"
+        style={{ animation: "drip 2s ease-in 0.6s infinite" }}
+      >
+        ·
+      </span>
+      <span
+        className="absolute bottom-1 left-20 text-xs"
+        style={{ animation: "drip 2s ease-in 1.2s infinite" }}
+      >
+        ·
+      </span>
       <style jsx>{`
         @keyframes drip {
-          0% { transform: translateY(-30px); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: translateY(20px); opacity: 0; }
+          0% {
+            transform: translateY(-30px);
+            opacity: 0;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(20px);
+            opacity: 0;
+          }
         }
       `}</style>
     </div>

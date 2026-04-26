@@ -27,11 +27,16 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
 }
 
 function resolveRelayUrl(): string {
-  const value = String(process.env.AA_RELAY_URL || process.env.NEXT_PUBLIC_AA_RELAY_URL || "").trim();
+  const value = String(
+    process.env.AA_RELAY_URL || process.env.NEXT_PUBLIC_AA_RELAY_URL || "",
+  ).trim();
   return value.replace(/\/$/, "");
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
 
   if (String(req.method || "").toUpperCase() !== "POST") {
@@ -41,7 +46,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const relayUrl = resolveRelayUrl();
   if (!relayUrl) {
-    apiError.internal(res, "AA_RELAY_URL (or NEXT_PUBLIC_AA_RELAY_URL) not configured");
+    apiError.internal(
+      res,
+      "AA_RELAY_URL (or NEXT_PUBLIC_AA_RELAY_URL) not configured",
+    );
     return;
   }
 
@@ -49,7 +57,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     rawBody = await readRawBody(req);
   } catch (error) {
-    apiError.badRequest(res, error instanceof Error ? error.message : "invalid request body");
+    apiError.badRequest(
+      res,
+      error instanceof Error ? error.message : "invalid request body",
+    );
     return;
   }
 
@@ -61,7 +72,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       method: "POST",
       signal: controller.signal,
       headers: {
-        "Content-Type": String(req.headers["content-type"] || "application/json"),
+        "Content-Type": String(
+          req.headers["content-type"] || "application/json",
+        ),
       },
       body: new Uint8Array(rawBody),
     });
@@ -69,10 +82,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const text = await upstream.text();
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
-    res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/json");
-    return res.send(text);
+    res.setHeader(
+      "Content-Type",
+      upstream.headers.get("content-type") || "application/json",
+    );
+    res.send(text);
+    return;
   } catch (error) {
-    logger.error("AA relay proxy error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "AA relay proxy error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     if (controller.signal.aborted) {
       apiError.gatewayError(res, "AA relay timed out");
       return;

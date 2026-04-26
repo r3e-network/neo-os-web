@@ -4,7 +4,10 @@ import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
 // Explorer Search API - proxies to Edge Function or queries indexer directly
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -52,9 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
-    return res.status(200).json(result);
+    res.status(200).json(result);
+    return;
   } catch (error) {
-    logger.error("Explorer search error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Explorer search error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Search failed");
   }
 }
@@ -66,7 +73,12 @@ function detectSearchType(query: string): string {
   return "unknown";
 }
 
-async function supabaseQuery(url: string, key: string, table: string, params: string): Promise<unknown[]> {
+async function supabaseQuery(
+  url: string,
+  key: string,
+  table: string,
+  params: string,
+): Promise<unknown[]> {
   const response = await fetch(`${url}/rest/v1/${table}?${params}`, {
     headers: {
       apikey: key,
@@ -85,19 +97,44 @@ async function supabaseQuery(url: string, key: string, table: string, params: st
 
 async function searchTransaction(url: string, key: string, hash: string) {
   const safeHash = encodeURIComponent(hash);
-  const tx = await supabaseQuery(url, key, "indexer_transactions", `hash=eq.${safeHash}&limit=1`);
+  const tx = await supabaseQuery(
+    url,
+    key,
+    "indexer_transactions",
+    `hash=eq.${safeHash}&limit=1`,
+  );
   if (!tx || tx.length === 0) return { type: "transaction", found: false };
 
   const [traces, calls, syscalls] = await Promise.all([
-    supabaseQuery(url, key, "indexer_opcode_traces", `tx_hash=eq.${safeHash}&order=step_index&limit=500`),
-    supabaseQuery(url, key, "indexer_contract_calls", `tx_hash=eq.${safeHash}&order=call_index&limit=200`),
-    supabaseQuery(url, key, "indexer_syscalls", `tx_hash=eq.${safeHash}&order=call_index&limit=200`),
+    supabaseQuery(
+      url,
+      key,
+      "indexer_opcode_traces",
+      `tx_hash=eq.${safeHash}&order=step_index&limit=500`,
+    ),
+    supabaseQuery(
+      url,
+      key,
+      "indexer_contract_calls",
+      `tx_hash=eq.${safeHash}&order=call_index&limit=200`,
+    ),
+    supabaseQuery(
+      url,
+      key,
+      "indexer_syscalls",
+      `tx_hash=eq.${safeHash}&order=call_index&limit=200`,
+    ),
   ]);
 
   return {
     type: "transaction",
     found: true,
-    data: { ...(tx[0] as Record<string, unknown>), opcode_traces: traces || [], contract_calls: calls || [], syscalls: syscalls || [] },
+    data: {
+      ...(tx[0] as Record<string, unknown>),
+      opcode_traces: traces || [],
+      contract_calls: calls || [],
+      syscalls: syscalls || [],
+    },
   };
 }
 
@@ -110,7 +147,13 @@ async function searchAddress(url: string, key: string, address: string) {
     `address=eq.${safeAddress}&order=block_time.desc&limit=50`,
   );
   const count = txs?.length || 0;
-  return { type: "address", found: count > 0, address, tx_count: count, transactions: txs || [] };
+  return {
+    type: "address",
+    found: count > 0,
+    address,
+    tx_count: count,
+    transactions: txs || [],
+  };
 }
 
 async function searchContract(url: string, key: string, contractHash: string) {
@@ -122,7 +165,13 @@ async function searchContract(url: string, key: string, contractHash: string) {
     `contract_hash=eq.${safeHash}&order=id.desc&limit=50`,
   );
   const count = calls?.length || 0;
-  return { type: "contract", found: count > 0, contract_hash: contractHash, call_count: count, calls: calls || [] };
+  return {
+    type: "contract",
+    found: count > 0,
+    contract_hash: contractHash,
+    call_count: count,
+    calls: calls || [],
+  };
 }
 
 async function searchAll(url: string, key: string, query: string) {

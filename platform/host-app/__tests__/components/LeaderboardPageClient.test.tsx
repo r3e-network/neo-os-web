@@ -25,7 +25,10 @@ describe("LeaderboardPageClient", () => {
 
     render(<LeaderboardPageClient />);
 
-    expect(screen.getByTestId("leaderboard")).toHaveAttribute("data-wallet", "Nf8TestWalletAddress");
+    expect(screen.getByTestId("leaderboard")).toHaveAttribute(
+      "data-wallet",
+      "Nf8TestWalletAddress",
+    );
   });
 
   it("renders safely when no wallet is connected", () => {
@@ -33,6 +36,9 @@ describe("LeaderboardPageClient", () => {
 
     render(<LeaderboardPageClient />);
 
-    expect(screen.getByTestId("leaderboard")).toHaveAttribute("data-wallet", "");
+    expect(screen.getByTestId("leaderboard")).toHaveAttribute(
+      "data-wallet",
+      "",
+    );
   });
 });

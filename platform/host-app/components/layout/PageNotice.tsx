@@ -37,7 +37,13 @@ export function PageNotice({
             </Link>
             {secondaryAction && (
               <Link href={secondaryAction.href}>
-                <Button variant={secondaryAction.variant === "outline" ? "outline" : "primary"}>
+                <Button
+                  variant={
+                    secondaryAction.variant === "outline"
+                      ? "outline"
+                      : "primary"
+                  }
+                >
                   {secondaryAction.label}
                 </Button>
               </Link>

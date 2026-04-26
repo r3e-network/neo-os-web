@@ -9,7 +9,10 @@ import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { parseMiniAppDefinitionContent } from "@/lib/miniapp-definitions";
 import { validateMiniAppDefinitionAgainstSchema } from "@/lib/miniapp-schema-validator";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 type Dict = Record<string, unknown>;
 
@@ -80,7 +83,12 @@ function parseBoolean(value: unknown): boolean {
   if (typeof value === "number") return value === 1;
   if (typeof value !== "string") return false;
   const normalized = value.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
 }
 
 function asDefinitionArray(value: unknown): BatchDefinitionInput[] {
@@ -95,7 +103,10 @@ function asDefinitionArray(value: unknown): BatchDefinitionInput[] {
 }
 
 function pickRollbackTargetRelease(
-  row: { draft_version_id?: string | null; published_version_id?: string | null } | null,
+  row: {
+    draft_version_id?: string | null;
+    published_version_id?: string | null;
+  } | null,
 ): { versionId: string | null; releaseChannel: "draft" | "published" | null } {
   if (row?.draft_version_id) {
     return { versionId: row.draft_version_id, releaseChannel: "draft" };
@@ -134,7 +145,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -146,15 +160,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const definitions = asDefinitionArray(body.definitions);
 
   if (!definitions.length) {
-    return apiError.badRequest(res, "definitions is required and must be a non-empty array");
+    return apiError.badRequest(
+      res,
+      "definitions is required and must be a non-empty array",
+    );
   }
   if (definitions.length > 200) {
-    return apiError.badRequest(res, "definitions allows at most 200 items per batch");
+    return apiError.badRequest(
+      res,
+      "definitions allows at most 200 items per batch",
+    );
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const actor = admin.kind === "wallet" ? admin.value : "api_key";
@@ -171,15 +194,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       parsedPayload = parseDefinitionInput(definitionInput);
       appId = asTrimmedString(parsedPayload.app_id).toLowerCase();
 
-      const schemaValidation = validateMiniAppDefinitionAgainstSchema(parsedPayload);
+      const schemaValidation =
+        validateMiniAppDefinitionAgainstSchema(parsedPayload);
       if (!schemaValidation.valid) {
-        throw new Error(schemaValidation.error || "Definition does not match miniapp schema");
+        throw new Error(
+          schemaValidation.error || "Definition does not match miniapp schema",
+        );
       }
 
       let existing: ExistingRow | null = null;
-      let existingRelease: { draft_version_id?: string | null; published_version_id?: string | null } | null = null;
+      let existingRelease: {
+        draft_version_id?: string | null;
+        published_version_id?: string | null;
+      } | null = null;
       if (APP_ID_REGEX.test(appId)) {
-        const [{ data: existingRow, error: existingError }, { data: releaseRow, error: releaseError }] = await Promise.all([
+        const [
+          { data: existingRow, error: existingError },
+          { data: releaseRow, error: releaseError },
+        ] = await Promise.all([
           supabase
             .from("miniapps")
             .select(
@@ -195,19 +227,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         ]);
 
         if (existingError) {
-          throw new Error(`Failed to load existing app: ${existingError.message}`);
+          throw new Error(
+            `Failed to load existing app: ${existingError.message}`,
+          );
         }
         if (releaseError) {
-          throw new Error(`Failed to load release pointers: ${releaseError.message}`);
+          throw new Error(
+            `Failed to load release pointers: ${releaseError.message}`,
+          );
         }
         existing = (existingRow as ExistingRow | null) || null;
-        existingRelease = (releaseRow as { draft_version_id?: string | null; published_version_id?: string | null } | null) || null;
+        existingRelease =
+          (releaseRow as {
+            draft_version_id?: string | null;
+            published_version_id?: string | null;
+          } | null) || null;
       }
 
       const normalized = normalizeMiniAppAdminPayload(parsedPayload, {
         existing,
         actor,
-        defaultDeveloperUserId: process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
+        defaultDeveloperUserId:
+          process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
       });
       if (!normalized.ok) {
         throw new Error(normalized.error);
@@ -228,7 +269,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         continue;
       }
 
-      const { error: upsertError } = await supabase.from("miniapps").upsert(normalized.row, { onConflict: "app_id" });
+      const { error: upsertError } = await supabase
+        .from("miniapps")
+        .upsert(normalized.row, { onConflict: "app_id" });
       if (upsertError) {
         throw new Error(`Failed to save miniapp: ${upsertError.message}`);
       }
@@ -263,7 +306,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         },
       });
     } catch (error) {
-      logger.error(`import-batch: failed to import ${fileName}:`, error instanceof Error ? error.message : "unknown error");
+      logger.error(
+        `import-batch: failed to import ${fileName}:`,
+        error instanceof Error ? error.message : "unknown error",
+      );
       const message = error instanceof Error ? error.message : "Unknown error";
       results.push({
         index,
@@ -292,7 +338,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const importBatchId = `batch_${Date.now()}_${crypto.randomBytes(4).toString("hex")}`;
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     success: summary.failed === 0,
     dry_run: dryRun,
     stop_on_error: stopOnError,
@@ -306,6 +352,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           targets: rollbackTargets,
         },
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

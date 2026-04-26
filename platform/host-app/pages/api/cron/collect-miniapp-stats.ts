@@ -5,7 +5,10 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
 // Vercel cron or manual trigger
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET" && req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
@@ -17,7 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const authHeader = String(req.headers.authorization || "");
   const expected = `Bearer ${cronSecret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return apiError.unauthorized(res, "Unauthorized");
   }
 
@@ -41,7 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!apps?.length) {
-      return res.status(200).json({ message: "No apps to process", results });
+      res.status(200).json({ message: "No apps to process", results });
+      return;
     }
 
     for (const app of apps) {
@@ -49,7 +56,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await collectAppStats(app.app_id, app.contract_hash, network);
         results.push({ appId: app.app_id, success: true });
       } catch (error) {
-        logger.warn(`collectAppStats failed for ${app.app_id}:`, error instanceof Error ? error.message : "unknown error");
+        logger.warn(
+          `collectAppStats failed for ${app.app_id}:`,
+          error instanceof Error ? error.message : "unknown error",
+        );
         results.push({
           appId: app.app_id,
           success: false,
@@ -58,22 +68,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       message: `Processed ${results.length} apps`,
       success: results.filter((r) => r.success).length,
       failed: results.filter((r) => !r.success).length,
       results,
     });
+    return;
   } catch (error) {
-    logger.error("Cron error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Cron error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Collection failed");
   }
 }
 
-async function collectAppStats(appId: string, contractHash: string, network: "testnet" | "mainnet") {
-  const { error } = await supabase.from("miniapp_stats").upsert(
-    { app_id: appId, last_updated: Date.now() },
-    { onConflict: "app_id" },
-  );
+async function collectAppStats(
+  appId: string,
+  contractHash: string,
+  network: "testnet" | "mainnet",
+) {
+  const { error } = await supabase
+    .from("miniapp_stats")
+    .upsert(
+      { app_id: appId, last_updated: Date.now() },
+      { onConflict: "app_id" },
+    );
   if (error) throw new Error(`upsert failed: ${error.message}`);
 }

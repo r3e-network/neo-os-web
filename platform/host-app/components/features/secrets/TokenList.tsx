@@ -12,28 +12,50 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
   if (tokens.length === 0) {
-    return <div className="py-6 text-center text-gray-500">No tokens created yet</div>;
+    return (
+      <div className="py-6 text-center text-gray-500">
+        No tokens created yet
+      </div>
+    );
   }
 
   return (
     <>
       <ul className="space-y-3">
         {tokens.map((token) => (
-          <li key={token.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-4">
+          <li
+            key={token.id}
+            className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
+          >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900 truncate" title={token.name}>{token.name}</span>
+                <span
+                  className="font-semibold text-gray-900 truncate"
+                  title={token.name}
+                >
+                  {token.name}
+                </span>
                 <StatusBadge status={token.status} />
               </div>
-              <div className="mt-1 text-sm text-gray-500 truncate" title={`App: ${token.appName || token.appId}`}>App: {token.appName || token.appId}</div>
+              <div
+                className="mt-1 text-sm text-gray-500 truncate"
+                title={`App: ${token.appName || token.appId}`}
+              >
+                App: {token.appName || token.appId}
+              </div>
               <div className="text-xs text-gray-500">
                 Created: {formatDate(token.createdAt)}
-                {token.lastUsed && ` • Last used: ${formatDate(token.lastUsed)}`}
+                {token.lastUsed &&
+                  ` • Last used: ${formatDate(token.lastUsed)}`}
               </div>
             </div>
 
             {token.status === "active" && (
-              <button type="button" onClick={() => setRevokeTarget(token.id)} className="py-1 px-2 text-sm text-red-600 hover:underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setRevokeTarget(token.id)}
+                className="py-1 px-2 text-sm text-red-600 hover:underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
+              >
                 Revoke
               </button>
             )}
@@ -57,7 +79,10 @@ export function TokenList({ tokens, onRevoke }: TokenListProps) {
 }
 
 function StatusBadge({ status }: { status: SecretToken["status"] }) {
-  const variants: Record<SecretToken["status"], "default" | "secondary" | "destructive"> = {
+  const variants: Record<
+    SecretToken["status"],
+    "default" | "secondary" | "destructive"
+  > = {
     active: "default",
     expired: "secondary",
     revoked: "destructive",

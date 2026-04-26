@@ -13,10 +13,12 @@ export default function TestPage() {
       <h1>Neo MiniApp Platform</h1>
       <p>Frontend is working!</p>
       <p>Port: 3002</p>
-      <Link href="/" style={{ color: "#00ff88", marginTop: "20px", display: "block" }}>
+      <Link
+        href="/"
+        style={{ color: "#00ff88", marginTop: "20px", display: "block" }}
+      >
         Go to Main App
       </Link>
     </div>
   );
 }
-

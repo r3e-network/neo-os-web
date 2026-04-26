@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/Button";
 describe("Button Component", () => {
   it("should render button with text", () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByRole("button", { name: /click me/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /click me/i }),
+    ).toBeInTheDocument();
   });
 
   it("should apply primary variant by default", () => {

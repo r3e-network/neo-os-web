@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/modal";
-import { useWalletStore, walletOptions, WalletProvider } from "@/lib/wallet/store";
+import {
+  useWalletStore,
+  walletOptions,
+  WalletProvider,
+} from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
 import { LogOut, Wallet, Mail, X } from "lucide-react";
@@ -51,7 +55,9 @@ export function ConnectButton() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
             </div>
-            <span className="text-sm font-bold text-gray-900 tracking-tight">{user.email || user.name || "Connected"}</span>
+            <span className="text-sm font-bold text-gray-900 ">
+              {user.email || user.name || "Connected"}
+            </span>
           </div>
           <button
             type="button"
@@ -59,7 +65,10 @@ export function ConnectButton() {
             className="p-2.5 rounded-xl border border-transparent hover:border-red-200/50 text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 group"
             aria-label="Logout"
           >
-            <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            <LogOut
+              size={16}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
           </button>
         </div>
         <ConfirmModal
@@ -86,10 +95,17 @@ export function ConnectButton() {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[13px] font-bold text-gray-900 tracking-tight group-hover:text-neo transition-colors leading-tight" title={address}>
+              <span
+                className="text-[13px] font-bold text-gray-900 group-hover:text-neo transition-colors leading-tight"
+                title={address}
+              >
                 {address.slice(0, 6)}...{address.slice(-4)}
               </span>
-              {wallet.balance && <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{wallet.balance.gas} GAS</span>}
+              {wallet.balance && (
+                <span className="text-[10px] font-semibold text-gray-500 uppercase ">
+                  {wallet.balance.gas} GAS
+                </span>
+              )}
             </div>
           </div>
           <button
@@ -98,7 +114,10 @@ export function ConnectButton() {
             className="p-2.5 rounded-xl border border-transparent hover:border-rose-200/50 text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 group"
             aria-label="Disconnect"
           >
-            <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+            <LogOut
+              size={16}
+              className="group-hover:-translate-x-0.5 transition-transform"
+            />
           </button>
         </div>
         <ConfirmModal
@@ -129,7 +148,11 @@ export function ConnectButton() {
         disabled={wallet.loading || auth.loading}
         className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-5 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
       >
-        <span className="relative z-10">{wallet.loading || auth.loading ? "Connecting..." : "Log In / Sign Up"}</span>
+        <span className="relative z-10">
+          {wallet.loading || auth.loading
+            ? "Connecting..."
+            : "Log In / Sign Up"}
+        </span>
       </button>
 
       {/* Polymarket-style Global Login Modal */}
@@ -160,39 +183,57 @@ export function ConnectButton() {
             </div>
 
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome to R3E</h2>
-              <p className="text-sm text-gray-500">Connect a wallet or sign in with email to continue.</p>
+              <h2 className="text-2xl font-black text-gray-900 mb-2">
+                Welcome to R3E
+              </h2>
+              <p className="text-sm text-gray-500">
+                Connect a wallet or sign in with email to continue.
+              </p>
             </div>
 
             <div className="space-y-4">
               {/* Social / Email Login */}
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 px-1">Email & Social</p>
+                <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                  Email & Social
+                </p>
                 <button
                   onClick={() => auth.loginSocial("google")}
                   className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />
+                  <img
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    className="w-5 h-5"
+                    alt="Google"
+                  />
                   Continue with Google
                 </button>
                 <button
                   onClick={() => auth.loginSocial("github")}
                   className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <img src="https://www.svgrepo.com/show/512317/github-142.svg" className="w-5 h-5" alt="GitHub" />
+                  <img
+                    src="https://www.svgrepo.com/show/512317/github-142.svg"
+                    className="w-5 h-5"
+                    alt="GitHub"
+                  />
                   Continue with GitHub
                 </button>
               </div>
 
               <div className="relative flex items-center py-4">
                 <div className="flex-grow border-t border-gray-200"></div>
-                <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">OR</span>
+                <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">
+                  OR
+                </span>
                 <div className="flex-grow border-t border-gray-200"></div>
               </div>
 
               {/* Neo Wallets */}
               <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400 px-1">Neo Ecosystem</p>
+                <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                  Neo Ecosystem
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   {walletOptions.map((w) => (
                     <button
@@ -205,12 +246,16 @@ export function ConnectButton() {
                         alt={w.name}
                         className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                          e.currentTarget.style.display = "none";
+                          e.currentTarget.parentElement
+                            ?.querySelector(".fallback-icon")
+                            ?.classList.remove("hidden");
                         }}
                       />
                       <Wallet className="fallback-icon hidden h-8 w-8 text-neo group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold text-gray-700">{w.name}</span>
+                      <span className="text-xs font-bold text-gray-700">
+                        {w.name}
+                      </span>
                     </button>
                   ))}
 
@@ -220,7 +265,8 @@ export function ConnectButton() {
             </div>
 
             <p className="mt-8 text-center text-xs text-gray-400">
-              By connecting, you agree to our Terms of Service and Privacy Policy.
+              By connecting, you agree to our Terms of Service and Privacy
+              Policy.
             </p>
           </div>
         </div>
@@ -228,13 +274,19 @@ export function ConnectButton() {
 
       {/* Error Toast */}
       {(wallet.error || auth.error) && (
-        <div role="alert" className="fixed bottom-6 right-6 w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl z-50 animate-in slide-in-from-bottom-5">
+        <div
+          role="alert"
+          className="fixed bottom-6 right-6 w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl z-50 animate-in slide-in-from-bottom-5"
+        >
           <p className="text-sm font-semibold text-red-600 leading-tight mb-3">
             {wallet.error || auth.error}
           </p>
           <button
             type="button"
-            onClick={() => { wallet.clearError(); auth.clearError(); }}
+            onClick={() => {
+              wallet.clearError();
+              auth.clearError();
+            }}
             className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
           >
             Dismiss

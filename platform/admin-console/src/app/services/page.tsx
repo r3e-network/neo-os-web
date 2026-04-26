@@ -7,7 +7,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/Table";
 import { useServicesHealth } from "@/lib/hooks/useServices";
 import { formatRelativeTime } from "@/lib/utils";
 
@@ -17,8 +24,12 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Services</h1>
-        <p className="text-gray-600 dark:text-gray-400">Monitor service health and status</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Services
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Monitor service health and status
+        </p>
       </div>
 
       <Card variant="glass">
@@ -27,56 +38,73 @@ export default function ServicesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
+            <div className="flex justify-center py-8">
+              <Spinner />
+            </div>
           ) : error ? (
-            <div role="alert" className="text-center text-danger-600 dark:text-danger-400">Failed to load services</div>
+            <div
+              role="alert"
+              className="text-center text-danger-600 dark:text-danger-400"
+            >
+              Failed to load services
+            </div>
           ) : (
             <div className="overflow-x-auto">
-            <Table aria-label="Services status">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Service Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Last Check</TableHead>
-                  <TableHead>Error</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {services?.map((service) => (
-                  <TableRow key={service.name}>
-                    <TableCell className="font-medium">{service.name}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          service.status === "healthy"
-                            ? "success"
-                            : service.status === "unhealthy"
-                              ? "danger"
-                              : "default"
-                        }
-                      >
-                        {service.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-gray-500 dark:text-gray-400">{service.url}</TableCell>
-                    <TableCell>{service.version || "N/A"}</TableCell>
-                    <TableCell className="text-sm text-gray-500 dark:text-gray-400">{formatRelativeTime(service.lastCheck)}</TableCell>
-                    <TableCell className="text-sm text-danger-600 dark:text-danger-400">{service.error || "-"}</TableCell>
-                    <TableCell>
-                      <button 
-                        onClick={() => window.location.href = `/services/${service.name}`}
-                        className="text-neo hover:underline text-sm font-medium"
-                      >
-                        Configure
-                      </button>
-                    </TableCell>
+              <Table aria-label="Services status">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Service Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>URL</TableHead>
+                    <TableHead>Version</TableHead>
+                    <TableHead>Last Check</TableHead>
+                    <TableHead>Error</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {services?.map((service) => (
+                    <TableRow key={service.name}>
+                      <TableCell className="font-medium">
+                        {service.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            service.status === "healthy"
+                              ? "success"
+                              : service.status === "unhealthy"
+                                ? "danger"
+                                : "default"
+                          }
+                        >
+                          {service.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-gray-500 dark:text-gray-400">
+                        {service.url}
+                      </TableCell>
+                      <TableCell>{service.version || "N/A"}</TableCell>
+                      <TableCell className="text-sm text-gray-500 dark:text-gray-400">
+                        {formatRelativeTime(service.lastCheck)}
+                      </TableCell>
+                      <TableCell className="text-sm text-danger-600 dark:text-danger-400">
+                        {service.error || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <button
+                          onClick={() =>
+                            (window.location.href = `/services/${service.name}`)
+                          }
+                          className="text-neo hover:underline text-sm font-medium"
+                        >
+                          Configure
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

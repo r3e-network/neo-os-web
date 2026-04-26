@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getPreferences, upsertPreferences } from "@/lib/notifications/supabase-service";
+import {
+  getPreferences,
+  upsertPreferences,
+} from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
@@ -21,7 +24,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === "GET") {
       const { wallet } = req.query;
-      if (!wallet || typeof wallet !== "string" || !/^N[A-Za-z0-9]{33}$/.test(wallet)) {
+      if (
+        !wallet ||
+        typeof wallet !== "string" ||
+        !/^N[A-Za-z0-9]{33}$/.test(wallet)
+      ) {
         return apiError.badRequest(res, "Invalid wallet address");
       }
 
@@ -33,9 +40,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const prefs = await getPreferences(wallet);
 
-      return res.status(200).json({
+      res.status(200).json({
         preferences: prefs ?? { walletAddress: wallet, ...DEFAULT_PREFERENCES },
       });
+      return;
     }
 
     if (req.method === "POST") {
@@ -52,7 +60,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       }
       const validFrequencies = ["instant", "daily", "weekly"];
-      if (prefs.digestFrequency && !validFrequencies.includes(prefs.digestFrequency)) {
+      if (
+        prefs.digestFrequency &&
+        !validFrequencies.includes(prefs.digestFrequency)
+      ) {
         return apiError.badRequest(res, "Invalid digest frequency");
       }
 
@@ -67,12 +78,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         return apiError.internal(res, "Failed to save preferences");
       }
 
-      return res.status(200).json({ success: true });
+      res.status(200).json({ success: true });
+      return;
     }
 
     return apiError.methodNotAllowed(res);
   } catch (err) {
-    logger.error("Preferences error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Preferences error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to process preferences");
   }
 }

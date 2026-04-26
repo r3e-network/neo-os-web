@@ -13,11 +13,17 @@ jest.mock("next/router", () => ({
 }));
 
 jest.mock("../../components/layout", () => ({
-  Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+  Layout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }));
 
 jest.mock("../../components/features/miniapp", () => ({
-  MiniAppGrid: ({ apps }: { apps: Array<{ app_id: string; name: string }> }) => (
+  MiniAppGrid: ({
+    apps,
+  }: {
+    apps: Array<{ app_id: string; name: string }>;
+  }) => (
     <div data-testid="miniapp-grid">
       {apps.map((app) => (
         <div key={app.app_id}>{app.name}</div>

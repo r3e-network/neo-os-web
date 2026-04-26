@@ -1,6 +1,11 @@
 "use client";
 
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type {
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/utils";
 
 const defaultFieldClassName =
@@ -20,7 +25,13 @@ function FieldShell({ id, label, labelClassName, children }: FieldShellProps) {
   return (
     <div>
       {label && (
-        <label htmlFor={id} className={cn("mb-2 block text-sm font-medium text-gray-700", labelClassName)}>
+        <label
+          htmlFor={id}
+          className={cn(
+            "mb-2 block text-sm font-medium text-gray-700",
+            labelClassName,
+          )}
+        >
           {label}
         </label>
       )}
@@ -35,10 +46,24 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   variant?: "default" | "glass";
 };
 
-export function TextField({ label, id, className, labelClassName, variant = "default", ...props }: TextFieldProps) {
+export function TextField({
+  label,
+  id,
+  className,
+  labelClassName,
+  variant = "default",
+  ...props
+}: TextFieldProps) {
   return (
     <FieldShell id={id} label={label} labelClassName={labelClassName}>
-      <input id={id} className={cn(variant === "glass" ? glassFieldClassName : defaultFieldClassName, className)} {...props} />
+      <input
+        id={id}
+        className={cn(
+          variant === "glass" ? glassFieldClassName : defaultFieldClassName,
+          className,
+        )}
+        {...props}
+      />
     </FieldShell>
   );
 }
@@ -49,10 +74,25 @@ type TextAreaFieldProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   variant?: "default" | "glass";
 };
 
-export function TextAreaField({ label, id, className, labelClassName, variant = "default", ...props }: TextAreaFieldProps) {
+export function TextAreaField({
+  label,
+  id,
+  className,
+  labelClassName,
+  variant = "default",
+  ...props
+}: TextAreaFieldProps) {
   return (
     <FieldShell id={id} label={label} labelClassName={labelClassName}>
-      <textarea id={id} className={cn(variant === "glass" ? glassFieldClassName : defaultFieldClassName, "resize-none", className)} {...props} />
+      <textarea
+        id={id}
+        className={cn(
+          variant === "glass" ? glassFieldClassName : defaultFieldClassName,
+          "resize-none",
+          className,
+        )}
+        {...props}
+      />
     </FieldShell>
   );
 }
@@ -64,10 +104,25 @@ type SelectFieldProps = SelectHTMLAttributes<HTMLSelectElement> & {
   children: ReactNode;
 };
 
-export function SelectField({ label, id, className, labelClassName, variant = "default", children, ...props }: SelectFieldProps) {
+export function SelectField({
+  label,
+  id,
+  className,
+  labelClassName,
+  variant = "default",
+  children,
+  ...props
+}: SelectFieldProps) {
   return (
     <FieldShell id={id} label={label} labelClassName={labelClassName}>
-      <select id={id} className={cn(variant === "glass" ? glassFieldClassName : defaultFieldClassName, className)} {...props}>
+      <select
+        id={id}
+        className={cn(
+          variant === "glass" ? glassFieldClassName : defaultFieldClassName,
+          className,
+        )}
+        {...props}
+      >
         {children}
       </select>
     </FieldShell>

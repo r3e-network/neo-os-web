@@ -4,8 +4,15 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
-import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+  isServerSupabaseConfigured,
+} from "@/lib/server-supabase";
+import {
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type RatingRow = {
@@ -36,13 +43,18 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return apiError.methodNotAllowed(res);
 }
 
-async function getRatings(appId: string, req: NextApiRequest, res: NextApiResponse) {
-  const wallet = typeof req.query.wallet === "string" ? req.query.wallet.trim() : undefined;
+async function getRatings(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  const wallet =
+    typeof req.query.wallet === "string" ? req.query.wallet.trim() : undefined;
   if (wallet && !isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
   }
   if (!isServerSupabaseConfigured()) {
-    return res.status(200).json({
+    res.status(200).json({
       rating: {
         app_id: appId,
         avg_rating: 0,
@@ -51,11 +63,12 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
         distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
       } satisfies SocialRating,
     });
+    return;
   }
 
   const supabase = getServerSupabaseClient();
   if (!supabase) {
-    return res.status(200).json({
+    res.status(200).json({
       rating: {
         app_id: appId,
         avg_rating: 0,
@@ -64,16 +77,30 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
         distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
       } satisfies SocialRating,
     });
+    return;
   }
 
-  const { data, error } = await supabase.from("social_ratings").select("app_id,rating_value,review_text").eq("app_id", appId).limit(1000);
+  const { data, error } = await supabase
+    .from("social_ratings")
+    .select("app_id,rating_value,review_text")
+    .eq("app_id", appId)
+    .limit(1000);
   if (error) {
-    logger.error("Failed to fetch ratings:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to fetch ratings:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to fetch ratings");
   }
 
   const rows = (data || []) as RatingRow[];
-  const distribution: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+  const distribution: Record<string, number> = {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+  };
   let total = 0;
   let sum = 0;
 
@@ -89,9 +116,13 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
 
   let userRating: SocialRating["user_rating"];
   if (wallet && hasServiceRoleSupabase()) {
-    const serviceSupabase = getServerSupabaseClient({ requireServiceRole: true });
+    const serviceSupabase = getServerSupabaseClient({
+      requireServiceRole: true,
+    });
     if (serviceSupabase) {
-      const userId = await resolveUserIdFromWallet(serviceSupabase, wallet, { createIfMissing: false });
+      const userId = await resolveUserIdFromWallet(serviceSupabase, wallet, {
+        createIfMissing: false,
+      });
       if (userId) {
         const { data: myRating } = await serviceSupabase
           .from("social_ratings")
@@ -119,19 +150,30 @@ async function getRatings(appId: string, req: NextApiRequest, res: NextApiRespon
   };
 
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-  return res.status(200).json({ rating });
+  res.status(200).json({ rating });
+  return;
 }
 
-async function submitRating(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function submitRating(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for rating writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for rating writes",
+    );
   }
 
   let authedWallet: string | null;
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -144,7 +186,12 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
   if (wallet !== authedWallet) {
     return apiError.forbidden(res, "Wallet mismatch");
   }
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 1 || value > 5) {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 1 ||
+    value > 5
+  ) {
     return apiError.badRequest(res, "Invalid rating value");
   }
   if (review && (typeof review !== "string" || review.length > 1000)) {
@@ -153,10 +200,15 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
-  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  const userId = await resolveUserIdFromWallet(supabase, wallet, {
+    createIfMissing: true,
+  });
   if (!userId) {
     return apiError.internal(res, "Failed to resolve user");
   }
@@ -166,18 +218,24 @@ async function submitRating(appId: string, req: NextApiRequest, res: NextApiResp
       app_id: appId,
       rater_user_id: userId,
       rating_value: value,
-      review_text: (typeof review === "string" ? review.trim() : "").slice(0, 1000) || null,
+      review_text:
+        (typeof review === "string" ? review.trim() : "").slice(0, 1000) ||
+        null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "app_id,rater_user_id" },
   );
 
   if (error) {
-    logger.error("Failed to submit rating:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to submit rating:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to submit rating");
   }
 
-  return res.status(201).json({ success: true });
+  res.status(201).json({ success: true });
+  return;
 }
 
 export default withCsrfProtection(handler);

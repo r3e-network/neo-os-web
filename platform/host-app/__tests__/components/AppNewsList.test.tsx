@@ -104,7 +104,10 @@ describe("AppNewsList", () => {
 
     const txLink = screen.getByText("View Transaction →");
     expect(txLink).toBeInTheDocument();
-    expect(txLink).toHaveAttribute("href", "https://dora.coz.io/transaction/neo3/0x123abc");
+    expect(txLink).toHaveAttribute(
+      "href",
+      "https://dora.coz.io/transaction/neo3/0x123abc",
+    );
     expect(txLink).toHaveAttribute("target", "_blank");
   });
 
@@ -185,7 +188,9 @@ describe("AppNewsList", () => {
         content: "Test",
         notification_type: "info",
         source: "system",
-        created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
+        created_at: new Date(
+          Date.now() - 1000 * 60 * 60 * 24 * 2,
+        ).toISOString(), // 2 days ago
       },
     ];
     render(<AppNewsList notifications={daysAgoNotif} />);

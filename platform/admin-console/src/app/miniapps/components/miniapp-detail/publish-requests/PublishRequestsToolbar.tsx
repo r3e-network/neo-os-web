@@ -24,12 +24,19 @@ export function PublishRequestsToolbar({
 }: Props) {
   return (
     <div className="mb-2 flex items-center justify-between">
-      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Publish Requests</h4>
+      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+        Publish Requests
+      </h4>
       <div className="flex items-center gap-2">
         <Button size="sm" variant="ghost" onClick={onExportPublishRequestsCsv}>
           Export Requests CSV
         </Button>
-        <Button size="sm" variant="ghost" onClick={onVerifyPublishAudit} disabled={verifyPublishAuditPending}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onVerifyPublishAudit}
+          disabled={verifyPublishAuditPending}
+        >
           Verify Audit Chain
         </Button>
         <Button
@@ -52,7 +59,11 @@ export function PublishRequestsToolbar({
           id="publish-request-status-filter"
           className="cursor-pointer rounded-md border border-gray-300 p-1.5 text-xs transition-colors dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           value={publishRequestStatus}
-          onChange={(event) => onPublishRequestStatusChange(event.target.value as PublishRequestStatus)}
+          onChange={(event) =>
+            onPublishRequestStatusChange(
+              event.target.value as PublishRequestStatus,
+            )
+          }
           aria-label="Publish request status filter"
         >
           <option value="pending">Pending</option>

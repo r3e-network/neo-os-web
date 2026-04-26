@@ -41,12 +41,24 @@ describe("SocialCommentItem", () => {
 
   describe("Basic Rendering", () => {
     it("renders comment content", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
       expect(screen.getByText("This is a test comment")).toBeInTheDocument();
     });
 
     it("renders vote counts", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
       // Check upvote button contains count
       const upvoteBtn = screen.getByText(/▲/).closest("button");
       expect(upvoteBtn).toHaveTextContent("10");
@@ -56,24 +68,48 @@ describe("SocialCommentItem", () => {
     });
 
     it("renders formatted date", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
       expect(screen.getByText(/1\/15\/2025/)).toBeInTheDocument();
     });
 
     it("shows Developer badge for developer replies", () => {
-      render(<CommentItem comment={mockDeveloperComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockDeveloperComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
       expect(screen.getByText("Developer")).toBeInTheDocument();
     });
 
     it("does not show Developer badge for regular comments", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
       expect(screen.queryByText("Developer")).not.toBeInTheDocument();
     });
   });
 
   describe("Voting", () => {
     it("calls onVote with upvote when clicking upvote button", async () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
 
       const upvoteBtn = screen.getByText(/▲/).closest("button");
       fireEvent.click(upvoteBtn!);
@@ -84,7 +120,13 @@ describe("SocialCommentItem", () => {
     });
 
     it("calls onVote with downvote when clicking downvote button", async () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
 
       const downvoteBtn = screen.getByText(/▼/).closest("button");
       fireEvent.click(downvoteBtn!);
@@ -97,30 +139,60 @@ describe("SocialCommentItem", () => {
 
   describe("Reply Functionality", () => {
     it("shows Reply button at depth 0", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} depth={0} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          depth={0}
+        />,
+      );
       expect(screen.getByText("Reply")).toBeInTheDocument();
     });
 
     it("hides Reply button at max depth (3)", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} depth={3} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          depth={3}
+        />,
+      );
       expect(screen.queryByText("Reply")).not.toBeInTheDocument();
     });
 
     it("opens reply form when clicking Reply", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
 
       fireEvent.click(screen.getByText("Reply"));
 
-      expect(screen.getByPlaceholderText("Write a reply...")).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("Write a reply..."),
+      ).toBeInTheDocument();
     });
 
     it("closes reply form when clicking Cancel", () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
 
       fireEvent.click(screen.getByText("Reply"));
       fireEvent.click(screen.getByText("Cancel"));
 
-      expect(screen.queryByPlaceholderText("Write a reply...")).not.toBeInTheDocument();
+      expect(
+        screen.queryByPlaceholderText("Write a reply..."),
+      ).not.toBeInTheDocument();
     });
 
     it("submits reply and clears form", async () => {
@@ -144,7 +216,13 @@ describe("SocialCommentItem", () => {
     });
 
     it("does not submit empty reply", async () => {
-      render(<CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} />);
+      render(
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+        />,
+      );
 
       fireEvent.click(screen.getByText("Reply"));
       fireEvent.click(screen.getByText("Submit"));
@@ -169,12 +247,22 @@ describe("SocialCommentItem", () => {
 
     it("loads replies when clicking reply count", async () => {
       const mockReplies: SocialComment[] = [
-        { ...mockComment, id: "reply-1", content: "Reply content", reply_count: 0 },
+        {
+          ...mockComment,
+          id: "reply-1",
+          content: "Reply content",
+          reply_count: 0,
+        },
       ];
       const loadReplies = jest.fn().mockResolvedValue(mockReplies);
 
       render(
-        <CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} onLoadReplies={loadReplies} />,
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          onLoadReplies={loadReplies}
+        />,
       );
 
       fireEvent.click(screen.getByText("3 replies"));
@@ -198,7 +286,12 @@ describe("SocialCommentItem", () => {
       );
 
       render(
-        <CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} onLoadReplies={slowLoadReplies} />,
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          onLoadReplies={slowLoadReplies}
+        />,
       );
 
       fireEvent.click(screen.getByText("3 replies"));
@@ -213,7 +306,12 @@ describe("SocialCommentItem", () => {
   describe("Nested Depth", () => {
     it("applies indentation class at depth > 0", () => {
       const { container } = render(
-        <CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} depth={1} />,
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          depth={1}
+        />,
       );
 
       expect(container.firstChild).toHaveClass("ml-6");
@@ -221,7 +319,12 @@ describe("SocialCommentItem", () => {
 
     it("does not apply indentation at depth 0", () => {
       const { container } = render(
-        <CommentItem comment={mockComment} onVote={mockOnVote} onReply={mockOnReply} depth={0} />,
+        <CommentItem
+          comment={mockComment}
+          onVote={mockOnVote}
+          onReply={mockOnReply}
+          depth={0}
+        />,
       );
 
       expect(container.firstChild).not.toHaveClass("ml-6");

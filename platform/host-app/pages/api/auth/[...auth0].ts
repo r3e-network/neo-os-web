@@ -3,9 +3,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 export default handleAuth({
   callback: handleCallback({
-    afterCallback: async (_req: NextApiRequest, _res: NextApiResponse, session: Session) => {
+    afterCallback: async (
+      _req: NextApiRequest,
+      _res: NextApiResponse,
+      session: Session,
+    ) => {
       if (session?.user?.sub) {
-        const edgeUrl = process.env.SUPABASE_EDGE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const edgeUrl =
+          process.env.SUPABASE_EDGE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
         const serviceKey = process.env.SERVICE_AUTH_KEY;
         if (edgeUrl && serviceKey) {
           try {
@@ -25,7 +30,10 @@ export default handleAuth({
             });
           } catch (e) {
             // Best-effort sync - don't block login on failure
-            console.warn("[auth0] social sync failed:", e instanceof Error ? e.message : String(e));
+            console.warn(
+              "[auth0] social sync failed:",
+              e instanceof Error ? e.message : String(e),
+            );
           }
         }
       }

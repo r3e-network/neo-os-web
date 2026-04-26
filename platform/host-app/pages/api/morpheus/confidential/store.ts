@@ -9,16 +9,24 @@ function resolveMorpheusPublicApiUrl(networkInput?: string | null) {
   return (candidates[0] || "").replace(/\/$/, "");
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
   if (String(req.method || "").toUpperCase() !== "POST") {
     return apiError.methodNotAllowed(res);
   }
 
-  const network = String(req.body?.network || req.body?.morpheus_network || "").trim() || "testnet";
+  const network =
+    String(req.body?.network || req.body?.morpheus_network || "").trim() ||
+    "testnet";
   const baseUrl = resolveMorpheusPublicApiUrl(network);
   if (!baseUrl) {
-    return apiError.configError(res, "Morpheus public API URL is not configured");
+    return apiError.configError(
+      res,
+      "Morpheus public API URL is not configured",
+    );
   }
 
   const body = req.body || {};
@@ -43,13 +51,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const text = await upstream.text();
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
-    res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/json");
-    return res.send(text);
+    res.setHeader(
+      "Content-Type",
+      upstream.headers.get("content-type") || "application/json",
+    );
+    res.send(text);
+    return;
   } catch (error) {
     if (controller.signal.aborted) {
-      return apiError.gatewayTimeout(res, "Morpheus confidential store timed out");
+      return apiError.gatewayTimeout(
+        res,
+        "Morpheus confidential store timed out",
+      );
     }
-    return apiError.gatewayError(res, error instanceof Error ? error.message : "Morpheus confidential store failed");
+    return apiError.gatewayError(
+      res,
+      error instanceof Error
+        ? error.message
+        : "Morpheus confidential store failed",
+    );
   } finally {
     clearTimeout(timeoutId);
   }

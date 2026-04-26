@@ -6,9 +6,18 @@ type ExternalMiniAppFrameProps = {
   className?: string;
 };
 
-export function ExternalMiniAppFrame({ src, title, className }: ExternalMiniAppFrameProps) {
+export function ExternalMiniAppFrame({
+  src,
+  title,
+  className,
+}: ExternalMiniAppFrameProps) {
   return (
-    <div className={className || "w-full h-[600px] rounded-2xl overflow-hidden bg-black relative border border-gray-200 shadow-sm"}>
+    <div
+      className={
+        className ||
+        "w-full h-[600px] rounded-2xl overflow-hidden bg-black relative border border-gray-200 shadow-sm"
+      }
+    >
       <iframe
         src={src}
         title={title}

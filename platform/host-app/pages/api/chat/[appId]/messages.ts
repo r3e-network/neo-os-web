@@ -3,8 +3,16 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
-import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+  isServerSupabaseConfigured,
+} from "@/lib/server-supabase";
+import {
+  formatWalletDisplayName,
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 interface ChatMessage {
@@ -61,26 +69,40 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return apiError.methodNotAllowed(res);
 }
 
-async function getMessages(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getMessages(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!isServerSupabaseConfigured()) {
-    return res.status(200).json({ messages: [], participantCount: 0 });
+    res.status(200).json({ messages: [], participantCount: 0 });
+    return;
   }
 
-  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
+  const limit = Math.max(
+    1,
+    Math.min(parseInt(req.query.limit as string) || 50, 100),
+  );
   const supabase = getServerSupabaseClient();
   if (!supabase) {
-    return res.status(200).json({ messages: [], participantCount: 0 });
+    res.status(200).json({ messages: [], participantCount: 0 });
+    return;
   }
 
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("id,sender_wallet,sender_name,content,created_at,message_type,tip_amount")
+    .select(
+      "id,sender_wallet,sender_name,content,created_at,message_type,tip_amount",
+    )
     .eq("app_id", appId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    logger.error("Failed to fetch chat messages:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to fetch chat messages:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to fetch chat messages");
   }
 
@@ -93,26 +115,40 @@ async function getMessages(appId: string, req: NextApiRequest, res: NextApiRespo
     .order("created_at", { ascending: false })
     .limit(500);
 
-  const participantCount = new Set((participantRows || []).map((row) => String(row.sender_wallet || "").trim()).filter(Boolean))
-    .size;
+  const participantCount = new Set(
+    (participantRows || [])
+      .map((row) => String(row.sender_wallet || "").trim())
+      .filter(Boolean),
+  ).size;
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     messages: ordered,
     participantCount,
   });
+  return;
 }
 
-async function postMessage(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function postMessage(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for chat writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for chat writes",
+    );
   }
 
   let authedWallet: string | null;
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -135,10 +171,15 @@ async function postMessage(appId: string, req: NextApiRequest, res: NextApiRespo
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
-  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  const userId = await resolveUserIdFromWallet(supabase, wallet, {
+    createIfMissing: true,
+  });
   if (!userId) {
     return apiError.internal(res, "Failed to resolve user");
   }
@@ -153,16 +194,22 @@ async function postMessage(appId: string, req: NextApiRequest, res: NextApiRespo
       content: content.trim(),
       message_type: "text",
     })
-    .select("id,sender_wallet,sender_name,content,created_at,message_type,tip_amount")
+    .select(
+      "id,sender_wallet,sender_name,content,created_at,message_type,tip_amount",
+    )
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create chat message:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Failed to create chat message:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to post message");
   }
 
   const message = toChatMessage(data as ChatRow);
-  return res.status(201).json({ message });
+  res.status(201).json({ message });
+  return;
 }
 
 export default withCsrfProtection(handler);

@@ -30,7 +30,11 @@ const statusColors = {
   beta: "bg-sky-100 text-sky-800 border-sky-300",
 };
 
-export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo }) {
+export const MiniAppCard = memo(function MiniAppCard({
+  app,
+}: {
+  app: MiniAppInfo;
+}) {
   const showSourceBadge = app.source && app.source !== "miniapp";
   const bannerSources = useMemo(
     () =>
@@ -67,7 +71,11 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
               loading="lazy"
               decoding="async"
               onError={() => {
-                setBannerIndex((prev) => (prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length));
+                setBannerIndex((prev) =>
+                  prev + 1 < bannerSources.length
+                    ? prev + 1
+                    : bannerSources.length,
+                );
               }}
             />
           ) : (
@@ -80,30 +88,62 @@ export const MiniAppCard = memo(function MiniAppCard({ app }: { app: MiniAppInfo
 
         <CardContent className="p-6 relative bg-transparent z-20 flex flex-col h-[220px]">
           <div className="absolute -top-10 left-6 z-30 p-1.5 bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 group-hover:-translate-y-2 transition-transform duration-500">
-            <MiniAppLogo appId={app.app_id} category={app.category} entryUrl={app.entry_url} logoUrl={app.logo_url} manifest={app.manifest || null} size="lg" className="rounded-xl" />
+            <MiniAppLogo
+              appId={app.app_id}
+              category={app.category}
+              entryUrl={app.entry_url}
+              logoUrl={app.logo_url}
+              manifest={app.manifest || null}
+              size="lg"
+              className="rounded-xl"
+            />
           </div>
 
           <div className="flex justify-end gap-2 mb-5 h-6">
-            <Badge className={cn(categoryColors[app.category], "border border-transparent capitalize px-2.5 py-0.5 text-[10px] font-bold tracking-wider")} variant="secondary">
+            <Badge
+              className={cn(
+                categoryColors[app.category],
+                "border border-transparent capitalize px-2.5 py-0.5 text-[10px] font-bold ",
+              )}
+              variant="secondary"
+            >
               {app.category}
             </Badge>
             {app.status === "beta" && (
-              <Badge className={cn(statusColors.beta, "px-2.5 py-0.5 tracking-wide text-[10px] font-bold uppercase")} variant="outline">
+              <Badge
+                className={cn(
+                  statusColors.beta,
+                  "px-2.5 py-0.5 text-[10px] font-bold uppercase",
+                )}
+                variant="outline"
+              >
                 Beta
               </Badge>
             )}
             {showSourceBadge && (
-              <Badge className={cn(sourceColors[app.source ?? "community"], "px-2.5 py-0.5 tracking-wide text-[10px] font-bold backdrop-blur-md")} variant="outline">
+              <Badge
+                className={cn(
+                  sourceColors[app.source ?? "community"],
+                  "px-2.5 py-0.5 text-[10px] font-bold backdrop-blur-md",
+                )}
+                variant="outline"
+              >
                 {app.source === "community" ? "Community" : "Verified"}
               </Badge>
             )}
           </div>
 
-          <h3 className="min-w-0 truncate text-xl font-bold text-gray-900 mb-2 group-hover:text-neo transition-colors duration-300" title={app.name}>
+          <h3
+            className="min-w-0 truncate text-xl font-bold text-gray-900 mb-2 group-hover:text-neo transition-colors duration-300"
+            title={app.name}
+          >
             {app.name}
           </h3>
 
-          <p className="line-clamp-2 text-sm font-medium leading-relaxed text-gray-600 flex-1" title={app.description}>
+          <p
+            className="line-clamp-2 text-sm font-medium leading-relaxed text-gray-600 flex-1"
+            title={app.description}
+          >
             {app.description}
           </p>
 

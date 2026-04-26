@@ -14,7 +14,11 @@ import React, {
 } from "react";
 import { cn } from "@/lib/utils";
 import { keyboardNavigation } from "@/lib/design-system/a11y";
-import { useFocusTrap, generateAriaId, isFocusable } from "@/lib/design-system/a11y";
+import {
+  useFocusTrap,
+  generateAriaId,
+  isFocusable,
+} from "@/lib/design-system/a11y";
 
 export type SelectSize = "sm" | "md" | "lg";
 export type SelectVariant = "default" | "filled" | "outline";
@@ -32,7 +36,10 @@ export interface SelectOption {
   description?: string;
 }
 
-export interface SelectProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "size" | "onChange" | "value"> {
+export interface SelectProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "size" | "onChange" | "value"
+> {
   /** Value */
   value?: string;
   /** Select options */
@@ -99,7 +106,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       value,
       ...props
     },
-    ref
+    ref,
   ) => {
     const generatedId = useId();
     const selectId = id || generatedId;
@@ -128,14 +135,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       return options.filter(
         (option) =>
           option.label.toLowerCase().includes(lowerSearch) ||
-          option.value.toLowerCase().includes(lowerSearch)
+          option.value.toLowerCase().includes(lowerSearch),
       );
     }, [options, search, searchable]);
 
     // Get selected option
     const selectedOption = useMemo(
       () => options.find((opt) => opt.value === value),
-      [options, value]
+      [options, value],
     );
 
     // Handle keyboard navigation
@@ -171,7 +178,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               setIsOpen(true);
             } else {
               setHighlightedIndex((prev) =>
-                prev <= 0 ? filteredOptions.length - 1 : prev - 1
+                prev <= 0 ? filteredOptions.length - 1 : prev - 1,
               );
             }
             break;
@@ -182,7 +189,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               setIsOpen(true);
             } else {
               setHighlightedIndex((prev) =>
-                prev >= filteredOptions.length - 1 ? 0 : prev + 1
+                prev >= filteredOptions.length - 1 ? 0 : prev + 1,
               );
             }
             break;
@@ -198,7 +205,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             break;
         }
       },
-      [disabled, isOpen, highlightedIndex, filteredOptions, onChange]
+      [disabled, isOpen, highlightedIndex, filteredOptions, onChange],
     );
 
     // Handle search input change
@@ -208,7 +215,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         onSearch?.(e.target.value);
         setHighlightedIndex(0);
       },
-      [onSearch]
+      [onSearch],
     );
 
     // Handle option click
@@ -219,7 +226,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         setIsOpen(false);
         setSearch("");
       },
-      [onChange]
+      [onChange],
     );
 
     // Handle clear
@@ -229,13 +236,16 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         onChange?.("");
         setSearch("");
       },
-      [onChange]
+      [onChange],
     );
 
     // Close on outside click
     useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        if (
+          containerRef.current &&
+          !containerRef.current.contains(e.target as Node)
+        ) {
           setIsOpen(false);
           setSearch("");
         }
@@ -253,7 +263,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     // Scroll highlighted option into view
     useEffect(() => {
       if (isOpen && highlightedIndex >= 0 && listboxRef.current) {
-        const optionElements = listboxRef.current.querySelectorAll("[role='option']");
+        const optionElements =
+          listboxRef.current.querySelectorAll("[role='option']");
         optionElements[highlightedIndex]?.scrollIntoView({ block: "nearest" });
       }
     }, [highlightedIndex, isOpen]);
@@ -284,7 +295,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               if (typeof ref === "function") {
                 ref(node as unknown as HTMLSelectElement);
               } else if (ref) {
-                (ref as React.MutableRefObject<HTMLSelectElement | null>).current = node as unknown as HTMLSelectElement;
+                (
+                  ref as React.MutableRefObject<HTMLSelectElement | null>
+                ).current = node as unknown as HTMLSelectElement;
               }
             }}
             disabled={disabled}
@@ -299,7 +312,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               sizeStyle,
               error && "border-red-500 focus:border-red-500",
               disabled && "opacity-50 cursor-not-allowed",
-              className
+              className,
             )}
             onClick={() => !disabled && setIsOpen(!isOpen)}
             onKeyDown={handleKeyDown}
@@ -335,7 +348,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               <svg
                 className={cn(
                   "w-5 h-5 text-gray-400 transition-transform duration-200",
-                  isOpen && "rotate-180"
+                  isOpen && "rotate-180",
                 )}
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
@@ -362,7 +375,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 "absolute z-50 w-full mt-2 py-1",
                 "bg-gray-800 border border-gray-700 rounded-xl shadow-xl",
                 "max-h-60 overflow-auto",
-                "animate-fade-in-down"
+                "animate-fade-in-down",
               )}
               onKeyDown={handleKeyDown}
             >
@@ -378,7 +391,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                       "w-full px-3 py-2 text-sm",
                       "bg-gray-900 border border-gray-700 rounded-lg",
                       "text-white placeholder-gray-500",
-                      "focus:outline-none focus:border-neo"
+                      "focus:outline-none focus:border-neo",
                     )}
                     autoFocus
                   />
@@ -403,7 +416,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                       value === option.value && "bg-neo/10 text-neo",
                       highlightedIndex === index && "bg-gray-700",
                       !option.disabled && "hover:bg-gray-700",
-                      option.disabled && "opacity-50 cursor-not-allowed"
+                      option.disabled && "opacity-50 cursor-not-allowed",
                     )}
                     onClick={() => handleOptionClick(option)}
                     onMouseEnter={() => setHighlightedIndex(index)}
@@ -445,7 +458,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={error ? errorId : helperId}
             className={cn(
               "mt-1.5 text-sm",
-              error ? "text-red-400" : "text-gray-500"
+              error ? "text-red-400" : "text-gray-500",
             )}
             role={error ? "alert" : undefined}
           >
@@ -454,7 +467,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
       </div>
     );
-  }
+  },
 );
 
 Select.displayName = "Select";

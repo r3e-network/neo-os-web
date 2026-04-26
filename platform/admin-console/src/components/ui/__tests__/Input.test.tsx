@@ -55,7 +55,10 @@ describe("Input Component", () => {
 
   it("should render with different types", () => {
     render(<Input type="password" placeholder="Password" />);
-    expect(screen.getByPlaceholderText("Password")).toHaveAttribute("type", "password");
+    expect(screen.getByPlaceholderText("Password")).toHaveAttribute(
+      "type",
+      "password",
+    );
   });
 
   it("should have correct base styles", () => {

@@ -66,24 +66,25 @@ const sizeStyles: Record<DrawerSize, { width: string; height: string }> = {
 // Transform Styles
 // ============================================================================
 
-const transformStyles: Record<DrawerPosition, { enter: string; exit: string }> = {
-  left: {
-    enter: "-translate-x-full",
-    exit: "translate-x-0",
-  },
-  right: {
-    enter: "translate-x-full",
-    exit: "-translate-x-0",
-  },
-  top: {
-    enter: "-translate-y-full",
-    exit: "translate-y-0",
-  },
-  bottom: {
-    enter: "translate-y-full",
-    exit: "-translate-y-0",
-  },
-};
+const transformStyles: Record<DrawerPosition, { enter: string; exit: string }> =
+  {
+    left: {
+      enter: "-translate-x-full",
+      exit: "translate-x-0",
+    },
+    right: {
+      enter: "translate-x-full",
+      exit: "-translate-x-0",
+    },
+    top: {
+      enter: "-translate-y-full",
+      exit: "translate-y-0",
+    },
+    bottom: {
+      enter: "translate-y-full",
+      exit: "-translate-y-0",
+    },
+  };
 
 // ============================================================================
 // Drawer Component
@@ -149,7 +150,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         onClose();
       }
     },
-    [closeOnOverlayClick, onClose]
+    [closeOnOverlayClick, onClose],
   );
 
   // Get size styles based on position
@@ -178,7 +179,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         <div
           className={cn(
             "absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300",
-            isOpen ? "opacity-100" : "opacity-0"
+            isOpen ? "opacity-100" : "opacity-0",
           )}
           onClick={handleOverlayClick}
           aria-hidden="true"
@@ -204,7 +205,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           position === "top" && "border-b",
           position === "bottom" && "border-t",
           // Class
-          className
+          className,
         )}
         data-drawer-focus
       >
@@ -212,10 +213,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 shrink-0">
             {title && (
-              <h2
-                id={titleId}
-                className="text-lg font-semibold text-white"
-              >
+              <h2 id={titleId} className="text-lg font-semibold text-white">
                 {title}
               </h2>
             )}
@@ -244,10 +242,14 @@ export const Drawer: React.FC<DrawerProps> = ({
         )}
 
         {/* Content */}
-        <div className={cn(
-          "px-6 py-4 overflow-y-auto",
-          position === "left" || position === "right" ? "h-[calc(100%-65px)]" : ""
-        )}>
+        <div
+          className={cn(
+            "px-6 py-4 overflow-y-auto",
+            position === "left" || position === "right"
+              ? "h-[calc(100%-65px)]"
+              : "",
+          )}
+        >
           {children}
         </div>
 
@@ -259,7 +261,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         )}
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
@@ -269,7 +271,10 @@ Drawer.displayName = "Drawer";
 // Sheet (Alternative name with different API)
 // ============================================================================
 
-export interface SheetProps extends Omit<DrawerProps, "title" | "isOpen" | "onClose"> {
+export interface SheetProps extends Omit<
+  DrawerProps,
+  "title" | "isOpen" | "onClose"
+> {
   /** Trigger element */
   trigger?: React.ReactNode;
   /** Sheet content */
@@ -302,16 +307,19 @@ export const Sheet: React.FC<SheetProps> = ({
     <>
       {React.Children.map(children, (child) =>
         React.isValidElement(child)
-          ? React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
-              onClick: () => {
-                if (!isControlled) {
-                  setInternalOpen(true);
-                }
-                const props = child.props as Record<string, unknown>;
-                if (typeof props.onClick === "function") props.onClick();
+          ? React.cloneElement(
+              child as React.ReactElement<Record<string, unknown>>,
+              {
+                onClick: () => {
+                  if (!isControlled) {
+                    setInternalOpen(true);
+                  }
+                  const props = child.props as Record<string, unknown>;
+                  if (typeof props.onClick === "function") props.onClick();
+                },
               },
-            })
-          : child
+            )
+          : child,
       )}
       <Drawer isOpen={isOpen} onClose={handleClose} {...props} />
     </>

@@ -10,13 +10,19 @@ import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
 
 const NotificationDropdown = dynamic(
-  () => import("@/components/features/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
+  () =>
+    import("@/components/features/notifications/NotificationDropdown").then(
+      (m) => m.NotificationDropdown,
+    ),
   { ssr: false },
 );
 
-const ConnectButton = dynamic(() => import("@/components/features/wallet").then((m) => m.ConnectButton), {
-  ssr: false,
-});
+const ConnectButton = dynamic(
+  () => import("@/components/features/wallet").then((m) => m.ConnectButton),
+  {
+    ssr: false,
+  },
+);
 
 const navLinks = [
   { href: "/miniapps", labelKey: "navigation.miniapps" },
@@ -66,17 +72,20 @@ export function Navbar() {
         "fixed top-0 z-50 w-full transition-all duration-300",
         scrolled
           ? "bg-white/80 backdrop-blur-xl border-b border-gray-200 py-2 shadow-sm"
-          : "bg-white/60 backdrop-blur-md py-4 border-b border-transparent"
+          : "bg-white/60 backdrop-blur-md py-4 border-b border-transparent",
       )}
     >
       <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 sm:px-6">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105">
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
+          >
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
               <span className="text-base font-black text-white">R3E</span>
             </div>
-            <span className="text-xl font-bold text-gray-900 tracking-tight">
+            <span className="text-xl font-bold text-gray-900">
               R3E <span className="text-emerald-600">Network</span>
             </span>
           </Link>
@@ -87,7 +96,9 @@ export function Navbar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
+                  aria-current={
+                    router.pathname.startsWith(link.href) ? "page" : undefined
+                  }
                   className={cn(
                     "px-4 py-1.5 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
                     router.pathname.startsWith(link.href)
@@ -103,9 +114,16 @@ export function Navbar() {
         </div>
 
         {/* Search Bar */}
-        <form onSubmit={handleSearch} role="search" className="hidden lg:flex flex-1 max-w-md mx-6">
+        <form
+          onSubmit={handleSearch}
+          role="search"
+          className="hidden lg:flex flex-1 max-w-md mx-6"
+        >
           <div className="relative w-full group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" aria-hidden="true" />
+            <Search
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
+              aria-hidden="true"
+            />
             <input
               type="search"
               value={searchQuery}
@@ -129,7 +147,9 @@ export function Navbar() {
             aria-label="Switch language"
           >
             <Globe size={18} aria-hidden="true" />
-            <span className="text-sm font-semibold">{locale === "en" ? "EN" : "中"}</span>
+            <span className="text-sm font-semibold">
+              {locale === "en" ? "EN" : "中"}
+            </span>
           </button>
 
           <ConnectButton />
@@ -157,7 +177,10 @@ export function Navbar() {
         >
           <form onSubmit={handleSearch} role="search" className="mb-4">
             <div className="relative group">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500" aria-hidden="true" />
+              <Search
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-emerald-500"
+                aria-hidden="true"
+              />
               <input
                 type="search"
                 value={searchQuery}
@@ -174,7 +197,9 @@ export function Navbar() {
                 <Link
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  aria-current={router.pathname.startsWith(link.href) ? "page" : undefined}
+                  aria-current={
+                    router.pathname.startsWith(link.href) ? "page" : undefined
+                  }
                   className={cn(
                     "block px-4 py-3 text-sm font-semibold rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
                     router.pathname.startsWith(link.href)

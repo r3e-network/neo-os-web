@@ -2,8 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { filterCatalogByAppId, loadMiniAppCatalog } from "@/lib/miniapp-catalog";
-import { loadBundledMiniAppById, loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import {
+  filterCatalogByAppId,
+  loadMiniAppCatalog,
+} from "@/lib/miniapp-catalog";
+import {
+  loadBundledMiniAppById,
+  loadMiniAppDefinitions,
+} from "@/lib/miniapp-definitions";
 
 // The bundled JSON definitions in `public/miniapp-definitions/` and the
 // per-app `apps/<slug>/neo-manifest.json` files are version-controlled
@@ -12,11 +18,21 @@ import { loadBundledMiniAppById, loadMiniAppDefinitions } from "@/lib/miniapp-de
 // deploy). When both sources have the same `app_id`, the bundled
 // definition wins for authoritative on-chain fields. This stops the
 // frontend from invoking a stale/wrong contract.
-const BUNDLE_AUTHORITATIVE_FIELDS = ["contract_hash", "entry_url", "permissions", "operations"] as const;
+const BUNDLE_AUTHORITATIVE_FIELDS = [
+  "contract_hash",
+  "entry_url",
+  "permissions",
+  "operations",
+  "logo_url",
+  "banner_url",
+] as const;
 
 type CatalogApp = Record<string, unknown> & { app_id?: string };
 
-function mergeBundle(remote: CatalogApp, bundled: CatalogApp | null): CatalogApp {
+function mergeBundle(
+  remote: CatalogApp,
+  bundled: CatalogApp | null,
+): CatalogApp {
   if (!bundled) return remote;
   const merged: CatalogApp = { ...remote };
   for (const field of BUNDLE_AUTHORITATIVE_FIELDS) {
@@ -27,19 +43,29 @@ function mergeBundle(remote: CatalogApp, bundled: CatalogApp | null): CatalogApp
   return merged;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
   if (standardLimit(req, res)) return;
 
-  const statusRaw = String(req.query.status || "active").trim().toLowerCase();
-  const status = statusRaw === "pending" || statusRaw === "disabled" ? statusRaw : "active";
+  const statusRaw = String(req.query.status || "active")
+    .trim()
+    .toLowerCase();
+  const status =
+    statusRaw === "pending" || statusRaw === "disabled" ? statusRaw : "active";
   const appId = String(req.query.app_id || "").trim();
-  const search = String(req.query.search || "").trim().toLowerCase();
+  const search = String(req.query.search || "")
+    .trim()
+    .toLowerCase();
 
   try {
-    const remoteCatalog = await loadMiniAppCatalog(status, { includeManifest: Boolean(appId) });
+    const remoteCatalog = await loadMiniAppCatalog(status, {
+      includeManifest: Boolean(appId),
+    });
 
     if (appId) {
       const remote = filterCatalogByAppId(remoteCatalog, appId);
@@ -50,7 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const app = remote
         ? mergeBundle(remote as CatalogApp, bundled as CatalogApp | null)
         : (bundled as CatalogApp);
-      return res.status(200).json({ app });
+      res.status(200).json({ app });
+      return;
     }
 
     // Bulk path:
@@ -72,7 +99,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const item of remoteCatalog) {
       const id = String(item.app_id || "");
       seen.add(id);
-      mergedCatalog.push(mergeBundle(item as CatalogApp, bundleById.get(id) || null));
+      mergedCatalog.push(
+        mergeBundle(item as CatalogApp, bundleById.get(id) || null),
+      );
     }
     if (status === "active") {
       for (const [id, b] of bundleById.entries()) {
@@ -89,9 +118,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-    return res.status(200).json({ apps: mergedCatalog });
+    res.status(200).json({ apps: mergedCatalog });
+    return;
   } catch (err) {
-    logger.error("Failed to load miniapp catalog:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Failed to load miniapp catalog:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res);
   }
 }
