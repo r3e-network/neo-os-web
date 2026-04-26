@@ -235,6 +235,8 @@ export function ConnectButton() {
                     src="https://www.svgrepo.com/show/475656/google-color.svg"
                     className="w-5 h-5"
                     alt="Google"
+                    loading="lazy"
+                    decoding="async"
                   />
                   Continue with Google
                 </button>
@@ -246,6 +248,8 @@ export function ConnectButton() {
                     src="https://www.svgrepo.com/show/512317/github-142.svg"
                     className="w-5 h-5"
                     alt="GitHub"
+                    loading="lazy"
+                    decoding="async"
                   />
                   Continue with GitHub
                 </button>
@@ -275,6 +279,8 @@ export function ConnectButton() {
                         src={w.icon}
                         alt={w.name}
                         className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           e.currentTarget.style.display = "none";
                           e.currentTarget.parentElement

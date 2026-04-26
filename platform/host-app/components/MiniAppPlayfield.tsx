@@ -376,8 +376,8 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
           </div>
         ) : (
           <div className="text-center py-8 text-sm text-gray-400">
-            No contract deployed on mainnet yet. Use the operations panel to
-            interact.
+            No contract deployed on {getRpcNetwork()} yet. Use the operations
+            panel to interact.
           </div>
         )}
 
