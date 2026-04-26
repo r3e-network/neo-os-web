@@ -68,6 +68,8 @@ const templateTypes = [
   "defi",
   "nft",
 ] as const;
+const enableAdminTemplateCatalog =
+  process.env.NEXT_PUBLIC_ENABLE_ADMIN_TEMPLATE_CATALOG === "true";
 
 type FormData = {
   app_id: string;
@@ -217,6 +219,8 @@ export default function DeveloperPage() {
   }, []);
 
   useEffect(() => {
+    if (!enableAdminTemplateCatalog) return;
+
     const loadCatalog = async () => {
       try {
         const res = await fetch("/api/miniapps/admin/template-catalog", {

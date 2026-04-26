@@ -35,6 +35,28 @@ type ForumThreadRow = {
 
 const VALID_CATEGORIES = ["general", "bug", "feature", "help"] as const;
 
+function formatQueryError(error: unknown): string {
+  if (!error || typeof error !== "object") {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  const parts = ["code", "message", "details", "hint"]
+    .map((key) => {
+      const value = (error as Record<string, unknown>)[key];
+      return typeof value === "string" && value.trim()
+        ? `${key}=${value.trim()}`
+        : "";
+    })
+    .filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" ") : String(error);
+}
+
+function emptyThreadResponse(res: NextApiResponse, unavailable = false) {
+  res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
+  res.status(200).json({ threads: [], hasMore: false, total: 0, unavailable });
+}
+
 function toThread(row: ForumThreadRow): ForumThread {
   return {
     id: row.id,
@@ -130,11 +152,8 @@ async function getThreads(
     .range(offset, offset + limit - 1);
 
   if (error) {
-    logger.error(
-      "Failed to fetch forum threads:",
-      error instanceof Error ? error.message : String(error),
-    );
-    return apiError.internal(res, "Failed to fetch threads");
+    logger.warn("Forum threads unavailable:", formatQueryError(error));
+    return emptyThreadResponse(res, true);
   }
 
   const threads = ((data || []) as ForumThreadRow[]).map(toThread);
