@@ -1,1 +1,56 @@
-{"$schema":"https://schemas.r3e.network/miniapp-manifest/v1.json","id":"miniapp-oracle-price-console","name":"Oracle Price Console","name_zh":"预言机价格台","version":"1.0.0","description":"Query the Morpheus price feed from a dedicated miniapp console.","description_zh":"用独立小程序控制台查询 Morpheus 价格源。","category":"tools","category_name":"Tools","category_name_zh":"工具","tags":["oracle","price","feed","morpheus"],"developer":{"name":"R3E Network","email":"dev@r3e.network","website":"https://r3e.network"},"contracts":{},"supported_networks":["neo-n3-testnet"],"default_network":"neo-n3-testnet","urls":{"entry":"/miniapps/oracle-price-console/index.html","icon":"/miniapps/explorer/logo.jpg","banner":"/miniapps/explorer/banner.jpg"},"permissions":["read:blockchain"],"features":{"stateless":true,"offlineSupport":false,"deeplink":"neomainapp://oracle-price-console"},"stateSource":{"type":"api","chain":"neo-n3-testnet","endpoints":["https://api.n3index.dev"]},"platform":{"analytics":true,"comments":true,"ratings":true,"transactions":false},"createdAt":"2026-03-18T05:00:00Z","updatedAt":"2026-03-18T05:00:00Z"}
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-oracle-price-console",
+  "name": "Oracle Price Console",
+  "name_zh": "预言机价格台",
+  "version": "1.0.0",
+  "description": "Query the Morpheus price feed from a dedicated miniapp console.",
+  "description_zh": "用独立小程序控制台查询 Morpheus 价格源。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "oracle",
+    "price",
+    "feed",
+    "morpheus"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/oracle-price-console/index.html",
+    "icon": "/miniapps/oracle-price-console/logo.jpg",
+    "banner": "/miniapps/oracle-price-console/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://oracle-price-console"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-18T05:00:00Z",
+  "updatedAt": "2026-03-18T05:00:00Z"
+}

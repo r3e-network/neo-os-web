@@ -1,9 +1,11 @@
 import Head from "next/head";
+import type { GetStaticProps } from "next";
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { Layout } from "@/components/layout";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
+import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 import { isFlagshipMiniApp, sortMiniApps } from "@/lib/miniapp-showcase";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
@@ -137,30 +139,69 @@ function FlagshipCard({
 
 /* ── Page ─────────────────────────────────────────────────────────────── */
 
-export default function MiniAppsPage() {
-  const [allApps, setAllApps] = useState<MiniAppInfo[]>([]);
-  const [loading, setLoading] = useState(true);
+type MiniAppsPageProps = {
+  initialApps?: MiniAppInfo[];
+};
+
+const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
+
+function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
+  return JSON.parse(JSON.stringify(apps)) as MiniAppInfo[];
+}
+
+export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
+  const definitions = await loadMiniAppDefinitions();
+  const initialApps = sortMiniApps(
+    definitions.filter((app) => isFlagshipMiniApp(app.app_id)),
+    "featured",
+  );
+
+  return {
+    props: {
+      initialApps: serializeMiniApps(initialApps),
+    },
+    revalidate: 60,
+  };
+};
+
+export default function MiniAppsPage({
+  initialApps = EMPTY_INITIAL_APPS,
+}: MiniAppsPageProps = {}) {
+  const sortedInitialApps = useMemo(
+    () => sortMiniApps(initialApps, "featured"),
+    [initialApps],
+  );
+  const hasInitialApps = sortedInitialApps.length > 0;
+  const [allApps, setAllApps] = useState<MiniAppInfo[]>(sortedInitialApps);
+  const [loading, setLoading] = useState(!hasInitialApps);
   const [fetchError, setFetchError] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
+    if (!hasInitialApps) setLoading(true);
+    setFetchError(false);
     fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`Catalog request failed: ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         if (!mountedRef.current) return;
         if (!data) {
-          setFetchError(true);
+          if (!hasInitialApps) setFetchError(true);
           return;
         }
-        setAllApps(
-          Array.isArray(data.apps)
-            ? sortMiniApps(data.apps as MiniAppInfo[], "featured")
-            : [],
-        );
+        const nextApps = Array.isArray(data.apps)
+          ? sortMiniApps(data.apps as MiniAppInfo[], "featured")
+          : [];
+        if (nextApps.length > 0 || !hasInitialApps) setAllApps(nextApps);
+        setFetchError(false);
       })
       .catch(() => {
-        if (mountedRef.current) setFetchError(true);
+        if (mountedRef.current && !hasInitialApps) {
+          setFetchError(true);
+        }
       })
       .finally(() => {
         if (mountedRef.current) setLoading(false);
@@ -168,7 +209,14 @@ export default function MiniAppsPage() {
     return () => {
       mountedRef.current = false;
     };
-  }, []);
+  }, [hasInitialApps]);
+
+  useEffect(() => {
+    if (!hasInitialApps) return;
+    setAllApps((current) =>
+      current.length > 0 ? current : sortedInitialApps,
+    );
+  }, [hasInitialApps, sortedInitialApps]);
 
   const flagships = useMemo(
     () =>

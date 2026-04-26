@@ -161,5 +161,9 @@
       "total_gas_used"
     ]
   },
-  "docs_url": "https://docs.r3e.network/gas-sponsor"
+  "docs_url": "https://docs.r3e.network/gas-sponsor",
+  "media": {
+    "icon": "/miniapp-assets/gas-sponsor/logo.jpg",
+    "banner": "/miniapp-assets/gas-sponsor/banner.jpg"
+  }
 }

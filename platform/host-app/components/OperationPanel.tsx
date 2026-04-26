@@ -42,13 +42,21 @@ export function OperationPanel({
       {/* Segmented Control for Operations */}
       {operations.length > 1 && (
         <div className="p-2">
-          <div className="flex p-1 space-x-1 bg-gray-100 rounded-xl">
+          <div
+            className={cn(
+              "grid gap-1 rounded-xl bg-gray-100 p-1",
+              operations.length > 3
+                ? "grid-cols-2"
+                : "grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))]",
+            )}
+          >
             {operations.map((op, idx) => (
               <button
                 key={op.name + idx}
+                type="button"
                 onClick={() => setActiveTabIdx(idx)}
                 className={cn(
-                  "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none",
+                  "min-h-11 px-2 py-2 text-center text-xs font-semibold leading-tight rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none sm:text-sm",
                   activeTabIdx === idx
                     ? getTabActiveColor(op.button_style)
                     : "text-gray-500 hover:text-gray-700 bg-transparent",
@@ -63,7 +71,11 @@ export function OperationPanel({
 
       {/* Active Operation Form */}
       <div className="p-5">
-        <OperationForm op={activeOp} onInvoke={onInvoke} />
+        <OperationForm
+          key={`${activeTabIdx}:${activeOp.method || activeOp.name}`}
+          op={activeOp}
+          onInvoke={onInvoke}
+        />
       </div>
     </div>
   );
