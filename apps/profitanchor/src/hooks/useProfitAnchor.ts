@@ -1,5 +1,5 @@
 /**
- * useTrustAnchor -- React hook for TrustAnchor staking logic.
+ * useProfitAnchor -- React hook for ProfitAnchor staking logic.
  *
  * Uses createObservable instead of Vue ref.
  */
@@ -8,16 +8,18 @@ import { createObservable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 import { BLOCKCHAIN_CONSTANTS, TOKEN_CONSTANTS } from "@shared/constants";
 
-const APP_ID = "miniapp-trustanchor";
+const APP_ID = "miniapp-profitanchor";
 const NEO_HASH = BLOCKCHAIN_CONSTANTS.NEO_HASH;
 const GAS_DECIMALS = TOKEN_CONSTANTS.GAS_MULTIPLIER;
 
-export interface TrustAnchorStats {
+export interface ProfitAnchorStats {
   totalStaked: number;
   rps: string;
+  bestAgentId?: number;
+  bestScore?: number;
 }
 
-export interface UseTrustAnchorOptions {
+export interface UseProfitAnchorOptions {
   chain: ChainService;
   eventBus: EventBus;
   t: (key: string, params?: Record<string, string | number>) => string;
@@ -58,13 +60,13 @@ function asMapValue(input: unknown, key: string): unknown {
   return undefined;
 }
 
-export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
+export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) {
   const isLoading = createObservable(false);
   const error = createObservable<string | null>(null);
   const myStake = createObservable(0);
   const pendingRewards = createObservable(0);
   const pendingWithdraw = createObservable(0);
-  const stats = createObservable<TrustAnchorStats | null>(null);
+  const stats = createObservable<ProfitAnchorStats | null>(null);
 
   const loadMyStake = async () => {
     if (!chain.address.value) { myStake.set(0); return; }
@@ -75,7 +77,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       ]);
       myStake.set(asNumber(result));
     } catch (e) {
-      console.warn("[useTrustAnchor] loadMyStake failed:", e instanceof Error ? e.message : String(e));
+      console.warn("[useProfitAnchor] loadMyStake failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -88,7 +90,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       ]);
       pendingRewards.set(asNumber(result) / GAS_DECIMALS);
     } catch (e) {
-      console.warn("[useTrustAnchor] loadPendingRewards failed:", e instanceof Error ? e.message : String(e));
+      console.warn("[useProfitAnchor] loadPendingRewards failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -101,7 +103,7 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       ]);
       pendingWithdraw.set(asNumber(result));
     } catch (e) {
-      console.warn("[useTrustAnchor] loadPendingWithdraw failed:", e instanceof Error ? e.message : String(e));
+      console.warn("[useProfitAnchor] loadPendingWithdraw failed:", e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -113,9 +115,11 @@ export function useTrustAnchor({ chain, eventBus, t }: UseTrustAnchorOptions) {
       stats.set({
         totalStaked: asNumber(asMapValue(result, "totalStaked")),
         rps: String(asNumber(asMapValue(result, "rewardPerNeo"))),
+        bestAgentId: asNumber(asMapValue(result, "bestAgentId")),
+        bestScore: asNumber(asMapValue(result, "bestScore")),
       });
     } catch (e) {
-      console.warn("[useTrustAnchor] loadStats failed:", e instanceof Error ? e.message : String(e));
+      console.warn("[useProfitAnchor] loadStats failed:", e instanceof Error ? e.message : String(e));
     }
   };
 

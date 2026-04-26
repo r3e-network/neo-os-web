@@ -20,9 +20,13 @@ const appMessages = {
   borrowNow: { en: "Borrow Now", zh: "立即借款" },
   processing: { en: "Processing...", zh: "处理中..." },
   note: {
-    en: "Collateral locks until repaid (min 24h). Choose 20/30/40% LTV tiers with no liquidation.",
-    zh: "抵押品需还清后解锁（最短 24 小时）。可选择 20/30/40% LTV，无清算。",
+    en: "Collateral locks until repaid (min 24h). ProfitAnchor vote routing lets locked NEO keep pursuing GAS yield with no liquidation.",
+    zh: "抵押品需还清后解锁（最短 24 小时）。ProfitAnchor 投票路由让锁定的 NEO 继续追求 GAS 收益，且无清算。",
   },
+  profitAnchorTitle: { en: "ProfitAnchor Yield Route", zh: "ProfitAnchor 收益路由" },
+  profitAnchorStatus: { en: "Collateral vote signal", zh: "抵押投票信号" },
+  profitAnchorValue: { en: "Highest expected GAS per NEO", zh: "每 NEO 预期 GAS 最高" },
+  profitAnchorBadge: { en: "Vote-only dependency", zh: "仅投票依赖" },
   enterAmount: { en: "Enter 1-{max} {tokenNeo}", zh: "请输入 1-{max} {tokenNeo}" },
   loanApproved: { en: "Loan created: {amount} {tokenGas} borrowed", zh: "贷款已创建：已借 {amount} {tokenGas}" },
   paymentFailed: { en: "Transaction failed", zh: "交易失败" },
@@ -62,8 +66,8 @@ const appMessages = {
     zh: "多档 LTV 的自我贷款与自动偿还",
   },
   docDescription: {
-    en: "Self Loan lets you lock NEO collateral and borrow GAS with 20%, 30%, or 40% LTV tiers. Loans have a 24h minimum duration, a 0.5% origination fee, and can be repaid to unlock collateral.",
-    zh: "Self Loan 让您锁定 NEO 抵押品并选择 20%、30% 或 40% LTV 借入 GAS。贷款最短 24 小时，含 0.5% 手续费，可还款解锁抵押品。",
+    en: "Self Loan lets you lock NEO collateral and borrow GAS with 20%, 30%, or 40% LTV tiers. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody.",
+    zh: "Self Loan 让您锁定 NEO 抵押品并选择 20%、30% 或 40% LTV 借入 GAS。抵押品可跟随 ProfitAnchor 的最佳收益投票信号，同时仍由 SelfLoan 托管。",
   },
   step1: {
     en: "Connect your Neo wallet and check your available collateral",
@@ -93,8 +97,8 @@ const appMessages = {
   },
   feature3Name: { en: "Tiered LTV", zh: "多档 LTV" },
   feature3Desc: {
-    en: "Choose 20%, 30%, or 40% LTV based on your risk comfort.",
-    zh: "可选择 20%、30% 或 40% LTV 以匹配风险偏好。",
+    en: "Choose 20%, 30%, or 40% LTV while collateralized NEO can vote through ProfitAnchor's highest-profit signal.",
+    zh: "可选择 20%、30% 或 40% LTV，同时抵押 NEO 可通过 ProfitAnchor 的最高收益信号投票。",
   },
   wrongChain: { en: "Wrong Chain", zh: "链错误" },
   wrongChainMessage: {

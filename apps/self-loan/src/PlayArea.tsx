@@ -22,6 +22,7 @@ interface LoanData {
   borrowed?: number;
   collateral?: number;
   ltv?: number;
+  active?: boolean;
   healthFactor?: number;
   status?: string;
 }
@@ -48,7 +49,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const isBorrowing = bool("isBorrowing");
   const isRepaying = bool("isRepaying");
   const isConnected = bool("isConnected");
-  const hasLoanDisplay = bool("hasLoanDisplay");
 
   const neoBalance = num("neoBalance");
   const neoPrice = num("neoPrice");
@@ -58,6 +58,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const totalLoans = num("totalLoans");
 
   const neoBalanceDisplay = str("neoBalanceDisplay");
+  const hasLoanDisplay = str("hasLoanDisplay");
   const healthFactorDisplay = str("healthFactorDisplay");
   const currentLTVDisplay = str("currentLTVDisplay");
   const collateralDisplay = str("collateralDisplay");
@@ -156,7 +157,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           (stats as StatsData)?.totalLoans ??
           0);
 
-  const hasLoan = hasLoanDisplay || !!loan;
+  const hasLoan =
+    hasLoanDisplay.toLowerCase() === "yes" ||
+    Boolean((loan as LoanData | null)?.active) ||
+    Boolean((loan as LoanData | null)?.borrowed);
 
   return (
     <div className="selfloan-play-area">
@@ -195,6 +199,25 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           </span>
         </div>
       </div>
+
+      <NeoCard
+        variant="erobo"
+        title={t("profitAnchorTitle") || "ProfitAnchor Yield Route"}
+      >
+        <div className="selfloan-profit-anchor">
+          <div>
+            <span className="selfloan-profit-anchor-label">
+              {t("profitAnchorStatus") || "Collateral vote signal"}
+            </span>
+            <span className="selfloan-profit-anchor-value">
+              {t("profitAnchorValue") || "Highest expected GAS per NEO"}
+            </span>
+          </div>
+          <div className="selfloan-profit-anchor-badge">
+            {t("profitAnchorBadge") || "Vote-only dependency"}
+          </div>
+        </div>
+      </NeoCard>
 
       {/* ==================== Loan Status Card ==================== */}
       {hasLoan && (

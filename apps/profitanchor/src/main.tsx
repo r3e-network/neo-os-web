@@ -1,5 +1,5 @@
 /**
- * TrustAnchor -- React Entry Point (OS Services Pattern)
+ * ProfitAnchor -- React Entry Point (OS Services Pattern)
  *
  * User stake/reward reads and contract mutations use OS services.
  * NEO native transfer for staking stays on ctx.services.chain.
@@ -11,11 +11,11 @@ import { formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
-import { useTrustAnchor } from "./hooks/useTrustAnchor";
-import { TRUSTANCHOR_AGENT_ACCOUNTS } from "./pages/index/data/agentAccounts";
+import { useProfitAnchor } from "./hooks/useProfitAnchor";
+import { PROFITANCHOR_AGENT_ACCOUNTS } from "./pages/index/data/agentAccounts";
 
 defineMiniApp({
-  appId: "miniapp-trustanchor",
+  appId: "miniapp-profitanchor",
   playArea: PlayArea,
   manifest,
   messages,
@@ -24,13 +24,13 @@ defineMiniApp({
     const { notify } = ctx.services;
     const formatNum = (n: number | string) => formatNumber(n, 2);
 
-    const anchor = useTrustAnchor({
+    const anchor = useProfitAnchor({
       chain: ctx.services.chain,
       eventBus: ctx.services.events,
       t: ctx.t,
     });
 
-    const agentAccounts = TRUSTANCHOR_AGENT_ACCOUNTS;
+    const agentAccounts = PROFITANCHOR_AGENT_ACCOUNTS;
 
     const myStakeDisplay: Observable<string> = {
       get: () => `${formatNum(anchor.myStake.get())} ${ctx.t("tokenNeo")}`,
