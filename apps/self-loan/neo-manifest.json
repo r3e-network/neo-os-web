@@ -4,8 +4,8 @@
   "name": "SelfLoan",
   "name_zh": "自我借贷",
   "version": "2.0.0",
-  "description": "Lock NEO to borrow GAS upfront against your future staking rewards. NEO stays locked until generated GAS plus fee repays the loan, then auto-unlocks. Zero liquidation, self-repaying liquidity.",
-  "description_zh": "自我借贷 — 锁定 NEO 预借 GAS，利用未来质押收益自动还款。NEO 保持锁定直到产生的 GAS 偿还贷款和手续费后自动解锁。零清算风险，自偿性流动性。",
+  "description": "Lock NEO to borrow GAS upfront against future staking rewards. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody.",
+  "description_zh": "自我借贷 — 锁定 NEO 预借 GAS，抵押品可跟随 ProfitAnchor 的最佳收益投票信号，同时仍由 SelfLoan 托管。",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
@@ -14,7 +14,8 @@
     "defi",
     "collateral",
     "self-loan",
-    "neo"
+    "neo",
+    "profitanchor"
   ],
   "developer": {
     "name": "R3E Network",
@@ -23,7 +24,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "neo-n3-testnet": "0xd097c63ea89251d23632826ebed99a7e7ce536f7"
+    "neo-n3-testnet": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada"
   },
   "supported_networks": [
     "neo-n3-mainnet",
@@ -37,7 +38,8 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "governance:vote"
   ],
   "features": {
     "stateless": true,
@@ -68,6 +70,11 @@
       "conditions": [
         "health_factor_threshold"
       ]
+    },
+    "profitAnchor": {
+      "enabled": true,
+      "dependency": "miniapp-profitanchor",
+      "description": "Reads ProfitAnchor best-candidate routing and votes collateralized NEO from SelfLoan custody."
     }
   }
 }

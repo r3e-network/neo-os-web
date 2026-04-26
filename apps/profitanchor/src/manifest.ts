@@ -1,19 +1,19 @@
 /**
- * TrustAnchor Manifest
+ * ProfitAnchor Manifest
  */
 
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
-  name: "TrustAnchor",
-  description: "AA-agent NEO staking with vote-only admin routing",
-  icon: "shield-check",
-  category: "governance",
+  name: "ProfitAnchor",
+  description: "Profit-optimized NEO voting with AA agent routing",
+  icon: "trending-up",
+  category: "defi",
   shell: "launcher",
 
   tabs: [
     { key: "overview", labelKey: "tabOverview", icon: "layout", default: true },
-    { key: "routing", labelKey: "tabRouting", icon: "grid" },
+    { key: "routing", labelKey: "tabRouting", icon: "trending-up" },
     { key: "architecture", labelKey: "tabArchitecture", icon: "layers" },
   ],
 
