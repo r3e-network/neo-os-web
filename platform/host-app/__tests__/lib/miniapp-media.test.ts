@@ -29,6 +29,15 @@ describe("miniapp-media helpers", () => {
       expect(resolveMiniAppSlug("miniapp-predictionmarket", "mf://manifest?app=miniapp-predictionmarket")).toBe(
         "prediction-market",
       );
+      expect(resolveMiniAppSlug("miniapp-breakupcontract", "mf://manifest?app=miniapp-breakupcontract")).toBe(
+        "breakup-contract",
+      );
+      expect(resolveMiniAppSlug("miniapp-onchaintarot", "mf://manifest?app=miniapp-onchaintarot")).toBe(
+        "on-chain-tarot",
+      );
+      expect(resolveMiniAppSlug("miniapp-unbreakablevault", "mf://manifest?app=miniapp-unbreakablevault")).toBe(
+        "unbreakable-vault",
+      );
     });
   });
 
