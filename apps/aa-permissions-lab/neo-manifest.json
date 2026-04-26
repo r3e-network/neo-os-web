@@ -9,20 +9,49 @@
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
-  "tags": ["aa", "permissions", "hook", "verifier"],
-  "developer": { "name": "R3E Network", "email": "dev@r3e.network", "website": "https://r3e.network" },
+  "tags": [
+    "aa",
+    "permissions",
+    "hook",
+    "verifier"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
   "contracts": {},
-  "supported_networks": ["neo-n3-testnet"],
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/aa-permissions-lab/index.html",
-    "icon": "/miniapps/explorer/logo.jpg",
-    "banner": "/miniapps/explorer/banner.jpg"
+    "icon": "/miniapps/aa-permissions-lab/logo.jpg",
+    "banner": "/miniapps/aa-permissions-lab/banner.jpg"
   },
-  "permissions": ["invoke:primary", "read:blockchain"],
-  "features": { "stateless": true, "offlineSupport": false, "deeplink": "neomainapp://aa-permissions-lab" },
-  "stateSource": { "type": "n3index", "chain": "neo-n3-testnet", "endpoints": ["https://api.n3index.dev"] },
-  "platform": { "analytics": true, "comments": true, "ratings": true, "transactions": true },
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://aa-permissions-lab"
+  },
+  "stateSource": {
+    "type": "n3index",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
   "createdAt": "2026-03-18T05:00:00Z",
   "updatedAt": "2026-03-18T05:00:00Z"
 }

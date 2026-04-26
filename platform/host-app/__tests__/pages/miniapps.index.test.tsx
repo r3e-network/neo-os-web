@@ -88,4 +88,37 @@ describe("MiniAppsPage", () => {
     // Non-flagship apps are hidden
     expect(screen.queryByText("On-Chain Tarot")).not.toBeInTheDocument();
   });
+
+  it("renders bundled flagship props immediately before the catalog refresh completes", async () => {
+    render(
+      <MiniAppsPage
+        initialApps={[
+          {
+            app_id: "miniapp-gasbox",
+            name: "GasBox",
+            description: "bundled flagship",
+            category: "gaming",
+            entry_url: "mf://manifest?app=miniapp-gasbox",
+          },
+          {
+            app_id: "miniapp-on-chain-tarot",
+            name: "On-Chain Tarot",
+            description: "non-flagship bundled app",
+            category: "utility",
+            entry_url: "mf://manifest?app=miniapp-on-chain-tarot",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("GasBox")).toBeInTheDocument();
+    expect(screen.queryByText("On-Chain Tarot")).not.toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/miniapps/catalog",
+      expect.any(Object),
+    );
+    await waitFor(() => {
+      expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
+    });
+  });
 });

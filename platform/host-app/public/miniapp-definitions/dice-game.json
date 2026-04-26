@@ -94,5 +94,9 @@
         }
       ]
     }
-  ]
+  ],
+  "media": {
+    "icon": "/miniapp-assets/dice-game/logo.jpg",
+    "banner": "/miniapp-assets/dice-game/banner.jpg"
+  }
 }
