@@ -7,7 +7,13 @@ test.describe("MiniApps List", () => {
   });
 
   test("should display the flagship catalog hero", async ({ page }) => {
-    await expect(page.getByText("Neo N3 Mainnet")).toBeVisible();
+    const networkLabel =
+      String(process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK || process.env.NEO_TARGET_NETWORK)
+        .toLowerCase()
+        .includes("testnet")
+        ? "Neo N3 Testnet"
+        : "Neo N3 Mainnet";
+    await expect(page.getByText(networkLabel)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Flagship MiniApps" })).toBeVisible();
     await expect(page.getByText("Nine flagship miniapps with production workflows. Pick one and start using it.")).toBeVisible();
   });

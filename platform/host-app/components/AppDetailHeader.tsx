@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
 import {
   buildMiniAppBannerSources,
+  buildModernImageSources,
 } from "@/lib/miniapp-media";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 
@@ -48,22 +49,33 @@ export function AppDetailHeader({ app, onBack }: Props) {
   }, [bannerSources]);
 
   const bannerSource = bannerSources[bannerIndex];
+  const modernBannerSources = buildModernImageSources(bannerSource);
 
   return (
     <header className="relative border-b border-gray-200 bg-white px-4 sm:px-8 pt-6 pb-8 sm:pt-10 sm:pb-12 overflow-hidden">
       {/* Hero banner background */}
       {bannerSource ? (
-        <img
-          src={bannerSource}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none"
-          onError={() => {
-            setBannerIndex((prev) =>
-              prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length,
-            );
-          }}
-        />
+        <picture className="absolute inset-0 pointer-events-none">
+          {modernBannerSources.avif && (
+            <source srcSet={modernBannerSources.avif} type="image/avif" />
+          )}
+          {modernBannerSources.webp && (
+            <source srcSet={modernBannerSources.webp} type="image/webp" />
+          )}
+          <img
+            src={bannerSource}
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover opacity-10"
+            loading="eager"
+            decoding="async"
+            onError={() => {
+              setBannerIndex((prev) =>
+                prev + 1 < bannerSources.length ? prev + 1 : bannerSources.length,
+              );
+            }}
+          />
+        </picture>
       ) : null}
 
       <div className="max-w-[1280px] mx-auto relative z-10">

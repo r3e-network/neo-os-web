@@ -7,6 +7,7 @@ import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 import { isFlagshipMiniApp, sortMiniApps } from "@/lib/miniapp-showcase";
+import { getRpcNetwork } from "@/lib/rpc-helpers";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
 
@@ -229,6 +230,8 @@ export default function MiniAppsPage({
 
   const hero = flagships[0];
   const rest = flagships.slice(1);
+  const networkLabel =
+    getRpcNetwork() === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 
   return (
     <Layout>
@@ -246,7 +249,7 @@ export default function MiniAppsPage({
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
               <span className="text-xs font-bold text-emerald-700 uppercase">
-                Neo N3 Mainnet
+                {networkLabel}
               </span>
             </div>
             <h1 className="text-3xl font-black text-gray-900 sm:text-5xl">

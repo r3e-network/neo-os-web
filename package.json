@@ -38,7 +38,8 @@
     "fuzz:cross": "node test/fuzz/fuzz_cross_repo.mjs",
     "fuzz:continuous": "FUZZ_CONTINUOUS=1 node test/fuzz/run_all.mjs",
     "sim:multiuser": "node test/fuzz/multi_user_business_sim.mjs",
-    "sim:multiuser:once": "SIM_ITERATIONS=1 node test/fuzz/multi_user_business_sim.mjs"
+    "sim:multiuser:once": "SIM_ITERATIONS=1 node test/fuzz/multi_user_business_sim.mjs",
+    "assets:miniapps:optimize": "node scripts/optimize-miniapp-assets.mjs"
   },
   "devDependencies": {
     "@types/react": "^18.3.28",
