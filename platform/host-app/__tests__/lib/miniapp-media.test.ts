@@ -32,14 +32,14 @@ describe("miniapp-media helpers", () => {
   });
 
   describe("getMiniAppPrimaryAssets", () => {
-    it("returns primary JPG paths under /miniapp-assets", () => {
+    it("returns primary compatibility paths under /miniapp-assets", () => {
       expect(getMiniAppPrimaryAssets("miniapp-lottery", "/miniapps/lottery/")).toEqual({
         logoURL: "/miniapp-assets/lottery/logo.svg",
         bannerURL: "/miniapp-assets/lottery/banner.svg",
       });
     });
 
-    it("uses static miniapp assets for app ids without miniapp-assets jpgs", () => {
+    it("uses static miniapp assets for apps with source-tree media", () => {
       expect(getMiniAppPrimaryAssets("miniapp-dicegame", "mf://manifest?app=miniapp-dicegame")).toEqual({
         logoURL: "/miniapps/dice-game/static/icon.svg",
         bannerURL: "/miniapps/dice-game/static/banner.svg",

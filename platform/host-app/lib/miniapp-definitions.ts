@@ -47,6 +47,15 @@ function asOptionalString(value: unknown): string | undefined {
   return out || undefined;
 }
 
+function asMediaAssetUrl(value: unknown): string | undefined {
+  const out = asString(value);
+  if (!out) return undefined;
+  if (out.startsWith("/") || out.startsWith("http://") || out.startsWith("https://")) {
+    return out;
+  }
+  return undefined;
+}
+
 function canonicalizeAppId(rawAppId: unknown, slug: string): string {
   return canonicalizeMiniAppId(rawAppId, {
     fallbackSlug: slug,
@@ -162,7 +171,13 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const newsIntegration = obj.news_integration ?? integration.news_integration ?? manifest.news_integration;
   const statsDisplay = obj.stats_display ?? integration.stats_display ?? manifest.stats_display;
 
-  const logoUrl = obj.logo_url ?? content.logo_url ?? media.logo_url ?? media.logo ?? manifest.logo_url;
+  const logoUrl =
+    obj.logo_url ??
+    content.logo_url ??
+    media.logo_url ??
+    media.logo ??
+    asMediaAssetUrl(media.icon) ??
+    manifest.logo_url;
   const bannerUrl = obj.banner_url ?? content.banner_url ?? media.banner_url ?? media.banner ?? manifest.banner_url;
   const logoVariants = normalizeMediaVariants(media.logo_variants ?? asObject(manifest.media).logo_variants);
   const bannerVariants = normalizeMediaVariants(media.banner_variants ?? asObject(manifest.media).banner_variants);

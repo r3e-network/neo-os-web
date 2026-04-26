@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-self-loan",
   "name": "SelfLoan",
-  "description": "Lock NEO to borrow GAS against future staking rewards. NEO stays locked until generated GAS plus fee repays the loan, then auto-unlocks.",
+  "description": "Lock NEO to borrow GAS against future staking rewards. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody.",
   "template_type": "defi",
   "category": "DeFi",
   "tags": [
@@ -10,7 +10,7 @@
     "lending",
     "neo",
     "gas",
-    "yield"
+    "profitanchor"
   ],
   "version": "2.0.0",
   "status": "active",
@@ -24,11 +24,12 @@
   },
   "entry_url": "mf://manifest?app=miniapp-self-loan",
   "media": {
-    "icon": "/miniapps/self-loan/logo.jpg",
-    "banner": "/miniapps/self-loan/banner.jpg"
+    "icon": "/miniapp-assets/self-loan/logo.jpg",
+    "banner": "/miniapp-assets/self-loan/banner.jpg"
   },
   "permissions": {
-    "payments": true
+    "payments": true,
+    "governance": true
   },
   "frontend_spec": {
     "layout": "default",
@@ -44,7 +45,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "SelfLoan lets you unlock GAS from your NEO holdings without liquidation risk. Lock NEO, borrow GAS up front, and the NEO yield slowly repays the loan. NEO unlocks automatically once the debt is cleared."
+            "content": "SelfLoan lets you unlock GAS from your NEO holdings without liquidation risk. Lock NEO, borrow GAS up front, and let the collateral follow ProfitAnchor's best-profit vote signal while it stays inside SelfLoan custody."
           },
           {
             "type": "key_value",
@@ -60,11 +61,15 @@
               },
               {
                 "key": "LTV Tiers",
-                "value": "20% \u00b7 30% \u00b7 40%"
+                "value": "20% · 30% · 40%"
               },
               {
                 "key": "Liquidation",
-                "value": "None \u2014 yield repays"
+                "value": "None - yield repays"
+              },
+              {
+                "key": "Vote Signal",
+                "value": "ProfitAnchor"
               }
             ]
           },
@@ -74,6 +79,7 @@
             "items": [
               "Transfer NEO to the contract as collateral.",
               "Pick an LTV tier (1 = conservative, 3 = aggressive) and call createLoan to draw GAS.",
+              "SelfLoan can sync collateralized NEO voting to ProfitAnchor's best candidate without transferring collateral custody.",
               "NEO staking rewards flow to the contract and repay the debt. Once repaid, the NEO is released back to you."
             ]
           }
@@ -144,6 +150,14 @@
       "total_transactions",
       "weekly_active_users",
       "total_gas_used"
+    ]
+  },
+  "logic": {
+    "depends_on": [
+      "miniapp-profitanchor"
+    ],
+    "uses": [
+      "profitanchor.bestCandidate"
     ]
   },
   "docs_url": "https://docs.r3e.network/self-loan",

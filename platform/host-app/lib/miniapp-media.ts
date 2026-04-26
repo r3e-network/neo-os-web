@@ -32,6 +32,8 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-redenvelope": ["red-envelope"],
   "miniapp-secretvote": ["secret-vote", "candidate-vote"],
   "miniapp-self-loan": ["self-loan"],
+  "miniapp-profitanchor": ["profitanchor"],
+  "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
 };
 

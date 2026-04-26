@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-fogplay",
   "media": {
-    "icon": "/miniapps/fogplay/logo.jpg",
-    "banner": "/miniapps/fogplay/banner.jpg"
+    "icon": "/miniapp-assets/fogplay/logo.jpg",
+    "banner": "/miniapp-assets/fogplay/banner.jpg"
   },
   "permissions": {
     "payments": true,
@@ -45,7 +45,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "FogPlay is a provably-fair coin flip. Pick a side, lock a stake, and settle via the Morpheus VRF oracle. Win and walk away with 2\u00d7 your stake."
+            "content": "FogPlay is a provably-fair coin flip. Pick a side, lock a stake, and settle via the Morpheus VRF oracle. Win and walk away with 2× your stake."
           },
           {
             "type": "key_value",
@@ -57,7 +57,7 @@
               },
               {
                 "key": "Payout",
-                "value": "2\u00d7 on win"
+                "value": "2× on win"
               },
               {
                 "key": "Randomness",
@@ -73,9 +73,9 @@
             "type": "bullet_list",
             "title": "How to play",
             "items": [
-              "Pick Heads or Tails and set your wager (0.05 \u2013 100 GAS).",
-              "Transfer your GAS to the contract \u2014 an oracle request fires automatically.",
-              "Once the VRF callback lands, the result is posted on-chain and winners claim their 2\u00d7 payout."
+              "Pick Heads or Tails and set your wager (0.05 – 100 GAS).",
+              "Transfer your GAS to the contract — an oracle request fires automatically.",
+              "Once the VRF callback lands, the result is posted on-chain and winners claim their 2× payout."
             ]
           }
         ]
@@ -88,7 +88,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Every flip is recorded on-chain. Inspect individual bets by opening the contract on NeoTube \u2014 notifications carry bet id, player, amount, and outcome."
+            "content": "Every flip is recorded on-chain. Inspect individual bets by opening the contract on NeoTube — notifications carry bet id, player, amount, and outcome."
           }
         ]
       },
@@ -100,7 +100,7 @@
     ],
     "operation_panel": {
       "title": "Place Bet",
-      "subtitle": "Pick a side, set your wager, flip \u2014 2x payout.",
+      "subtitle": "Pick a side, set your wager, flip — 2x payout.",
       "cta_label": "Open FogPlay",
       "operations": []
     }
@@ -151,7 +151,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "Place Bet",
-      "subtitle": "Pick a side, set your wager, flip \u2014 2x payout."
+      "subtitle": "Pick a side, set your wager, flip — 2x payout."
     }
   }
 }

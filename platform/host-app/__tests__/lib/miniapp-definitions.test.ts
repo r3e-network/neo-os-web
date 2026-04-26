@@ -104,6 +104,8 @@ describe("miniapp-definitions loader", () => {
       expect.objectContaining({
         app_id: "miniapp-market-factory",
         contract_hash: "0x6b589e1bc92f5a13c677898cf26c1dfdd8ee7b59",
+        logo_url: "/miniapp-assets/market-factory/icon.png",
+        banner_url: "/miniapp-assets/market-factory/banner.png",
         news_integration: true,
       }),
     );
