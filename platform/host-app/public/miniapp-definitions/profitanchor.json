@@ -1,0 +1,262 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-profitanchor",
+  "name": "ProfitAnchor",
+  "description": "Profit-only NEO voting anchor that routes pooled stake to the highest recorded GAS yield candidate while preserving user custody boundaries.",
+  "template_type": "defi",
+  "category": "DeFi",
+  "tags": [
+    "staking",
+    "voting",
+    "gas-yield",
+    "profit",
+    "aa"
+  ],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "platform-anchor",
+    "init_params": {
+      "anchor_app_id": "miniapp-profitanchor",
+      "mode": 2
+    }
+  },
+  "entry_url": "mf://manifest?app=miniapp-profitanchor",
+  "media": {
+    "icon": "/miniapp-assets/profitanchor/logo.jpg",
+    "banner": "/miniapp-assets/profitanchor/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "governance": true,
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "ProfitAnchor"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "success",
+            "content": "ProfitAnchor keeps the useful NeoBurger pattern - monitor candidate returns and route voting to better GAS yield - while narrowing admin authority to profit scoring and vote-only sync."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "NEO"
+              },
+              {
+                "key": "Strategy",
+                "value": "Highest GAS yield"
+              },
+              {
+                "key": "Vote Identity",
+                "value": "AA agent accounts"
+              },
+              {
+                "key": "SelfLoan Use",
+                "value": "Collateral vote signal"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How it works",
+            "items": [
+              "Admins record candidate profit scores from off-chain or indexed yield analysis.",
+              "PlatformAnchor exposes the current best candidate for pooled stake voting.",
+              "SelfLoan can read that best candidate and vote collateralized NEO from SelfLoan custody."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "profit",
+        "label": "Profit Routing",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "ProfitAnchor only allows pooled votes to the current best-profit agent. Admins cannot transfer user stake or reward GAS."
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Profit Actions",
+      "subtitle": "Stake NEO, withdraw user-owned stake, or claim user-earned GAS.",
+      "cta_label": "Open ProfitAnchor",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Stake NEO",
+      "method": "stake",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-profitanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "Stake (NEO)",
+          "required": true,
+          "placeholder": "10"
+        }
+      ]
+    },
+    {
+      "name": "Vote Best Candidate",
+      "method": "voteBestProfitCandidate",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-profitanchor",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Withdraw NEO",
+      "method": "withdraw",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-profitanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Withdraw Credit",
+      "method": "withdrawCredit",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "asset",
+          "type": "string",
+          "label": "Asset",
+          "required": true,
+          "default_value": "NEO",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "Amount",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Claim GAS",
+      "method": "claimRewards",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-profitanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "weekly_active_users",
+      "total_gas_used"
+    ]
+  },
+  "logic": {
+    "provides": [
+      "profitanchor.bestCandidate"
+    ],
+    "consumers": [
+      "miniapp-self-loan"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/profitanchor"
+}
