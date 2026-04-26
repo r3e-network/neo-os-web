@@ -22,6 +22,11 @@ const miniAppPathPattern = /\/(?:miniapps|miniapp-assets)\/([^/?#]+)/i;
 const imageExtensions = ["jpg", "svg", "png", "jpeg"] as const;
 type AssetKind = "logo" | "banner";
 
+export type ModernImageSources = {
+  avif?: string;
+  webp?: string;
+};
+
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-fogplay": ["fogplay"],
   "miniapp-dailycheckin": ["daily-checkin"],
@@ -292,6 +297,21 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
     primary.bannerURL,
     ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
   ]);
+}
+
+export function buildModernImageSources(url?: string | null): ModernImageSources {
+  const source = toNonEmptyString(url);
+  if (!source || !source.startsWith("/miniapp-assets/")) return {};
+
+  const match = source.match(/^(.*)\.(?:jpe?g|png)([?#].*)?$/i);
+  if (!match) return {};
+
+  const base = match[1];
+  const suffix = match[2] || "";
+  return {
+    avif: `${base}.avif${suffix}`,
+    webp: `${base}.webp${suffix}`,
+  };
 }
 
 export function withMiniAppCardAssets<T extends Pick<MiniAppInfo, "app_id" | "entry_url"> & Partial<MiniAppInfo>>(

@@ -109,7 +109,7 @@ const nextConfig = {
           {
             key: "Cache-Control",
             value:
-              "public, max-age=604800, stale-while-revalidate=86400, immutable",
+              "public, max-age=2592000, stale-while-revalidate=604800",
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

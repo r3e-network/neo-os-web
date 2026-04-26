@@ -73,6 +73,8 @@ export default function LoginPage() {
                   width={20}
                   height={20}
                   className="h-5 w-5 rounded-full"
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     e.currentTarget.style.display = "none";
                   }}

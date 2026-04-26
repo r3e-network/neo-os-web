@@ -1,6 +1,7 @@
 import {
   buildMiniAppBannerSources,
   buildMiniAppLogoSources,
+  buildModernImageSources,
   getMiniAppPrimaryAssets,
   resolveMiniAppSlug,
   withMiniAppCardAssets,
@@ -192,6 +193,20 @@ describe("miniapp-media helpers", () => {
 
       expect(app.logo_url).toBe("/miniapp-assets/prediction-market/logo.jpg");
       expect(app.banner_url).toBe("/miniapp-assets/prediction-market/banner.jpg");
+    });
+  });
+
+  describe("buildModernImageSources", () => {
+    it("derives modern formats for canonical generated miniapp assets", () => {
+      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({
+        avif: "/miniapp-assets/fogplay/banner.avif",
+        webp: "/miniapp-assets/fogplay/banner.webp",
+      });
+    });
+
+    it("keeps external and vector assets on their original source", () => {
+      expect(buildModernImageSources("https://cdn.example.com/logo.jpg")).toEqual({});
+      expect(buildModernImageSources("/miniapp-assets/fogplay/logo.svg")).toEqual({});
     });
   });
 });

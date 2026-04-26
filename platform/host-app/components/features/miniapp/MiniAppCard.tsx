@@ -5,7 +5,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { MiniAppInfo } from "@/components/types";
-import { buildMiniAppBannerSources } from "@/lib/miniapp-media";
+import {
+  buildMiniAppBannerSources,
+  buildModernImageSources,
+} from "@/lib/miniapp-media";
 import { MiniAppLogo } from "./MiniAppLogo";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +56,7 @@ export const MiniAppCard = memo(function MiniAppCard({
   }, [bannerSources]);
 
   const bannerSource = bannerSources[bannerIndex];
+  const modernBannerSources = buildModernImageSources(bannerSource);
 
   return (
     <Link
@@ -64,20 +68,28 @@ export const MiniAppCard = memo(function MiniAppCard({
         <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-white/0 pointer-events-none z-10 rounded-3xl" />
         <div className="h-48 w-full bg-gray-100 relative overflow-hidden">
           {bannerSource ? (
-            <img
-              src={bannerSource}
-              alt={`${app.name} banner`}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
-              loading="lazy"
-              decoding="async"
-              onError={() => {
-                setBannerIndex((prev) =>
-                  prev + 1 < bannerSources.length
-                    ? prev + 1
-                    : bannerSources.length,
-                );
-              }}
-            />
+            <picture className="block h-full w-full">
+              {modernBannerSources.avif && (
+                <source srcSet={modernBannerSources.avif} type="image/avif" />
+              )}
+              {modernBannerSources.webp && (
+                <source srcSet={modernBannerSources.webp} type="image/webp" />
+              )}
+              <img
+                src={bannerSource}
+                alt={`${app.name} banner`}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                loading="lazy"
+                decoding="async"
+                onError={() => {
+                  setBannerIndex((prev) =>
+                    prev + 1 < bannerSources.length
+                      ? prev + 1
+                      : bannerSources.length,
+                  );
+                }}
+              />
+            </picture>
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-semibold text-gray-500 group-hover:scale-110 transition-transform duration-700">
               {app.name}

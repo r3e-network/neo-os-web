@@ -61,7 +61,10 @@ import {
   Award,
   type LucideIcon,
 } from "lucide-react";
-import { buildMiniAppLogoSources } from "@/lib/miniapp-media";
+import {
+  buildMiniAppLogoSources,
+  buildModernImageSources,
+} from "@/lib/miniapp-media";
 
 // Map app_id to professional Lucide icons
 const APP_ICONS: Record<string, LucideIcon> = {
@@ -234,23 +237,32 @@ export function MiniAppLogo({
   }, [logoSources]);
 
   const logoSource = logoSources[logoIndex];
+  const modernSources = buildModernImageSources(logoSource);
   if (logoSource) {
     return (
       <div
         className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 ${className}`}
       >
-        <img
-          src={logoSource}
-          alt={alt || appId}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          decoding="async"
-          onError={() => {
-            setLogoIndex((prev) =>
-              prev + 1 < logoSources.length ? prev + 1 : logoSources.length,
-            );
-          }}
-        />
+        <picture className="block h-full w-full">
+          {modernSources.avif && (
+            <source srcSet={modernSources.avif} type="image/avif" />
+          )}
+          {modernSources.webp && (
+            <source srcSet={modernSources.webp} type="image/webp" />
+          )}
+          <img
+            src={logoSource}
+            alt={alt || appId}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => {
+              setLogoIndex((prev) =>
+                prev + 1 < logoSources.length ? prev + 1 : logoSources.length,
+              );
+            }}
+          />
+        </picture>
       </div>
     );
   }
