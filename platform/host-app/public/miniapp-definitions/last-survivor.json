@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-last-survivor",
   "name": "LastSurvivor",
-  "description": "Prize pool grows with every contribution; the 24-hour countdown resets on each press. Last contributor wins everything if the timer reaches zero.",
+  "description": "Prize pool grows with every contribution; each key purchase extends the live countdown. Last contributor wins when the timer reaches zero.",
   "template_type": "gaming",
   "category": "Gaming",
   "tags": [
@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-last-survivor",
   "media": {
-    "icon": "/miniapps/last-survivor/logo.jpg",
-    "banner": "/miniapps/last-survivor/banner.jpg"
+    "icon": "/miniapp-assets/last-survivor/logo.jpg",
+    "banner": "/miniapp-assets/last-survivor/banner.jpg"
   },
   "permissions": {
     "payments": true,
@@ -45,7 +45,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Last Survivor is a countdown jackpot. Every GAS transfer buys a key, resets the timer, and crowns the sender as the heir. When the timer hits zero, the last bidder wins the entire pot."
+            "content": "Last Survivor is a countdown jackpot. Every GAS transfer buys a key, extends the timer, and crowns the sender as the current leader. When the timer hits zero, the contract settles the round by its on-chain fee split."
           },
           {
             "type": "key_value",
@@ -61,11 +61,11 @@
               },
               {
                 "key": "Timer",
-                "value": "Starts at 60 min, decays per bid"
+                "value": "Contract-defined extension per key"
               },
               {
                 "key": "Platform Fee",
-                "value": "20% of the pot"
+                "value": "Contract-defined fee split"
               }
             ]
           },
@@ -74,8 +74,8 @@
             "title": "How to play",
             "items": [
               "Connect your Neo N3 wallet and fund it with GAS.",
-              "Transfer GAS to the contract \u2014 the amount covers one key at the current price.",
-              "Each bid resets the timer. If you're the last bidder when it hits zero, you win the pot (minus platform fee)."
+              "Transfer GAS to the contract — the amount covers one key at the current price.",
+              "Each bid extends the timer. If you're the last bidder when it hits zero, the contract settles the pot by its on-chain fee split."
             ]
           }
         ]
@@ -100,7 +100,7 @@
     ],
     "operation_panel": {
       "title": "LastSurvivor",
-      "subtitle": "Each GAS transfer buys 1 key and resets the timer.",
+      "subtitle": "Each GAS transfer buys 1 key and extends the timer.",
       "cta_label": "Open LastSurvivor",
       "operations": []
     }
@@ -121,7 +121,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "LastSurvivor",
-      "subtitle": "Each GAS transfer buys 1 key and resets the timer."
+      "subtitle": "Each GAS transfer buys 1 key and extends the timer."
     }
   }
 }

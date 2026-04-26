@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-gasbox",
   "media": {
-    "icon": "/miniapps/gasbox/logo.jpg",
-    "banner": "/miniapps/gasbox/banner.jpg"
+    "icon": "/miniapp-assets/gasbox/logo.jpg",
+    "banner": "/miniapp-assets/gasbox/banner.jpg"
   },
   "permissions": {
     "payments": true,
@@ -57,7 +57,7 @@
               },
               {
                 "key": "Flow",
-                "value": "initiate \u2192 VRF \u2192 settle"
+                "value": "initiate → VRF → settle"
               },
               {
                 "key": "Randomness",
@@ -75,7 +75,7 @@
             "items": [
               "Open the full GASBox app and browse the available machines.",
               "Pick a machine and transfer its entry cost in GAS to initiate a pull.",
-              "Once the VRF callback lands, your prize is credited automatically \u2014 NFTs land in your wallet, GAS prizes land as balance."
+              "Once the VRF callback lands, your prize is credited automatically — NFTs land in your wallet, GAS prizes land as balance."
             ]
           }
         ]

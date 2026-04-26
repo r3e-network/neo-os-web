@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-neo-pay",
   "media": {
-    "icon": "/miniapps/neo-pay/logo.jpg",
-    "banner": "/miniapps/neo-pay/banner.jpg"
+    "icon": "/miniapp-assets/neo-pay/logo.jpg",
+    "banner": "/miniapp-assets/neo-pay/banner.jpg"
   },
   "permissions": {
     "payments": true
@@ -44,7 +44,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "NeoPay is on-chain payroll / subscriptions / vesting. Configure a total amount, release rate, interval, and beneficiary. Funds drip out per second on a deterministic schedule \u2014 recipients claim accrued amounts whenever they want."
+            "content": "NeoPay is on-chain payroll / subscriptions / vesting. Configure a total amount, release rate, interval, and beneficiary. Funds drip out per second on a deterministic schedule — recipients claim accrued amounts whenever they want."
           },
           {
             "type": "key_value",

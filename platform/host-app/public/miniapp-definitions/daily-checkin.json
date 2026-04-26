@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-dailycheckin",
   "media": {
-    "icon": "/miniapps/daily-checkin/logo.jpg",
-    "banner": "/miniapps/daily-checkin/banner.jpg"
+    "icon": "/miniapp-assets/daily-checkin/logo.jpg",
+    "banner": "/miniapp-assets/daily-checkin/banner.jpg"
   },
   "permissions": {
     "payments": true
@@ -73,7 +73,7 @@
             "title": "How to play",
             "items": [
               "Connect your wallet once per UTC day.",
-              "Tap Check In \u2014 a tiny fee transfer books your day on-chain.",
+              "Tap Check In — a tiny fee transfer books your day on-chain.",
               "Keep the streak going to unlock escalating GAS rewards and NFT loyalty badges."
             ]
           }
