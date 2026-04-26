@@ -39,33 +39,82 @@ export type TemplateItem = {
 };
 
 const TEMPLATE_CATEGORIES: TemplateCategory[] = [
-  { id: "gaming", name: "Gaming", description: "Games and entertainment", icon: "🎮", count: 12 },
-  { id: "defi", name: "DeFi", description: "Financial applications", icon: "💰", count: 8 },
-  { id: "social", name: "Social", description: "Community and social", icon: "👥", count: 6 },
-  { id: "nft", name: "NFT", description: "NFT and collectibles", icon: "🖼️", count: 5 },
-  { id: "governance", name: "Governance", description: "Voting and DAO", icon: "🏛️", count: 4 },
-  { id: "utility", name: "Utility", description: "Tools and utilities", icon: "🔧", count: 10 },
+  {
+    id: "gaming",
+    name: "Gaming",
+    description: "Games and entertainment",
+    icon: "🎮",
+    count: 12,
+  },
+  {
+    id: "defi",
+    name: "DeFi",
+    description: "Financial applications",
+    icon: "💰",
+    count: 8,
+  },
+  {
+    id: "social",
+    name: "Social",
+    description: "Community and social",
+    icon: "👥",
+    count: 6,
+  },
+  {
+    id: "nft",
+    name: "NFT",
+    description: "NFT and collectibles",
+    icon: "🖼️",
+    count: 5,
+  },
+  {
+    id: "governance",
+    name: "Governance",
+    description: "Voting and DAO",
+    icon: "🏛️",
+    count: 4,
+  },
+  {
+    id: "utility",
+    name: "Utility",
+    description: "Tools and utilities",
+    icon: "🔧",
+    count: 10,
+  },
 ];
 
 const TEMPLATES: TemplateItem[] = [
   {
     id: "prediction-market",
     name: "Prediction Market",
-    description: "Create markets where users can trade on the outcomes of events",
+    description:
+      "Create markets where users can trade on the outcomes of events",
     category: "defi",
     version: "2.0.0",
     author: "Platform",
     icon: "📈",
-    features: ["Multiple outcomes", "Oracle integration", "Automatic resolution", "Trading panel"],
+    features: [
+      "Multiple outcomes",
+      "Oracle integration",
+      "Automatic resolution",
+      "Trading panel",
+    ],
     blueprint: {
       layout: "trading",
-      hero: { eyebrow: "Prediction Market", disclaimer: "Trade at your own risk" },
+      hero: {
+        eyebrow: "Prediction Market",
+        disclaimer: "Trade at your own risk",
+      },
       tabs: [
         { id: "markets", label: "Markets", type: "content" },
         { id: "history", label: "History", type: "content" },
         { id: "comments", label: "Comments", type: "forum" },
       ],
-      operation_panel: { title: "Trade", subtitle: "Select market and trade", cta_label: "Place Order" },
+      operation_panel: {
+        title: "Trade",
+        subtitle: "Select market and trade",
+        cta_label: "Place Order",
+      },
     },
     popularity: 95,
   },
@@ -77,7 +126,12 @@ const TEMPLATES: TemplateItem[] = [
     version: "1.5.0",
     author: "Platform",
     icon: "🗳️",
-    features: ["Multiple options", "One vote per address", "Result visualization", "Deadline support"],
+    features: [
+      "Multiple options",
+      "One vote per address",
+      "Result visualization",
+      "Deadline support",
+    ],
     blueprint: {
       layout: "voting",
       hero: { eyebrow: "Voting", disclaimer: "One vote per address" },
@@ -86,7 +140,11 @@ const TEMPLATES: TemplateItem[] = [
         { id: "results", label: "Results", type: "content" },
         { id: "discussion", label: "Discussion", type: "forum" },
       ],
-      operation_panel: { title: "Cast Vote", subtitle: "Select option and vote", cta_label: "Vote" },
+      operation_panel: {
+        title: "Cast Vote",
+        subtitle: "Select option and vote",
+        cta_label: "Vote",
+      },
     },
     popularity: 88,
   },
@@ -98,7 +156,12 @@ const TEMPLATES: TemplateItem[] = [
     version: "1.8.0",
     author: "Platform",
     icon: "🎰",
-    features: ["Random selection", "Configurable odds", "Prize tiers", "Ticket sales"],
+    features: [
+      "Random selection",
+      "Configurable odds",
+      "Prize tiers",
+      "Ticket sales",
+    ],
     blueprint: {
       layout: "trading",
       hero: { eyebrow: "Lottery", disclaimer: "Play responsibly" },
@@ -107,7 +170,11 @@ const TEMPLATES: TemplateItem[] = [
         { id: "history", label: "History", type: "content" },
         { id: "winners", label: "Winners", type: "content" },
       ],
-      operation_panel: { title: "Buy Ticket", subtitle: "Purchase a lottery ticket", cta_label: "Buy Ticket" },
+      operation_panel: {
+        title: "Buy Ticket",
+        subtitle: "Purchase a lottery ticket",
+        cta_label: "Buy Ticket",
+      },
     },
     popularity: 82,
   },
@@ -119,7 +186,12 @@ const TEMPLATES: TemplateItem[] = [
     version: "1.2.0",
     author: "Platform",
     icon: "🏆",
-    features: ["Real-time rankings", "Score tracking", "Player profiles", "Historical data"],
+    features: [
+      "Real-time rankings",
+      "Score tracking",
+      "Player profiles",
+      "Historical data",
+    ],
     blueprint: {
       layout: "gaming",
       hero: { eyebrow: "Leaderboard" },
@@ -128,7 +200,11 @@ const TEMPLATES: TemplateItem[] = [
         { id: "history", label: "History", type: "content" },
         { id: "rules", label: "Rules", type: "content" },
       ],
-      operation_panel: { title: "Submit Score", subtitle: "Record your score", cta_label: "Submit" },
+      operation_panel: {
+        title: "Submit Score",
+        subtitle: "Record your score",
+        cta_label: "Submit",
+      },
     },
     popularity: 75,
   },
@@ -143,13 +219,20 @@ const TEMPLATES: TemplateItem[] = [
     features: ["Listings", "Auctions", "Offers", "Collection view"],
     blueprint: {
       layout: "trading",
-      hero: { eyebrow: "NFT Marketplace", disclaimer: "Trade at your own risk" },
+      hero: {
+        eyebrow: "NFT Marketplace",
+        disclaimer: "Trade at your own risk",
+      },
       tabs: [
         { id: "browse", label: "Browse", type: "content" },
         { id: "collections", label: "Collections", type: "content" },
         { id: "activity", label: "Activity", type: "news" },
       ],
-      operation_panel: { title: "Buy / List", subtitle: "Purchase or list NFT", cta_label: "Trade" },
+      operation_panel: {
+        title: "Buy / List",
+        subtitle: "Purchase or list NFT",
+        cta_label: "Trade",
+      },
     },
     popularity: 70,
     isPro: true,
@@ -171,7 +254,11 @@ const TEMPLATES: TemplateItem[] = [
         { id: "charts", label: "Charts", type: "content" },
         { id: "api", label: "API", type: "content" },
       ],
-      operation_panel: { title: "Query Data", subtitle: "Run a custom query", cta_label: "Query" },
+      operation_panel: {
+        title: "Query Data",
+        subtitle: "Run a custom query",
+        cta_label: "Query",
+      },
     },
     popularity: 65,
   },
@@ -182,13 +269,18 @@ type TemplateMarketplaceProps = {
   onClose?: () => void;
 };
 
-export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarketplaceProps) {
+export function TemplateMarketplace({
+  onSelectTemplate,
+  onClose,
+}: TemplateMarketplaceProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredTemplates = TEMPLATES.filter((template) => {
-    const matchesCategory = !selectedCategory || template.category === selectedCategory;
-    const matchesSearch = !searchQuery || 
+    const matchesCategory =
+      !selectedCategory || template.category === selectedCategory;
+    const matchesSearch =
+      !searchQuery ||
       template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       template.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -200,10 +292,14 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Template Marketplace</h2>
-          <p className="text-sm text-gray-500">Choose a pre-built template to get started</p>
+          <p className="text-sm text-gray-500">
+            Choose a pre-built template to get started
+          </p>
         </div>
         {onClose && (
-          <Button variant="ghost" onClick={onClose}>Close</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
         )}
       </div>
 
@@ -212,8 +308,8 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
         <button
           onClick={() => setSelectedCategory(null)}
           className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-            !selectedCategory 
-              ? "bg-neo text-black" 
+            !selectedCategory
+              ? "bg-neo text-black"
               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200"
           }`}
         >
@@ -250,9 +346,9 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
       {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTemplates.map((template) => (
-          <TemplateCard 
-            key={template.id} 
-            template={template} 
+          <TemplateCard
+            key={template.id}
+            template={template}
             onSelect={() => onSelectTemplate?.(template)}
           />
         ))}
@@ -267,31 +363,40 @@ export function TemplateMarketplace({ onSelectTemplate, onClose }: TemplateMarke
   );
 }
 
-function TemplateCard({ template, onSelect }: { template: TemplateItem; onSelect: () => void }) {
+function TemplateCard({
+  template,
+  onSelect,
+}: {
+  template: TemplateItem;
+  onSelect: () => void;
+}) {
   return (
-    <Card className="hover:border-neo transition-colors cursor-pointer" onClick={onSelect}>
+    <Card
+      className="hover:border-neo transition-colors cursor-pointer"
+      onClick={onSelect}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{template.icon}</span>
             <div>
               <CardTitle className="text-base">{template.name}</CardTitle>
-              <p className="text-xs text-gray-500">v{template.version} by {template.author}</p>
+              <p className="text-xs text-gray-500">
+                v{template.version} by {template.author}
+              </p>
             </div>
           </div>
-          {template.isPro && (
-            <Badge variant="warning">Pro</Badge>
-          )}
+          {template.isPro && <Badge variant="warning">Pro</Badge>}
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {template.description}
         </p>
-        
+
         <div className="flex flex-wrap gap-1 mb-4">
           {template.features.slice(0, 3).map((feature) => (
-            <span 
+            <span
               key={feature}
               className="inline-flex px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
             >
@@ -299,10 +404,12 @@ function TemplateCard({ template, onSelect }: { template: TemplateItem; onSelect
             </span>
           ))}
           {template.features.length > 3 && (
-            <span className="text-xs text-gray-400">+{template.features.length - 3} more</span>
+            <span className="text-xs text-gray-400">
+              +{template.features.length - 3} more
+            </span>
           )}
         </div>
-        
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 text-sm text-gray-500">
             <span>🔥</span>

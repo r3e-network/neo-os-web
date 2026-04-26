@@ -4,12 +4,19 @@ import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { normalizeMiniAppAdminPayload } from "@/lib/miniapp-admin";
-import { createPublishRequest, getPendingPublishRequest, isApprovalRequired } from "@/lib/miniapp-publish-approval";
+import {
+  createPublishRequest,
+  getPendingPublishRequest,
+  isApprovalRequired,
+} from "@/lib/miniapp-publish-approval";
 import { coerceMiniAppInfo } from "@/lib/miniapp";
 import { appendPublishApprovalAuditEvent } from "@/lib/publish-approval-audit";
 import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 const SELECT_COLUMNS =
@@ -48,7 +55,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -64,7 +74,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   let existing: ExistingRow | null = null;
@@ -78,7 +91,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       .maybeSingle();
 
     if (error) {
-      logger.error("miniapp admin upsert existing fetch error:", error instanceof Error ? error.message : String(error));
+      logger.error(
+        "miniapp admin upsert existing fetch error:",
+        error instanceof Error ? error.message : String(error),
+      );
       return apiError.internal(res, "Failed to load existing miniapp");
     }
     existing = (data as ExistingRow | null) || null;
@@ -96,20 +112,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const approvalRequired = isApprovalRequired();
   const requestedPublish = normalized.action === "publish";
-  const forcePublish = asTrimmedString(bodyObj.publish_override).toLowerCase() === "true";
+  const forcePublish =
+    asTrimmedString(bodyObj.publish_override).toLowerCase() === "true";
 
   if (approvalRequired && requestedPublish && !forcePublish) {
-    const pending = await getPendingPublishRequest(supabase, normalized.row.app_id);
+    const pending = await getPendingPublishRequest(
+      supabase,
+      normalized.row.app_id,
+    );
     if (pending) {
-      return apiError.badRequest(res, `Publish request already pending for ${normalized.row.app_id}`);
+      return apiError.badRequest(
+        res,
+        `Publish request already pending for ${normalized.row.app_id}`,
+      );
     }
 
-    let latestVersion:
-      | {
-          id: string;
-          version_no: number;
-        }
-      | null = null;
+    let latestVersion: {
+      id: string;
+      version_no: number;
+    } | null = null;
     try {
       const recorded = await recordMiniAppVersion(supabase, {
         row: {
@@ -125,7 +146,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         version_no: recorded.version.version_no,
       };
     } catch (error) {
-      logger.error("miniapp publish request version write failed:", error instanceof Error ? error.message : "unknown error");
+      logger.error(
+        "miniapp publish request version write failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
       return apiError.internal(res, "Failed to save publish request snapshot");
     }
 
@@ -153,15 +177,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         },
       });
 
-      return res.status(202).json({
+      res.status(202).json({
         success: true,
         action: "publish_requested",
         blueprint: normalized.blueprint,
         approval_required: true,
         request,
       });
+      return;
     } catch (error) {
-      logger.error("miniapp publish request creation failed:", error instanceof Error ? error.message : "unknown error");
+      logger.error(
+        "miniapp publish request creation failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
       return apiError.internal(res, "Failed to create publish request");
     }
   }
@@ -173,24 +201,28 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     .single();
 
   if (upsertError || !upserted) {
-    logger.error("miniapp admin upsert failed:", upsertError instanceof Error ? upsertError.message : "unknown error");
+    logger.error(
+      "miniapp admin upsert failed:",
+      upsertError instanceof Error ? upsertError.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to save miniapp");
   }
 
   const app = coerceMiniAppInfo(upserted);
   if (!app) {
-    return apiError.internal(res, "Miniapp saved but response normalization failed");
+    return apiError.internal(
+      res,
+      "Miniapp saved but response normalization failed",
+    );
   }
 
-  let versionInfo:
-    | {
-        id: string;
-        app_id: string;
-        version_no: number;
-        release_channel: "draft" | "published";
-        source_action: "save_draft" | "publish" | "disable" | "rollback";
-      }
-    | null = null;
+  let versionInfo: {
+    id: string;
+    app_id: string;
+    version_no: number;
+    release_channel: "draft" | "published";
+    source_action: "save_draft" | "publish" | "disable" | "rollback";
+  } | null = null;
 
   try {
     const version = await recordMiniAppVersion(supabase, {
@@ -206,18 +238,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       source_action: version.version.source_action,
     };
   } catch (versionError) {
-    logger.error("miniapp version write failed:", versionError instanceof Error ? versionError.message : "unknown error");
-    return apiError.internal(res, "Miniapp saved but failed to write version snapshot");
+    logger.error(
+      "miniapp version write failed:",
+      versionError instanceof Error ? versionError.message : "unknown error",
+    );
+    return apiError.internal(
+      res,
+      "Miniapp saved but failed to write version snapshot",
+    );
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(existing ? 200 : 201).json({
+  res.status(existing ? 200 : 201).json({
     success: true,
     action: normalized.action,
     blueprint: normalized.blueprint,
     version: versionInfo,
     app,
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

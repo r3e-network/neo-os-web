@@ -1,6 +1,11 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { logger } from "@/lib/logger";
-import { trackError, getTrackedErrors, getErrorCount, type ErrorCategory } from "@/lib/monitoring/errors";
+import {
+  trackError,
+  getTrackedErrors,
+  getErrorCount,
+  type ErrorCategory,
+} from "@/lib/monitoring/errors";
 
 interface Props {
   children: ReactNode;
@@ -43,17 +48,20 @@ export class ErrorBoundary extends Component<Props, State> {
         componentName: this.props.componentName,
       },
     });
-    
+
     // Log to logger
-    logger.error(`ErrorBoundary [${this.props.componentName || "Unknown"}] caught an error:`, error);
-    
+    logger.error(
+      `ErrorBoundary [${this.props.componentName || "Unknown"}] caught an error:`,
+      error,
+    );
+
     // Set state with error ID
     this.setState({
       error,
       errorInfo,
       errorId,
     });
-    
+
     // Call custom error handler if provided
     this.props.onError?.(error, errorInfo);
   }
@@ -77,7 +85,7 @@ export class ErrorBoundary extends Component<Props, State> {
       // In production, this would open a bug report dialog
       // or send to a bug tracking service
       const errorReportUrl = `mailto:support@example.com?subject=Error Report: ${this.state.errorId}&body=${encodeURIComponent(
-        `Error ID: ${this.state.errorId}\nError: ${this.state.error?.toString()}\n\nStack: ${this.state.errorInfo?.componentStack || "N/A"}`
+        `Error ID: ${this.state.errorId}\nError: ${this.state.error?.toString()}\n\nStack: ${this.state.errorInfo?.componentStack || "N/A"}`,
       )}`;
       window.open(errorReportUrl);
     }
@@ -116,12 +124,17 @@ export class ErrorBoundary extends Component<Props, State> {
             </h2>
 
             <p className="text-gray-600 text-center mb-6">
-              An unexpected error prevented this page from loading. You can try again, reload the page, or return home. If the problem persists, please report it.
+              An unexpected error prevented this page from loading. You can try
+              again, reload the page, or return home. If the problem persists,
+              please report it.
             </p>
 
             {this.state.errorId && (
               <div className="text-xs text-gray-500 text-center mb-4">
-                Error ID: <code className="bg-gray-100 px-1 rounded">{this.state.errorId}</code>
+                Error ID:{" "}
+                <code className="bg-gray-100 px-1 rounded">
+                  {this.state.errorId}
+                </code>
               </div>
             )}
 
@@ -185,16 +198,17 @@ export class ErrorBoundary extends Component<Props, State> {
  */
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  errorBoundaryProps?: Omit<Props, "children">
+  errorBoundaryProps?: Omit<Props, "children">,
 ): React.FC<P> {
-  const displayName = WrappedComponent.displayName || WrappedComponent.name || "Component";
-  
+  const displayName =
+    WrappedComponent.displayName || WrappedComponent.name || "Component";
+
   const WithErrorBoundary: React.FC<P> = (props) => (
     <ErrorBoundary componentName={displayName} {...errorBoundaryProps}>
       <WrappedComponent {...props} />
     </ErrorBoundary>
   );
-  
+
   WithErrorBoundary.displayName = `withErrorBoundary(${displayName})`;
   return WithErrorBoundary;
 }
@@ -204,8 +218,10 @@ export function withErrorBoundary<P extends object>(
  */
 export function useGlobalErrors() {
   const [errorCount, setErrorCount] = React.useState(0);
-  const [errors, setErrors] = React.useState<ReturnType<typeof getTrackedErrors>>([]);
-  
+  const [errors, setErrors] = React.useState<
+    ReturnType<typeof getTrackedErrors>
+  >([]);
+
   React.useEffect(() => {
     let active = true;
     const update = () => {
@@ -222,7 +238,7 @@ export function useGlobalErrors() {
       clearInterval(interval);
     };
   }, []);
-  
+
   return { errorCount, errors };
 }
 

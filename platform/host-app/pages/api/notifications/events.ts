@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getEvents, markAsRead, getUnreadCount } from "@/lib/notifications/supabase-service";
+import {
+  getEvents,
+  markAsRead,
+  getUnreadCount,
+} from "@/lib/notifications/supabase-service";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { withCsrfProtection } from "@/lib/csrf";
@@ -20,7 +24,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -30,29 +37,43 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   try {
     if (req.method === "GET") {
-      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 100);
+      const limit = Math.min(
+        Math.max(parseInt(req.query.limit as string) || 50, 1),
+        100,
+      );
       const unreadOnly = req.query.unreadOnly === "true";
 
       const events = await getEvents(wallet, limit, unreadOnly);
       const unreadCount = await getUnreadCount(wallet);
 
-      return res.status(200).json({ events, unreadCount });
+      res.status(200).json({ events, unreadCount });
+      return;
     }
 
     if (req.method === "POST") {
       const { eventId } = req.body;
-      if (!eventId || typeof eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)) {
+      if (
+        !eventId ||
+        typeof eventId !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          eventId,
+        )
+      ) {
         return apiError.badRequest(res, "Valid event ID required");
       }
 
       const success = await markAsRead(eventId, wallet);
       if (!success) return apiError.internal(res, "Failed to mark as read");
-      return res.status(200).json({ success });
+      res.status(200).json({ success });
+      return;
     }
 
     return apiError.methodNotAllowed(res);
   } catch (err) {
-    logger.error("Notification events error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Notification events error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to process notification events");
   }
 }

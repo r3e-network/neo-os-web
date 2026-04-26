@@ -22,7 +22,16 @@ import { MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY } from "../miniapps/lib/template-i
 
 type TemplateManifestFormat = "json" | "yaml";
 
-const CATEGORIES = ["all", "gaming", "defi", "social", "nft", "governance", "utility", "data"];
+const CATEGORIES = [
+  "all",
+  "gaming",
+  "defi",
+  "social",
+  "nft",
+  "governance",
+  "utility",
+  "data",
+];
 
 const EMPTY_FORM = {
   kind: "frontend" as TemplateKind,
@@ -37,7 +46,7 @@ const EMPTY_FORM = {
   schema_text: "{}",
   ui_schema_text: "{}",
   manifest_format: "json" as TemplateManifestFormat,
-  manifest_text: "{\n  \"template\": {\n    \"id\": \"example\"\n  }\n}",
+  manifest_text: '{\n "template": {\n "id": "example"\n }\n}',
 };
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -55,7 +64,10 @@ function asStringArray(value: unknown): string[] {
   return value.map((item) => asString(item)).filter(Boolean);
 }
 
-function parseManifest(text: string, format: TemplateManifestFormat): Record<string, unknown> {
+function parseManifest(
+  text: string,
+  format: TemplateManifestFormat,
+): Record<string, unknown> {
   const source = String(text || "").trim();
   if (!source) {
     throw new Error("Template manifest is required");
@@ -92,9 +104,13 @@ function parseJSONObject(text: string, field: string): Record<string, unknown> {
 }
 
 function parseTemplateId(input: string): string {
-  const value = String(input || "").trim().toLowerCase();
+  const value = String(input || "")
+    .trim()
+    .toLowerCase();
   if (!/^[a-z0-9][a-z0-9._-]*$/.test(value)) {
-    throw new Error(`parseTemplateId: invalid template_id="${value}" — must be lowercase letters/numbers with . _ -`);
+    throw new Error(
+      `parseTemplateId: invalid template_id="${value}" — must be lowercase letters/numbers with . _ -`,
+    );
   }
   return value;
 }
@@ -111,7 +127,9 @@ function formatDateTime(value: string): string {
   }).format(new Date(time));
 }
 
-function sourceBadgeVariant(source: TemplateSourceType): "info" | "success" | "default" {
+function sourceBadgeVariant(
+  source: TemplateSourceType,
+): "info" | "success" | "default" {
   if (source === "verified") return "success";
   if (source === "miniapp") return "info";
   return "default";
@@ -121,7 +139,9 @@ function kindBadgeVariant(kind: TemplateKind): "warning" | "info" {
   return kind === "contract" ? "warning" : "info";
 }
 
-function requestBadgeVariant(status: TemplatePublishRequestRow["status"]): "warning" | "success" | "danger" | "default" {
+function requestBadgeVariant(
+  status: TemplatePublishRequestRow["status"],
+): "warning" | "success" | "danger" | "default" {
   if (status === "pending") return "warning";
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
@@ -155,16 +175,24 @@ type MiniAppBuilderInstallDraft = {
   manifest?: Record<string, unknown>;
 };
 
-function buildMiniAppInstallDraft(item: TemplateCatalogItem): MiniAppBuilderInstallDraft {
+function buildMiniAppInstallDraft(
+  item: TemplateCatalogItem,
+): MiniAppBuilderInstallDraft {
   const manifest = asObject(item.manifest);
   const templateContainer = asObject(manifest.template);
-  const frontendTemplate = asObject(manifest.frontend_template ?? templateContainer.frontend_template);
-  const contractTemplate = asObject(manifest.contract_template ?? templateContainer.contract_template);
-  const binding = item.template_kind === "contract" ? contractTemplate : frontendTemplate;
+  const frontendTemplate = asObject(
+    manifest.frontend_template ?? templateContainer.frontend_template,
+  );
+  const contractTemplate = asObject(
+    manifest.contract_template ?? templateContainer.contract_template,
+  );
+  const binding =
+    item.template_kind === "contract" ? contractTemplate : frontendTemplate;
   const contractSecurityProfile = asObject(contractTemplate.security_profile);
 
   const templateId = asString(binding.template_id) || item.template_id;
-  const version = asString(binding.version) || asString(item.version) || "1.0.0";
+  const version =
+    asString(binding.version) || asString(item.version) || "1.0.0";
   const variant = asString(binding.variant);
   const draft: MiniAppBuilderInstallDraft = {
     source: "template_studio",
@@ -185,14 +213,23 @@ function buildMiniAppInstallDraft(item: TemplateCatalogItem): MiniAppBuilderInst
     return draft;
   }
 
-  draft.factory_template_ref = asString(contractTemplate.factory_template_ref || item.factory_template_ref) || undefined;
-  draft.init_params = asObject(contractTemplate.init_params || manifest.init_params);
+  draft.factory_template_ref =
+    asString(
+      contractTemplate.factory_template_ref || item.factory_template_ref,
+    ) || undefined;
+  draft.init_params = asObject(
+    contractTemplate.init_params || manifest.init_params,
+  );
   draft.init_schema = asObject(contractTemplate.init_schema);
   draft.method_schema = asObject(contractTemplate.method_schema);
   draft.security_profile = contractSecurityProfile;
-  draft.requires_host_capability = asStringArray(contractTemplate.requires_host_capability);
-  draft.min_factory_version = asString(contractTemplate.min_factory_version) || undefined;
-  draft.max_factory_version = asString(contractTemplate.max_factory_version) || undefined;
+  draft.requires_host_capability = asStringArray(
+    contractTemplate.requires_host_capability,
+  );
+  draft.min_factory_version =
+    asString(contractTemplate.min_factory_version) || undefined;
+  draft.max_factory_version =
+    asString(contractTemplate.max_factory_version) || undefined;
 
   return draft;
 }
@@ -205,9 +242,13 @@ export default function TemplateStudioPage() {
   const [source, setSource] = useState<TemplateSourceType | "all">("all");
   const [active, setActive] = useState<"all" | "true" | "false">("all");
   const [verified, setVerified] = useState<"all" | "true" | "false">("all");
-  const [requestStatus, setRequestStatus] = useState<"all" | "pending" | "approved" | "rejected" | "cancelled">("pending");
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateCatalogItem | null>(null);
-  const [selectedRequest, setSelectedRequest] = useState<TemplatePublishRequestRow | null>(null);
+  const [requestStatus, setRequestStatus] = useState<
+    "all" | "pending" | "approved" | "rejected" | "cancelled"
+  >("pending");
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<TemplateCatalogItem | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<TemplatePublishRequestRow | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [formInfo, setFormInfo] = useState("");
@@ -270,11 +311,20 @@ export default function TemplateStudioPage() {
       setFormInfo("");
       try {
         const rawText = String(reader.result || "");
-        const parsed = parseManifest(rawText, file.name.toLowerCase().endsWith(".json") ? "json" : "yaml");
+        const parsed = parseManifest(
+          rawText,
+          file.name.toLowerCase().endsWith(".json") ? "json" : "yaml",
+        );
         const templateContainer = asObject(parsed.template);
-        const frontendTemplate = asObject(parsed.frontend_template ?? templateContainer.frontend_template);
-        const contractTemplate = asObject(parsed.contract_template ?? templateContainer.contract_template);
-        const kindFromPayload = String(parsed.kind || "").trim().toLowerCase();
+        const frontendTemplate = asObject(
+          parsed.frontend_template ?? templateContainer.frontend_template,
+        );
+        const contractTemplate = asObject(
+          parsed.contract_template ?? templateContainer.contract_template,
+        );
+        const kindFromPayload = String(parsed.kind || "")
+          .trim()
+          .toLowerCase();
         const inferredKind: TemplateKind =
           kindFromPayload === "contract"
             ? "contract"
@@ -285,28 +335,39 @@ export default function TemplateStudioPage() {
                 : "frontend";
 
         const manifest = asObject(parsed.manifest);
-        const manifestPayload = Object.keys(manifest).length ? manifest : parsed;
+        const manifestPayload = Object.keys(manifest).length
+          ? manifest
+          : parsed;
 
-        const inferredTemplateId =
-          String(
-            parsed.template_id ||
-            (inferredKind === "contract" ? contractTemplate.template_id : frontendTemplate.template_id) ||
+        const inferredTemplateId = String(
+          parsed.template_id ||
+            (inferredKind === "contract"
+              ? contractTemplate.template_id
+              : frontendTemplate.template_id) ||
             "",
-          ).trim();
+        ).trim();
 
-        const inferredVersion =
-          String(
-            parsed.version ||
-            (inferredKind === "contract" ? contractTemplate.version : frontendTemplate.version) ||
+        const inferredVersion = String(
+          parsed.version ||
+            (inferredKind === "contract"
+              ? contractTemplate.version
+              : frontendTemplate.version) ||
             "1.0.0",
-          ).trim();
+        ).trim();
 
-        const sourceTypeRaw = String(parsed.source_type || "").trim().toLowerCase();
+        const sourceTypeRaw = String(parsed.source_type || "")
+          .trim()
+          .toLowerCase();
         const sourceType: TemplateSourceType =
-          sourceTypeRaw === "miniapp" || sourceTypeRaw === "verified" ? sourceTypeRaw : "community";
+          sourceTypeRaw === "miniapp" || sourceTypeRaw === "verified"
+            ? sourceTypeRaw
+            : "community";
 
         const tags = Array.isArray(parsed.tags)
-          ? parsed.tags.map((item) => String(item || "").trim()).filter(Boolean).join(", ")
+          ? parsed.tags
+              .map((item) => String(item || "").trim())
+              .filter(Boolean)
+              .join(", ")
           : "";
 
         setForm((prev) => ({
@@ -315,15 +376,19 @@ export default function TemplateStudioPage() {
           template_id: inferredTemplateId || prev.template_id,
           version: inferredVersion || prev.version,
           name: String(parsed.name || prev.name || inferredTemplateId).trim(),
-          description: String(parsed.description || prev.description || "").trim(),
-          category: String(parsed.category || prev.category || "utility").trim() || "utility",
+          description: String(
+            parsed.description || prev.description || "",
+          ).trim(),
+          category:
+            String(parsed.category || prev.category || "utility").trim() ||
+            "utility",
           source_type: sourceType,
           tags,
           factory_template_ref: String(
             parsed.factory_template_ref ||
-            contractTemplate.factory_template_ref ||
-            prev.factory_template_ref ||
-            "",
+              contractTemplate.factory_template_ref ||
+              prev.factory_template_ref ||
+              "",
           ).trim(),
           schema_text: stringifyManifest(asObject(parsed.schema)),
           ui_schema_text: stringifyManifest(asObject(parsed.ui_schema)),
@@ -332,7 +397,11 @@ export default function TemplateStudioPage() {
         }));
         setFormInfo(`Loaded template payload from ${file.name}`);
       } catch (error) {
-        setFormError(error instanceof Error ? error.message : "Failed to parse template file");
+        setFormError(
+          error instanceof Error
+            ? error.message
+            : "Failed to parse template file",
+        );
       } finally {
         e.target.value = "";
       }
@@ -372,17 +441,28 @@ export default function TemplateStudioPage() {
       });
 
       if (response?.approval_required) {
-        setFormInfo("Template saved. Publish request created and waiting for review.");
+        setFormInfo(
+          "Template saved. Publish request created and waiting for review.",
+        );
       } else {
         setFormInfo("Template saved and published.");
       }
-      setForm((prev) => ({ ...prev, template_id: normalizedTemplateId, manifest_text: stringifyManifest(manifest) }));
+      setForm((prev) => ({
+        ...prev,
+        template_id: normalizedTemplateId,
+        manifest_text: stringifyManifest(manifest),
+      }));
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Failed to save template");
+      setFormError(
+        error instanceof Error ? error.message : "Failed to save template",
+      );
     }
   };
 
-  const onReviewRequest = async (request: TemplatePublishRequestRow, decision: "approve" | "reject" | "cancel") => {
+  const onReviewRequest = async (
+    request: TemplatePublishRequestRow,
+    decision: "approve" | "reject" | "cancel",
+  ) => {
     setFormError("");
     setFormInfo("");
     try {
@@ -392,7 +472,9 @@ export default function TemplateStudioPage() {
       });
       setFormInfo(`Request ${request.id.slice(0, 8)} ${decision}d.`);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Failed to review request");
+      setFormError(
+        error instanceof Error ? error.message : "Failed to review request",
+      );
     }
   };
 
@@ -400,23 +482,37 @@ export default function TemplateStudioPage() {
     try {
       const draft = buildMiniAppInstallDraft(item);
       try {
-        window.localStorage.setItem(MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY, JSON.stringify(draft));
+        window.localStorage.setItem(
+          MINIAPP_TEMPLATE_INSTALL_STORAGE_KEY,
+          JSON.stringify(draft),
+        );
       } catch {
         setFormError("Failed to save template draft to local storage");
         return;
       }
-      setFormInfo(`Template ${item.template_id}@${item.version} installed into MiniApp Builder draft.`);
+      setFormInfo(
+        `Template ${item.template_id}@${item.version} installed into MiniApp Builder draft.`,
+      );
       router.push("/miniapps?installed_template=1");
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Failed to install template to MiniApp Builder");
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Failed to install template to MiniApp Builder",
+      );
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Template Studio</h1>
-        <p className="text-gray-600 dark:text-gray-400">No-code template marketplace for frontend and contract miniapp templates.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Template Studio
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          No-code template marketplace for frontend and contract miniapp
+          templates.
+        </p>
       </div>
 
       <Card variant="glass">
@@ -425,26 +521,67 @@ export default function TemplateStudioPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <Input label="Search" placeholder="template id/name/tag" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input
+              label="Search"
+              placeholder="template id/name/tag"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             <div>
-              <label htmlFor="template-kind" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
-              <select id="template-kind" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={kind} onChange={(e) => setKind(e.target.value as TemplateKind | "all")}>
+              <label
+                htmlFor="template-kind"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Kind
+              </label>
+              <select
+                id="template-kind"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={kind}
+                onChange={(e) =>
+                  setKind(e.target.value as TemplateKind | "all")
+                }
+              >
                 <option value="all">all</option>
                 <option value="frontend">frontend</option>
                 <option value="contract">contract</option>
               </select>
             </div>
             <div>
-              <label htmlFor="template-category" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
-              <select id="template-category" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <label
+                htmlFor="template-category"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Category
+              </label>
+              <select
+                id="template-category"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
                 {CATEGORIES.map((item) => (
-                  <option key={item} value={item}>{item}</option>
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="template-source" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
-              <select id="template-source" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={source} onChange={(e) => setSource(e.target.value as TemplateSourceType | "all")}>
+              <label
+                htmlFor="template-source"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Source
+              </label>
+              <select
+                id="template-source"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={source}
+                onChange={(e) =>
+                  setSource(e.target.value as TemplateSourceType | "all")
+                }
+              >
                 <option value="all">all</option>
                 <option value="miniapp">miniapp</option>
                 <option value="community">community</option>
@@ -452,16 +589,40 @@ export default function TemplateStudioPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="template-active" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Active</label>
-              <select id="template-active" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={active} onChange={(e) => setActive(e.target.value as "all" | "true" | "false")}>
+              <label
+                htmlFor="template-active"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Active
+              </label>
+              <select
+                id="template-active"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={active}
+                onChange={(e) =>
+                  setActive(e.target.value as "all" | "true" | "false")
+                }
+              >
                 <option value="all">all</option>
                 <option value="true">true</option>
                 <option value="false">false</option>
               </select>
             </div>
             <div>
-              <label htmlFor="template-verified" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Verified</label>
-              <select id="template-verified" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={verified} onChange={(e) => setVerified(e.target.value as "all" | "true" | "false")}>
+              <label
+                htmlFor="template-verified"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Verified
+              </label>
+              <select
+                id="template-verified"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={verified}
+                onChange={(e) =>
+                  setVerified(e.target.value as "all" | "true" | "false")
+                }
+              >
                 <option value="all">all</option>
                 <option value="true">true</option>
                 <option value="false">false</option>
@@ -480,9 +641,15 @@ export default function TemplateStudioPage() {
             {templatesQuery.isLoading ? (
               <Spinner />
             ) : templatesQuery.isError ? (
-              <p className="text-sm text-danger-600 dark:text-danger-400">{templatesQuery.error instanceof Error ? templatesQuery.error.message : "Failed to load templates"}</p>
+              <p className="text-sm text-danger-600 dark:text-danger-400">
+                {templatesQuery.error instanceof Error
+                  ? templatesQuery.error.message
+                  : "Failed to load templates"}
+              </p>
             ) : !templates.length ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No templates found.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No templates found.
+              </p>
             ) : (
               <div className="space-y-3">
                 {templates.map((item) => (
@@ -493,14 +660,30 @@ export default function TemplateStudioPage() {
                     className="w-full rounded-lg border border-gray-200 p-3 text-left transition-colors hover:border-primary-400 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
                   >
                     <div className="mb-1 flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
-                      <Badge variant={kindBadgeVariant(item.template_kind)}>{item.template_kind}</Badge>
-                      <Badge variant={sourceBadgeVariant(item.source_type)}>{item.source_type}</Badge>
-                      {item.is_verified ? <Badge variant="success">verified</Badge> : null}
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {item.name}
+                      </span>
+                      <Badge variant={kindBadgeVariant(item.template_kind)}>
+                        {item.template_kind}
+                      </Badge>
+                      <Badge variant={sourceBadgeVariant(item.source_type)}>
+                        {item.source_type}
+                      </Badge>
+                      {item.is_verified ? (
+                        <Badge variant="success">verified</Badge>
+                      ) : null}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400"><code>{item.template_id}</code> · v{item.version} · {item.category}</p>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{item.description || "No description"}</p>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">usage {item.usage_count} · rating {item.rating_avg ?? "-"} ({item.rating_count})</div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <code>{item.template_id}</code> · v{item.version} ·{" "}
+                      {item.category}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                      {item.description || "No description"}
+                    </p>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      usage {item.usage_count} · rating {item.rating_avg ?? "-"}{" "}
+                      ({item.rating_count})
+                    </div>
                   </button>
                 ))}
               </div>
@@ -514,28 +697,65 @@ export default function TemplateStudioPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!selectedTemplate ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Select a template to view details.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Select a template to view details.
+              </p>
             ) : (
               <>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedTemplate.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{selectedTemplate.template_id} · v{selectedTemplate.version}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {selectedTemplate.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {selectedTemplate.template_id} · v{selectedTemplate.version}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={kindBadgeVariant(selectedTemplate.template_kind)}>{selectedTemplate.template_kind}</Badge>
-                  <Badge variant={sourceBadgeVariant(selectedTemplate.source_type)}>{selectedTemplate.source_type}</Badge>
-                  {selectedTemplate.is_active ? <Badge variant="success">active</Badge> : <Badge variant="danger">inactive</Badge>}
+                  <Badge
+                    variant={kindBadgeVariant(selectedTemplate.template_kind)}
+                  >
+                    {selectedTemplate.template_kind}
+                  </Badge>
+                  <Badge
+                    variant={sourceBadgeVariant(selectedTemplate.source_type)}
+                  >
+                    {selectedTemplate.source_type}
+                  </Badge>
+                  {selectedTemplate.is_active ? (
+                    <Badge variant="success">active</Badge>
+                  ) : (
+                    <Badge variant="danger">inactive</Badge>
+                  )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-300">{selectedTemplate.description || "No description"}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {selectedTemplate.description || "No description"}
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <div>Updated: {formatDateTime(selectedTemplate.updated_at)}</div>
+                  <div>
+                    Updated: {formatDateTime(selectedTemplate.updated_at)}
+                  </div>
                   <div>Category: {selectedTemplate.category}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => applyTemplateToForm(selectedTemplate)}>Load Into Editor</Button>
-                  <Button size="sm" onClick={() => installTemplateToMiniAppBuilder(selectedTemplate)}>Install To MiniApp Builder</Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => applyTemplateToForm(selectedTemplate)}
+                  >
+                    Load Into Editor
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      installTemplateToMiniAppBuilder(selectedTemplate)
+                    }
+                  >
+                    Install To MiniApp Builder
+                  </Button>
                 </div>
-                <pre className="max-h-64 overflow-auto rounded-md bg-gray-50 p-2 text-xs dark:bg-gray-800">{selectedManifestText}</pre>
+                <pre className="max-h-64 overflow-auto rounded-md bg-gray-50 p-2 text-xs dark:bg-gray-800">
+                  {selectedManifestText}
+                </pre>
               </>
             )}
           </CardContent>
@@ -548,8 +768,27 @@ export default function TemplateStudioPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
-            <label htmlFor="request-status" className="text-sm text-gray-600 dark:text-gray-300">Status</label>
-            <select id="request-status" className="rounded-md border border-gray-300 p-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={requestStatus} onChange={(e) => setRequestStatus(e.target.value as "all" | "pending" | "approved" | "rejected" | "cancelled")}>
+            <label
+              htmlFor="request-status"
+              className="text-sm text-gray-600 dark:text-gray-300"
+            >
+              Status
+            </label>
+            <select
+              id="request-status"
+              className="rounded-md border border-gray-300 p-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              value={requestStatus}
+              onChange={(e) =>
+                setRequestStatus(
+                  e.target.value as
+                    | "all"
+                    | "pending"
+                    | "approved"
+                    | "rejected"
+                    | "cancelled",
+                )
+              }
+            >
               <option value="pending">pending</option>
               <option value="all">all</option>
               <option value="approved">approved</option>
@@ -561,30 +800,76 @@ export default function TemplateStudioPage() {
           {requestsQuery.isLoading ? (
             <Spinner />
           ) : requestsQuery.isError ? (
-            <p className="text-sm text-danger-600 dark:text-danger-400">{requestsQuery.error instanceof Error ? requestsQuery.error.message : "Failed to load requests"}</p>
+            <p className="text-sm text-danger-600 dark:text-danger-400">
+              {requestsQuery.error instanceof Error
+                ? requestsQuery.error.message
+                : "Failed to load requests"}
+            </p>
           ) : !requests.length ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No publish requests.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No publish requests.
+            </p>
           ) : (
             <div className="space-y-2">
               {requests.map((request) => (
-                <div key={request.id} className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+                <div
+                  key={request.id}
+                  className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                >
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="font-mono text-xs text-gray-600 dark:text-gray-300">{request.id.slice(0, 8)}</span>
-                    <Badge variant={kindBadgeVariant(request.template_kind)}>{request.template_kind}</Badge>
-                    <Badge variant={requestBadgeVariant(request.status)}>{request.status}</Badge>
-                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">{formatDateTime(request.created_at)}</span>
+                    <span className="font-mono text-xs text-gray-600 dark:text-gray-300">
+                      {request.id.slice(0, 8)}
+                    </span>
+                    <Badge variant={kindBadgeVariant(request.template_kind)}>
+                      {request.template_kind}
+                    </Badge>
+                    <Badge variant={requestBadgeVariant(request.status)}>
+                      {request.status}
+                    </Badge>
+                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+                      {formatDateTime(request.created_at)}
+                    </span>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">template row: {request.template_row_id}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    template row: {request.template_row_id}
+                  </p>
                   <div className="mt-2 flex items-center gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(request)}>View</Button>
-                      {request.status === "pending" ? (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => onReviewRequest(request, "approve")} disabled={reviewMutation.isPending}>Approve</Button>
-                          <Button size="sm" variant="ghost" onClick={() => onReviewRequest(request, "reject")} disabled={reviewMutation.isPending}>Reject</Button>
-                          <Button size="sm" variant="ghost" onClick={() => onReviewRequest(request, "cancel")} disabled={reviewMutation.isPending}>Cancel</Button>
-                        </>
-                      ) : null}
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedRequest(request)}
+                    >
+                      View
+                    </Button>
+                    {request.status === "pending" ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onReviewRequest(request, "approve")}
+                          disabled={reviewMutation.isPending}
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onReviewRequest(request, "reject")}
+                          disabled={reviewMutation.isPending}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onReviewRequest(request, "cancel")}
+                          disabled={reviewMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -607,7 +892,12 @@ export default function TemplateStudioPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label htmlFor="import-template-file" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Import Template File</label>
+            <label
+              htmlFor="import-template-file"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Import Template File
+            </label>
             <input
               id="import-template-file"
               type="file"
@@ -619,17 +909,56 @@ export default function TemplateStudioPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label htmlFor="template-kind-form" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Kind</label>
-              <select id="template-kind-form" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as TemplateKind })}>
+              <label
+                htmlFor="template-kind-form"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Kind
+              </label>
+              <select
+                id="template-kind-form"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={form.kind}
+                onChange={(e) =>
+                  setForm({ ...form, kind: e.target.value as TemplateKind })
+                }
+              >
                 <option value="frontend">frontend</option>
                 <option value="contract">contract</option>
               </select>
             </div>
-            <Input label="Template ID" value={form.template_id} onChange={(e) => setForm({ ...form, template_id: e.target.value })} placeholder="prediction.market.modern" />
-            <Input label="Version" value={form.version} onChange={(e) => setForm({ ...form, version: e.target.value })} placeholder="1.0.0" />
+            <Input
+              label="Template ID"
+              value={form.template_id}
+              onChange={(e) =>
+                setForm({ ...form, template_id: e.target.value })
+              }
+              placeholder="prediction.market.modern"
+            />
+            <Input
+              label="Version"
+              value={form.version}
+              onChange={(e) => setForm({ ...form, version: e.target.value })}
+              placeholder="1.0.0"
+            />
             <div>
-              <label htmlFor="template-source-form" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Source</label>
-              <select id="template-source-form" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.source_type} onChange={(e) => setForm({ ...form, source_type: e.target.value as TemplateSourceType })}>
+              <label
+                htmlFor="template-source-form"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Source
+              </label>
+              <select
+                id="template-source-form"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={form.source_type}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    source_type: e.target.value as TemplateSourceType,
+                  })
+                }
+              >
                 <option value="community">community</option>
                 <option value="miniapp">miniapp</option>
                 <option value="verified">verified</option>
@@ -638,43 +967,93 @@ export default function TemplateStudioPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Prediction Market UI" />
-            <Input label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="defi" />
-            <Input label="Contract Template Ref" value={form.factory_template_ref} onChange={(e) => setForm({ ...form, factory_template_ref: e.target.value })} placeholder="factory.prediction.v2" />
+            <Input
+              label="Name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Prediction Market UI"
+            />
+            <Input
+              label="Category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              placeholder="defi"
+            />
+            <Input
+              label="Contract Template Ref"
+              value={form.factory_template_ref}
+              onChange={(e) =>
+                setForm({ ...form, factory_template_ref: e.target.value })
+              }
+              placeholder="factory.prediction.v2"
+            />
           </div>
 
-          <Input label="Tags" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="prediction, market, no-code" />
+          <Input
+            label="Tags"
+            value={form.tags}
+            onChange={(e) => setForm({ ...form, tags: e.target.value })}
+            placeholder="prediction, market, no-code"
+          />
 
           <div>
-            <label htmlFor="template-description" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-            <textarea id="template-description" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="What this template is for and what is customizable." />
+            <label
+              htmlFor="template-description"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Description
+            </label>
+            <textarea
+              id="template-description"
+              className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              rows={3}
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="What this template is for and what is customizable."
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label htmlFor="param-schema" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Param Schema (JSON)</label>
+              <label
+                htmlFor="param-schema"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Param Schema (JSON)
+              </label>
               <textarea
                 id="param-schema"
                 className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={8}
                 value={form.schema_text}
-                onChange={(e) => setForm({ ...form, schema_text: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, schema_text: e.target.value })
+                }
                 placeholder={`{
-  "type": "object",
-  "properties": {}
+ "type": "object",
+ "properties": {}
 }`}
               />
             </div>
             <div>
-              <label htmlFor="ui-schema" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">UI Schema (JSON)</label>
+              <label
+                htmlFor="ui-schema"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                UI Schema (JSON)
+              </label>
               <textarea
                 id="ui-schema"
                 className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={8}
                 value={form.ui_schema_text}
-                onChange={(e) => setForm({ ...form, ui_schema_text: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, ui_schema_text: e.target.value })
+                }
                 placeholder={`{
-  "ui:order": []
+ "ui:order": []
 }`}
               />
             </div>
@@ -682,24 +1061,76 @@ export default function TemplateStudioPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
             <div>
-              <label htmlFor="manifest-format" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Manifest Format</label>
-              <select id="manifest-format" className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" value={form.manifest_format} onChange={(e) => setForm({ ...form, manifest_format: e.target.value as TemplateManifestFormat })}>
+              <label
+                htmlFor="manifest-format"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Manifest Format
+              </label>
+              <select
+                id="manifest-format"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                value={form.manifest_format}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    manifest_format: e.target.value as TemplateManifestFormat,
+                  })
+                }
+              >
                 <option value="json">json</option>
                 <option value="yaml">yaml</option>
               </select>
             </div>
             <div className="md:col-span-3">
-              <label htmlFor="template-manifest" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Template Manifest</label>
-              <textarea id="template-manifest" className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100" rows={12} value={form.manifest_text} onChange={(e) => setForm({ ...form, manifest_text: e.target.value })} placeholder={form.manifest_format === "json" ? "{\n  \"key\": \"value\"\n}" : "template:\n  key: value"} />
+              <label
+                htmlFor="template-manifest"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Template Manifest
+              </label>
+              <textarea
+                id="template-manifest"
+                className="w-full rounded-md border border-gray-300 p-2 font-mono text-xs dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                rows={12}
+                value={form.manifest_text}
+                onChange={(e) =>
+                  setForm({ ...form, manifest_text: e.target.value })
+                }
+                placeholder={
+                  form.manifest_format === "json"
+                    ? '{\n "key": "value"\n}'
+                    : "template:\n key: value"
+                }
+              />
             </div>
           </div>
 
-          {formError ? <p className="text-sm text-danger-600 dark:text-danger-400">{formError}</p> : null}
-          {formInfo ? <p className="text-sm text-gray-600 dark:text-gray-300">{formInfo}</p> : null}
+          {formError ? (
+            <p className="text-sm text-danger-600 dark:text-danger-400">
+              {formError}
+            </p>
+          ) : null}
+          {formInfo ? (
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              {formInfo}
+            </p>
+          ) : null}
 
           <div className="flex gap-2">
-            <Button onClick={onSubmit} disabled={upsertMutation.isPending}>{upsertMutation.isPending ? "Saving..." : "Save Template"}</Button>
-            <Button variant="secondary" onClick={() => { setForm(EMPTY_FORM); setFormError(""); setFormInfo(""); }}>Reset</Button>
+            <Button onClick={onSubmit} disabled={upsertMutation.isPending}>
+              {upsertMutation.isPending ? "Saving..." : "Save Template"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setForm(EMPTY_FORM);
+                setFormError("");
+                setFormInfo("");
+              }}
+            >
+              Reset
+            </Button>
           </div>
         </CardContent>
       </Card>

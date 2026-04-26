@@ -4,8 +4,16 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
-import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+  isServerSupabaseConfigured,
+} from "@/lib/server-supabase";
+import {
+  formatWalletDisplayName,
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type ForumReplyRow = {
@@ -37,13 +45,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const { appId, threadId } = req.query;
 
-  if (!appId || !threadId || typeof appId !== "string" || typeof threadId !== "string") {
+  if (
+    !appId ||
+    !threadId ||
+    typeof appId !== "string" ||
+    typeof threadId !== "string"
+  ) {
     return apiError.badRequest(res, "Missing parameters");
   }
   if (!/^[a-z0-9][a-z0-9._-]*$/.test(appId)) {
     return apiError.badRequest(res, "Invalid appId format");
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(threadId)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      threadId,
+    )
+  ) {
     return apiError.badRequest(res, "Invalid threadId format");
   }
 
@@ -60,43 +77,69 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 export default withCsrfProtection(handler);
 
-async function getReplies(appId: string, threadId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getReplies(
+  appId: string,
+  threadId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!isServerSupabaseConfigured()) {
-    return res.status(200).json({ replies: [] });
+    res.status(200).json({ replies: [] });
+    return;
   }
 
   const supabase = getServerSupabaseClient();
   if (!supabase) {
-    return res.status(200).json({ replies: [] });
+    res.status(200).json({ replies: [] });
+    return;
   }
 
   const { data, error } = await supabase
     .from("forum_replies")
-    .select("id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at")
+    .select(
+      "id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at",
+    )
     .eq("app_id", appId)
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true })
     .limit(200);
 
   if (error) {
-    logger.error("Failed to fetch forum replies:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to fetch forum replies:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to fetch replies");
   }
 
   res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
-  return res.status(200).json({ replies: ((data || []) as ForumReplyRow[]).map(toReply) });
+  res
+    .status(200)
+    .json({ replies: ((data || []) as ForumReplyRow[]).map(toReply) });
+  return;
 }
 
-async function createReply(appId: string, threadId: string, req: NextApiRequest, res: NextApiResponse) {
+async function createReply(
+  appId: string,
+  threadId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for forum writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for forum writes",
+    );
   }
 
   let authedWallet: string | null;
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -119,7 +162,10 @@ async function createReply(appId: string, threadId: string, req: NextApiRequest,
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const { data: thread, error: threadError } = await supabase
@@ -136,7 +182,9 @@ async function createReply(appId: string, threadId: string, req: NextApiRequest,
     return apiError.forbidden(res, "Thread is locked");
   }
 
-  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  const userId = await resolveUserIdFromWallet(supabase, wallet, {
+    createIfMissing: true,
+  });
   if (!userId) {
     return apiError.internal(res, "Failed to resolve user");
   }
@@ -151,13 +199,19 @@ async function createReply(appId: string, threadId: string, req: NextApiRequest,
       author_name: formatWalletDisplayName(wallet),
       content: safeContent,
     })
-    .select("id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at")
+    .select(
+      "id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at",
+    )
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create forum reply:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Failed to create forum reply:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to create reply");
   }
 
-  return res.status(201).json({ reply: toReply(data as ForumReplyRow) });
+  res.status(201).json({ reply: toReply(data as ForumReplyRow) });
+  return;
 }

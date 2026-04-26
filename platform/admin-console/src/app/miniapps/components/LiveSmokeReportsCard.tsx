@@ -30,10 +30,20 @@ export function LiveSmokeReportsCard({ reports, loading, error }: Props) {
         <CardTitle className="text-lg">Recent Live Smoke Runs</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {loading ? <p className="text-sm text-gray-500 dark:text-gray-400">Loading recent reports...</p> : null}
-        {!loading && error ? <p className="text-sm text-danger-600 dark:text-danger-400">{error}</p> : null}
+        {loading ? (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Loading recent reports...
+          </p>
+        ) : null}
+        {!loading && error ? (
+          <p className="text-sm text-danger-600 dark:text-danger-400">
+            {error}
+          </p>
+        ) : null}
         {!loading && !error && reports.length === 0 ? (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No live smoke summaries found yet.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No live smoke summaries found yet.
+          </p>
         ) : null}
         {!loading && !error && reports.length > 0 ? (
           <div className="space-y-3">
@@ -44,30 +54,53 @@ export function LiveSmokeReportsCard({ reports, loading, error }: Props) {
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{report.runId}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{report.generatedAt || "unknown time"}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {report.runId}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {report.generatedAt || "unknown time"}
+                    </div>
                   </div>
-                  <div className="flex gap-2 text-[11px] font-semibold uppercase tracking-wide">
-                    <span className={`rounded-full px-2.5 py-1 ${report.flagshipStatus === 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}>
-                      Flagship {report.flagshipStatus === 0 ? "OK" : "Needs Review"}
+                  <div className="flex gap-2 text-[11px] font-semibold uppercase ">
+                    <span
+                      className={`rounded-full px-2.5 py-1 ${report.flagshipStatus === 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}
+                    >
+                      Flagship{" "}
+                      {report.flagshipStatus === 0 ? "OK" : "Needs Review"}
                     </span>
-                    <span className={`rounded-full px-2.5 py-1 ${report.selectedStatus === 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}>
-                      Selected {report.selectedStatus === 0 ? "OK" : "Needs Review"}
+                    <span
+                      className={`rounded-full px-2.5 py-1 ${report.selectedStatus === 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}
+                    >
+                      Selected{" "}
+                      {report.selectedStatus === 0 ? "OK" : "Needs Review"}
                     </span>
                   </div>
                 </div>
                 <div className="mt-3 grid gap-2 text-xs text-gray-600 dark:text-gray-300 md:grid-cols-2">
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200">Flagship</div>
-                    <div>pass {fmtCount(report.flagshipCounts?.pass)} · fail {fmtCount(report.flagshipCounts?.fail)} · skipped {fmtCount(report.flagshipCounts?.skipped)}</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200">
+                      Flagship
+                    </div>
+                    <div>
+                      pass {fmtCount(report.flagshipCounts?.pass)} · fail{" "}
+                      {fmtCount(report.flagshipCounts?.fail)} · skipped{" "}
+                      {fmtCount(report.flagshipCounts?.skipped)}
+                    </div>
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-800 dark:text-gray-200">Selected</div>
-                    <div>pass {fmtCount(report.selectedCounts?.pass)} · fail {fmtCount(report.selectedCounts?.fail)} · skipped {fmtCount(report.selectedCounts?.skipped)}</div>
+                    <div className="font-semibold text-gray-800 dark:text-gray-200">
+                      Selected
+                    </div>
+                    <div>
+                      pass {fmtCount(report.selectedCounts?.pass)} · fail{" "}
+                      {fmtCount(report.selectedCounts?.fail)} · skipped{" "}
+                      {fmtCount(report.selectedCounts?.skipped)}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3 text-[11px] text-gray-500 dark:text-gray-400">
-                  Summary: <span className="font-mono">{report.summaryPath}</span>
+                  Summary:{" "}
+                  <span className="font-mono">{report.summaryPath}</span>
                 </div>
                 {report.warnings && report.warnings.length > 0 ? (
                   <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-300">

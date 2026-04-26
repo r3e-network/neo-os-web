@@ -4,7 +4,14 @@
 
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../Table";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../Table";
 
 describe("Table Component", () => {
   it("should render table", () => {

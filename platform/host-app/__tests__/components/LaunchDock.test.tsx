@@ -70,7 +70,8 @@ describe("LaunchDock", () => {
     it("should show red dot when wallet is disconnected", () => {
       render(<LaunchDock {...baseProps} />);
       const statusLabel = screen.getByText("Wallet status: disconnected");
-      const walletDot = statusLabel.previousElementSibling as HTMLElement | null;
+      const walletDot =
+        statusLabel.previousElementSibling as HTMLElement | null;
       expect(walletDot).toBeTruthy();
       expect(walletDot?.className).toContain("bg-red-500");
     });
@@ -84,7 +85,8 @@ describe("LaunchDock", () => {
 
       render(<LaunchDock {...baseProps} wallet={connectedWallet} />);
       const statusLabel = screen.getByText("Wallet status: connected");
-      const walletDot = statusLabel.previousElementSibling as HTMLElement | null;
+      const walletDot =
+        statusLabel.previousElementSibling as HTMLElement | null;
       expect(walletDot).toBeTruthy();
       expect(walletDot?.className).toContain("bg-emerald-500");
     });

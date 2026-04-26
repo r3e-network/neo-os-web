@@ -3,16 +3,27 @@
 // =============================================================================
 
 import { describe, it, expect } from "vitest";
-import { cn, formatDate, formatRelativeTime, formatNumber, formatBytes, truncate } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  formatRelativeTime,
+  formatNumber,
+  formatBytes,
+  truncate,
+} from "@/lib/utils";
 
 describe("Utility Functions", () => {
   describe("cn", () => {
     it("should merge class names correctly", () => {
-      expect(cn("text-red-500", "bg-blue-500")).toBe("text-red-500 bg-blue-500");
+      expect(cn("text-red-500", "bg-blue-500")).toBe(
+        "text-red-500 bg-blue-500",
+      );
     });
 
     it("should handle conditional classes", () => {
-      expect(cn("base", true && "active", false && "inactive")).toBe("base active");
+      expect(cn("base", true && "active", false && "inactive")).toBe(
+        "base active",
+      );
     });
 
     it("should merge conflicting Tailwind classes", () => {
@@ -31,6 +42,11 @@ describe("Utility Functions", () => {
       const date = new Date("2024-01-15T10:30:00Z");
       const formatted = formatDate(date);
       expect(formatted).toMatch(/Jan 15, 2024/);
+    });
+
+    it("should return fallback text for missing or invalid dates", () => {
+      expect(formatDate(undefined)).toBe("Not available");
+      expect(formatDate("not-a-date")).toBe("Not available");
     });
   });
 
@@ -53,6 +69,11 @@ describe("Utility Functions", () => {
     it("should return days ago", () => {
       const date = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       expect(formatRelativeTime(date)).toBe("2 days ago");
+    });
+
+    it("should return fallback text for missing or invalid relative dates", () => {
+      expect(formatRelativeTime(undefined)).toBe("Not available");
+      expect(formatRelativeTime("not-a-date")).toBe("Not available");
     });
   });
 
@@ -85,5 +106,4 @@ describe("Utility Functions", () => {
       expect(truncate("Hello", 10)).toBe("Hello");
     });
   });
-
 });

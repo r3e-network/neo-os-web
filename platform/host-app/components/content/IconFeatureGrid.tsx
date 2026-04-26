@@ -18,7 +18,10 @@ type IconFeatureGridProps = {
   className?: string;
 };
 
-const columnClasses: Record<NonNullable<IconFeatureGridProps["columns"]>, string> = {
+const columnClasses: Record<
+  NonNullable<IconFeatureGridProps["columns"]>,
+  string
+> = {
   1: "grid-cols-1",
   2: "grid-cols-1 md:grid-cols-2",
   3: "grid-cols-1 md:grid-cols-2 xl:grid-cols-3",
@@ -35,7 +38,9 @@ export function IconFeatureGrid({
   return (
     <div className={cn("grid gap-4", columnClasses[columns], className)}>
       {items.map((item) => {
-        const iconBgClass = item.colorClass || (item.color ? `bg-gradient-to-br ${item.color}` : "");
+        const iconBgClass =
+          item.colorClass ||
+          (item.color ? `bg-gradient-to-br ${item.color}` : "");
 
         return (
           <div
@@ -52,13 +57,23 @@ export function IconFeatureGrid({
                 iconBgClass,
               )}
             >
-              <item.icon className={iconBgClass ? "text-white" : "text-neo"} size={compact ? 20 : 24} aria-hidden="true" />
+              <item.icon
+                className={iconBgClass ? "text-white" : "text-neo"}
+                size={compact ? 20 : 24}
+                aria-hidden="true"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-gray-900">{item.title}</h4>
               <p className="mt-1 text-sm text-gray-500">{item.description}</p>
             </div>
-            {showChevron && <ChevronRight className="ml-auto text-gray-500" size={16} aria-hidden="true" />}
+            {showChevron && (
+              <ChevronRight
+                className="ml-auto text-gray-500"
+                size={16}
+                aria-hidden="true"
+              />
+            )}
           </div>
         );
       })}

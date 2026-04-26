@@ -10,7 +10,9 @@ function Error({ statusCode }: ErrorProps) {
       <div className="p-8 text-center">
         <h1 className="m-0 text-7xl font-bold text-neo">{statusCode}</h1>
         <p className="my-4 text-lg text-gray-500">
-          {statusCode === 404 ? "Page not found" : "An error occurred on the server"}
+          {statusCode === 404
+            ? "Page not found"
+            : "An error occurred on the server"}
         </p>
         <a
           href="/"

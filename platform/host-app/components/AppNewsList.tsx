@@ -13,7 +13,10 @@ export function AppNewsList({ notifications, loading }: Props) {
     return (
       <div className="flex flex-col gap-4">
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="flex gap-3 p-4 rounded-xl border border-gray-200">
+          <div
+            key={i}
+            className="flex gap-3 p-4 rounded-xl border border-gray-200"
+          >
             <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-1/2" />
@@ -44,7 +47,11 @@ export function AppNewsList({ notifications, loading }: Props) {
   );
 }
 
-function NotificationItem({ notification }: { notification: MiniAppNotification }) {
+function NotificationItem({
+  notification,
+}: {
+  notification: MiniAppNotification;
+}) {
   const getTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
       achievement: "🏆",
@@ -82,7 +89,10 @@ function NotificationItem({ notification }: { notification: MiniAppNotification 
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
-          <h4 className="text-sm font-semibold text-gray-900 truncate" title={notification.title}>
+          <h4
+            className="text-sm font-semibold text-gray-900 truncate"
+            title={notification.title}
+          >
             {notification.title}
           </h4>
           <span className="text-xs text-gray-500 shrink-0">

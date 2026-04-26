@@ -7,16 +7,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
 import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
-import { getContractStats, FLAGSHIP_APPS } from "../../../lib/chain";
+import { getContractStats, getFlagshipApps } from "../../../lib/chain";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
-const DEPLOYED_APPS = Object.entries(FLAGSHIP_APPS).map(([appId, meta]) => ({
+const DEPLOYED_APPS = Object.entries(getFlagshipApps("testnet")).map(([appId, meta]) => ({
   appId,
   contract: meta.contract,
 }));
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET" && req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
@@ -25,7 +28,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cronSecret = String(process.env.CRON_SECRET || "");
   const authHeader = String(req.headers.authorization || "");
   const expected = `Bearer ${cronSecret}`;
-  if (!cronSecret || authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+  if (
+    !cronSecret ||
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return apiError.unauthorized(res, "Unauthorized");
   }
 
@@ -39,23 +46,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const stats = await getContractStats(app.contract, "testnet", app.appId);
 
-      const { error: upsertError } = await supabase.from("miniapp_stats").upsert(
-        {
-          app_id: app.appId,
-          contract_hash: app.contract,
-          total_unique_users: stats.uniqueUsers,
-          total_transactions: stats.totalTransactions,
-          total_volume_gas: stats.totalValueLocked,
-          last_rollup_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "app_id" },
-      );
+      const { error: upsertError } = await supabase
+        .from("miniapp_stats")
+        .upsert(
+          {
+            app_id: app.appId,
+            contract_hash: app.contract,
+            total_unique_users: stats.uniqueUsers,
+            total_transactions: stats.totalTransactions,
+            total_volume_gas: stats.totalValueLocked,
+            last_rollup_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "app_id" },
+        );
       if (upsertError) throw upsertError;
 
       results.push({ appId: app.appId, success: true });
     } catch (error) {
-      logger.warn(`rollup failed for ${app.appId}:`, error instanceof Error ? error.message : "unknown error");
+      logger.warn(
+        `rollup failed for ${app.appId}:`,
+        error instanceof Error ? error.message : "unknown error",
+      );
       results.push({
         appId: app.appId,
         success: false,
@@ -66,9 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const successCount = results.filter((r) => r.success).length;
 
-  return res.status(200).json({
+  res.status(200).json({
     message: `Rollup complete: ${successCount}/${DEPLOYED_APPS.length} apps updated`,
     results,
     timestamp: new Date().toISOString(),
   });
+  return;
 }

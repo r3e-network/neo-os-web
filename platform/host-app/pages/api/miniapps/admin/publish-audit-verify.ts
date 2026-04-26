@@ -4,10 +4,14 @@ import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { verifyPublishApprovalAuditChain } from "@/lib/publish-approval-audit-verify";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
-const REQUEST_ID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+const REQUEST_ID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 
 function asTrimmed(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -34,7 +38,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (standardLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for audit verification");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for audit verification",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -53,7 +60,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const result = await verifyPublishApprovalAuditChain(supabase, {
@@ -63,7 +73,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   });
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(result.ok ? 200 : 409).json(result);
+  res.status(result.ok ? 200 : 409).json(result);
+  return;
 }
 
 export default withCsrfProtection(handler);

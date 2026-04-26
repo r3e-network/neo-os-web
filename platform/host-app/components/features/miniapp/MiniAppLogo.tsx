@@ -103,6 +103,8 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-nolosslottery": Target,
   "miniapp-quantumswap": Repeat,
   "miniapp-self-loan": Repeat,
+  "miniapp-profitanchor": TrendingUp,
+  "miniapp-trustanchor": ShieldCheck,
   "miniapp-priceticker": LineChart,
   "miniapp-neo-pay": LineChart,
 
@@ -172,15 +174,33 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 
 interface MiniAppLogoProps {
   appId: string;
-  category: "gaming" | "defi" | "social" | "governance" | "utility" | "nft" | "data" | "other";
+  category:
+    | "gaming"
+    | "defi"
+    | "social"
+    | "governance"
+    | "utility"
+    | "nft"
+    | "data"
+    | "other";
   entryUrl?: string | null;
   logoUrl?: string | null;
   manifest?: Record<string, unknown> | null;
   size?: "sm" | "md" | "lg";
   className?: string;
+  alt?: string;
 }
 
-export function MiniAppLogo({ appId, category, entryUrl, logoUrl, manifest, size = "md", className = "" }: MiniAppLogoProps) {
+export function MiniAppLogo({
+  appId,
+  category,
+  entryUrl,
+  logoUrl,
+  manifest,
+  size = "md",
+  className = "",
+  alt,
+}: MiniAppLogoProps) {
   const Icon = APP_ICONS[appId] || CATEGORY_ICONS[category] || Puzzle;
   const gradient = CATEGORY_GRADIENTS[category] || CATEGORY_GRADIENTS.utility;
 
@@ -216,15 +236,19 @@ export function MiniAppLogo({ appId, category, entryUrl, logoUrl, manifest, size
   const logoSource = logoSources[logoIndex];
   if (logoSource) {
     return (
-      <div className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 ${className}`}>
+      <div
+        className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 ${className}`}
+      >
         <img
           src={logoSource}
-          alt={appId}
+          alt={alt || appId}
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
           onError={() => {
-            setLogoIndex((prev) => (prev + 1 < logoSources.length ? prev + 1 : logoSources.length));
+            setLogoIndex((prev) =>
+              prev + 1 < logoSources.length ? prev + 1 : logoSources.length,
+            );
           }}
         />
       </div>

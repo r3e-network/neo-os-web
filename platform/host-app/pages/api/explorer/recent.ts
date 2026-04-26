@@ -3,7 +3,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
 import { relaxedLimit } from "@/lib/rate-limit";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -37,13 +40,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const transactions = await response.json();
 
     res.setHeader("Cache-Control", "s-maxage=10, stale-while-revalidate");
-    return res.status(200).json({
+    res.status(200).json({
       network,
       transactions: transactions || [],
       count: transactions?.length || 0,
     });
+    return;
   } catch (err) {
-    logger.error("Recent transactions error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Recent transactions error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to fetch transactions");
   }
 }

@@ -21,11 +21,23 @@ export function DefinitionActionBar({
 
   return (
     <div className="mb-3 flex flex-wrap gap-2">
-      <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={onGenerate}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="text-xs"
+        onClick={onGenerate}
+      >
         <Database size={14} className="mr-1" />
         Generate From Form
       </Button>
-      <Button type="button" variant="secondary" size="sm" className="text-xs" onClick={onPreview}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="text-xs"
+        onClick={onPreview}
+      >
         <Rocket size={14} className="mr-1" />
         {previewLoading ? "Previewing..." : "Schema + Runtime Preview"}
       </Button>

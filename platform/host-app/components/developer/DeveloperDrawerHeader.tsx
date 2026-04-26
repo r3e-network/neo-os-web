@@ -11,8 +11,12 @@ export function DeveloperDrawerHeader({ onClose }: DeveloperDrawerHeaderProps) {
     <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 px-6 py-4 backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">MiniApp Template Builder</h2>
-          <p className="text-sm text-gray-600">No-code style config + definition preview</p>
+          <h2 className="text-xl font-bold text-gray-900">
+            MiniApp Template Builder
+          </h2>
+          <p className="text-sm text-gray-600">
+            No-code style config + definition preview
+          </p>
         </div>
         <button
           type="button"

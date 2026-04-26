@@ -4,7 +4,10 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   operations: OperationEntry[];
-  onInvoke: (operation: OperationEntry, params: Record<string, string>) => Promise<void> | void;
+  onInvoke: (
+    operation: OperationEntry,
+    params: Record<string, string>,
+  ) => Promise<void> | void;
   title?: string;
   showTitle?: boolean;
   className?: string;
@@ -24,7 +27,12 @@ export function OperationPanel({
   const activeOp = operations[activeTabIdx];
 
   return (
-    <div className={cn("bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden", className)}>
+    <div
+      className={cn(
+        "bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden",
+        className,
+      )}
+    >
       {showTitle && (
         <div className="px-5 py-4 border-b border-gray-100">
           <h3 className="text-lg font-bold text-gray-900 m-0">{title}</h3>
@@ -43,7 +51,7 @@ export function OperationPanel({
                   "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none",
                   activeTabIdx === idx
                     ? getTabActiveColor(op.button_style)
-                    : "text-gray-500 hover:text-gray-700 bg-transparent"
+                    : "text-gray-500 hover:text-gray-700 bg-transparent",
                 )}
               >
                 {op.name}
@@ -68,7 +76,13 @@ function getTabActiveColor(style?: string) {
   return "bg-white text-neo shadow-sm";
 }
 
-function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["onInvoke"] }) {
+function OperationForm({
+  op,
+  onInvoke,
+}: {
+  op: OperationEntry;
+  onInvoke: Props["onInvoke"];
+}) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const p of op.params ?? []) {
@@ -97,16 +111,21 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
       setError(null);
       await onInvoke(op, values);
     } catch (invokeError) {
-      setError(invokeError instanceof Error ? invokeError.message : "Operation failed");
+      setError(
+        invokeError instanceof Error ? invokeError.message : "Operation failed",
+      );
     } finally {
       setSubmitting(false);
     }
   };
 
   const getBtnClass = () => {
-    if (op.button_style === "danger") return "bg-red-500 hover:bg-red-600 text-white";
-    if (op.button_style === "success") return "bg-emerald-500 hover:bg-emerald-600 text-white";
-    if (op.button_style === "secondary") return "bg-gray-200 hover:bg-gray-300 text-gray-900";
+    if (op.button_style === "danger")
+      return "bg-red-500 hover:bg-red-600 text-white";
+    if (op.button_style === "success")
+      return "bg-emerald-500 hover:bg-emerald-600 text-white";
+    if (op.button_style === "secondary")
+      return "bg-gray-200 hover:bg-gray-300 text-gray-900";
     return "bg-neo hover:bg-neo/90 text-black";
   };
 
@@ -117,20 +136,24 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
           {op.description}
         </p>
       )}
-      
-      {(op.params ?? []).filter((param) => !param.hidden).map((param) => (
-        <ParamInput
-          key={param.name}
-          param={param}
-          value={values[param.name] ?? ""}
-          onChange={(value) => setValues({ ...values, [param.name]: value })}
-        />
-      ))}
+
+      {(op.params ?? [])
+        .filter((param) => !param.hidden)
+        .map((param) => (
+          <ParamInput
+            key={param.name}
+            param={param}
+            value={values[param.name] ?? ""}
+            onChange={(value) => setValues({ ...values, [param.name]: value })}
+          />
+        ))}
 
       {op.gas_cost && (
         <div className="flex justify-between items-center py-3 border-t border-gray-100 mt-2">
           <span className="text-sm text-gray-500">Network Fee</span>
-          <span className="text-sm font-medium text-gray-900">{op.gas_cost} GAS</span>
+          <span className="text-sm font-medium text-gray-900">
+            {op.gas_cost} GAS
+          </span>
         </div>
       )}
 
@@ -145,7 +168,7 @@ function OperationForm({ op, onInvoke }: { op: OperationEntry; onInvoke: Props["
         className={cn(
           "w-full py-3.5 mt-2 rounded-xl font-bold text-base cursor-pointer transition-all border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neo",
           "disabled:opacity-50 disabled:cursor-not-allowed",
-          getBtnClass()
+          getBtnClass(),
         )}
         onClick={handleSubmit}
         disabled={submitting}
@@ -190,16 +213,20 @@ function ParamInput({
       try {
         parsedOptions = JSON.parse(options);
       } catch {
-        parsedOptions = (options as string).split(",").map((s) => ({ label: s.trim(), value: s.trim() }));
+        parsedOptions = (options as string)
+          .split(",")
+          .map((s) => ({ label: s.trim(), value: s.trim() }));
       }
     } else if (Array.isArray(options)) {
       parsedOptions = options;
     }
 
-    const selectId = `select-${label.toLowerCase().replace(/\s+/g, '-')}`;
+    const selectId = `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
     return (
       <div className="flex flex-col space-y-1.5">
-        <label htmlFor={selectId} className="text-sm font-medium text-gray-700">{label}</label>
+        <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
+          {label}
+        </label>
         <div className="relative">
           <select
             id={selectId}
@@ -214,8 +241,18 @@ function ParamInput({
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
           </div>
         </div>
@@ -226,10 +263,16 @@ function ParamInput({
   const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="flex flex-col space-y-1.5">
-      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">{label}</label>
+      <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+        {label}
+      </label>
       <input
         id={inputId}
-        type={param.type === "amount" || param.type === "integer" ? "number" : "text"}
+        type={
+          param.type === "amount" || param.type === "integer"
+            ? "number"
+            : "text"
+        }
         step={param.type === "amount" ? "any" : "1"}
         className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400"
         placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}

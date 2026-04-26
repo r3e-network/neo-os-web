@@ -4,7 +4,10 @@ import { useMemo, useState, type ChangeEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
-import { type ContractInitSchemaField, extractContractInitSchemaFields } from "../lib/contract-init-schema";
+import {
+  type ContractInitSchemaField,
+  extractContractInitSchemaFields,
+} from "../lib/contract-init-schema";
 import {
   buildModularPlanFilename,
   buildModularPlanPathHint,
@@ -13,7 +16,11 @@ import {
   buildModularValidateOnlyCommand,
 } from "../lib/modular-preview";
 import { downloadJsonFile } from "../lib/download-utils";
-import type { MiniAppMediaAssetKind, MiniAppMediaUploadVariant, MediaUploadOptions } from "@/lib/hooks/useMiniApps";
+import type {
+  MiniAppMediaAssetKind,
+  MiniAppMediaUploadVariant,
+  MediaUploadOptions,
+} from "@/lib/hooks/useMiniApps";
 import { BasicTab } from "./create-form-tabs/BasicTab";
 import { ContentTab } from "./create-form-tabs/ContentTab";
 import { LayoutTab } from "./create-form-tabs/LayoutTab";
@@ -43,7 +50,12 @@ type ContentBlock = {
 type DetailTemplate = {
   layout?: string;
   hero?: Record<string, string>;
-  tabs?: Array<{ id: string; label: string; type: string; blocks?: ContentBlock[] }>;
+  tabs?: Array<{
+    id: string;
+    label: string;
+    type: string;
+    blocks?: ContentBlock[];
+  }>;
   operation_panel?: Record<string, string>;
 };
 
@@ -91,7 +103,11 @@ type CreateFormPanelProps = {
   setJsonText: (s: string) => void;
   onImportJson: () => void;
   onFileUpload: (e: ChangeEvent<HTMLInputElement>) => void;
-  onUploadMediaAsset: (assetType: MiniAppMediaAssetKind, file: File, options?: MediaUploadOptions) => Promise<void>;
+  onUploadMediaAsset: (
+    assetType: MiniAppMediaAssetKind,
+    file: File,
+    options?: MediaUploadOptions,
+  ) => Promise<void>;
   mediaUploadPending: boolean;
   mediaUploadError: string;
   mediaUploadInfo: string;
@@ -103,25 +119,56 @@ type CreateFormPanelProps = {
   blueprintTemplates: Record<string, DetailTemplate>;
   emptyForm: MiniAppFormState;
   toConfig: (form: MiniAppFormState) => Record<string, unknown>;
-  parseJSONObjectText: (input: string, fieldName: string) => Record<string, unknown>;
+  parseJSONObjectText: (
+    input: string,
+    fieldName: string,
+  ) => Record<string, unknown>;
 };
 
 export function CreateFormPanel({
-  form, setForm, formError, loading, onSubmit, onPublish, onCancel,
-  jsonText, setJsonText, onImportJson, onFileUpload,
-  onUploadMediaAsset, mediaUploadPending, mediaUploadError, mediaUploadInfo,
-  mode = "create", createTabs, permissionKeys, categories, blueprints, blueprintTemplates, emptyForm, toConfig,
+  form,
+  setForm,
+  formError,
+  loading,
+  onSubmit,
+  onPublish,
+  onCancel,
+  jsonText,
+  setJsonText,
+  onImportJson,
+  onFileUpload,
+  onUploadMediaAsset,
+  mediaUploadPending,
+  mediaUploadError,
+  mediaUploadInfo,
+  mode = "create",
+  createTabs,
+  permissionKeys,
+  categories,
+  blueprints,
+  blueprintTemplates,
+  emptyForm,
+  toConfig,
   parseJSONObjectText,
 }: CreateFormPanelProps) {
   const [tab, setTab] = useState("basic");
   const [modularCommandInfo, setModularCommandInfo] = useState("");
-  const [assetFiles, setAssetFiles] = useState<Partial<Record<MiniAppMediaAssetKind, File>>>({});
-  const [assetVariantSettings, setAssetVariantSettings] = useState<Record<"logo" | "banner", AssetVariantSettings>>({
+  const [assetFiles, setAssetFiles] = useState<
+    Partial<Record<MiniAppMediaAssetKind, File>>
+  >({});
+  const [assetVariantSettings, setAssetVariantSettings] = useState<
+    Record<"logo" | "banner", AssetVariantSettings>
+  >({
     logo: { theme: "", density: "", locale: "", applyAsPrimary: true },
     banner: { theme: "", density: "", locale: "", applyAsPrimary: true },
   });
-  const update = (key: string, value: string | boolean) => setForm({ ...form, [key]: value });
-  const togglePerm = (key: string) => setForm({ ...form, permissions: { ...form.permissions, [key]: !form.permissions[key] } });
+  const update = (key: string, value: string | boolean) =>
+    setForm({ ...form, [key]: value });
+  const togglePerm = (key: string) =>
+    setForm({
+      ...form,
+      permissions: { ...form.permissions, [key]: !form.permissions[key] },
+    });
   const updateAssetVariantSettings = (
     kind: "logo" | "banner",
     next: Partial<AssetVariantSettings>,
@@ -135,7 +182,10 @@ export function CreateFormPanel({
     }));
   };
 
-  const handleAssetFileSelect = (assetType: MiniAppMediaAssetKind, event: ChangeEvent<HTMLInputElement>) => {
+  const handleAssetFileSelect = (
+    assetType: MiniAppMediaAssetKind,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     setAssetFiles((prev) => ({
       ...prev,
@@ -144,55 +194,87 @@ export function CreateFormPanel({
   };
 
   const contractInitSchemaState = useMemo(
-    () => extractContractInitSchemaFields(form.contract_template_init_schema_json),
+    () =>
+      extractContractInitSchemaFields(form.contract_template_init_schema_json),
     [form.contract_template_init_schema_json],
   );
   const contractInitParamValues = useMemo(() => {
     try {
-      return parseJSONObjectText(form.contract_template_init_params_json, "contract_template_init_params_json");
+      return parseJSONObjectText(
+        form.contract_template_init_params_json,
+        "contract_template_init_params_json",
+      );
     } catch (_e: unknown) {
-      console.warn("[CreateFormPanel] init params JSON parse failed:", _e instanceof Error ? _e.message : String(_e));
+      console.warn(
+        "[CreateFormPanel] init params JSON parse failed:",
+        _e instanceof Error ? _e.message : String(_e),
+      );
       return {} as Record<string, unknown>;
     }
   }, [form.contract_template_init_params_json]);
-  const modularPreview = useMemo(() => buildModularPreview(form, toConfig), [form, toConfig]);
-  const modularPlanDraft = useMemo(() => buildModularRegistrationDraft(form, toConfig), [form, toConfig]);
+  const modularPreview = useMemo(
+    () => buildModularPreview(form, toConfig),
+    [form, toConfig],
+  );
+  const modularPlanDraft = useMemo(
+    () => buildModularRegistrationDraft(form, toConfig),
+    [form, toConfig],
+  );
   const modularPlanFilename = useMemo(
     () => buildModularPlanFilename(String(form.app_id || "").trim()),
     [form.app_id],
   );
   const modularPlanPathHint = useMemo(
-    () => (modularPlanDraft ? buildModularPlanPathHint(modularPlanDraft, modularPlanFilename) : ""),
+    () =>
+      modularPlanDraft
+        ? buildModularPlanPathHint(modularPlanDraft, modularPlanFilename)
+        : "",
     [modularPlanDraft, modularPlanFilename],
   );
   const modularValidateOnlyCommand = useMemo(
-    () => (modularPlanDraft ? buildModularValidateOnlyCommand(modularPlanDraft, modularPlanPathHint) : ""),
+    () =>
+      modularPlanDraft
+        ? buildModularValidateOnlyCommand(modularPlanDraft, modularPlanPathHint)
+        : "",
     [modularPlanDraft, modularPlanPathHint],
   );
 
-  const updateContractInitParamField = (field: ContractInitSchemaField, rawValue: string | boolean) => {
+  const updateContractInitParamField = (
+    field: ContractInitSchemaField,
+    rawValue: string | boolean,
+  ) => {
     const next = {
       ...contractInitParamValues,
     };
 
     if (field.type === "boolean") {
       next[field.key] = Boolean(rawValue);
-      update("contract_template_init_params_json", JSON.stringify(next, null, 2));
+      update(
+        "contract_template_init_params_json",
+        JSON.stringify(next, null, 2),
+      );
       return;
     }
 
     const textValue = String(rawValue).trim();
     if (!textValue) {
       delete next[field.key];
-      update("contract_template_init_params_json", JSON.stringify(next, null, 2));
+      update(
+        "contract_template_init_params_json",
+        JSON.stringify(next, null, 2),
+      );
       return;
     }
 
     if (field.type === "number" || field.type === "integer") {
       const numeric = Number(textValue);
       if (!Number.isFinite(numeric)) return;
-      next[field.key] = field.type === "integer" ? Math.trunc(numeric) : numeric;
-      update("contract_template_init_params_json", JSON.stringify(next, null, 2));
+      next[field.key] =
+        field.type === "integer" ? Math.trunc(numeric) : numeric;
+      update(
+        "contract_template_init_params_json",
+        JSON.stringify(next, null, 2),
+      );
       return;
     }
 
@@ -219,30 +301,83 @@ export function CreateFormPanel({
   };
 
   const dt = (form.detail_template || {}) as DetailTemplate;
-  const updateDT = (updates: Partial<DetailTemplate>) => setForm({ ...form, detail_template: { ...dt, ...updates } });
-  const dtTabs: Array<{id:string;label:string;type:string;blocks?:ContentBlock[]}> = Array.isArray(dt.tabs) ? dt.tabs : [];
+  const updateDT = (updates: Partial<DetailTemplate>) =>
+    setForm({ ...form, detail_template: { ...dt, ...updates } });
+  const dtTabs: Array<{
+    id: string;
+    label: string;
+    type: string;
+    blocks?: ContentBlock[];
+  }> = Array.isArray(dt.tabs) ? dt.tabs : [];
   const dtHero = (dt.hero || {}) as Record<string, string>;
   const dtOp = (dt.operation_panel || {}) as Record<string, string>;
 
-  const addContract = () => setForm({ ...form, contracts: [...form.contracts, { name: "", hash: "" }] });
-  const removeContract = (i: number) => setForm({ ...form, contracts: form.contracts.filter((_: unknown, idx: number) => idx !== i) });
+  const addContract = () =>
+    setForm({
+      ...form,
+      contracts: [...form.contracts, { name: "", hash: "" }],
+    });
+  const removeContract = (i: number) =>
+    setForm({
+      ...form,
+      contracts: form.contracts.filter((_: unknown, idx: number) => idx !== i),
+    });
   const updateContract = (i: number, field: "name" | "hash", val: string) => {
     const next = [...form.contracts];
     next[i] = { ...next[i], [field]: val };
     setForm({ ...form, contracts: next });
   };
 
-  const addOperation = () => setForm({ ...form, operations: [...form.operations, { name: "", method: "", description: "", gas_cost: "", button_style: "", confirm_message: "", params: [] }] });
-  const removeOperation = (i: number) => setForm({ ...form, operations: form.operations.filter((_: unknown, idx: number) => idx !== i) });
-  const updateOperation = (i: number, field: keyof OperationEntry, val: string) => {
+  const addOperation = () =>
+    setForm({
+      ...form,
+      operations: [
+        ...form.operations,
+        {
+          name: "",
+          method: "",
+          description: "",
+          gas_cost: "",
+          button_style: "",
+          confirm_message: "",
+          params: [],
+        },
+      ],
+    });
+  const removeOperation = (i: number) =>
+    setForm({
+      ...form,
+      operations: form.operations.filter(
+        (_: unknown, idx: number) => idx !== i,
+      ),
+    });
+  const updateOperation = (
+    i: number,
+    field: keyof OperationEntry,
+    val: string,
+  ) => {
     const next = [...form.operations];
     next[i] = { ...next[i], [field]: val };
     setForm({ ...form, operations: next });
   };
 
-  const addComponent = () => setForm({ ...form, components: [...form.components, { type: "", display: "", props: "{}" }] });
-  const removeComponent = (i: number) => setForm({ ...form, components: form.components.filter((_: unknown, idx: number) => idx !== i) });
-  const updateComponent = (i: number, field: keyof ComponentEntry, val: string) => {
+  const addComponent = () =>
+    setForm({
+      ...form,
+      components: [...form.components, { type: "", display: "", props: "{}" }],
+    });
+  const removeComponent = (i: number) =>
+    setForm({
+      ...form,
+      components: form.components.filter(
+        (_: unknown, idx: number) => idx !== i,
+      ),
+    });
+  const updateComponent = (
+    i: number,
+    field: keyof ComponentEntry,
+    val: string,
+  ) => {
     const next = [...form.components];
     next[i] = { ...next[i], [field]: val };
     setForm({ ...form, components: next });
@@ -251,7 +386,12 @@ export function CreateFormPanel({
   const applyTemplate = (key: string) => {
     const t = blueprints[key];
     if (!t) return;
-    setForm({ ...emptyForm, ...t.overrides, permissions: { ...t.overrides.permissions }, detail_template: blueprintTemplates[key] || null });
+    setForm({
+      ...emptyForm,
+      ...t.overrides,
+      permissions: { ...t.overrides.permissions },
+      detail_template: blueprintTemplates[key] || null,
+    });
   };
 
   // Sync form → JSON when switching to JSON tab
@@ -279,7 +419,11 @@ export function CreateFormPanel({
 
   return (
     <Card variant="glass">
-      <CardHeader><CardTitle>{mode === "edit" ? "Edit MiniApp" : "Create New MiniApp"}</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>
+          {mode === "edit" ? "Edit MiniApp" : "Create New MiniApp"}
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-4">
         {/* Template Marketplace Selector */}
         <div className="mb-6 rounded-xl border border-gray-100 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900/50 p-6 overflow-hidden relative">
@@ -290,7 +434,8 @@ export function CreateFormPanel({
               <span className="text-xl">🏪</span> Template Marketplace
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              Select a fully-featured template to scaffold your MiniApp frontend and smart contract without writing code.
+              Select a fully-featured template to scaffold your MiniApp frontend
+              and smart contract without writing code.
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Object.entries(blueprints).map(([key, t]) => (
@@ -301,8 +446,18 @@ export function CreateFormPanel({
                   className="group relative flex flex-col items-start rounded-xl border border-gray-200 bg-white p-4 text-left transition-all hover:-translate-y-1 hover:border-primary-400 hover:shadow-lg hover:shadow-primary-500/10 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50"
                 >
                   <div className="mb-3 rounded-lg bg-primary-50 p-2 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
                     </svg>
                   </div>
                   <div className="text-base font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
@@ -401,7 +556,14 @@ export function CreateFormPanel({
           />
         )}
 
-        {formError && <p role="alert" className="text-sm text-danger-600 dark:text-danger-400">{formError}</p>}
+        {formError && (
+          <p
+            role="alert"
+            className="text-sm text-danger-600 dark:text-danger-400"
+          >
+            {formError}
+          </p>
+        )}
         {modularPlanDraft && modularPreview.valid && !formError && (
           <details className="rounded-xl border border-gray-200 bg-gray-50/70 p-3 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/40 dark:text-gray-300">
             <summary className="cursor-pointer list-none font-semibold text-gray-900 dark:text-gray-100 focus-visible:outline-none">
@@ -409,31 +571,44 @@ export function CreateFormPanel({
             </summary>
             <div className="mt-3 space-y-2">
               <p>
-                Suggested plan path:
-                {" "}
-                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularPlanPathHint}</code>
+                Suggested plan path:{" "}
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                  {modularPlanPathHint}
+                </code>
               </p>
               {modularPlanDraft.definition_path && (
                 <p>
-                  Definition source:
-                  {" "}
-                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularPlanDraft.definition_path}</code>
+                  Definition source:{" "}
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                    {modularPlanDraft.definition_path}
+                  </code>
                 </p>
               )}
               <p>
-                Validate-only usage:
-                {" "}
-                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">{modularValidateOnlyCommand}</code>
+                Validate-only usage:{" "}
+                <code className="rounded bg-white px-1.5 py-0.5 font-mono text-[11px] dark:bg-gray-950">
+                  {modularValidateOnlyCommand}
+                </code>
               </p>
             </div>
           </details>
         )}
         {modularCommandInfo && !formError && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">{modularCommandInfo}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {modularCommandInfo}
+          </p>
         )}
         {tab !== "json" && (
           <div className="flex gap-2">
-            <Button onClick={onSubmit} disabled={loading}>{loading ? (mode === "edit" ? "Saving..." : "Creating...") : (mode === "edit" ? "Save Changes" : "Create MiniApp")}</Button>
+            <Button onClick={onSubmit} disabled={loading}>
+              {loading
+                ? mode === "edit"
+                  ? "Saving..."
+                  : "Creating..."
+                : mode === "edit"
+                  ? "Save Changes"
+                  : "Create MiniApp"}
+            </Button>
             {mode === "edit" && onPublish && (
               <Button
                 variant="secondary"
@@ -446,10 +621,9 @@ export function CreateFormPanel({
             {modularPlanDraft && modularPreview.valid && (
               <Button
                 variant="secondary"
-                onClick={() => downloadJsonFile(
-                  modularPlanDraft,
-                  modularPlanFilename,
-                )}
+                onClick={() =>
+                  downloadJsonFile(modularPlanDraft, modularPlanFilename)
+                }
               >
                 Download Thin Plan
               </Button>
@@ -459,12 +633,16 @@ export function CreateFormPanel({
                 Copy Validate-Only Command
               </Button>
             )}
-            <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+            <Button variant="secondary" onClick={onCancel}>
+              Cancel
+            </Button>
           </div>
         )}
         {tab === "json" && (
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+            <Button variant="secondary" onClick={onCancel}>
+              Cancel
+            </Button>
           </div>
         )}
       </CardContent>

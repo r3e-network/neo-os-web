@@ -13,7 +13,14 @@ vi.mock("next/navigation", () => ({
 
 // Mock next/link
 vi.mock("next/link", () => ({
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -66,13 +73,33 @@ describe("Sidebar Component", () => {
 
   it("should render navigation links with correct hrefs", () => {
     render(<Sidebar />);
-    expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: /Services/i })).toHaveAttribute("href", "/services");
-    expect(screen.getByRole("link", { name: /MiniApps/i })).toHaveAttribute("href", "/miniapps");
-    expect(screen.getByRole("link", { name: /Template Studio/i })).toHaveAttribute("href", "/templates");
-    expect(screen.getByRole("link", { name: /Users/i })).toHaveAttribute("href", "/users");
-    expect(screen.getByRole("link", { name: /Analytics/i })).toHaveAttribute("href", "/analytics");
-    expect(screen.getByRole("link", { name: /Contracts/i })).toHaveAttribute("href", "/contracts");
+    expect(screen.getByRole("link", { name: /Dashboard/i })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(screen.getByRole("link", { name: /Services/i })).toHaveAttribute(
+      "href",
+      "/services",
+    );
+    expect(screen.getByRole("link", { name: /MiniApps/i })).toHaveAttribute(
+      "href",
+      "/miniapps",
+    );
+    expect(
+      screen.getByRole("link", { name: /Template Studio/i }),
+    ).toHaveAttribute("href", "/templates");
+    expect(screen.getByRole("link", { name: /Users/i })).toHaveAttribute(
+      "href",
+      "/users",
+    );
+    expect(screen.getByRole("link", { name: /Analytics/i })).toHaveAttribute(
+      "href",
+      "/analytics",
+    );
+    expect(screen.getByRole("link", { name: /Contracts/i })).toHaveAttribute(
+      "href",
+      "/contracts",
+    );
   });
 
   it("should display version info", () => {

@@ -3,11 +3,15 @@ import { render, screen } from "@testing-library/react";
 import MiniAppDetailPage from "../../pages/miniapps/[id]";
 
 jest.mock("../../components/layout", () => ({
-  Layout: ({ children }: { children: React.ReactNode }) => <div data-testid="layout">{children}</div>,
+  Layout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="layout">{children}</div>
+  ),
 }));
 
 jest.mock("../../components/AppDetailHeader", () => ({
-  AppDetailHeader: ({ app }: { app: { name: string } }) => <div data-testid="detail-header">{app.name}</div>,
+  AppDetailHeader: ({ app }: { app: { name: string } }) => (
+    <div data-testid="detail-header">{app.name}</div>
+  ),
 }));
 
 jest.mock("../../components/MiniAppPlayfield", () => ({
@@ -69,7 +73,14 @@ describe("MiniAppDetailPage shared runtime", () => {
           contract_hash: null,
           detail_template: {
             layout: "default",
-            tabs: [{ id: "overview", label: "Overview", type: "content", blocks: [] }],
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
             operation_panel: { title: "Create Shared Stream", operations: [] },
           },
           operations: [
@@ -151,7 +162,9 @@ describe("MiniAppDetailPage shared runtime", () => {
 
     expect(screen.getByText("Shared Runtime")).toBeInTheDocument();
     expect(screen.getByText("neopay:testnet:default")).toBeInTheDocument();
-    expect(screen.getByText("recipe.payment_streams.v1@1.0.0")).toBeInTheDocument();
+    expect(
+      screen.getByText("recipe.payment_streams.v1@1.0.0"),
+    ).toBeInTheDocument();
     expect(screen.getByText("module.funding_vault@1.0.0")).toBeInTheDocument();
     expect(screen.getByText("module.stream_vesting@1.0.0")).toBeInTheDocument();
   });

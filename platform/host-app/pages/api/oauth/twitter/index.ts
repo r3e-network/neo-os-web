@@ -38,7 +38,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     `code_challenge=${codeChallenge}&` +
     `code_challenge_method=S256`;
 
-  return res.redirect(authUrl);
+  res.redirect(authUrl);
+  return;
 }
 
 function generateState(): string {

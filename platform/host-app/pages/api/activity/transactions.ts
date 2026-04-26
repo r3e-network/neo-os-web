@@ -4,7 +4,10 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -28,7 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (limit) {
     const parsed = parseInt(String(limit), 10);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
-      return apiError.badRequest(res, "limit must be a positive integer <= 100");
+      return apiError.badRequest(
+        res,
+        "limit must be a positive integer <= 100",
+      );
     }
     params.set("limit", String(parsed));
   }
@@ -45,7 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const upstream = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
-        ...(req.headers.authorization ? { Authorization: String(req.headers.authorization) } : {}),
+        ...(req.headers.authorization
+          ? { Authorization: String(req.headers.authorization) }
+          : {}),
       },
       signal: AbortSignal.timeout(15000),
     });
@@ -53,16 +61,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (upstream.status === 404) {
       // Edge route not deployed in this environment — return empty.
       res.setHeader("Cache-Control", "no-store, private");
-      return res.status(200).json({ transactions: [], total: 0 });
+      res.status(200).json({ transactions: [], total: 0 });
+      return;
     }
     if (!upstream.ok) {
-      return apiError.internal(res, "Upstream request failed");
+      logger.warn(
+        `[activity/transactions] upstream returned ${upstream.status}; serving empty activity`,
+      );
+      res.setHeader("Cache-Control", "no-store, private");
+      res.status(200).json({ transactions: [], total: 0 });
+      return;
     }
     const data = await upstream.json();
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(200).json(data);
+    res.status(200).json(data);
+    return;
   } catch (err) {
-    logger.error("Failed to fetch transactions:", err instanceof Error ? err.message : "unknown error");
-    return apiError.internal(res, "Failed to fetch transactions");
+    logger.error(
+      "Failed to fetch transactions:",
+      err instanceof Error ? err.message : "unknown error",
+    );
+    res.setHeader("Cache-Control", "no-store, private");
+    res.status(200).json({ transactions: [], total: 0 });
+    return;
   }
 }

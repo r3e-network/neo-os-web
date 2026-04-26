@@ -26,7 +26,9 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
     mountedRef.current = true;
     const loadLeaderboard = async () => {
       try {
-        const data = await fetchJSON<LeaderboardResponse>("/api/gamification/leaderboard?limit=20");
+        const data = await fetchJSON<LeaderboardResponse>(
+          "/api/gamification/leaderboard?limit=20",
+        );
         if (!mountedRef.current) return;
         setEntries(data.entries || []);
       } catch (err) {
@@ -37,7 +39,9 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
       }
     };
     loadLeaderboard();
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   if (loading) {
@@ -84,30 +88,58 @@ export function Leaderboard({ currentWallet }: LeaderboardProps) {
       </div>
       <ol className="divide-y divide-gray-100">
         {entries.map((entry) => (
-          <LeaderboardRow key={entry.rank} entry={entry} isCurrentUser={entry.wallet === currentWallet} />
+          <LeaderboardRow
+            key={entry.rank}
+            entry={entry}
+            isCurrentUser={entry.wallet === currentWallet}
+          />
         ))}
       </ol>
     </div>
   );
 }
 
-const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser }: { entry: LeaderboardEntry; isCurrentUser: boolean }) {
+const LeaderboardRow = React.memo(function LeaderboardRow({
+  entry,
+  isCurrentUser,
+}: {
+  entry: LeaderboardEntry;
+  isCurrentUser: boolean;
+}) {
   const level = LEVELS.find((l) => l.level === entry.level) || LEVELS[0];
 
   const getRankIcon = () => {
-    if (entry.rank === 1) return <Crown size={16} className="text-amber-400" aria-label="1st place" />;
-    if (entry.rank === 2) return <Medal size={16} className="text-gray-500" aria-label="2nd place" />;
-    if (entry.rank === 3) return <Medal size={16} className="text-amber-600" aria-label="3rd place" />;
+    if (entry.rank === 1)
+      return (
+        <Crown size={16} className="text-amber-400" aria-label="1st place" />
+      );
+    if (entry.rank === 2)
+      return (
+        <Medal size={16} className="text-gray-500" aria-label="2nd place" />
+      );
+    if (entry.rank === 3)
+      return (
+        <Medal size={16} className="text-amber-600" aria-label="3rd place" />
+      );
     return <span className="text-xs text-gray-500">#{entry.rank}</span>;
   };
 
   return (
-    <li className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrentUser ? "bg-emerald-50" : ""}`}>
+    <li
+      className={`flex items-center gap-3 px-4 py-3 transition-colors ${isCurrentUser ? "bg-emerald-50" : ""}`}
+    >
       <div className="w-8 flex justify-center">{getRankIcon()}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-900 truncate" title={entry.wallet}>{entry.wallet}</span>
-          {isCurrentUser && <span className="text-xs text-emerald-500">(You)</span>}
+          <span
+            className="font-semibold text-gray-900 truncate"
+            title={entry.wallet}
+          >
+            {entry.wallet}
+          </span>
+          {isCurrentUser && (
+            <span className="text-xs text-emerald-500">(You)</span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <span className={level.color}>Lv.{entry.level}</span>
@@ -116,9 +148,11 @@ const LeaderboardRow = React.memo(function LeaderboardRow({ entry, isCurrentUser
         </div>
       </div>
       <div className="text-right">
-        <div className="font-bold text-gray-900">{entry.xp.toLocaleString()}</div>
+        <div className="font-bold text-gray-900">
+          {entry.xp.toLocaleString()}
+        </div>
         <div className="text-xs text-gray-500">XP</div>
       </div>
     </li>
   );
-})
+});

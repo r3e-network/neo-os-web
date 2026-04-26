@@ -10,7 +10,7 @@ describe("host chain contract queries", () => {
           type: "Map",
           value: [
             {
-              key: { type: "ByteString", value: Buffer.from("currentRoundPot").toString("base64") },
+              key: { type: "ByteString", value: Buffer.from("pot").toString("base64") },
               value: { type: "Integer", value: "300000000" },
             },
             {
@@ -31,7 +31,7 @@ describe("host chain contract queries", () => {
     }));
 
     const { getContractStats } = require("../../lib/chain/contract-queries");
-    const stats = await getContractStats("0xd55df731978582ea81719a5d87ce49b248e91275", "testnet", "miniapp-last-survivor");
+    const stats = await getContractStats("0x1021e9e5c17285e706c293a39c525de13100ed92", "testnet", "miniapp-last-survivor");
 
     expect(stats).toEqual({
       totalValueLocked: "3",

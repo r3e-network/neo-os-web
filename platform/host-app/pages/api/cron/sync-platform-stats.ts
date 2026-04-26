@@ -13,7 +13,9 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 
 function getPlatformAddress(): string {
-  return process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu";
+  return (
+    process.env.NEO_TESTNET_ADDRESS || "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu"
+  );
 }
 
 interface SyncResult {
@@ -27,7 +29,10 @@ interface SyncResult {
   unique_users: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET" && req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
@@ -38,7 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const authHeader = String(req.headers.authorization || "");
   const expected = `Bearer ${cronSecret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))
+  ) {
     return apiError.unauthorized(res, "Unauthorized");
   }
 
@@ -48,9 +56,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const result = await syncPlatformStats();
-    return res.status(200).json(result);
+    res.status(200).json(result);
+    return;
   } catch (error) {
-    logger.error("Sync error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Sync error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Sync failed");
   }
 }
@@ -58,8 +70,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 async function syncPlatformStats(): Promise<SyncResult> {
   const [simTxRes, serviceRes, eventsRes] = await Promise.all([
     supabase.from("simulation_txs").select("*", { count: "exact", head: true }),
-    supabase.from("service_requests").select("*", { count: "exact", head: true }),
-    supabase.from("contract_events").select("*", { count: "exact", head: true }),
+    supabase
+      .from("service_requests")
+      .select("*", { count: "exact", head: true }),
+    supabase
+      .from("contract_events")
+      .select("*", { count: "exact", head: true }),
   ]);
 
   const tables = {
@@ -68,7 +84,8 @@ async function syncPlatformStats(): Promise<SyncResult> {
     contract_events: eventsRes.count || 0,
   };
 
-  const supabase_total = tables.simulation_txs + tables.service_requests + tables.contract_events;
+  const supabase_total =
+    tables.simulation_txs + tables.service_requests + tables.contract_events;
 
   const uniqueUsers = new Set<string>();
 
@@ -79,7 +96,9 @@ async function syncPlatformStats(): Promise<SyncResult> {
     .limit(10000);
 
   if (simUsers) {
-    simUsers.forEach((u) => u.account_address && uniqueUsers.add(u.account_address));
+    simUsers.forEach(
+      (u) => u.account_address && uniqueUsers.add(u.account_address),
+    );
   }
 
   const { data: reqUsers } = await supabase
@@ -92,16 +111,18 @@ async function syncPlatformStats(): Promise<SyncResult> {
     reqUsers.forEach((u) => u.requester && uniqueUsers.add(u.requester));
   }
 
-  const { error: upsertErr } = await supabase.from("platform_stats_sync").upsert(
-    {
-      id: 1,
-      address: getPlatformAddress(),
-      supabase_total,
-      unique_users: uniqueUsers.size,
-      last_synced: new Date().toISOString(),
-    },
-    { onConflict: "id" },
-  );
+  const { error: upsertErr } = await supabase
+    .from("platform_stats_sync")
+    .upsert(
+      {
+        id: 1,
+        address: getPlatformAddress(),
+        supabase_total,
+        unique_users: uniqueUsers.size,
+        last_synced: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
   if (upsertErr) {
     logger.warn("Failed to store sync result:", upsertErr.message);
   }

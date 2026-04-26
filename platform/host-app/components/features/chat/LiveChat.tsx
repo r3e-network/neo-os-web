@@ -67,7 +67,9 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       if (!active) return;
       setLoading(true);
       try {
-        const data = await fetchJSON<ChatMessagesResponse>(`/api/chat/${encodeURIComponent(appId)}/messages?limit=50`);
+        const data = await fetchJSON<ChatMessagesResponse>(
+          `/api/chat/${encodeURIComponent(appId)}/messages?limit=50`,
+        );
         if (!active) return;
         setMessages(data.messages || []);
         setParticipantCount(data.participantCount || 0);
@@ -166,26 +168,44 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50" aria-live="polite" tabIndex={0}>
+          <div
+            className="flex-1 overflow-y-auto p-3 space-y-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+            aria-live="polite"
+            tabIndex={0}
+          >
             {loading && messages.length === 0 ? (
               <div className="space-y-3 py-4">
                 {Array.from({ length: 4 }, (_, i) => (
-                  <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                  <div
+                    key={i}
+                    className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"}`}
+                  >
                     <div className="space-y-1.5 max-w-[70%]">
                       <Skeleton className="h-3 w-16" />
-                      <Skeleton className={`h-10 ${i % 2 === 0 ? "w-48" : "w-36"} rounded-xl`} />
+                      <Skeleton
+                        className={`h-10 ${i % 2 === 0 ? "w-48" : "w-36"} rounded-xl`}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
             ) : messages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                <MessageCircle className="mx-auto mb-2 h-8 w-8 opacity-50" aria-hidden="true" />
+                <MessageCircle
+                  className="mx-auto mb-2 h-8 w-8 opacity-50"
+                  aria-hidden="true"
+                />
                 <p>No messages yet</p>
                 <p className="text-xs mt-1">Be the first to say hi!</p>
               </div>
             ) : (
-              messages.map((msg) => <MessageBubble key={msg.id} message={msg} isOwn={msg.userId === walletAddress} />)
+              messages.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  isOwn={msg.userId === walletAddress}
+                />
+              ))
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -199,7 +219,10 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                   ref={inputRef}
                   type="text"
                   value={inputValue}
-                  onChange={(e) => { setInputValue(e.target.value); setSendError(null); }}
+                  onChange={(e) => {
+                    setInputValue(e.target.value);
+                    setSendError(null);
+                  }}
                   onKeyDown={handleKeyDown}
                   placeholder="Type a message..."
                   aria-label="Type a message"
@@ -217,12 +240,12 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
                 </button>
               </div>
             ) : (
-              <div className="text-center text-sm text-gray-500 py-2">Connect wallet to chat</div>
+              <div className="text-center text-sm text-gray-500 py-2">
+                Connect wallet to chat
+              </div>
             )}
             {sendError && (
-              <div className="px-1 pt-1 text-xs text-red-500">
-                {sendError}
-              </div>
+              <div className="px-1 pt-1 text-xs text-red-500">{sendError}</div>
             )}
           </div>
         </div>
@@ -231,9 +254,19 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
   );
 }
 
-function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolean }) {
+function MessageBubble({
+  message,
+  isOwn,
+}: {
+  message: ChatMessage;
+  isOwn: boolean;
+}) {
   if (message.type === "system") {
-    return <div className="text-center text-xs text-gray-500 py-1">{message.content}</div>;
+    return (
+      <div className="text-center text-xs text-gray-500 py-1">
+        {message.content}
+      </div>
+    );
   }
 
   if (message.type === "tip") {
@@ -254,10 +287,17 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
       </div>
       <div className={cn("max-w-[70%]", isOwn && "text-right")}>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className={cn("text-xs font-medium text-gray-700 truncate", isOwn && "order-2")}>
+          <span
+            className={cn(
+              "text-xs font-medium text-gray-700 truncate",
+              isOwn && "order-2",
+            )}
+          >
             {message.userName}
           </span>
-          <span className={cn("text-xs text-gray-500", isOwn && "order-1")}>{timeAgo(message.timestamp)}</span>
+          <span className={cn("text-xs text-gray-500", isOwn && "order-1")}>
+            {timeAgo(message.timestamp)}
+          </span>
         </div>
         <div
           className={cn(

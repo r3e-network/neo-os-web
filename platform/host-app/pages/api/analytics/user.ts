@@ -1,8 +1,14 @@
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
-import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
+import {
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { loadMiniAppCatalog } from "@/lib/miniapp-catalog";
@@ -36,7 +42,10 @@ interface AppUsage {
 
 const GAS_DIVISOR = 100000000;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
@@ -51,7 +60,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -60,12 +72,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (!hasServiceRoleSupabase()) {
-    return res.status(200).json(emptyAnalytics(wallet));
+    res.status(200).json(emptyAnalytics(wallet));
+    return;
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return res.status(200).json(emptyAnalytics(wallet));
+    res.status(200).json(emptyAnalytics(wallet));
+    return;
   }
 
   try {
@@ -80,7 +94,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     if (txResponse.error) {
-      logger.error("Failed to fetch user tx analytics:", txResponse.error.message);
+      logger.error(
+        "Failed to fetch user tx analytics:",
+        txResponse.error.message,
+      );
       return apiError.internal(res, "Failed to fetch analytics");
     }
 
@@ -90,7 +107,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const txRows = txResponse.data || [];
-    const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: false });
+    const userId = await resolveUserIdFromWallet(supabase, wallet, {
+      createIfMissing: false,
+    });
     const usageRows = userId
       ? (
           await supabase
@@ -118,7 +137,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const lastUsed = String(row.block_time || "");
         const current = txByApp.get(appId) || { txCount: 0, lastUsed };
         current.txCount += 1;
-        if (!current.lastUsed || (lastUsed && new Date(lastUsed).getTime() > new Date(current.lastUsed).getTime())) {
+        if (
+          !current.lastUsed ||
+          (lastUsed &&
+            new Date(lastUsed).getTime() > new Date(current.lastUsed).getTime())
+        ) {
           current.lastUsed = lastUsed;
         }
         txByApp.set(appId, current);
@@ -126,10 +149,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const blockTime = String(row.block_time || "");
       if (blockTime) {
-        if (!lastTxAt || new Date(blockTime).getTime() > new Date(lastTxAt).getTime()) {
+        if (
+          !lastTxAt ||
+          new Date(blockTime).getTime() > new Date(lastTxAt).getTime()
+        ) {
           lastTxAt = blockTime;
         }
-        if (!firstTxAt || new Date(blockTime).getTime() < new Date(firstTxAt).getTime()) {
+        if (
+          !firstTxAt ||
+          new Date(blockTime).getTime() < new Date(firstTxAt).getTime()
+        ) {
           firstTxAt = blockTime;
         }
       }
@@ -149,10 +178,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (day) {
         gasByDate.set(day, (gasByDate.get(day) || 0) + gasRaw);
         const dayISO = `${day}T00:00:00.000Z`;
-        if (!lastUsageAt || new Date(dayISO).getTime() > new Date(lastUsageAt).getTime()) {
+        if (
+          !lastUsageAt ||
+          new Date(dayISO).getTime() > new Date(lastUsageAt).getTime()
+        ) {
           lastUsageAt = dayISO;
         }
-        if (!firstUsageAt || new Date(dayISO).getTime() < new Date(firstUsageAt).getTime()) {
+        if (
+          !firstUsageAt ||
+          new Date(dayISO).getTime() < new Date(firstUsageAt).getTime()
+        ) {
           firstUsageAt = dayISO;
         }
       }
@@ -176,12 +211,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const appIds = new Set<string>([...Array.from(txByApp.keys()), ...Array.from(gasByApp.keys())]);
+    const appIds = new Set<string>([
+      ...Array.from(txByApp.keys()),
+      ...Array.from(gasByApp.keys()),
+    ]);
     const appBreakdown: AppUsage[] = Array.from(appIds)
       .map((appId) => {
         const txInfo = txByApp.get(appId) || { txCount: 0, lastUsed: "" };
         const gas = (gasByApp.get(appId) || 0) / GAS_DIVISOR;
-        const lastUsed = txInfo.lastUsed || lastUsageAt || new Date().toISOString();
+        const lastUsed =
+          txInfo.lastUsed || lastUsageAt || new Date().toISOString();
         return {
           appId,
           appName: appNameById.get(appId) || appId,
@@ -190,7 +229,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           lastUsed,
         };
       })
-      .sort((a, b) => (b.txCount - a.txCount) || (parseFloat(b.volume) - parseFloat(a.volume)));
+      .sort(
+        (a, b) =>
+          b.txCount - a.txCount || parseFloat(b.volume) - parseFloat(a.volume),
+      );
 
     const firstActivity = firstTxAt || firstUsageAt || new Date().toISOString();
     const lastActivity = lastTxAt || lastUsageAt || firstActivity;
@@ -210,9 +252,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(200).json(analytics);
+    res.status(200).json(analytics);
+    return;
   } catch (error) {
-    logger.error("User analytics API failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "User analytics API failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to fetch analytics");
   }
 }

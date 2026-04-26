@@ -16,10 +16,14 @@ import { normalizeMiniAppAdminPayload } from "@/lib/miniapp-admin";
 import { appendPublishApprovalAuditEvent } from "@/lib/publish-approval-audit";
 import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
-const REQUEST_ID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+const REQUEST_ID_REGEX =
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 
 function asTrimmed(value: unknown): string {
   if (value === undefined || value === null) return "";
@@ -28,7 +32,13 @@ function asTrimmed(value: unknown): string {
 
 function parseStatus(value: unknown): PublishRequestStatus | "all" {
   const normalized = asTrimmed(value).toLowerCase();
-  if (normalized === "pending" || normalized === "approved" || normalized === "rejected" || normalized === "applied" || normalized === "cancelled") {
+  if (
+    normalized === "pending" ||
+    normalized === "approved" ||
+    normalized === "rejected" ||
+    normalized === "applied" ||
+    normalized === "cancelled"
+  ) {
     return normalized;
   }
   return "all";
@@ -43,7 +53,10 @@ async function handleList(req: NextApiRequest, res: NextApiResponse) {
   const status = parseStatus(req.query.status);
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   try {
@@ -58,12 +71,18 @@ async function handleList(req: NextApiRequest, res: NextApiResponse) {
       timing: classifyPublishRequestTiming(request.requested_at),
     }));
 
-    const pending = withTiming.filter((request) => request.status === "pending");
-    const slaBreached = pending.filter((request) => request.timing.isSlaBreached).length;
-    const escalated = pending.filter((request) => request.timing.isEscalated).length;
+    const pending = withTiming.filter(
+      (request) => request.status === "pending",
+    );
+    const slaBreached = pending.filter(
+      (request) => request.timing.isSlaBreached,
+    ).length;
+    const escalated = pending.filter(
+      (request) => request.timing.isEscalated,
+    ).length;
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(200).json({
+    res.status(200).json({
       requests: withTiming,
       status,
       sla: {
@@ -74,15 +93,26 @@ async function handleList(req: NextApiRequest, res: NextApiResponse) {
         escalated,
       },
     });
+    return;
   } catch (error) {
-    logger.error("miniapp publish request list failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "miniapp publish request list failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to load publish requests");
   }
 }
 
-async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: string) {
+async function handleReview(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  actor: string,
+) {
   if (!isReviewer(actor)) {
-    return apiError.forbidden(res, "Actor is not allowed to review publish requests");
+    return apiError.forbidden(
+      res,
+      "Actor is not allowed to review publish requests",
+    );
   }
 
   const body = req.body;
@@ -97,13 +127,20 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
   }
 
   const decision = asTrimmed(payload.decision).toLowerCase();
-  if (decision !== "approve" && decision !== "reject" && decision !== "cancel") {
+  if (
+    decision !== "approve" &&
+    decision !== "reject" &&
+    decision !== "cancel"
+  ) {
     return apiError.badRequest(res, "decision must be approve/reject/cancel");
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const { data: requestRow, error: requestError } = await supabase
@@ -130,7 +167,10 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
     normalizedActor !== "api_key" &&
     requestedBy === normalizedActor
   ) {
-    return apiError.forbidden(res, "Requester cannot approve their own publish request");
+    return apiError.forbidden(
+      res,
+      "Requester cannot approve their own publish request",
+    );
   }
 
   if (decision === "reject") {
@@ -153,9 +193,13 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
         },
       });
 
-      return res.status(200).json({ success: true, request: updated });
+      res.status(200).json({ success: true, request: updated });
+      return;
     } catch (error) {
-      logger.error("miniapp publish request reject failed:", error instanceof Error ? error.message : "unknown error");
+      logger.error(
+        "miniapp publish request reject failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
       return apiError.internal(res, "Failed to reject publish request");
     }
   }
@@ -180,9 +224,13 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
         },
       });
 
-      return res.status(200).json({ success: true, request: updated });
+      res.status(200).json({ success: true, request: updated });
+      return;
     } catch (error) {
-      logger.error("miniapp publish request cancel failed:", error instanceof Error ? error.message : "unknown error");
+      logger.error(
+        "miniapp publish request cancel failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
       return apiError.internal(res, "Failed to cancel publish request");
     }
   }
@@ -213,12 +261,17 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
 
     const { data: appRow, error: appError } = await supabase
       .from("miniapps")
-      .select("app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,developer_user_id,developer_pubkey,assets_allowed,governance_assets_allowed,manifest")
+      .select(
+        "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,developer_user_id,developer_pubkey,assets_allowed,governance_assets_allowed,manifest",
+      )
       .eq("app_id", appId)
       .single();
 
     if (appError || !appRow) {
-      return apiError.internal(res, "Failed to load app row for publish approval");
+      return apiError.internal(
+        res,
+        "Failed to load app row for publish approval",
+      );
     }
 
     const normalized = normalizeMiniAppAdminPayload(
@@ -234,13 +287,18 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
     );
 
     if (!normalized.ok) {
-      return apiError.internal(res, `Publish approval normalization failed: ${normalized.error}`);
+      return apiError.internal(
+        res,
+        `Publish approval normalization failed: ${normalized.error}`,
+      );
     }
 
     const { data: upserted, error: upsertError } = await supabase
       .from("miniapps")
       .upsert(normalized.row, { onConflict: "app_id" })
-      .select("app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,manifest")
+      .select(
+        "app_id,name,description,icon,category,entry_url,contract_hash,status,permissions,limits,logo_url,banner_url,docs_url,manifest",
+      )
       .single();
 
     if (upsertError || !upserted) {
@@ -274,7 +332,7 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
       },
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       request: applied,
       app: upserted,
@@ -283,8 +341,12 @@ async function handleReview(req: NextApiRequest, res: NextApiResponse, actor: st
         version_no: version.version.version_no,
       },
     });
+    return;
   } catch (error) {
-    logger.error("miniapp publish request approve failed:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "miniapp publish request approve failed:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to approve publish request");
   }
 }
@@ -296,7 +358,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for publish request workflows");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for publish request workflows",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -306,7 +371,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     return handleList(req, res);
   }
 
-  return handleReview(req, res, admin.kind === "wallet" ? admin.value : "api_key");
+  return handleReview(
+    req,
+    res,
+    admin.kind === "wallet" ? admin.value : "api_key",
+  );
 }
 
 export default withCsrfProtection(handler);

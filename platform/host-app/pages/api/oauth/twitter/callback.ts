@@ -3,7 +3,10 @@ import crypto from "crypto";
 import { apiError } from "@/lib/api-response";
 import { strictLimit } from "@/lib/rate-limit";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (strictLimit(req, res)) return;
   const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID;
   const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET;
@@ -26,7 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const codeVerifier = req.cookies.code_verifier;
 
   const stateStr = typeof state === "string" ? state : "";
-  const stateValid = stateStr && storedState &&
+  const stateValid =
+    stateStr &&
+    storedState &&
     Buffer.byteLength(stateStr) === Buffer.byteLength(storedState) &&
     crypto.timingSafeEqual(Buffer.from(stateStr), Buffer.from(storedState));
   if (!stateValid) {
@@ -48,7 +53,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const oauthTimeout = 15000;
 
     // Exchange code for token
-    const basicAuth = Buffer.from(`${TWITTER_CLIENT_ID}:${TWITTER_CLIENT_SECRET}`).toString("base64");
+    const basicAuth = Buffer.from(
+      `${TWITTER_CLIENT_ID}:${TWITTER_CLIENT_SECRET}`,
+    ).toString("base64");
 
     const tokenRes = await fetch("https://api.twitter.com/2/oauth2/token", {
       method: "POST",
@@ -87,7 +94,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       linkedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("[oauth/twitter] callback error:", err instanceof Error ? err.message : String(err));
+    console.error(
+      "[oauth/twitter] callback error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return sendError(res, "OAuth failed");
   }
 }
@@ -100,7 +110,10 @@ function safeJSON(obj: unknown): string {
   } catch {
     str = "{}";
   }
-  return str.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+  return str
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
 }
 
 function sendSuccess(res: NextApiResponse, account: object) {
