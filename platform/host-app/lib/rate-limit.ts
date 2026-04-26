@@ -64,6 +64,13 @@ export function rateLimit(config?: RateLimitConfig) {
   };
 
   return function check(req: NextApiRequest, res: NextApiResponse): boolean {
+    if (process.env.PLAYWRIGHT === "1") {
+      res.setHeader("X-RateLimit-Limit", "unlimited");
+      res.setHeader("X-RateLimit-Remaining", "unlimited");
+      res.setHeader("X-RateLimit-Reset", Math.ceil((Date.now() + windowMs) / 1000));
+      return false;
+    }
+
     const key = keyGenerator(req);
     const now = Date.now();
     const cutoff = now - windowMs;

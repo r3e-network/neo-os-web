@@ -28,11 +28,13 @@ export type ModernImageSources = {
 };
 
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
+  "miniapp-breakupcontract": ["breakup-contract"],
   "miniapp-fogplay": ["fogplay"],
   "miniapp-dailycheckin": ["daily-checkin"],
   "miniapp-dicegame": ["dice-game"],
   "miniapp-last-survivor": ["last-survivor"],
   "miniapp-gasbox": ["gasbox"],
+  "miniapp-onchaintarot": ["on-chain-tarot"],
   "miniapp-predictionmarket": ["prediction-market"],
   "miniapp-redenvelope": ["red-envelope"],
   "miniapp-secretvote": ["secret-vote", "candidate-vote"],
@@ -40,6 +42,7 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-profitanchor": ["profitanchor"],
   "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
+  "miniapp-unbreakablevault": ["unbreakable-vault"],
 };
 
 type MediaVariant = {
