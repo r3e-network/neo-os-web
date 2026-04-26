@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/modal";
@@ -9,7 +9,14 @@ import {
 } from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
-import { LogOut, Wallet, Mail, X } from "lucide-react";
+import { Eye, EyeOff, KeyRound, LogOut, Wallet, X } from "lucide-react";
+
+function canUseDirectWif(): boolean {
+  if (process.env.NEXT_PUBLIC_ENABLE_WIF_WALLET === "true") return true;
+  if (process.env.NODE_ENV !== "production") return true;
+  if (typeof window === "undefined") return false;
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
 
 export function ConnectButton() {
   const { user } = useUser();
@@ -21,6 +28,13 @@ export function ConnectButton() {
   // Connect Modal State
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [directWifEnabled, setDirectWifEnabled] = useState(false);
+  const [wifValue, setWifValue] = useState("");
+  const [wifVisible, setWifVisible] = useState(false);
+
+  useEffect(() => {
+    setDirectWifEnabled(canUseDirectWif());
+  }, []);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -45,6 +59,12 @@ export function ConnectButton() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [showMenu]);
+
+  const closeConnectModal = () => {
+    setShowConnectModal(false);
+    setWifValue("");
+    setWifVisible(false);
+  };
 
   if (user) {
     return (
@@ -103,7 +123,7 @@ export function ConnectButton() {
               </span>
               {wallet.balance && (
                 <span className="text-[10px] font-semibold text-gray-500 uppercase ">
-                  {wallet.balance.gas} GAS
+                  {wallet.provider === "wif" ? "WIF Test" : `${wallet.balance.gas} GAS`}
                 </span>
               )}
             </div>
@@ -134,8 +154,18 @@ export function ConnectButton() {
   }
 
   const handleConnect = async (provider: WalletProvider) => {
-    setShowConnectModal(false);
+    closeConnectModal();
     await auth.loginWallet(provider);
+  };
+
+  const handleWifConnect = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const wif = wifValue.trim();
+    if (!wif || wallet.loading || auth.loading) return;
+    await auth.loginWif(wif);
+    if (useWalletStore.getState().connected) {
+      closeConnectModal();
+    }
   };
 
   // Wallet actions remain Neo N3-first; social login stays on the Auth0 path above.
@@ -160,8 +190,8 @@ export function ConnectButton() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setShowConnectModal(false)}
-            onKeyDown={(e) => e.key === "Escape" && setShowConnectModal(false)}
+            onClick={closeConnectModal}
+            onKeyDown={(e) => e.key === "Escape" && closeConnectModal()}
             role="button"
             tabIndex={0}
             aria-label="Close modal"
@@ -174,7 +204,7 @@ export function ConnectButton() {
           >
             <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
               <button
-                onClick={() => setShowConnectModal(false)}
+                onClick={closeConnectModal}
                 aria-label="Close login modal"
                 className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
               >
@@ -261,6 +291,52 @@ export function ConnectButton() {
 
                   {/* Neo N3 wallet extensions only */}
                 </div>
+
+                {directWifEnabled && (
+                  <form
+                    onSubmit={handleWifConnect}
+                    className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4"
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-amber-700" />
+                      <p className="text-xs font-bold uppercase text-amber-800">
+                        Direct WIF Testing
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="relative min-w-0 flex-1">
+                        <input
+                          type={wifVisible ? "text" : "password"}
+                          value={wifValue}
+                          onChange={(event) => setWifValue(event.target.value)}
+                          placeholder="Paste test wallet WIF"
+                          autoComplete="off"
+                          spellCheck={false}
+                          className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 pr-10 text-sm font-medium text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                          aria-label="Direct WIF"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setWifVisible((value) => !value)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-500 hover:bg-amber-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                          aria-label={wifVisible ? "Hide WIF" : "Show WIF"}
+                        >
+                          {wifVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={!wifValue.trim() || wallet.loading || auth.loading}
+                        className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-60"
+                      >
+                        Connect
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-[11px] font-medium leading-relaxed text-amber-800/80">
+                      Local validation only. The key stays in this browser session and is never saved.
+                    </p>
+                  </form>
+                )}
               </div>
             </div>
 
