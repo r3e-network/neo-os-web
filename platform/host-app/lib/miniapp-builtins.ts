@@ -3,6 +3,16 @@ import { withMiniAppCardAssets } from "./miniapp-media";
 import { MINIAPP_TEMPLATES } from "./templates/miniapp-templates";
 
 const MANIFEST_ENTRY_PREFIX = "mf://manifest?app=";
+const TEMPLATE_OVERRIDE_IDS = new Set([
+  "miniapp-self-loan",
+  "miniapp-profitanchor",
+  "miniapp-trustanchor",
+]);
+
+const DESCRIPTION_OVERRIDES: Record<string, string> = {
+  "miniapp-self-loan":
+    "Lock NEO to borrow GAS against future staking rewards. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody.",
+};
 
 export const FLAGSHIP_MINIAPP_IDS: string[] = [
   "miniapp-last-survivor",
@@ -11,6 +21,8 @@ export const FLAGSHIP_MINIAPP_IDS: string[] = [
   "miniapp-redenvelope",
   "miniapp-dailycheckin",
   "miniapp-self-loan",
+  "miniapp-profitanchor",
+  "miniapp-trustanchor",
   "miniapp-neo-pay",
 ];
 
@@ -28,8 +40,14 @@ export function applyBuiltInMiniAppDefaults(app: MiniAppInfo): MiniAppInfo {
 
   const template = MINIAPP_TEMPLATES[next.app_id];
   if (template) {
-    if (!next.detail_template) next.detail_template = template.detail_template;
-    if (!next.operations) next.operations = template.operations;
+    const shouldOverride = TEMPLATE_OVERRIDE_IDS.has(next.app_id);
+    if (shouldOverride || !next.detail_template) next.detail_template = template.detail_template;
+    if (shouldOverride || !next.operations) next.operations = template.operations;
+  }
+
+  const description = DESCRIPTION_OVERRIDES[next.app_id];
+  if (description) {
+    next.description = description;
   }
 
   return withMiniAppCardAssets(applyMiniAppReleaseDefaults(next));

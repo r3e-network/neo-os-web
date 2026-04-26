@@ -1,0 +1,239 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-trustanchor",
+  "name": "TrustAnchor",
+  "description": "AA-agent NEO staking and governance routing where admins can register agents and sync votes, but cannot transfer user stake or reward GAS.",
+  "template_type": "governance",
+  "category": "Governance",
+  "tags": [
+    "staking",
+    "voting",
+    "governance",
+    "aa",
+    "neo"
+  ],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "contract": {
+    "template_id": "platform-anchor",
+    "init_params": {
+      "anchor_app_id": "miniapp-trustanchor",
+      "mode": 1
+    }
+  },
+  "entry_url": "mf://manifest?app=miniapp-trustanchor",
+  "media": {
+    "icon": "/miniapp-assets/trustanchor/logo.jpg",
+    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "governance": true,
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "TrustAnchor"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "TrustAnchor uses a shared PlatformAnchor contract. User NEO remains withdrawable only by the user, reward GAS is claimable only by the user, and admin power is limited to registering AA agent routes and executing vote-only updates."
+          },
+          {
+            "type": "key_value",
+            "title": "Quick Facts",
+            "items": [
+              {
+                "key": "Asset",
+                "value": "NEO"
+              },
+              {
+                "key": "Vote Identity",
+                "value": "AA agent accounts"
+              },
+              {
+                "key": "Admin Boundary",
+                "value": "Vote routing only"
+              },
+              {
+                "key": "Reward Asset",
+                "value": "GAS"
+              }
+            ]
+          },
+          {
+            "type": "bullet_list",
+            "title": "How it works",
+            "items": [
+              "Users transfer NEO to PlatformAnchor and stake it under miniapp-trustanchor.",
+              "Admins register AA-generated agent accounts with candidate targets.",
+              "Voting can be synced to selected agents, but withdrawals and reward claims require the user's witness."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "agents",
+        "label": "Agents",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Each agent route has an AA account, candidate, verification-script hash, and optional voting weight for display. No admin method transfers user NEO or reward GAS."
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Anchor Actions",
+      "subtitle": "Stake NEO, withdraw user-owned stake, or claim user-earned GAS.",
+      "cta_label": "Open TrustAnchor",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Stake NEO",
+      "method": "stake",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "Stake (NEO)",
+          "required": true,
+          "placeholder": "10"
+        }
+      ]
+    },
+    {
+      "name": "Claim GAS",
+      "method": "claimRewards",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Withdraw NEO",
+      "method": "withdraw",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Withdraw Credit",
+      "method": "withdrawCredit",
+      "button_style": "secondary",
+      "params": [
+        {
+          "name": "user",
+          "type": "hash160",
+          "label": "User",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "asset",
+          "type": "string",
+          "label": "Asset",
+          "required": true,
+          "default_value": "NEO",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "Amount",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "weekly_active_users",
+      "total_gas_used"
+    ]
+  },
+  "docs_url": "https://docs.r3e.network/trustanchor"
+}

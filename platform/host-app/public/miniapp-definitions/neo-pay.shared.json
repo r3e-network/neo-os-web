@@ -5,13 +5,7 @@
   "description": "Example bundled definition showing how NeoPay can be registered in shared mode using funding_vault + stream_vesting instead of a bespoke business contract.",
   "template_type": "defi",
   "category": "DeFi",
-  "tags": [
-    "neopay",
-    "shared-mode",
-    "recipe",
-    "streaming",
-    "example"
-  ],
+  "tags": ["neopay", "shared-mode", "recipe", "streaming", "example"],
   "version": "0.1.0",
   "status": "draft",
   "developer": {
@@ -151,8 +145,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-neo-pay",
   "media": {
-    "icon": "/miniapps/neo-pay/logo.jpg",
-    "banner": "/miniapps/neo-pay/banner.jpg"
+    "icon": "/miniapp-assets/neo-pay/logo.jpg",
+    "banner": "/miniapp-assets/neo-pay/banner.jpg"
   },
   "permissions": {
     "payments": true

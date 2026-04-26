@@ -24,8 +24,8 @@
   },
   "entry_url": "mf://manifest?app=miniapp-redenvelope",
   "media": {
-    "icon": "/miniapps/red-envelope/logo.jpg",
-    "banner": "/miniapps/red-envelope/banner.jpg"
+    "icon": "/miniapp-assets/red-envelope/logo.jpg",
+    "banner": "/miniapp-assets/red-envelope/banner.jpg"
   },
   "permissions": {
     "payments": true
@@ -73,7 +73,7 @@
             "title": "How to use",
             "items": [
               "Create an envelope: set total GAS and how many packets (claimers) you want.",
-              "Share the envelope ID with recipients \u2014 anyone with the ID can claim once.",
+              "Share the envelope ID with recipients — anyone with the ID can claim once.",
               "Each claim pulls a random share until all packets are taken or the envelope expires."
             ]
           }
