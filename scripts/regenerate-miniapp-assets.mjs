@@ -413,6 +413,22 @@ async function writeAssets(item, tile, index) {
   fs.mkdirSync(hostDir, { recursive: true });
   fs.writeFileSync(path.join(hostDir, "logo.jpg"), logo);
   fs.writeFileSync(path.join(hostDir, "banner.jpg"), banner);
+  fs.writeFileSync(
+    path.join(hostDir, "logo.webp"),
+    await sharp(logo).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
+  );
+  fs.writeFileSync(
+    path.join(hostDir, "banner.webp"),
+    await sharp(banner).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
+  );
+  fs.writeFileSync(
+    path.join(hostDir, "logo.avif"),
+    await sharp(logo).avif({ quality: 68, effort: 6, chromaSubsampling: "4:4:4" }).toBuffer(),
+  );
+  fs.writeFileSync(
+    path.join(hostDir, "banner.avif"),
+    await sharp(banner).avif({ quality: 68, effort: 6, chromaSubsampling: "4:4:4" }).toBuffer(),
+  );
   fs.writeFileSync(path.join(hostDir, "logo.svg"), tinyWrapper("logo", item.slug));
   fs.writeFileSync(path.join(hostDir, "banner.svg"), tinyWrapper("banner", item.slug));
 
@@ -422,6 +438,22 @@ async function writeAssets(item, tile, index) {
     fs.mkdirSync(publicDir, { recursive: true });
     fs.writeFileSync(path.join(publicDir, "logo.jpg"), logo);
     fs.writeFileSync(path.join(publicDir, "banner.jpg"), banner);
+    fs.writeFileSync(
+      path.join(publicDir, "logo.webp"),
+      await sharp(logo).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
+    );
+    fs.writeFileSync(
+      path.join(publicDir, "banner.webp"),
+      await sharp(banner).webp({ quality: 88, effort: 5, smartSubsample: true }).toBuffer(),
+    );
+    fs.writeFileSync(
+      path.join(publicDir, "logo.avif"),
+      await sharp(logo).avif({ quality: 68, effort: 6, chromaSubsampling: "4:4:4" }).toBuffer(),
+    );
+    fs.writeFileSync(
+      path.join(publicDir, "banner.avif"),
+      await sharp(banner).avif({ quality: 68, effort: 6, chromaSubsampling: "4:4:4" }).toBuffer(),
+    );
   }
 
   return { slug: item.slug, index, category: item.category, hostDir };
