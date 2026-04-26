@@ -17,7 +17,10 @@ export interface TrendingApp {
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -37,7 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     : catalog;
 
   const scored: TrendingApp[] = filtered.map((app) => {
-    const stats = statsMap[app.app_id] ?? { users: 0, transactions: 0, volume: 0, lastActivityAt: null };
+    const stats = statsMap[app.app_id] ?? {
+      users: 0,
+      transactions: 0,
+      volume: 0,
+      lastActivityAt: null,
+    };
     const growth = estimateGrowth(stats.lastActivityAt);
     const score = calculateScore({
       users: stats.users,
@@ -64,10 +72,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   scored.sort((a, b) => b.score - a.score);
 
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-  return res.status(200).json({
+  res.status(200).json({
     trending: scored.slice(0, maxResults),
     updated_at: new Date().toISOString(),
   });
+  return;
 }
 
 function estimateGrowth(lastActivityAt: string | null): number {
@@ -83,12 +92,19 @@ function estimateGrowth(lastActivityAt: string | null): number {
   return -10;
 }
 
-function calculateScore(stats: { users: number; txs: number; volume: number; growth: number }): number {
+function calculateScore(stats: {
+  users: number;
+  txs: number;
+  volume: number;
+  growth: number;
+}): number {
   const normalizedUsers = Math.min(stats.users / 500, 1) * 40;
   const normalizedTxs = Math.min(stats.txs / 2000, 1) * 30;
   const normalizedVolume = Math.min(stats.volume / 10000, 1) * 20;
   const normalizedGrowth = Math.max(0, (stats.growth + 10) / 60) * 10;
-  return Math.round(normalizedUsers + normalizedTxs + normalizedVolume + normalizedGrowth);
+  return Math.round(
+    normalizedUsers + normalizedTxs + normalizedVolume + normalizedGrowth,
+  );
 }
 
 function formatVolume(volume: number): string {

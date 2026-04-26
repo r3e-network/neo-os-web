@@ -4,7 +4,13 @@
 
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/Card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/Card";
 
 describe("Card Component", () => {
   it("should render card with content", () => {

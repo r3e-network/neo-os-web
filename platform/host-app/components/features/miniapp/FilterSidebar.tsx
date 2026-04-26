@@ -16,7 +16,11 @@ interface FilterSidebarProps {
   onChange: (sectionId: string, values: string[]) => void;
 }
 
-export function FilterSidebar({ sections, selected, onChange }: FilterSidebarProps) {
+export function FilterSidebar({
+  sections,
+  selected,
+  onChange,
+}: FilterSidebarProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map((s) => [s.id, true])),
   );
@@ -27,14 +31,19 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
 
   const toggleOption = (sectionId: string, value: string) => {
     const current = selected[sectionId] || [];
-    const newValues = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+    const newValues = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
     onChange(sectionId, newValues);
   };
 
   return (
-    <aside className="w-72 flex-shrink-0 border-r border-gray-200/50 bg-white/60 backdrop-blur-xl overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo glass-panel" tabIndex={0}>
+    <aside
+      className="w-72 flex-shrink-0 border-r border-gray-200/50 bg-white/60 backdrop-blur-xl overflow-y-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo glass-panel"
+      tabIndex={0}
+    >
       <div className="p-6">
-        <h2 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+        <h2 className="text-sm font-black text-gray-500 uppercase mb-6 flex items-center gap-2">
           Filters
           <div className="h-px bg-gray-200 flex-1" />
         </h2>
@@ -49,19 +58,27 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
             >
               {section.label}
               <div className="p-1 rounded-md bg-gray-100 text-gray-500">
-                {expanded[section.id] ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronRight size={14} aria-hidden="true" />}
+                {expanded[section.id] ? (
+                  <ChevronDown size={14} aria-hidden="true" />
+                ) : (
+                  <ChevronRight size={14} aria-hidden="true" />
+                )}
               </div>
             </button>
 
             <div
               className={cn(
                 "grid transition-all duration-300 ease-in-out",
-                expanded[section.id] ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                expanded[section.id]
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0",
               )}
             >
               <div className="overflow-hidden space-y-1.5 pt-1">
                 {section.options.map((option) => {
-                  const isSelected = (selected[section.id] || []).includes(option.value);
+                  const isSelected = (selected[section.id] || []).includes(
+                    option.value,
+                  );
                   return (
                     <label
                       key={option.value}
@@ -79,19 +96,27 @@ export function FilterSidebar({ sections, selected, onChange }: FilterSidebarPro
                         className="sr-only"
                       />
                       <div className="flex items-center gap-3 flex-1 overflow-hidden">
-                        <div className={cn(
-                          "w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors shrink-0",
-                          isSelected ? "bg-neo border-neo text-gray-900" : "border-gray-300 group-hover:border-neo/50"
-                        )}>
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded-[4px] border flex items-center justify-center transition-colors shrink-0",
+                            isSelected
+                              ? "bg-neo border-neo text-gray-900"
+                              : "border-gray-300 group-hover:border-neo/50",
+                          )}
+                        >
                           {isSelected && <Check size={12} strokeWidth={3} />}
                         </div>
                         <span className="flex-1 truncate">{option.label}</span>
                       </div>
                       {option.count !== undefined && (
-                        <span className={cn(
-                          "text-xs px-2 py-0.5 rounded-full font-medium transition-colors",
-                          isSelected ? "bg-neo/20 text-neo" : "bg-gray-100 text-gray-500 group-hover:text-gray-300"
-                        )}>
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full font-medium transition-colors",
+                            isSelected
+                              ? "bg-neo/20 text-neo"
+                              : "bg-gray-100 text-gray-500 group-hover:text-gray-300",
+                          )}
+                        >
                           {option.count}
                         </span>
                       )}

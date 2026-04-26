@@ -79,13 +79,16 @@ function setupClickTracking(): () => void {
     const target = event.target as HTMLElement;
 
     // Find closest clickable element
-    const element = target.closest("[data-track-click], [data-analytics], [data-event]");
+    const element = target.closest(
+      "[data-track-click], [data-analytics], [data-event]",
+    );
 
     if (element) {
       const dataset = (element as HTMLElement).dataset;
 
       // Use data attributes for tracking
-      const eventName = dataset.trackClick || dataset.analytics || dataset.event;
+      const eventName =
+        dataset.trackClick || dataset.analytics || dataset.event;
 
       if (eventName) {
         trackClick(element as HTMLElement, {
@@ -99,7 +102,7 @@ function setupClickTracking(): () => void {
                 .map(([key, value]) => [
                   key.replace("analytics", "").toLowerCase(),
                   value,
-                ])
+                ]),
             ),
           },
         });
@@ -120,44 +123,45 @@ function setupClickTracking(): () => void {
  */
 export function useAnalytics() {
   const sessionId = getSessionId();
-  
-  const track = useCallback(<T extends Record<string, unknown>>(
-    name: string,
-    options?: {
-      type?: AnalyticsEventType;
-      category?: string;
-      label?: string;
-      value?: number;
-      metadata?: T;
-    }
-  ) => {
-    return trackEvent(name, options);
-  }, []);
-  
+
+  const track = useCallback(
+    <T extends Record<string, unknown>>(
+      name: string,
+      options?: {
+        type?: AnalyticsEventType;
+        category?: string;
+        label?: string;
+        value?: number;
+        metadata?: T;
+      },
+    ) => {
+      return trackEvent(name, options);
+    },
+    [],
+  );
+
   const trackPage = useCallback((path?: string) => {
     return trackPageView(path);
   }, []);
-  
-  const trackMiniApp = useCallback((
-    appId: string,
-    appName: string,
-    source?: string
-  ) => {
-    return trackMiniAppLaunch(appId, appName, { source });
-  }, []);
-  
-  const trackAction = useCallback((
-    category: string,
-    action: string,
-    metadata?: Record<string, unknown>
-  ) => {
-    return trackEvent(action, {
-      type: "custom",
-      category,
-      metadata,
-    });
-  }, []);
-  
+
+  const trackMiniApp = useCallback(
+    (appId: string, appName: string, source?: string) => {
+      return trackMiniAppLaunch(appId, appName, { source });
+    },
+    [],
+  );
+
+  const trackAction = useCallback(
+    (category: string, action: string, metadata?: Record<string, unknown>) => {
+      return trackEvent(action, {
+        type: "custom",
+        category,
+        metadata,
+      });
+    },
+    [],
+  );
+
   return {
     sessionId,
     track,
@@ -171,26 +175,29 @@ export function useAnalytics() {
  * Hook for tracking form submissions
  */
 export function useFormAnalytics(formId?: string) {
-  const trackFormSubmit = useCallback((
-    formElement: HTMLFormElement,
-    options?: {
-      success?: boolean;
-      metadata?: Record<string, unknown>;
-    }
-  ) => {
-    return trackEvent("form_submit", {
-      type: "form_submit",
-      category: "form",
-      label: formId || formElement.id || formElement.name || "unknown",
-      metadata: {
-        formId: formId || formElement.id,
-        action: formElement.action,
-        ...options?.metadata,
-        success: options?.success ?? true,
+  const trackFormSubmit = useCallback(
+    (
+      formElement: HTMLFormElement,
+      options?: {
+        success?: boolean;
+        metadata?: Record<string, unknown>;
       },
-    });
-  }, [formId]);
-  
+    ) => {
+      return trackEvent("form_submit", {
+        type: "form_submit",
+        category: "form",
+        label: formId || formElement.id || formElement.name || "unknown",
+        metadata: {
+          formId: formId || formElement.id,
+          action: formElement.action,
+          ...options?.metadata,
+          success: options?.success ?? true,
+        },
+      });
+    },
+    [formId],
+  );
+
   return { trackFormSubmit };
 }
 
@@ -198,22 +205,21 @@ export function useFormAnalytics(formId?: string) {
  * Hook for tracking search
  */
 export function useSearchAnalytics() {
-  const trackSearch = useCallback((
-    query: string,
-    resultsCount: number,
-    category?: string
-  ) => {
-    return trackEvent("search", {
-      type: "search",
-      category: category || "search",
-      metadata: {
-        query,
-        resultsCount,
-        hasResults: resultsCount > 0,
-      },
-    });
-  }, []);
-  
+  const trackSearch = useCallback(
+    (query: string, resultsCount: number, category?: string) => {
+      return trackEvent("search", {
+        type: "search",
+        category: category || "search",
+        metadata: {
+          query,
+          resultsCount,
+          hasResults: resultsCount > 0,
+        },
+      });
+    },
+    [],
+  );
+
   return { trackSearch };
 }
 
@@ -232,10 +238,10 @@ export function AnalyticsVisible({
   once?: boolean;
 }) {
   const hasTracked = useRef(false);
-  
+
   useEffect(() => {
     if (once && hasTracked.current) return;
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -250,26 +256,26 @@ export function AnalyticsVisible({
                 viewportRatio: entry.intersectionRatio,
               },
             });
-            
+
             if (once) {
               observer.disconnect();
             }
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
-    
+
     const current = React.Children.only(children) as React.ReactElement;
     const currentWithRef = current as React.ReactElement & { ref?: unknown };
     if (currentWithRef?.ref) {
       // Handle ref
       observer.observe(current as unknown as Element);
     }
-    
+
     return () => observer.disconnect();
   }, [name, category, once, children]);
-  
+
   return <>{children}</>;
 }
 
@@ -283,11 +289,17 @@ export function withAnalytics<P extends object>(
     category?: string;
     trackOnMount?: boolean;
     trackOnUnmount?: boolean;
-  } = {}
+  } = {},
 ) {
-  const { eventName, category = "component", trackOnMount = false, trackOnUnmount = false } = trackingOptions;
-  const displayName = WrappedComponent.displayName || WrappedComponent.name || "Component";
-  
+  const {
+    eventName,
+    category = "component",
+    trackOnMount = false,
+    trackOnUnmount = false,
+  } = trackingOptions;
+  const displayName =
+    WrappedComponent.displayName || WrappedComponent.name || "Component";
+
   const WithAnalytics: React.FC<P> = (props) => {
     useEffect(() => {
       if (trackOnMount && eventName) {
@@ -298,7 +310,7 @@ export function withAnalytics<P extends object>(
           metadata: { component: displayName },
         });
       }
-      
+
       return () => {
         if (trackOnUnmount && eventName) {
           trackEvent(`${eventName}_unmount`, {
@@ -310,10 +322,10 @@ export function withAnalytics<P extends object>(
         }
       };
     }, [eventName, category, displayName, trackOnMount, trackOnUnmount]);
-    
+
     return <WrappedComponent {...props} />;
   };
-  
+
   WithAnalytics.displayName = `withAnalytics(${displayName})`;
   return WithAnalytics;
 }

@@ -19,11 +19,15 @@ const mockQueryBuilder = {
 };
 
 // Default: resolve with empty data
-mockQueryBuilder.limit.mockImplementation(function (this: typeof mockQueryBuilder) {
+mockQueryBuilder.limit.mockImplementation(function (
+  this: typeof mockQueryBuilder,
+) {
   // Return a thenable that resolves with empty data
   const thenable = {
     ...this,
-    then: (resolve: (value: { data: MiniAppNotification[]; error: null }) => void) => {
+    then: (
+      resolve: (value: { data: MiniAppNotification[]; error: null }) => void,
+    ) => {
       resolve({ data: [], error: null });
       return thenable;
     },
@@ -44,10 +48,14 @@ jest.mock("../../lib/supabase", () => ({
 // Mock logger to always output (bypass NODE_ENV check)
 jest.mock("../../lib/logger", () => ({
   logger: {
-    debug: (message: string, ...args: unknown[]) => console.log(`[DEBUG] ${message}`, ...args),
-    info: (message: string, ...args: unknown[]) => console.log(`[INFO] ${message}`, ...args),
-    warn: (message: string, ...args: unknown[]) => console.warn(`[WARN] ${message}`, ...args),
-    error: (message: string, error?: unknown) => console.error(`[ERROR] ${message}`, error),
+    debug: (message: string, ...args: unknown[]) =>
+      console.log(`[DEBUG] ${message}`, ...args),
+    info: (message: string, ...args: unknown[]) =>
+      console.log(`[INFO] ${message}`, ...args),
+    warn: (message: string, ...args: unknown[]) =>
+      console.warn(`[WARN] ${message}`, ...args),
+    error: (message: string, error?: unknown) =>
+      console.error(`[ERROR] ${message}`, error),
   },
 }));
 
@@ -58,20 +66,34 @@ describe("useRealtimeNotifications", () => {
   let consoleErrorSpy: jest.SpyInstance;
   let consoleLogSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;
+  let fetchMock: jest.Mock;
+  let originalFetch: typeof global.fetch | undefined;
   const originalConsoleError = console.error;
 
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation((...args) => {
-      const message = args[0];
-      if (typeof message === "string" && message.startsWith("[ERROR] Realtime notifications: Channel error")) {
-        return;
-      }
-      originalConsoleError(...args);
-    });
+    consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation((...args) => {
+        const message = args[0];
+        if (
+          typeof message === "string" &&
+          message.startsWith("[ERROR] Realtime notifications: Channel error")
+        ) {
+          return;
+        }
+        originalConsoleError(...args);
+      });
     consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    originalFetch = global.fetch;
+    fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ items: [] }),
+    } as Response);
+    global.fetch = fetchMock as unknown as typeof global.fetch;
 
     // Mock channel object
     mockChannel = {
@@ -95,11 +117,15 @@ describe("useRealtimeNotifications", () => {
     consoleErrorSpy.mockRestore();
     consoleLogSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+    if (originalFetch) global.fetch = originalFetch;
+    else Reflect.deleteProperty(global, "fetch");
   });
 
   describe("Subscription Lifecycle", () => {
     it("should initialize with empty notifications and disconnected state", () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       expect(result.current.notifications).toEqual([]);
       expect(result.current.isConnected).toBe(false);
@@ -110,7 +136,9 @@ describe("useRealtimeNotifications", () => {
     it("should create channel with correct configuration", () => {
       renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
 
-      expect(supabase.channel).toHaveBeenCalledWith("miniapp-notifications-channel");
+      expect(supabase.channel).toHaveBeenCalledWith(
+        "miniapp-notifications-channel",
+      );
       expect(mockChannel.on).toHaveBeenCalledWith(
         "postgres_changes",
         {
@@ -124,7 +152,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should use user-scoped channel name when userId is provided", () => {
-      renderHook(() => useRealtimeNotifications({ userId: "user-42", skipInitialFetch: true }));
+      renderHook(() =>
+        useRealtimeNotifications({ userId: "user-42", skipInitialFetch: true }),
+      );
 
       expect(supabase.channel).toHaveBeenCalledWith("notifications:user-42");
       expect(mockChannel.on).toHaveBeenCalledWith(
@@ -140,7 +170,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should set isConnected to true when subscription succeeds", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       act(() => {
         subscribeCallback(REALTIME_SUBSCRIBE_STATES.SUBSCRIBED, null);
@@ -153,7 +185,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should cleanup channel on unmount", () => {
-      const { unmount } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { unmount } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       unmount();
 
@@ -161,7 +195,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should not subscribe when enabled is false", () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ enabled: false, skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ enabled: false, skipInitialFetch: true }),
+      );
 
       expect(supabase.channel).not.toHaveBeenCalled();
       expect(result.current.isConnected).toBe(false);
@@ -170,7 +206,9 @@ describe("useRealtimeNotifications", () => {
 
   describe("Notification Handling", () => {
     it("should add new notification to state on INSERT event", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       // Capture the insert handler
       const onCallArgs = mockChannel.on.mock.calls[0];
@@ -198,7 +236,12 @@ describe("useRealtimeNotifications", () => {
 
     it("should invoke onNotification callback when new notification arrives", async () => {
       const mockCallback = jest.fn();
-      renderHook(() => useRealtimeNotifications({ onNotification: mockCallback, skipInitialFetch: true }));
+      renderHook(() =>
+        useRealtimeNotifications({
+          onNotification: mockCallback,
+          skipInitialFetch: true,
+        }),
+      );
 
       const onCallArgs = mockChannel.on.mock.calls[0];
       insertHandler = onCallArgs[2];
@@ -269,7 +312,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should keep only 50 most recent notifications", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       const onCallArgs = mockChannel.on.mock.calls[0];
       insertHandler = onCallArgs[2];
@@ -305,7 +350,12 @@ describe("useRealtimeNotifications", () => {
         throw new Error("Callback error");
       });
 
-      const { result } = renderHook(() => useRealtimeNotifications({ onNotification: mockCallback, skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({
+          onNotification: mockCallback,
+          skipInitialFetch: true,
+        }),
+      );
 
       const onCallArgs = mockChannel.on.mock.calls[0];
       insertHandler = onCallArgs[2];
@@ -335,7 +385,9 @@ describe("useRealtimeNotifications", () => {
 
   describe("Error Handling and Reconnection", () => {
     it("should set error state on CHANNEL_ERROR", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       const testError = new Error("Channel connection failed");
 
@@ -355,7 +407,10 @@ describe("useRealtimeNotifications", () => {
 
       // First error
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       await waitFor(() => {
@@ -375,7 +430,10 @@ describe("useRealtimeNotifications", () => {
 
       // Trigger another error
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       await waitFor(() => {
@@ -392,7 +450,10 @@ describe("useRealtimeNotifications", () => {
       // Simulate 10 failed attempts
       for (let i = 0; i < 10; i++) {
         act(() => {
-          subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+          subscribeCallback(
+            REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+            new Error("Test"),
+          );
         });
 
         if (i < 9) {
@@ -404,12 +465,16 @@ describe("useRealtimeNotifications", () => {
 
       await waitFor(() => {
         // After many retries, delay should be capped at 30000ms
-        expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining("[DEBUG] Reconnecting in 30000ms"));
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("[DEBUG] Reconnecting in 30000ms"),
+        );
       });
     });
 
     it("should handle TIMED_OUT status and retry", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       act(() => {
         subscribeCallback(REALTIME_SUBSCRIBE_STATES.TIMED_OUT, null);
@@ -430,7 +495,9 @@ describe("useRealtimeNotifications", () => {
 
     it("should handle CLOSED status", async () => {
       consoleLogSpy.mockClear();
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       act(() => {
         subscribeCallback(REALTIME_SUBSCRIBE_STATES.CLOSED, null);
@@ -438,12 +505,16 @@ describe("useRealtimeNotifications", () => {
 
       await waitFor(() => {
         expect(result.current.isConnected).toBe(false);
-        expect(consoleLogSpy).toHaveBeenCalledWith("[DEBUG] Realtime notifications: Channel closed");
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          "[DEBUG] Realtime notifications: Channel closed",
+        );
       });
     });
 
     it("should reset retry count on successful message", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       // First connect successfully
       act(() => {
@@ -455,7 +526,10 @@ describe("useRealtimeNotifications", () => {
 
       // Simulate some errors to increase retry count
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       act(() => {
@@ -481,7 +555,10 @@ describe("useRealtimeNotifications", () => {
       consoleLogSpy.mockClear();
 
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       await waitFor(() => {
@@ -494,11 +571,16 @@ describe("useRealtimeNotifications", () => {
 
   describe("Manual Reconnection", () => {
     it("should provide reconnect function that resets retry count", async () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       // Simulate error to increase retry count
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       act(() => {
@@ -519,7 +601,10 @@ describe("useRealtimeNotifications", () => {
       consoleLogSpy.mockClear();
 
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       await waitFor(() => {
@@ -530,7 +615,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should cleanup existing channel before reconnecting", () => {
-      const { result } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       act(() => {
         result.current.reconnect();
@@ -542,11 +629,16 @@ describe("useRealtimeNotifications", () => {
 
   describe("Cleanup and Memory Management", () => {
     it("should clear retry timeout on unmount", () => {
-      const { unmount } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { unmount } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       // Trigger error to schedule retry
       act(() => {
-        subscribeCallback(REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR, new Error("Test"));
+        subscribeCallback(
+          REALTIME_SUBSCRIBE_STATES.CHANNEL_ERROR,
+          new Error("Test"),
+        );
       });
 
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
@@ -564,7 +656,9 @@ describe("useRealtimeNotifications", () => {
     });
 
     it("should not update state after unmount", async () => {
-      const { result, unmount } = renderHook(() => useRealtimeNotifications({ skipInitialFetch: true }));
+      const { result, unmount } = renderHook(() =>
+        useRealtimeNotifications({ skipInitialFetch: true }),
+      );
 
       const onCallArgs = mockChannel.on.mock.calls[0];
       insertHandler = onCallArgs[2];
@@ -606,10 +700,12 @@ describe("useRealtimeNotifications", () => {
       ];
 
       // Override the mock to return data
-      const mockFrom = (supabase.from as jest.Mock);
+      const mockFrom = supabase.from as jest.Mock;
       const mockSelect = jest.fn().mockReturnThis();
       const mockOrder = jest.fn().mockReturnThis();
-      const mockLimit = jest.fn().mockResolvedValue({ data: mockNotifications, error: null });
+      const mockLimit = jest
+        .fn()
+        .mockResolvedValue({ data: mockNotifications, error: null });
 
       mockFrom.mockReturnValue({
         select: mockSelect,
@@ -618,8 +714,16 @@ describe("useRealtimeNotifications", () => {
         eq: jest.fn().mockReturnThis(),
       });
       // Chain: select -> order -> limit (limit returns the promise)
-      mockSelect.mockReturnValue({ order: mockOrder, eq: jest.fn().mockReturnThis(), limit: mockLimit });
-      mockOrder.mockReturnValue({ order: mockOrder, eq: jest.fn().mockReturnThis(), limit: mockLimit });
+      mockSelect.mockReturnValue({
+        order: mockOrder,
+        eq: jest.fn().mockReturnThis(),
+        limit: mockLimit,
+      });
+      mockOrder.mockReturnValue({
+        order: mockOrder,
+        eq: jest.fn().mockReturnThis(),
+        limit: mockLimit,
+      });
 
       const { result } = renderHook(() => useRealtimeNotifications());
 
@@ -636,29 +740,38 @@ describe("useRealtimeNotifications", () => {
       expect(supabase.from).not.toHaveBeenCalled();
     });
 
-    it("should apply appId filter to initial fetch query", async () => {
-      const mockEq = jest.fn().mockReturnThis();
-      const mockFrom = (supabase.from as jest.Mock);
-      mockFrom.mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          order: jest.fn().mockReturnValue({
-            order: jest.fn().mockReturnThis(),
-            limit: jest.fn().mockResolvedValue({ data: [], error: null }),
-            eq: mockEq,
-          }),
-          eq: mockEq,
-          limit: jest.fn().mockResolvedValue({ data: [], error: null }),
+    it("should fetch app-scoped initial notifications through the host news API", async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: [
+            {
+              id: "api-1",
+              app_id: "my-app",
+              title: "API notification",
+              content: "Loaded through host API",
+              notification_type: "info",
+              source: "contract",
+              created_at: new Date().toISOString(),
+            },
+          ],
         }),
-        eq: mockEq,
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [], error: null }),
-      });
+      } as Response);
 
-      renderHook(() => useRealtimeNotifications({ appId: "my-app" }));
+      const { result } = renderHook(() =>
+        useRealtimeNotifications({ appId: "my-app" }),
+      );
 
       await waitFor(() => {
-        expect(supabase.from).toHaveBeenCalledWith("miniapp_notifications");
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/api/app/my-app/news?limit=50",
+          expect.objectContaining({ method: "GET" }),
+        );
+        expect(result.current.notifications).toHaveLength(1);
+        expect(result.current.notifications[0].id).toBe("api-1");
       });
+      expect(supabase.from).not.toHaveBeenCalledWith("miniapp_notifications");
     });
   });
 });

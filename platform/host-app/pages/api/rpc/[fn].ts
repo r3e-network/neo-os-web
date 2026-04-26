@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl, isEdgeRpcAllowed } from "../../../lib/edge";
+import {
+  forwardEdgeRpcHeaders,
+  getEdgeFunctionsBaseUrl,
+  isEdgeRpcAllowed,
+} from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
@@ -8,7 +12,11 @@ const FETCH_TIMEOUT_MS = 30000; // 30 seconds
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000;
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -23,7 +31,11 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
   }
 }
 
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries: number): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries: number,
+): Promise<Response> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -41,8 +53,12 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries: num
   }
 
   throw lastError
-    ? new Error(`fetchWithRetry(${url}) failed after ${maxRetries} retries: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
-    : new Error(`fetchWithRetry(${url}) failed after ${maxRetries} retries: unknown error`);
+    ? new Error(
+        `fetchWithRetry(${url}) failed after ${maxRetries} retries: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+      )
+    : new Error(
+        `fetchWithRetry(${url}) failed after ${maxRetries} retries: unknown error`,
+      );
 }
 
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
@@ -67,7 +83,10 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
   const fn = String(req.query.fn ?? "").trim();
   if (!fn) {
@@ -81,7 +100,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    apiError.internal(res, "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured");
+    apiError.internal(
+      res,
+      "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured",
+    );
     return;
   }
 
@@ -110,17 +132,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const body = rawBody ? new Uint8Array(rawBody) : undefined;
 
   try {
-    const upstream = await fetchWithRetry(url.toString(), { method, headers, body }, MAX_RETRIES);
+    const upstream = await fetchWithRetry(
+      url.toString(),
+      { method, headers, body },
+      MAX_RETRIES,
+    );
 
     res.status(upstream.status);
     res.setHeader("Cache-Control", "no-store, private");
-    const blockedHeaders = new Set(["transfer-encoding", "connection", "set-cookie", "access-control-allow-origin", "cache-control"]);
+    const blockedHeaders = new Set([
+      "transfer-encoding",
+      "connection",
+      "set-cookie",
+      "access-control-allow-origin",
+      "cache-control",
+    ]);
     upstream.headers.forEach((value, key) => {
       if (blockedHeaders.has(key)) return;
       res.setHeader(key, value);
     });
 
-    const contentLength = parseInt(upstream.headers.get("content-length") || "0", 10);
+    const contentLength = parseInt(
+      upstream.headers.get("content-length") || "0",
+      10,
+    );
     if (contentLength > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
@@ -128,9 +163,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (buf.length > MAX_RESPONSE_SIZE) {
       return apiError.gatewayError(res, "upstream response too large");
     }
-    return res.send(buf);
+    res.send(buf);
+    return;
   } catch (err) {
-    logger.error("RPC upstream error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "RPC upstream error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.gatewayTimeout(res, "Upstream request failed");
   }
 }

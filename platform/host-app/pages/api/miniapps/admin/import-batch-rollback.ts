@@ -4,9 +4,15 @@ import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { normalizeMiniAppAdminPayload } from "@/lib/miniapp-admin";
-import { recordMiniAppVersion, rollbackMiniAppVersion } from "@/lib/miniapp-versioning";
+import {
+  recordMiniAppVersion,
+  rollbackMiniAppVersion,
+} from "@/lib/miniapp-versioning";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 type Dict = Record<string, unknown>;
 
@@ -39,7 +45,8 @@ type RollbackTargetInput = {
 };
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
-const VERSION_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const VERSION_ID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function asObject(value: unknown): Dict {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -57,10 +64,16 @@ function parseTargets(value: unknown): RollbackTargetInput[] {
     .map((item) => asObject(item))
     .map((item) => ({
       app_id: asTrimmedString(item.app_id).toLowerCase(),
-      mode: asTrimmedString(item.mode).toLowerCase() === "create" ? "create" : "update",
-      rollback_version_id: asTrimmedString(item.rollback_version_id).toLowerCase() || null,
+      mode:
+        asTrimmedString(item.mode).toLowerCase() === "create"
+          ? "create"
+          : "update",
+      rollback_version_id:
+        asTrimmedString(item.rollback_version_id).toLowerCase() || null,
       rollback_release_channel:
-        asTrimmedString(item.rollback_release_channel).toLowerCase() === "draft" ? "draft" : "published",
+        asTrimmedString(item.rollback_release_channel).toLowerCase() === "draft"
+          ? "draft"
+          : "published",
     }));
 }
 
@@ -71,7 +84,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -80,15 +96,24 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const body = asObject(req.body);
   const targets = parseTargets(body.targets);
   if (!targets.length) {
-    return apiError.badRequest(res, "targets is required and must be a non-empty array");
+    return apiError.badRequest(
+      res,
+      "targets is required and must be a non-empty array",
+    );
   }
   if (targets.length > 200) {
-    return apiError.badRequest(res, "targets allows at most 200 items per rollback batch");
+    return apiError.badRequest(
+      res,
+      "targets allows at most 200 items per rollback batch",
+    );
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const actor = admin.kind === "wallet" ? admin.value : "api_key";
@@ -117,9 +142,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
           note: "import_batch_rollback",
         });
 
-        const { error: upsertError } = await supabase.from("miniapps").upsert(rolled.row, { onConflict: "app_id" });
+        const { error: upsertError } = await supabase
+          .from("miniapps")
+          .upsert(rolled.row, { onConflict: "app_id" });
         if (upsertError) {
-          throw new Error(`Rollback applied but failed to update miniapp row: ${upsertError.message}`);
+          throw new Error(
+            `Rollback applied but failed to update miniapp row: ${upsertError.message}`,
+          );
         }
 
         results.push({
@@ -143,7 +172,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         .maybeSingle();
 
       if (existingError) {
-        throw new Error(`Failed to load created app for rollback: ${existingError.message}`);
+        throw new Error(
+          `Failed to load created app for rollback: ${existingError.message}`,
+        );
       }
       if (!existingRow) {
         results.push({
@@ -156,14 +187,15 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
       const normalized = normalizeMiniAppAdminPayload(
         {
-          ...(asObject((existingRow as ExistingRow).manifest)),
+          ...asObject((existingRow as ExistingRow).manifest),
           app_id: target.app_id,
           action: "disable",
         },
         {
           existing: existingRow as ExistingRow,
           actor,
-          defaultDeveloperUserId: process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
+          defaultDeveloperUserId:
+            process.env.MINIAPP_ADMIN_DEFAULT_DEVELOPER_USER_ID,
         },
       );
       if (!normalized.ok) {
@@ -174,7 +206,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         .from("miniapps")
         .upsert(normalized.row, { onConflict: "app_id" });
       if (disableUpsertError) {
-        throw new Error(`Failed to disable created app: ${disableUpsertError.message}`);
+        throw new Error(
+          `Failed to disable created app: ${disableUpsertError.message}`,
+        );
       }
 
       await recordMiniAppVersion(supabase, {
@@ -189,7 +223,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         status: "disabled_created_app",
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "unknown rollback error";
+      const message =
+        error instanceof Error ? error.message : "unknown rollback error";
       logger.error("import batch rollback item failed:", message);
       results.push({
         app_id: target.app_id,
@@ -212,11 +247,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   );
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     success: summary.failed === 0,
     summary,
     results,
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

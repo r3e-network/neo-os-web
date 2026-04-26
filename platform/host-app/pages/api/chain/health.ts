@@ -18,7 +18,10 @@ interface ChainHealth {
   status: "healthy" | "warning" | "critical";
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -32,16 +35,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const rpcUrl = getNeoRPCURL(network as "testnet" | "mainnet");
 
   try {
-    const health = await checkChainHealth(rpcUrl, network as "testnet" | "mainnet");
+    const health = await checkChainHealth(
+      rpcUrl,
+      network as "testnet" | "mainnet",
+    );
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
-    return res.status(200).json(health);
+    res.status(200).json(health);
+    return;
   } catch (err) {
-    logger.error("Chain health check failed:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Chain health check failed:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to check chain health");
   }
 }
 
-async function checkChainHealth(rpcUrl: string, network: "testnet" | "mainnet"): Promise<ChainHealth> {
+async function checkChainHealth(
+  rpcUrl: string,
+  network: "testnet" | "mainnet",
+): Promise<ChainHealth> {
   const rpcTimeout = 10000;
 
   const blockRes = await fetch(rpcUrl, {

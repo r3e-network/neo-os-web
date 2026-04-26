@@ -19,7 +19,9 @@ interface ServiceConfig {
   [key: string]: unknown;
 }
 
-export default function ServiceConfigPage(props: { params: Promise<{ id: string }> }) {
+export default function ServiceConfigPage(props: {
+  params: Promise<{ id: string }>;
+}) {
   const params = use(props.params);
   const router = useRouter();
   const [config, setConfig] = useState<ServiceConfig | null>(null);
@@ -35,13 +37,26 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         return res.json();
       })
-      .then((data) => { if (active) { setConfig(data); setLoading(false); } })
+      .then((data) => {
+        if (active) {
+          setConfig(data);
+          setLoading(false);
+        }
+      })
       .catch((e: unknown) => {
-        const msg = e instanceof Error ? e.message : "Failed to load service configuration";
+        const msg =
+          e instanceof Error
+            ? e.message
+            : "Failed to load service configuration";
         console.warn("[services] failed to load service config:", msg);
-        if (active) { setLoadError(msg); setLoading(false); }
+        if (active) {
+          setLoadError(msg);
+          setLoading(false);
+        }
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [params.id]);
 
   const handleSave = async () => {
@@ -63,13 +78,22 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
     }
   };
 
-  if (loading) return <div className="flex justify-center p-12"><Spinner /></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center p-12">
+        <Spinner />
+      </div>
+    );
 
   if (loadError || !config) {
     return (
       <div className="p-8 text-center">
-        <p className="text-red-400 mb-4">{loadError || "Configuration unavailable"}</p>
-        <Button variant="ghost" onClick={() => router.push("/services")}>&larr; Back</Button>
+        <p className="text-red-400 mb-4">
+          {loadError || "Configuration unavailable"}
+        </p>
+        <Button variant="ghost" onClick={() => router.push("/services")}>
+          &larr; Back
+        </Button>
       </div>
     );
   }
@@ -82,10 +106,16 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
         </div>
       )}
       <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" onClick={() => router.push("/services")}>&larr; Back</Button>
+        <Button variant="ghost" onClick={() => router.push("/services")}>
+          &larr; Back
+        </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Service Configuration</h1>
-          <p className="text-gray-600 dark:text-gray-400 font-mono text-sm">{params.id}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Service Configuration
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 font-mono text-sm">
+            {params.id}
+          </p>
         </div>
         <div className="ml-auto">
           <Button onClick={handleSave} disabled={saving}>
@@ -100,42 +130,69 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
             <CardTitle>Routing & Networking</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-             <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
-                <div className="font-semibold text-white" id="routing-enabled-label">Enable Traffic Routing</div>
-                <input
-                  type="checkbox"
-                  aria-labelledby="routing-enabled-label"
-                  checked={config.routing?.enabled ?? false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    routing: { ...config.routing, enabled: e.target.checked }
-                  })}
-                  className="w-5 h-5 accent-neo"
-                />
+            <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
+              <div
+                className="font-semibold text-white"
+                id="routing-enabled-label"
+              >
+                Enable Traffic Routing
               </div>
-              <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="routing-max-concurrent">Max Concurrent Requests</label>
+              <input
+                type="checkbox"
+                aria-labelledby="routing-enabled-label"
+                checked={config.routing?.enabled ?? false}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    routing: { ...config.routing, enabled: e.target.checked },
+                  })
+                }
+                className="w-5 h-5 accent-neo"
+              />
+            </div>
+            <div>
+              <label
+                className="block text-sm font-medium text-gray-300 mb-1"
+                htmlFor="routing-max-concurrent"
+              >
+                Max Concurrent Requests
+              </label>
               <input
                 type="number"
                 id="routing-max-concurrent"
                 value={config.routing?.max_concurrent_requests ?? ""}
-                onChange={(e) => setConfig({
-                  ...config,
-                  routing: { ...config.routing, max_concurrent_requests: parseFloat(e.target.value) }
-                })}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    routing: {
+                      ...config.routing,
+                      max_concurrent_requests: parseFloat(e.target.value),
+                    },
+                  })
+                }
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white"
               />
             </div>
-             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1" htmlFor="routing-timeout">Timeout (ms)</label>
+            <div>
+              <label
+                className="block text-sm font-medium text-gray-300 mb-1"
+                htmlFor="routing-timeout"
+              >
+                Timeout (ms)
+              </label>
               <input
                 type="number"
                 id="routing-timeout"
                 value={config.routing?.timeout_ms ?? ""}
-                onChange={(e) => setConfig({
-                  ...config,
-                  routing: { ...config.routing, timeout_ms: parseFloat(e.target.value) }
-                })}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    routing: {
+                      ...config.routing,
+                      timeout_ms: parseFloat(e.target.value),
+                    },
+                  })
+                }
                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white"
               />
             </div>
@@ -147,32 +204,52 @@ export default function ServiceConfigPage(props: { params: Promise<{ id: string 
             <CardTitle>Security & Compliance</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-             <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
-                <div className="font-semibold text-white" id="security-require-sig-label">Require AWS Nitro Attestation Signature</div>
-                <input
-                  type="checkbox"
-                  aria-labelledby="security-require-sig-label"
-                  checked={config.security?.require_signature ?? false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    security: { ...config.security, require_signature: e.target.checked }
-                  })}
-                  className="w-5 h-5 accent-neo"
-                />
+            <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
+              <div
+                className="font-semibold text-white"
+                id="security-require-sig-label"
+              >
+                Require AWS Nitro Attestation Signature
               </div>
-              <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
-                <div className="font-semibold text-white" id="security-allowlist-label">Enforce Contract Allowlist Only</div>
-                <input
-                  type="checkbox"
-                  aria-labelledby="security-allowlist-label"
-                  checked={config.security?.allowlist_only ?? false}
-                  onChange={(e) => setConfig({
+              <input
+                type="checkbox"
+                aria-labelledby="security-require-sig-label"
+                checked={config.security?.require_signature ?? false}
+                onChange={(e) =>
+                  setConfig({
                     ...config,
-                    security: { ...config.security, allowlist_only: e.target.checked }
-                  })}
-                  className="w-5 h-5 accent-neo"
-                />
+                    security: {
+                      ...config.security,
+                      require_signature: e.target.checked,
+                    },
+                  })
+                }
+                className="w-5 h-5 accent-neo"
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 border rounded-xl border-white/10 bg-white/5">
+              <div
+                className="font-semibold text-white"
+                id="security-allowlist-label"
+              >
+                Enforce Contract Allowlist Only
               </div>
+              <input
+                type="checkbox"
+                aria-labelledby="security-allowlist-label"
+                checked={config.security?.allowlist_only ?? false}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    security: {
+                      ...config.security,
+                      allowlist_only: e.target.checked,
+                    },
+                  })
+                }
+                className="w-5 h-5 accent-neo"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

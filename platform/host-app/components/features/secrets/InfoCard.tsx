@@ -8,7 +8,8 @@ export function InfoCard() {
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-gray-600">
         <p>
-          Secret tokens allow MiniApps to access confidential data stored in the TEE (Trusted Execution Environment).
+          Secret tokens allow MiniApps to access confidential data stored in the
+          TEE (Trusted Execution Environment).
         </p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Tokens are encrypted and stored securely</li>

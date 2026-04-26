@@ -42,7 +42,11 @@ type LivePreviewProps = {
   scale?: number;
 };
 
-export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps) {
+export function LivePreview({
+  config,
+  className,
+  scale = 0.5,
+}: LivePreviewProps) {
   const [activeTab, setActiveTab] = useState(0);
 
   const layout = config.layout || "default";
@@ -51,10 +55,10 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
   const opPanel = config.operation_panel || {};
 
   return (
-    <div 
+    <div
       className={cn(
         "border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900",
-        className
+        className,
       )}
       style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}
     >
@@ -74,12 +78,14 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
         {layout === "trading" && (
           <div className="bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
             {hero.eyebrow && (
-              <p className="text-[8px] uppercase tracking-wider text-neo font-semibold mb-1">
+              <p className="text-[8px] uppercase text-neo font-semibold mb-1">
                 {hero.eyebrow}
               </p>
             )}
             <h1 className="text-sm font-bold">{hero.title || "App Title"}</h1>
-            <p className="text-[8px] text-gray-500 mt-1 line-clamp-2">{hero.subtitle || "App description will appear here"}</p>
+            <p className="text-[8px] text-gray-500 mt-1 line-clamp-2">
+              {hero.subtitle || "App description will appear here"}
+            </p>
             {hero.disclaimer && (
               <p className="text-[7px] text-gray-400 mt-1">{hero.disclaimer}</p>
             )}
@@ -90,7 +96,10 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
         {config.stats && config.stats.length > 0 && (
           <div className="grid grid-cols-4 gap-2 p-3 border-b border-gray-200 dark:border-gray-700">
             {config.stats.slice(0, 4).map((stat, i) => (
-              <div key={i} className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
+              <div
+                key={i}
+                className="text-center p-2 bg-gray-50 dark:bg-gray-800 rounded"
+              >
                 <p className="text-[8px] text-gray-500">{stat.label}</p>
                 <p className="text-[10px] font-bold">{stat.value}</p>
               </div>
@@ -98,12 +107,17 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
           </div>
         )}
 
-        <div className={cn("flex", layout === "trading" ? "flex-row" : "flex-col")}>
+        <div
+          className={cn("flex", layout === "trading" ? "flex-row" : "flex-col")}
+        >
           {/* Main Content */}
           <div className="flex-1 p-3">
             {/* Tabs */}
             {tabs.length > 0 && (
-              <div role="tablist" className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-3">
+              <div
+                role="tablist"
+                className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-3"
+              >
                 {tabs.slice(0, 4).map((tab, i) => (
                   <button
                     key={tab.id}
@@ -113,14 +127,21 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
                     tabIndex={activeTab === i ? 0 : -1}
                     onClick={() => setActiveTab(i)}
                     onKeyDown={(e) => {
-                      if (e.key === "ArrowRight") { e.preventDefault(); setActiveTab((activeTab + 1) % tabs.length); }
-                      else if (e.key === "ArrowLeft") { e.preventDefault(); setActiveTab((activeTab - 1 + tabs.length) % tabs.length); }
+                      if (e.key === "ArrowRight") {
+                        e.preventDefault();
+                        setActiveTab((activeTab + 1) % tabs.length);
+                      } else if (e.key === "ArrowLeft") {
+                        e.preventDefault();
+                        setActiveTab(
+                          (activeTab - 1 + tabs.length) % tabs.length,
+                        );
+                      }
                     }}
                     className={cn(
                       "px-2 py-1 text-[9px] font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neo",
                       activeTab === i
                         ? "border-neo text-neo"
-                        : "border-transparent text-gray-500"
+                        : "border-transparent text-gray-500",
                     )}
                   >
                     {tab.label}
@@ -134,10 +155,15 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
               {layout === "trading" && config.hasMarkets ? (
                 // Market cards
                 [1, 2].map((i) => (
-                  <div key={i} className="border border-gray-200 dark:border-gray-700 rounded p-2">
+                  <div
+                    key={i}
+                    className="border border-gray-200 dark:border-gray-700 rounded p-2"
+                  >
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-[9px] font-medium">Market {i}</span>
-                      <span className="text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700">Active</span>
+                      <span className="text-[8px] px-1 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                        Active
+                      </span>
                     </div>
                     <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div className="h-full bg-neo w-[60%]" />
@@ -151,7 +177,9 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
               ) : (
                 // Default content
                 <div className="border border-gray-200 dark:border-gray-700 rounded p-2">
-                  <p className="text-[8px] text-gray-500">Content will appear here based on selected tab</p>
+                  <p className="text-[8px] text-gray-500">
+                    Content will appear here based on selected tab
+                  </p>
                 </div>
               )}
             </div>
@@ -160,13 +188,21 @@ export function LivePreview({ config, className, scale = 0.5 }: LivePreviewProps
           {/* Operation Panel */}
           {layout === "trading" && config.hasOperation && (
             <div className="w-[120px] border-l border-gray-200 dark:border-gray-700 p-2 bg-gray-50 dark:bg-gray-800">
-              <h3 className="text-[10px] font-bold mb-1">{opPanel.title || "Operations"}</h3>
-              <p className="text-[7px] text-gray-500 mb-2">{opPanel.subtitle || "Configure and submit"}</p>
-              
+              <h3 className="text-[10px] font-bold mb-1">
+                {opPanel.title || "Operations"}
+              </h3>
+              <p className="text-[7px] text-gray-500 mb-2">
+                {opPanel.subtitle || "Configure and submit"}
+              </p>
+
               <div className="space-y-1">
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded" />
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded" />
-                <button className="w-full h-6 bg-neo text-black text-[8px] font-medium rounded" aria-hidden="true" tabIndex={-1}>
+                <button
+                  className="w-full h-6 bg-neo text-black text-[8px] font-medium rounded"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                >
                   {opPanel.cta_label || "Submit"}
                 </button>
               </div>
@@ -187,12 +223,14 @@ type SplitPreviewProps = {
   className?: string;
 };
 
-export function SplitPreview({ children, config, className }: SplitPreviewProps) {
+export function SplitPreview({
+  children,
+  config,
+  className,
+}: SplitPreviewProps) {
   return (
     <div className={cn("grid grid-cols-2 gap-4", className)}>
-      <div className="overflow-auto">
-        {children}
-      </div>
+      <div className="overflow-auto">{children}</div>
       <div className="sticky top-4">
         <LivePreview config={config} />
       </div>

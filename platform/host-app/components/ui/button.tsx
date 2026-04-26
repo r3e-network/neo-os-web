@@ -8,7 +8,13 @@ import { cn } from "@/lib/utils";
 import { colors, borderRadius, transitions } from "@/lib/design-system/tokens";
 import { keyboardNavigation } from "@/lib/design-system/a11y";
 
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger" | "success";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "success";
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -32,42 +38,51 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 // Variant Styles Configuration
 // ============================================================================
 
-const variantStyles: Record<ButtonVariant, { base: string; hover: string; active: string; disabled: string }> = {
+const variantStyles: Record<
+  ButtonVariant,
+  { base: string; hover: string; active: string; disabled: string }
+> = {
   primary: {
     base: "bg-neo text-gray-900 font-semibold",
     hover: "hover:bg-neo/90 hover:shadow-glow",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-neo",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-neo",
   },
   secondary: {
     base: "bg-secondary text-white font-semibold",
     hover: "hover:bg-secondary/90 hover:shadow-glow-secondary",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-secondary",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-secondary",
   },
   outline: {
     base: "bg-transparent border-2 border-neo text-neo font-semibold",
     hover: "hover:bg-neo/10",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent",
   },
   ghost: {
     base: "bg-transparent text-gray-300 font-medium",
     hover: "hover:bg-white/5 hover:text-white",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-300",
   },
   danger: {
     base: "bg-red-500 text-white font-semibold",
     hover: "hover:bg-red-600 hover:shadow-glow-error",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-500",
   },
   success: {
     base: "bg-emerald-500 text-white font-semibold",
     hover: "hover:bg-emerald-600",
     active: "active:scale-[0.98]",
-    disabled: "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-500",
+    disabled:
+      "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-500",
   },
 };
 
@@ -108,7 +123,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       onClick,
       ...props
     },
-    ref
+    ref,
   ) => {
     const handleClick = useCallback(
       (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -116,14 +131,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           onClick?.(e);
         }
       },
-      [loading, disabled, onClick]
+      [loading, disabled, onClick],
     );
 
     const handleKeyDown = useCallback(
       keyboardNavigation.activate(() => {
         // Trigger click on Enter/Space
       }),
-      []
+      [],
     );
 
     const variantStyle = useMemo(() => variantStyles[variant], [variant]);
@@ -150,7 +165,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           fullWidth && "w-full",
           // Loading
           loading && "cursor-wait",
-          className
+          className,
         )}
         disabled={disabled || loading}
         onClick={handleClick}
@@ -160,7 +175,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {loading && (
           <svg
-            className={cn("animate-spin h-4 w-4", size === "icon" ? "h-4 w-4" : "mr-2")}
+            className={cn(
+              "animate-spin h-4 w-4",
+              size === "icon" ? "h-4 w-4" : "mr-2",
+            )}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -182,19 +200,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         )}
         {!loading && leftIcon && (
-          <span className={cn("flex-shrink-0", animatedIcon && "transition-transform hover:-translate-x-0.5")}>
+          <span
+            className={cn(
+              "flex-shrink-0",
+              animatedIcon && "transition-transform hover:-translate-x-0.5",
+            )}
+          >
             {leftIcon}
           </span>
         )}
         {children && <span>{children}</span>}
         {!loading && rightIcon && (
-          <span className={cn("flex-shrink-0", animatedIcon && "transition-transform hover:translate-x-0.5")}>
+          <span
+            className={cn(
+              "flex-shrink-0",
+              animatedIcon && "transition-transform hover:translate-x-0.5",
+            )}
+          >
             {rightIcon}
           </span>
         )}
       </button>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";
@@ -203,7 +231,10 @@ Button.displayName = "Button";
 // Icon Button Component
 // ============================================================================
 
-export interface IconButtonProps extends Omit<ButtonProps, "size" | "leftIcon" | "rightIcon"> {
+export interface IconButtonProps extends Omit<
+  ButtonProps,
+  "size" | "leftIcon" | "rightIcon"
+> {
   /** Icon to display */
   icon: React.ReactNode;
   /** Button size for icon buttons */
@@ -226,7 +257,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         {icon}
       </Button>
     );
-  }
+  },
 );
 
 IconButton.displayName = "IconButton";
@@ -252,7 +283,8 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   connected = true,
   className,
 }) => {
-  const orientationClass = orientation === "horizontal" ? "flex-row" : "flex-col";
+  const orientationClass =
+    orientation === "horizontal" ? "flex-row" : "flex-col";
   const connectedClass = connected
     ? orientation === "horizontal"
       ? "[&>button]:rounded-none first:[&>button]:rounded-l-xl last:[&>button]:rounded-r-xl [&>button:not(:last-child)]:border-r-0"

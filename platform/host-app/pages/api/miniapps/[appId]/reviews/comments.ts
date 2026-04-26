@@ -4,8 +4,15 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
-import { isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+  isServerSupabaseConfigured,
+} from "@/lib/server-supabase";
+import {
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type SocialCommentRow = {
@@ -40,30 +47,49 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-async function getComments(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getComments(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!isServerSupabaseConfigured()) {
-    return res.status(200).json({ comments: [], hasMore: false, total: 0 });
+    res.status(200).json({ comments: [], hasMore: false, total: 0 });
+    return;
   }
 
   return getCommentsFromDB(appId, req, res);
 }
 
-async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getCommentsFromDB(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   const parentId = req.query.parent_id as string | undefined;
-  const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 20, 1), 100);
-  const offset = Math.min(Math.max(parseInt(req.query.offset as string) || 0, 0), 10000);
+  const limit = Math.min(
+    Math.max(parseInt(req.query.limit as string) || 20, 1),
+    100,
+  );
+  const offset = Math.min(
+    Math.max(parseInt(req.query.offset as string) || 0, 0),
+    10000,
+  );
   if (parentId && parentId !== "null" && !/^[0-9a-f-]{36}$/i.test(parentId)) {
     return apiError.badRequest(res, "Invalid parent_id");
   }
 
   const supabase = getServerSupabaseClient();
   if (!supabase) {
-    return res.status(200).json({ comments: [], hasMore: false, total: 0 });
+    res.status(200).json({ comments: [], hasMore: false, total: 0 });
+    return;
   }
 
   let query = supabase
     .from("social_comments")
-    .select("id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at", { count: "exact" })
+    .select(
+      "id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at",
+      { count: "exact" },
+    )
     .eq("app_id", appId)
     .is("deleted_at", null);
 
@@ -78,7 +104,10 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
     .range(offset, offset + limit - 1);
 
   if (error) {
-    logger.error("Failed to fetch comments:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to fetch comments:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to fetch comments");
   }
 
@@ -94,7 +123,10 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
       .in("comment_id", commentIds);
 
     for (const vote of votes || []) {
-      const current = voteMap.get(vote.comment_id) || { upvotes: 0, downvotes: 0 };
+      const current = voteMap.get(vote.comment_id) || {
+        upvotes: 0,
+        downvotes: 0,
+      };
       if (vote.vote_type === "upvote") current.upvotes += 1;
       if (vote.vote_type === "downvote") current.downvotes += 1;
       voteMap.set(vote.comment_id, current);
@@ -108,7 +140,10 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
 
     for (const reply of replies || []) {
       if (!reply.parent_id) continue;
-      replyCountMap.set(reply.parent_id, (replyCountMap.get(reply.parent_id) || 0) + 1);
+      replyCountMap.set(
+        reply.parent_id,
+        (replyCountMap.get(reply.parent_id) || 0) + 1,
+      );
     }
   }
 
@@ -130,27 +165,40 @@ async function getCommentsFromDB(appId: string, req: NextApiRequest, res: NextAp
       const scoreA = a.upvotes - a.downvotes;
       const scoreB = b.upvotes - b.downvotes;
       if (scoreB !== scoreA) return scoreB - scoreA;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     });
 
   res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
-  return res.status(200).json({
+  res.status(200).json({
     comments,
     hasMore: offset + limit < (count || 0),
     total: count || 0,
   });
+  return;
 }
 
-async function createComment(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function createComment(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for comment writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for comment writes",
+    );
   }
 
   let authedWallet: string | null;
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -169,16 +217,24 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
   if (content.trim().length > 2000) {
     return apiError.badRequest(res, "Comment too long");
   }
-  if (parent_id && (typeof parent_id !== "string" || !/^[0-9a-f-]{36}$/i.test(parent_id))) {
+  if (
+    parent_id &&
+    (typeof parent_id !== "string" || !/^[0-9a-f-]{36}$/i.test(parent_id))
+  ) {
     return apiError.badRequest(res, "Invalid parent_id");
   }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
-  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  const userId = await resolveUserIdFromWallet(supabase, wallet, {
+    createIfMissing: true,
+  });
   if (!userId) {
     return apiError.internal(res, "Failed to resolve user");
   }
@@ -195,7 +251,10 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
       return apiError.notFound(res, "Parent comment not found");
     }
     if (parent.app_id !== appId) {
-      return apiError.badRequest(res, "Parent comment belongs to different app");
+      return apiError.badRequest(
+        res,
+        "Parent comment belongs to different app",
+      );
     }
   }
 
@@ -218,11 +277,16 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
       content: content.trim(),
       is_developer_reply: isDeveloperReply,
     })
-    .select("id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at")
+    .select(
+      "id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at",
+    )
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create comment:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Failed to create comment:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to create comment");
   }
 
@@ -240,7 +304,8 @@ async function createComment(appId: string, req: NextApiRequest, res: NextApiRes
     updated_at: data.updated_at,
   };
 
-  return res.status(201).json({ comment });
+  res.status(201).json({ comment });
+  return;
 }
 
 export default withCsrfProtection(handler);

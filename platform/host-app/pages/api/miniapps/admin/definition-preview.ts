@@ -36,34 +36,45 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const content = toBodyString(req.body);
   if (!content.trim()) {
-    return apiError.badRequest(res, "content is required and must be JSON or YAML text");
+    return apiError.badRequest(
+      res,
+      "content is required and must be JSON or YAML text",
+    );
   }
 
   let parsed: unknown;
   try {
     parsed = parseMiniAppDefinitionContent(content);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "invalid definition content";
+    const message =
+      error instanceof Error ? error.message : "invalid definition content";
     return apiError.badRequest(res, message);
   }
 
   const schemaValidation = validateMiniAppDefinitionAgainstSchema(parsed);
   if (!schemaValidation.valid) {
-    return apiError.badRequest(res, schemaValidation.error || "definition schema validation failed");
+    return apiError.badRequest(
+      res,
+      schemaValidation.error || "definition schema validation failed",
+    );
   }
 
   const payload = asObject(parsed);
   const preview = coerceMiniAppInfo(payload);
   if (!preview) {
-    return apiError.badRequest(res, "definition parsed but cannot be normalized into a miniapp preview");
+    return apiError.badRequest(
+      res,
+      "definition parsed but cannot be normalized into a miniapp preview",
+    );
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     actor: admin.kind,
     parsed_definition: payload,
     preview,
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

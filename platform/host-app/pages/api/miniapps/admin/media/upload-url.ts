@@ -3,7 +3,11 @@ import { apiError } from "@/lib/api-response";
 import { requireMiniAppAdmin } from "@/lib/admin-auth";
 import { withCsrfProtection } from "@/lib/csrf";
 import { strictLimit } from "@/lib/rate-limit";
-import { createMiniAppMediaUploadUrl, isMiniAppMediaUploadConfigured, type MiniAppMediaAssetKind } from "@/lib/r2-media";
+import {
+  createMiniAppMediaUploadUrl,
+  isMiniAppMediaUploadConfigured,
+  type MiniAppMediaAssetKind,
+} from "@/lib/r2-media";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 
@@ -67,19 +71,29 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       content_type: contentType,
       file_name: fileName || undefined,
       variant: {
-        theme: asTrimmedString(variant.theme).toLowerCase() as "light" | "dark" | "any" | undefined,
-        density: asTrimmedString(variant.density).toLowerCase() as "1x" | "2x" | "3x" | undefined,
+        theme: asTrimmedString(variant.theme).toLowerCase() as
+          | "light"
+          | "dark"
+          | "any"
+          | undefined,
+        density: asTrimmedString(variant.density).toLowerCase() as
+          | "1x"
+          | "2x"
+          | "3x"
+          | undefined,
         locale: asTrimmedString(variant.locale) || undefined,
       },
     });
 
     res.setHeader("Cache-Control", "no-store, private");
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       ...result,
     });
+    return;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to generate upload URL";
+    const message =
+      error instanceof Error ? error.message : "Failed to generate upload URL";
     return apiError.badRequest(res, message);
   }
 }

@@ -4,8 +4,16 @@ import { apiError } from "@/lib/api-response";
 import { withCsrfProtection } from "@/lib/csrf";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase, isServerSupabaseConfigured } from "@/lib/server-supabase";
-import { formatWalletDisplayName, isValidWalletAddress, resolveUserIdFromWallet } from "@/lib/wallet-user";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+  isServerSupabaseConfigured,
+} from "@/lib/server-supabase";
+import {
+  formatWalletDisplayName,
+  isValidWalletAddress,
+  resolveUserIdFromWallet,
+} from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
 
 type ForumThreadRow = {
@@ -70,21 +78,37 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
 export default withCsrfProtection(handler);
 
-async function getThreads(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function getThreads(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!isServerSupabaseConfigured()) {
-    return res.status(200).json({ threads: [], hasMore: false, total: 0 });
+    res.status(200).json({ threads: [], hasMore: false, total: 0 });
+    return;
   }
 
-  const category = typeof req.query.category === "string" ? req.query.category.trim() : "";
-  if (category && !VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])) {
+  const category =
+    typeof req.query.category === "string" ? req.query.category.trim() : "";
+  if (
+    category &&
+    !VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+  ) {
     return apiError.badRequest(res, "Invalid category");
   }
 
-  const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 20, 50));
-  const offset = Math.max(0, Math.min(parseInt(req.query.offset as string) || 0, 10000));
+  const limit = Math.max(
+    1,
+    Math.min(parseInt(req.query.limit as string) || 20, 50),
+  );
+  const offset = Math.max(
+    0,
+    Math.min(parseInt(req.query.offset as string) || 0, 10000),
+  );
   const supabase = getServerSupabaseClient();
   if (!supabase) {
-    return res.status(200).json({ threads: [], hasMore: false, total: 0 });
+    res.status(200).json({ threads: [], hasMore: false, total: 0 });
+    return;
   }
 
   let query = supabase
@@ -106,30 +130,44 @@ async function getThreads(appId: string, req: NextApiRequest, res: NextApiRespon
     .range(offset, offset + limit - 1);
 
   if (error) {
-    logger.error("Failed to fetch forum threads:", error instanceof Error ? error.message : String(error));
+    logger.error(
+      "Failed to fetch forum threads:",
+      error instanceof Error ? error.message : String(error),
+    );
     return apiError.internal(res, "Failed to fetch threads");
   }
 
   const threads = ((data || []) as ForumThreadRow[]).map(toThread);
 
   res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
-  return res.status(200).json({
+  res.status(200).json({
     threads,
     hasMore: offset + limit < (count || 0),
     total: count || 0,
   });
+  return;
 }
 
-async function createThread(appId: string, req: NextApiRequest, res: NextApiResponse) {
+async function createThread(
+  appId: string,
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for forum writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for forum writes",
+    );
   }
 
   let authedWallet: string | null;
   try {
     authedWallet = await requireWalletAuth(req, res);
   } catch (err) {
-    logger.error("requireWalletAuth error:", err instanceof Error ? err.message : String(err));
+    logger.error(
+      "requireWalletAuth error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return apiError.internal(res, "Authentication failed");
   }
   if (!authedWallet) return;
@@ -143,7 +181,12 @@ async function createThread(appId: string, req: NextApiRequest, res: NextApiResp
     return apiError.forbidden(res, "Wallet mismatch");
   }
 
-  if (!title?.trim() || !content?.trim() || typeof title !== "string" || typeof content !== "string") {
+  if (
+    !title?.trim() ||
+    !content?.trim() ||
+    typeof title !== "string" ||
+    typeof content !== "string"
+  ) {
     return apiError.badRequest(res, "Missing required fields");
   }
 
@@ -153,16 +196,23 @@ async function createThread(appId: string, req: NextApiRequest, res: NextApiResp
     return apiError.badRequest(res, "Thread exceeds maximum length");
   }
 
-  const safeCategory = typeof category === "string" && VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
-    ? category
-    : "general";
+  const safeCategory =
+    typeof category === "string" &&
+    VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
+      ? category
+      : "general";
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
-  const userId = await resolveUserIdFromWallet(supabase, wallet, { createIfMissing: true });
+  const userId = await resolveUserIdFromWallet(supabase, wallet, {
+    createIfMissing: true,
+  });
   if (!userId) {
     return apiError.internal(res, "Failed to resolve user");
   }
@@ -184,9 +234,13 @@ async function createThread(appId: string, req: NextApiRequest, res: NextApiResp
     .single();
 
   if (error || !data) {
-    logger.error("Failed to create forum thread:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Failed to create forum thread:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to create thread");
   }
 
-  return res.status(201).json({ thread: toThread(data as ForumThreadRow) });
+  res.status(201).json({ thread: toThread(data as ForumThreadRow) });
+  return;
 }

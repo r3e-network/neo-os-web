@@ -27,7 +27,9 @@ export function OAuthBindingItem({
         <div>
           <p className="text-sm font-medium text-gray-900">{provider.name}</p>
           {isConnected && account ? (
-            <p className="text-xs text-gray-500">{account.email || account.name}</p>
+            <p className="text-xs text-gray-500">
+              {account.email || account.name}
+            </p>
           ) : (
             <p className="text-xs text-gray-500">Not connected</p>
           )}

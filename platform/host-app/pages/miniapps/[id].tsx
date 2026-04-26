@@ -21,16 +21,40 @@ import { Layout } from "../../components/layout";
 
 // Lazy-load heavy tab components (only loaded when user navigates to that tab)
 const AppSecretsTab = dynamic(
-  () => import("../../components/features/secrets/AppSecretsTab").then((m) => ({ default: m.AppSecretsTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
+  () =>
+    import("../../components/features/secrets/AppSecretsTab").then((m) => ({
+      default: m.AppSecretsTab,
+    })),
+  {
+    loading: () => (
+      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
+    ),
+    ssr: false,
+  },
 );
 const ReviewsTab = dynamic(
-  () => import("../../components/features/reviews").then((m) => ({ default: m.ReviewsTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
+  () =>
+    import("../../components/features/reviews").then((m) => ({
+      default: m.ReviewsTab,
+    })),
+  {
+    loading: () => (
+      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
+    ),
+    ssr: false,
+  },
 );
 const ForumTab = dynamic(
-  () => import("../../components/features/forum").then((m) => ({ default: m.ForumTab })),
-  { loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />, ssr: false },
+  () =>
+    import("../../components/features/forum").then((m) => ({
+      default: m.ForumTab,
+    })),
+  {
+    loading: () => (
+      <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />
+    ),
+    ssr: false,
+  },
 );
 import { useActivityFeed } from "../../hooks/useActivityFeed";
 import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
@@ -79,7 +103,12 @@ export type AppDetailPageProps = {
   error?: string;
 };
 
-export default function MiniAppDetailPage({ app, notifications, sharedRuntime, error }: AppDetailPageProps) {
+export default function MiniAppDetailPage({
+  app,
+  notifications,
+  sharedRuntime,
+  error,
+}: AppDetailPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [invokeFeedback, setInvokeFeedback] = useState<{
@@ -101,16 +130,19 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
   });
 
   // Realtime notifications for the news tab (replaces SSR-only notifications prop)
-  const { notifications: realtimeNews, loading: newsLoading } = useRealtimeNotifications({
-    appId: app?.app_id,
-    enabled: Boolean(app?.app_id) && showNews,
-  });
+  const { notifications: realtimeNews, loading: newsLoading } =
+    useRealtimeNotifications({
+      appId: app?.app_id,
+      enabled: Boolean(app?.app_id) && showNews,
+    });
 
   // Use realtime notifications if available, fall back to SSR-provided notifications
-  const liveNotifications = realtimeNews.length > 0 ? realtimeNews : notifications;
+  const liveNotifications =
+    realtimeNews.length > 0 ? realtimeNews : notifications;
 
   const tabs = useMemo(
-    () => buildDetailTabs(app?.detail_template?.tabs ?? [], showNews, showSecrets),
+    () =>
+      buildDetailTabs(app?.detail_template?.tabs ?? [], showNews, showSecrets),
     [app?.detail_template?.tabs, showNews, showSecrets],
   );
 
@@ -132,7 +164,9 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
       <Layout hideFooter>
         <div className="min-h-screen bg-white pb-24 pt-20 text-gray-900">
           <div className="flex min-h-[calc(100vh-5rem)] flex-col items-center justify-center p-8">
-            <h1 className="mb-4 text-[32px] font-extrabold text-gray-900">App Not Found</h1>
+            <h1 className="mb-4 text-[32px] font-extrabold text-gray-900">
+              App Not Found
+            </h1>
             <p className="mb-6 text-base text-gray-500">
               {error || "The requested MiniApp does not exist."}
             </p>
@@ -155,86 +189,120 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
     router.push("/miniapps");
   };
 
-  const handleInvoke = useCallback(async (operation: OperationEntry, values: Record<string, string>) => {
-    setInvokeFeedback(null);
-    try {
-      if (!walletConnected || !walletAddress) {
-        throw new Error("Connect wallet before sending transactions.");
-      }
-
-      let txid: string;
-      if (sharedRuntime && isSharedModeApp(app)) {
-        const sharedOperation = resolveSharedOperationRecipe(app, operation.method);
-        if (!sharedOperation) {
-          throw new Error("Shared runtime operation is not configured for this miniapp.");
-        }
-        const targetModule = sharedRuntime.modules.find((module) => module.binding === sharedOperation.binding);
-        if (!targetModule?.contractHash) {
-          throw new Error(`Shared module binding "${sharedOperation.binding}" is unavailable.`);
-        }
-        const adapter = getWalletAdapter();
-        if (!adapter) {
-          throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
+  const handleInvoke = useCallback(
+    async (operation: OperationEntry, values: Record<string, string>) => {
+      setInvokeFeedback(null);
+      try {
+        if (!walletConnected || !walletAddress) {
+          throw new Error("Connect wallet before sending transactions.");
         }
 
-        if (walletAddress.startsWith("0x")) {
-          throw new Error("Shared runtime invoke currently supports Neo N3 wallets only.");
-        }
-
-        const args = buildSharedInvokeArgs(sharedOperation, values, sharedRuntime, walletAddress);
-        const invokePayload: InvokeParams = {
-          scriptHash: targetModule.contractHash,
-          operation: sharedOperation.method,
-          args,
-        };
-        invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
-        const result = await adapter.invoke(invokePayload);
-        txid = result.txid;
-      } else {
-        if (!app.contract_hash) {
-          throw new Error("Contract hash is not configured for this miniapp.");
-        }
-
-        const args = buildInvokeArgs(operation.params ?? [], values, walletAddress);
-
-        // Neo N3 execution only; embedded EVM auth is not a transaction path here.
-        {
+        let txid: string;
+        if (sharedRuntime && isSharedModeApp(app)) {
+          const sharedOperation = resolveSharedOperationRecipe(
+            app,
+            operation.method,
+          );
+          if (!sharedOperation) {
+            throw new Error(
+              "Shared runtime operation is not configured for this miniapp.",
+            );
+          }
+          const targetModule = sharedRuntime.modules.find(
+            (module) => module.binding === sharedOperation.binding,
+          );
+          if (!targetModule?.contractHash) {
+            throw new Error(
+              `Shared module binding "${sharedOperation.binding}" is unavailable.`,
+            );
+          }
           const adapter = getWalletAdapter();
           if (!adapter) {
-            throw new Error("Wallet adapter unavailable. Reconnect wallet and try again.");
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
           }
 
+          if (walletAddress.startsWith("0x")) {
+            throw new Error(
+              "Shared runtime invoke currently supports Neo N3 wallets only.",
+            );
+          }
+
+          const args = buildSharedInvokeArgs(
+            sharedOperation,
+            values,
+            sharedRuntime,
+            walletAddress,
+          );
           const invokePayload: InvokeParams = {
-            scriptHash: app.contract_hash,
-            operation: operation.method,
+            scriptHash: targetModule.contractHash,
+            operation: sharedOperation.method,
             args,
           };
-
-          if (walletAddress) {
-            invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
-          }
-
+          invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
           const result = await adapter.invoke(invokePayload);
           txid = result.txid;
-        }
-      }
+        } else {
+          if (!app.contract_hash) {
+            throw new Error(
+              "Contract hash is not configured for this miniapp.",
+            );
+          }
 
-      setInvokeFeedback({
-        type: "success",
-        message: `Transaction submitted: ${txid}`,
-      });
-    } catch (invokeError) {
-      const message = invokeError instanceof Error ? invokeError.message : "Operation failed";
-      setInvokeFeedback({
-        type: "error",
-        message,
-      });
-      throw invokeError;
-    }
-  }, [app, sharedRuntime, walletAddress, walletConnected]);
+          const args = buildInvokeArgs(
+            operation.params ?? [],
+            values,
+            walletAddress,
+          );
+
+          // Neo N3 execution only; embedded EVM auth is not a transaction path here.
+          {
+            const adapter = getWalletAdapter();
+            if (!adapter) {
+              throw new Error(
+                "Wallet adapter unavailable. Reconnect wallet and try again.",
+              );
+            }
+
+            const invokePayload: InvokeParams = {
+              scriptHash: app.contract_hash,
+              operation: operation.method,
+              args,
+            };
+
+            if (walletAddress) {
+              invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+            }
+
+            const result = await adapter.invoke(invokePayload);
+            txid = result.txid;
+          }
+        }
+
+        setInvokeFeedback({
+          type: "success",
+          message: `Transaction submitted: ${txid}`,
+        });
+      } catch (invokeError) {
+        const message =
+          invokeError instanceof Error
+            ? invokeError.message
+            : "Operation failed";
+        setInvokeFeedback({
+          type: "error",
+          message,
+        });
+        throw invokeError;
+      }
+    },
+    [app, sharedRuntime, walletAddress, walletConnected],
+  );
 
   const operationPanel = app.detail_template?.operation_panel;
-  const operationTitle = operationPanel?.title || (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
+  const operationTitle =
+    operationPanel?.title ||
+    (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
 
   return (
@@ -248,7 +316,7 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
         <main className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 sm:py-8">
           <section className="mb-6 rounded-3xl border border-gray-200/70 bg-white/80 p-6 shadow-sm">
             {app.detail_template?.hero?.eyebrow && (
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-neo">
+              <p className="mb-3 text-xs font-semibold uppercase text-neo">
                 {app.detail_template.hero.eyebrow}
               </p>
             )}
@@ -282,12 +350,20 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
 
               {appActivities && appActivities.length > 0 && (
                 <section>
-                  <ActivityTicker activities={appActivities} title={`${app.name} Activity`} height={140} scrollSpeed={20} />
+                  <ActivityTicker
+                    activities={appActivities}
+                    title={`${app.name} Activity`}
+                    height={140}
+                    scrollSpeed={20}
+                  />
                 </section>
               )}
 
               <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-5 shadow-sm">
-                <div role="tablist" className="mb-6 flex flex-wrap gap-1 p-1 rounded-2xl bg-gray-100/50 border border-gray-200/50">
+                <div
+                  role="tablist"
+                  className="mb-6 flex flex-wrap gap-1 p-1 rounded-2xl bg-gray-100/50 border border-gray-200/50"
+                >
                   {tabs.map((tab) => (
                     <button
                       key={tab.id}
@@ -310,39 +386,66 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                 </div>
 
                 {activeTabConfig?.type === "content" && (
-                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <div
+                    id={`tabpanel-${activeTabConfig.id}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTabConfig.id}`}
+                  >
                     <OverviewTab app={app} blocks={activeTabConfig.blocks} />
                   </div>
                 )}
 
                 {activeTabConfig?.type === "reviews" && (
-                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <div
+                    id={`tabpanel-${activeTabConfig.id}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTabConfig.id}`}
+                  >
                     <ReviewsTab appId={app.app_id} />
                   </div>
                 )}
 
                 {activeTabConfig?.type === "forum" && (
-                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <div
+                    id={`tabpanel-${activeTabConfig.id}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTabConfig.id}`}
+                  >
                     <ForumTab appId={app.app_id} />
                   </div>
                 )}
 
                 {activeTabConfig?.type === "news" && (
-                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <div
+                    id={`tabpanel-${activeTabConfig.id}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTabConfig.id}`}
+                  >
                     {showNews ? (
-                      <AppNewsList notifications={liveNotifications} loading={newsLoading} />
+                      <AppNewsList
+                        notifications={liveNotifications}
+                        loading={newsLoading}
+                      />
                     ) : (
-                      <p className="text-xs text-gray-500">News feed disabled by manifest.</p>
+                      <p className="text-xs text-gray-500">
+                        News feed disabled by manifest.
+                      </p>
                     )}
                   </div>
                 )}
 
                 {activeTabConfig?.type === "secrets" && (
-                  <div id={`tabpanel-${activeTabConfig.id}`} role="tabpanel" aria-labelledby={`tab-${activeTabConfig.id}`}>
+                  <div
+                    id={`tabpanel-${activeTabConfig.id}`}
+                    role="tabpanel"
+                    aria-labelledby={`tab-${activeTabConfig.id}`}
+                  >
                     {showSecrets ? (
                       <AppSecretsTab appId={app.app_id} appName={app.name} />
                     ) : (
-                      <p className="text-xs text-gray-500">Secrets are not enabled for this MiniApp.</p>
+                      <p className="text-xs text-gray-500">
+                        Secrets are not enabled for this MiniApp.
+                      </p>
                     )}
                   </div>
                 )}
@@ -351,9 +454,13 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
 
             <aside className="self-start space-y-4 xl:sticky xl:top-24">
               <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                <h2 className="text-base font-bold text-gray-900 sm:text-lg">{operationTitle}</h2>
+                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
+                  {operationTitle}
+                </h2>
                 {operationSubtitle && (
-                  <p className="mt-1 break-words text-xs text-gray-500">{operationSubtitle}</p>
+                  <p className="mt-1 break-words text-xs text-gray-500">
+                    {operationSubtitle}
+                  </p>
                 )}
 
                 {invokeFeedback && (
@@ -379,20 +486,25 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
 
                 {!walletConnected && (
                   <p className="mt-3 text-xs text-gray-500">
-                    Connect wallet from the top navigation to submit on-chain transactions.
+                    Connect wallet from the top navigation to submit on-chain
+                    transactions.
                   </p>
                 )}
 
                 {isSharedModeApp(app) && !app.contract_hash && (
                   <p className="mt-3 text-xs text-gray-500">
-                    This app is running in shared mode. Operations are resolved through recipe bindings and shared module contracts instead of a dedicated app contract.
+                    This app is running in shared mode. Operations are resolved
+                    through recipe bindings and shared module contracts instead
+                    of a dedicated app contract.
                   </p>
                 )}
               </section>
 
               {sharedRuntime && (
                 <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold text-gray-900">Shared Runtime</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                    Shared Runtime
+                  </h3>
                   <p className="my-1.5 text-xs text-gray-500">
                     Instance ID:{" "}
                     <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
@@ -402,7 +514,8 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                   <p className="my-1.5 text-xs text-gray-500">
                     Recipe:{" "}
                     <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.recipeId}@{sharedRuntime.instance.recipeVersion}
+                      {sharedRuntime.instance.recipeId}@
+                      {sharedRuntime.instance.recipeVersion}
                     </code>
                   </p>
                   <p className="my-1.5 text-xs text-gray-500">
@@ -414,21 +527,34 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                   <p className="my-1.5 text-xs text-gray-500">
                     Status:{" "}
                     <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {sharedRuntime.instance.status === 1 ? "active" : String(sharedRuntime.instance.status)}
+                      {sharedRuntime.instance.status === 1
+                        ? "active"
+                        : String(sharedRuntime.instance.status)}
                     </span>
                   </p>
                   <div className="mt-4 space-y-3">
                     {sharedRuntime.modules.map((module) => (
-                      <div key={`${module.binding}:${module.moduleId}:${module.version}`} className="rounded-xl border border-gray-200/70 bg-white/70 p-3">
+                      <div
+                        key={`${module.binding}:${module.moduleId}:${module.version}`}
+                        className="rounded-xl border border-gray-200/70 bg-white/70 p-3"
+                      >
                         <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-500">{module.binding}</span>
-                          <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${module.active ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          <span className="text-xs font-semibold uppercase text-gray-500">
+                            {module.binding}
+                          </span>
+                          <span
+                            className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${module.active ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+                          >
                             {module.active ? "active" : "inactive"}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-gray-700">{module.moduleId}@{module.version}</p>
+                        <p className="mt-2 text-xs text-gray-700">
+                          {module.moduleId}@{module.version}
+                        </p>
                         {module.contractHash && (
-                          <p className="mt-1 break-all text-[11px] text-gray-500">{module.contractHash}</p>
+                          <p className="mt-1 break-all text-[11px] text-gray-500">
+                            {module.contractHash}
+                          </p>
                         )}
                       </div>
                     ))}
@@ -437,9 +563,14 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
               )}
 
               <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900">Contract Details</h3>
+                <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                  Contract Details
+                </h3>
                 <p className="my-1.5 text-xs text-gray-500">
-                  App ID: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.app_id}</code>
+                  App ID:{" "}
+                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                    {app.app_id}
+                  </code>
                 </p>
                 {app.contract_hash && (
                   <p className="my-1.5 text-xs text-gray-500">
@@ -450,11 +581,17 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
                   </p>
                 )}
                 <p className="my-1.5 text-xs text-gray-500">
-                  Entry URL: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.entry_url}</code>
+                  Entry URL:{" "}
+                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                    {app.entry_url}
+                  </code>
                 </p>
                 {app.docs_url && (
                   <p className="my-1.5 text-xs text-gray-500">
-                    Docs URL: <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">{app.docs_url}</code>
+                    Docs URL:{" "}
+                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {app.docs_url}
+                    </code>
                   </p>
                 )}
               </section>
@@ -466,19 +603,29 @@ export default function MiniAppDetailPage({ app, notifications, sharedRuntime, e
   );
 }
 
-function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContentBlock[] }) {
+function OverviewTab({
+  app,
+  blocks,
+}: {
+  app: MiniAppInfo;
+  blocks: MiniAppContentBlock[];
+}) {
   return (
     <div className="space-y-6">
       {blocks.length > 0 && <DetailContentBlocks blocks={blocks} />}
 
       <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-        <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">Permissions</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+          Permissions
+        </h3>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
               <div key={key} className="flex items-center gap-2">
                 <span className="text-neo text-base font-bold">✓</span>
-                <span className="text-sm text-gray-900">{formatPermission(key)}</span>
+                <span className="text-sm text-gray-900">
+                  {formatPermission(key)}
+                </span>
               </div>
             ) : null,
           )}
@@ -487,7 +634,9 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
 
       {app.limits && (
         <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">Limits</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+            Limits
+          </h3>
           <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
               <li className="text-sm text-gray-500 py-2 border-b border-gray-200">
@@ -510,7 +659,9 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
 
       {app.docs_url && (
         <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">Documentation</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+            Documentation
+          </h3>
           <a
             href={app.docs_url}
             target="_blank"
@@ -525,10 +676,17 @@ function OverviewTab({ app, blocks }: { app: MiniAppInfo; blocks: MiniAppContent
   );
 }
 
-function buildDetailTabs(templateTabs: MiniAppDetailTab[], showNews: boolean, showSecrets: boolean): ResolvedTab[] {
+function buildDetailTabs(
+  templateTabs: MiniAppDetailTab[],
+  showNews: boolean,
+  showSecrets: boolean,
+): ResolvedTab[] {
   const mappedTemplateTabs = templateTabs
     .map((tab) => ({
-      id: String(tab.id || "").trim().toLowerCase() || slugifyTabLabel(tab.label || ""),
+      id:
+        String(tab.id || "")
+          .trim()
+          .toLowerCase() || slugifyTabLabel(tab.label || ""),
       label: String(tab.label || "").trim() || "Overview",
       type: tab.type,
       blocks: Array.isArray(tab.blocks) ? tab.blocks : [],
@@ -551,7 +709,12 @@ function buildDetailTabs(templateTabs: MiniAppDetailTab[], showNews: boolean, sh
     defaults.push({ id: "news", label: "News", type: "news", blocks: [] });
   }
   if (showSecrets) {
-    defaults.push({ id: "secrets", label: "Secrets", type: "secrets", blocks: [] });
+    defaults.push({
+      id: "secrets",
+      label: "Secrets",
+      type: "secrets",
+      blocks: [],
+    });
   }
 
   return defaults;
@@ -628,9 +791,13 @@ function buildInvokeArgs(
 
     if (param.type === "hash160") {
       const source = value === "$wallet" ? walletAddress : value;
-      const hash = source.startsWith("0x") ? source.toLowerCase() : addressToScriptHash(source);
+      const hash = source.startsWith("0x")
+        ? source.toLowerCase()
+        : addressToScriptHash(source);
       if (!/^0x[0-9a-f]{40}$/.test(hash)) {
-        throw new Error(`${param.label || param.name} must be a Neo N3 address or 0x-prefixed Hash160.`);
+        throw new Error(
+          `${param.label || param.name} must be a Neo N3 address or 0x-prefixed Hash160.`,
+        );
       }
       return { type: "Hash160", value: hash };
     }
@@ -657,22 +824,62 @@ function buildInvokeArgs(
 }
 
 // Server-Side Props
-export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async (context) => {
+export const getServerSideProps: GetServerSideProps<
+  AppDetailPageProps
+> = async (context) => {
   const { id } = context.params as { id: string };
   const encodedId = encodeURIComponent(id);
 
   const fallback = await loadBundledMiniAppById(id);
 
   try {
-    const baseUrl = resolveInternalBaseUrl(context.req as RequestLike | undefined);
+    const baseUrl = resolveInternalBaseUrl(
+      context.req as RequestLike | undefined,
+    );
     // Parallel fetch with shorter timeout (2s) for faster page load
     const [catalogRes, notifRes] = await Promise.all([
-      fetchWithTimeout(`${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`, {}, 2000).catch((e: unknown) => { console.warn("[miniapps/id] catalog fetch failed:", e instanceof Error ? e.message : String(e)); return null; }),
-      fetchWithTimeout(`${baseUrl}/api/app/${encodedId}/news?limit=20`, {}, 2000).catch((e: unknown) => { console.warn("[miniapps/id] news fetch failed:", e instanceof Error ? e.message : String(e)); return null; }),
+      fetchWithTimeout(
+        `${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`,
+        {},
+        2000,
+      ).catch((e: unknown) => {
+        console.warn(
+          "[miniapps/id] catalog fetch failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      }),
+      fetchWithTimeout(
+        `${baseUrl}/api/app/${encodedId}/news?limit=20`,
+        {},
+        2000,
+      ).catch((e: unknown) => {
+        console.warn(
+          "[miniapps/id] news fetch failed:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      }),
     ]);
 
-    const catalogData = catalogRes?.ok ? await catalogRes.json().catch((e: unknown) => { console.warn("[miniapps/id] failed to parse catalog JSON:", e instanceof Error ? e.message : String(e)); return ({}); }) : {};
-    const notifData = notifRes?.ok ? await notifRes.json().catch((e: unknown) => { console.warn("[miniapps/id] failed to parse notifications JSON:", e instanceof Error ? e.message : String(e)); return { notifications: [] }; }) : { notifications: [] };
+    const catalogData = catalogRes?.ok
+      ? await catalogRes.json().catch((e: unknown) => {
+          console.warn(
+            "[miniapps/id] failed to parse catalog JSON:",
+            e instanceof Error ? e.message : String(e),
+          );
+          return {};
+        })
+      : {};
+    const notifData = notifRes?.ok
+      ? await notifRes.json().catch((e: unknown) => {
+          console.warn(
+            "[miniapps/id] failed to parse notifications JSON:",
+            e instanceof Error ? e.message : String(e),
+          );
+          return { notifications: [] };
+        })
+      : { notifications: [] };
     const catalogApp = catalogData?.app ?? null;
     const app = coerceMiniAppInfo(catalogApp, fallback ?? undefined);
 
@@ -688,7 +895,10 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
 
     const sharedRuntime = isSharedModeApp(app)
       ? await resolveSharedModeRuntime(app, "testnet").catch((e: unknown) => {
-          console.warn("[miniapps/id] shared runtime resolve failed:", e instanceof Error ? e.message : String(e));
+          console.warn(
+            "[miniapps/id] shared runtime resolve failed:",
+            e instanceof Error ? e.message : String(e),
+          );
           return null;
         })
       : null;
@@ -708,7 +918,8 @@ export const getServerSideProps: GetServerSideProps<AppDetailPageProps> = async 
           app: sanitizeForJson(fallback),
           notifications: [],
           sharedRuntime: null,
-          error: "Using fallback app metadata while live API data is unavailable",
+          error:
+            "Using fallback app metadata while live API data is unavailable",
         },
       };
     }

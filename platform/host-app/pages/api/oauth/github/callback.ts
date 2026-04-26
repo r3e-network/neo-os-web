@@ -3,7 +3,10 @@ import crypto from "crypto";
 import { apiError } from "@/lib/api-response";
 import { strictLimit } from "@/lib/rate-limit";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (strictLimit(req, res)) return;
   const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
   const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
@@ -20,7 +23,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const storedState = req.cookies.oauth_state;
   const stateStr = typeof state === "string" ? state : "";
-  const stateValid = stateStr && storedState &&
+  const stateValid =
+    stateStr &&
+    storedState &&
     Buffer.byteLength(stateStr) === Buffer.byteLength(storedState) &&
     crypto.timingSafeEqual(Buffer.from(stateStr), Buffer.from(storedState));
   if (!stateValid) {
@@ -29,7 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Clear state cookie to prevent replay
   const secureSuffix = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  res.setHeader("Set-Cookie", `oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureSuffix}`);
+  res.setHeader(
+    "Set-Cookie",
+    `oauth_state=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${secureSuffix}`,
+  );
 
   if (!code) {
     return sendError(res, "Missing authorization code");
@@ -39,19 +47,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const oauthTimeout = 15000;
 
     // Exchange code for token
-    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+    const tokenRes = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          client_id: GITHUB_CLIENT_ID,
+          client_secret: GITHUB_CLIENT_SECRET,
+          code: String(code),
+        }),
+        signal: AbortSignal.timeout(oauthTimeout),
       },
-      body: JSON.stringify({
-        client_id: GITHUB_CLIENT_ID,
-        client_secret: GITHUB_CLIENT_SECRET,
-        code: String(code),
-      }),
-      signal: AbortSignal.timeout(oauthTimeout),
-    });
+    );
 
     const tokens = await tokenRes.json();
     if (tokens.error) {
@@ -78,7 +89,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     const emailsData = emailRes.ok ? await emailRes.json() : [];
     const emails = Array.isArray(emailsData) ? emailsData : [];
-    const primaryEmail = emails.find((e: { primary: boolean }) => e.primary)?.email;
+    const primaryEmail = emails.find(
+      (e: { primary: boolean }) => e.primary,
+    )?.email;
 
     return sendSuccess(res, {
       provider: "github",
@@ -89,7 +102,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       linkedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("[oauth/github] callback error:", err instanceof Error ? err.message : String(err));
+    console.error(
+      "[oauth/github] callback error:",
+      err instanceof Error ? err.message : String(err),
+    );
     return sendError(res, "OAuth failed");
   }
 }
@@ -102,7 +118,10 @@ function safeJSON(obj: unknown): string {
   } catch {
     str = "{}";
   }
-  return str.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
+  return str
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
 }
 
 function sendSuccess(res: NextApiResponse, account: object) {

@@ -27,14 +27,47 @@ import yaml from "js-yaml";
 import { logger } from "@/lib/logger";
 
 const features = [
-  { icon: Code2, title: "Template SDK", desc: "Generate miniapps from JSON/YAML", color: "from-blue-500 to-cyan-500" },
-  { icon: Shield, title: "Schema Guard", desc: "Config validation before publish", color: "from-purple-500 to-pink-500" },
-  { icon: Dice5, title: "Contract Templating", desc: "Parameterized contract templates", color: "from-emerald-500 to-emerald-600" },
-  { icon: TrendingUp, title: "Template Market", desc: "Foundation for creator marketplace", color: "from-orange-500 to-yellow-500" },
+  {
+    icon: Code2,
+    title: "Template SDK",
+    desc: "Generate miniapps from JSON/YAML",
+    color: "from-blue-500 to-cyan-500",
+  },
+  {
+    icon: Shield,
+    title: "Schema Guard",
+    desc: "Config validation before publish",
+    color: "from-purple-500 to-pink-500",
+  },
+  {
+    icon: Dice5,
+    title: "Contract Templating",
+    desc: "Parameterized contract templates",
+    color: "from-emerald-500 to-emerald-600",
+  },
+  {
+    icon: TrendingUp,
+    title: "Template Market",
+    desc: "Foundation for creator marketplace",
+    color: "from-orange-500 to-yellow-500",
+  },
 ];
 
-const categories = ["gaming", "defi", "social", "nft", "governance", "utility"] as const;
-const templateTypes = ["default", "prediction", "gaming", "defi", "nft"] as const;
+const categories = [
+  "gaming",
+  "defi",
+  "social",
+  "nft",
+  "governance",
+  "utility",
+] as const;
+const templateTypes = [
+  "default",
+  "prediction",
+  "gaming",
+  "defi",
+  "nft",
+] as const;
 
 type FormData = {
   app_id: string;
@@ -145,18 +178,32 @@ export default function DeveloperPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<FormData>(initialForm);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const [definitionMode, setDefinitionMode] = useState<"json" | "yaml">("json");
   const [definitionText, setDefinitionText] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewResult, setPreviewResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [previewResult, setPreviewResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
   const [catalog, setCatalog] = useState<AdminTemplateCatalog | null>(null);
-  const [marketTemplates, setMarketTemplates] = useState<MarketTemplateItem[]>([]);
+  const [marketTemplates, setMarketTemplates] = useState<MarketTemplateItem[]>(
+    [],
+  );
   const [marketLoading, setMarketLoading] = useState(false);
   const [marketError, setMarketError] = useState("");
-  const [marketKind, setMarketKind] = useState<"all" | MarketTemplateKind>("all");
-  const [marketCategory, setMarketCategory] = useState<"all" | FormData["category"]>("all");
-  const [marketSource, setMarketSource] = useState<"all" | MarketTemplateSource>("all");
+  const [marketKind, setMarketKind] = useState<"all" | MarketTemplateKind>(
+    "all",
+  );
+  const [marketCategory, setMarketCategory] = useState<
+    "all" | FormData["category"]
+  >("all");
+  const [marketSource, setMarketSource] = useState<
+    "all" | MarketTemplateSource
+  >("all");
   const [marketVerified, setMarketVerified] = useState<"all" | "true">("all");
   const [marketSearch, setMarketSearch] = useState("");
   const mountedRef = useRef(true);
@@ -172,7 +219,9 @@ export default function DeveloperPage() {
   useEffect(() => {
     const loadCatalog = async () => {
       try {
-        const res = await fetch("/api/miniapps/admin/template-catalog", { signal: AbortSignal.timeout(10000) });
+        const res = await fetch("/api/miniapps/admin/template-catalog", {
+          signal: AbortSignal.timeout(10000),
+        });
         if (!res.ok) return;
         const data = (await res.json()) as AdminTemplateCatalog;
         if (mountedRef.current) setCatalog(data);
@@ -198,20 +247,34 @@ export default function DeveloperPage() {
         if (marketCategory !== "all") params.set("category", marketCategory);
         if (marketSearch.trim()) params.set("search", marketSearch.trim());
 
-        const res = await fetch(`/api/miniapps/template-market?${params.toString()}`, {
-          signal: AbortSignal.timeout(12000),
+        const res = await fetch(
+          `/api/miniapps/template-market?${params.toString()}`,
+          {
+            signal: AbortSignal.timeout(12000),
+          },
+        );
+        const payload = await res.json().catch((e: unknown) => {
+          console.warn(
+            "[developer] failed to parse marketplace template response:",
+            e instanceof Error ? e.message : String(e),
+          );
+          return {};
         });
-        const payload = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse marketplace template response:", e instanceof Error ? e.message : String(e)); return ({}); });
         if (!res.ok) {
           if (!cancelled) {
             setMarketTemplates([]);
-            setMarketError(asErrorMessage(payload, "Failed to load marketplace templates"));
+            setMarketError(
+              asErrorMessage(payload, "Failed to load marketplace templates"),
+            );
           }
           return;
         }
 
-        const templates = Array.isArray((payload as Record<string, unknown>).templates)
-          ? ((payload as Record<string, unknown>).templates as MarketTemplateItem[])
+        const templates = Array.isArray(
+          (payload as Record<string, unknown>).templates,
+        )
+          ? ((payload as Record<string, unknown>)
+              .templates as MarketTemplateItem[])
           : [];
         if (!cancelled) {
           setMarketTemplates(templates);
@@ -246,7 +309,9 @@ export default function DeveloperPage() {
 
   const buildDefinitionPayload = (sourceForm: FormData = form) => {
     const appSlug = normalizeSlug(sourceForm.app_id || sourceForm.name);
-    const appId = appSlug.startsWith("miniapp-") ? appSlug : `miniapp-${appSlug}`;
+    const appId = appSlug.startsWith("miniapp-")
+      ? appSlug
+      : `miniapp-${appSlug}`;
     return {
       app_id: appId,
       name: sourceForm.name,
@@ -265,7 +330,8 @@ export default function DeveloperPage() {
       template: {
         template_type: sourceForm.template_type,
         frontend_template: {
-          template_id: sourceForm.frontend_template_id || sourceForm.template_type,
+          template_id:
+            sourceForm.frontend_template_id || sourceForm.template_type,
           version: "1.0.0",
         },
         contract_template: {
@@ -277,7 +343,8 @@ export default function DeveloperPage() {
         template_id: sourceForm.contract_template_id || undefined,
       },
       frontend_template: {
-        template_id: sourceForm.frontend_template_id || sourceForm.template_type,
+        template_id:
+          sourceForm.frontend_template_id || sourceForm.template_type,
       },
       contract: {
         template_id: sourceForm.contract_template_id || undefined,
@@ -298,13 +365,16 @@ export default function DeveloperPage() {
         daily_gas_cap_per_user: "100",
       },
       frontend_spec: {
-        layout: sourceForm.template_type === "prediction" ? "prediction" : "default",
+        layout:
+          sourceForm.template_type === "prediction" ? "prediction" : "default",
         tabs: [
           {
             id: "overview",
             label: "Overview",
             type: "content",
-            blocks: [{ type: "markdown", content: sourceForm.description || "" }],
+            blocks: [
+              { type: "markdown", content: sourceForm.description || "" },
+            ],
           },
         ],
       },
@@ -312,35 +382,52 @@ export default function DeveloperPage() {
     };
   };
 
-  const applyMarketTemplateToFormData = (baseForm: FormData, item: MarketTemplateItem): FormData => {
+  const applyMarketTemplateToFormData = (
+    baseForm: FormData,
+    item: MarketTemplateItem,
+  ): FormData => {
     const manifest = asObject(item.manifest);
     const templateContainer = asObject(manifest.template);
-    const frontendTemplate = asObject(manifest.frontend_template ?? templateContainer.frontend_template);
-    const contractTemplate = asObject(manifest.contract_template ?? templateContainer.contract_template);
+    const frontendTemplate = asObject(
+      manifest.frontend_template ?? templateContainer.frontend_template,
+    );
+    const contractTemplate = asObject(
+      manifest.contract_template ?? templateContainer.contract_template,
+    );
     const media = asObject(manifest.media);
 
     const next: FormData = { ...baseForm };
 
     if (item.template_kind === "frontend") {
-      const frontendTemplateId = String(frontendTemplate.template_id || item.template_id || "").trim();
+      const frontendTemplateId = String(
+        frontendTemplate.template_id || item.template_id || "",
+      ).trim();
       if (frontendTemplateId) {
         next.frontend_template_id = frontendTemplateId;
       }
     }
 
     if (item.template_kind === "contract") {
-      const contractTemplateId = String(contractTemplate.template_id || item.template_id || "").trim();
+      const contractTemplateId = String(
+        contractTemplate.template_id || item.template_id || "",
+      ).trim();
       if (contractTemplateId) {
         next.contract_template_id = contractTemplateId;
       }
     }
 
-    const templateTypeRaw = String(manifest.template_type || templateContainer.template_type || "").trim().toLowerCase();
+    const templateTypeRaw = String(
+      manifest.template_type || templateContainer.template_type || "",
+    )
+      .trim()
+      .toLowerCase();
     if (isTemplateType(templateTypeRaw)) {
       next.template_type = templateTypeRaw;
     }
 
-    const categoryRaw = String(manifest.category || "").trim().toLowerCase();
+    const categoryRaw = String(manifest.category || "")
+      .trim()
+      .toLowerCase();
     if (isCategory(categoryRaw)) {
       next.category = categoryRaw;
     }
@@ -357,12 +444,16 @@ export default function DeveloperPage() {
       next.docs_url = docsUrl;
     }
 
-    const logoUrl = String(manifest.logo_url || media.logo_url || media.logo || "").trim();
+    const logoUrl = String(
+      manifest.logo_url || media.logo_url || media.logo || "",
+    ).trim();
     if (!next.logo_url.trim() && logoUrl) {
       next.logo_url = logoUrl;
     }
 
-    const bannerUrl = String(manifest.banner_url || media.banner_url || media.banner || "").trim();
+    const bannerUrl = String(
+      manifest.banner_url || media.banner_url || media.banner || "",
+    ).trim();
     if (!next.banner_url.trim() && bannerUrl) {
       next.banner_url = bannerUrl;
     }
@@ -373,7 +464,10 @@ export default function DeveloperPage() {
   const handleApplyMarketTemplate = (item: MarketTemplateItem) => {
     const nextForm = applyMarketTemplateToFormData(form, item);
     setForm(nextForm);
-    syncDefinitionText(definitionMode, buildDefinitionPayload(nextForm) as Record<string, unknown>);
+    syncDefinitionText(
+      definitionMode,
+      buildDefinitionPayload(nextForm) as Record<string, unknown>,
+    );
     setPreviewResult({
       ok: true,
       message: `Applied ${item.template_kind} template ${item.template_id}@${item.version} to builder.`,
@@ -381,12 +475,18 @@ export default function DeveloperPage() {
     setShowForm(true);
   };
 
-  const syncDefinitionText = (mode: "json" | "yaml", payload: Record<string, unknown>) => {
+  const syncDefinitionText = (
+    mode: "json" | "yaml",
+    payload: Record<string, unknown>,
+  ) => {
     if (mode === "json") {
       try {
         setDefinitionText(JSON.stringify(payload, null, 2));
       } catch (err) {
-        logger.warn("Failed to serialize definition payload", err instanceof Error ? err.message : String(err));
+        logger.warn(
+          "Failed to serialize definition payload",
+          err instanceof Error ? err.message : String(err),
+        );
         setDefinitionText("");
       }
       return;
@@ -405,7 +505,10 @@ export default function DeveloperPage() {
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
       setDefinitionText(text);
-      if (file.name.toLowerCase().endsWith(".yaml") || file.name.toLowerCase().endsWith(".yml")) {
+      if (
+        file.name.toLowerCase().endsWith(".yaml") ||
+        file.name.toLowerCase().endsWith(".yml")
+      ) {
         setDefinitionMode("yaml");
       } else {
         setDefinitionMode("json");
@@ -417,7 +520,10 @@ export default function DeveloperPage() {
 
   const handlePreviewDefinition = async () => {
     if (!definitionText.trim()) {
-      setPreviewResult({ ok: false, message: "Please generate or paste JSON/YAML definition first." });
+      setPreviewResult({
+        ok: false,
+        message: "Please generate or paste JSON/YAML definition first.",
+      });
       return;
     }
 
@@ -430,12 +536,24 @@ export default function DeveloperPage() {
         body: JSON.stringify({ content: definitionText }),
         signal: AbortSignal.timeout(30000),
       });
-      const data = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse schema preview response:", e instanceof Error ? e.message : String(e)); return ({}); });
+      const data = await res.json().catch((e: unknown) => {
+        console.warn(
+          "[developer] failed to parse schema preview response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return {};
+      });
       if (!res.ok) {
-        setPreviewResult({ ok: false, message: asErrorMessage(data, "Preview failed") });
+        setPreviewResult({
+          ok: false,
+          message: asErrorMessage(data, "Preview failed"),
+        });
         return;
       }
-      setPreviewResult({ ok: true, message: "Schema + runtime preview passed." });
+      setPreviewResult({
+        ok: true,
+        message: "Schema + runtime preview passed.",
+      });
     } catch (error) {
       logger.warn("definition preview failed", error);
       setPreviewResult({ ok: false, message: "Preview network error" });
@@ -451,7 +569,8 @@ export default function DeveloperPage() {
 
     try {
       const payload = buildDefinitionPayload() as Record<string, unknown>;
-      const definitionPayloadText = definitionText.trim() || JSON.stringify(payload, null, 2);
+      const definitionPayloadText =
+        definitionText.trim() || JSON.stringify(payload, null, 2);
 
       const previewRes = await fetch("/api/miniapps/admin/definition-preview", {
         method: "POST",
@@ -459,26 +578,46 @@ export default function DeveloperPage() {
         body: JSON.stringify({ content: definitionPayloadText }),
         signal: AbortSignal.timeout(30000),
       });
-      const previewData = await previewRes.json().catch((e: unknown) => { console.warn("[developer] failed to parse definition preview response:", e instanceof Error ? e.message : String(e)); return ({}); });
+      const previewData = await previewRes.json().catch((e: unknown) => {
+        console.warn(
+          "[developer] failed to parse definition preview response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return {};
+      });
       if (!previewRes.ok) {
-        setResult({ success: false, message: asErrorMessage(previewData, "Definition preview failed") });
+        setResult({
+          success: false,
+          message: asErrorMessage(previewData, "Definition preview failed"),
+        });
         return;
       }
 
       const parsedDefinition =
-        previewData && typeof previewData === "object" && !Array.isArray(previewData)
-          ? ((previewData as Record<string, unknown>).parsed_definition as Record<string, unknown> | undefined)
+        previewData &&
+        typeof previewData === "object" &&
+        !Array.isArray(previewData)
+          ? ((previewData as Record<string, unknown>).parsed_definition as
+              | Record<string, unknown>
+              | undefined)
           : undefined;
 
-      const upsertSource = parsedDefinition && typeof parsedDefinition === "object" ? parsedDefinition : payload;
+      const upsertSource =
+        parsedDefinition && typeof parsedDefinition === "object"
+          ? parsedDefinition
+          : payload;
 
       const resolvedDeveloperUserId =
         form.developer_user_id ||
-        (typeof upsertSource.developer_user_id === "string" ? upsertSource.developer_user_id : "");
+        (typeof upsertSource.developer_user_id === "string"
+          ? upsertSource.developer_user_id
+          : "");
 
       const resolvedDeveloperPubKey =
         form.developer_pubkey ||
-        (typeof upsertSource.developer_pubkey === "string" ? upsertSource.developer_pubkey : "");
+        (typeof upsertSource.developer_pubkey === "string"
+          ? upsertSource.developer_pubkey
+          : "");
 
       const upsertBody = {
         ...upsertSource,
@@ -493,17 +632,32 @@ export default function DeveloperPage() {
         body: JSON.stringify(upsertBody),
         signal: AbortSignal.timeout(30000),
       });
-      const data = await res.json().catch((e: unknown) => { console.warn("[developer] failed to parse save draft response:", e instanceof Error ? e.message : String(e)); return ({}); });
+      const data = await res.json().catch((e: unknown) => {
+        console.warn(
+          "[developer] failed to parse save draft response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return {};
+      });
 
       if (res.ok) {
-        setResult({ success: true, message: `MiniApp definition for "${form.name}" saved as draft.` });
+        setResult({
+          success: true,
+          message: `MiniApp definition for "${form.name}" saved as draft.`,
+        });
         setForm(initialForm);
         setDefinitionText("");
         setPreviewResult(null);
-        if (hideFormTimeoutRef.current) clearTimeout(hideFormTimeoutRef.current);
-        hideFormTimeoutRef.current = setTimeout(() => { if (mountedRef.current) setShowForm(false); }, 1500);
+        if (hideFormTimeoutRef.current)
+          clearTimeout(hideFormTimeoutRef.current);
+        hideFormTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) setShowForm(false);
+        }, 1500);
       } else {
-        setResult({ success: false, message: asErrorMessage(data, "Save draft failed") });
+        setResult({
+          success: false,
+          message: asErrorMessage(data, "Save draft failed"),
+        });
       }
     } catch (err) {
       logger.warn("Failed to save miniapp draft:", err);
@@ -525,9 +679,21 @@ export default function DeveloperPage() {
         title="Developer Portal"
         description="Build, configure, and publish MiniApps from JSON or YAML definitions with frontend templates, contract templates, and draft-first validation."
         stats={[
-          { label: "Feature modules", value: String(features.length), hint: "SDK, schema, contracts, market" },
-          { label: "Builder modes", value: "JSON + YAML", hint: "Generate, preview, save draft" },
-          { label: "Marketplace", value: "Live", hint: "Install templates into builder" },
+          {
+            label: "Feature modules",
+            value: String(features.length),
+            hint: "SDK, schema, contracts, market",
+          },
+          {
+            label: "Builder modes",
+            value: "JSON + YAML",
+            hint: "Generate, preview, save draft",
+          },
+          {
+            label: "Marketplace",
+            value: "Live",
+            hint: "Install templates into builder",
+          },
         ]}
       />
 
@@ -587,9 +753,12 @@ export default function DeveloperPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Template Marketplace</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Template Marketplace
+              </h2>
               <p className="text-sm text-gray-600 mt-1">
-                Browse published frontend and contract templates, then install to builder in one click.
+                Browse published frontend and contract templates, then install
+                to builder in one click.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600">
@@ -605,10 +774,18 @@ export default function DeveloperPage() {
             marketSource={marketSource}
             marketVerified={marketVerified}
             marketSearch={marketSearch}
-            onMarketKindChange={(value) => setMarketKind(value as "all" | MarketTemplateKind)}
-            onMarketCategoryChange={(value) => setMarketCategory(value as "all" | FormData["category"])}
-            onMarketSourceChange={(value) => setMarketSource(value as "all" | MarketTemplateSource)}
-            onMarketVerifiedChange={(value) => setMarketVerified(value as "all" | "true")}
+            onMarketKindChange={(value) =>
+              setMarketKind(value as "all" | MarketTemplateKind)
+            }
+            onMarketCategoryChange={(value) =>
+              setMarketCategory(value as "all" | FormData["category"])
+            }
+            onMarketSourceChange={(value) =>
+              setMarketSource(value as "all" | MarketTemplateSource)
+            }
+            onMarketVerifiedChange={(value) =>
+              setMarketVerified(value as "all" | "true")
+            }
             onMarketSearchChange={setMarketSearch}
           />
 
@@ -650,7 +827,9 @@ export default function DeveloperPage() {
 
       <section className="py-12 px-4">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Platform Features</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8">
+            Platform Features
+          </h2>
           <IconFeatureGrid
             columns={4}
             items={features.map((feature) => ({
@@ -673,10 +852,11 @@ export default function DeveloperPage() {
           >
             <div
               role="alert"
-              className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${result.success
+              className={`rounded-xl p-4 shadow-2xl backdrop-blur-xl ${
+                result.success
                   ? "bg-emerald-500/20 border border-emerald-500/30 text-emerald-400"
                   : "bg-red-500/20 border border-red-500/30 text-red-400"
-                }`}
+              }`}
             >
               {result.message}
             </div>
@@ -738,7 +918,9 @@ export default function DeveloperPage() {
                     label="Name (中文)"
                     placeholder="可选"
                     value={form.name_zh}
-                    onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, name_zh: e.target.value })
+                    }
                   />
                 </div>
 
@@ -749,7 +931,9 @@ export default function DeveloperPage() {
                   label="Description *"
                   placeholder="Describe what your app does..."
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
                 />
 
                 <TextAreaField
@@ -758,7 +942,9 @@ export default function DeveloperPage() {
                   label="Description (中文)"
                   placeholder="可选"
                   value={form.description_zh}
-                  onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, description_zh: e.target.value })
+                  }
                 />
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -775,20 +961,35 @@ export default function DeveloperPage() {
                     id="submit-app-category"
                     label="Category"
                     value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value as FormData["category"] })}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        category: e.target.value as FormData["category"],
+                      })
+                    }
                   >
                     {categories.map((c) => (
-                      <option key={c} value={c} className="bg-white">{c}</option>
+                      <option key={c} value={c} className="bg-white">
+                        {c}
+                      </option>
                     ))}
                   </SelectField>
                   <SelectField
                     id="submit-template-type"
                     label="Template Type"
                     value={form.template_type}
-                    onChange={(e) => setForm({ ...form, template_type: e.target.value as FormData["template_type"] })}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        template_type: e.target
+                          .value as FormData["template_type"],
+                      })
+                    }
                   >
                     {templateTypes.map((t) => (
-                      <option key={t} value={t} className="bg-white">{t}</option>
+                      <option key={t} value={t} className="bg-white">
+                        {t}
+                      </option>
                     ))}
                   </SelectField>
                   <TextField
@@ -798,7 +999,9 @@ export default function DeveloperPage() {
                     placeholder="0x..."
                     className="font-mono text-sm"
                     value={form.contract_hash}
-                    onChange={(e) => setForm({ ...form, contract_hash: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, contract_hash: e.target.value })
+                    }
                   />
                 </div>
 
@@ -811,7 +1014,12 @@ export default function DeveloperPage() {
                       label="Frontend Template ID"
                       placeholder="default"
                       value={form.frontend_template_id}
-                      onChange={(e) => setForm({ ...form, frontend_template_id: e.target.value })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          frontend_template_id: e.target.value,
+                        })
+                      }
                     />
                     <datalist id="frontend-template-options">
                       {frontendTemplateOptions.map((id) => (
@@ -827,7 +1035,12 @@ export default function DeveloperPage() {
                       label="Contract Template ID"
                       placeholder="prediction-binary"
                       value={form.contract_template_id}
-                      onChange={(e) => setForm({ ...form, contract_template_id: e.target.value })}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          contract_template_id: e.target.value,
+                        })
+                      }
                     />
                     <datalist id="contract-template-options">
                       {contractTemplateOptions.map((id) => (
@@ -844,7 +1057,9 @@ export default function DeveloperPage() {
                   label="Entry URL *"
                   placeholder="https://your-app.com/miniapp"
                   value={form.entry_url}
-                  onChange={(e) => setForm({ ...form, entry_url: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, entry_url: e.target.value })
+                  }
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -854,7 +1069,9 @@ export default function DeveloperPage() {
                     label="Logo URL"
                     placeholder="https://cdn/logo.png"
                     value={form.logo_url}
-                    onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, logo_url: e.target.value })
+                    }
                   />
                   <TextField
                     id="submit-banner-url"
@@ -862,7 +1079,9 @@ export default function DeveloperPage() {
                     label="Banner URL"
                     placeholder="https://cdn/banner.png"
                     value={form.banner_url}
-                    onChange={(e) => setForm({ ...form, banner_url: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, banner_url: e.target.value })
+                    }
                   />
                   <TextField
                     id="submit-docs-url"
@@ -870,12 +1089,16 @@ export default function DeveloperPage() {
                     label="Docs URL"
                     placeholder="https://docs.example.com"
                     value={form.docs_url}
-                    onChange={(e) => setForm({ ...form, docs_url: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, docs_url: e.target.value })
+                    }
                   />
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-4">Developer Metadata</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-4">
+                    Developer Metadata
+                  </h3>
                   <div className="space-y-4">
                     <TextField
                       id="submit-dev-name"
@@ -883,7 +1106,9 @@ export default function DeveloperPage() {
                       label="Developer Name"
                       placeholder="Your name or team"
                       value={form.developer_name}
-                      onChange={(e) => setForm({ ...form, developer_name: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, developer_name: e.target.value })
+                      }
                     />
                     <TextField
                       id="submit-dev-user-id"
@@ -893,7 +1118,9 @@ export default function DeveloperPage() {
                       placeholder="123e4567-e89b-12d3-a456-426614174000"
                       className="font-mono text-sm"
                       value={form.developer_user_id}
-                      onChange={(e) => setForm({ ...form, developer_user_id: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, developer_user_id: e.target.value })
+                      }
                     />
                     <TextField
                       id="submit-dev-pubkey"
@@ -902,15 +1129,22 @@ export default function DeveloperPage() {
                       placeholder="03ab..."
                       className="font-mono text-sm"
                       value={form.developer_pubkey}
-                      onChange={(e) => setForm({ ...form, developer_pubkey: e.target.value })}
+                      onChange={(e) =>
+                        setForm({ ...form, developer_pubkey: e.target.value })
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700">JSON / YAML Definition</h3>
-                    <DefinitionModeToggle mode={definitionMode} onChange={setDefinitionMode} />
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      JSON / YAML Definition
+                    </h3>
+                    <DefinitionModeToggle
+                      mode={definitionMode}
+                      onChange={setDefinitionMode}
+                    />
                   </div>
 
                   <DefinitionActionBar
@@ -922,14 +1156,21 @@ export default function DeveloperPage() {
 
                   <TextAreaField
                     rows={10}
-                    placeholder={definitionMode === "json" ? "Paste miniapp definition JSON..." : "Paste miniapp definition YAML..."}
+                    placeholder={
+                      definitionMode === "json"
+                        ? "Paste miniapp definition JSON..."
+                        : "Paste miniapp definition YAML..."
+                    }
                     value={definitionText}
                     onChange={(e) => setDefinitionText(e.target.value)}
                     className="font-mono text-xs"
                   />
 
                   {previewResult && (
-                    <Alert variant={previewResult.ok ? "success" : "error"} className="mt-3 text-xs">
+                    <Alert
+                      variant={previewResult.ok ? "success" : "error"}
+                      className="mt-3 text-xs"
+                    >
                       {previewResult.message}
                     </Alert>
                   )}
@@ -941,7 +1182,10 @@ export default function DeveloperPage() {
                   </Alert>
                 )}
 
-                <DeveloperDrawerFooter submitting={submitting} onCancel={() => setShowForm(false)} />
+                <DeveloperDrawerFooter
+                  submitting={submitting}
+                  onCancel={() => setShowForm(false)}
+                />
               </form>
             </motion.div>
           </>

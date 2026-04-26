@@ -18,7 +18,10 @@ function getPlatformTxCount(): number {
 
 const colors = ["#00d4aa", "#3498db", "#9b59b6", "#f1c40f", "#e67e22"];
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -33,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   if (!isSupabaseConfigured) {
-    return res.status(200).json(base);
+    res.status(200).json(base);
+    return;
   }
 
   try {
@@ -41,11 +45,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) {
       if (isMissingSupabaseSchemaObject(error)) {
-        warnOnce("platform-stats-rpc-missing", "platform_stats_aggregate RPC not available; returning fallback platform stats.");
-        return res.status(200).json(base);
+        warnOnce(
+          "platform-stats-rpc-missing",
+          "platform_stats_aggregate RPC not available; returning fallback platform stats.",
+        );
+        res.status(200).json(base);
+        return;
       }
-      logger.error("platform_stats_aggregate RPC failed:", error instanceof Error ? error.message : String(error));
-      return res.status(200).json(base);
+      logger.error(
+        "platform_stats_aggregate RPC failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+      res.status(200).json(base);
+      return;
     }
 
     const row = Array.isArray(data) ? data[0] : data;
@@ -63,9 +75,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    return res.status(200).json(base);
+    res.status(200).json(base);
+    return;
   } catch (error) {
-    logger.error("Stats API error:", error instanceof Error ? error.message : "unknown error");
+    logger.error(
+      "Stats API error:",
+      error instanceof Error ? error.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to fetch stats");
   }
 }

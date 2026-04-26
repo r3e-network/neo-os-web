@@ -29,18 +29,37 @@ export function BadgeGrid({ earnedBadges }: BadgeGridProps) {
       <div className="grid grid-cols-4 gap-2">
         {BADGES.map((badge) => {
           const earned = earnedBadges.includes(badge.id);
-          return <BadgeItem key={badge.id} badge={badge} earned={earned} onClick={() => setSelected(badge)} />;
+          return (
+            <BadgeItem
+              key={badge.id}
+              badge={badge}
+              earned={earned}
+              onClick={() => setSelected(badge)}
+            />
+          );
         })}
       </div>
 
       {selected && (
-        <BadgeModal badge={selected} earned={earnedBadges.includes(selected.id)} onClose={() => setSelected(null)} />
+        <BadgeModal
+          badge={selected}
+          earned={earnedBadges.includes(selected.id)}
+          onClose={() => setSelected(null)}
+        />
       )}
     </div>
   );
 }
 
-function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; onClick: () => void }) {
+function BadgeItem({
+  badge,
+  earned,
+  onClick,
+}: {
+  badge: Badge;
+  earned: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -57,7 +76,15 @@ function BadgeItem({ badge, earned, onClick }: { badge: Badge; earned: boolean; 
   );
 }
 
-function BadgeModal({ badge, earned, onClose }: { badge: Badge; earned: boolean; onClose: () => void }) {
+function BadgeModal({
+  badge,
+  earned,
+  onClose,
+}: {
+  badge: Badge;
+  earned: boolean;
+  onClose: () => void;
+}) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -95,7 +122,9 @@ function BadgeModal({ badge, earned, onClose }: { badge: Badge; earned: boolean;
           <div className="mt-4 pt-4 border-t border-gray-200">
             <span className="text-amber-500 font-bold">+{badge.points} XP</span>
           </div>
-          {!earned && <p className="mt-2 text-xs text-gray-500">Not yet earned</p>}
+          {!earned && (
+            <p className="mt-2 text-xs text-gray-500">Not yet earned</p>
+          )}
         </div>
       </div>
     </div>

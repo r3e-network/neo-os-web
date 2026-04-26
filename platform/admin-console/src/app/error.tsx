@@ -15,9 +15,16 @@ export default function Error({
   }, [error]);
 
   return (
-    <div role="alert" className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Something went wrong</h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400">{error.message || "An unexpected error occurred"}</p>
+    <div
+      role="alert"
+      className="flex min-h-[50vh] flex-col items-center justify-center gap-4"
+    >
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        Something went wrong
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        {error.message || "An unexpected error occurred"}
+      </p>
       <button
         type="button"
         onClick={reset}

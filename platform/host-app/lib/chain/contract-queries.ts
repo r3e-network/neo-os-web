@@ -18,14 +18,39 @@ export const CONTRACTS = {
   neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
 } as const;
 
+export const TESTNET_CONTRACTS = {
+  lastSurvivor: "0x1021e9e5c17285e706c293a39c525de13100ed92",
+  gasBox: "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c",
+  redEnvelope: "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+  dailyCheckin: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+  fogPlay: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
+  selfLoan: "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
+  neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
+  platformAnchor: "0xee1819916a6b8c7a8c30506af3318c758850033a",
+} as const;
+
+const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
+
+export function getFlagshipApps(network: Network = "mainnet"): Record<string, { contract: string; category: string }> {
+  const contracts = network === "testnet" ? TESTNET_CONTRACTS : CONTRACTS;
+  const apps: Record<string, { contract: string; category: string }> = {
+    "miniapp-last-survivor": { contract: contracts.lastSurvivor, category: "gaming" },
+    "miniapp-gasbox": { contract: contracts.gasBox, category: "gaming" },
+    "miniapp-redenvelope": { contract: contracts.redEnvelope, category: "social" },
+    "miniapp-dailycheckin": { contract: contracts.dailyCheckin, category: "gaming" },
+    "miniapp-fogplay": { contract: contracts.fogPlay, category: "gaming" },
+    "miniapp-self-loan": { contract: contracts.selfLoan, category: "defi" },
+    "miniapp-neo-pay": { contract: contracts.neoPay, category: "defi" },
+  };
+  if (network === "testnet") {
+    apps["miniapp-trustanchor"] = { contract: TESTNET_CONTRACTS.platformAnchor, category: "defi" };
+    apps["miniapp-profitanchor"] = { contract: TESTNET_CONTRACTS.platformAnchor, category: "defi" };
+  }
+  return apps;
+}
+
 export const FLAGSHIP_APPS: Record<string, { contract: string; category: string }> = {
-  "miniapp-last-survivor": { contract: CONTRACTS.lastSurvivor, category: "gaming" },
-  "miniapp-gasbox": { contract: CONTRACTS.gasBox, category: "gaming" },
-  "miniapp-redenvelope": { contract: CONTRACTS.redEnvelope, category: "social" },
-  "miniapp-dailycheckin": { contract: CONTRACTS.dailyCheckin, category: "gaming" },
-  "miniapp-fogplay": { contract: CONTRACTS.fogPlay, category: "gaming" },
-  "miniapp-self-loan": { contract: CONTRACTS.selfLoan, category: "defi" },
-  "miniapp-neo-pay": { contract: CONTRACTS.neoPay, category: "defi" },
+  ...getFlagshipApps("mainnet"),
 };
 
 function parseInteger(item?: StackItem): bigint {
@@ -38,6 +63,15 @@ function safeNumber(value: bigint): number {
   if (value > BigInt(Number.MAX_SAFE_INTEGER)) return Number.MAX_SAFE_INTEGER;
   if (value < BigInt(-Number.MAX_SAFE_INTEGER)) return -Number.MAX_SAFE_INTEGER;
   return Number(value);
+}
+
+function parseUnknownInteger(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  try {
+    return BigInt(String(value ?? "0"));
+  } catch {
+    return 0n;
+  }
 }
 
 function parseByteString(item?: StackItem): string {
@@ -147,6 +181,12 @@ export async function getDoomsdayState(
   contractHash: string = CONTRACTS.lastSurvivor,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
+  if (network === "testnet") {
+    const res = await invokeRead(contractHash, "getCountdownStatus", [
+      { type: "String", value: LAST_SURVIVOR_APP_ID },
+    ], network);
+    return mapFromResult(res.stack[0]);
+  }
   const res = await invokeRead(contractHash, "getGameStatus", [], network);
   return mapFromResult(res.stack[0]);
 }
@@ -155,6 +195,14 @@ export async function getDoomsdayPlatformStats(
   contractHash: string = CONTRACTS.lastSurvivor,
   network: Network = "testnet",
 ): Promise<Record<string, unknown>> {
+  if (network === "testnet") {
+    const state = await getDoomsdayState(contractHash, network);
+    return {
+      currentRoundPot: parseUnknownInteger(state.pot),
+      totalKeysSold: parseUnknownInteger(state.totalKeysSold ?? state.totalKeys),
+      totalPlayers: parseUnknownInteger(state.totalPlayers),
+    };
+  }
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
   return mapFromResult(res.stack[0]);
 }
@@ -274,9 +322,9 @@ export async function getLiveStatus(
     switch (appId) {
       case "miniapp-last-survivor": {
         const state = await getDoomsdayState(contractHash, network);
-        status.jackpot = (BigInt(state.pot as bigint || 0n) / 100000000n).toString();
-        status.playersOnline = safeNumber(BigInt(state.totalKeys as bigint || 0n));
-        status.nextDraw = Number(state.remainingSeconds || 0);
+        status.jackpot = (parseUnknownInteger(state.pot) / 100000000n).toString();
+        status.playersOnline = safeNumber(parseUnknownInteger(state.totalKeys));
+        status.nextDraw = safeNumber(parseUnknownInteger(state.remainingSeconds ?? state.remainingTime));
         return status;
       }
       case "miniapp-dailycheckin": {

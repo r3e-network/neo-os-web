@@ -8,7 +8,10 @@ import type { MiniAppUpsertRow } from "@/lib/miniapp-admin";
 import { recordMiniAppVersion } from "@/lib/miniapp-versioning";
 import { coerceMiniAppInfo } from "@/lib/miniapp";
 import { strictLimit } from "@/lib/rate-limit";
-import { getServerSupabaseClient, hasServiceRoleSupabase } from "@/lib/server-supabase";
+import {
+  getServerSupabaseClient,
+  hasServiceRoleSupabase,
+} from "@/lib/server-supabase";
 
 const APP_ID_REGEX = /^[a-z0-9][a-z0-9._-]*$/;
 const STATUS_VALUES = new Set(["pending", "active", "disabled"]);
@@ -71,7 +74,13 @@ function toMiniAppUpsertRow(row: MiniAppStatusRow): MiniAppUpsertRow | null {
   const manifestHash = asTrimmedString(row.manifest_hash);
   const manifest = asObject(row.manifest);
 
-  if (!appId || !entryUrl || !developerUserId || !manifestHash || !Object.keys(manifest).length) {
+  if (
+    !appId ||
+    !entryUrl ||
+    !developerUserId ||
+    !manifestHash ||
+    !Object.keys(manifest).length
+  ) {
     return null;
   }
 
@@ -123,7 +132,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (strictLimit(req, res)) return;
 
   if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes");
+    return apiError.configError(
+      res,
+      "SUPABASE_SERVICE_ROLE_KEY is required for admin miniapp writes",
+    );
   }
 
   const admin = await requireMiniAppAdmin(req, res);
@@ -148,7 +160,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(res, "Supabase service role client unavailable");
+    return apiError.configError(
+      res,
+      "Supabase service role client unavailable",
+    );
   }
 
   const { data: existing, error: existingError } = await supabase
@@ -190,18 +205,27 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     .single();
 
   if (updateError || !updated) {
-    logger.error("miniapp status update failed:", updateError instanceof Error ? updateError.message : "unknown error");
+    logger.error(
+      "miniapp status update failed:",
+      updateError instanceof Error ? updateError.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to update miniapp status");
   }
 
   const app = coerceMiniAppInfo(updated);
   if (!app) {
-    return apiError.internal(res, "Status updated but response normalization failed");
+    return apiError.internal(
+      res,
+      "Status updated but response normalization failed",
+    );
   }
 
   const versionRow = toMiniAppUpsertRow(updated as MiniAppStatusRow);
   if (!versionRow) {
-    return apiError.internal(res, "Status updated but failed to build version snapshot");
+    return apiError.internal(
+      res,
+      "Status updated but failed to build version snapshot",
+    );
   }
 
   const versionAction: "save_draft" | "publish" | "disable" =
@@ -218,15 +242,22 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       actor: admin.kind === "wallet" ? admin.value : "api_key",
     });
   } catch (versionError) {
-    logger.error("miniapp status version write failed:", versionError instanceof Error ? versionError.message : "unknown error");
-    return apiError.internal(res, "Status updated but failed to write version snapshot");
+    logger.error(
+      "miniapp status version write failed:",
+      versionError instanceof Error ? versionError.message : "unknown error",
+    );
+    return apiError.internal(
+      res,
+      "Status updated but failed to write version snapshot",
+    );
   }
 
   res.setHeader("Cache-Control", "no-store, private");
-  return res.status(200).json({
+  res.status(200).json({
     success: true,
     app,
   });
+  return;
 }
 
 export default withCsrfProtection(handler);

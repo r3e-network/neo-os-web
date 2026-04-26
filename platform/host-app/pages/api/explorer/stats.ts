@@ -21,7 +21,10 @@ interface ExplorerStats {
   timestamp: number;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
@@ -40,14 +43,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate");
-    return res.status(200).json(stats);
+    res.status(200).json(stats);
+    return;
   } catch (err) {
-    logger.error("Explorer stats error:", err instanceof Error ? err.message : "unknown error");
+    logger.error(
+      "Explorer stats error:",
+      err instanceof Error ? err.message : "unknown error",
+    );
     return apiError.internal(res, "Failed to fetch stats");
   }
 }
 
-async function getNetworkStats(rpcUrl: string, network: string): Promise<NetworkStats> {
+async function getNetworkStats(
+  rpcUrl: string,
+  network: string,
+): Promise<NetworkStats> {
   const blockRes = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -5,7 +5,10 @@ type DefinitionModeToggleProps = {
   onChange: (mode: "json" | "yaml") => void;
 };
 
-export function DefinitionModeToggle({ mode, onChange }: DefinitionModeToggleProps) {
+export function DefinitionModeToggle({
+  mode,
+  onChange,
+}: DefinitionModeToggleProps) {
   return (
     <div className="flex gap-2">
       {(["json", "yaml"] as const).map((value) => (

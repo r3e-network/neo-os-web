@@ -14,7 +14,10 @@ interface StakingCardProps {
 export function StakingCard({ onStake }: StakingCardProps) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<StakingStats>({ apy: "8.5", total_staked_formatted: "12.5M" });
+  const [stats, setStats] = useState<StakingStats>({
+    apy: "8.5",
+    total_staked_formatted: "12.5M",
+  });
   const [statsError, setStatsError] = useState<string | null>(null);
   const mountedRef = useRef(true);
 
@@ -24,9 +27,19 @@ export function StakingCard({ onStake }: StakingCardProps) {
     setStatsError(null);
     fetch("/api/neoburger-stats", { signal: controller.signal })
       .then((res) => res.json())
-      .then((data) => { if (mountedRef.current) setStats(data); })
-      .catch((err) => { if (err.name !== "AbortError") { logger.warn("Failed to fetch staking stats:", err); if (mountedRef.current) setStatsError("Failed to load staking stats"); } });
-    return () => { mountedRef.current = false; controller.abort(); };
+      .then((data) => {
+        if (mountedRef.current) setStats(data);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          logger.warn("Failed to fetch staking stats:", err);
+          if (mountedRef.current) setStatsError("Failed to load staking stats");
+        }
+      });
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, []);
 
   const userBalance = "100";
@@ -47,7 +60,9 @@ export function StakingCard({ onStake }: StakingCardProps) {
     <div className="rounded-xl bg-gradient-to-br from-green-500 to-green-700 p-6 text-white">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xl font-bold">Stake NEO, Earn GAS</h3>
-        <span className="rounded-full bg-white/20 px-3 py-1 text-sm">via NeoBurger</span>
+        <span className="rounded-full bg-white/20 px-3 py-1 text-sm">
+          via NeoBurger
+        </span>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4">
@@ -56,7 +71,9 @@ export function StakingCard({ onStake }: StakingCardProps) {
           <div className="text-sm text-green-100">Current APY</div>
         </div>
         <div className="rounded-lg bg-white/10 p-3">
-          <div className="text-2xl font-bold">{stats.total_staked_formatted}</div>
+          <div className="text-2xl font-bold">
+            {stats.total_staked_formatted}
+          </div>
           <div className="text-sm text-green-100">Total Staked</div>
         </div>
       </div>
@@ -68,7 +85,12 @@ export function StakingCard({ onStake }: StakingCardProps) {
       )}
 
       <div className="mb-4">
-        <label htmlFor="stake-amount" className="mb-2 block text-sm text-green-100">Amount to Stake (NEO)</label>
+        <label
+          htmlFor="stake-amount"
+          className="mb-2 block text-sm text-green-100"
+        >
+          Amount to Stake (NEO)
+        </label>
         <div className="flex gap-2">
           <input
             id="stake-amount"
@@ -88,7 +110,9 @@ export function StakingCard({ onStake }: StakingCardProps) {
             MAX
           </button>
         </div>
-        <div className="mt-1 text-sm text-green-200">Balance: {userBalance} NEO</div>
+        <div className="mt-1 text-sm text-green-200">
+          Balance: {userBalance} NEO
+        </div>
       </div>
 
       <Button
@@ -99,7 +123,9 @@ export function StakingCard({ onStake }: StakingCardProps) {
         {loading ? "Processing..." : "Stake Now"}
       </Button>
 
-      <p className="mt-3 text-center text-xs text-green-200">Powered by NeoBurger liquid staking</p>
+      <p className="mt-3 text-center text-xs text-green-200">
+        Powered by NeoBurger liquid staking
+      </p>
     </div>
   );
 }

@@ -2,7 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { MiniAppInfo } from "./types";
 import { ArrowLeft } from "lucide-react";
 import { isFlagshipMiniApp } from "@/lib/miniapp-showcase";
-import { buildMiniAppBannerSources, resolveMiniAppSlug } from "@/lib/miniapp-media";
+import {
+  buildMiniAppBannerSources,
+} from "@/lib/miniapp-media";
+import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 
 type Props = {
   app: MiniAppInfo;
@@ -70,52 +73,56 @@ export function AppDetailHeader({ app, onBack }: Props) {
           aria-label="Go back"
           className="mb-8 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition-all cursor-pointer hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 shadow-sm w-fit group"
         >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform duration-300" />
+          <ArrowLeft
+            size={16}
+            className="group-hover:-translate-x-1 transition-transform duration-300"
+          />
           Back to MiniApps
         </button>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 sm:gap-8">
           <div className="flex h-20 w-20 sm:h-28 sm:w-28 shrink-0 items-center justify-center rounded-[2rem] bg-white shadow-lg border border-gray-200 relative group overflow-hidden p-2">
-            <img
-              src={`/miniapp-assets/${resolveMiniAppSlug(app.app_id, app.entry_url)}/logo.svg`}
+            <MiniAppLogo
+              appId={app.app_id}
+              category={app.category}
+              entryUrl={app.entry_url}
+              logoUrl={app.logo_url}
+              manifest={app.manifest || null}
+              size="lg"
+              className="h-full w-full rounded-xl transform transition-transform duration-500 group-hover:scale-110"
               alt={app.name}
-              className="w-full h-full rounded-xl transform group-hover:scale-110 transition-transform duration-500"
-              loading="eager"
-              decoding="async"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = "none";
-                const parent = target.parentElement;
-                if (parent) {
-                  const fallback = document.createElement("span");
-                  fallback.className = "text-[56px] sm:text-[72px] drop-shadow-md";
-                  fallback.textContent = app.icon || "\uD83D\uDCF1";
-                  parent.appendChild(fallback);
-                }
-              }}
             />
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="mb-3 text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 tracking-tight truncate" title={app.name}>
+            <h1
+              className="mb-3 text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 truncate"
+              title={app.name}
+            >
               {app.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
               {isFlagship && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-emerald-700">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-black uppercase text-emerald-700">
                   Flagship
                 </span>
               )}
-              <span className="rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-black uppercase tracking-widest text-emerald-700 border border-emerald-200">
+              <span className="rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-black uppercase text-emerald-700 border border-emerald-200">
                 {app.category}
               </span>
-              <span className="rounded-full border border-gray-200 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-gray-600">
+              <span className="rounded-full border border-gray-200 px-3.5 py-1 text-xs font-bold uppercase text-gray-600">
                 {appSurface}
               </span>
-              <span className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold uppercase tracking-widest border ${statusColor}`}>
+              <span
+                className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-bold uppercase text border ${statusColor}`}
+              >
                 <span className="relative flex h-2 w-2">
-                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "hidden"}`} />
-                  <span className={`relative inline-flex rounded-full h-2 w-2 ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "bg-current"}`} />
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "hidden"}`}
+                  />
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 ${app.status === "active" ? "bg-emerald-500" : app.status === "beta" ? "bg-sky-400" : "bg-current"}`}
+                  />
                 </span>
                 {statusBadge}
               </span>

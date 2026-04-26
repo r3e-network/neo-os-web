@@ -15,11 +15,17 @@ import "@/styles/globals.css";
 
 // Lazy-load dev-only monitoring panels (excluded from production bundle)
 const MonitoringPanel = dynamic(
-  () => import("@/components/MonitoringPanel").then((m) => ({ default: m.MonitoringPanel })),
+  () =>
+    import("@/components/MonitoringPanel").then((m) => ({
+      default: m.MonitoringPanel,
+    })),
   { ssr: false },
 );
 const PerformanceReportPanel = dynamic(
-  () => import("@/components/PerformanceReport").then((m) => ({ default: m.PerformanceReportPanel })),
+  () =>
+    import("@/components/PerformanceReport").then((m) => ({
+      default: m.PerformanceReportPanel,
+    })),
   { ssr: false },
 );
 
@@ -29,7 +35,9 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 function AuthSync({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const syncFromSession = useAuthStore((s) => s.syncFromSession);
-  useEffect(() => { syncFromSession(user ?? null); }, [user, syncFromSession]);
+  useEffect(() => {
+    syncFromSession(user ?? null);
+  }, [user, syncFromSession]);
   return <>{children}</>;
 }
 
@@ -39,11 +47,16 @@ function AuthSync({ children }: { children: ReactNode }) {
  */
 function MonitoringInit() {
   useEffect(() => {
-    import("@/lib/monitoring").then(({ initAllMonitoring }) => {
-      initAllMonitoring();
-    }).catch((e) => {
-      console.warn("[monitoring] failed to initialize:", e instanceof Error ? e.message : String(e));
-    });
+    import("@/lib/monitoring")
+      .then(({ initAllMonitoring }) => {
+        initAllMonitoring();
+      })
+      .catch((e) => {
+        console.warn(
+          "[monitoring] failed to initialize:",
+          e instanceof Error ? e.message : String(e),
+        );
+      });
   }, []);
 
   return null;
@@ -62,7 +75,7 @@ export default function App({ Component, pageProps }: AppProps) {
       </a>
       <ErrorBoundary>
         <MotionConfig reducedMotion="user">
-          <UserProvider>
+          <UserProvider profileUrl="/api/auth/profile">
             <AuthSync>
               <I18nProvider>
                 <QueryProvider>
@@ -89,9 +102,7 @@ export default function App({ Component, pageProps }: AppProps) {
                             devOnly={true}
                             position="bottom-right"
                           />
-                          <MonitoringPanel
-                            position="bottom-right"
-                          />
+                          <MonitoringPanel position="bottom-right" />
                         </>
                       )}
                     </AnalyticsProvider>

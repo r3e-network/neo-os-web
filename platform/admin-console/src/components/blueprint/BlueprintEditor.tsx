@@ -7,8 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 
 const LAYOUT_OPTIONS = [
-  { value: "default", label: "Default", desc: "General overview + reviews + forum" },
-  { value: "trading", label: "Trading", desc: "Polymarket style - left content, right operations" },
+  {
+    value: "default",
+    label: "Default",
+    desc: "General overview + reviews + forum",
+  },
+  {
+    value: "trading",
+    label: "Trading",
+    desc: "Polymarket style - left content, right operations",
+  },
   { value: "voting", label: "Voting", desc: "Proposals + vote casting" },
   { value: "gaming", label: "Gaming", desc: "Leaderboard + gameplay" },
   { value: "info", label: "Info", desc: "Documentation + support" },
@@ -69,14 +77,19 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
     update({ hero: { ...config.hero, ...updates } });
   };
 
-  const updateOpPanel = (updates: Partial<BlueprintConfig["operation_panel"]>) => {
+  const updateOpPanel = (
+    updates: Partial<BlueprintConfig["operation_panel"]>,
+  ) => {
     update({ operation_panel: { ...config.operation_panel, ...updates } });
   };
 
   const addTab = () => {
     const tabs = config.tabs || [];
     update({
-      tabs: [...tabs, { id: `tab-${tabs.length + 1}`, label: "New Tab", type: "content" }],
+      tabs: [
+        ...tabs,
+        { id: `tab-${tabs.length + 1}`, label: "New Tab", type: "content" },
+      ],
     });
   };
 
@@ -120,7 +133,9 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => update({ layout: opt.value as BlueprintConfig["layout"] })}
+                  onClick={() =>
+                    update({ layout: opt.value as BlueprintConfig["layout"] })
+                  }
                   className={`p-3 rounded-lg border text-left transition-all ${
                     config.layout === opt.value
                       ? "border-neo bg-neo/5"
@@ -136,8 +151,9 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
 
           {config.layout === "trading" && (
             <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm">
-              <strong>Trading Layout:</strong> Left panel shows content/markets, right panel shows operation form.
-              Perfect for prediction markets, exchanges, and trading platforms.
+              <strong>Trading Layout:</strong> Left panel shows content/markets,
+              right panel shows operation form. Perfect for prediction markets,
+              exchanges, and trading platforms.
             </div>
           )}
         </div>
@@ -190,7 +206,10 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
             </Button>
           </div>
           {(config.tabs || []).map((tab, i) => (
-            <div key={i} className="p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div
+              key={i}
+              className="p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+            >
               <div className="flex gap-2 mb-2">
                 <Input
                   placeholder="Tab ID"
@@ -208,7 +227,16 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
                   id={`tab-type-${i}`}
                   value={tab.type}
                   aria-label="Tab type"
-                  onChange={(e) => updateTab(i, { type: e.target.value as "content" | "forum" | "reviews" | "news" | "custom" })}
+                  onChange={(e) =>
+                    updateTab(i, {
+                      type: e.target.value as
+                        | "content"
+                        | "forum"
+                        | "reviews"
+                        | "news"
+                        | "custom",
+                    })
+                  }
                   className="rounded-md border border-gray-300 dark:border-gray-600 px-2 text-sm"
                 >
                   {TAB_TYPES.map((t) => (
@@ -224,7 +252,9 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
             </div>
           ))}
           {(!config.tabs || config.tabs.length === 0) && (
-            <p className="text-sm text-gray-500 text-center py-4">No tabs configured</p>
+            <p className="text-sm text-gray-500 text-center py-4">
+              No tabs configured
+            </p>
           )}
         </div>
       )}
@@ -253,13 +283,20 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
             />
           </div>
           <div>
-            <label htmlFor="panel-position" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label
+              htmlFor="panel-position"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
               Panel Position
             </label>
             <select
               id="panel-position"
               value={config.operation_panel?.position || "right"}
-              onChange={(e) => updateOpPanel({ position: e.target.value as "right" | "bottom" })}
+              onChange={(e) =>
+                updateOpPanel({
+                  position: e.target.value as "right" | "bottom",
+                })
+              }
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 p-2"
             >
               <option value="right">Right Side</option>
@@ -274,7 +311,9 @@ export function BlueprintEditor({ config, onChange }: BlueprintEditorProps) {
               onChange={(e) => updateOpPanel({ collapsible: e.target.checked })}
               className="rounded"
             />
-            <label htmlFor="panel-collapsible" className="text-sm">Collapsible</label>
+            <label htmlFor="panel-collapsible" className="text-sm">
+              Collapsible
+            </label>
           </div>
         </div>
       )}

@@ -15,8 +15,11 @@ export function cn(...inputs: ClassValue[]): string {
 /**
  * Format date to human-readable string
  */
-export function formatDate(date: string | Date): string {
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return "Not available";
   const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "Not available";
+
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
@@ -29,8 +32,13 @@ export function formatDate(date: string | Date): string {
 /**
  * Format relative time (e.g., "2 hours ago")
  */
-export function formatRelativeTime(date: string | Date): string {
+export function formatRelativeTime(
+  date: string | Date | null | undefined,
+): string {
+  if (!date) return "Not available";
   const d = typeof date === "string" ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return "Not available";
+
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffSec = Math.floor(diffMs / 1000);

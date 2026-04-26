@@ -1,5 +1,11 @@
 import React from "react";
-import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { useRouter } from "next/router";
 import LaunchPage, { getServerSideProps } from "../../pages/launch/[id]";
 import { MiniAppInfo } from "../../components/types";
@@ -27,7 +33,12 @@ const mockApp: MiniAppInfo = {
   icon: "🧪",
   category: "gaming",
   entry_url: "mf://manifest?app=test-app",
-  permissions: { payments: true, governance: true, randomness: true, datafeed: true },
+  permissions: {
+    payments: true,
+    governance: true,
+    randomness: true,
+    datafeed: true,
+  },
 };
 
 const flushAsyncUpdates = async () => {
@@ -119,7 +130,9 @@ describe("LaunchPage", () => {
       });
 
       expect(document.querySelector("iframe")).toBeInTheDocument();
-      expect(document.querySelector("iframe")?.getAttribute("src")).toBe("https://wallet.matrix/apps/test");
+      expect(document.querySelector("iframe")?.getAttribute("src")).toBe(
+        "https://wallet.matrix/apps/test",
+      );
       expect(screen.queryByText("Manifest Runtime")).not.toBeInTheDocument();
     });
   });
@@ -131,7 +144,10 @@ describe("LaunchPage", () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
           "/api/health",
-          expect.objectContaining({ method: "HEAD", signal: expect.any(Object) }),
+          expect.objectContaining({
+            method: "HEAD",
+            signal: expect.any(Object),
+          }),
         );
       });
     });
@@ -229,7 +245,10 @@ describe("LaunchPage", () => {
 
       unmount();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        "keydown",
+        expect.any(Function),
+      );
     });
   });
 
@@ -241,13 +260,17 @@ describe("LaunchPage", () => {
       fireEvent.click(shareButton);
 
       await waitFor(() => {
-        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining("/launch/test-app"));
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining("/launch/test-app"),
+        );
       });
     });
 
     it("should handle clipboard write failure", async () => {
       const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-      (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error("Clipboard denied"));
+      (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(
+        new Error("Clipboard denied"),
+      );
 
       await renderLaunchPage();
 
@@ -255,7 +278,10 @@ describe("LaunchPage", () => {
       fireEvent.click(shareButton);
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith("[ERROR] Failed to copy link", expect.any(Error));
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "[ERROR] Failed to copy link",
+          expect.any(Error),
+        );
       });
 
       consoleErrorSpy.mockRestore();
@@ -334,7 +360,9 @@ describe("getServerSideProps", () => {
 
     const result = await getServerSideProps(context);
 
-    expect((result as any).props.app.entry_url).toBe("mf://manifest?app=miniapp-fogplay");
+    expect((result as any).props.app.entry_url).toBe(
+      "mf://manifest?app=miniapp-fogplay",
+    );
   });
 
   it("should return app with required fields", async () => {

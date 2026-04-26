@@ -12,15 +12,31 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", isLoading, disabled, type = "button", children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      isLoading,
+      disabled,
+      type = "button",
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const baseStyles =
       "inline-flex items-center justify-center rounded-xl font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]";
 
     const variants = {
-      primary: "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-neo",
-      secondary: "bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:ring-gray-500/50 backdrop-blur-md",
-      danger: "bg-danger-600 text-white hover:bg-danger-700 shadow-[0_4px_14px_rgba(220,38,38,0.3)] focus-visible:ring-danger-600",
-      ghost: "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 focus-visible:ring-gray-500/50",
+      primary:
+        "bg-neo text-gray-900 hover:bg-neo/90 shadow-[0_4px_14px_rgba(0,229,153,0.3)] hover:shadow-[0_6px_20px_rgba(0,229,153,0.4)] focus-visible:ring-neo",
+      secondary:
+        "bg-white/10 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-white/10 focus-visible:ring-gray-500/50 backdrop-blur-md",
+      danger:
+        "bg-danger-600 text-white hover:bg-danger-700 shadow-[0_4px_14px_rgba(220,38,38,0.3)] focus-visible:ring-danger-600",
+      ghost:
+        "hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 focus-visible:ring-gray-500/50",
     };
 
     const sizes = {
@@ -45,7 +61,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
             <path
               className="opacity-75"
               fill="currentColor"

@@ -4,6 +4,12 @@ import { withMiniAppCardAssets } from "./miniapp-media";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 import { resolveMiniAppDetailConfig } from "./miniapp-template";
 
+const BUNDLED_DETAIL_OVERRIDE_IDS = new Set([
+  "miniapp-self-loan",
+  "miniapp-profitanchor",
+  "miniapp-trustanchor",
+]);
+
 function asObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
@@ -212,6 +218,10 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     operations: fallback?.operations ?? null,
     manifest: fallback?.manifest ?? null,
   });
+  if (fallback && BUNDLED_DETAIL_OVERRIDE_IDS.has(appId)) {
+    detailConfig.detailTemplate = fallback.detail_template ?? detailConfig.detailTemplate;
+    detailConfig.operations = fallback.operations ?? detailConfig.operations;
+  }
 
   const logoUrl = toString(obj.logo_url ?? manifestCandidate.logo_url ?? fallback?.logo_url ?? "").trim() || null;
   const bannerUrl = toString(obj.banner_url ?? manifestCandidate.banner_url ?? fallback?.banner_url ?? "").trim() || null;

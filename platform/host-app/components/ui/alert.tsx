@@ -28,7 +28,10 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 // Variant Styles
 // ============================================================================
 
-const variantStyles: Record<AlertVariant, { container: string; icon: string; title: string }> = {
+const variantStyles: Record<
+  AlertVariant,
+  { container: string; icon: string; title: string }
+> = {
   success: {
     container: "bg-emerald-500/10 border-emerald-500/20",
     icon: "text-emerald-400",
@@ -57,23 +60,67 @@ const variantStyles: Record<AlertVariant, { container: string; icon: string; tit
 
 const defaultIcons: Record<AlertVariant, React.ReactNode> = {
   success: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   ),
   error: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   ),
   warning: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+      />
     </svg>
   ),
   info: (
-    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
     </svg>
   ),
 };
@@ -95,7 +142,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     const alertId = useId();
 
@@ -112,7 +159,7 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
           // Variant
           variantStyle.container,
           // Class
-          className
+          className,
         )}
         role="alert"
         aria-live="polite"
@@ -133,12 +180,10 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
           <div className={cn("text-sm text-gray-300", title && "mt-1")}>
             {children}
           </div>
-          
+
           {/* Actions */}
           {actions && (
-            <div className="flex items-center gap-2 mt-3">
-              {actions}
-            </div>
+            <div className="flex items-center gap-2 mt-3">{actions}</div>
           )}
         </div>
 
@@ -150,14 +195,24 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
             className="shrink-0 text-gray-400 hover:text-white transition-colors"
             aria-label="Dismiss alert"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
       </div>
     );
-  }
+  },
 );
 
 Alert.displayName = "Alert";
@@ -181,14 +236,14 @@ export const AlertLink = forwardRef<HTMLAnchorElement, AlertLinkProps>(
         className={cn(
           "font-medium underline underline-offset-2 hover:opacity-80 transition-opacity",
           variantStyle.title,
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </a>
     );
-  }
+  },
 );
 
 AlertLink.displayName = "AlertLink";
@@ -212,14 +267,14 @@ export const AlertButton = forwardRef<HTMLButtonElement, AlertButtonProps>(
         className={cn(
           "text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors",
           "border-gray-600 hover:border-gray-500 text-white",
-          className
+          className,
         )}
         {...props}
       >
         {children}
       </button>
     );
-  }
+  },
 );
 
 AlertButton.displayName = "AlertButton";
@@ -246,11 +301,9 @@ AlertTitle.displayName = "AlertTitle";
 // Alert Description (Standalone)
 // ============================================================================
 
-export const AlertDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({
-  className,
-  children,
-  ...props
-}) => {
+export const AlertDescription: React.FC<
+  React.HTMLAttributes<HTMLParagraphElement>
+> = ({ className, children, ...props }) => {
   return (
     <p className={cn("text-sm text-gray-300", className)} {...props}>
       {children}

@@ -21,7 +21,9 @@ export function MiniAppGrid({ apps, columns = 3 }: MiniAppGridProps) {
       <div className="flex flex-col items-center justify-center py-16 text-gray-500 glass-panel rounded-3xl">
         <LayoutGrid className="w-12 h-12 mb-3 text-gray-300" />
         <p className="text-base font-semibold">No apps to display</p>
-        <p className="text-sm mt-1">Check back later or try a different filter.</p>
+        <p className="text-sm mt-1">
+          Check back later or try a different filter.
+        </p>
       </div>
     );
   }

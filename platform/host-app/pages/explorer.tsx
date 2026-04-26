@@ -7,11 +7,17 @@ import type { ExplorerSearchResult } from "@/components/features/explorer";
 // Lazy-load explorer components — this page is secondary and the search
 // result renderer pulls in heavy formatting and trace-display code.
 const ExplorerSearchPanel = dynamic(
-  () => import("@/components/features/explorer/ExplorerSearchPanel").then((m) => m.ExplorerSearchPanel),
+  () =>
+    import("@/components/features/explorer/ExplorerSearchPanel").then(
+      (m) => m.ExplorerSearchPanel,
+    ),
   { ssr: false },
 );
 const ExplorerSearchResults = dynamic(
-  () => import("@/components/features/explorer/ExplorerSearchResults").then((m) => m.ExplorerSearchResults),
+  () =>
+    import("@/components/features/explorer/ExplorerSearchResults").then(
+      (m) => m.ExplorerSearchResults,
+    ),
   { ssr: false },
 );
 
@@ -28,7 +34,10 @@ export default function ExplorerPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`/api/explorer/search?q=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(30000) });
+      const res = await fetch(
+        `/api/explorer/search?q=${encodeURIComponent(query)}`,
+        { signal: AbortSignal.timeout(30000) },
+      );
       const data = await res.json();
       if (data.error) {
         setError(data.error);
@@ -54,8 +63,16 @@ export default function ExplorerPage() {
           title="Neo N3 Explorer"
           description="Search transactions, addresses, and contracts with execution traces from the host app instead of jumping to a separate tool for basic diagnosis."
           stats={[
-            { label: "Search types", value: "3", hint: "Transactions, addresses, contracts" },
-            { label: "Execution detail", value: "Live", hint: "Opcode traces, calls, syscalls" },
+            {
+              label: "Search types",
+              value: "3",
+              hint: "Transactions, addresses, contracts",
+            },
+            {
+              label: "Execution detail",
+              value: "Live",
+              hint: "Opcode traces, calls, syscalls",
+            },
           ]}
         />
 
