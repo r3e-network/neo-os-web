@@ -5,7 +5,13 @@
   "description": "Example bundled definition showing how NeoPay can be registered in shared mode using funding_vault + stream_vesting instead of a bespoke business contract.",
   "template_type": "defi",
   "category": "DeFi",
-  "tags": ["neopay", "shared-mode", "recipe", "streaming", "example"],
+  "tags": [
+    "neopay",
+    "shared-mode",
+    "recipe",
+    "streaming",
+    "example"
+  ],
   "version": "0.1.0",
   "status": "draft",
   "developer": {
@@ -42,7 +48,9 @@
         "module_id": "module.stream_vesting",
         "version": "1.0.0",
         "binding": "stream",
-        "depends_on": ["vault"],
+        "depends_on": [
+          "vault"
+        ],
         "config": {
           "min_interval_seconds": 86400,
           "max_interval_seconds": 31536000,
@@ -66,7 +74,10 @@
     "instance_permissions": {
       "oracle": false,
       "automation": false,
-      "escrow_assets": ["NEO", "GAS"]
+      "escrow_assets": [
+        "NEO",
+        "GAS"
+      ]
     }
   },
   "frontend_composition": {
@@ -89,7 +100,9 @@
         "type": "contract_read",
         "binding": "stream",
         "method": "totalStreams",
-        "args": ["neopay:testnet:default"]
+        "args": [
+          "neopay:testnet:default"
+        ]
       }
     ],
     "operation_recipes": [
@@ -99,15 +112,44 @@
         "binding": "stream",
         "method": "createStream",
         "args": [
-          { "source": "instance.instanceId", "type": "String" },
-          { "source": "wallet.address", "type": "Hash160" },
-          { "source": "input.beneficiary", "type": "Hash160" },
-          { "source": "input.asset", "type": "Hash160" },
-          { "source": "input.totalAmount", "type": "Integer", "scale": 8 },
-          { "source": "input.rateAmount", "type": "Integer", "scale": 8 },
-          { "source": "input.intervalSeconds", "type": "Integer" },
-          { "source": "input.title", "type": "String" },
-          { "source": "input.notes", "type": "String" }
+          {
+            "source": "instance.instanceId",
+            "type": "String"
+          },
+          {
+            "source": "wallet.address",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.beneficiary",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.asset",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.totalAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.rateAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.intervalSeconds",
+            "type": "Integer"
+          },
+          {
+            "source": "input.title",
+            "type": "String"
+          },
+          {
+            "source": "input.notes",
+            "type": "String"
+          }
         ]
       },
       {
@@ -116,9 +158,18 @@
         "binding": "stream",
         "method": "claimStream",
         "args": [
-          { "source": "instance.instanceId", "type": "String" },
-          { "source": "wallet.address", "type": "Hash160" },
-          { "source": "input.streamId", "type": "Integer" }
+          {
+            "source": "instance.instanceId",
+            "type": "String"
+          },
+          {
+            "source": "wallet.address",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.streamId",
+            "type": "Integer"
+          }
         ]
       },
       {
@@ -127,9 +178,18 @@
         "binding": "stream",
         "method": "cancelStream",
         "args": [
-          { "source": "instance.instanceId", "type": "String" },
-          { "source": "wallet.address", "type": "Hash160" },
-          { "source": "input.streamId", "type": "Integer" }
+          {
+            "source": "instance.instanceId",
+            "type": "String"
+          },
+          {
+            "source": "wallet.address",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.streamId",
+            "type": "Integer"
+          }
         ]
       }
     ],

@@ -19,7 +19,7 @@ type MediaOptions = {
 };
 
 const miniAppPathPattern = /\/(?:miniapps|miniapp-assets)\/([^/?#]+)/i;
-const imageExtensions = ["svg", "jpg", "png", "jpeg"] as const;
+const imageExtensions = ["jpg", "svg", "png", "jpeg"] as const;
 type AssetKind = "logo" | "banner";
 
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
@@ -35,17 +35,6 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-profitanchor": ["profitanchor"],
   "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
-};
-
-const MINIAPP_PRIMARY_STATIC_ASSETS: Record<string, { logoURL: string; bannerURL: string }> = {
-  "miniapp-dicegame": {
-    logoURL: "/miniapps/dice-game/static/icon.svg",
-    bannerURL: "/miniapps/dice-game/static/banner.svg",
-  },
-  "miniapp-secretvote": {
-    logoURL: "/miniapps/secret-vote/static/icon.svg",
-    bannerURL: "/miniapps/secret-vote/static/banner.svg",
-  },
 };
 
 type MediaVariant = {
@@ -238,16 +227,12 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
   logoURL: string | null;
   bannerURL: string | null;
 } {
-  const appId = normalizeAppID(appID);
-  const staticPrimary = MINIAPP_PRIMARY_STATIC_ASSETS[appId];
-  if (staticPrimary) return staticPrimary;
-
   const slug = resolveMiniAppSlug(appID, entryURL);
   if (!slug) return { logoURL: null, bannerURL: null };
 
   return {
-    logoURL: `/miniapp-assets/${slug}/logo.svg`,
-    bannerURL: `/miniapp-assets/${slug}/banner.svg`,
+    logoURL: `/miniapp-assets/${slug}/logo.jpg`,
+    bannerURL: `/miniapp-assets/${slug}/banner.jpg`,
   };
 }
 

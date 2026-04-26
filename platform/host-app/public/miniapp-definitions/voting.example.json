@@ -5,7 +5,11 @@
   "description": "Vote on important community proposals. Each GAS token you hold equals one vote.",
   "template_type": "voting",
   "category": "Governance",
-  "tags": ["voting", "dao", "governance"],
+  "tags": [
+    "voting",
+    "dao",
+    "governance"
+  ],
   "version": "1.0.0",
   "status": "active",
   "developer": {
@@ -23,8 +27,8 @@
   },
   "entry_url": "https://vote.r3e.network",
   "media": {
-    "icon": "/miniapp-assets/voting/icon.png",
-    "banner": "/miniapp-assets/voting/banner.png"
+    "icon": "/miniapp-assets/voting/logo.jpg",
+    "banner": "/miniapp-assets/voting/banner.jpg"
   },
   "permissions": {
     "governance": true,
@@ -55,9 +59,18 @@
             "type": "key_value",
             "title": "Voting Info",
             "items": [
-              { "key": "Voting Ends", "value": "3 days 12 hours" },
-              { "key": "Current Quorum", "value": "8,432 / 10,000" },
-              { "key": "Your Voting Power", "value": "1,234 GAS" }
+              {
+                "key": "Voting Ends",
+                "value": "3 days 12 hours"
+              },
+              {
+                "key": "Current Quorum",
+                "value": "8,432 / 10,000"
+              },
+              {
+                "key": "Your Voting Power",
+                "value": "1,234 GAS"
+              }
             ]
           }
         ]
@@ -92,9 +105,18 @@
               "required": true,
               "default_value": "for",
               "options": [
-                { "label": "For", "value": "for" },
-                { "label": "Against", "value": "against" },
-                { "label": "Abstain", "value": "abstain" }
+                {
+                  "label": "For",
+                  "value": "for"
+                },
+                {
+                  "label": "Against",
+                  "value": "against"
+                },
+                {
+                  "label": "Abstain",
+                  "value": "abstain"
+                }
               ]
             }
           ]
@@ -107,7 +129,10 @@
     "reviews_enabled": true,
     "forum_enabled": true,
     "activity_feed": true,
-    "stats_display": ["total_users", "total_gas_used"]
+    "stats_display": [
+      "total_users",
+      "total_gas_used"
+    ]
   },
   "docs_url": "https://docs.r3e.network/dao"
 }

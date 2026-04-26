@@ -1,1 +1,56 @@
-{"$schema":"https://schemas.r3e.network/miniapp-manifest/v1.json","id":"miniapp-flamingo-analytics","name":"Flamingo Analytics","name_zh":"Flamingo 分析","version":"1.0.0","description":"Official Flamingo analytics launcher for Neo N3.","description_zh":"面向 Neo N3 的官方 Flamingo 分析入口。","category":"defi","category_name":"DeFi","category_name_zh":"DeFi","tags":["flamingo","analytics","defi","official"],"developer":{"name":"R3E Network","email":"dev@r3e.network","website":"https://r3e.network"},"contracts":{},"supported_networks":["neo-n3-mainnet"],"default_network":"neo-n3-mainnet","urls":{"entry":"/miniapps/flamingo-analytics/index.html","icon":"/miniapps/explorer/logo.jpg","banner":"/miniapps/explorer/banner.jpg"},"permissions":["read:blockchain"],"features":{"stateless":true,"offlineSupport":false,"deeplink":"neomainapp://flamingo-analytics"},"stateSource":{"type":"api","chain":"neo-n3-mainnet","endpoints":["https://api.n3index.dev"]},"platform":{"analytics":true,"comments":true,"ratings":true,"transactions":false},"createdAt":"2026-03-18T05:00:00Z","updatedAt":"2026-03-18T05:00:00Z"}
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-flamingo-analytics",
+  "name": "Flamingo Analytics",
+  "name_zh": "Flamingo 分析",
+  "version": "1.0.0",
+  "description": "Official Flamingo analytics launcher for Neo N3.",
+  "description_zh": "面向 Neo N3 的官方 Flamingo 分析入口。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "DeFi",
+  "tags": [
+    "flamingo",
+    "analytics",
+    "defi",
+    "official"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/flamingo-analytics/index.html",
+    "icon": "/miniapps/flamingo-analytics/logo.jpg",
+    "banner": "/miniapps/flamingo-analytics/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://flamingo-analytics"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-03-18T05:00:00Z",
+  "updatedAt": "2026-03-18T05:00:00Z"
+}

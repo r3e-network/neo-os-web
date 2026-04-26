@@ -36,7 +36,7 @@ contract:
     oracle: 0x1234567890abcdef1234567890abcdef12345678
     settlement_timestamp: 1855622400
 media:
-  icon: /miniapp-assets/template-market-demo/icon.png
+  icon: /miniapp-assets/template-market-demo/logo.jpg
   logo: https://cdn.example.com/template-market-demo/logo-light.png
   banner: https://cdn.example.com/template-market-demo/banner-light.png
   logo_variants:

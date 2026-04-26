@@ -5,7 +5,11 @@
   "description": "Support your favorite Neo developers with GAS tips. 100% of tips go directly to the recipient.",
   "template_type": "tipping",
   "category": "Social",
-  "tags": ["tipping", "developers", "support"],
+  "tags": [
+    "tipping",
+    "developers",
+    "support"
+  ],
   "version": "1.0.0",
   "status": "active",
   "developer": {
@@ -21,7 +25,8 @@
   },
   "entry_url": "https://tips.r3e.network",
   "media": {
-    "icon": "/miniapp-assets/tipping/icon.png"
+    "icon": "/miniapp-assets/tipping/logo.jpg",
+    "banner": "/miniapp-assets/tipping/banner.jpg"
   },
   "permissions": {
     "payments": true
