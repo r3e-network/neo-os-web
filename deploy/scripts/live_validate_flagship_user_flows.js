@@ -88,6 +88,7 @@ const RED_ENVELOPE_TOTAL = "10000000";
 const SELF_LOAN_POOL_TOPUP = process.env.SELF_LOAN_POOL_TOPUP || "30000000";
 const SELF_LOAN_COLLATERAL = "1";
 const ORACLE_UPDATER_MIN_GAS = 10000000n;
+const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
 const FLAGSHIP_TASKS = [
   ["dailyCheckin", runDailyCheckin],
   ["lastSurvivor", runLastSurvivor],
@@ -505,8 +506,33 @@ async function transferGAS(toHash, amount, memo) {
   return asTxid(txid);
 }
 
+async function broadcastFaultPreviewInvocation(contract, operation, params, {
+  label,
+  signers = [{ account: normalizeHash160(account.scriptHash), scopes: "Global" }],
+  systemFeeFloor = 20_000_000n,
+  networkFee = 10_000_000n,
+} = {}) {
+  const preview = await contract.rpc.invokeFunction(contract.scriptHash, operation, params, signers);
+  if (!preview?.script) {
+    throw new Error(`${label || operation} preview did not return a script`);
+  }
+
+  const currentHeight = await contract.rpc.getBlockCount();
+  const previewGas = BigInt(Math.ceil(Number(preview.gasconsumed || 0) * 3));
+  const tx = new Neon.tx.Transaction({
+    signers,
+    validUntilBlock: currentHeight + 100,
+    script: Buffer.from(preview.script, "base64").toString("hex"),
+    systemFee: previewGas > systemFeeFloor ? previewGas : systemFeeFloor,
+    networkFee,
+  });
+  tx.sign(account.WIF || account.privateKey, NETWORK_MAGIC);
+  const result = await contract.rpc.sendRawTransaction(tx);
+  return typeof result === "string" ? result : result?.hash;
+}
+
 async function transferNEO(toHash, amount, memo) {
-  const txid = await neoContract.invoke("transfer", [
+  const params = [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
@@ -515,7 +541,17 @@ async function transferNEO(toHash, amount, memo) {
       : typeof memo === "string"
         ? Neon.sc.ContractParam.string(memo)
         : Neon.sc.ContractParam.hash160(memo),
-  ]);
+  ];
+  let txid;
+  try {
+    txid = await neoContract.invoke("transfer", params);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/invalid address/i.test(message)) throw error;
+    txid = await broadcastFaultPreviewInvocation(neoContract, "transfer", params, {
+      label: `NEO transfer to ${toHash}`,
+    });
+  }
   const { execution } = await waitForLog(txid);
   if (execution.vmstate !== "HALT") {
     throw new Error(execution.exception || `NEO transfer failed for ${toHash}`);
@@ -987,6 +1023,11 @@ async function runLastSurvivor() {
     networkMagic: NETWORK_MAGIC,
     account: adminAccount || account,
   });
+
+  if (TARGET_NETWORK === "testnet") {
+    return runPlatformGameLastSurvivor(contractHash, contract, adminContract);
+  }
+
   const resolvedAdminSignerHash = normalizeHash160(`0x${String((adminAccount || account).scriptHash || "")}`);
   const resolvedAdminSignerAddress = String((adminAccount || account).address || "");
 
@@ -1095,6 +1136,134 @@ async function runLastSurvivor() {
     buyTx: result.buyTx,
     after,
     userKeys,
+  };
+}
+
+async function runPlatformGameLastSurvivor(contractHash, contract, adminContract) {
+  const appId = LAST_SURVIVOR_APP_ID;
+
+  const readStatus = async () => requireObjectKeys(
+    await invokeRead(contractHash, "getCountdownStatus", [
+      { type: "String", value: appId },
+    ]),
+    ["roundId", "active"],
+    "getCountdownStatus"
+  );
+
+  const isExpired = (status) => {
+    if (boolish(status.active) !== true) return false;
+    if (String(status.status || "").toLowerCase() === "ending") return true;
+    return toBigIntValue(status.remainingTime) === 0n;
+  };
+
+  const settleExpiredRound = async (status) => {
+    if (!isExpired(status)) return "";
+    const tx = await contract.invoke("checkAndEndCountdownRound", [
+      Neon.sc.ContractParam.string(appId),
+    ]);
+    const { execution } = await waitForLog(tx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "checkAndEndCountdownRound failed");
+    }
+    return asTxid(tx);
+  };
+
+  const startRound = async () => {
+    const tx = await adminContract.invoke("startCountdownRound", [
+      Neon.sc.ContractParam.string(appId),
+    ]);
+    const { execution } = await waitForLog(tx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "startCountdownRound failed");
+    }
+    const started = findNotification(execution, contractHash, "CountdownRoundStarted");
+    if (!started) throw new Error("CountdownRoundStarted notification missing");
+    return { roundId: String(stackValue(started.state?.value?.[1])), txid: asTxid(tx) };
+  };
+
+  const calculateCost = async (status) => {
+    const totalKeys = toBigIntValue(status.totalKeys);
+    const cost = await invokeRead(contractHash, "calculateCountdownKeyCost", [
+      { type: "Integer", value: "1" },
+      { type: "Integer", value: String(totalKeys) },
+    ]).catch(() => null);
+    const normalized = toBigIntValue(cost);
+    return normalized > 0n ? normalized : 10000000n;
+  };
+
+  const attemptBuy = async (roundId, status) => {
+    const cost = await calculateCost(status);
+    const paymentTx = await transferGAS(contractHash, String(cost), `${appId}:buy:${roundId}`);
+    await sleep(4000);
+    const buyTx = await contract.invoke("buyCountdownKeys", [
+      Neon.sc.ContractParam.string(appId),
+      Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+      Neon.sc.ContractParam.integer("1"),
+    ]);
+    const { execution } = await waitForLog(buyTx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "buyCountdownKeys failed");
+    }
+    return {
+      cost: String(cost),
+      paymentTx,
+      buyTx: asTxid(buyTx),
+      purchased: !!findNotification(execution, contractHash, "CountdownKeysPurchased"),
+      extended: !!findNotification(execution, contractHash, "CountdownTimeExtended"),
+      settled: !!findNotification(execution, contractHash, "CountdownWinner"),
+    };
+  };
+
+  let status = await readStatus();
+  let settleTx = await settleExpiredRound(status);
+  if (settleTx) status = await readStatus();
+
+  let roundId = String(status.roundId || "0");
+  let startTx = "";
+  if (boolish(status.active) !== true) {
+    const started = await startRound();
+    roundId = started.roundId;
+    startTx = started.txid;
+    status = await readStatus();
+  }
+
+  let result = await attemptBuy(roundId, status);
+  if (!result.purchased || !result.extended) {
+    status = await readStatus();
+    const restartSettleTx = await settleExpiredRound(status);
+    if (restartSettleTx) {
+      settleTx = settleTx || restartSettleTx;
+      status = await readStatus();
+    }
+    if (boolish(status.active) !== true) {
+      const started = await startRound();
+      roundId = started.roundId;
+      startTx = startTx || started.txid;
+      status = await readStatus();
+    }
+    result = await attemptBuy(roundId, status);
+  }
+
+  if (!result.purchased || !result.extended) {
+    throw new Error("CountdownKeysPurchased or CountdownTimeExtended notification missing");
+  }
+
+  const after = await readStatus();
+  const playerStats = await invokeRead(contractHash, "getCountdownPlayerStats", [
+    { type: "String", value: appId },
+    { type: "Hash160", value: `0x${account.scriptHash}` },
+  ]);
+  return {
+    contractHash,
+    appId,
+    startTx,
+    settleTx,
+    roundId,
+    cost: result.cost,
+    paymentTx: result.paymentTx,
+    buyTx: result.buyTx,
+    after,
+    playerStats,
   };
 }
 
@@ -1232,6 +1401,57 @@ async function runSelfLoan() {
   const poolTx = await transferGAS(contractHash, SELF_LOAN_POOL_TOPUP, "miniapp-self-loan:pool");
   const collateralTx = await transferNEO(contractHash, SELF_LOAN_COLLATERAL, "miniapp-self-loan:collateral");
   await sleep(4000);
+
+  if (TARGET_NETWORK === "testnet") {
+    const createTx = await contract.invoke("createLoan", [
+      Neon.sc.ContractParam.string("miniapp-self-loan"),
+      Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+      Neon.sc.ContractParam.integer("1"),
+    ]);
+    const { execution } = await waitForLog(createTx);
+    if (execution.vmstate !== "HALT") {
+      throw new Error(execution.exception || "createLoan failed");
+    }
+    const created = findNotification(execution, contractHash, "LoanCreated");
+    if (!created) {
+      throw new Error("LoanCreated notification missing");
+    }
+    const loanId = stackValue(created.state?.value?.[1]);
+    const syncTx = await contract.invoke("syncProfitAnchorVote", [
+      Neon.sc.ContractParam.string("miniapp-self-loan"),
+    ]);
+    const syncResult = await waitForLog(syncTx);
+    if (syncResult.execution.vmstate !== "HALT") {
+      throw new Error(syncResult.execution.exception || "syncProfitAnchorVote failed");
+    }
+    const repayTx = await contract.invoke("repayLoan", [
+      Neon.sc.ContractParam.string("miniapp-self-loan"),
+      Neon.sc.ContractParam.integer(String(loanId)),
+    ]);
+    const repayResult = await waitForLog(repayTx);
+    if (repayResult.execution.vmstate !== "HALT") {
+      throw new Error(repayResult.execution.exception || "repayLoan failed");
+    }
+    const details = await invokeRead(contractHash, "getLoan", [
+      { type: "String", value: "miniapp-self-loan" },
+      { type: "Integer", value: String(loanId) },
+    ]);
+    const stats = await invokeRead(contractHash, "getLendingStats", [
+      { type: "String", value: "miniapp-self-loan" },
+    ]);
+    return {
+      contractHash,
+      collateralPrecheck,
+      poolTx,
+      collateralTx,
+      createTx: asTxid(createTx),
+      syncTx: asTxid(syncTx),
+      repayTx: asTxid(repayTx),
+      loanId,
+      details,
+      stats,
+    };
+  }
 
   const createTx = await contract.invoke("createLoan", [
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),

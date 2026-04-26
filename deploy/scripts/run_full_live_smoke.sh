@@ -94,10 +94,11 @@ if [ "$RUN_FLAGSHIP" -eq 1 ]; then
   echo "=== Flagship Live Smoke ==="
   echo "Admin signer: ${TEST_SMOKE_ADMIN_WIF:+configured}"
   echo "Command: $FLAGSHIP_COMMAND"
-  FLAGSHIP_STATUS=0
-  if ! FLAGSHIP_LIVE_REPORT_PATH="$FLAGSHIP_REPORT_PATH" \
+  if FLAGSHIP_LIVE_REPORT_PATH="$FLAGSHIP_REPORT_PATH" \
        node "$PROJECT_ROOT/deploy/scripts/live_validate_flagship_user_flows.js" \
        2>&1 | tee "$FLAGSHIP_LOG_PATH"; then
+    FLAGSHIP_STATUS=0
+  else
     FLAGSHIP_STATUS=$?
   fi
 else
@@ -117,10 +118,11 @@ if [ "$RUN_SELECTED" -eq 1 ]; then
   echo "=== Selected MiniApps Live Smoke ==="
   echo "User signer: ${TEST_SMOKE_USER_WIF:+configured}"
   echo "Command: $SELECTED_COMMAND"
-  SELECTED_STATUS=0
-  if ! SELECTED_MINIAPP_SMOKE_REPORT_PATH="$SELECTED_REPORT_PATH" \
+  if SELECTED_MINIAPP_SMOKE_REPORT_PATH="$SELECTED_REPORT_PATH" \
        node "$PROJECT_ROOT/deploy/scripts/live_validate_selected_miniapps.js" \
        2>&1 | tee "$SELECTED_LOG_PATH"; then
+    SELECTED_STATUS=0
+  else
     SELECTED_STATUS=$?
   fi
 else
@@ -241,5 +243,15 @@ echo ""
 echo "Summary report: $SUMMARY_REPORT_PATH"
 
 if [ "${FLAGSHIP_STATUS:-0}" -ne 0 ] || [ "${SELECTED_STATUS:-0}" -ne 0 ]; then
+  exit 1
+fi
+
+if [ "$RUN_FLAGSHIP" -eq 1 ] && [ ! -s "$FLAGSHIP_REPORT_PATH" ]; then
+  echo "Flagship live smoke did not produce a report: $FLAGSHIP_REPORT_PATH" >&2
+  exit 1
+fi
+
+if [ "$RUN_SELECTED" -eq 1 ] && [ ! -s "$SELECTED_REPORT_PATH" ]; then
+  echo "Selected miniapps live smoke did not produce a report: $SELECTED_REPORT_PATH" >&2
   exit 1
 fi
