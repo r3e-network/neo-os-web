@@ -11,10 +11,19 @@ const FLAGSHIP_APPS = [
     brand: "LastSurvivor",
     slug: "last-survivor",
     contractName: "MiniAppLastSurvivor",
+    contractNameByNetwork: {
+      "neo-n3-testnet": "PlatformGame",
+    },
     readChecks: [
       { method: "getGameStatus", args: [], expectedStackType: "Map" },
       { method: "getPlatformStats", args: [], expectedStackType: "Map" },
     ],
+    readChecksByNetwork: {
+      "neo-n3-testnet": [
+        { method: "getCountdownStatus", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Integer" },
+      ],
+    },
   },
   {
     brand: "GASBOX",
@@ -52,9 +61,36 @@ const FLAGSHIP_APPS = [
     brand: "SelfLoan",
     slug: "self-loan",
     contractName: "MiniAppSelfLoan",
+    contractNameByNetwork: {
+      "neo-n3-testnet": "PlatformDeFi",
+    },
     readChecks: [
       { method: "getPlatformStats", args: [], expectedStackType: "Map" },
       { method: "getLoanDetails", args: [{ type: "Integer", value: "0" }], expectedStackType: "Map" },
+    ],
+    readChecksByNetwork: {
+      "neo-n3-testnet": [
+        { method: "getLendingStats", args: [{ type: "String", value: "miniapp-self-loan" }], expectedStackType: "Map" },
+        { method: "getProfitAnchor", args: [{ type: "String", value: "miniapp-self-loan" }], expectedStackType: "Map" },
+      ],
+    },
+  },
+  {
+    brand: "ProfitAnchor",
+    slug: "profitanchor",
+    contractName: "PlatformAnchor",
+    deploymentOptional: true,
+    readChecks: [
+      { method: "getAnchorStats", args: [{ type: "String", value: "miniapp-profitanchor" }], expectedStackType: "Map" },
+    ],
+  },
+  {
+    brand: "TrustAnchor",
+    slug: "trustanchor",
+    contractName: "PlatformAnchor",
+    deploymentOptional: true,
+    readChecks: [
+      { method: "getAnchorStats", args: [{ type: "String", value: "miniapp-trustanchor" }], expectedStackType: "Map" },
     ],
   },
   {
@@ -86,6 +122,14 @@ function resolveDefinitionHash(definition, manifest, targetNetwork) {
   const direct = String(definition?.contract?.contract_hash || definition?.contract_hash || "").trim();
   const networkSpecific = String(manifestContracts?.[resolvedNetworkKey] || manifestContracts?.[targetNetwork] || "").trim();
   return networkSpecific || direct;
+}
+
+function contractNameFor(app, networkKey) {
+  return app.contractNameByNetwork?.[networkKey] || app.contractName;
+}
+
+function readChecksFor(app, networkKey) {
+  return app.readChecksByNetwork?.[networkKey] || app.readChecks || [];
 }
 
 async function rpc(rpcUrl, method, params) {
@@ -130,6 +174,12 @@ async function main() {
       problems: [],
     };
 
+    if (!contractHash && app.deploymentOptional) {
+      row.remoteContractName = "PlatformAnchor (source-ready)";
+      rows.push(row);
+      continue;
+    }
+
     if (!contractHash) {
       row.problems.push("manifest missing active network contract hash");
       rows.push(row);
@@ -144,7 +194,8 @@ async function main() {
     try {
       const state = await rpc(networkConfig.rpcUrl, "getcontractstate", [contractHash]);
       row.remoteContractName = state?.manifest?.name || null;
-      if (row.remoteContractName !== app.contractName) {
+      const expectedContractName = contractNameFor(app, network);
+      if (row.remoteContractName !== expectedContractName) {
         row.problems.push(`remote contract name mismatch: ${row.remoteContractName || "missing"}`);
       }
     } catch (error) {
@@ -154,7 +205,7 @@ async function main() {
       continue;
     }
 
-    for (const check of app.readChecks) {
+    for (const check of readChecksFor(app, network)) {
       try {
         const result = await rpc(networkConfig.rpcUrl, "invokefunction", [contractHash, check.method, check.args]);
         const stackItem = result?.stack?.[0];

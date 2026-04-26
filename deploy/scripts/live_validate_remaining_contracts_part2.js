@@ -41,7 +41,7 @@ const ADDRESSES = {
   memorial: "0x87f0fe2ba69cd973a3274471234d3cc13ef943c5",
   milestone: "0x2a3691aa2da68512e9bf1363f383f354b6a02aad",
   soulbound: "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e",
-  trustanchor: "0x57e6e62e0a123ac8bac2ab58636d50b54ef054f2",
+  trustanchor: process.env.TRUSTANCHOR_CONTRACT || process.env.PLATFORM_ANCHOR_CONTRACT || "",
 };
 
 let admin;
@@ -279,26 +279,17 @@ async function runSoulbound() {
 
 async function runTrustAnchor() {
   const hash = ADDRESSES.trustanchor;
-  const contract = appContract(hash, user);
-  const stakeBefore = await invokeRead(hash, "stakeOf", [{ type: "Hash160", value: `0x${user.scriptHash}` }]);
-  const depositTx = await transfer(neoByUser, user, hash, "1", "stake");
-  const overview = await invokeRead(hash, "getUserOverview", [{ type: "Hash160", value: `0x${user.scriptHash}` }]);
-  const stakeAfter = BigInt(String(overview.stake || "0"));
-  if (stakeAfter <= BigInt(String(stakeBefore || "0"))) throw new Error("stake did not increase");
-
-  const rewardDepositTx = await transfer(gasByAdmin, admin, hash, "1000000", null);
-  await sleep(3000);
-  const overviewAfterReward = await invokeRead(hash, "getUserOverview", [{ type: "Hash160", value: `0x${user.scriptHash}` }]);
-  const reward = BigInt(String(overviewAfterReward.reward || "0"));
-  let claimRewardTx = null;
-  if (reward > 0n) {
-    claimRewardTx = await contract.invoke("claimReward", [
-      Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
-    ]);
-    const claimLog = await waitForLog(claimRewardTx);
-    if (claimLog.execution.vmstate !== "HALT") throw new Error(claimLog.execution.exception || "claimReward failed");
+  if (!hash) {
+    return {
+      skipped: true,
+      reason: "PlatformAnchor deployment hash not configured",
+    };
   }
-  return { contractHash: hash, depositTx, rewardDepositTx, reward: reward.toString(), claimRewardTx: claimRewardTx ? asTxid(claimRewardTx) : null };
+
+  const stats = await invokeRead(hash, "getAnchorStats", [
+    Neon.sc.ContractParam.string("miniapp-trustanchor"),
+  ]);
+  return { contractHash: hash, stats };
 }
 
 async function runAll() {

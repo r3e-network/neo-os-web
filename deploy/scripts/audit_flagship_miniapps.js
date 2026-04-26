@@ -22,12 +22,28 @@ const { getManifestContractHash, getNetworkConfig, getTargetNetwork } = require(
 const root = path.resolve(__dirname, "..", "..");
 
 const FLAGSHIP_APPS = [
-  { brand: "LastSurvivor", slug: "last-survivor", expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "getCurrentKeyPrice"] },
+  {
+    brand: "LastSurvivor",
+    slug: "last-survivor",
+    expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "getCurrentKeyPrice"],
+    expectedMethodsByNetwork: {
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
+    },
+  },
   { brand: "GASBOX", slug: "gasbox", expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay"] },
   { brand: "Red Envelope", slug: "red-envelope", expectedMethods: ["isPaused", "createEnvelope", "claim", "getEnvelope"] },
   { brand: "Daily Check-in", slug: "daily-checkin", expectedMethods: ["isPaused", "checkIn", "getPlatformStats"] },
   { brand: "FogPlay", slug: "fogplay", expectedMethods: ["isPaused", "placeBet", "getBet"] },
-  { brand: "SelfLoan", slug: "self-loan", expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails"] },
+  {
+    brand: "SelfLoan",
+    slug: "self-loan",
+    expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails"],
+    expectedMethodsByNetwork: {
+      "neo-n3-testnet": ["isPaused", "createLoan", "repayLoan", "getLoan", "getLendingStats", "setProfitAnchor", "syncProfitAnchorVote"],
+    },
+  },
+  { brand: "ProfitAnchor", slug: "profitanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "setAgentProfitScore", "voteBestProfitCandidate", "withdrawCredit", "claimRewards"] },
+  { brand: "TrustAnchor", slug: "trustanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "votePooledStake", "withdrawCredit", "claimRewards"] },
   { brand: "NeoPay", slug: "neo-pay", expectedMethods: ["totalStreams", "createStream", "claimStream", "cancelStream", "getStreamDetails"] },
 ];
 
@@ -41,6 +57,10 @@ function exists(rel) {
 
 function safeRead(rel) {
   return fs.readFileSync(path.join(root, rel), "utf8");
+}
+
+function expectedMethodsFor(app, networkKey) {
+  return app.expectedMethodsByNetwork?.[networkKey] || app.expectedMethods || [];
 }
 
 async function getContractState(rpcUrl, hash) {
@@ -112,7 +132,9 @@ async function main() {
 
     let onChainMethods = [];
     let contractName = "";
-    if (!contractActive) {
+    if (!contractActive && app.deploymentOptional) {
+      contractName = "PlatformAnchor (source-ready)";
+    } else if (!contractActive) {
       problems.push(`manifest missing ${networkConfig.key} hash`);
     } else {
       try {
@@ -125,7 +147,10 @@ async function main() {
         problems.push(`rpc error: ${err.message}`);
       }
     }
-    const missingMethods = (app.expectedMethods || []).filter((name) => !onChainMethods.includes(name));
+    const expectedMethods = expectedMethodsFor(app, networkConfig.key);
+    const missingMethods = !contractActive && app.deploymentOptional
+      ? []
+      : expectedMethods.filter((name) => !onChainMethods.includes(name));
     if (contractActive && onChainMethods.length === 0) problems.push("on-chain manifest empty");
     if (missingMethods.length) problems.push(`missing ABI methods: ${missingMethods.join(",")}`);
 
@@ -139,7 +164,7 @@ async function main() {
       contractAddress: contractActive || "missing",
       contractName,
       methodCount: onChainMethods.length,
-      checkedAbiMethods: app.expectedMethods,
+      checkedAbiMethods: expectedMethods,
       missingMethods,
       problems,
     });
