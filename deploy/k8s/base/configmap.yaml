@@ -27,7 +27,7 @@ data:
   SUPABASE_ALLOW_INSECURE: "false"
 
   # Neo RPC (Testnet)
-  NEO_RPC_URL: "https://testnet1.neo.coz.io:443"
+  NEO_RPC_URL: "https://api.n3index.dev/testnet"
   # Neo N3 network magic (Testnet). Mainnet: 860833102
   NEO_NETWORK_MAGIC: "894710606"
 

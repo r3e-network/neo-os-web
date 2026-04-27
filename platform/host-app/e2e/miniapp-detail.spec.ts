@@ -88,7 +88,7 @@ test.describe("MiniApp Detail", () => {
       });
     });
 
-    await page.route("**testnet1.neo.coz.io:443*", async (route) => {
+    await page.route("**api.n3index.dev/testnet*", async (route) => {
       const request = route.request();
       const body = request.postDataJSON() as {
         id?: number;
