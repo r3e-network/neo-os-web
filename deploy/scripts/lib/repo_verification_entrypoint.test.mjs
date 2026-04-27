@@ -31,6 +31,16 @@ test("repo verification script runs the canonical local validation stack", () =>
   assert.match(script, /platform\/host-app run test:full/);
 });
 
+test("host app Playwright config caps local workers while preserving CI serialization", () => {
+  const hostPackageJson = readJson("platform/host-app/package.json");
+  const playwrightConfig = read("platform/host-app/playwright.config.ts");
+
+  assert.doesNotMatch(hostPackageJson.scripts["test:e2e"], /--workers=/);
+  assert.match(playwrightConfig, /PLAYWRIGHT_WORKERS\s*\?\?\s*"4"/);
+  assert.match(playwrightConfig, /Math\.min\(4,\s*Math\.max\(1,\s*localWorkerCount\)\)/);
+  assert.match(playwrightConfig, /workers:\s*process\.env\.CI\s*\?\s*1\s*:\s*safeLocalWorkers/);
+});
+
 test("README documents the repo verification entrypoint", () => {
   const readme = read("README.md");
 
