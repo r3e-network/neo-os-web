@@ -45,8 +45,8 @@ jobs:
           }
           NODE
 
-      - name: Run repository test suite
-        run: npm run -s test
+      - name: Run production repository verification
+        run: npm run -s verify:repo
 
       - name: Run integration tests
         run: npm run -s test:integration

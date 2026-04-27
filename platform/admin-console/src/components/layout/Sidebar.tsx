@@ -6,6 +6,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  ADMIN_NAVIGATION_ITEMS,
+  resolveAdminNavigationLabel,
+} from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "../../../../shared/i18n/react";
 
@@ -14,19 +18,10 @@ export function Sidebar() {
   const { t } = useTranslation("common");
   const { t: ta } = useTranslation("admin");
 
-  const navigation = [
-    { name: t("navigation.dashboard"), href: "/", icon: "📊" },
-    { name: t("navigation.services"), href: "/services", icon: "🔧" },
-    { name: t("navigation.simulations"), href: "/simulations", icon: "🤖" },
-    { name: t("navigation.miniapps"), href: "/miniapps", icon: "📱" },
-    { name: t("navigation.templateStudio"), href: "/templates", icon: "🧱" },
-    { name: t("navigation.users"), href: "/users", icon: "👥" },
-    { name: t("navigation.analytics"), href: "/analytics", icon: "📈" },
-    { name: t("navigation.contracts"), href: "/contracts", icon: "📄" },
-    { name: "Price Feeds", href: "/pricefeeds", icon: "📈" },
-    { name: "Oracle Secrets", href: "/oracle-secrets", icon: "🔑" },
-    { name: "Settings", href: "/settings", icon: "⚙️" },
-  ];
+  const navigation = ADMIN_NAVIGATION_ITEMS.map((item) => ({
+    ...item,
+    name: resolveAdminNavigationLabel(item, t),
+  }));
 
   return (
     <div className="hidden h-screen w-64 shrink-0 flex-col bg-[#05050A] border-r border-white/5 shadow-2xl relative overflow-hidden md:flex">
