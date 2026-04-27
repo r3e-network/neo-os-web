@@ -6,8 +6,8 @@
  */
 import { wallet, rpc, sc } from '@cityofzion/neon-js';
 
-const RPC_URL = 'https://testnet1.neo.coz.io:443';
-const FUNDER_WIF = process.env.NEO_TESTNET_WIF || 'L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ';
+const RPC_URL = process.env.NEO_RPC_URL || 'https://api.n3index.dev/testnet';
+const FUNDER_WIF = process.env.NEO_TESTNET_WIF || '';
 const GAS_HASH = '0xd2a4cff31913016155e38e474a2c06d08be276cf';
 const NEO_HASH = '0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5';
 
@@ -22,6 +22,9 @@ const CONTRACTS = {
 };
 
 const client = new rpc.RPCClient(RPC_URL);
+if (!FUNDER_WIF) {
+  throw new Error('NEO_TESTNET_WIF is required for continuous_business_fuzz.mjs');
+}
 const funder = new wallet.Account(FUNDER_WIF);
 const signers = (acc) => [{ account: acc.scriptHash, scopes: 'CalledByEntry' }];
 

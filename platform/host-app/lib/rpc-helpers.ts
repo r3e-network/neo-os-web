@@ -6,16 +6,15 @@
  * 2. KERNEL-REGISTERED apps (17+) — read from Morpheus Oracle kernel state
  */
 
-// mainnet1.neo.coz.io has been returning HTTP 502 since the 2026-04-19
-// validation run; default to mainnet2 and let ops override via env if a
-// different healthy endpoint is preferred.
+// Neo3Fura/N3Index is the platform-owned Neo N3 gateway. It provides JSON-RPC
+// pass-through plus indexed read APIs behind the same Cloudflare edge.
 const NEO_MAINNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_MAINNET
   || process.env.NEO_RPC_MAINNET
-  || "https://mainnet2.neo.coz.io:443";
+  || "https://api.n3index.dev/mainnet";
 const NEO_TESTNET_RPC = process.env.NEXT_PUBLIC_NEO_RPC_TESTNET
   || process.env.NEO_RPC_TESTNET
   || process.env.NEO_RPC_URL
-  || "https://testnet1.neo.coz.io:443";
+  || "https://api.n3index.dev/testnet";
 
 const MORPHEUS_KERNEL_MAINNET = "0x5b492098fc094c760402e01f7e0b631b939d2bea";
 const MORPHEUS_KERNEL_TESTNET = "0x4b882e94ed766807c4fd728768f972e13008ad52";

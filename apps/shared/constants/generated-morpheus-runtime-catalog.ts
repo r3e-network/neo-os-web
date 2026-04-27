@@ -33,7 +33,7 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
   "networks": {
     "mainnet": {
       "network": "mainnet",
-      "rpcUrl": "https://mainnet1.neo.coz.io:443",
+      "rpcUrl": "https://api.n3index.dev/mainnet",
       "networkMagic": 860833102,
       "morpheus": {
         "publicApiUrl": "https://oracle.meshmini.app/mainnet",
@@ -80,7 +80,7 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
     },
     "testnet": {
       "network": "testnet",
-      "rpcUrl": "https://testnet1.neo.coz.io:443",
+      "rpcUrl": "https://api.n3index.dev/testnet",
       "networkMagic": 894710606,
       "morpheus": {
         "publicApiUrl": "https://oracle.meshmini.app/testnet",
