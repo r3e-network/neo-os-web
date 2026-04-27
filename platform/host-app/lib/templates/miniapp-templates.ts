@@ -107,7 +107,11 @@ const T_SELF_LOAN: AppTemplate = {
     ],
     operation_panel: { title: "Manage Loan", subtitle: "Repay debt or top up collateral on an existing loan.", cta_label: "Open SelfLoan", operations: [] },
   },
-  operations: [op("Repay Debt", "repayDebt", "primary", [int("loanId", "Loan ID", "1"), amt("amount", "Repay Amount (GAS)", "1")]), op("Add Collateral", "addCollateral", "secondary", [int("loanId", "Loan ID", "1"), int("neoAmount", "NEO", "1")]), op("Sync Profit Vote", "syncProfitAnchorVote", "secondary", [str("appId", "App ID", "miniapp-self-loan", true)])],
+  operations: [
+    op("Repay Loan", "repayLoan", "primary", [str("appId", "App ID", "miniapp-self-loan", true), int("loanId", "Loan ID", "1")]),
+    op("Add Collateral", "addCollateral", "secondary", [str("appId", "App ID", "miniapp-self-loan", true), int("loanId", "Loan ID", "1")]),
+    op("Sync Profit Vote", "syncProfitAnchorVote", "secondary", [str("appId", "App ID", "miniapp-self-loan", true)]),
+  ],
 };
 
 const T_NEOPAY: AppTemplate = {
