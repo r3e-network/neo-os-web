@@ -451,4 +451,23 @@ describe("miniapp-definitions loader", () => {
     );
     expect(byId.has("miniapp-lottery-example")).toBe(false);
   });
+
+  it("keeps bundled SelfLoan host operations aligned with the PlatformDeFi ABI", async () => {
+    const app = await loadBundledMiniAppById("miniapp-self-loan");
+    const operations = app?.operations ?? [];
+    const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
+
+    expect(byMethod.has("repayDebt")).toBe(false);
+    expect(byMethod.get("repayLoan")?.params.map((param) => [param.name, param.type])).toEqual([
+      ["appId", "string"],
+      ["loanId", "integer"],
+    ]);
+    expect(byMethod.get("addCollateral")?.params.map((param) => [param.name, param.type])).toEqual([
+      ["appId", "string"],
+      ["loanId", "integer"],
+    ]);
+    expect(byMethod.get("syncProfitAnchorVote")?.params.map((param) => [param.name, param.type])).toEqual([
+      ["appId", "string"],
+    ]);
+  });
 });
