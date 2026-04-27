@@ -19,6 +19,7 @@ import {
   readManifest,
   getManifestContractHash,
   intParam,
+  strParam,
 } from "./helpers.mjs";
 
 // ── Flagship apps with their testnet hashes and expected read methods ─────
@@ -27,22 +28,26 @@ const FLAGSHIP_APPS = [
   {
     brand: "LastSurvivor",
     slug: "last-survivor",
-    contractName: "MiniAppLastSurvivor",
-    zeroArgMethods: ["getGameStatus", "getPlatformStats"],
+    contractName: "PlatformGame",
+    readMethods: [
+      { method: "getGameType", args: [strParam("miniapp-last-survivor")] },
+      { method: "getGameAdmin", args: [strParam("miniapp-last-survivor")] },
+      { method: "isPaused", args: [strParam("miniapp-last-survivor")] },
+    ],
     countMethods: [],
   },
   {
     brand: "GASBOX",
     slug: "gasbox",
     contractName: "MiniAppGASBox",
-    zeroArgMethods: ["totalMachines"],
+    readMethods: [{ method: "totalMachines" }],
     countMethods: [{ method: "totalMachines", minValue: 0n }],
   },
   {
     brand: "Red Envelope",
     slug: "red-envelope",
     contractName: "MiniAppRedEnvelope",
-    zeroArgMethods: [],
+    readMethods: [],
     // getEnvelope requires an id arg, tested separately
     countMethods: [],
   },
@@ -50,28 +55,31 @@ const FLAGSHIP_APPS = [
     brand: "Daily Check-in",
     slug: "daily-checkin",
     contractName: "MiniAppDailyCheckIn",
-    zeroArgMethods: ["getPlatformStats"],
+    readMethods: [{ method: "getPlatformStats" }],
     countMethods: [],
   },
   {
     brand: "FogPlay",
     slug: "fogplay",
     contractName: "MiniAppFogPlay",
-    zeroArgMethods: ["getBetLimits"],
+    readMethods: [{ method: "getBetLimits" }],
     countMethods: [],
   },
   {
     brand: "SelfLoan",
     slug: "self-loan",
-    contractName: "MiniAppSelfLoan",
-    zeroArgMethods: ["getPlatformStats"],
+    contractName: "PlatformDeFi",
+    readMethods: [
+      { method: "isPaused" },
+      { method: "getLendingStats", args: [strParam("miniapp-self-loan")] },
+    ],
     countMethods: [],
   },
   {
     brand: "NeoPay",
     slug: "neo-pay",
     contractName: "MiniAppNeoPay",
-    zeroArgMethods: ["totalStreams"],
+    readMethods: [{ method: "totalStreams" }],
     countMethods: [{ method: "totalStreams", minValue: 0n }],
   },
 ];
@@ -84,7 +92,7 @@ function testnetHash(slug) {
 
 // ── Test 1: All flagship contracts respond to stats/count reads ───────────
 
-test("all 7 flagship contracts respond to their stats/count read methods", async () => {
+test("all 7 flagship contracts respond to their documented read/count methods", async () => {
   for (const app of FLAGSHIP_APPS) {
     const hash = testnetHash(app.slug);
     if (!hash) {
@@ -92,8 +100,8 @@ test("all 7 flagship contracts respond to their stats/count read methods", async
       continue;
     }
 
-    for (const method of app.zeroArgMethods) {
-      const result = await invokeRead(hash, method);
+    for (const { method, args = [] } of app.readMethods) {
+      const result = await invokeRead(hash, method, args);
       assert.ok(
         isHalt(result),
         `${app.brand}.${method}() returned ${result.state}: ${result.exception || "no exception"}`,
@@ -117,13 +125,13 @@ test("all 7 flagship contracts respond to their stats/count read methods", async
 
 // ── Test 2: All zero-arg read methods return HALT ─────────────────────────
 
-test("all flagship contracts return HALT for zero-arg read methods", async () => {
+test("all flagship contracts return HALT for documented read methods", async () => {
   for (const app of FLAGSHIP_APPS) {
     const hash = testnetHash(app.slug);
     if (!hash) continue;
 
-    for (const method of app.zeroArgMethods) {
-      const result = await invokeRead(hash, method);
+    for (const { method, args = [] } of app.readMethods) {
+      const result = await invokeRead(hash, method, args);
       const state = String(result.state || "").toUpperCase();
       assert.equal(
         state,
@@ -208,16 +216,17 @@ test("flagship contracts handle parameterized reads gracefully", async () => {
     );
   }
 
-  // SelfLoan: getLoanDetails(0)
+  // SelfLoan: getLoan(appId, loanId)
   const selfLoanHash = testnetHash("self-loan");
   if (selfLoanHash) {
-    const result = await invokeRead(selfLoanHash, "getLoanDetails", [
+    const result = await invokeRead(selfLoanHash, "getLoan", [
+      strParam("miniapp-self-loan"),
       intParam(0),
     ]);
     const state = String(result.state || "").toUpperCase();
     assert.ok(
       state === "HALT" || state === "FAULT",
-      `SelfLoan.getLoanDetails(0) unexpected state: ${state}`,
+      `SelfLoan.getLoan(miniapp-self-loan, 0) unexpected state: ${state}`,
     );
   }
 
