@@ -112,6 +112,11 @@ function fromHeaderValue(value?: string | string[]): string {
   return String(value || "").trim();
 }
 
+function isLocalhostHost(host: string): boolean {
+  const hostname = host.split(":")[0]?.toLowerCase();
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
 /**
  * Resolve the base URL for internal API calls during SSR.
  * Priority: NEXT_PUBLIC_API_URL env > Vercel runtime URL > request host header > error
@@ -132,7 +137,7 @@ export function resolveInternalBaseUrl(req?: RequestLike): string {
   const rawHost = rawForwardedHost || fromHeaderValue(req?.headers?.host);
   if (rawHost && /^[a-zA-Z0-9._-]+(:\d+)?$/.test(rawHost)) {
     const rawProto = fromHeaderValue(req?.headers?.["x-forwarded-proto"]);
-    const proto = rawProto === "https" || (process.env.NODE_ENV === "production" && !rawProto)
+    const proto = rawProto === "https" || (process.env.NODE_ENV === "production" && !rawProto && !isLocalhostHost(rawHost))
       ? "https"
       : "http";
     return `${proto}://${rawHost}`;

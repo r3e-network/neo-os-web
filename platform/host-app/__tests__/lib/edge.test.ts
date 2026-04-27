@@ -40,6 +40,17 @@ describe("resolveInternalBaseUrl", () => {
     ).toBe("https://app.example.com");
   });
 
+  it("uses http for localhost hosts even in production local start", () => {
+    Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
+    const { resolveInternalBaseUrl } = require("../../lib/edge");
+    expect(
+      resolveInternalBaseUrl({ headers: { host: "127.0.0.1:3101" } }),
+    ).toBe("http://127.0.0.1:3101");
+    expect(
+      resolveInternalBaseUrl({ headers: { host: "localhost:3101" } }),
+    ).toBe("http://localhost:3101");
+  });
+
   it("throws when no trusted URL source is available", () => {
     Object.defineProperty(process.env, "NODE_ENV", { value: "production", writable: true });
     const { resolveInternalBaseUrl } = require("../../lib/edge");
