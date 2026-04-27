@@ -112,29 +112,22 @@
   },
   "operations": [
     {
-      "name": "Repay Debt",
-      "method": "repayDebt",
+      "name": "Repay Loan",
+      "method": "repayLoan",
       "button_style": "primary",
       "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-self-loan",
+          "hidden": true
+        },
         {
           "name": "loanId",
           "type": "integer",
           "label": "Loan ID",
-          "required": true,
-          "placeholder": "1"
-        },
-        {
-          "name": "payer",
-          "type": "hash160",
-          "label": "Payer",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
-        {
-          "name": "amount",
-          "type": "amount",
-          "label": "Repay Amount (GAS)",
           "required": true,
           "placeholder": "1"
         }

@@ -96,55 +96,100 @@
       "cta_label": "View Dashboard",
       "operations": [
         {
-          "name": "Deposit",
-          "method": "deposit",
-          "description": "Add GAS to your sponsorship pool",
+          "name": "Create Pool",
+          "method": "createPool",
+          "description": "Create an on-chain GAS sponsorship pool after funding the contract.",
           "button_style": "primary",
           "gas_cost": "~0.1 GAS",
           "params": [
             {
-              "name": "amount",
-              "type": "amount",
-              "label": "Deposit Amount (GAS)",
+              "name": "sponsor",
+              "type": "hash160",
+              "label": "Sponsor",
               "required": true,
-              "placeholder": "100"
+              "default_value": "$wallet",
+              "hidden": true
+            },
+            {
+              "name": "totalBudget",
+              "type": "amount",
+              "label": "Total Budget (GAS fractions)",
+              "required": true,
+              "placeholder": "100000000"
+            },
+            {
+              "name": "perUserLimit",
+              "type": "amount",
+              "label": "Per-user Limit (GAS fractions)",
+              "required": true,
+              "placeholder": "10000000"
+            },
+            {
+              "name": "expiresAt",
+              "type": "integer",
+              "label": "Expiry Timestamp",
+              "required": true,
+              "placeholder": "1893456000"
+            },
+            {
+              "name": "metadata",
+              "type": "string",
+              "label": "Metadata",
+              "required": false,
+              "placeholder": "MiniApp sponsorship pool"
             }
           ]
         },
         {
-          "name": "Configure",
-          "method": "configure",
-          "description": "Set sponsorship rules",
+          "name": "Claim Sponsorship",
+          "method": "claimSponsorship",
+          "description": "Claim a sponsored GAS allowance from an active pool.",
           "button_style": "secondary",
           "params": [
             {
-              "name": "contract_hash",
+              "name": "beneficiary",
               "type": "hash160",
-              "label": "Contract to Sponsor",
+              "label": "Beneficiary",
               "required": true,
-              "placeholder": "0x..."
+              "default_value": "$wallet",
+              "hidden": true
             },
             {
-              "name": "max_per_tx",
+              "name": "poolId",
               "type": "integer",
-              "label": "Max GAS per Transaction",
+              "label": "Pool ID",
               "required": true,
-              "placeholder": "10"
+              "placeholder": "1"
+            },
+            {
+              "name": "amount",
+              "type": "amount",
+              "label": "Claim Amount (GAS fractions)",
+              "required": true,
+              "placeholder": "1000000"
             }
           ]
         },
         {
-          "name": "Withdraw",
-          "method": "withdraw",
-          "description": "Withdraw from sponsorship pool",
+          "name": "Withdraw Pool",
+          "method": "withdrawPool",
+          "description": "Withdraw remaining GAS from a pool you sponsor.",
           "button_style": "danger",
           "params": [
             {
-              "name": "amount",
-              "type": "amount",
-              "label": "Withdraw Amount (GAS)",
+              "name": "sponsor",
+              "type": "hash160",
+              "label": "Sponsor",
               "required": true,
-              "placeholder": "50"
+              "default_value": "$wallet",
+              "hidden": true
+            },
+            {
+              "name": "poolId",
+              "type": "integer",
+              "label": "Pool ID",
+              "required": true,
+              "placeholder": "1"
             }
           ]
         }
