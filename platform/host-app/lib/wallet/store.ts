@@ -163,9 +163,14 @@ export function getWalletAdapter(): WalletAdapter | null {
   return provider ? adapters[provider] : null;
 }
 
+const walletIcon = (label: string) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"><rect width="64" height="64" rx="16" fill="#00e599"/><text x="32" y="39" text-anchor="middle" font-size="20" font-weight="700" font-family="Arial, sans-serif" fill="#07111a">${label}</text></svg>`,
+  )}`;
+
 /** Available wallet options */
 export const walletOptions = [
-  { id: "neoline" as const, name: "NeoLine", icon: "https://neoline.io/favicon.ico" },
-  { id: "o3" as const, name: "O3", icon: "https://o3.network/favicon.ico" },
-  { id: "onegate" as const, name: "OneGate", icon: "https://onegate.space/favicon.ico" },
+  { id: "neoline" as const, name: "NeoLine", icon: walletIcon("NL") },
+  { id: "o3" as const, name: "O3", icon: walletIcon("O3") },
+  { id: "onegate" as const, name: "OneGate", icon: walletIcon("OG") },
 ];

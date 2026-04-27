@@ -7,6 +7,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  ADMIN_NAVIGATION_ITEMS,
+  resolveAdminNavigationLabel,
+} from "@/lib/admin-navigation";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "../../../../shared/i18n/react";
 import { LanguageToggle } from "../../../../shared/i18n/LanguageSwitcher";
@@ -23,18 +27,10 @@ export function Header() {
         : "Local Development"),
   );
 
-  const mobileNavigation = [
-    { name: tc("navigation.dashboard"), href: "/", icon: "📊" },
-    { name: tc("navigation.services"), href: "/services", icon: "🔧" },
-    { name: tc("navigation.miniapps"), href: "/miniapps", icon: "📱" },
-    { name: tc("navigation.templateStudio"), href: "/templates", icon: "🧱" },
-    { name: tc("navigation.users"), href: "/users", icon: "👥" },
-    { name: tc("navigation.analytics"), href: "/analytics", icon: "📈" },
-    { name: tc("navigation.contracts"), href: "/contracts", icon: "📄" },
-    { name: "Feeds", href: "/pricefeeds", icon: "📈" },
-    { name: "Secrets", href: "/oracle-secrets", icon: "🔑" },
-    { name: "Settings", href: "/settings", icon: "⚙️" },
-  ];
+  const mobileNavigation = ADMIN_NAVIGATION_ITEMS.map((item) => ({
+    ...item,
+    name: resolveAdminNavigationLabel(item, tc),
+  }));
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200/50 dark:border-white/10 bg-white/70 dark:bg-[#0A0B10]/80 backdrop-blur-2xl">
