@@ -44,12 +44,13 @@ function buildCSP(nonce: string): string {
   const isDev = process.env.NODE_ENV !== "production";
   const federatedOrigins = parseFederatedOrigins();
 
+  const trustedMiniAppFrameOrigins = ["https://vote.r3e.network"];
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
   const frameSrc = frameOrigins
     ? `'self' ${frameOrigins}`
     : isDev
       ? "'self' https:"
-      : "'self'";
+      : ["'self'", ...trustedMiniAppFrameOrigins].join(" ");
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
