@@ -1,6 +1,7 @@
 {
   "network": "testnet",
   "rpc_endpoints": [
+    "https://api.n3index.dev/testnet",
     "https://testnet1.neo.coz.io:443",
     "https://testnet2.neo.coz.io:443",
     "https://rpc.t5.n3.nspcc.ru:20331"

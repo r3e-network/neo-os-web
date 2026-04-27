@@ -44,12 +44,12 @@ describe("/api/morpheus/oracle/public-key", () => {
 
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
-      "https://testnet1.neo.coz.io:443",
+      "https://api.n3index.dev/testnet",
       expect.objectContaining({ method: "POST" }),
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
-      "https://testnet1.neo.coz.io:443",
+      "https://api.n3index.dev/testnet",
       expect.objectContaining({ method: "POST" }),
     );
 
@@ -58,7 +58,7 @@ describe("/api/morpheus/oracle/public-key", () => {
       network: "testnet",
       source: "neo_n3_contract",
       contract: "0x4b882e94ed766807c4fd728768f972e13008ad52",
-      rpc_url: "https://testnet1.neo.coz.io:443",
+      rpc_url: "https://api.n3index.dev/testnet",
       algorithm: "X25519-HKDF-SHA256-AES-256-GCM",
       public_key: "e+NHmFyX5PhEHPWNXbnB7GqaWc6dxEzwkHyT6oCa8gU=",
       public_key_format: "raw",

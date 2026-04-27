@@ -7,6 +7,7 @@ describe("external integration registry", () => {
     const testnet = getExternalIntegrationConfig("testnet");
 
     expect(mainnet.rpcUrl).toBe(MORPHEUS_PUBLIC_REGISTRY.mainnet.rpcUrl);
+    expect(mainnet.rpcUrl).toBe("https://api.n3index.dev/mainnet");
     expect(mainnet.networkMagic).toBe(MORPHEUS_PUBLIC_REGISTRY.mainnet.networkMagic);
     expect(mainnet.morpheusPublicApiUrl).toBe(MORPHEUS_PUBLIC_REGISTRY.mainnet.morpheus.publicApiUrl);
     expect(mainnet.morpheusRuntimeUrls).toEqual(MORPHEUS_PUBLIC_REGISTRY.mainnet.morpheus.runtimeUrls);
@@ -17,6 +18,7 @@ describe("external integration registry", () => {
     expect(mainnet.domains.neodid).toBe(MORPHEUS_PUBLIC_REGISTRY.mainnet.domains.neodid);
 
     expect(testnet.rpcUrl).toBe(MORPHEUS_PUBLIC_REGISTRY.testnet.rpcUrl);
+    expect(testnet.rpcUrl).toBe("https://api.n3index.dev/testnet");
     expect(testnet.networkMagic).toBe(MORPHEUS_PUBLIC_REGISTRY.testnet.networkMagic);
     expect(testnet.morpheusPublicApiUrl).toBe(MORPHEUS_PUBLIC_REGISTRY.testnet.morpheus.publicApiUrl);
     expect(testnet.morpheusRuntimeUrls).toEqual(MORPHEUS_PUBLIC_REGISTRY.testnet.morpheus.runtimeUrls);
