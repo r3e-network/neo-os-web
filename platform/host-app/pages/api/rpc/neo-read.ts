@@ -1,11 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const MAINNET_RPC_URL =
-  process.env.NEO_MAINNET_RPC_URL || "https://mainnet2.neo.coz.io:443";
+  process.env.NEO_MAINNET_RPC_URL || "https://api.n3index.dev/mainnet";
 const TESTNET_RPC_URL =
   process.env.NEO_TESTNET_RPC_URL ||
   process.env.NEO_RPC_URL ||
-  "https://testnet1.neo.coz.io:443";
+  "https://api.n3index.dev/testnet";
 
 /**
  * Proxy for read-only Neo N3 RPC calls (invokefunction).

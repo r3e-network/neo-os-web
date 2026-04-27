@@ -6,8 +6,8 @@
 import type { MiniAppStats, ContractEvent } from "./types";
 
 const NEO_RPC = {
-  testnet: process.env.NEO_RPC_TESTNET || "https://testnet1.neo.coz.io:443",
-  mainnet: process.env.NEO_RPC_MAINNET || "https://mainnet2.neo.coz.io:443",
+  testnet: process.env.NEO_RPC_TESTNET || "https://api.n3index.dev/testnet",
+  mainnet: process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet",
 };
 
 // Cache for stats (refreshed periodically)

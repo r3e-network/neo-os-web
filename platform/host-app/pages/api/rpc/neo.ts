@@ -14,14 +14,14 @@ const MAINNET_RPC_URL =
   process.env.NEO_MAINNET_RPC_URL ||
   process.env.NEO_RPC_MAINNET ||
   process.env.NEXT_PUBLIC_NEO_RPC_MAINNET ||
-  "https://mainnet2.neo.coz.io:443";
+  "https://api.n3index.dev/mainnet";
 
 const TESTNET_RPC_URL =
   process.env.NEO_TESTNET_RPC_URL ||
   process.env.NEO_RPC_TESTNET ||
   process.env.NEO_RPC_URL ||
   process.env.NEXT_PUBLIC_NEO_RPC_TESTNET ||
-  "https://testnet1.neo.coz.io:443";
+  "https://api.n3index.dev/testnet";
 
 const ALLOWED_METHODS = new Set([
   "getblockcount",
