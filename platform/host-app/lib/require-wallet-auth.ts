@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { isValidNeoAddress } from "@/lib/neo-address";
@@ -21,20 +22,79 @@ function extractWalletFromUser(user: { user_metadata?: unknown; email?: string |
     ? (metadata as { address?: unknown }).address
     : undefined;
 
-  if (typeof metadataAddress === "string") {
-    const wallet = metadataAddress.trim();
-    if (isValidNeoAddress(wallet)) {
-      return wallet;
-    }
+  return extractWalletFromClaims({ address: metadataAddress, email: user.email });
+}
+
+function decodeBase64UrlJson(value: string): Record<string, unknown> | null {
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), "=");
+    return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+  } catch (_e: unknown) {
+    return null;
+  }
+}
+
+function encodeBase64Url(value: Buffer): string {
+  return value.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function verifyHs256Jwt(token: string, secret: string): Record<string, unknown> | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  const header = decodeBase64UrlJson(encodedHeader);
+  if (header?.alg !== "HS256") return null;
+
+  const expected = encodeBase64Url(
+    createHmac("sha256", secret).update(`${encodedHeader}.${encodedPayload}`).digest(),
+  );
+  const actual = Buffer.from(encodedSignature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actual.length !== expectedBuffer.length || !timingSafeEqual(actual, expectedBuffer)) return null;
+
+  const payload = decodeBase64UrlJson(encodedPayload);
+  if (!payload) return null;
+  if (payload.aud !== "authenticated" || payload.role !== "authenticated") return null;
+  if (typeof payload.sub !== "string" || payload.sub.trim().length === 0) return null;
+  if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) return null;
+  if (payload.exp <= Math.floor(Date.now() / 1000)) return null;
+  return payload;
+}
+
+function extractWalletFromClaims(claims: Record<string, unknown>): string | null {
+  const metadata = claims.user_metadata;
+  const metadataAddress = typeof metadata === "object" && metadata !== null
+    ? (metadata as { address?: unknown }).address
+    : undefined;
+  const candidates = [claims.address, metadataAddress];
+  for (const value of candidates) {
+    if (typeof value !== "string") continue;
+    const wallet = value.trim();
+    if (isValidNeoAddress(wallet)) return wallet;
   }
 
-  if (typeof user.email === "string") {
-    const emailMatch = user.email.trim().match(WALLET_EMAIL_REGEX);
+  const email = typeof claims.email === "string" ? claims.email : null;
+  if (email) {
+    const emailMatch = email.trim().match(WALLET_EMAIL_REGEX);
     if (emailMatch?.[1] && isValidNeoAddress(emailMatch[1])) {
       return emailMatch[1];
     }
   }
 
+  return null;
+}
+
+function extractWalletFromLocalJwt(token: string): string | null {
+  const secrets = [process.env.SUPABASE_JWT_SECRET, process.env.NEXTAUTH_SECRET]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  for (const secret of secrets) {
+    const payload = verifyHs256Jwt(token, secret);
+    if (!payload) continue;
+    const wallet = extractWalletFromClaims(payload);
+    if (wallet) return wallet;
+  }
   return null;
 }
 
@@ -52,16 +112,14 @@ export async function requireWalletAuth(req: NextApiRequest, res: NextApiRespons
   }
 
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user) {
-    apiError.unauthorized(res, "Invalid or expired authorization token");
-    return null;
+  if (!error && data?.user) {
+    const wallet = extractWalletFromUser(data.user);
+    if (wallet) return wallet;
   }
 
-  const wallet = extractWalletFromUser(data.user);
-  if (!wallet) {
-    apiError.unauthorized(res, "Unable to resolve wallet from authenticated user");
-    return null;
-  }
+  const localJwtWallet = extractWalletFromLocalJwt(token);
+  if (localJwtWallet) return localJwtWallet;
 
-  return wallet;
+  apiError.unauthorized(res, "Invalid or expired authorization token");
+  return null;
 }

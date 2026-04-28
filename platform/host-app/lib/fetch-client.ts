@@ -17,10 +17,50 @@ export class RequestError extends Error {
   }
 }
 
-function applyDefaultSignal(init?: RequestInit): RequestInit {
-  if (init?.signal) return init;
+function isRequest(value: RequestInfo | URL): value is Request {
+  return typeof Request !== "undefined" && value instanceof Request;
+}
+
+function shouldAttachWalletToken(input: RequestInfo | URL): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const rawUrl = isRequest(input) ? input.url : input instanceof URL ? input.toString() : String(input);
+    const url = new URL(rawUrl, window.location.origin);
+    return url.origin === window.location.origin && url.pathname.startsWith("/api/");
+  } catch (_e: unknown) {
+    return false;
+  }
+}
+
+function readWalletSessionToken(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.sessionStorage.getItem("sb-access-token")?.trim() || "";
+  } catch (_e: unknown) {
+    return "";
+  }
+}
+
+function applyDefaultHeaders(input: RequestInfo | URL, init?: RequestInit): RequestInit {
+  const token = shouldAttachWalletToken(input) ? readWalletSessionToken() : "";
+  const inputIsRequest = isRequest(input);
+  if (!inputIsRequest && !token) return init || {};
+
+  const headers = new Headers(inputIsRequest ? input.headers : undefined);
+  new Headers(init?.headers).forEach((value, key) => headers.set(key, value));
+
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return { ...init, headers };
+}
+
+function applyDefaultSignal(input: RequestInfo | URL, init?: RequestInit): RequestInit {
+  const withHeaders = applyDefaultHeaders(input, init);
+  if (withHeaders.signal) return withHeaders;
   return {
-    ...init,
+    ...withHeaders,
     signal: AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS),
   };
 }
@@ -51,7 +91,7 @@ function toRequestError(res: Response, payload: unknown): RequestError {
 }
 
 export async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const res = await fetch(input, applyDefaultSignal(init));
+  const res = await fetch(input, applyDefaultSignal(input, init));
   const payload = await parseJSONSafe(res);
   if (!res.ok) {
     throw toRequestError(res, payload);
@@ -60,7 +100,7 @@ export async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit)
 }
 
 export async function fetchOK(input: RequestInfo | URL, init?: RequestInit): Promise<void> {
-  const res = await fetch(input, applyDefaultSignal(init));
+  const res = await fetch(input, applyDefaultSignal(input, init));
   if (res.ok) return;
   throw toRequestError(res, await parseJSONSafe(res));
 }

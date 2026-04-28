@@ -1,3 +1,4 @@
+import { createHmac } from "crypto";
 import { createMocks } from "node-mocks-http";
 import type { NextApiRequest, NextApiResponse } from "next";
 
@@ -29,9 +30,30 @@ function mockSupabaseUser(address: string | undefined, email?: string) {
   });
 }
 
+function mockSupabaseInvalidUser() {
+  (getServerSupabaseClient as jest.Mock).mockReturnValue({
+    auth: {
+      getUser: jest.fn(async () => ({ data: { user: null }, error: new Error("invalid") })),
+    },
+  });
+}
+
+function base64url(input: Buffer | string): string {
+  return Buffer.from(input).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+
+function signHs256Jwt(payload: Record<string, unknown>, secret: string): string {
+  const encodedHeader = base64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const encodedPayload = base64url(JSON.stringify(payload));
+  const signature = createHmac("sha256", secret).update(`${encodedHeader}.${encodedPayload}`).digest();
+  return `${encodedHeader}.${encodedPayload}.${base64url(signature)}`;
+}
+
 describe("requireWalletAuth", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.SUPABASE_JWT_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
   });
 
   it("returns valid Neo address from user metadata", async () => {
@@ -81,6 +103,84 @@ describe("requireWalletAuth", () => {
     });
 
     const wallet = await requireWalletAuth(req, res);
+    expect(wallet).toBeNull();
+    expect(res._getStatusCode()).toBe(401);
+  });
+
+  it("returns wallet address from a locally signed wallet JWT when Supabase Auth rejects it", async () => {
+    process.env.NEXTAUTH_SECRET = "test-secret";
+    mockSupabaseInvalidUser();
+    const token = signHs256Jwt({
+      aud: "authenticated",
+      role: "authenticated",
+      sub: "wallet-user-id",
+      address: VALID_ADDRESS,
+      exp: Math.floor(Date.now() / 1000) + 60,
+    }, "test-secret");
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const wallet = await requireWalletAuth(req, res);
+
+    expect(wallet).toBe(VALID_ADDRESS);
+  });
+
+  it("rejects locally signed wallet JWTs with invalid signatures", async () => {
+    process.env.NEXTAUTH_SECRET = "test-secret";
+    mockSupabaseInvalidUser();
+    const token = signHs256Jwt({
+      aud: "authenticated",
+      role: "authenticated",
+      sub: "wallet-user-id",
+      address: VALID_ADDRESS,
+      exp: Math.floor(Date.now() / 1000) + 60,
+    }, "wrong-secret");
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const wallet = await requireWalletAuth(req, res);
+
+    expect(wallet).toBeNull();
+    expect(res._getStatusCode()).toBe(401);
+  });
+
+  it("rejects locally signed wallet JWTs without required expiry", async () => {
+    process.env.NEXTAUTH_SECRET = "test-secret";
+    mockSupabaseInvalidUser();
+    const token = signHs256Jwt({
+      aud: "authenticated",
+      role: "authenticated",
+      sub: "wallet-user-id",
+      address: VALID_ADDRESS,
+    }, "test-secret");
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const wallet = await requireWalletAuth(req, res);
+
+    expect(wallet).toBeNull();
+    expect(res._getStatusCode()).toBe(401);
+  });
+
+  it("rejects locally signed wallet JWTs with unexpected audience", async () => {
+    process.env.NEXTAUTH_SECRET = "test-secret";
+    mockSupabaseInvalidUser();
+    const token = signHs256Jwt({
+      aud: "anon",
+      role: "authenticated",
+      sub: "wallet-user-id",
+      address: VALID_ADDRESS,
+      exp: Math.floor(Date.now() / 1000) + 60,
+    }, "test-secret");
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const wallet = await requireWalletAuth(req, res);
+
     expect(wallet).toBeNull();
     expect(res._getStatusCode()).toBe(401);
   });
