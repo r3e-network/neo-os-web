@@ -73,10 +73,13 @@ const NETWORK_MAGIC = Number(
   process.env.NEO_NETWORK_MAGIC || Neon.CONST.MAGIC_NUMBER.TestNet,
 );
 
-const FUNDER_WIF =
-  process.env.NEO_TESTNET_WIF ||
-  process.env.TEST_FUZZ_WIF ||
-  "***REMOVED***";
+const FUNDER_WIF = process.env.NEO_TESTNET_WIF || process.env.TEST_FUZZ_WIF;
+if (!FUNDER_WIF) {
+  console.error(
+    "[sim] NEO_TESTNET_WIF/TEST_FUZZ_WIF is required for multi-user testnet simulation; refusing to use embedded private keys.",
+  );
+  process.exit(0);
+}
 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
