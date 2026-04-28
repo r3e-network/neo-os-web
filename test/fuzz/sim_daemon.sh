@@ -18,7 +18,10 @@ export SIM_USERS="${SIM_USERS:-3}"
 export SIM_LOOP_DELAY_MS="${SIM_LOOP_DELAY_MS:-30000}"
 export SIM_GAS_PER_USER="${SIM_GAS_PER_USER:-2000000000}"
 export SIM_NEO_PER_USER="${SIM_NEO_PER_USER:-3}"
-export NEO_TESTNET_WIF="${NEO_TESTNET_WIF:-L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ}"
+if [[ -z "${NEO_TESTNET_WIF:-${TEST_FUZZ_WIF:-}}" ]]; then
+  echo "[sim-daemon] NEO_TESTNET_WIF or TEST_FUZZ_WIF is required; refusing to run with embedded private keys." >&2
+  exit 0
+fi
 export NODE_NO_WARNINGS=1
 
 echo $$ > "$PID_FILE"

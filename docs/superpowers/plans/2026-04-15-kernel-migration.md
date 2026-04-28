@@ -261,7 +261,7 @@ Script that calls `RegisterMiniApp` on the kernel for each of the 17 migrated mi
 - [ ] **Step 2: Run registration on testnet**
 
 ```bash
-NEO_TESTNET_WIF=L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ \
+NEO_TESTNET_WIF=[REDACTED_TESTNET_WIF] \
   node deploy/scripts/register_miniapps_in_kernel.js
 ```
 
@@ -293,7 +293,7 @@ npm run test:integration
 - [ ] **Step 3: Run testnet smoke test**
 
 ```bash
-NEO_TESTNET_WIF=L4cNA7HKn5CRtPeKJCSedTFpej8Yq2E5s1xvhxoHKBjcFcvqG9HZ \
+NEO_TESTNET_WIF=[REDACTED_TESTNET_WIF] \
   node deploy/scripts/smoke_business_workflows.js
 ```
 
