@@ -50,7 +50,7 @@ export type OperationParam = {
   required?: boolean;
   default_value?: string;
   placeholder?: string;
-  options?: { label: string; value: string }[];
+  options?: string | { label: string; value: string }[];
   hidden?: boolean;
 };
 

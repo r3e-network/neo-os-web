@@ -39,6 +39,15 @@ describe("miniapp-media helpers", () => {
         "unbreakable-vault",
       );
     });
+
+    it("uses current flagship asset slugs for legacy catalog entry URLs", () => {
+      expect(resolveMiniAppSlug("miniapp-doomsday-clock", "/miniapps/doomsday-clock/")).toBe(
+        "last-survivor",
+      );
+      expect(resolveMiniAppSlug("miniapp-neo-gacha", "/miniapps/neo-gacha/")).toBe("gasbox");
+      expect(resolveMiniAppSlug("miniapp-coinflip", "/miniapps/coin-flip/")).toBe("fogplay");
+      expect(resolveMiniAppSlug("miniapp-stream-vault", "/miniapps/stream-vault/")).toBe("neo-pay");
+    });
   });
 
   describe("getMiniAppPrimaryAssets", () => {
