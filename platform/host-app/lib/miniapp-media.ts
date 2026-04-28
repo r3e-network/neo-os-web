@@ -29,11 +29,15 @@ export type ModernImageSources = {
 
 const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-breakupcontract": ["breakup-contract"],
+  "miniapp-coinflip": ["fogplay", "coin-flip"],
+  "miniapp-doomsday-clock": ["last-survivor", "doomsday-clock"],
   "miniapp-fogplay": ["fogplay"],
   "miniapp-dailycheckin": ["daily-checkin"],
   "miniapp-dicegame": ["dice-game"],
   "miniapp-last-survivor": ["last-survivor"],
+  "miniapp-lastsurvivor": ["last-survivor"],
   "miniapp-gasbox": ["gasbox"],
+  "miniapp-neo-gacha": ["gasbox", "neo-gacha"],
   "miniapp-onchaintarot": ["on-chain-tarot"],
   "miniapp-predictionmarket": ["prediction-market"],
   "miniapp-redenvelope": ["red-envelope"],
@@ -42,6 +46,7 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-profitanchor": ["profitanchor"],
   "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
+  "miniapp-stream-vault": ["neo-pay", "stream-vault"],
   "miniapp-unbreakablevault": ["unbreakable-vault"],
 };
 
@@ -217,6 +222,9 @@ function getVariantUrls(
 
 export function resolveMiniAppSlug(appID?: string | null, entryURL?: string | null): string {
   const appId = normalizeAppID(appID);
+  const alias = MINIAPP_SLUG_ALIASES[appId]?.[0];
+  if (alias) return normalizeSlug(alias);
+
   const url = toNonEmptyString(entryURL);
   if (url) {
     const match = url.match(miniAppPathPattern);
@@ -226,8 +234,6 @@ export function resolveMiniAppSlug(appID?: string | null, entryURL?: string | nu
   }
 
   if (!appId) return "";
-  const alias = MINIAPP_SLUG_ALIASES[appId]?.[0];
-  if (alias) return normalizeSlug(alias);
   return normalizeSlug(appId.replace(/^miniapp-/, ""));
 }
 

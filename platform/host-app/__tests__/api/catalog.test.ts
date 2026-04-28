@@ -55,6 +55,25 @@ describe("/api/miniapps/catalog", () => {
     expect(data.apps.length).toBe(0);
   });
 
+  it("resolves legacy flagship aliases to canonical bundled definitions", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { app_id: "miniapp-doomsday-clock" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    const data = JSON.parse(res._getData());
+    expect(data.app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-last-survivor",
+        logo_url: expect.stringContaining("last-survivor"),
+        banner_url: expect.stringContaining("last-survivor"),
+      }),
+    );
+  });
+
   it("returns 404 when app is missing", async () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
