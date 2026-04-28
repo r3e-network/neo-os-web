@@ -31,6 +31,7 @@ describe("auth store env access", () => {
     mockFetch.mockReset();
     global.fetch = mockFetch;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     sessionStorage.clear();
   });
 
@@ -38,6 +39,7 @@ describe("auth store env access", () => {
     const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://lazy.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
 
     mockFetch
       .mockResolvedValueOnce({
@@ -54,12 +56,26 @@ describe("auth store env access", () => {
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
       "https://lazy.supabase.co/functions/v1/auth-wallet-nonce",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "anon-key",
+          Authorization: "Bearer anon-key",
+          "Content-Type": "application/json",
+        }),
+      }),
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
       "https://lazy.supabase.co/functions/v1/auth-wallet",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "anon-key",
+          Authorization: "Bearer anon-key",
+          "Content-Type": "application/json",
+        }),
+      }),
     );
     expect(useAuthStore.getState().authenticated).toBe(true);
     expect(sessionStorage.getItem("sb-access-token")).toBe("jwt-token");
@@ -69,6 +85,7 @@ describe("auth store env access", () => {
     const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://lazy.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
 
     mockFetch
       .mockResolvedValueOnce({
@@ -86,12 +103,26 @@ describe("auth store env access", () => {
     expect(mockFetch).toHaveBeenNthCalledWith(
       1,
       "https://lazy.supabase.co/functions/v1/auth-wallet-nonce",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "anon-key",
+          Authorization: "Bearer anon-key",
+          "Content-Type": "application/json",
+        }),
+      }),
     );
     expect(mockFetch).toHaveBeenNthCalledWith(
       2,
       "https://lazy.supabase.co/functions/v1/auth-wallet",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "anon-key",
+          Authorization: "Bearer anon-key",
+          "Content-Type": "application/json",
+        }),
+      }),
     );
     expect(useAuthStore.getState().authenticated).toBe(true);
   });

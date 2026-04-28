@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getWalletAdapter, useWalletStore, WalletProvider } from "@/lib/wallet/store";
 import { getEdgeFunctionsBaseUrl } from "@/lib/edge";
+import { getPublicSupabaseEnv } from "@/lib/supabase-env";
 
 type AuthMethod = "social" | "wallet" | null;
 
@@ -29,12 +30,24 @@ function getAuthEdgeBaseUrl(): string {
   return getEdgeFunctionsBaseUrl();
 }
 
+function getWalletAuthHeaders(): HeadersInit {
+  const { anonKey } = getPublicSupabaseEnv();
+  const token = anonKey.trim();
+  return token
+    ? {
+        apikey: token,
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
+}
+
 async function authenticateWalletSession(address: string, publicKey: string) {
   const edgeBaseUrl = getAuthEdgeBaseUrl();
+  const authHeaders = getWalletAuthHeaders();
 
   const nonceResp = await fetch(`${edgeBaseUrl}/auth-wallet-nonce`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...authHeaders, "Content-Type": "application/json" },
     body: JSON.stringify({ address }),
     signal: AbortSignal.timeout(10000),
   });
@@ -47,7 +60,7 @@ async function authenticateWalletSession(address: string, publicKey: string) {
 
   const authResp = await fetch(`${edgeBaseUrl}/auth-wallet`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...authHeaders, "Content-Type": "application/json" },
     body: JSON.stringify({
       address,
       public_key: publicKey || signResult.publicKey,
