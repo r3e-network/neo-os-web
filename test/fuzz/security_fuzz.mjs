@@ -38,7 +38,8 @@ import {
 } from "./lib/rng.mjs";
 
 // ── Configuration ──────────────────────────────────────────────────────────
-const WIF = process.env.TEST_FUZZ_WIF || "***REMOVED***";
+// This campaign uses read-only invocations. For access-control probes we only
+// need a signer script hash; never embed or require a private WIF for this file.
 let Neon;
 async function ensureNeon() {
   if (!Neon) {
@@ -49,9 +50,12 @@ async function ensureNeon() {
 }
 
 const neon = await ensureNeon();
-const fuzzerAccount = new neon.wallet.Account(WIF);
-const FUZZER_HASH = fuzzerAccount.scriptHash;
-const FUZZER_ADDR = fuzzerAccount.address;
+const FUZZER_HASH = (
+  process.env.TEST_FUZZ_SCRIPT_HASH ||
+  process.env.TEST_FUZZ_ACCOUNT_HASH ||
+  "0x0000000000000000000000000000000000000000"
+).trim();
+const FUZZER_ADDR = process.env.TEST_FUZZ_ADDRESS || "synthetic-readonly-signer";
 
 console.log("╔══════════════════════════════════════════════════════════════╗");
 console.log("║  Security Fuzz Campaign — 7 Flagship Contracts (Testnet)    ║");

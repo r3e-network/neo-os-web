@@ -16,6 +16,7 @@ import {
   firstStack,
   stackHash160,
   hashParam,
+  intParam,
   UINT160_ZERO,
 } from "./helpers.mjs";
 
@@ -130,7 +131,10 @@ test("AA registration with random account ID can be simulated read-only", async 
 
 test("AA getNonce for unregistered account returns HALT or not-found FAULT", async () => {
   const id = randomHash160();
-  const result = await invokeRead(AA_CORE_HASH, "getNonce", [hashParam(id)]);
+  const result = await invokeRead(AA_CORE_HASH, "getNonce", [
+    hashParam(id),
+    intParam(0),
+  ]);
 
   const state = String(result.state || "").toUpperCase();
   if (state === "HALT") {
@@ -149,6 +153,7 @@ test("AA getNonce for unregistered account returns HALT or not-found FAULT", asy
 test("AA getNonce with zero hash returns HALT or known FAULT", async () => {
   const result = await invokeRead(AA_CORE_HASH, "getNonce", [
     hashParam(UINT160_ZERO),
+    intParam(0),
   ]);
   const state = String(result.state || "").toUpperCase();
   assert.ok(
