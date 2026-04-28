@@ -88,6 +88,56 @@ function getTabActiveColor(style?: string) {
   return "bg-white text-neo shadow-sm";
 }
 
+function getInitialParamValue(param: OperationParam): string {
+  if (param.default_value !== undefined && param.default_value !== null) {
+    return String(param.default_value);
+  }
+
+  if (param.type === "select") {
+    return parseSelectOptions(param.options)[0]?.value ?? "";
+  }
+
+  return "";
+}
+
+function parseSelectOptions(options: OperationParam["options"]): Array<{ label: string; value: string }> {
+  if (!options) return [];
+
+  if (typeof options === "string") {
+    try {
+      const parsed = JSON.parse(options);
+      if (Array.isArray(parsed)) return normalizeSelectOptions(parsed);
+    } catch {
+      return options
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => ({ label: s, value: s }));
+    }
+    return [];
+  }
+
+  if (Array.isArray(options)) return normalizeSelectOptions(options);
+  return [];
+}
+
+function normalizeSelectOptions(options: unknown[]): Array<{ label: string; value: string }> {
+  return options
+    .map((option) => {
+      if (typeof option === "string") {
+        const value = option.trim();
+        return value ? { label: value, value } : null;
+      }
+      if (!option || typeof option !== "object") return null;
+      const entry = option as { label?: unknown; value?: unknown };
+      const value = String(entry.value ?? "").trim();
+      if (!value) return null;
+      const label = String(entry.label ?? value).trim() || value;
+      return { label, value };
+    })
+    .filter((option): option is { label: string; value: string } => Boolean(option));
+}
+
 function OperationForm({
   op,
   onInvoke,
@@ -98,7 +148,7 @@ function OperationForm({
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const p of op.params ?? []) {
-      init[p.name] = p.default_value ?? "";
+      init[p.name] = getInitialParamValue(p);
     }
     return init;
   });
@@ -217,21 +267,8 @@ function ParamInput({
   }
 
   if (param.type === "select") {
-    const options = param.options;
-    if (!options) return null;
-
-    let parsedOptions: Array<{ label: string; value: string }> = [];
-    if (typeof options === "string") {
-      try {
-        parsedOptions = JSON.parse(options);
-      } catch {
-        parsedOptions = (options as string)
-          .split(",")
-          .map((s) => ({ label: s.trim(), value: s.trim() }));
-      }
-    } else if (Array.isArray(options)) {
-      parsedOptions = options;
-    }
+    const parsedOptions = parseSelectOptions(param.options);
+    if (parsedOptions.length === 0) return null;
 
     const selectId = `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
     return (
