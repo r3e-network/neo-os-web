@@ -46,9 +46,12 @@ console.log(`[fuzz] Found ${deployed.length} deployed contracts`);
 /** Fuzz target: read methods with random IDs */
 const readMethods = [
   { contract: "dailyCheckin", methods: ["totalCheckins", "totalUsers", "totalRewarded"] },
-  { contract: "lastSurvivor", methods: ["currentRoundId", "totalKeysSold", "totalPotDistributed", "totalPlayers"] },
+  // PlatformGame/PlatformDeFi unified contracts expose app-scoped reads rather
+  // than the older standalone counters. Keep fuzz targets aligned with the
+  // deployed ABIs so continuous fuzzing reports real behavior, not stale tests.
+  { contract: "lastSurvivor", methods: ["admin", "oracle", "abstractAccount", "isContractPaused"] },
   { contract: "gasBox", methods: ["totalMachines"] },
-  { contract: "selfLoan", methods: ["totalLoans", "totalCollateral", "totalDebt", "totalBorrowers"] },
+  { contract: "selfLoan", methods: ["admin", "isPaused"] },
   { contract: "flashloan", methods: ["getLoanCount", "getTotalBorrowed", "getTotalFees"] },
   { contract: "neoPay", methods: ["totalStreams"] },
 ];
@@ -56,12 +59,13 @@ const readMethods = [
 /** Fuzz target: parameterized read methods */
 const paramReadMethods = [
   { contract: "dailyCheckin", method: "getCheckInStateForFrontend", argGen: () => [hashParam(randomUInt160())] },
-  { contract: "lastSurvivor", method: "getRound", argGen: () => [intParam(randomBigInt(0n, 1000n))] },
-  { contract: "lastSurvivor", method: "getPlayerStats", argGen: () => [hashParam(randomUInt160())] },
-  { contract: "selfLoan", method: "getLoanDetails", argGen: () => [intParam(randomBigInt(0n, 100n))] },
-  { contract: "selfLoan", method: "getHealthFactor", argGen: () => [intParam(randomBigInt(0n, 100n))] },
-  { contract: "flashloan", method: "getLoan", argGen: () => [intParam(randomBigInt(0n, 100n))] },
-  { contract: "neoPay", method: "getStreamDetails", argGen: () => [intParam(randomBigInt(0n, 100n))] },
+  { contract: "lastSurvivor", method: "getCountdownStatus", argGen: () => [strParam("miniapp-last-survivor")] },
+  { contract: "lastSurvivor", method: "getCountdownPlayerStats", argGen: () => [strParam("miniapp-last-survivor"), hashParam(randomUInt160())] },
+  { contract: "selfLoan", method: "getLoan", argGen: (v = randomBigInt(0n, 100n)) => [strParam("miniapp-self-loan"), intParam(v)] },
+  { contract: "selfLoan", method: "getHealthFactor", argGen: (v = randomBigInt(0n, 100n)) => [strParam("miniapp-self-loan"), intParam(v)] },
+  { contract: "selfLoan", method: "getLendingStats", argGen: () => [strParam("miniapp-self-loan")] },
+  { contract: "flashloan", method: "getLoan", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
+  { contract: "neoPay", method: "getStreamDetails", argGen: (v = randomBigInt(0n, 100n)) => [intParam(v)] },
 ];
 
 // --- Campaign 1: Zero-arg read methods should never FAULT ---
@@ -109,8 +113,7 @@ await runner3.run(async (i) => {
   const hash = CONTRACTS[target.contract];
   if (!hash) return "skip";
 
-  // Override the first arg with boundary value
-  const args = [intParam(boundaryVal)];
+  const args = target.argGen(boundaryVal);
   const result = await invokeRead(hash, target.method, args);
 
   if (result.state === "FAULT" && result.exception?.includes("overflow")) {
