@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
 import type { NotificationEvent } from "@/lib/notifications/types";
 import { fetchJSON, fetchOK } from "@/lib/fetch-client";
+import { useAuthStore } from "@/lib/auth/store";
 
 interface NotificationDropdownProps {
   walletAddress?: string;
@@ -41,6 +42,7 @@ export function NotificationDropdown({
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [notifError, setNotifError] = useState<string | null>(null);
+  const authenticated = useAuthStore((state) => state.authenticated);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
@@ -66,7 +68,13 @@ export function NotificationDropdown({
 
   // Fetch notifications
   useEffect(() => {
-    if (!walletAddress) return;
+    if (!walletAddress || !authenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotifError(null);
+      setLoading(false);
+      return;
+    }
     let active = true;
     const fetchNotifications = async () => {
       setLoading(true);
@@ -88,9 +96,10 @@ export function NotificationDropdown({
     return () => {
       active = false;
     };
-  }, [walletAddress]);
+  }, [walletAddress, authenticated]);
 
   const markAsRead = async (id: string) => {
+    if (!walletAddress || !authenticated) return;
     setNotifError(null);
     try {
       await fetchOK(`/api/notifications/events/${id}/read`, { method: "POST" });
@@ -105,7 +114,7 @@ export function NotificationDropdown({
   };
 
   const markAllAsRead = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress || !authenticated) return;
     setNotifError(null);
     try {
       await fetchOK(
