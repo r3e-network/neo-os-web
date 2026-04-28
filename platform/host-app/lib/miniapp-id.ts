@@ -6,11 +6,17 @@ type CanonicalizeMiniAppIdOptions = {
 const MINIAPP_PREFIX = "miniapp-";
 const MINIAPP_SLUG_ALIAS_MAP: Record<string, string> = {
   "fogplay": "fogplay",
+  "coin-flip": "fogplay",
+  "coinflip": "fogplay",
   "dice-game": "dicegame",
   "daily-checkin": "dailycheckin",
+  "doomsday-clock": "last-survivor",
+  "lastsurvivor": "last-survivor",
+  "neo-gacha": "gasbox",
   "prediction-market": "predictionmarket",
   "red-envelope": "redenvelope",
   "secret-vote": "secretvote",
+  "stream-vault": "neo-pay",
   "gasbox": "gasbox",
 };
 
