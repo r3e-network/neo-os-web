@@ -97,7 +97,7 @@ API key management endpoints (`api-keys-*`) require `Authorization: Bearer <jwt>
 ## Optional Env Vars
 
 - `RNG_ANCHOR`: set to `1` to record RNG results on-chain via `txproxy` (`RandomnessLog.record`).
-- `EDGE_CORS_ORIGINS`: optional origin allowlist for browser clients (comma/space-separated). When unset, responses default to `Access-Control-Allow-Origin: *`.
+- `EDGE_CORS_ORIGINS`: origin allowlist for browser clients (comma/space-separated exact origins, for example `https://neomini.app http://localhost:3000`). When unset, Edge functions intentionally reject cross-origin preflight requests instead of using a wildcard.
 - `MINIAPP_USAGE_MODE`: `record` (default) or `check` for cap-only enforcement.
 - `MINIAPP_USAGE_MODE_PAYMENTS`, `MINIAPP_USAGE_MODE_GOVERNANCE`: optional per-intent overrides.
 - `CONTRACT_GAS_HASH`: optional override for the native GAS contract hash.
