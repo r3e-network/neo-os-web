@@ -23,8 +23,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const showConfirm = bool("showConfirm");
   const showWarningShake = bool("showWarningShake");
   const assetHash = str("assetHash");
-  const memoryType = str("memoryType");
-  const memoryTypeOptions = val<string[]>("memoryTypeOptions") ?? [];
+  const memoryType = num("memoryType");
+  const memoryTypeOptions =
+    val<Array<{ value: number; label: string }>>("memoryTypeOptions") ?? [];
   const forgettingId = str("forgettingId");
 
   return (
@@ -59,12 +60,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <div className="type-options">
               {memoryTypeOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  className={`type-option${memoryType === option ? " active" : ""}`}
-                  onClick={() => state.memoryType?.set(option)}
+                  className={`type-option${memoryType === option.value ? " active" : ""}`}
+                  onClick={() => state.memoryType?.set(option.value)}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>

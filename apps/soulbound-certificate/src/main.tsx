@@ -40,7 +40,8 @@ defineMiniApp({
         templatesCount: soulbound.templatesCount,
         certificatesCount: soulbound.certificatesCount,
         activeTemplatesCount: soulbound.activeTemplatesCount,
-        address: soulbound.address,
+        // Bind the live wallet observable so the connect prompt reacts.
+        address: ctx.services.chain.address,
         isRefreshing: soulbound.isRefreshing,
         togglingId: soulbound.togglingId,
         isLoading: soulbound.isLoading,

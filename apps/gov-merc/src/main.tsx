@@ -25,7 +25,7 @@ defineMiniApp({
       t: ctx.t as (key: string, params?: Record<string, string | number>) => string,
     });
 
-    pool.setAddress(ctx.services.chain.address.value ?? "");
+    pool.setAddress(ctx.services.chain.address.get() ?? "");
 
     const totalPoolDisplay: Observable<string> = {
       get: () => `${pool.formatNum(pool.totalPool.get(), 0)} ${ctx.t("tokenNeo")}`,

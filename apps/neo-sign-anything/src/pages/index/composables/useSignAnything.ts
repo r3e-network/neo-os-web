@@ -129,11 +129,10 @@ export function useSignAnything(t: (key: string) => string) {
   };
 
   const copyToClipboard = (text: string) => {
-    uni.setClipboardData({
-      data: text,
-      success: () => {
-        setStatus(t("copySuccess"), "success");
-      },
+    navigator.clipboard?.writeText(text).then(() => {
+      setStatus(t("copySuccess"), "success");
+    }).catch((e: unknown) => {
+      console.warn("[neo-sign-anything] clipboard write failed:", e instanceof Error ? e.message : String(e));
     });
   };
 

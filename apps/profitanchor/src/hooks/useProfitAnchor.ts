@@ -69,11 +69,12 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   const stats = createObservable<ProfitAnchorStats | null>(null);
 
   const loadMyStake = async () => {
-    if (!chain.address.value) { myStake.set(0); return; }
+    const addr = chain.address.get();
+    if (!addr) { myStake.set(0); return; }
     try {
       const result = await chain.read("getUserStake", [
         { type: "String", value: APP_ID },
-        { type: "Hash160", value: chain.address.value },
+        { type: "Hash160", value: addr },
       ]);
       myStake.set(asNumber(result));
     } catch (e) {
@@ -82,11 +83,12 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const loadPendingRewards = async () => {
-    if (!chain.address.value) { pendingRewards.set(0); return; }
+    const addr = chain.address.get();
+    if (!addr) { pendingRewards.set(0); return; }
     try {
       const result = await chain.read("getPendingRewards", [
         { type: "String", value: APP_ID },
-        { type: "Hash160", value: chain.address.value },
+        { type: "Hash160", value: addr },
       ]);
       pendingRewards.set(asNumber(result) / GAS_DECIMALS);
     } catch (e) {
@@ -95,10 +97,11 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   };
 
   const loadPendingWithdraw = async () => {
-    if (!chain.address.value) { pendingWithdraw.set(0); return; }
+    const addr = chain.address.get();
+    if (!addr) { pendingWithdraw.set(0); return; }
     try {
       const result = await chain.read("getCredit", [
-        { type: "Hash160", value: chain.address.value },
+        { type: "Hash160", value: addr },
         { type: "String", value: "NEO" },
       ]);
       pendingWithdraw.set(asNumber(result));
@@ -136,7 +139,7 @@ export function useProfitAnchor({ chain, eventBus, t }: UseProfitAnchorOptions) 
   const stake = async (amount: number) => {
     if (amount <= 0 || !Number.isInteger(amount)) throw new Error(t("invalidAmount"));
     const addr = await chain.ensureWallet();
-    const contractAddr = chain.contractAddress.value;
+    const contractAddr = chain.contractAddress.get();
     if (!contractAddr) throw new Error(t("contractUnavailable"));
     await chain.invoke("transfer", [
       { type: "Hash160", value: addr },

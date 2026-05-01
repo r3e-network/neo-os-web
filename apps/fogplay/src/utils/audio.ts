@@ -13,31 +13,40 @@ class AudioManager {
 
     private enabled: boolean = true;
     private readonly MAX_CONCURRENT_AUDIO = 4;
-    private activeContexts: uni.InnerAudioContext[] = [];
+    private activeAudio: HTMLAudioElement[] = [];
 
-    private releaseContext(context: uni.InnerAudioContext) {
-        const idx = this.activeContexts.indexOf(context);
-        if (idx !== -1) this.activeContexts.splice(idx, 1);
-        try { context.destroy(); } catch (_e) { console.warn("[fogplay] audio context already destroyed:", _e instanceof Error ? _e.message : String(_e)); }
+    private release(audio: HTMLAudioElement) {
+        const idx = this.activeAudio.indexOf(audio);
+        if (idx !== -1) this.activeAudio.splice(idx, 1);
+        try {
+            audio.pause();
+            audio.src = "";
+        } catch (e) {
+            console.warn("[fogplay] audio release failed:", e instanceof Error ? e.message : String(e));
+        }
     }
 
     play(name: string) {
         if (!this.enabled || !this.sounds[name]) return;
+        if (typeof window === "undefined" || typeof Audio === "undefined") return;
 
-        // Evict oldest context if at capacity
-        while (this.activeContexts.length >= this.MAX_CONCURRENT_AUDIO) {
-            this.releaseContext(this.activeContexts[0]);
+        while (this.activeAudio.length >= this.MAX_CONCURRENT_AUDIO) {
+            const oldest = this.activeAudio[0];
+            if (!oldest) break;
+            this.release(oldest);
         }
 
-        // In UniApp, we use uni.createInnerAudioContext
-        const context = uni.createInnerAudioContext();
-        this.activeContexts.push(context);
-        context.src = this.sounds[name];
-        context.play();
+        const audio = new Audio(this.sounds[name]);
+        this.activeAudio.push(audio);
 
-        context.onEnded(() => this.releaseContext(context));
-        context.onError(() => this.releaseContext(context));
-        context.onPause(() => this.releaseContext(context));
+        audio.addEventListener("ended", () => this.release(audio));
+        audio.addEventListener("error", () => this.release(audio));
+        audio.addEventListener("pause", () => this.release(audio));
+
+        audio.play().catch((e: unknown) => {
+            console.warn("[fogplay] audio play failed:", e instanceof Error ? e.message : String(e));
+            this.release(audio);
+        });
     }
 
     toggle(val: boolean) {

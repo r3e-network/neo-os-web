@@ -27,7 +27,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   // Round state
   const rounds = val<Array<Record<string, unknown>>>("rounds") ?? [];
-  const selectedRoundId = val<number>("selectedRoundId");
+  const selectedRoundId = val<string>("selectedRoundId");
   const selectedRound = val<Record<string, unknown>>("selectedRound");
   const isRefreshingRounds = bool("isRefreshingRounds");
   const isAddingMatching = bool("isAddingMatching");
@@ -136,15 +136,15 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           />
           <RoundList
             rounds={rounds}
-            selectedRoundId={String(selectedRoundId ?? "")}
+            selectedRoundId={selectedRoundId ?? ""}
             isRefreshing={isRefreshingRounds}
             roundStatusLabel={roundStatusLabel}
             formatAmount={formatAmount}
             formatSchedule={formatSchedule}
             formatAddress={formatAddress}
-            onRefresh={() => {}}
+            onRefresh={() => dispatch("refreshRounds")}
             onSelect={(round: Record<string, unknown>) => {
-              if (state.selectedRoundId) state.selectedRoundId.set(round.id as number);
+              if (state.selectedRoundId) state.selectedRoundId.set(String(round.id ?? ""));
             }}
             t={t}
           />

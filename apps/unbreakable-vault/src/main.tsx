@@ -59,18 +59,33 @@ defineMiniApp({
       );
     });
 
+    const myVaultCount = {
+      get: () => creator.myVaults.get().length,
+      set: () => {},
+      subscribe: (fn: () => void) => creator.myVaults.subscribe(fn),
+    };
+    const recentVaultCount = {
+      get: () => breaker.recentVaults.get().length,
+      set: () => {},
+      subscribe: (fn: () => void) => breaker.recentVaults.subscribe(fn),
+    };
+
     return {
       state: refsToObservables({
         address: ctx.services.chain.address,
-        myVaultCount: createObservable(0),
-        recentVaultCount: createObservable(0),
+        myVaultCount,
+        recentVaultCount,
         vaultDifficulty: createObservable("1"),
+        // expose break-flow inputs so PlayArea can wire them
+        vaultIdInput: breaker.vaultIdInput,
+        attemptSecret: breaker.attemptSecret,
         attemptFeeDisplay: breaker.attemptFeeDisplay,
         createdVaultId: creator.createdVaultId,
         vaultDetails: breaker.vaultDetails,
         recentVaults: breaker.recentVaults,
         myVaults: creator.myVaults,
         isLoading: breaker.isLoading,
+        isCreating: creator.isCreating,
         canAttempt: breaker.canAttempt,
       }),
       loadData: async () => {

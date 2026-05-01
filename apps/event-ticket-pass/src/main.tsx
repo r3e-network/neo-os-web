@@ -37,7 +37,8 @@ defineMiniApp({
         eventsCount: ticket.eventsCount,
         ticketsCount: ticket.ticketsCount,
         activeEventsCount: ticket.activeEventsCount,
-        address: ticket.address,
+        // Bind the live wallet observable so the connect prompt reacts.
+        address: ctx.services.chain.address,
         isRefreshing: ticket.isRefreshing,
         togglingId: ticket.togglingId,
         isLoading: ticket.isLoading,

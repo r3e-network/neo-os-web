@@ -16,13 +16,21 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
+interface NeoAccountSummary {
+  address?: string;
+  publicKey?: string;
+  privateKey?: string;
+  wif?: string;
+}
+
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool } = useStateBindings(state);
+  const { str, bool, val } = useStateBindings(state);
   const [keyInput, setKeyInput] = useState("");
 
   const isLoading = bool("isLoading");
   const balancesLoading = bool("balancesLoading");
   const hasGeneratedAccount = bool("hasGeneratedAccount");
+  const generatedAccount = val<NeoAccountSummary | null>("generatedAccount") ?? null;
   const hasConversionResult = bool("hasConversionResult");
   const showSecrets = bool("showSecrets");
   const accountsGenerated = str("accountsGenerated", "0");
@@ -56,15 +64,20 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             variant="primary"
             block
             loading={isLoading}
-            onClick={() => dispatch("generateAccount")}
+            onClick={() => dispatch("generate")}
           >
             {t("generateNewAccount") || "Generate New Account"}
           </NeoButton>
-          {hasGeneratedAccount && (
+          {hasGeneratedAccount && generatedAccount && (
             <div className="generated-result">
               <div className="result-row">
                 <span className="result-label">{t("address") || "Address"}</span>
-                <NeoButton size="sm" variant="ghost" onClick={() => dispatch("copyAddress")}>
+                <code className="result-value mono">{generatedAccount.address ?? ""}</code>
+                <NeoButton
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => dispatch("copy", generatedAccount.address ?? "")}
+                >
                   {copyStatus || t("copy") || "Copy"}
                 </NeoButton>
               </div>

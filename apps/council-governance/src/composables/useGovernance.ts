@@ -71,7 +71,7 @@ export interface UseGovernanceOptions {
   /** Translation function */
   t: (key: string, params?: Record<string, string | number>) => string;
   /** Current chain ID for API calls */
-  currentChainId: { value: string };
+  currentChainId: Observable<string>;
 }
 
 // ============================================================================
@@ -131,16 +131,18 @@ export function useGovernance({
   const candidateLoaded = createObservable(false);
   const isCandidate = createObservable(false);
   const votingPower = createObservable(0);
-  const hasVotedMap = ref<Record<number, boolean>>({});
+  const hasVotedMap = createObservable<Record<number, boolean>>({});
   const isVoting = createObservable(false);
   const address = createObservable("");
 
   // ── Computed ─────────────────────────────────────────────────────────
-  const activeProposals = createDerived(() =>
-    proposals.get().filter((p) => resolveStatus(p) === STATUS_ACTIVE),
+  const activeProposals = createDerived(
+    () => proposals.get().filter((p) => resolveStatus(p) === STATUS_ACTIVE),
+    [proposals],
   );
-  const historyProposals = createDerived(() =>
-    proposals.get().filter((p) => resolveStatus(p) !== STATUS_ACTIVE),
+  const historyProposals = createDerived(
+    () => proposals.get().filter((p) => resolveStatus(p) !== STATUS_ACTIVE),
+    [proposals],
   );
 
   // ── API Base (for council member lookup) ─────────────────────────────
@@ -317,12 +319,11 @@ export function useGovernance({
       return;
     }
     try {
-      const res = await uni.request({
-        url: `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.get()}&address=${address.get()}`,
-        method: "GET",
-      });
-      if (res.statusCode === 200 && res.data) {
-        const data = res.data as { isCouncilMember?: boolean; chainId: string };
+      const res = await fetch(
+        `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.get()}&address=${address.get()}`,
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { isCouncilMember?: boolean; chainId: string };
         isCandidate.set(Boolean(data.isCouncilMember));
         votingPower.set(isCandidate.get() ? 1 : 0);
       } else {
