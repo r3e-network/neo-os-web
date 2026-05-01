@@ -70,6 +70,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const [formAmount, setFormAmount] = useState("");
   const [formCount, setFormCount] = useState("");
   const [formMemo, setFormMemo] = useState("");
+  const [formExpiryHours, setFormExpiryHours] = useState("24");
 
   /* ---------- Handlers ---------- */
   const handleCreate = async () => {
@@ -78,10 +79,12 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       amount: formAmount,
       count: formCount,
       memo: formMemo,
+      expiryHours: formExpiryHours,
     });
     setFormAmount("");
     setFormCount("");
     setFormMemo("");
+    setFormExpiryHours("24");
   };
 
   const handleClaim = async (id: string) => {
@@ -174,6 +177,14 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             placeholder={t("memoPlaceholder") || "Add a lucky message..."}
             value={formMemo || createMemo}
             onChange={setFormMemo}
+          />
+          <NeoInput
+            label={t("expiryHours") || "Expires in (hours)"}
+            type="number"
+            min={1}
+            max={720}
+            value={formExpiryHours}
+            onChange={setFormExpiryHours}
           />
           <NeoButton
             variant="primary"

@@ -23,9 +23,24 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("createContract", () =>
-      ctx.services.notify.guard(() => breakup.createContract(), "contractCreated"),
-    );
+    ctx.registerAction("createContract", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as {
+        partnerAddress?: string;
+        stakeAmount?: string;
+        duration?: string;
+        title?: string;
+        terms?: string;
+      };
+      breakup.partnerAddress.set(String(form.partnerAddress ?? ""));
+      breakup.stakeAmount.set(String(form.stakeAmount ?? ""));
+      breakup.duration.set(String(form.duration ?? ""));
+      breakup.contractTitle.set(String(form.title ?? ""));
+      breakup.contractTerms.set(String(form.terms ?? ""));
+      await ctx.services.notify.guard(
+        () => breakup.createContract(),
+        "contractCreated",
+      );
+    });
     ctx.registerAction("signContract", (contract: unknown) =>
       ctx.services.notify.guard(
         () => breakup.signContract(contract as { id: number; stake: number }),

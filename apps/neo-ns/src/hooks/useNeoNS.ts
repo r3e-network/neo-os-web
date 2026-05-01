@@ -68,7 +68,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const walletStatus: Observable<string> = {
-    get: () => chain.address.value ? t("connected") : t("disconnected"),
+    get: () => chain.address.get() ? t("connected") : t("disconnected"),
     set: () => {},
     subscribe: () => () => {},
   };
@@ -80,9 +80,10 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
   };
 
   const loadMyDomains = async () => {
-    if (!chain.address.value) { myDomains.set([]); return; }
+    const addr = chain.address.get();
+    if (!addr) { myDomains.set([]); return; }
     try {
-      const tokensRaw = await chain.read("tokensOf", [{ type: "Hash160", value: chain.address.value }], readOpts);
+      const tokensRaw = await chain.read("tokensOf", [{ type: "Hash160", value: addr }], readOpts);
       const tokens = Array.isArray(tokensRaw) ? tokensRaw : [];
       if (tokens.length === 0) { myDomains.set([]); return; }
 
@@ -93,7 +94,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
           if (props) {
             const name = tokenIdToName(String(tokenId)) || String(props.name || tokenId);
             domains.push({
-              name, owner: chain.address.value,
+              name, owner: addr,
               expiry: Number(props.expiration || 0) * 1000,
               target: props.target ? String(props.target) : undefined,
             });
@@ -153,7 +154,7 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
       const fullName = query.endsWith(".neo") ? query : query + ".neo";
       const result = await chain.invoke("register", [
         { type: "String", value: fullName },
-        { type: "Hash160", value: chain.address.value as string },
+        { type: "Hash160", value: chain.address.get() as string },
       ], { scriptHash: contractHash, waitForEvent: "Transfer" });
 
       if (result.success) {

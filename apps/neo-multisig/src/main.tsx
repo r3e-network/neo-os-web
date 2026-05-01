@@ -20,14 +20,13 @@ defineMiniApp({
     const totalTxs = createObservable(0);
 
     ctx.registerAction("navigateToCreate", async () => {
-      uni.navigateTo({ url: "/pages/create/index" });
+      ctx.setStatus(ctx.t("createNotAvailable") || "Create flow not available in this build", "info");
     });
 
     ctx.registerAction("loadTransaction", async (...args: unknown[]) => {
       const id = args[0] as string;
-      if (id) {
-        uni.navigateTo({ url: `/pages/sign/index?id=${id}` });
-      }
+      if (!id) return;
+      ctx.setStatus(ctx.t("signNotAvailable") || `Sign flow for ${id} not available in this build`, "info");
     });
 
     return {

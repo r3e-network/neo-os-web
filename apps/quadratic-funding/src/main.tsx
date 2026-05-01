@@ -29,6 +29,25 @@ defineMiniApp({
       await qf.handleContribute(...args);
     });
 
+    ctx.registerAction("addMatching", async (...args: unknown[]) => {
+      const amount = String(args[0] ?? "");
+      await qf.handleAddMatching(amount);
+    });
+
+    ctx.registerAction("finalize", async (...args: unknown[]) => {
+      const projectIdsRaw = String(args[0] ?? "");
+      const matchedRaw = String(args[1] ?? "");
+      await qf.handleFinalize(projectIdsRaw, matchedRaw);
+    });
+
+    ctx.registerAction("claimUnused", async () => {
+      await qf.handleClaimUnused();
+    });
+
+    ctx.registerAction("refreshRounds", async () => {
+      await qf.refreshRounds();
+    });
+
     return {
       state: refsToObservables({
         rounds: qf.rounds,

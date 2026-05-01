@@ -183,15 +183,12 @@ function decodeListing(result: InvokeResult): Omit<MarketListing, "myPendingPaym
   };
 }
 
-async function ensureWalletConnected(wallet: WalletSDK): Promise<string> {
-  if (!wallet.address.value) {
-    await wallet.connect();
-  }
-  const address = String(wallet.address.value ?? "").trim();
-  if (!address) {
+function requireAddress(address: string | null | undefined): string {
+  const trimmed = String(address ?? "").trim();
+  if (!trimmed) {
     throw new Error("Wallet not connected.");
   }
-  return address;
+  return trimmed;
 }
 
 async function invokeMarketRead(
@@ -301,9 +298,10 @@ function buildEscrowCreationSigner(accountAddress: string, marketHash: string, a
 export async function createAddressListing(
   wallet: WalletSDK,
   marketHash: string,
+  callerAddress: string,
   input: CreateListingInput,
 ): Promise<{ txid: string }> {
-  const address = await ensureWalletConnected(wallet);
+  const address = requireAddress(callerAddress);
   const aaContractHash = normalizeHash160Input(input.aaContractHash || getDefaultAAContractHash(), "AA contract");
   const accountIdHash = normalizeHash160Input(input.accountIdHash, "Account ID hash");
 
@@ -326,10 +324,11 @@ export async function createAddressListing(
 export async function updateAddressListingPrice(
   wallet: WalletSDK,
   marketHash: string,
+  callerAddress: string,
   listingId: string,
   priceGas: string,
 ): Promise<{ txid: string }> {
-  const address = await ensureWalletConnected(wallet);
+  const address = requireAddress(callerAddress);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
     operation: "updateListingPrice",
@@ -346,9 +345,10 @@ export async function updateAddressListingPrice(
 export async function cancelAddressListing(
   wallet: WalletSDK,
   marketHash: string,
+  callerAddress: string,
   listingId: string,
 ): Promise<{ txid: string }> {
-  const address = await ensureWalletConnected(wallet);
+  const address = requireAddress(callerAddress);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
     operation: "cancelListing",
@@ -362,10 +362,11 @@ export async function cancelAddressListing(
 export async function buyAddressListing(
   wallet: WalletSDK,
   marketHash: string,
+  callerAddress: string,
   listingId: string,
   options: { newBackupOwner?: string },
 ): Promise<{ txid: string }> {
-  const address = await ensureWalletConnected(wallet);
+  const address = requireAddress(callerAddress);
   const backupOwner = normalizeHash160Input(options.newBackupOwner || address, "Backup owner");
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
@@ -384,9 +385,10 @@ export async function buyAddressListing(
 export async function refundPendingAddressPurchase(
   wallet: WalletSDK,
   marketHash: string,
+  callerAddress: string,
   listingId: string,
 ): Promise<{ txid: string }> {
-  const address = await ensureWalletConnected(wallet);
+  const address = requireAddress(callerAddress);
   const result = await wallet.invokeContract({
     scriptHash: normalizeScriptHash(marketHash),
     operation: "refundPendingPayment",
