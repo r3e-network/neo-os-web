@@ -90,7 +90,7 @@ export function useSignAnything({ chain, eventBus, clipboard, storage, t }: UseS
     signature.set("");
     try {
       await chain.ensureWallet();
-      const walletAddress = chain.address.value as string;
+      const walletAddress = chain.address.get() as string;
 
       const result = await chain.invoke(
         "transfer",

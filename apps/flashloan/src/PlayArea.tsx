@@ -1,7 +1,8 @@
 /**
  * PlayArea.tsx -- Flash Loan
  *
- * Full UI: stats row, pool selector, loan request form, active/recent loans.
+ * Stats row, loan request form (amount + callback contract/method),
+ * lookup, and recent loan history.
  */
 
 import { useState } from "react";
@@ -16,186 +17,191 @@ interface PlayAreaProps {
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
 }
 
-interface Pool {
+interface LoanDetails {
   id: string;
-  name: string;
-  token: string;
-  liquidity: number;
-  fee: number;
+  borrower: string;
+  amount: string;
+  fee: string;
+  callbackContract: string;
+  callbackMethod: string;
+  timestamp: string;
+  status: "pending" | "success" | "failed";
 }
 
-interface Loan {
-  id: string;
-  pool: string;
+interface ExecutedLoan {
+  id: number;
   amount: number;
   fee: number;
-  status: "active" | "repaid" | "liquidated";
-  timestamp?: number;
+  status: "success" | "failed";
+  timestamp: string;
 }
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   const isLoading = bool("isLoading");
-  const isRequesting = bool("isRequesting");
-  const totalLiquidity = str("totalLiquidity", "0");
-  const totalBorrowed = str("totalBorrowed", "0");
-  const activeLoanCount = num("activeLoanCount");
-  const loanAmount = str("loanAmount", "");
-  const pools = val<Pool[]>("pools") ?? [];
-  const activeLoans = val<Loan[]>("activeLoans") ?? [];
-  const recentLoans = val<Loan[]>("recentLoans") ?? [];
-  const selectedPool = val<Pool>("selectedPool");
+  const address = str("address");
+  const poolBalance = str("poolBalance", "0");
+  const totalLoans = num("totalLoans");
+  const totalVolume = num("totalVolume");
+  const totalFees = num("totalFees");
+  const validationError = str("validationError");
+  const loanDetails = val<LoanDetails | null>("loanDetails", null);
+  const recentLoans = val<ExecutedLoan[]>("recentLoans") ?? [];
 
-  const [localLoanAmount, setLocalLoanAmount] = useState("");
-  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
+  const [loanAmount, setLoanAmount] = useState("");
+  const [callbackContract, setCallbackContract] = useState("");
+  const [callbackMethod, setCallbackMethod] = useState("execute");
+  const [lookupId, setLookupId] = useState("");
 
-  const handleSelectPool = (poolId: string) => {
-    setSelectedPoolId(poolId);
-  };
+  const canRequest =
+    address.trim() !== "" &&
+    loanAmount.trim() !== "" &&
+    callbackContract.trim() !== "" &&
+    callbackMethod.trim() !== "";
 
   const handleRequestLoan = async () => {
-    const amount = localLoanAmount || loanAmount;
-    const poolId = selectedPoolId || selectedPool?.id;
-    if (!amount || !poolId) return;
-    await dispatch("requestLoan", { poolId, amount });
-    setLocalLoanAmount("");
+    if (!canRequest) return;
+    await dispatch("requestLoan", {
+      amount: loanAmount,
+      callbackContract,
+      callbackMethod,
+    });
+    setLoanAmount("");
   };
 
-  const handleRepayLoan = async (loanId: string) => {
-    await dispatch("repayLoan", loanId);
+  const handleLookup = async () => {
+    if (!lookupId.trim()) return;
+    await dispatch("lookupLoan", lookupId.trim());
   };
 
   const loanStatusClass = (status: string) => {
     switch (status) {
-      case "active": return "flashloan-status--active";
-      case "repaid": return "flashloan-status--repaid";
-      case "liquidated": return "flashloan-status--liquidated";
+      case "success": return "flashloan-status--repaid";
+      case "failed": return "flashloan-status--liquidated";
+      case "pending": return "flashloan-status--active";
       default: return "";
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flashloan-play-area">
-        <div className="flashloan-loading">
-          <div className="flashloan-loading-spinner" />
-          <span>{t("loading") || "Loading..."}</span>
-        </div>
-      </div>
-    );
-  }
-
-  const activePoolId = selectedPoolId || selectedPool?.id;
 
   return (
     <div className="flashloan-play-area">
       {/* Stats Row */}
       <div className="flashloan-hero-stats">
         <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{totalLiquidity}</span>
-          <span className="flashloan-hero-stat-label">{t("totalLiquidity")}</span>
+          <span className="flashloan-hero-stat-value">{poolBalance}</span>
+          <span className="flashloan-hero-stat-label">{t("poolBalance") || "Pool Balance (GAS)"}</span>
         </div>
         <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{totalBorrowed}</span>
-          <span className="flashloan-hero-stat-label">{t("totalBorrowed")}</span>
+          <span className="flashloan-hero-stat-value">{totalLoans}</span>
+          <span className="flashloan-hero-stat-label">{t("totalLoans") || "Total Loans"}</span>
         </div>
         <div className="flashloan-hero-stat">
-          <span className="flashloan-hero-stat-value">{activeLoanCount}</span>
-          <span className="flashloan-hero-stat-label">{t("activeLoans")}</span>
+          <span className="flashloan-hero-stat-value">{totalVolume.toFixed(2)}</span>
+          <span className="flashloan-hero-stat-label">{t("totalVolume") || "Total Volume"}</span>
+        </div>
+        <div className="flashloan-hero-stat">
+          <span className="flashloan-hero-stat-value">{totalFees.toFixed(2)}</span>
+          <span className="flashloan-hero-stat-label">{t("totalFees") || "Fees Earned"}</span>
         </div>
       </div>
 
-      {/* Pool Selector + Loan Request */}
-      <NeoCard variant="erobo" className="flashloan-request-card">
-        <h3 className="flashloan-section-title">{t("selectPool")}</h3>
-        {pools.length === 0 ? (
-          <div className="flashloan-empty">{t("noPools")}</div>
-        ) : (
-          <div className="flashloan-pool-grid">
-            {pools.map((pool) => (
-              <div
-                key={pool.id}
-                className={`flashloan-pool-item${activePoolId === pool.id ? " flashloan-pool-item--selected" : ""}`}
-                onClick={() => handleSelectPool(pool.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleSelectPool(pool.id); }}
-              >
-                <span className="flashloan-pool-token">{pool.token}</span>
-                <span className="flashloan-pool-name">{pool.name}</span>
-                <span className="flashloan-pool-liquidity">{pool.liquidity}</span>
-                <span className="flashloan-pool-fee">{pool.fee}% {t("fee")}</span>
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Wallet not connected hint */}
+      {!address && (
+        <NeoCard variant="erobo">
+          <p className="flashloan-empty">{t("connectWallet") || "Connect a wallet to request a flash loan."}</p>
+        </NeoCard>
+      )}
 
+      {/* Loan Request */}
+      <NeoCard variant="erobo" className="flashloan-request-card">
+        <h3 className="flashloan-section-title">{t("requestLoan") || "Request Flash Loan"}</h3>
         <div className="flashloan-loan-form">
           <NeoInput
             type="number"
-            value={localLoanAmount || loanAmount}
-            placeholder={t("enterLoanAmount")}
-            label={t("loanAmount")}
+            value={loanAmount}
+            placeholder={t("enterLoanAmount") || "10"}
+            label={t("loanAmount") || "Amount (GAS)"}
             min={0}
-            onChange={setLocalLoanAmount}
+            onChange={setLoanAmount}
           />
+          <NeoInput
+            value={callbackContract}
+            placeholder={t("callbackContractPlaceholder") || "0x..."}
+            label={t("callbackContract") || "Callback Contract"}
+            onChange={setCallbackContract}
+          />
+          <NeoInput
+            value={callbackMethod}
+            placeholder="execute"
+            label={t("callbackMethod") || "Callback Method"}
+            onChange={setCallbackMethod}
+          />
+          {validationError && (
+            <p className="flashloan-validation-error">{validationError}</p>
+          )}
           <NeoButton
             variant="primary"
             size="lg"
             block
-            loading={isRequesting}
-            disabled={isRequesting || !(localLoanAmount || loanAmount) || !activePoolId}
+            loading={isLoading}
+            disabled={isLoading || !canRequest}
             onClick={handleRequestLoan}
           >
-            {t("requestLoan")}
+            {t("requestLoan") || "Request Loan"}
           </NeoButton>
         </div>
       </NeoCard>
 
-      {/* Active Loans */}
-      {activeLoans.length > 0 && (
-        <NeoCard variant="erobo" className="flashloan-active-card">
-          <h3 className="flashloan-section-title">{t("activeLoans")}</h3>
-          <div className="flashloan-loan-list">
-            {activeLoans.map((loan) => (
-              <div key={loan.id} className="flashloan-loan-row">
-                <div className="flashloan-loan-info">
-                  <span className="flashloan-loan-pool">{loan.pool}</span>
-                  <span className="flashloan-loan-amount">{loan.amount}</span>
-                  <span className="flashloan-loan-fee">+{loan.fee} {t("fee")}</span>
-                </div>
-                <NeoButton
-                  variant="warning"
-                  size="sm"
-                  onClick={() => handleRepayLoan(loan.id)}
-                >
-                  {t("repay")}
-                </NeoButton>
-              </div>
-            ))}
+      {/* Lookup Loan */}
+      <NeoCard variant="erobo" className="flashloan-lookup-card">
+        <h3 className="flashloan-section-title">{t("lookupLoan") || "Lookup Loan"}</h3>
+        <div className="flashloan-loan-form">
+          <NeoInput
+            value={lookupId}
+            placeholder={t("loanIdPlaceholder") || "Loan ID"}
+            label={t("loanId") || "Loan ID"}
+            onChange={setLookupId}
+          />
+          <NeoButton variant="secondary" size="md" disabled={!lookupId.trim()} onClick={handleLookup}>
+            {t("lookup") || "Lookup"}
+          </NeoButton>
+        </div>
+        {loanDetails && (
+          <div className="flashloan-loan-details">
+            <div className="flashloan-loan-row">
+              <span className="flashloan-cell-pool">#{loanDetails.id}</span>
+              <span className="flashloan-cell-amount">{loanDetails.amount}</span>
+              <span className="flashloan-cell-fee">+{loanDetails.fee}</span>
+              <span className={`flashloan-cell-status ${loanStatusClass(loanDetails.status)}`}>
+                {t(loanDetails.status) || loanDetails.status}
+              </span>
+            </div>
+            <p className="flashloan-loan-callback">
+              <strong>{t("callbackContract") || "Callback"}:</strong> {loanDetails.callbackContract} → {loanDetails.callbackMethod}
+            </p>
           </div>
-        </NeoCard>
-      )}
+        )}
+      </NeoCard>
 
       {/* Recent Loans */}
       {recentLoans.length > 0 && (
         <NeoCard variant="erobo" className="flashloan-recent-card">
-          <h3 className="flashloan-section-title">{t("recentLoans")}</h3>
+          <h3 className="flashloan-section-title">{t("recentLoans") || "Recent Loans"}</h3>
           <div className="flashloan-table">
             <div className="flashloan-table-header">
-              <span>{t("pool")}</span>
-              <span>{t("amount")}</span>
-              <span>{t("fee")}</span>
-              <span>{t("status")}</span>
+              <span>{t("loanId") || "ID"}</span>
+              <span>{t("amount") || "Amount"}</span>
+              <span>{t("fee") || "Fee"}</span>
+              <span>{t("status") || "Status"}</span>
             </div>
             {recentLoans.map((loan) => (
               <div key={loan.id} className="flashloan-table-row">
-                <span className="flashloan-cell-pool">{loan.pool}</span>
+                <span className="flashloan-cell-pool">#{loan.id}</span>
                 <span className="flashloan-cell-amount">{loan.amount}</span>
                 <span className="flashloan-cell-fee">{loan.fee}</span>
                 <span className={`flashloan-cell-status ${loanStatusClass(loan.status)}`}>
-                  {t(loan.status)}
+                  {t(loan.status) || loan.status}
                 </span>
               </div>
             ))}

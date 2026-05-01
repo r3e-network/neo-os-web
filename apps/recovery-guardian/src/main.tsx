@@ -106,17 +106,27 @@ defineMiniApp({
       }
     });
 
+    const openExternal = (url: string) => {
+      if (typeof window !== "undefined") {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    };
+    const copyText = (text: string) => {
+      navigator.clipboard?.writeText(text).catch((e: unknown) => {
+        console.warn("[recovery-guardian] clipboard write failed:", e instanceof Error ? e.message : String(e));
+      });
+    };
     const registerLinkActions = (prefix: string, urlRef: Observable<string>) => {
-      ctx.registerAction(`open${prefix}`, () => { if (urlRef.get()) uni.navigateTo({ url: urlRef.get() }); });
-      ctx.registerAction(`copy${prefix}`, () => { if (urlRef.get()) uni.setClipboardData({ data: urlRef.get() }); });
-      ctx.registerAction(`share${prefix}`, () => { if (urlRef.get()) uni.setClipboardData({ data: urlRef.get() }); });
+      ctx.registerAction(`open${prefix}`, async () => { const u = urlRef.get(); if (u) openExternal(u); });
+      ctx.registerAction(`copy${prefix}`, async () => { const u = urlRef.get(); if (u) copyText(u); });
+      ctx.registerAction(`share${prefix}`, async () => { const u = urlRef.get(); if (u) copyText(u); });
     };
     registerLinkActions("RecoveryPreviewLink", previewUrl);
     registerLinkActions("RecoveryCredentialLink", credentialUrl);
 
-    ctx.registerAction("openIdentityWorkspace", () => uni.navigateTo({ url: "https://neo-identity.app/workspace" }));
-    ctx.registerAction("openAaWorkspace", () => uni.navigateTo({ url: "https://neo-aa.app/workspace" }));
-    ctx.registerAction("openRecoveryDocs", () => { uni.navigateTo({ url: "https://docs.neo.org/recovery-guardian" }); });
+    ctx.registerAction("openIdentityWorkspace", async () => { openExternal("https://neo-identity.app/workspace"); });
+    ctx.registerAction("openAaWorkspace", async () => { openExternal("https://neo-aa.app/workspace"); });
+    ctx.registerAction("openRecoveryDocs", async () => { openExternal("https://docs.neo.org/recovery-guardian"); });
 
     return {
       state: {

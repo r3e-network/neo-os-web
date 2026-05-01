@@ -62,6 +62,12 @@ defineMiniApp({
       album.removeImage(id as string);
     });
 
+    ctx.registerAction("addFiles", async (...args: unknown[]) => {
+      const files = args[0] as File[] | FileList | undefined;
+      if (!files) return;
+      await album.addFiles(files);
+    });
+
     return {
       state: {
         photos: album.photos,

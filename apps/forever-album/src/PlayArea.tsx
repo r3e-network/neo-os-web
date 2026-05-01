@@ -160,6 +160,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("close") || "Close"}
             </NeoButton>
           </div>
+          <label className="file-picker">
+            <span className="file-picker-label">{t("chooseFiles") || "Choose photos"}</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files;
+                if (files && files.length) dispatch("addFiles", Array.from(files));
+                e.target.value = "";
+              }}
+            />
+          </label>
           <div className="upload-info">
             <span>{t("selectedCount") || "Selected"}: {selectedImages.length}</span>
             <span>{t("payloadSize") || "Size"}: {totalPayloadSize} bytes</span>
@@ -173,14 +186,30 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           )}
           {selectedImages.length > 0 && (
             <div className="selected-preview">
-              {(selectedImages as Array<{ id: string; preview?: string }>).map((img) => (
+              {(selectedImages as Array<{ id: string; dataUrl?: string }>).map((img) => (
                 <div key={img.id} className="preview-thumb">
-                  <button type="button" className="remove-btn" onClick={() => dispatch("removeImage", img.id)} aria-label={t("remove") || "Remove"}>x</button>
+                  {img.dataUrl && (
+                    <img src={img.dataUrl} alt={t("albumPhoto") || "Photo"} className="preview-thumb-img" />
+                  )}
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => dispatch("removeImage", img.id)}
+                    aria-label={t("remove") || "Remove"}
+                  >
+                    x
+                  </button>
                 </div>
               ))}
             </div>
           )}
-          <NeoButton variant="primary" loading={uploading} onClick={() => dispatch("uploadPhotos")} aria-label={t("upload") || "Upload"}>
+          <NeoButton
+            variant="primary"
+            loading={uploading}
+            disabled={selectedImages.length === 0}
+            onClick={() => dispatch("uploadPhotos")}
+            aria-label={t("upload") || "Upload"}
+          >
             {t("upload") || "Upload"}
           </NeoButton>
         </NeoCard>

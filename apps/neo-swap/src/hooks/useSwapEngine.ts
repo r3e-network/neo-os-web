@@ -45,7 +45,7 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
   }
 
   async function refreshBalances() {
-    if (!chain.address.value) { applyTokenBalances(0, 0); return; }
+    if (!chain.address.get()) { applyTokenBalances(0, 0); return; }
     try {
       const [neo, gas] = await Promise.all([balance.getNeoBalance(), balance.getGasBalance()]);
       applyTokenBalances(neo, gas);
@@ -165,14 +165,14 @@ export function useSwapEngine({ chain, balance, eventBus, t }: UseSwapEngineOpti
     loading.set(true);
     try {
       await chain.ensureWallet();
-      const sender = chain.address.value as string;
+      const sender = chain.address.get() as string;
       const ft = fromToken.get();
       const tt = toToken.get();
       const amountInt = toFixedDecimals(fromAmount.get(), ft.decimals);
       const expectedOutput = parseFloat(toAmount.get()) || 0;
       const minOutputAmount = expectedOutput * 0.995;
       const minOutputInt = toFixedDecimals(minOutputAmount.toString(), tt.decimals);
-      const routerAddress = chain.contractAddress.value;
+      const routerAddress = chain.contractAddress.get();
       if (!routerAddress) throw new Error(t("swapRouterUnavailable"));
 
       const deadline = Math.floor(Date.now() / 1000) + SWAP_DEADLINE_SECONDS;
