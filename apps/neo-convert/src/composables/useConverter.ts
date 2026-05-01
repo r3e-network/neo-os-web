@@ -46,12 +46,13 @@ export function useConverter(t: (key: string) => string, clipboard?: ClipboardSe
   async function copy(text: string) {
     if (clipboard) {
       await clipboard.copy(text, "copied");
-    } else {
-      // Legacy fallback for uni-app context
-      uni.setClipboardData({
-        data: text,
-        success: () => setCopyStatus(t("copied"), "success"),
-      });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus(t("copied"), "success");
+    } catch (e) {
+      setCopyStatus(t("copyFailed") || "Copy failed", "error");
     }
   }
 

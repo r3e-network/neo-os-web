@@ -16,7 +16,7 @@ export function useMemorialActions() {
   let shareStatusTimer: ReturnType<typeof setTimeout> | null = null;
 
   const loadMemorials = async () => {
-    memorials.set([)
+    memorials.set([
       {
         id: 1,
         name: "\u5F20\u5FB7\u660E",
@@ -53,12 +53,12 @@ export function useMemorialActions() {
         hasRecentTribute: false,
         offerings: { incense: 56, candle: 23, flower: 34, fruit: 12, wine: 5, feast: 1 },
       },
-    ];
+    ]);
 
-    recentObituaries.set([)
+    recentObituaries.set([
       { id: 1, name: "\u5F20\u8001\u5148\u751F", text: "\u5F20\u8001\u5148\u751F\u4E8E2024\u5E741\u6708\u9A7E\u9E64\u897F\u53BB" },
       { id: 2, name: "\u674E\u5976\u5976", text: "\u6148\u6BCD\u674E\u5976\u5976\u5B89\u8BE6\u79BB\u4E16" },
-    ];
+    ]);
   };
 
   const loadVisitedMemorials = async () => {
@@ -110,16 +110,15 @@ export function useMemorialActions() {
   };
 
   const copyToClipboard = (text: string) => {
-    uni.setClipboardData({
-      data: text,
-      success: () => {
-        shareStatus.set(t("linkCopied"));
-        if (shareStatusTimer) clearTimeout(shareStatusTimer);
-        shareStatusTimer = setTimeout(() => {
-          shareStatus.set(null);
-          shareStatusTimer = null;
-        }, 3000);
-      },
+    navigator.clipboard?.writeText(text).then(() => {
+      shareStatus.set(t("linkCopied"));
+      if (shareStatusTimer) clearTimeout(shareStatusTimer);
+      shareStatusTimer = setTimeout(() => {
+        shareStatus.set(null);
+        shareStatusTimer = null;
+      }, 3000);
+    }).catch((e: unknown) => {
+      console.warn("[memorial-shrine] clipboard write failed:", e instanceof Error ? e.message : String(e));
     });
   };
 

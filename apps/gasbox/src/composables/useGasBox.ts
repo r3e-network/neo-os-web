@@ -144,7 +144,7 @@ interface MachineItemData {
 }
 
 /** Machine data for publish action. */
-interface MachineData {
+export interface MachineData {
   name: string;
   description: string;
   category: string;
@@ -208,7 +208,7 @@ export function useGasBox({
   const machines = createObservable<Machine[]>([]);
   const selectedMachine = createObservable<Machine | null>(null);
   const isLoadingMachines = createObservable(false);
-  const actionLoading = ref<Record<string, boolean>>({});
+  const actionLoading = createObservable<Record<string, boolean>>({});
   const walletHash = createObservable("");
 
   // ── Play State ─────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ export function useGasBox({
   // ── Helpers ────────────────────────────────────────────────────────
 
   const setActionLoading = (key: string, value: boolean) => {
-    actionLoading.get()[key] = value;
+    actionLoading.set({ ...actionLoading.get(), [key]: value });
   };
 
   const resetResult = () => {
@@ -274,14 +274,13 @@ export function useGasBox({
           : 0;
       return { ...item, available, displayProbability };
     });
-    const topItem = availableItems.length
+    const firstAvailable = availableItems[0];
+    const topItem = firstAvailable
       ? availableItems.reduce(
           (prev, curr) => (curr.probability < prev.probability ? curr : prev),
-          availableItems[0],
+          firstAvailable,
         )
-      : items.length
-        ? items[0]
-        : null;
+      : items[0] ?? null;
     const salePriceRaw = numberFrom(raw.salePrice);
     const revenueRaw = numberFrom(raw.revenue);
     const salesVolumeRaw = numberFrom(raw.salesVolume);
@@ -711,12 +710,14 @@ export function useGasBox({
   };
 
   // ── Derived display values ────────────────────────────────────────
-  const machineCount = createDerived(() => machines.get().length, []);
-  const isPlayingDisplay = createDerived(() =>
-    isPlaying.get() ? t("yes") : t("no"),
+  const machineCount = createDerived(() => machines.get().length, [machines]);
+  const isPlayingDisplay = createDerived(
+    () => (isPlaying.get() ? t("yes") : t("no")),
+    [isPlaying],
   );
   const selectedMachineName = createDerived(
     () => selectedMachine.get()?.name || t("none"),
+    [selectedMachine],
   );
 
   // ── Load All ───────────────────────────────────────────────────────

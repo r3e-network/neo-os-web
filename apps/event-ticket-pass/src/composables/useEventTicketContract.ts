@@ -376,11 +376,10 @@ export function useEventTicketContract(
   };
 
   const copyTokenId = (tokenId: string) => {
-    uni.setClipboardData({
-      data: tokenId,
-      success: () => {
-        setStatus(t("copied"), "success");
-      },
+    navigator.clipboard?.writeText(tokenId).then(() => {
+      setStatus(t("copied"), "success");
+    }).catch((e: unknown) => {
+      console.warn("[event-ticket-pass] clipboard write failed:", e instanceof Error ? e.message : String(e));
     });
   };
 

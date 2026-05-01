@@ -167,7 +167,16 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
       )}
 
       {/* Popular pairs */}
-      <PopularPairs t={t} selectedPair="" popularPairs={popularPairs} dispatch={dispatch} />
+      <PopularPairs
+        t={t}
+        selectedPair={
+          fromToken && toToken
+            ? `${fromToken.symbol.toLowerCase()}-${toToken.symbol.toLowerCase()}`
+            : ""
+        }
+        popularPairs={popularPairs}
+        dispatch={dispatch}
+      />
     </div>
   );
 }

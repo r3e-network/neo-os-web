@@ -156,12 +156,9 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
     if (!freshStats) {
       try {
-        const res = await uni.request({
-          url: `${API_BASE}/stats`,
-          method: "GET",
-        });
-        if (res.statusCode === 200 && res.data) {
-          freshStats = parseResponseData(res.data);
+        const res = await fetch(`${API_BASE}/stats`);
+        if (res.ok) {
+          freshStats = parseResponseData(await res.json());
         }
       } catch (e) {
         console.warn("[useExplorer] fetch stats failed, using cached:", e instanceof Error ? e.message : String(e));
@@ -188,12 +185,9 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
     if (!hasFreshTxs) {
       try {
-        const res = await uni.request({
-          url: `${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`,
-          method: "GET",
-        });
-        if (res.statusCode === 200 && res.data) {
-          const parsed = parseResponseData(res.data) as Record<string, unknown> | null;
+        const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
+        if (res.ok) {
+          const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
           freshTxs = Array.isArray(parsed?.transactions) ? (parsed.transactions as TransactionRecord[]) : [];
           hasFreshTxs = true;
         }
@@ -234,12 +228,9 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
         return;
       }
 
-      const res = await uni.request({
-        url: `${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`,
-        method: "GET",
-      });
-      if (res.statusCode === 200 && res.data) {
-        searchResult.set(parseResponseData(res.data));
+      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
+      if (res.ok) {
+        searchResult.set(parseResponseData(await res.json()));
       }
     } catch (e) {
       eventBus.emit("explorer:error", {

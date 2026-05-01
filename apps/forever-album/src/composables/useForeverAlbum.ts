@@ -216,6 +216,40 @@ export function useForeverAlbum({
     selectedImages.set(selectedImages.get().filter((item) => item.id !== id));
   };
 
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+      reader.readAsDataURL(file);
+    });
+
+  /**
+   * Read browser File objects, convert to data URLs, and append as upload items.
+   * Returns the list of items that were successfully read.
+   */
+  const addFiles = async (files: File[] | FileList) => {
+    const list = Array.from(files);
+    if (list.length === 0) return [];
+    const additions: UploadItem[] = [];
+    for (const file of list) {
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        additions.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          dataUrl,
+          size: file.size,
+        });
+      } catch (e) {
+        console.warn("[forever-album] failed to read file:", e instanceof Error ? e.message : String(e));
+      }
+    }
+    if (additions.length > 0) {
+      selectedImages.set([...selectedImages.get(), ...additions]);
+    }
+    return additions;
+  };
+
   /**
    * Upload photos via NFTProxy.mint() for each photo.
    * The edge function handles the contract call for storing photo data on-chain.
@@ -307,6 +341,7 @@ export function useForeverAlbum({
     handleDecrypt,
     openUpload,
     closeUpload,
+    addFiles,
     removeImage,
     uploadPhotos,
   };

@@ -2,7 +2,7 @@
  * Red Envelope — React Entry Point
  */
 
-import { defineMiniApp } from "@shared/react/defineMiniApp";
+import { defineMiniApp, createObservable, createDerived } from "@shared/react/defineMiniApp";
 import PlayArea from "./PlayArea";
 import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
@@ -23,16 +23,28 @@ defineMiniApp({
       t: ctx.t,
     });
 
-    ctx.registerAction("createEnvelope", async (formData: unknown) => {
+    ctx.registerAction("createEnvelope", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as {
+        amount?: string;
+        count?: string;
+        expiryHours?: string;
+        memo?: string;
+      };
       await ctx.services.notify.guard(
-        () => envelope.createEnvelope(formData as Record<string, unknown>),
+        () =>
+          envelope.create({
+            amount: String(form.amount ?? ""),
+            count: String(form.count ?? "1"),
+            expiryHours: String(form.expiryHours ?? "24"),
+          }),
         "envelopeCreated",
       );
     });
 
-    ctx.registerAction("claimEnvelope", async (id: unknown) => {
+    ctx.registerAction("claimEnvelope", async (...args: unknown[]) => {
+      const id = String(args[0] ?? "");
       await ctx.services.notify.guard(
-        () => envelope.claimEnvelope(String(id)),
+        () => envelope.claimEnvelope(id),
         "envelopeClaimed",
       );
     });
@@ -45,24 +57,38 @@ defineMiniApp({
       envelope.showOpeningModal.set(false);
     });
 
+    // Synthetic stats (composable doesn't expose totalCreated/totalClaimed yet)
+    const totalCreated = createDerived(
+      () => envelope.envelopes.get().reduce((sum, e) => sum + (Number(e.totalAmount) || 0), 0),
+      [envelope.envelopes],
+    );
+    const totalClaimed = createDerived(
+      () => envelope.claims.get().reduce((sum, c) => sum + (Number((c as unknown as { amount?: number }).amount ?? 0)), 0),
+      [envelope.claims],
+    );
+    const createAmount = createObservable("");
+    const createCount = createObservable("");
+    const createMemo = createObservable("");
+
     return {
       state: {
         envelopes: envelope.envelopes,
         claims: envelope.claims,
         pools: envelope.pools,
         isLoading: envelope.isLoading,
-        isCreating: envelope.isCreating,
+        // composable folds isCreating into isLoading
+        isCreating: envelope.isLoading,
         luckyMessage: envelope.luckyMessage,
         showOpeningModal: envelope.showOpeningModal,
         openingEnvelope: envelope.openingEnvelope,
         envelopeCount: envelope.envelopeCount,
         claimCount: envelope.claimCount,
         poolCount: envelope.poolCount,
-        totalCreated: envelope.totalCreated,
-        totalClaimed: envelope.totalClaimed,
-        createAmount: envelope.createAmount,
-        createCount: envelope.createCount,
-        createMemo: envelope.createMemo,
+        totalCreated,
+        totalClaimed,
+        createAmount,
+        createCount,
+        createMemo,
       },
       loadData: envelope.loadAll,
     };

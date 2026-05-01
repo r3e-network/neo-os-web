@@ -1,4 +1,5 @@
-import { NeoButton, NeoCard } from "@shared/components-react";
+import { useState } from "react";
+import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ContractList from "./pages/index/components/ContractList";
@@ -20,6 +21,31 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const pendingCount = num("pendingCount");
   const brokenCount = num("brokenCount");
   const isLoading = bool("isLoading");
+
+  const [partner, setPartner] = useState("");
+  const [stake, setStake] = useState("");
+  const [days, setDays] = useState("90");
+  const [title, setTitle] = useState("");
+  const [terms, setTerms] = useState("");
+
+  const canSubmit =
+    partner.trim().length > 0 && stake.trim().length > 0 && title.trim().length > 0;
+
+  const handleCreate = async () => {
+    if (!canSubmit) return;
+    await dispatch("createContract", {
+      partnerAddress: partner,
+      stakeAmount: stake,
+      duration: days,
+      title,
+      terms,
+    });
+    setPartner("");
+    setStake("");
+    setDays("90");
+    setTitle("");
+    setTerms("");
+  };
 
   return (
     <div className="breakup-play-area">
@@ -49,13 +75,46 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           <p className="contract-description">
             {t("contractDescription") || "Create an on-chain breakup contract. Both parties stake tokens as commitment."}
           </p>
+          <NeoInput
+            label={t("partnerAddress") || "Partner Address"}
+            placeholder="N..."
+            value={partner}
+            onChange={setPartner}
+          />
+          <NeoInput
+            label={t("stakeAmount") || "Stake (GAS)"}
+            placeholder="10"
+            type="number"
+            value={stake}
+            onChange={setStake}
+          />
+          <NeoInput
+            label={t("durationDays") || "Duration (days)"}
+            placeholder="90"
+            type="number"
+            value={days}
+            onChange={setDays}
+          />
+          <NeoInput
+            label={t("contractTitle") || "Title"}
+            placeholder={t("contractTitlePlaceholder") || "Our covenant"}
+            value={title}
+            onChange={setTitle}
+          />
+          <NeoInput
+            label={t("contractTerms") || "Terms"}
+            placeholder={t("contractTermsPlaceholder") || "Optional notes (max 2000 chars)"}
+            value={terms}
+            onChange={setTerms}
+          />
           <NeoButton
             variant="primary"
             size="lg"
             block
             loading={isLoading}
+            disabled={!canSubmit}
             aria-label={t("createContract") || "Create Contract"}
-            onClick={() => dispatch("createContract")}
+            onClick={handleCreate}
           >
             {t("createContract") || "Create Contract"}
           </NeoButton>

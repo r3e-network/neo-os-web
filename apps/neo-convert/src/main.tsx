@@ -39,23 +39,24 @@ defineMiniApp({
       },
     });
 
-    ctx.registerAction("convert", () => {
+    ctx.registerAction("convert", async (...args: unknown[]) => {
+      const incoming = typeof args[0] === "string" ? args[0] : "";
+      if (incoming) convert.inputKey.set(incoming);
       convert.convertInput();
-      if (convert.conversionStatusType.value === "success") {
-        ctx.setStatus(ctx.t(convert.conversionStatus.value), "success");
-      } else if (convert.conversionStatusType.value === "error") {
-        ctx.setStatus(ctx.t(convert.conversionStatus.value), "error");
+      if (convert.conversionStatusType.get() === "success") {
+        ctx.setStatus(ctx.t(convert.conversionStatus.get()), "success");
+      } else if (convert.conversionStatusType.get() === "error") {
+        ctx.setStatus(ctx.t(convert.conversionStatus.get()), "error");
       }
     });
 
-    ctx.registerAction("toggleSecrets", () => {
+    ctx.registerAction("toggleSecrets", async () => {
       convert.toggleSecrets();
     });
 
-    ctx.registerAction("copy", (text?: string) => {
-      if (typeof text === "string") {
-        convert.copyToClipboard(text);
-      }
+    ctx.registerAction("copy", async (...args: unknown[]) => {
+      const text = typeof args[0] === "string" ? args[0] : "";
+      if (text) convert.copyToClipboard(text);
     });
 
     return {

@@ -39,6 +39,21 @@ defineMiniApp({
       swap.selectToken(token as { symbol: string; hash: string; balance: number; decimals: number });
     });
 
+    ctx.registerAction("selectPair", async (...args: unknown[]) => {
+      const pairId = String(args[0] ?? "").toLowerCase();
+      const [fromSym = "", toSym = ""] = pairId.split("-");
+      const tokens = swap.availableTokens.get();
+      const findToken = (sym: string) => tokens.find((tok) => tok.symbol.toLowerCase() === sym);
+      const from = findToken(fromSym);
+      const to = findToken(toSym);
+      if (from && to) {
+        swap.fromToken.set(from);
+        swap.toToken.set(to);
+        return;
+      }
+      ctx.setStatus(ctx.t("pairUnavailable") || `Pair ${pairId} unavailable`, "info");
+    });
+
     return {
       state: {
         fromToken: swap.fromToken,
