@@ -9,7 +9,7 @@ Sign any message with your Neo address securely.
 | **App ID** | `miniapp-neo-sign-anything` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -31,7 +31,7 @@ Sign any text message with your Neo wallet to prove ownership of an address, aut
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Sign Anything from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Sign Anything from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo wallet to begin signing
 3. **Enter Message**: Type or paste the message you want to sign
 

@@ -32,7 +32,7 @@ Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wal
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Swap from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Swap from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo N3 wallet to enable trading
 3. **Select Swap Direction**: Choose whether to swap NEO→GAS or GAS→NEO
 

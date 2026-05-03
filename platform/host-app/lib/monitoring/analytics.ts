@@ -22,7 +22,7 @@ export type AnalyticsEventType =
   | "form_submit"
   | "search"
   | "navigation"
-  | "miniapp_launch"
+  | "miniapp_open"
   | "miniapp_action"
   | "wallet_action"
   | "error"
@@ -105,13 +105,13 @@ export function trackClick(
   });
 }
 
-export function trackMiniAppLaunch(
+export function trackMiniAppOpen(
   appId: string,
   appName: string,
   options: { source?: string; metadata?: Record<string, unknown> } = {},
 ): void {
-  trackEvent("miniapp_launch", {
-    type: "miniapp_launch",
+  trackEvent("miniapp_open", {
+    type: "miniapp_open",
     category: "miniapp",
     label: appName,
     metadata: { appId, appName, source: options.source || "unknown", ...options.metadata },

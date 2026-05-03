@@ -188,7 +188,7 @@ export function LayoutTab({
           />
           <Input
             label="CTA Label"
-            placeholder="Launch App"
+            placeholder="Open App"
             value={dtOp.cta_label || ""}
             onChange={(e) =>
               updateDT({

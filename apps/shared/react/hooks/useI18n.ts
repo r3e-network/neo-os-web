@@ -4,7 +4,7 @@
  * React equivalent of the Vue composable in composables/useI18n.ts.
  * Provides a `t()` translation function that resolves i18n keys
  * against merged base + app-specific messages, with locale auto-detection
- * and cross-frame language change support.
+ * and host language change support.
  *
  * @example
  * ```tsx
@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { getLocale, type Locale, type TranslationMap } from "../../utils/i18n";
 import { commonMessages } from "../../locale/common";
 import { baseMessages } from "../../locale/base-messages";
-import { getParentOrigin } from "../../utils/iframe";
+import { getHostOrigin } from "../../utils/runtime-origin";
 
 type InterpolationArgs = Record<string, string | number>;
 
@@ -58,7 +58,7 @@ function addGlobalListeners() {
       }
     };
 
-    const expectedOrigin = getParentOrigin();
+    const expectedOrigin = getHostOrigin();
 
     messageHandler = (event: MessageEvent) => {
       const isParentMessage = event.source === window.parent;

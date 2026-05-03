@@ -101,7 +101,7 @@ npm run build
 
 | 层级     | 技术                          |
 | -------- | ----------------------------- |
-| 前端     | Vue 3 + TypeScript（uni-app） |
+| 前端     | Host-native React + TypeScript |
 | 智能合约 | C# / Neo N3                   |
 | 资产支持 | GAS / NEO                     |
 | 释放逻辑 | 链上定时释放                  |

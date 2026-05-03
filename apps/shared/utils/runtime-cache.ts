@@ -1,19 +1,8 @@
-type UniLike = {
-  getStorageSync?: (key: string) => unknown;
-  setStorageSync?: (key: string, value: string) => unknown;
-  removeStorageSync?: (key: string) => unknown;
-};
-
 type CacheEnvelope<T> = {
   value: T;
   updatedAt: number;
   expiresAt?: number;
 };
-
-function getUni(): UniLike | null {
-  const g = globalThis as { uni?: UniLike };
-  return g?.uni || null;
-}
 
 function safeNow(): number {
   return Date.now();
@@ -21,11 +10,6 @@ function safeNow(): number {
 
 function readRaw(key: string): string | null {
   try {
-    const uni = getUni();
-    if (uni?.getStorageSync) {
-      const value = uni.getStorageSync(key);
-      return typeof value === "string" ? value : value == null ? null : String(value);
-    }
     if (typeof localStorage !== "undefined") {
       return localStorage.getItem(key);
     }
@@ -37,11 +21,6 @@ function readRaw(key: string): string | null {
 
 function writeRaw(key: string, value: string): void {
   try {
-    const uni = getUni();
-    if (uni?.setStorageSync) {
-      uni.setStorageSync(key, value);
-      return;
-    }
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(key, value);
     }
@@ -52,11 +31,6 @@ function writeRaw(key: string, value: string): void {
 
 function removeRaw(key: string): void {
   try {
-    const uni = getUni();
-    if (uni?.removeStorageSync) {
-      uni.removeStorageSync(key);
-      return;
-    }
     if (typeof localStorage !== "undefined") {
       localStorage.removeItem(key);
     }

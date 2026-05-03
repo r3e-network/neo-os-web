@@ -12,7 +12,7 @@ Built as a Neo N3 MiniApp, LastSurvivor uses direct prepaid GAS transfers plus K
 
 ## How to Play
 
-1. **Open the App** — Launch LastSurvivor from the Neo MiniApps platform and connect your Neo N3 wallet.
+1. **Open the App** — Open LastSurvivor from the Neo MiniApps platform and connect your Neo N3 wallet.
 2. **Check the Clock** — View the current countdown timer, prize pool size, and the last key buyer.
 3. **Buy Keys** — Spend GAS to purchase keys. Each purchase resets the 24-hour countdown and adds to the prize pool. Key prices increase as the pot grows.
 4. **Watch & Wait** — Monitor the timer. As it ticks closer to zero, tension builds. Will someone else reset it?
@@ -90,7 +90,7 @@ npm run build
 
 | Layer          | Technology                         |
 | -------------- | ---------------------------------- |
-| Frontend       | Vue 3 + TypeScript (uni-app)       |
+| Frontend       | Host-native React + TypeScript       |
 | Smart Contract | C# / Neo N3                        |
 | Interaction    | Direct wallet invocation           |
 | Automation     | Keeper (Timer Expiry Trigger)      |

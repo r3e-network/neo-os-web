@@ -37,7 +37,7 @@ import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
 import type { ClipboardService } from "@shared/services";
-import { buildMiniAppLaunchUrl } from "@shared/utils/miniapp-routes";
+import { buildMiniAppUrl } from "@shared/utils/miniapp-routes";
 import { parseBigInt, parseBool } from "@shared/utils/parsers";
 import type { TemplateItem, CertificateItem } from "../types";
 
@@ -218,7 +218,7 @@ export function useSoulbound({
 
   const copyIssueLink = async (template: unknown) => {
     const tpl = template as { id: string };
-    const url = buildMiniAppLaunchUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
+    const url = buildMiniAppUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
     const ok = await clipboard.copy(url, "issueLinkCopied");
     if (ok) {
       eventBus.emit("soulbound:linkCopied", { action: t("issueLinkCopied") });
@@ -228,7 +228,7 @@ export function useSoulbound({
   const shareIssueLink = async (template: unknown) => {
     const tpl = template as { id: string };
     try {
-      const url = buildMiniAppLaunchUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
+      const url = buildMiniAppUrl("miniapp-soulbound-certificate", { issueTemplateId: tpl.id, autoIssueDraft: "1" });
       if (navigator.share) {
         await navigator.share({ title: t("issueCertificate"), text: tpl.id, url });
         eventBus.emit("soulbound:linkShared", { action: t("issueLinkShared") });

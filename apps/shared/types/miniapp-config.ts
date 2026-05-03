@@ -77,10 +77,10 @@ export interface MiniAppFactoryConfig {
 }
 
 // ============================================================================
-// Pages.json Generation
+// Page Metadata
 // ============================================================================
 
-/** Single page entry for uni-app pages.json */
+/** Single page entry for the host-native MiniApp manifest metadata. */
 export interface PageConfig {
   /** Page path relative to src (e.g. "pages/index/index") */
   path: string;

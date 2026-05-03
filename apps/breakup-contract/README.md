@@ -9,7 +9,7 @@ Relationship commitment with GAS stakes
 | **App ID** | `miniapp-breakupcontract` |
 | **Category** | Social |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app)
+| **Framework** | Host-native React playarea
 
 
 ## How It Works

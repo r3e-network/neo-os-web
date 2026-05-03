@@ -9,7 +9,7 @@ Free gas sponsorship for new users with low balance
 | **App ID** | `miniapp-gas-sponsor` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -41,7 +41,7 @@ Gas Sponsor provides free GAS to new Neo users with low balances. Request up to 
 
 ### Getting Started
 
-1. **Launch the App**: Open Gas Sponsor from your Neo MiniApp dashboard
+1. **Open the App**: Open Gas Sponsor from your Neo MiniApp dashboard
 2. **Connect Wallet**: Click "Connect Wallet" to link your Neo N3 wallet
 3. **Check Eligibility**: App automatically checks your GAS balance
 4. **Request GAS**: If eligible, request your free GAS

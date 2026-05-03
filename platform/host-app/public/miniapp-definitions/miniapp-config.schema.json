@@ -611,7 +611,7 @@
         },
         "cta_label": {
           "type": "string",
-          "default": "Launch App",
+          "default": "Open App",
           "description": "Label for the CTA button"
         },
         "operations": {
