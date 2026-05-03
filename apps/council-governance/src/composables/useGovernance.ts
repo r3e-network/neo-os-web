@@ -33,7 +33,7 @@ import type { Observable } from "@shared/react/context";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
-import { getParentOrigin } from "@shared/utils/iframe";
+import { getHostOrigin } from "@shared/utils/runtime-origin";
 
 // ============================================================================
 // Constants
@@ -146,8 +146,8 @@ export function useGovernance({
   );
 
   // ── API Base (for council member lookup) ─────────────────────────────
-  const parentOrigin = getParentOrigin();
-  const API_HOST = parentOrigin !== window.location.origin ? parentOrigin : "";
+  const hostOrigin = getHostOrigin();
+  const API_HOST = hostOrigin && hostOrigin !== window.location.origin ? hostOrigin : "";
 
   // ── Proposal Selection ──────────────────────────────────────────────
 

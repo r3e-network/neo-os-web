@@ -139,8 +139,8 @@ export {
   writeTimedCache,
 } from "./runtime-cache";
 
-// iframe.ts
-export { getParentOrigin } from "./iframe";
+// runtime-origin.ts
+export { getHostOrigin } from "./runtime-origin";
 
 // createActionHandlers.ts
 export { registerActions } from "./createActionHandlers";

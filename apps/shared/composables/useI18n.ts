@@ -3,7 +3,7 @@ import type { Observable } from "@shared/react/context";
 import { getLocale, type Locale, type TranslationMap } from "../utils/i18n";
 import { commonMessages } from "../locale/common";
 import { baseMessages } from "../locale/base-messages";
-import { getParentOrigin } from "../utils/iframe";
+import { getHostOrigin } from "../utils/runtime-origin";
 
 // Module-level state for shared locale and event listeners
 let listenersRefCount = 0;
@@ -59,7 +59,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
         }
       };
 
-      const expectedOrigin = getParentOrigin();
+      const expectedOrigin = getHostOrigin();
 
       messageHandler = (event: MessageEvent) => {
         const isParentMessage = event.source === window.parent;

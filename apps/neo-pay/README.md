@@ -101,7 +101,7 @@ npm run build
 
 | Layer          | Technology                                |
 | -------------- | ----------------------------------------- |
-| Frontend       | Vue 3 + TypeScript (uni-app)              |
+| Frontend       | Host-native React + TypeScript              |
 | Smart Contract | C# / Neo N3                               |
 | Asset Support  | GAS / NEO                                 |
 | Release Logic  | On-chain vesting schedule                 |

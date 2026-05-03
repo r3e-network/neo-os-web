@@ -2,7 +2,7 @@
  * Neo N3 Web Wallet SDK
  *
  * Provides wallet connection, contract invocation, and event querying
- * for Neo N3 web apps. Replaces the UniApp-specific @neo/uniapp-sdk.
+ * for Neo N3 web apps. Replaces the legacy package-level wallet shim.
  *
  * Supports:
  * - NeoLine browser extension
@@ -242,7 +242,7 @@ declare global {
 }
 
 // ---------------------------------------------------------------------------
-// Platform API for events (replaces useEvents from uniapp-sdk)
+// Platform API for events.
 // ---------------------------------------------------------------------------
 
 const PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || "";

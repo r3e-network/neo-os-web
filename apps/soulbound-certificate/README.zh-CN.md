@@ -9,7 +9,7 @@
 | **App ID** | `miniapp-soulbound-certificate` |
 | **分类** | utility |
 | **版本** | 1.0.0 |
-| **框架** | Vue 3 (uni-app) |
+| **框架** | Host-native React playarea |
 
 ## 特性
 

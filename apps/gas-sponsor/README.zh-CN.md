@@ -9,7 +9,7 @@
 | **App ID** | `miniapp-gas-sponsor` |
 | **分类** | 工具 |
 | **版本** | 1.0.0 |
-| **框架** | Vue 3 (uni-app) |
+| **框架** | Host-native React playarea |
 
 ## 摘要
 

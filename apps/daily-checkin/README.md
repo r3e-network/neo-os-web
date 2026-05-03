@@ -12,7 +12,7 @@ The live testnet flow keeps the mechanic straightforward: connect your Neo N3 wa
 
 ## How to Use
 
-1. **Open the App** — Launch Daily Check-in from the Neo MiniApps platform.
+1. **Open the App** — Open Daily Check-in from the Neo MiniApps platform.
 2. **Connect Wallet** — Link your Neo N3 wallet before checking in or claiming rewards.
 3. **Tap Check-in** — Press the check-in button once per UTC day. The app shows a countdown to the next available check-in.
 4. **Build Your Streak** — Check in every day without missing. Your current streak and highest streak are tracked.
@@ -98,7 +98,7 @@ npm run build
 
 | Layer           | Technology                         |
 | --------------- | ---------------------------------- |
-| Frontend        | Vue 3 + TypeScript (uni-app)       |
+| Frontend        | Host-native React + TypeScript       |
 | Smart Contract  | C# / Neo N3                        |
 | Interaction     | Direct wallet invocation           |
 | Payment         | GAS                                |

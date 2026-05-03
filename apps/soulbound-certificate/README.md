@@ -9,7 +9,7 @@ Non-transferable NEP-11 certificates for courses, events, and achievements.
 | **App ID** | `miniapp-soulbound-certificate` |
 | **Category** | utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works
@@ -37,7 +37,7 @@ Non-transferable NEP-11 certificates for courses, events, and achievements.
 
 ### Getting Started
 
-1. **Launch the App**: Open Soulbound Certificate from your Neo MiniApp dashboard
+1. **Open the App**: Open Soulbound Certificate from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo N3 wallet
 3. **Explore**: Browse certificates or create your own
 4. **Manage**: Issue, view, or verify certificates

@@ -9,7 +9,7 @@ Create multisig transfer requests and collect signatures securely.
 | **App ID** | `miniapp-neo-multisig` |
 | **Category** | utilities |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -31,7 +31,7 @@ Create a multisig transaction, collect approvals from multiple signers, and broa
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Multisig from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Multisig from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo wallet to begin creating or signing transactions
 3. **Choose Action**: Create a new transaction or load an existing one
 

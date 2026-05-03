@@ -1,5 +1,5 @@
 import { readQueryParam } from "./url";
-import { getParentOrigin } from "./iframe";
+import { getHostOrigin } from "./runtime-origin";
 
 export type Theme = "light" | "dark";
 
@@ -51,8 +51,7 @@ export function initTheme(): Theme {
 export function listenForThemeChanges(): () => void {
   if (typeof window === "undefined") return () => {};
 
-  // Get expected origin from parent (for iframe context) or self
-  const expectedOrigin = getParentOrigin();
+  const expectedOrigin = getHostOrigin();
 
   const handler = (event: MessageEvent) => {
     const isParentMessage = event.source === window.parent;

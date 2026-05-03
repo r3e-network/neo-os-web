@@ -1,6 +1,6 @@
 # Recovery Guardian
 
-AA recovery launcher for guardian policy, NeoDID recovery tickets, timelock review, and final recovery execution.
+AA recovery console for guardian policy, NeoDID recovery tickets, timelock review, and final recovery execution.
 
 ## Scope
 
@@ -8,8 +8,8 @@ This miniapp is a recovery-facing shell. It keeps recovery policy explicit and r
 
 It provides:
 
-- guardian setup launch path
-- recovery workspace launch path
+- guardian setup entry path
+- recovery workspace entry path
 - NeoDID recovery ticket context
 - documentation shortcuts for recovery operators
 

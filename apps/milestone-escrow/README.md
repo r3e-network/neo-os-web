@@ -9,7 +9,7 @@ Staged escrow releases with explicit milestone approvals.
 | **App ID** | `miniapp-milestone-escrow` |
 | **Category** | Finance |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works
@@ -37,7 +37,7 @@ Staged escrow releases with explicit milestone approvals.
 
 ### Getting Started
 
-1. **Launch the App**: Open Milestone Escrow from your Neo MiniApp dashboard
+1. **Open the App**: Open Milestone Escrow from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo N3 wallet
 3. **Create Escrow**: Set up milestones and deposit funds
 4. **Manage**: Approve work and release funds
@@ -63,7 +63,7 @@ Staged escrow releases with explicit milestone approvals.
    - Funds held securely
    - Creator retains control
 
-4. **Launch**:
+4. **Activate**:
    - Escrow becomes active
    - Beneficiary can begin work
    - Creator can approve milestones

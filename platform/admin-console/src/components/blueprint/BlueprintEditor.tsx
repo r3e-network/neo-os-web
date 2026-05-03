@@ -345,7 +345,7 @@ export const BLUEPRINT_PRESETS: Record<string, BlueprintConfig> = {
     operation_panel: {
       title: "Operations",
       subtitle: "Configure and submit",
-      cta_label: "Launch",
+      cta_label: "Open",
     },
   },
   trading: {

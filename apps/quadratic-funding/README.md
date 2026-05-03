@@ -9,7 +9,7 @@ Quadratic Funding lets communities run public grant rounds with matching pools. 
 | **App ID** | `miniapp-quadratic-funding` |
 | **Category** | DeFi / Governance |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -32,7 +32,7 @@ Quadratic Funding is a revolutionary mechanism that amplifies the voice of small
 
 ### Getting Started
 
-1. **Launch the App**: Open Quadratic Funding from your Neo MiniApp dashboard
+1. **Open the App**: Open Quadratic Funding from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo N3 wallet to participate in funding rounds
 3. **Select a Round**: Browse active rounds or create your own
 

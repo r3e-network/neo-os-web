@@ -2,8 +2,7 @@
   "hero": {
     "title": "Neo ミニアプリプラットフォーム",
     "subtitle": "TEEセキュリティで分散型アプリケーションを構築・デプロイ",
-    "exploreApps": "アプリを探す",
-    "launchApp": "アプリを開く"
+    "exploreApps": "アプリを探す"
   },
   "features": {
     "title": "機能",

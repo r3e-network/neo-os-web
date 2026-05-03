@@ -18,7 +18,7 @@ import type { ChainService, EventBus } from "@shared/services";
 import { formatNumber } from "@shared/utils/format";
 import { useTicker } from "@shared/composables/useTicker";
 import { readCachedJSON, writeCachedJSON } from "@shared/utils/runtime-cache";
-import { getParentOrigin } from "@shared/utils/iframe";
+import { getHostOrigin } from "@shared/utils/runtime-origin";
 
 // ============================================================================
 // Constants
@@ -60,8 +60,8 @@ export interface UseExplorerOptions {
 // ============================================================================
 
 const getApiBase = () => {
-  const parentOrigin = getParentOrigin();
-  return parentOrigin !== window.location.origin ? `${parentOrigin}/api/explorer` : "/api/explorer";
+  const hostOrigin = getHostOrigin();
+  return hostOrigin && hostOrigin !== window.location.origin ? `${hostOrigin}/api/explorer` : "/api/explorer";
 };
 
 const API_BASE = getApiBase();

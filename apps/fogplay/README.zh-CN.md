@@ -92,7 +92,7 @@ npm run build
 
 | 层级     | 技术                          |
 | -------- | ----------------------------- |
-| 前端     | Vue 3 + TypeScript（uni-app） |
+| 前端     | Host-native React + TypeScript |
 | 智能合约 | C# / Neo N3                   |
 | 结算路径 | 预言机回调                    |
 | 随机数   | Morpheus Oracle               |

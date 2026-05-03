@@ -90,7 +90,7 @@ npm run build
 
 | Layer           | Technology                                          |
 | --------------- | --------------------------------------------------- |
-| Frontend        | Vue 3 + TypeScript (uni-app)                        |
+| Frontend        | Host-native React + TypeScript                        |
 | Smart Contract  | C# / Neo N3                                         |
 | Claim Flow      | Direct miniapp + wallet interaction                 |
 | Distribution    | Smart contract state                                |

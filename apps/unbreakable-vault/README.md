@@ -9,7 +9,7 @@ Hacker bounty vaults secured by SHA-256 hashes
 | **App ID** | `miniapp-unbreakablevault` |
 | **Category** | utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works

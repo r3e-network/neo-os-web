@@ -9,7 +9,7 @@ Encrypted memory burial with paid forgetting
 | **App ID** | `miniapp-graveyard` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works
