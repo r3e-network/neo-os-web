@@ -39,7 +39,7 @@ export type MiniAppCategory = "game" | "defi" | "social" | "tool" | "governance"
 // ============================================================================
 
 /** Theme family presets available in the design system */
-export type ThemeFamily = "default" | "finance" | "gaming" | "social" | "flamingo";
+export type ThemeFamily = "default" | "finance" | "gaming" | "social";
 
 /** Layout density levels */
 export type ThemeDensity = "compact" | "default" | "comfortable";

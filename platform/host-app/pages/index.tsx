@@ -148,7 +148,7 @@ export default function LandingPage() {
         <title>R3E Network | The Premier MiniApp Platform for Neo N3</title>
         <meta
           name="description"
-          content="Discover, connect, and launch decentralized miniapps on the most secure blockchain network."
+          content="Discover, connect, and use decentralized miniapps on the most secure blockchain network."
         />
       </Head>
 

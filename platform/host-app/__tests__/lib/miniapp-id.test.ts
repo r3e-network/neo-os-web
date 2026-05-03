@@ -12,6 +12,9 @@ describe("miniapp-id canonicalization", () => {
     expect(canonicalizeMiniAppId("miniapp-neo-gacha")).toBe("miniapp-gasbox");
     expect(canonicalizeMiniAppId("miniapp-coinflip")).toBe("miniapp-fogplay");
     expect(canonicalizeMiniAppId("miniapp-stream-vault")).toBe("miniapp-neo-pay");
+    expect(canonicalizeMiniAppId("miniapp-on-chain-tarot")).toBe("miniapp-onchaintarot");
+    expect(canonicalizeMiniAppId("breakup-contract")).toBe("miniapp-breakupcontract");
+    expect(canonicalizeMiniAppId("unbreakable-vault")).toBe("miniapp-unbreakablevault");
   });
 
   it("can coerce plain ids to miniapp prefix", () => {

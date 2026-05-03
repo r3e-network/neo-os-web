@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "uni",
+    "assets:cards": "node scripts/generate-neo-tarot-deck.mjs",
     "build": "vite build"
   },
   "dependencies": {

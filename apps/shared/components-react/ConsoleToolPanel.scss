@@ -1,0 +1,188 @@
+.console-tool {
+  display: grid;
+  gap: 18px;
+}
+
+.console-tool__intro {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.console-tool__eyebrow {
+  color: #8bffd9;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.console-tool__intro h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(1.35rem, 1.1rem + 0.9vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.console-tool__intro p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.console-tool__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.console-tool__form,
+.console-tool__result {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.58);
+  box-shadow: 0 18px 60px rgba(2, 6, 23, 0.32);
+}
+
+.console-tool__form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.console-tool__field {
+  display: grid;
+  gap: 7px;
+}
+
+.console-tool__field span {
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.console-tool__field select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #f8fafc;
+  font: inherit;
+  padding: 0 12px;
+}
+
+.console-tool__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.console-tool__actions .neo-btn,
+.console-tool__result-head .neo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.console-tool__result {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.console-tool__result-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.console-tool__result-head div,
+.console-tool__empty {
+  display: grid;
+  gap: 6px;
+}
+
+.console-tool__result-head span,
+.console-tool__empty span {
+  color: #8bffd9;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.console-tool__result-head strong,
+.console-tool__empty strong {
+  color: #f8fafc;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
+.console-tool__rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.console-tool__rows div {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.56);
+  padding: 10px 12px;
+}
+
+.console-tool__rows span {
+  display: block;
+  color: rgba(226, 232, 240, 0.62);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.console-tool__rows strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #f8fafc;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+.console-tool__result pre {
+  overflow: auto;
+  max-height: 280px;
+  margin: 0;
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #d9f99d;
+  font-size: 0.78rem;
+  line-height: 1.48;
+  padding: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.console-tool__empty {
+  min-height: 260px;
+  place-content: center;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .console-tool__workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .console-tool__rows {
+    grid-template-columns: 1fr;
+  }
+}

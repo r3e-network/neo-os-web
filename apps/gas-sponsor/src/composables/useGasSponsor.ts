@@ -102,8 +102,14 @@ export function useGasSponsorApp({ chain, eventBus, t }: UseGasSponsorAppOptions
       resetsAt.set(statusData.resets_at);
       eventBus.emit("userData:loaded", {});
     } catch (e) {
-      eventBus.emit("userData:error", { message: formatErrorMessage(e, t("loadFailed")) });
-      throw e;
+      userAddress.set("");
+      gasBalance.set("0");
+      usedQuota.set("0");
+      dailyLimit.set("0.1");
+      resetsAt.set("");
+      eventBus.emit("userData:disconnected", {
+        message: formatErrorMessage(e, t("walletNotConnected")),
+      });
     } finally {
       loading.set(false);
     }

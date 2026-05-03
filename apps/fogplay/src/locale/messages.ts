@@ -31,6 +31,12 @@ const appMessages = {
   game: { en: "Play", zh: "游戏" },
   totalWon: { en: "Total Earnings", zh: "总收益" },
   totalGames: { en: "Total Games", zh: "总局数" },
+  choiceHeader: { en: "Pick", zh: "选择" },
+  outcomeHeader: { en: "Result", zh: "结果" },
+  betHeader: { en: "Bet", zh: "下注" },
+  payoutHeader: { en: "Payout", zh: "赔付" },
+  gameHistory: { en: "Recent Games", zh: "最近对局" },
+  noHistory: { en: "No games played yet. Place your first bet.", zh: "暂无对局，先下注一局。" },
   docSubtitle: { en: "Oracle-backed coin toss with on-chain escrow", zh: "预言机驱动的链上抛硬币" },
   docDescription: {
     en: "FogPlay locks your wager in the smart contract, requests randomness through the Morpheus Oracle flow, and records the final outcome on-chain for auditability. Winners receive the emitted payout result once settlement completes.",

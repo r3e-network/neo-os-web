@@ -103,10 +103,6 @@ export default async function handler(
   }
   if (standardLimit(req, res)) return;
 
-  if (!hasServiceRoleSupabase()) {
-    return apiError.configError(res, "Template marketplace is not available");
-  }
-
   const rawKind = normalizeSimple(pickQueryString(req.query.kind) || "all");
   const rawCategory = pickQueryString(req.query.category);
   const rawSource = normalizeSimple(pickQueryString(req.query.source) || "all");
@@ -132,12 +128,29 @@ export default async function handler(
     rawSource === "all" ? "all" : normalizeTemplateSourceType(rawSource);
   const verified = rawVerified === "all" ? "all" : rawVerified;
 
+  const emptyPayload: PublicTemplateMarketResponse = {
+    templates: [],
+    filters: {
+      kind,
+      category: rawCategory || undefined,
+      source,
+      verified: verified as "all" | "true" | "false",
+      search: rawSearch || undefined,
+      limit,
+    },
+  };
+
+  if (!hasServiceRoleSupabase()) {
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+    res.status(200).json(emptyPayload);
+    return;
+  }
+
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
-    return apiError.configError(
-      res,
-      "Supabase service role client unavailable",
-    );
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+    res.status(200).json(emptyPayload);
+    return;
   }
 
   try {

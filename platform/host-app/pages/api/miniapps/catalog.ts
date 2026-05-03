@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
-import { standardLimit } from "@/lib/rate-limit";
+import { relaxedLimit } from "@/lib/rate-limit";
 import {
   filterCatalogByAppId,
   loadMiniAppCatalog,
@@ -50,7 +50,7 @@ export default async function handler(
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
-  if (standardLimit(req, res)) return;
+  if (relaxedLimit(req, res)) return;
 
   const statusRaw = String(req.query.status || "active")
     .trim()

@@ -142,17 +142,26 @@ export function useCheckin({ checkinService, t }: UseCheckinOptions) {
 
   // ── Data Loading ────────────────────────────────────────────────────
 
-  const applyCheckinData = (data: CheckinData) => {
-    currentStreak.set(data.currentStreak);
-    highestStreak.set(data.highestStreak);
-    totalUserCheckins.set(data.totalCheckins);
+  const toFiniteNumber = (value: unknown, fallback = 0) => {
+    const next = Number(value);
+    return Number.isFinite(next) ? next : fallback;
+  };
+
+  const applyCheckinData = (data: CheckinData & { longestStreak?: number; lastCheckin?: number | string | null }) => {
+    const normalizedCurrent = toFiniteNumber(data.currentStreak);
+    const normalizedHighest = toFiniteNumber(data.highestStreak, toFiniteNumber(data.longestStreak, normalizedCurrent));
+    const lastCheckinTime = toFiniteNumber(data.lastCheckinTime, toFiniteNumber(data.lastCheckin));
+
+    currentStreak.set(normalizedCurrent);
+    highestStreak.set(normalizedHighest);
+    totalUserCheckins.set(toFiniteNumber(data.totalCheckins));
     lastCheckInDay.set(
-      data.lastCheckinTime
-        ? Math.floor(data.lastCheckinTime / (MS_PER_DAY / 1000))
+      lastCheckinTime
+        ? Math.floor(lastCheckinTime / (MS_PER_DAY / 1000))
         : 0,
     );
-    unclaimedRewards.set(Number(data.unclaimedRewards ?? 0));
-    totalClaimed.set(Number(data.totalClaimed ?? 0));
+    unclaimedRewards.set(toFiniteNumber(data.unclaimedRewards));
+    totalClaimed.set(toFiniteNumber(data.totalClaimed));
   };
 
   const loadAll = async () => {

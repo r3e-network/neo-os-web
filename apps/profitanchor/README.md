@@ -22,9 +22,9 @@ admin authority to candidate scoring plus vote execution.
 - Admin methods do not transfer user-staked NEO or user-rewarded GAS.
 - SelfLoan can read ProfitAnchor's best candidate and vote collateralized NEO from the SelfLoan contract without transferring collateral custody.
 
-## NeoBurger reference
+## Voting-yield routing boundary
 
-NeoBurger optimizes GAS by splitting pooled NEO across voting agents and adjusting those agents as candidate returns change. ProfitAnchor keeps the useful part of that model, candidate-profit routing, while removing unnecessary custody authority from the admin surface.
+ProfitAnchor monitors candidate returns and routes voting toward better GAS yield while keeping the admin surface limited to candidate-profit scoring. It does not add custody authority over user-staked NEO or user-rewarded GAS.
 
 ## Source Layout
 

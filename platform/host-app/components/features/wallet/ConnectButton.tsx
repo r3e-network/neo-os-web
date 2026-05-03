@@ -176,12 +176,16 @@ export function ConnectButton() {
         type="button"
         onClick={() => setShowConnectModal(true)}
         disabled={wallet.loading || auth.loading}
-        className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-5 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo"
+        aria-label="Log In / Sign Up"
+        className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-3 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo sm:px-5"
       >
-        <span className="relative z-10">
+        <span className="relative z-10 hidden sm:inline">
           {wallet.loading || auth.loading
             ? "Connecting..."
             : "Log In / Sign Up"}
+        </span>
+        <span className="relative z-10 sm:hidden">
+          {wallet.loading || auth.loading ? "..." : "Log In"}
         </span>
       </button>
 

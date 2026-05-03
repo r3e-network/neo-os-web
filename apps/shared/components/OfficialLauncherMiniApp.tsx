@@ -1,7 +1,7 @@
 /**
  * OfficialLauncherMiniApp — React equivalent of OfficialLauncherMiniApp.vue
  *
- * A pre-built launcher page layout used by Flamingo and bridge miniapps.
+ * A pre-built launcher page layout used by official protocol and bridge miniapps.
  * Wraps MiniAppPage with a hero section, overview stats, main/detail cards,
  * and an operation panel with action buttons.
  */
@@ -71,7 +71,7 @@ export interface OfficialLauncherMiniAppProps {
   fallbackMessage?: string;
   handleBoundaryError?: (error: Error) => void;
   resetStatus?: () => void;
-  heroMode?: "flamingo" | "bridge";
+  heroMode?: "mark" | "bridge";
   heroMark?: string;
   bridgeLeftLabel?: string;
   bridgeRightLabel?: string;
@@ -135,7 +135,7 @@ export function OfficialLauncherMiniApp({
   fallbackMessage = "",
   handleBoundaryError,
   resetStatus,
-  heroMode = "flamingo",
+  heroMode = "mark",
   heroMark,
   bridgeLeftLabel,
   bridgeRightLabel,
@@ -162,9 +162,9 @@ export function OfficialLauncherMiniApp({
                 <div className="bridge-orb">{bridgeRightLabel || t("bridgeRightDefault")}</div>
               </div>
             ) : (
-              <div className="flamingo-scene" aria-hidden="true">
-                <div className="flamingo-mark">{heroMark || t("heroMarkDefault")}</div>
-                <div className="flamingo-trail" />
+              <div className="launcher-mark-scene" aria-hidden="true">
+                <div className="launcher-mark">{heroMark || t("heroMarkDefault")}</div>
+                <div className="launcher-trail" />
               </div>
             )}
           </div>

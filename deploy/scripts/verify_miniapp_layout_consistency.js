@@ -10,6 +10,7 @@ const ACCEPTED_MARKERS = [
   "<OfficialLauncherMiniApp",
   "<ConsoleMiniApp",
 ];
+const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);
 
 function hasAcceptedLayout(filePath) {
   const source = fs.readFileSync(filePath, "utf8");
@@ -39,6 +40,7 @@ function main() {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .filter((name) => name !== "shared")
+    .filter((name) => !ARCHIVED_APP_SLUGS.has(name.trim().toLowerCase()))
     .sort();
 
   const checked = [];

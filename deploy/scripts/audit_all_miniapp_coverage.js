@@ -8,6 +8,7 @@ const APPS_DIR = path.join(ROOT, "apps");
 const CONTRACTS_DIR = path.join(ROOT, "contracts");
 const TESTNET_RPC = process.env.NEO_RPC_TESTNET || process.env.NEO_RPC_URL || "https://api.n3index.dev/testnet";
 const MAINNET_RPC = process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
+const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -85,7 +86,9 @@ function classify(manifest, testnetState, mainnetState, sourcePresent) {
 }
 
 async function main() {
-  const apps = fs.readdirSync(APPS_DIR).filter((name) => fs.existsSync(path.join(APPS_DIR, name, "neo-manifest.json")));
+  const apps = fs.readdirSync(APPS_DIR)
+    .filter((name) => !ARCHIVED_APP_SLUGS.has(String(name).trim().toLowerCase()))
+    .filter((name) => fs.existsSync(path.join(APPS_DIR, name, "neo-manifest.json")));
   const rows = [];
 
   for (const app of apps) {

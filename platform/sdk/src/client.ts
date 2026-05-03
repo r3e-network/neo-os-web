@@ -18,10 +18,12 @@ import type {
   GasSponsorCheckResponse,
   GasSponsorRequestResponse,
   HostSDK,
+  ContractParam,
   InvocationIntent,
   MiniAppSDK,
   MiniAppSDKConfig,
   MiniAppUsageResponse,
+  SignedMessage,
   ComputeExecuteRequest,
   ComputeJob,
   OracleQueryRequest,
@@ -39,10 +41,14 @@ import type {
   PrivacyMerklePathResponse,
   PrivacyRelayRequest,
   PrivacyRelayResponse,
+  WalletProviderInfo,
   VoteBNEOResponse,
   WalletBindResponse,
   WalletNonceResponse,
 } from "./types.js";
+
+const MAINNET_MAGIC = 860833102;
+const TESTNET_MAGIC = 894710606;
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -51,6 +57,7 @@ interface NeoLineN3Wallet {
 
 interface NeoLineN3Instance {
   getAccount: () => Promise<{ address?: string; account?: { address?: string } }>;
+  signMessage?: (params: { message: string }) => Promise<SignedMessage>;
   invoke: (params: NeoLineInvokeParams) => Promise<unknown>;
 }
 
@@ -66,58 +73,258 @@ interface EIP1193Provider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 }
 
-/** Extended window with NeoLine */
-interface WindowWithNeoLine extends Window {
+type DapiAccount = {
+  hash: string;
+  address?: string;
+  label?: string;
+  isDefault?: boolean;
+};
+
+type DapiInvocation = {
+  hash: string;
+  operation: string;
+  args?: ContractParam[];
+  abortOnFail?: boolean;
+};
+
+type NeoDapiProvider = {
+  name?: string;
+  dapiVersion?: string;
+  network?: number;
+  supportedNetworks?: number[];
+  compatibility?: string[];
+  getAccounts?: () => Promise<DapiAccount[]>;
+  authenticate?: (payload: {
+    action: "Authentication";
+    grant_type: "Signature";
+    allowed_algorithms: ["ECDSA-P256"];
+    domain: string;
+    networks: number[];
+    nonce: string;
+    timestamp: number;
+  }) => Promise<{
+    network?: number;
+    address?: string;
+    pubkey?: string;
+    signature?: string;
+  }>;
+  invoke?: (invocations: DapiInvocation[], signers?: Array<Record<string, unknown>>, suggestedSystemFee?: string) => Promise<unknown>;
+  signMessage?: (message: string, account?: string) => Promise<{
+    signature?: string;
+    data?: string;
+    account?: string;
+    pubkey?: string;
+    publicKey?: string;
+    salt?: string;
+    message?: string;
+  }>;
+};
+
+type InjectedWalletContext =
+  | { kind: "nep21"; address: string; accountHash?: string; provider: NeoDapiProvider }
+  | { kind: "neoline"; address: string; instance: NeoLineN3Instance }
+  | { kind: "evm"; address: string; provider: EIP1193Provider };
+
+/** Extended window with supported injected wallets */
+interface WindowWithInjectedWallets extends Window {
   ethereum?: EIP1193Provider;
   NEOLineN3?: NeoLineN3Wallet;
+  NEOLine?: NeoLineN3Wallet;
+  Neo?: { DapiProvider?: unknown };
+  neoDapiProvider?: unknown;
+  neoDapi?: unknown;
   [key: string]: unknown;
 }
 
-async function getInjectedWalletAddress(): Promise<string> {
-  if (typeof window === "undefined") {
-    throw new Error("wallet.getAddress must be called in a browser context");
-  }
-
-  const g = window as unknown as WindowWithNeoLine;
-
-  // Check EVM
-  if (g.ethereum && typeof g.ethereum.request === "function") {
-    try {
-      const accounts = await g.ethereum.request({ method: "eth_accounts" }) as string[];
-      if (accounts && accounts.length > 0) return accounts[0];
-    } catch {
-      // User denied request or wallet unavailable — try next wallet option
-    }
-  }
-
-  const neoline = g.NEOLineN3;
-  if (neoline && typeof neoline.Init === "function") {
-    const inst = new neoline.Init();
-    if (inst && typeof inst.getAccount === "function") {
-      const res = await inst.getAccount();
-      const addr = String(res?.address ?? res?.account?.address ?? "").trim();
-      if (addr) return addr;
-    }
-  }
-
-  throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
+function encodeBase64Utf8(value: string): string {
+  if (typeof btoa !== "function") return value;
+  return btoa(unescape(encodeURIComponent(value)));
 }
 
-function getNeoLineN3Instance(): NeoLineN3Instance {
+function createNonce(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+}
+
+function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
+  if (!candidate || typeof candidate !== "object") return false;
+  const provider = candidate as Partial<NeoDapiProvider>;
+  return typeof provider.getAccounts === "function" || typeof provider.authenticate === "function";
+}
+
+function readImmediateDapiProvider(): NeoDapiProvider | null {
+  if (typeof window === "undefined") return null;
+  const g = window as unknown as WindowWithInjectedWallets;
+  const candidates = [
+    g.Neo?.DapiProvider,
+    g.neoDapiProvider,
+    g.neoDapi,
+  ];
+  return candidates.find(isNeoDapiProvider) ?? null;
+}
+
+function waitForDapiProvider(timeoutMs = 750): Promise<NeoDapiProvider | null> {
+  const immediate = readImmediateDapiProvider();
+  if (immediate) return Promise.resolve(immediate);
+  if (typeof window === "undefined") return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (provider: NeoDapiProvider | null) => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("Neo.DapiProvider.ready", onReady);
+      resolve(provider);
+    };
+    const onReady = (event: Event) => {
+      const provider = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
+      if (isNeoDapiProvider(provider)) finish(provider);
+    };
+    window.addEventListener("Neo.DapiProvider.ready", onReady);
+    setTimeout(() => finish(null), timeoutMs);
+    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.request", {
+      detail: { version: "1.0" },
+    }));
+  });
+}
+
+function getAuthenticationDomain(): string {
+  if (typeof window === "undefined") return "localhost";
+  return window.location.host || window.location.hostname || "localhost";
+}
+
+async function getNeoDapiContext(allowAuthenticate = true): Promise<Extract<InjectedWalletContext, { kind: "nep21" }> | null> {
+  const provider = await waitForDapiProvider();
+  if (!provider) return null;
+
+  let accounts: DapiAccount[] = [];
+  if (provider.getAccounts) {
+    try {
+      accounts = await provider.getAccounts();
+    } catch {
+      accounts = [];
+    }
+  }
+
+  const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
+  if (account) {
+    const address = String(account.address ?? account.hash ?? "").trim();
+    if (address) {
+      return {
+        kind: "nep21",
+        address,
+        accountHash: String(account.hash ?? "").trim() || undefined,
+        provider,
+      };
+    }
+  }
+
+  if (!allowAuthenticate || !provider.authenticate) return null;
+
+  const authenticated = await provider.authenticate({
+    action: "Authentication",
+    grant_type: "Signature",
+    allowed_algorithms: ["ECDSA-P256"],
+    domain: getAuthenticationDomain(),
+    networks: provider.supportedNetworks?.length ? provider.supportedNetworks : [MAINNET_MAGIC, TESTNET_MAGIC],
+    nonce: createNonce(),
+    timestamp: Date.now(),
+  });
+  const address = String(authenticated.address ?? "").trim();
+  if (!address) return null;
+  return { kind: "nep21", address, provider };
+}
+
+async function getNeoLineContext(): Promise<Extract<InjectedWalletContext, { kind: "neoline" }> | null> {
+  if (typeof window === "undefined") return null;
+  const g = window as unknown as WindowWithInjectedWallets;
+  const neoline = g.NEOLineN3 ?? g.NEOLine;
+  if (!neoline || typeof neoline.Init !== "function") return null;
+  const instance = new neoline.Init();
+  if (!instance || typeof instance.getAccount !== "function") return null;
+  const res = await instance.getAccount();
+  const address = String(res?.address ?? res?.account?.address ?? "").trim();
+  if (!address) return null;
+  return { kind: "neoline", address, instance };
+}
+
+async function getEvmContext(): Promise<Extract<InjectedWalletContext, { kind: "evm" }> | null> {
+  if (typeof window === "undefined") return null;
+  const g = window as unknown as WindowWithInjectedWallets;
+  if (!g.ethereum || typeof g.ethereum.request !== "function") return null;
+  try {
+    const accounts = await g.ethereum.request({ method: "eth_accounts" }) as unknown;
+    if (Array.isArray(accounts) && accounts.length > 0) {
+      const address = String(accounts[0] ?? "").trim();
+      if (address) return { kind: "evm", address, provider: g.ethereum };
+    }
+  } catch {
+    // User denied request or wallet unavailable — try the next wallet option.
+  }
+  return null;
+}
+
+async function getInjectedWalletContext(options: { allowDapiAuthenticate?: boolean; includeEvm?: boolean } = {}): Promise<InjectedWalletContext> {
   if (typeof window === "undefined") {
-    throw new Error("wallet invocation must be called in a browser context");
+    throw new Error("wallet methods must be called in a browser context");
   }
 
-  if (!("NEOLineN3" in window)) {
-    throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
-  }
-  const g = window as unknown as WindowWithNeoLine;
-  const neoline = g.NEOLineN3;
-  if (!neoline || typeof neoline.Init !== "function") {
-    throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
+  const dapi = await getNeoDapiContext(options.allowDapiAuthenticate ?? true);
+  if (dapi) return dapi;
+
+  const neoline = await getNeoLineContext();
+  if (neoline) return neoline;
+
+  if (options.includeEvm ?? true) {
+    const evm = await getEvmContext();
+    if (evm) return evm;
   }
 
-  return new neoline.Init();
+  throw new Error("NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods");
+}
+
+async function getInjectedWalletAddress(): Promise<string> {
+  return (await getInjectedWalletContext()).address;
+}
+
+async function getWalletProviderInfo(): Promise<WalletProviderInfo> {
+  const context = await getInjectedWalletContext({ allowDapiAuthenticate: false });
+  if (context.kind === "nep21") {
+    return {
+      kind: "nep21",
+      name: context.provider.name || "NEP-21 dAPI",
+      network: context.provider.network,
+      address: context.address,
+      accountHash: context.accountHash,
+    };
+  }
+  if (context.kind === "neoline") return { kind: "neoline", name: "NeoLine N3", address: context.address };
+  return { kind: "evm", name: "EIP-1193", address: context.address };
+}
+
+async function signInjectedWalletMessage(message: string): Promise<SignedMessage> {
+  const context = await getInjectedWalletContext({ includeEvm: false });
+  if (context.kind === "nep21") {
+    if (!context.provider.signMessage) throw new Error("NEP-21 wallet does not support signMessage");
+    const signed = await context.provider.signMessage(encodeBase64Utf8(message), context.accountHash ?? context.address);
+    const signature = String(signed.signature ?? signed.data ?? "");
+    return {
+      publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
+      data: signature,
+      signature,
+      account: signed.account,
+      salt: String(signed.salt ?? ""),
+      message: String(signed.message ?? message),
+    };
+  }
+  if (context.kind === "neoline" && context.instance.signMessage) {
+    return context.instance.signMessage({ message });
+  }
+  throw new Error("Connected wallet does not support signMessage");
 }
 
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
@@ -138,24 +345,7 @@ function resolveInvocationParams(params: InvocationIntent["params"], userAddress
 }
 
 async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unknown> {
-  const g = typeof window !== "undefined" ? window as unknown as WindowWithNeoLine : null;
-  const address = await getInjectedWalletAddress();
-
-  if (address.startsWith("0x") && g?.ethereum) {
-    const data = "0x"; // Evm encoding placeholder
-    return await g.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [{
-        from: address,
-        to: invocation.contract_hash,
-        data: data
-      }]
-    });
-  }
-  const inst = getNeoLineN3Instance();
-  if (!inst || typeof inst.invoke !== "function") {
-    throw new Error("wallet does not support invoke (NeoLine N3 required)");
-  }
+  const context = await getInjectedWalletContext();
 
   const scriptHash = String(invocation.contract_hash ?? "").trim();
   const operation = String(invocation.method ?? "").trim();
@@ -163,25 +353,55 @@ async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unk
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
 
-  // Resolve SENDER placeholders in params with the user's actual address
+  if (context.kind === "evm") {
+    const data = "0x"; // Evm encoding placeholder
+    return await context.provider.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: context.address,
+        to: scriptHash,
+        data: data
+      }]
+    });
+  }
+
+  const signerAccount = context.kind === "nep21"
+    ? (context.accountHash ?? context.address)
+    : context.address;
+
+  // Resolve SENDER placeholders in params with the user's actual Neo account.
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
-  const args = resolveInvocationParams(rawArgs, address);
+  const args = resolveInvocationParams(rawArgs, signerAccount);
+
+  if (context.kind === "nep21") {
+    if (!context.provider.invoke) {
+      throw new Error("NEP-21 wallet does not support invoke");
+    }
+    return context.provider.invoke(
+      [{ hash: scriptHash, operation, args }],
+      [{ account: signerAccount, scopes: "CalledByEntry" }],
+    );
+  }
+
+  if (!context.instance || typeof context.instance.invoke !== "function") {
+    throw new Error("wallet does not support invoke (NEP-21 dAPI or NeoLine N3 required)");
+  }
 
   // Try strict CalledByEntry signer payloads with/without 0x script hash prefix.
   const candidates = [
-    { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
+    { scriptHash, operation, args, signers: [{ account: signerAccount, scopes: "CalledByEntry" }] },
     {
       scriptHash: scriptHash.replace(/^0x/i, ""),
       operation,
       args,
-      signers: [{ account: address, scopes: "CalledByEntry" }],
+      signers: [{ account: signerAccount, scopes: "CalledByEntry" }],
     },
   ];
 
   let lastErr: unknown = null;
   for (const params of candidates) {
     try {
-      return await inst.invoke(params);
+      return await context.instance.invoke(params);
     } catch (err) {
       lastErr = err;
     }
@@ -262,6 +482,12 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     wallet: {
       async getAddress() {
         return getInjectedWalletAddress();
+      },
+      async getProviderInfo() {
+        return getWalletProviderInfo();
+      },
+      async signMessage(message: string) {
+        return signInjectedWalletMessage(message);
       },
       async invokeIntent(requestId: string): Promise<unknown> {
         const id = String(requestId ?? "").trim();

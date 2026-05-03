@@ -18,6 +18,25 @@ export type InvocationIntent = {
 // Wallet invocation result shape varies by wallet implementation (NeoLine/O3/etc).
 export type TxResult = unknown;
 
+export type WalletProviderKind = "nep21" | "neoline" | "evm" | "host";
+
+export type WalletProviderInfo = {
+  kind: WalletProviderKind;
+  name?: string;
+  network?: number;
+  address?: string;
+  accountHash?: string;
+};
+
+export type SignedMessage = {
+  publicKey: string;
+  data: string;
+  signature?: string;
+  account?: string;
+  salt?: string;
+  message: string;
+};
+
 export type IntentWithTx<TIntent> = {
   intent: TIntent;
   tx: TxResult;
@@ -350,6 +369,8 @@ export interface MiniAppSDK {
   getAddress?: () => Promise<string>;
   wallet: {
     getAddress(): Promise<string>;
+    getProviderInfo?: () => Promise<WalletProviderInfo>;
+    signMessage?: (message: string) => Promise<SignedMessage>;
     // Optional: host-provided helper to submit a previously created invocation intent.
     invokeIntent?: (requestId: string) => Promise<unknown>;
     // Optional: directly invoke a returned invocation (wallet-dependent).

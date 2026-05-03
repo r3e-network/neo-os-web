@@ -49,8 +49,12 @@ cmd/marble/marble
 .vercel/
 
 # Local test/output artifacts
+test-results/
 apps/dashboard/test-results/
 platform/host-app/playwright-report/
+docs/reports/frontend-ux/
+docs/reports/miniapp-logic/
+docs/reports/morpheus-runtime/
 postgres.test
 test.neo-express
 deploy/wallets/*
@@ -116,7 +120,9 @@ secrets/
 credentials/
 *.secret
 *.credential
-k8s/secrets.yaml
+deploy/k8s/secrets.yaml
+deploy/k8s/**/secrets.yaml
+.env.supabase
 
 # Database dumps
 *.sql.gz

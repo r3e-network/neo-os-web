@@ -32,11 +32,10 @@ identity.
 - Admin operations are limited to route configuration and vote-only sync.
 - GAS reward accounting uses the shared reward-per-NEO accumulator.
 
-## NeoBurger-Inspired Boundary
+## Voting-yield Routing Boundary
 
-NeoBurger shows the value of pooled NEO voting and candidate routing for GAS
-rewards. TrustAnchor keeps the useful routing idea but does not expose an admin
-custody path over user stake or accrued GAS.
+TrustAnchor supports pooled NEO voting and candidate routing for GAS rewards
+without exposing an admin custody path over user stake or accrued GAS.
 
 ## Deployment
 

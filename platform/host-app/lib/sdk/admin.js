@@ -1,12 +1,18 @@
 // =============================================================================
 // Admin SDK - Administrative API client for platform management
 // =============================================================================
+function assertServerOnly() {
+    if (typeof window !== "undefined") {
+        throw new Error("AdminSDK is server-only. Do not bundle it into client-side code.");
+    }
+}
 /**
  * Admin SDK for platform management operations
  */
 export class AdminSDK {
     config;
     constructor(config) {
+        assertServerOnly();
         this.config = config;
     }
     /**
@@ -14,9 +20,9 @@ export class AdminSDK {
      */
     async getServicesHealth() {
         const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-        const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers });
+        const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers, signal: AbortSignal.timeout(30000) });
         if (!response.ok) {
-            throw new Error(`Failed to fetch services health: ${response.statusText}`);
+            throw new Error(`Failed to fetch services health (${response.status})`);
         }
         return response.json();
     }
@@ -25,9 +31,9 @@ export class AdminSDK {
      */
     async getAnalytics() {
         const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-        const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers });
+        const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers, signal: AbortSignal.timeout(30000) });
         if (!response.ok) {
-            throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+            throw new Error(`Failed to fetch analytics (${response.status})`);
         }
         return response.json();
     }
@@ -35,10 +41,18 @@ export class AdminSDK {
      * Fetch all registered MiniApps
      */
     async getMiniApps() {
-        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-        const response = await fetch(`${this.config.adminBaseUrl}/api/miniapps`, { headers });
+        if (!this.config.serviceRoleKey) {
+            throw new Error("getMiniApps: serviceRoleKey is required for admin operations");
+        }
+        const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
+            headers: {
+                apikey: this.config.serviceRoleKey,
+                Authorization: `Bearer ${this.config.serviceRoleKey}`,
+            },
+            signal: AbortSignal.timeout(30000),
+        });
         if (!response.ok) {
-            throw new Error(`Failed to fetch MiniApps: ${response.statusText}`);
+            throw new Error(`Failed to fetch MiniApps (${response.status})`);
         }
         return response.json();
     }
@@ -46,10 +60,18 @@ export class AdminSDK {
      * Fetch all users
      */
     async getUsers() {
-        const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-        const response = await fetch(`${this.config.adminBaseUrl}/api/users`, { headers });
+        if (!this.config.serviceRoleKey) {
+            throw new Error("getUsers: serviceRoleKey is required for admin operations");
+        }
+        const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
+            headers: {
+                apikey: this.config.serviceRoleKey,
+                Authorization: `Bearer ${this.config.serviceRoleKey}`,
+            },
+            signal: AbortSignal.timeout(30000),
+        });
         if (!response.ok) {
-            throw new Error(`Failed to fetch users: ${response.statusText}`);
+            throw new Error(`Failed to fetch users (${response.status})`);
         }
         return response.json();
     }
@@ -65,13 +87,15 @@ export class AdminSDK {
             method: "POST",
             headers,
             body: JSON.stringify({ appId, status }),
+            signal: AbortSignal.timeout(30000),
         });
         if (!response.ok) {
-            throw new Error(`Failed to update MiniApp status: ${response.statusText}`);
+            throw new Error(`Failed to update MiniApp status (${response.status})`);
         }
-        const payload = await response.json().catch((e) => { console.warn("[admin-sdk] failed to parse status update response:", e instanceof Error ? e.message : String(e)); return null; });
+        const payload = await response.json().catch((e) => { console.warn("[admin-sdk] failed to parse status update response JSON:", e instanceof Error ? e.message : String(e)); return null; });
         if (payload?.requires_onchain_confirmation) {
-            console.warn(`On-chain confirmation required for status change. Submit invocation:\n${JSON.stringify(payload.invocation ?? {}, null, 2)}`);
+            const serialized = JSON.stringify(payload.invocation ?? {}, null, 2);
+            console.warn(`On-chain confirmation required for status change. Submit invocation:\n${serialized}`);
         }
     }
 }
@@ -79,5 +103,6 @@ export class AdminSDK {
  * Create an Admin SDK instance
  */
 export function createAdminSDK(config) {
+    assertServerOnly();
     return new AdminSDK(config);
 }

@@ -68,6 +68,7 @@ This host app includes an optional proxy route:
 It forwards `GET/POST/...` requests to:
 
 - `${EDGE_BASE_URL}/<fn>` (preferred), or
+- `${NEXT_PUBLIC_EDGE_URL}/functions/v1/<fn>` (public Edge gateway), or
 - `${NEXT_PUBLIC_SUPABASE_URL}/functions/v1/<fn>` (fallback)
 
 Set `EDGE_BASE_URL` to one of:
@@ -222,19 +223,19 @@ The host resolves JSON/YAML/Markdown frontend specs and renders UI directly.
 
 ## Wallet Binding + Intents
 
-The host expects a Neo N3 browser wallet. The host UI currently supports **NeoLine N3**.
+The host expects a Neo N3 browser wallet. The host UI supports **NEP-21 dAPI wallets** first, with **NeoLine N3**, **O3**, and **OneGate** compatibility paths.
 
-1. Install NeoLine N3 in your browser.
+1. Install a NEP-21-compatible Neo N3 wallet, or NeoLine N3 as a legacy fallback.
 2. In the Settings panel:
    - set `Supabase Edge base URL`
    - paste an `Auth JWT` (Supabase session token; required for wallet binding)
 3. In **Wallet Binding**:
    - click `Detect Wallet`
    - click `Get Bind Message`
-   - click `Sign & Bind` (NeoLine will prompt to sign)
+   - click `Sign & Bind` (the selected wallet will prompt to sign)
 4. In **On-chain Intents**:
    - click `Create Intent` for `pay-gas` / `vote-neo`
-   - click `Submit via Wallet` to call NeoLine `invoke`
+   - click `Submit via Wallet` to call NEP-21 `invoke` or the legacy wallet invoke API
 
 If `pay-gas` / `vote-neo` returns `WALLET_REQUIRED`, bind a wallet first.
 

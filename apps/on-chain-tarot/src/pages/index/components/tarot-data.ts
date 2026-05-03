@@ -4,9 +4,39 @@ export interface TarotCardDefinition {
     icon: string;
     suit?: 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
     number?: number;
+    arcana?: 'Major Arcana' | 'Minor Arcana';
+    suitLabel?: string;
+    keywords?: string[];
+    image: string;
+    backImage: string;
 }
 
-export const TAROT_DECK: TarotCardDefinition[] = [
+export const TAROT_CARD_BACK = "./cards/back.svg";
+
+const slugify = (value: string) =>
+    value
+        .toLowerCase()
+        .replaceAll("&", "and")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+const SUIT_LABELS: Record<NonNullable<TarotCardDefinition["suit"]>, string> = {
+    major: "Major Arcana",
+    wands: "Wands",
+    cups: "Cups",
+    swords: "Swords",
+    pentacles: "Pentacles",
+};
+
+const SUIT_KEYWORDS: Record<NonNullable<TarotCardDefinition["suit"]>, string> = {
+    major: "Oracle",
+    wands: "Will",
+    cups: "Feeling",
+    swords: "Mind",
+    pentacles: "Matter",
+};
+
+const RAW_TAROT_DECK: Array<Omit<TarotCardDefinition, "image" | "backImage" | "arcana" | "suitLabel" | "keywords">> = [
     // Major Arcana
     { id: 0, name: "The Fool", icon: "🃏", suit: "major", number: 0 },
     { id: 1, name: "The Magician", icon: "🎩", suit: "major", number: 1 },
@@ -95,3 +125,17 @@ export const TAROT_DECK: TarotCardDefinition[] = [
     { id: 76, name: "Queen of Pentacles", icon: "🪙", suit: "pentacles", number: 13 },
     { id: 77, name: "King of Pentacles", icon: "🪙", suit: "pentacles", number: 14 },
 ];
+
+export const TAROT_DECK: TarotCardDefinition[] = RAW_TAROT_DECK.map((card) => {
+    const suit = card.suit ?? "major";
+    const arcana = suit === "major" ? "Major Arcana" : "Minor Arcana";
+
+    return {
+        ...card,
+        arcana,
+        suitLabel: SUIT_LABELS[suit],
+        keywords: [SUIT_KEYWORDS[suit], arcana],
+        image: `./cards/${String(card.id).padStart(2, "0")}-${slugify(card.name)}.svg`,
+        backImage: TAROT_CARD_BACK,
+    };
+});

@@ -105,6 +105,21 @@ $radius-lg: 16px;
     grid-template-columns: 1fr;
     grid-template-areas: "center" "right" "left";
   }
+
+  &.page-grid--no-operation {
+    grid-template-columns: $sidebar-w minmax(0, 1fr);
+    grid-template-areas: "left center";
+    max-width: 1440px;
+
+    @media (max-width: $desktop) {
+      grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    @media (max-width: $mobile) {
+      grid-template-columns: 1fr;
+      grid-template-areas: "center" "left";
+    }
+  }
 }
 
 // -- LEFT SIDEBAR --

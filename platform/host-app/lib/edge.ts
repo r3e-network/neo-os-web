@@ -12,7 +12,12 @@ function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> 
 }
 
 export function getEdgeFunctionsBaseUrl(): string {
-  const raw = String(process.env.EDGE_BASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
+  const raw = String(
+    process.env.EDGE_BASE_URL ||
+      process.env.NEXT_PUBLIC_EDGE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      "",
+  ).trim();
   if (!raw) return "";
   const base = raw.replace(/\/$/, "");
   if (base.endsWith("/functions/v1")) return base;

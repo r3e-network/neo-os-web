@@ -54,7 +54,7 @@ const BLUEPRINT_DEFINITIONS: MiniAppBlueprintDefinition[] = [
       operation_panel: {
         title: "Operations",
         subtitle: "Configure parameters and submit the transaction.",
-        cta_label: "Launch MiniApp",
+        cta_label: "Open MiniApp",
         operations: [],
       },
     },
@@ -143,7 +143,7 @@ const BLUEPRINT_DEFINITIONS: MiniAppBlueprintDefinition[] = [
       operation_panel: {
         title: "Play",
         subtitle: "Configure game parameters and start playing.",
-        cta_label: "Launch Game",
+        cta_label: "Open Game",
         operations: [],
       },
     },

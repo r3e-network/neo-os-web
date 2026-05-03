@@ -1,8 +1,0 @@
-@use "../pages/index/neoburger-theme.scss" as *;
-.station { display: flex; flex-direction: column; gap: 12px; }
-.station-tabs { display: flex; gap: 8px; }
-.station-card { padding: 20px; background: var(--burger-surface, #1f1a14); border: 1px solid rgba(245, 158, 11, 0.12); border-radius: 18px; display: flex; flex-direction: column; gap: 16px; }
-.station-header { display: flex; flex-direction: column; gap: 4px; }
-.station-title { font-size: 18px; font-weight: 700; }
-.station-subtitle { font-size: 12px; opacity: 0.7; }
-.station-tip { font-size: 11px; opacity: 0.6; padding: 8px 12px; background: rgba(245, 158, 11, 0.06); border-radius: 8px; }

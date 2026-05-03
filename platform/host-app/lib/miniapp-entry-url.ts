@@ -22,6 +22,10 @@ export function normalizeMiniAppEntryUrl(value: unknown): string | null {
     return raw;
   }
 
+  if (raw.startsWith("/miniapps/")) {
+    return raw;
+  }
+
   try {
     const parsed = new URL(maybePrefixEntryUrlScheme(raw));
     if (!["http:", "https:"].includes(parsed.protocol)) return null;

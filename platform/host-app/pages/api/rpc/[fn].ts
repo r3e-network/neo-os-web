@@ -102,7 +102,7 @@ export default async function handler(
   if (!base) {
     apiError.internal(
       res,
-      "EDGE_BASE_URL (or NEXT_PUBLIC_SUPABASE_URL) not configured",
+      "EDGE_BASE_URL (or NEXT_PUBLIC_EDGE_URL / NEXT_PUBLIC_SUPABASE_URL) not configured",
     );
     return;
   }

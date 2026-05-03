@@ -64,9 +64,7 @@ function buildPgConfig() {
   const host = getEnv("POSTGRES_HOST");
   const password = getEnv("POSTGRES_PASSWORD");
   if (!host || !password) {
-    throw new Error(
-      "DATABASE_URL or POSTGRES_HOST/POSTGRES_PASSWORD is required for direct Postgres verification",
-    );
+    return null;
   }
 
   return {
@@ -77,6 +75,16 @@ function buildPgConfig() {
     password,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
+  };
+}
+
+function buildSupabaseRestConfig() {
+  const url = getEnv("SUPABASE_URL") || getEnv("NEXT_PUBLIC_SUPABASE_URL");
+  const serviceKey = getEnv("SUPABASE_SERVICE_ROLE_KEY") || getEnv("SUPABASE_SERVICE_KEY");
+  if (!url || !serviceKey) return null;
+  return {
+    url: url.replace(/\/+$/, ""),
+    serviceKey,
   };
 }
 
@@ -96,45 +104,9 @@ function computeExpectedChainHash(row, prevHash) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const client = new Client(buildPgConfig());
-  await client.connect();
 
   try {
-    const where = [];
-    const params = [];
-
-    if (args.appId) {
-      params.push(args.appId);
-      where.push(`app_id = $${params.length}`);
-    }
-    if (args.requestId) {
-      params.push(args.requestId);
-      where.push(`request_id = $${params.length}`);
-    }
-
-    const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
-
-    params.push(args.limit);
-    const sql = `
-      SELECT
-        id,
-        request_id,
-        app_id,
-        actor,
-        action,
-        status,
-        payload,
-        prev_hash,
-        chain_hash,
-        created_at
-      FROM miniapp_publish_request_audit
-      ${whereClause}
-      ORDER BY request_id ASC, created_at ASC, id ASC
-      LIMIT $${params.length}
-    `;
-
-    const { rows } = await client.query(sql, params);
-
+    const { rows, source } = await loadAuditRows(args);
     let total = 0;
     let invalid = 0;
     let chainBreaks = 0;
@@ -182,6 +154,7 @@ async function main() {
     }
 
     const summary = {
+      source,
       scanned: rows.length,
       requests: byRequest.size,
       total_events: total,
@@ -199,9 +172,100 @@ async function main() {
   } catch (error) {
     console.error("verify-publish-audit-chain failed:", error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
-  } finally {
-    await client.end();
   }
+}
+
+async function loadAuditRows(args) {
+  const pgConfig = buildPgConfig();
+  if (pgConfig) {
+    const client = new Client(pgConfig);
+    await client.connect();
+    try {
+      const rows = await loadAuditRowsFromPostgres(client, args);
+      return { rows, source: "postgres" };
+    } finally {
+      await client.end();
+    }
+  }
+
+  const restConfig = buildSupabaseRestConfig();
+  if (restConfig) {
+    const rows = await loadAuditRowsFromSupabaseRest(restConfig, args);
+    return { rows, source: "supabase-rest" };
+  }
+
+  throw new Error(
+    "DATABASE_URL or POSTGRES_HOST/POSTGRES_PASSWORD is required for direct Postgres verification; alternatively set SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL with SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY for Supabase REST verification",
+  );
+}
+
+async function loadAuditRowsFromPostgres(client, args) {
+  const where = [];
+  const params = [];
+
+  if (args.appId) {
+    params.push(args.appId);
+    where.push(`app_id = $${params.length}`);
+  }
+  if (args.requestId) {
+    params.push(args.requestId);
+    where.push(`request_id = $${params.length}`);
+  }
+
+  const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  params.push(args.limit);
+  const sql = `
+    SELECT
+      id,
+      request_id,
+      app_id,
+      actor,
+      action,
+      status,
+      payload,
+      prev_hash,
+      chain_hash,
+      created_at
+    FROM miniapp_publish_request_audit
+    ${whereClause}
+    ORDER BY request_id ASC, created_at ASC, id ASC
+    LIMIT $${params.length}
+  `;
+
+  const { rows } = await client.query(sql, params);
+  return rows;
+}
+
+async function loadAuditRowsFromSupabaseRest(config, args) {
+  const params = new URLSearchParams({
+    select: "id,request_id,app_id,actor,action,status,payload,prev_hash,chain_hash,created_at",
+    order: "request_id.asc,created_at.asc,id.asc",
+    limit: String(args.limit),
+  });
+
+  if (args.appId) params.set("app_id", `eq.${args.appId}`);
+  if (args.requestId) params.set("request_id", `eq.${args.requestId}`);
+
+  const response = await fetch(`${config.url}/rest/v1/miniapp_publish_request_audit?${params.toString()}`, {
+    headers: {
+      apikey: config.serviceKey,
+      authorization: `Bearer ${config.serviceKey}`,
+      accept: "application/json",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Supabase REST verification failed: ${response.status} ${body.slice(0, 300)}`);
+  }
+
+  const rows = await response.json();
+  if (!Array.isArray(rows)) {
+    throw new Error("Supabase REST verification returned a non-array response");
+  }
+  return rows;
 }
 
 main();

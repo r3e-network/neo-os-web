@@ -7,6 +7,7 @@ import { warnOnce } from "./log-once";
 import { isMissingSupabaseSchemaObject, parsePostgrestErrorResponse } from "./supabase-errors";
 import { getSupabaseEnv } from "./supabase-env";
 import { applyMiniAppReleaseDefaults } from "./miniapp-builtins";
+import { filterArchivedMiniApps, isArchivedMiniAppId } from "./archived-miniapps";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
@@ -85,10 +86,10 @@ async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMin
     }
     const rows = (await response.json()) as MiniAppRow[];
     if (!Array.isArray(rows)) return [];
-    return rows
+    return filterArchivedMiniApps(rows
       .map((row) => coerceMiniAppInfo(row))
       .filter((app): app is MiniAppInfo => Boolean(app))
-      .map((app) => applyMiniAppReleaseDefaults({ ...app, source: "verified" as const }));
+      .map((app) => applyMiniAppReleaseDefaults({ ...app, source: "verified" as const })));
   } catch (error) {
     logger.warn("miniapp catalog fetch error:", error);
     return [];
@@ -99,7 +100,7 @@ export async function loadMiniAppCatalog(
   status: MiniAppStatus = "active",
   options: LoadMiniAppCatalogOptions = {},
 ): Promise<MiniAppInfo[]> {
-  const definitionApps = await loadMiniAppDefinitions();
+  const definitionApps = filterArchivedMiniApps(await loadMiniAppDefinitions());
   const miniAppById = new Map(definitionApps.map((app) => [canonicalizeMiniAppId(app.app_id) || app.app_id, app]));
   const dbApps = await fetchMiniAppsFromSupabase(status, options);
 
@@ -140,6 +141,7 @@ export async function loadMiniAppCatalog(
 export function filterCatalogByAppId(catalog: MiniAppInfo[], appId: string): MiniAppInfo | null {
   const normalized = canonicalizeMiniAppId(appId) || String(appId || "").trim();
   if (!normalized) return null;
+  if (isArchivedMiniAppId(normalized)) return null;
   return catalog.find((app) => {
     const appKey = canonicalizeMiniAppId(app.app_id) || app.app_id;
     return appKey === normalized;

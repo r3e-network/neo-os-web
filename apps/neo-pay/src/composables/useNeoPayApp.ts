@@ -62,11 +62,11 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
   const beneficiaryStreams = createObservable<StreamItem[]>([]);
 
   // -- Computed --
-  const allStreams = createDerived(() => [...createdStreams.get(), ...beneficiaryStreams.get()], []);
-  const activeCount = createDerived(() => allStreams.get().filter((s) => s.status === "active").length, []);
-  const createdStreamCount = createDerived(() => createdStreams.get().length, []);
-  const beneficiaryStreamCount = createDerived(() => beneficiaryStreams.get().length, []);
-  const totalStreamCount = createDerived(() => createdStreams.get().length + beneficiaryStreams.get().length, []);
+  const allStreams = createDerived(() => [...createdStreams.get(), ...beneficiaryStreams.get()], [createdStreams, beneficiaryStreams]);
+  const activeCount = createDerived(() => allStreams.get().filter((s) => s.status === "active").length, [allStreams]);
+  const createdStreamCount = createDerived(() => createdStreams.get().length, [createdStreams]);
+  const beneficiaryStreamCount = createDerived(() => beneficiaryStreams.get().length, [beneficiaryStreams]);
+  const totalStreamCount = createDerived(() => createdStreams.get().length + beneficiaryStreams.get().length, [createdStreams, beneficiaryStreams]);
 
   // -- Helpers --
 
@@ -107,6 +107,25 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
     };
   };
 
+  const normalizeStreamList = (raw: unknown): unknown[] => {
+    if (Array.isArray(raw)) return raw;
+    if (!raw || typeof raw !== "object") return [];
+    const record = raw as Record<string, unknown>;
+    const dataRecord = record.data && typeof record.data === "object"
+      ? (record.data as Record<string, unknown>)
+      : null;
+    const candidates = [
+      record.data,
+      record.items,
+      record.streams,
+      record.result,
+      dataRecord?.items,
+      dataRecord?.streams,
+      dataRecord?.result,
+    ];
+    return candidates.find((candidate): candidate is unknown[] => Array.isArray(candidate)) ?? [];
+  };
+
   // -- Data Loading (via OS services) --
 
   /**
@@ -124,13 +143,13 @@ export function useNeoPayApp({ vestingService, paymentService, t }: UseNeoPayApp
         vestingService.listStreams("beneficiary"),
       ]);
 
-      const created = (creatorRaw ?? []).map((entry: unknown) => {
+      const created = normalizeStreamList(creatorRaw).map((entry: unknown) => {
         const record = entry as Record<string, unknown>;
         const id = String(record.id ?? record.streamId ?? "");
         return parseStream(record, id);
       }).filter(Boolean) as StreamItem[];
 
-      const beneficiary = (beneficiaryRaw ?? []).map((entry: unknown) => {
+      const beneficiary = normalizeStreamList(beneficiaryRaw).map((entry: unknown) => {
         const record = entry as Record<string, unknown>;
         const id = String(record.id ?? record.streamId ?? "");
         return parseStream(record, id);

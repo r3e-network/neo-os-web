@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
+import {
+  Activity,
+  ExternalLink,
+  Info,
+  Search,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
 import {
   MiniAppInfo,
   MiniAppNotification,
@@ -61,7 +70,10 @@ import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
+import { loadMiniAppCatalog } from "../../lib/miniapp-catalog";
+import { isArchivedMiniAppId } from "../../lib/archived-miniapps";
 import { logger } from "../../lib/logger";
+import { MiniAppLogo } from "../../components/features/miniapp/MiniAppLogo";
 import {
   addressToScriptHash,
   buildSharedInvokeArgs,
@@ -96,8 +108,14 @@ type ResolvedTab = {
   blocks: MiniAppContentBlock[];
 };
 
+type MiniAppNavItem = Pick<
+  MiniAppInfo,
+  "app_id" | "name" | "category" | "entry_url" | "logo_url"
+>;
+
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
+  miniAppNav: MiniAppNavItem[];
   notifications: MiniAppNotification[];
   sharedRuntime?: SharedModeRuntimeInfo | null;
   error?: string;
@@ -105,6 +123,7 @@ export type AppDetailPageProps = {
 
 export default function MiniAppDetailPage({
   app,
+  miniAppNav,
   notifications,
   sharedRuntime,
   error,
@@ -307,45 +326,69 @@ export default function MiniAppDetailPage({
 
   return (
     <Layout hideFooter>
-      <div className="min-h-screen bg-white pb-16 pt-16 text-gray-900">
+      <div className="min-h-screen bg-[#f6f8fb] pb-10 pt-16 text-gray-900">
         <Head>
           <title>{`${app.name} - R3E MiniApps`}</title>
         </Head>
         <AppDetailHeader app={app} onBack={handleBack} />
 
-        <main className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 sm:py-8">
-          <section className="mb-6 rounded-3xl border border-gray-200/70 bg-white/80 p-6 shadow-sm">
-            {app.detail_template?.hero?.eyebrow && (
-              <p className="mb-3 text-xs font-semibold uppercase text-neo">
-                {app.detail_template.hero.eyebrow}
-              </p>
-            )}
-            <p className="break-words text-base leading-relaxed text-gray-600">
-              {app.description}
-            </p>
-            {app.detail_template?.hero?.disclaimer && (
-              <p className="mt-3 break-words text-xs text-gray-500 italic">
-                {app.detail_template.hero.disclaimer}
-              </p>
-            )}
-            {app.docs_url && (
-              <div className="mt-4">
-                <a
-                  href={app.docs_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs font-medium text-gray-500 hover:text-neo transition-colors"
-                >
-                  View documentation &rarr;
-                </a>
-              </div>
-            )}
-          </section>
+        <main className="mx-auto max-w-[1600px] px-3 py-4 sm:px-5">
+          <div
+            className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[268px_minmax(0,1fr)_340px]"
+            data-testid="miniapp-detail-layout"
+          >
+            <MiniAppListRail currentAppId={app.app_id} miniapps={miniAppNav} />
 
-          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="space-y-6">
-              <section className="relative z-10 w-full">
+            <section className="order-1 min-w-0 space-y-6 xl:order-none" aria-label="MiniApp workspace">
+              <section
+                className="relative z-10 w-full"
+                aria-label="MiniApp play area"
+                data-testid="miniapp-playarea"
+              >
                 <MiniAppPlayfield app={app} />
+              </section>
+
+              <section
+                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
+                aria-label="MiniApp information"
+                data-testid="miniapp-info"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    {app.detail_template?.hero?.eyebrow && (
+                      <p className="mb-2 text-xs font-semibold uppercase text-emerald-600">
+                        {app.detail_template.hero.eyebrow}
+                      </p>
+                    )}
+                    <h2 className="m-0 flex items-center gap-2 text-base font-bold text-gray-900">
+                      <Info className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                      MiniApp Information
+                    </h2>
+                    <p className="mt-2 break-words text-sm leading-6 text-gray-600">
+                      {app.description}
+                    </p>
+                    {app.detail_template?.hero?.disclaimer && (
+                      <p className="mt-2 break-words text-xs italic text-gray-500">
+                        {app.detail_template.hero.disclaimer}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold capitalize text-emerald-700">
+                      {app.status || "active"}
+                    </span>
+                    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold capitalize text-gray-600">
+                      {app.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                  <InfoPill label="App ID" value={app.app_id} />
+                  <InfoPill
+                    label="Contract"
+                    value={app.contract_hash || "Shared / frontend runtime"}
+                  />
+                </div>
               </section>
 
               {appActivities && appActivities.length > 0 && (
@@ -359,10 +402,10 @@ export default function MiniAppDetailPage({
                 </section>
               )}
 
-              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-5 shadow-sm">
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                 <div
                   role="tablist"
-                  className="mb-6 flex flex-wrap gap-1 p-1 rounded-2xl bg-gray-100/50 border border-gray-200/50"
+                  className="mb-5 flex flex-wrap gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1"
                 >
                   {tabs.map((tab) => (
                     <button
@@ -373,10 +416,10 @@ export default function MiniAppDetailPage({
                       aria-selected={activeTabConfig?.id === tab.id}
                       aria-controls={`tabpanel-${tab.id}`}
                       tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
-                      className={`cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-5 sm:py-2.5 ${
+                      className={`cursor-pointer rounded-md bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-4 ${
                         activeTabConfig?.id === tab.id
-                          ? "bg-white text-neo shadow-sm"
-                          : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                          ? "bg-white text-emerald-700 shadow-sm"
+                          : "text-gray-500 hover:bg-white/70 hover:text-gray-900"
                       }`}
                       onClick={() => setActiveTab(tab.id)}
                     >
@@ -452,16 +495,45 @@ export default function MiniAppDetailPage({
               </section>
             </section>
 
-            <aside className="self-start space-y-4 xl:sticky xl:top-24">
-              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                <h2 className="text-base font-bold text-gray-900 sm:text-lg">
-                  {operationTitle}
-                </h2>
+            <aside
+              className="order-3 self-start space-y-3 xl:order-none xl:sticky xl:top-24"
+              aria-label="MiniApp actions"
+              data-testid="miniapp-actions"
+            >
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                      Action Console
+                    </p>
+                    <h2 className="m-0 text-base font-bold text-gray-900 sm:text-lg">
+                      {operationTitle}
+                    </h2>
+                  </div>
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                      walletConnected
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
+                    }`}
+                  >
+                    {walletConnected ? "Wallet Ready" : "Wallet Required"}
+                  </span>
+                </div>
                 {operationSubtitle && (
                   <p className="mt-1 break-words text-xs text-gray-500">
                     {operationSubtitle}
                   </p>
                 )}
+
+                <div className="mt-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                  <Wallet className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {walletConnected && walletAddress
+                      ? walletAddress
+                      : "Connect wallet from the top navigation to submit on-chain transactions."}
+                  </span>
+                </div>
 
                 {invokeFeedback && (
                   <div
@@ -481,18 +553,19 @@ export default function MiniAppDetailPage({
                     onInvoke={handleInvoke}
                     showTitle={false}
                     className="mt-4"
+                    variant="embedded"
                   />
                 )}
 
                 {!walletConnected && (
-                  <p className="mt-3 text-xs text-gray-500">
+                  <p className="mt-3 text-xs leading-5 text-gray-500">
                     Connect wallet from the top navigation to submit on-chain
                     transactions.
                   </p>
                 )}
 
                 {isSharedModeApp(app) && !app.contract_hash && (
-                  <p className="mt-3 text-xs text-gray-500">
+                  <p className="mt-3 text-xs leading-5 text-gray-500">
                     This app is running in shared mode. Operations are resolved
                     through recipe bindings and shared module contracts instead
                     of a dedicated app contract.
@@ -501,8 +574,9 @@ export default function MiniAppDetailPage({
               </section>
 
               {sharedRuntime && (
-                <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                  <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <Activity className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                     Shared Runtime
                   </h3>
                   <p className="my-1.5 text-xs text-gray-500">
@@ -536,7 +610,7 @@ export default function MiniAppDetailPage({
                     {sharedRuntime.modules.map((module) => (
                       <div
                         key={`${module.binding}:${module.moduleId}:${module.version}`}
-                        className="rounded-xl border border-gray-200/70 bg-white/70 p-3"
+                        className="rounded-lg border border-gray-200 bg-gray-50 p-3"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-xs font-semibold uppercase text-gray-500">
@@ -562,8 +636,9 @@ export default function MiniAppDetailPage({
                 </section>
               )}
 
-              <section className="rounded-3xl border border-gray-200/70 bg-white/70 p-4 sm:p-5 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-gray-900">
+              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
                   Contract Details
                 </h3>
                 <p className="my-1.5 text-xs text-gray-500">
@@ -581,10 +656,10 @@ export default function MiniAppDetailPage({
                   </p>
                 )}
                 <p className="my-1.5 text-xs text-gray-500">
-                  Entry URL:{" "}
-                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                    {app.entry_url}
-                  </code>
+                  Runtime:{" "}
+                  <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                    Native MiniApp page
+                  </span>
                 </p>
                 {app.docs_url && (
                   <p className="my-1.5 text-xs text-gray-500">
@@ -611,19 +686,21 @@ function OverviewTab({
   blocks: MiniAppContentBlock[];
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {blocks.length > 0 && <DetailContentBlocks blocks={blocks} />}
 
-      <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-        <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <h3 className="mb-4 mt-0 text-sm font-semibold text-gray-900">
           Permissions
         </h3>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
               <div key={key} className="flex items-center gap-2">
-                <span className="text-neo text-base font-bold">✓</span>
-                <span className="text-sm text-gray-900">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                  ✓
+                </span>
+                <span className="text-sm text-gray-700">
                   {formatPermission(key)}
                 </span>
               </div>
@@ -633,23 +710,23 @@ function OverviewTab({
       </div>
 
       {app.limits && (
-        <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h3 className="mb-3 mt-0 text-sm font-semibold text-gray-900">
             Limits
           </h3>
           <ul className="list-none p-0 m-0">
             {app.limits.max_gas_per_tx && (
-              <li className="text-sm text-gray-500 py-2 border-b border-gray-200">
+              <li className="border-b border-gray-200 py-2 text-sm text-gray-600">
                 Max GAS per transaction: {app.limits.max_gas_per_tx}
               </li>
             )}
             {app.limits.daily_gas_cap_per_user && (
-              <li className="text-sm text-gray-500 py-2 border-b border-gray-200">
+              <li className="border-b border-gray-200 py-2 text-sm text-gray-600">
                 Daily GAS cap per user: {app.limits.daily_gas_cap_per_user}
               </li>
             )}
             {app.limits.governance_cap && (
-              <li className="text-sm text-gray-500 py-2 border-b border-gray-200">
+              <li className="border-b border-gray-200 py-2 text-sm text-gray-600">
                 Governance cap per user: {app.limits.governance_cap}
               </li>
             )}
@@ -658,20 +735,169 @@ function OverviewTab({
       )}
 
       {app.docs_url && (
-        <div className="bg-white/70 rounded-2xl p-6 border border-gray-200/70">
-          <h3 className="text-lg font-semibold text-gray-900 mt-0 mb-4">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h3 className="mb-3 mt-0 text-sm font-semibold text-gray-900">
             Documentation
           </h3>
           <a
             href={app.docs_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-neo no-underline text-sm font-medium transition-colors hover:text-neo/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-lg"
+            className="inline-flex items-center gap-2 rounded-lg text-sm font-medium text-emerald-700 no-underline transition-colors hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
           >
-            📄 View Documentation →
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            View Documentation
           </a>
         </div>
       )}
+    </div>
+  );
+}
+
+function MiniAppListRail({
+  currentAppId,
+  miniapps,
+}: {
+  currentAppId: string;
+  miniapps: MiniAppNavItem[];
+}) {
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const categories = useMemo(
+    () =>
+      Array.from(new Set(miniapps.map((item) => item.category).filter(Boolean)))
+        .sort()
+        .slice(0, 6),
+    [miniapps],
+  );
+  const filteredMiniapps = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return miniapps.filter((item) => {
+      const matchesCategory =
+        categoryFilter === "all" || item.category === categoryFilter;
+      if (!matchesCategory) return false;
+      if (!normalizedQuery) return true;
+      return (
+        item.name.toLowerCase().includes(normalizedQuery) ||
+        item.app_id.toLowerCase().includes(normalizedQuery) ||
+        item.category.toLowerCase().includes(normalizedQuery)
+      );
+    });
+  }, [categoryFilter, miniapps, query]);
+  const visibleMiniapps = filteredMiniapps.slice(0, 80);
+
+  return (
+    <aside
+      className="order-2 self-start rounded-lg border border-gray-200 bg-white p-3 shadow-sm xl:order-none xl:sticky xl:top-24"
+      aria-label="MiniApp list"
+      data-testid="miniapp-list-rail"
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="m-0 text-sm font-bold text-gray-900">MiniApps</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            {filteredMiniapps.length} active surfaces
+          </p>
+        </div>
+        <Link
+          href="/miniapps"
+          prefetch={false}
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:border-neo/40 hover:text-neo focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        >
+          Browse
+        </Link>
+      </div>
+
+      <label className="relative mb-3 block">
+        <span className="sr-only">Search MiniApps</span>
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+          aria-hidden="true"
+        />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search miniapps"
+          className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-neo focus:bg-white focus:ring-2 focus:ring-neo/20"
+        />
+      </label>
+
+      <div className="mb-3 flex gap-1 overflow-x-auto pb-1">
+        {["all", ...categories].map((category) => {
+          const active = categoryFilter === category;
+          return (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setCategoryFilter(category)}
+              className={`shrink-0 cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                active
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {category}
+            </button>
+          );
+        })}
+      </div>
+
+      <nav className="max-h-[calc(100vh-15rem)] space-y-1 overflow-y-auto pr-1">
+        {visibleMiniapps.map((item) => {
+          const selected = item.app_id === currentAppId;
+          return (
+            <Link
+              key={item.app_id}
+              href={`/miniapps/${item.app_id}`}
+              prefetch={false}
+              aria-current={selected ? "page" : undefined}
+              className={`flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                selected
+                  ? "border-neo/30 bg-neo/10 text-gray-900"
+                  : "border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              <MiniAppLogo
+                appId={item.app_id}
+                category={item.category}
+                entryUrl={item.entry_url}
+                logoUrl={item.logo_url}
+                manifest={null}
+                size="sm"
+                className="shrink-0"
+                alt={item.name}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">
+                  {item.name}
+                </span>
+                <span className="mt-0.5 block truncate text-[11px] capitalize text-gray-500">
+                  {item.category}
+                </span>
+              </span>
+            </Link>
+          );
+        })}
+        {visibleMiniapps.length === 0 && (
+          <p className="rounded-lg border border-dashed border-gray-200 px-3 py-5 text-center text-xs text-gray-500">
+            No MiniApps match this filter.
+          </p>
+        )}
+      </nav>
+    </aside>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+      <div className="text-[11px] font-semibold uppercase text-gray-400">
+        {label}
+      </div>
+      <div className="mt-1 break-all font-mono text-[12px] text-gray-700">
+        {value}
+      </div>
     </div>
   );
 }
@@ -823,6 +1049,40 @@ function buildInvokeArgs(
   });
 }
 
+function toMiniAppNavItems(miniapps: MiniAppInfo[]): MiniAppNavItem[] {
+  return miniapps.map((item) => ({
+    app_id: item.app_id,
+    name: item.name,
+    category: item.category,
+    entry_url: item.entry_url,
+    logo_url: item.logo_url ?? null,
+  }));
+}
+
+function findCatalogAppById(miniapps: MiniAppInfo[], appId: string): MiniAppInfo | null {
+  const target = appId.trim().toLowerCase();
+  if (!target) return null;
+  return miniapps.find((item) => item.app_id.toLowerCase() === target) ?? null;
+}
+
+function withBundledAuthoritativeFields(
+  remote: MiniAppInfo | null,
+  bundled: MiniAppInfo | null,
+): MiniAppInfo | null {
+  if (!remote) return bundled;
+  if (!bundled) return remote;
+  return {
+    ...remote,
+    contract_hash: bundled.contract_hash ?? remote.contract_hash,
+    entry_url: bundled.entry_url || remote.entry_url,
+    permissions: bundled.permissions ?? remote.permissions,
+    operations: bundled.operations ?? remote.operations,
+    logo_url: bundled.logo_url ?? remote.logo_url,
+    banner_url: bundled.banner_url ?? remote.banner_url,
+    manifest: bundled.manifest ?? remote.manifest,
+  };
+}
+
 // Server-Side Props
 export const getServerSideProps: GetServerSideProps<
   AppDetailPageProps
@@ -830,47 +1090,40 @@ export const getServerSideProps: GetServerSideProps<
   const { id } = context.params as { id: string };
   const encodedId = encodeURIComponent(id);
 
+  if (isArchivedMiniAppId(id)) {
+    return { notFound: true };
+  }
+
   const fallback = await loadBundledMiniAppById(id);
+  const miniAppNav = await loadMiniAppCatalog("active").catch((e: unknown) => {
+    console.warn(
+      "[miniapps/id] miniapp navigation catalog failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return [];
+  });
+  const miniAppNavItems = toMiniAppNavItems(miniAppNav);
 
   try {
     const baseUrl = resolveInternalBaseUrl(
       context.req as RequestLike | undefined,
     );
-    // Parallel fetch with shorter timeout (2s) for faster page load
-    const [catalogRes, notifRes] = await Promise.all([
-      fetchWithTimeout(
-        `${baseUrl}/api/miniapps/catalog?app_id=${encodedId}`,
-        {},
-        2000,
-      ).catch((e: unknown) => {
-        console.warn(
-          "[miniapps/id] catalog fetch failed:",
-          e instanceof Error ? e.message : String(e),
-        );
-        return null;
-      }),
-      fetchWithTimeout(
-        `${baseUrl}/api/app/${encodedId}/news?limit=20`,
-        {},
-        2000,
-      ).catch((e: unknown) => {
-        console.warn(
-          "[miniapps/id] news fetch failed:",
-          e instanceof Error ? e.message : String(e),
-        );
-        return null;
-      }),
-    ]);
+    const catalogApp = withBundledAuthoritativeFields(
+      findCatalogAppById(miniAppNav, id),
+      fallback,
+    );
+    const notifRes = await fetchWithTimeout(
+      `${baseUrl}/api/app/${encodedId}/news?limit=20`,
+      {},
+      2000,
+    ).catch((e: unknown) => {
+      console.warn(
+        "[miniapps/id] news fetch failed:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    });
 
-    const catalogData = catalogRes?.ok
-      ? await catalogRes.json().catch((e: unknown) => {
-          console.warn(
-            "[miniapps/id] failed to parse catalog JSON:",
-            e instanceof Error ? e.message : String(e),
-          );
-          return {};
-        })
-      : {};
     const notifData = notifRes?.ok
       ? await notifRes.json().catch((e: unknown) => {
           console.warn(
@@ -880,17 +1133,10 @@ export const getServerSideProps: GetServerSideProps<
           return { notifications: [] };
         })
       : { notifications: [] };
-    const catalogApp = catalogData?.app ?? null;
     const app = coerceMiniAppInfo(catalogApp, fallback ?? undefined);
 
     if (!app) {
-      return {
-        props: {
-          app: null,
-          notifications: [],
-          error: "App not found",
-        },
-      };
+      return { notFound: true };
     }
 
     const sharedRuntime = isSharedModeApp(app)
@@ -906,6 +1152,7 @@ export const getServerSideProps: GetServerSideProps<
     return {
       props: {
         app: sanitizeForJson(app),
+        miniAppNav: sanitizeForJson(miniAppNavItems),
         notifications: notifData.notifications || [],
         sharedRuntime: sanitizeForJson(sharedRuntime),
       },
@@ -916,6 +1163,7 @@ export const getServerSideProps: GetServerSideProps<
       return {
         props: {
           app: sanitizeForJson(fallback),
+          miniAppNav: sanitizeForJson(miniAppNavItems),
           notifications: [],
           sharedRuntime: null,
           error:
@@ -926,6 +1174,7 @@ export const getServerSideProps: GetServerSideProps<
     return {
       props: {
         app: null,
+        miniAppNav: sanitizeForJson(miniAppNavItems),
         notifications: [],
         sharedRuntime: null,
         error: "Failed to load app details",

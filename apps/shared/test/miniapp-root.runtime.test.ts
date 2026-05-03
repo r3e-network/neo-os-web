@@ -121,4 +121,32 @@ describe("MiniAppRoot runtime-owned services", () => {
     root.unmount();
     container.remove();
   });
+
+  it("does not reserve an empty operation sidebar when no operations are configured", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      React.createElement(MiniAppRoot, {
+        appId: "miniapp-runtime-no-ops",
+        playArea: DummyPlayArea as any,
+        manifest,
+        messages,
+        setupFn: async () => ({
+          state: {
+            counter: { value: 1 },
+          },
+        }),
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".page-grid--no-operation")).not.toBeNull();
+      expect(container.querySelector(".sidebar-right")).toBeNull();
+    });
+
+    root.unmount();
+    container.remove();
+  });
 });
