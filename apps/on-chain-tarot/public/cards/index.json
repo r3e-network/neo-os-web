@@ -1,0 +1,704 @@
+[
+  {
+    "id": 0,
+    "name": "The Fool",
+    "suit": "major",
+    "number": 0,
+    "keyword": "Spark",
+    "meaning": "Leap",
+    "image": "./cards/00-the-fool.svg"
+  },
+  {
+    "id": 1,
+    "name": "The Magician",
+    "suit": "major",
+    "number": 1,
+    "keyword": "Protocol",
+    "meaning": "Intent",
+    "image": "./cards/01-the-magician.svg"
+  },
+  {
+    "id": 2,
+    "name": "The High Priestess",
+    "suit": "major",
+    "number": 2,
+    "keyword": "Oracle",
+    "meaning": "Signal",
+    "image": "./cards/02-the-high-priestess.svg"
+  },
+  {
+    "id": 3,
+    "name": "The Empress",
+    "suit": "major",
+    "number": 3,
+    "keyword": "Growth",
+    "meaning": "Creation",
+    "image": "./cards/03-the-empress.svg"
+  },
+  {
+    "id": 4,
+    "name": "The Emperor",
+    "suit": "major",
+    "number": 4,
+    "keyword": "Order",
+    "meaning": "Governance",
+    "image": "./cards/04-the-emperor.svg"
+  },
+  {
+    "id": 5,
+    "name": "The Hierophant",
+    "suit": "major",
+    "number": 5,
+    "keyword": "Canon",
+    "meaning": "Trust",
+    "image": "./cards/05-the-hierophant.svg"
+  },
+  {
+    "id": 6,
+    "name": "The Lovers",
+    "suit": "major",
+    "number": 6,
+    "keyword": "Bridge",
+    "meaning": "Choice",
+    "image": "./cards/06-the-lovers.svg"
+  },
+  {
+    "id": 7,
+    "name": "The Chariot",
+    "suit": "major",
+    "number": 7,
+    "keyword": "Vector",
+    "meaning": "Will",
+    "image": "./cards/07-the-chariot.svg"
+  },
+  {
+    "id": 8,
+    "name": "Strength",
+    "suit": "major",
+    "number": 8,
+    "keyword": "Courage",
+    "meaning": "Grace",
+    "image": "./cards/08-strength.svg"
+  },
+  {
+    "id": 9,
+    "name": "The Hermit",
+    "suit": "major",
+    "number": 9,
+    "keyword": "Beacon",
+    "meaning": "Inquiry",
+    "image": "./cards/09-the-hermit.svg"
+  },
+  {
+    "id": 10,
+    "name": "Wheel of Fortune",
+    "suit": "major",
+    "number": 10,
+    "keyword": "Cycle",
+    "meaning": "Chance",
+    "image": "./cards/10-wheel-of-fortune.svg"
+  },
+  {
+    "id": 11,
+    "name": "Justice",
+    "suit": "major",
+    "number": 11,
+    "keyword": "Ledger",
+    "meaning": "Balance",
+    "image": "./cards/11-justice.svg"
+  },
+  {
+    "id": 12,
+    "name": "The Hanged Man",
+    "suit": "major",
+    "number": 12,
+    "keyword": "Pause",
+    "meaning": "Perspective",
+    "image": "./cards/12-the-hanged-man.svg"
+  },
+  {
+    "id": 13,
+    "name": "Death",
+    "suit": "major",
+    "number": 13,
+    "keyword": "Release",
+    "meaning": "Renewal",
+    "image": "./cards/13-death.svg"
+  },
+  {
+    "id": 14,
+    "name": "Temperance",
+    "suit": "major",
+    "number": 14,
+    "keyword": "Flow",
+    "meaning": "Alchemy",
+    "image": "./cards/14-temperance.svg"
+  },
+  {
+    "id": 15,
+    "name": "The Devil",
+    "suit": "major",
+    "number": 15,
+    "keyword": "Shadow",
+    "meaning": "Attachment",
+    "image": "./cards/15-the-devil.svg"
+  },
+  {
+    "id": 16,
+    "name": "The Tower",
+    "suit": "major",
+    "number": 16,
+    "keyword": "Break",
+    "meaning": "Truth",
+    "image": "./cards/16-the-tower.svg"
+  },
+  {
+    "id": 17,
+    "name": "The Star",
+    "suit": "major",
+    "number": 17,
+    "keyword": "Hope",
+    "meaning": "Guidance",
+    "image": "./cards/17-the-star.svg"
+  },
+  {
+    "id": 18,
+    "name": "The Moon",
+    "suit": "major",
+    "number": 18,
+    "keyword": "Dream",
+    "meaning": "Mystery",
+    "image": "./cards/18-the-moon.svg"
+  },
+  {
+    "id": 19,
+    "name": "The Sun",
+    "suit": "major",
+    "number": 19,
+    "keyword": "Radiance",
+    "meaning": "Joy",
+    "image": "./cards/19-the-sun.svg"
+  },
+  {
+    "id": 20,
+    "name": "Judgement",
+    "suit": "major",
+    "number": 20,
+    "keyword": "Awakening",
+    "meaning": "Call",
+    "image": "./cards/20-judgement.svg"
+  },
+  {
+    "id": 21,
+    "name": "The World",
+    "suit": "major",
+    "number": 21,
+    "keyword": "Network",
+    "meaning": "Completion",
+    "image": "./cards/21-the-world.svg"
+  },
+  {
+    "id": 22,
+    "name": "Ace of Wands",
+    "suit": "wands",
+    "number": 1,
+    "keyword": "Seed Will",
+    "meaning": "Will",
+    "image": "./cards/22-ace-of-wands.svg"
+  },
+  {
+    "id": 23,
+    "name": "Two of Wands",
+    "suit": "wands",
+    "number": 2,
+    "keyword": "Pair Will",
+    "meaning": "Will",
+    "image": "./cards/23-two-of-wands.svg"
+  },
+  {
+    "id": 24,
+    "name": "Three of Wands",
+    "suit": "wands",
+    "number": 3,
+    "keyword": "Build Will",
+    "meaning": "Will",
+    "image": "./cards/24-three-of-wands.svg"
+  },
+  {
+    "id": 25,
+    "name": "Four of Wands",
+    "suit": "wands",
+    "number": 4,
+    "keyword": "Base Will",
+    "meaning": "Will",
+    "image": "./cards/25-four-of-wands.svg"
+  },
+  {
+    "id": 26,
+    "name": "Five of Wands",
+    "suit": "wands",
+    "number": 5,
+    "keyword": "Tension Will",
+    "meaning": "Will",
+    "image": "./cards/26-five-of-wands.svg"
+  },
+  {
+    "id": 27,
+    "name": "Six of Wands",
+    "suit": "wands",
+    "number": 6,
+    "keyword": "Harmony Will",
+    "meaning": "Will",
+    "image": "./cards/27-six-of-wands.svg"
+  },
+  {
+    "id": 28,
+    "name": "Seven of Wands",
+    "suit": "wands",
+    "number": 7,
+    "keyword": "Test Will",
+    "meaning": "Will",
+    "image": "./cards/28-seven-of-wands.svg"
+  },
+  {
+    "id": 29,
+    "name": "Eight of Wands",
+    "suit": "wands",
+    "number": 8,
+    "keyword": "Motion Will",
+    "meaning": "Will",
+    "image": "./cards/29-eight-of-wands.svg"
+  },
+  {
+    "id": 30,
+    "name": "Nine of Wands",
+    "suit": "wands",
+    "number": 9,
+    "keyword": "Mastery Will",
+    "meaning": "Will",
+    "image": "./cards/30-nine-of-wands.svg"
+  },
+  {
+    "id": 31,
+    "name": "Ten of Wands",
+    "suit": "wands",
+    "number": 10,
+    "keyword": "Harvest Will",
+    "meaning": "Will",
+    "image": "./cards/31-ten-of-wands.svg"
+  },
+  {
+    "id": 32,
+    "name": "Page of Wands",
+    "suit": "wands",
+    "number": 11,
+    "keyword": "Message Will",
+    "meaning": "Will",
+    "image": "./cards/32-page-of-wands.svg"
+  },
+  {
+    "id": 33,
+    "name": "Knight of Wands",
+    "suit": "wands",
+    "number": 12,
+    "keyword": "Quest Will",
+    "meaning": "Will",
+    "image": "./cards/33-knight-of-wands.svg"
+  },
+  {
+    "id": 34,
+    "name": "Queen of Wands",
+    "suit": "wands",
+    "number": 13,
+    "keyword": "Sovereign Will",
+    "meaning": "Will",
+    "image": "./cards/34-queen-of-wands.svg"
+  },
+  {
+    "id": 35,
+    "name": "King of Wands",
+    "suit": "wands",
+    "number": 14,
+    "keyword": "Command Will",
+    "meaning": "Will",
+    "image": "./cards/35-king-of-wands.svg"
+  },
+  {
+    "id": 36,
+    "name": "Ace of Cups",
+    "suit": "cups",
+    "number": 1,
+    "keyword": "Seed Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/36-ace-of-cups.svg"
+  },
+  {
+    "id": 37,
+    "name": "Two of Cups",
+    "suit": "cups",
+    "number": 2,
+    "keyword": "Pair Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/37-two-of-cups.svg"
+  },
+  {
+    "id": 38,
+    "name": "Three of Cups",
+    "suit": "cups",
+    "number": 3,
+    "keyword": "Build Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/38-three-of-cups.svg"
+  },
+  {
+    "id": 39,
+    "name": "Four of Cups",
+    "suit": "cups",
+    "number": 4,
+    "keyword": "Base Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/39-four-of-cups.svg"
+  },
+  {
+    "id": 40,
+    "name": "Five of Cups",
+    "suit": "cups",
+    "number": 5,
+    "keyword": "Tension Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/40-five-of-cups.svg"
+  },
+  {
+    "id": 41,
+    "name": "Six of Cups",
+    "suit": "cups",
+    "number": 6,
+    "keyword": "Harmony Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/41-six-of-cups.svg"
+  },
+  {
+    "id": 42,
+    "name": "Seven of Cups",
+    "suit": "cups",
+    "number": 7,
+    "keyword": "Test Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/42-seven-of-cups.svg"
+  },
+  {
+    "id": 43,
+    "name": "Eight of Cups",
+    "suit": "cups",
+    "number": 8,
+    "keyword": "Motion Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/43-eight-of-cups.svg"
+  },
+  {
+    "id": 44,
+    "name": "Nine of Cups",
+    "suit": "cups",
+    "number": 9,
+    "keyword": "Mastery Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/44-nine-of-cups.svg"
+  },
+  {
+    "id": 45,
+    "name": "Ten of Cups",
+    "suit": "cups",
+    "number": 10,
+    "keyword": "Harvest Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/45-ten-of-cups.svg"
+  },
+  {
+    "id": 46,
+    "name": "Page of Cups",
+    "suit": "cups",
+    "number": 11,
+    "keyword": "Message Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/46-page-of-cups.svg"
+  },
+  {
+    "id": 47,
+    "name": "Knight of Cups",
+    "suit": "cups",
+    "number": 12,
+    "keyword": "Quest Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/47-knight-of-cups.svg"
+  },
+  {
+    "id": 48,
+    "name": "Queen of Cups",
+    "suit": "cups",
+    "number": 13,
+    "keyword": "Sovereign Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/48-queen-of-cups.svg"
+  },
+  {
+    "id": 49,
+    "name": "King of Cups",
+    "suit": "cups",
+    "number": 14,
+    "keyword": "Command Feeling",
+    "meaning": "Feeling",
+    "image": "./cards/49-king-of-cups.svg"
+  },
+  {
+    "id": 50,
+    "name": "Ace of Swords",
+    "suit": "swords",
+    "number": 1,
+    "keyword": "Seed Mind",
+    "meaning": "Mind",
+    "image": "./cards/50-ace-of-swords.svg"
+  },
+  {
+    "id": 51,
+    "name": "Two of Swords",
+    "suit": "swords",
+    "number": 2,
+    "keyword": "Pair Mind",
+    "meaning": "Mind",
+    "image": "./cards/51-two-of-swords.svg"
+  },
+  {
+    "id": 52,
+    "name": "Three of Swords",
+    "suit": "swords",
+    "number": 3,
+    "keyword": "Build Mind",
+    "meaning": "Mind",
+    "image": "./cards/52-three-of-swords.svg"
+  },
+  {
+    "id": 53,
+    "name": "Four of Swords",
+    "suit": "swords",
+    "number": 4,
+    "keyword": "Base Mind",
+    "meaning": "Mind",
+    "image": "./cards/53-four-of-swords.svg"
+  },
+  {
+    "id": 54,
+    "name": "Five of Swords",
+    "suit": "swords",
+    "number": 5,
+    "keyword": "Tension Mind",
+    "meaning": "Mind",
+    "image": "./cards/54-five-of-swords.svg"
+  },
+  {
+    "id": 55,
+    "name": "Six of Swords",
+    "suit": "swords",
+    "number": 6,
+    "keyword": "Harmony Mind",
+    "meaning": "Mind",
+    "image": "./cards/55-six-of-swords.svg"
+  },
+  {
+    "id": 56,
+    "name": "Seven of Swords",
+    "suit": "swords",
+    "number": 7,
+    "keyword": "Test Mind",
+    "meaning": "Mind",
+    "image": "./cards/56-seven-of-swords.svg"
+  },
+  {
+    "id": 57,
+    "name": "Eight of Swords",
+    "suit": "swords",
+    "number": 8,
+    "keyword": "Motion Mind",
+    "meaning": "Mind",
+    "image": "./cards/57-eight-of-swords.svg"
+  },
+  {
+    "id": 58,
+    "name": "Nine of Swords",
+    "suit": "swords",
+    "number": 9,
+    "keyword": "Mastery Mind",
+    "meaning": "Mind",
+    "image": "./cards/58-nine-of-swords.svg"
+  },
+  {
+    "id": 59,
+    "name": "Ten of Swords",
+    "suit": "swords",
+    "number": 10,
+    "keyword": "Harvest Mind",
+    "meaning": "Mind",
+    "image": "./cards/59-ten-of-swords.svg"
+  },
+  {
+    "id": 60,
+    "name": "Page of Swords",
+    "suit": "swords",
+    "number": 11,
+    "keyword": "Message Mind",
+    "meaning": "Mind",
+    "image": "./cards/60-page-of-swords.svg"
+  },
+  {
+    "id": 61,
+    "name": "Knight of Swords",
+    "suit": "swords",
+    "number": 12,
+    "keyword": "Quest Mind",
+    "meaning": "Mind",
+    "image": "./cards/61-knight-of-swords.svg"
+  },
+  {
+    "id": 62,
+    "name": "Queen of Swords",
+    "suit": "swords",
+    "number": 13,
+    "keyword": "Sovereign Mind",
+    "meaning": "Mind",
+    "image": "./cards/62-queen-of-swords.svg"
+  },
+  {
+    "id": 63,
+    "name": "King of Swords",
+    "suit": "swords",
+    "number": 14,
+    "keyword": "Command Mind",
+    "meaning": "Mind",
+    "image": "./cards/63-king-of-swords.svg"
+  },
+  {
+    "id": 64,
+    "name": "Ace of Pentacles",
+    "suit": "pentacles",
+    "number": 1,
+    "keyword": "Seed Matter",
+    "meaning": "Matter",
+    "image": "./cards/64-ace-of-pentacles.svg"
+  },
+  {
+    "id": 65,
+    "name": "Two of Pentacles",
+    "suit": "pentacles",
+    "number": 2,
+    "keyword": "Pair Matter",
+    "meaning": "Matter",
+    "image": "./cards/65-two-of-pentacles.svg"
+  },
+  {
+    "id": 66,
+    "name": "Three of Pentacles",
+    "suit": "pentacles",
+    "number": 3,
+    "keyword": "Build Matter",
+    "meaning": "Matter",
+    "image": "./cards/66-three-of-pentacles.svg"
+  },
+  {
+    "id": 67,
+    "name": "Four of Pentacles",
+    "suit": "pentacles",
+    "number": 4,
+    "keyword": "Base Matter",
+    "meaning": "Matter",
+    "image": "./cards/67-four-of-pentacles.svg"
+  },
+  {
+    "id": 68,
+    "name": "Five of Pentacles",
+    "suit": "pentacles",
+    "number": 5,
+    "keyword": "Tension Matter",
+    "meaning": "Matter",
+    "image": "./cards/68-five-of-pentacles.svg"
+  },
+  {
+    "id": 69,
+    "name": "Six of Pentacles",
+    "suit": "pentacles",
+    "number": 6,
+    "keyword": "Harmony Matter",
+    "meaning": "Matter",
+    "image": "./cards/69-six-of-pentacles.svg"
+  },
+  {
+    "id": 70,
+    "name": "Seven of Pentacles",
+    "suit": "pentacles",
+    "number": 7,
+    "keyword": "Test Matter",
+    "meaning": "Matter",
+    "image": "./cards/70-seven-of-pentacles.svg"
+  },
+  {
+    "id": 71,
+    "name": "Eight of Pentacles",
+    "suit": "pentacles",
+    "number": 8,
+    "keyword": "Motion Matter",
+    "meaning": "Matter",
+    "image": "./cards/71-eight-of-pentacles.svg"
+  },
+  {
+    "id": 72,
+    "name": "Nine of Pentacles",
+    "suit": "pentacles",
+    "number": 9,
+    "keyword": "Mastery Matter",
+    "meaning": "Matter",
+    "image": "./cards/72-nine-of-pentacles.svg"
+  },
+  {
+    "id": 73,
+    "name": "Ten of Pentacles",
+    "suit": "pentacles",
+    "number": 10,
+    "keyword": "Harvest Matter",
+    "meaning": "Matter",
+    "image": "./cards/73-ten-of-pentacles.svg"
+  },
+  {
+    "id": 74,
+    "name": "Page of Pentacles",
+    "suit": "pentacles",
+    "number": 11,
+    "keyword": "Message Matter",
+    "meaning": "Matter",
+    "image": "./cards/74-page-of-pentacles.svg"
+  },
+  {
+    "id": 75,
+    "name": "Knight of Pentacles",
+    "suit": "pentacles",
+    "number": 12,
+    "keyword": "Quest Matter",
+    "meaning": "Matter",
+    "image": "./cards/75-knight-of-pentacles.svg"
+  },
+  {
+    "id": 76,
+    "name": "Queen of Pentacles",
+    "suit": "pentacles",
+    "number": 13,
+    "keyword": "Sovereign Matter",
+    "meaning": "Matter",
+    "image": "./cards/76-queen-of-pentacles.svg"
+  },
+  {
+    "id": 77,
+    "name": "King of Pentacles",
+    "suit": "pentacles",
+    "number": 14,
+    "keyword": "Command Matter",
+    "meaning": "Matter",
+    "image": "./cards/77-king-of-pentacles.svg"
+  }
+]

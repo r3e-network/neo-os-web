@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+set -a
 if [ -f "$PROJECT_ROOT/.env" ]; then
   # shellcheck disable=SC1091
   source "$PROJECT_ROOT/.env"
@@ -12,6 +13,7 @@ if [ -f "$PROJECT_ROOT/.env.local" ]; then
   # shellcheck disable=SC1091
   source "$PROJECT_ROOT/.env.local"
 fi
+set +a
 
 RUN_FLAGSHIP=1
 RUN_SELECTED=1

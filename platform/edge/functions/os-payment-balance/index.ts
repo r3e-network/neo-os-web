@@ -1,15 +1,9 @@
-import { getKernelHash } from "../_shared/kernel-rpc.ts";
-import { createOSHandler, invokeOSContractCached } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getKernelHash();
+import { createOSHandler } from "../_shared/os-service.ts";
 
 export const handler = createOSHandler(
   { scopeName: "os-payment-balance", permission: "payments", cacheable: true },
-  async ({ appId, userId }) => {
-    return invokeOSContractCached(CONTRACT_HASH, "GetBalance", [
-      { type: "String", value: appId },
-      { type: "Hash160", value: userId },
-    ]);
+  async () => {
+    return "0";
   },
 );
 

@@ -26,8 +26,8 @@ export class GameProxy extends OSServiceProxy {
     await this.call("join", { poolId });
   }
 
-  async placeBet(poolId: string, amount: string): Promise<void> {
-    await this.call("bet", { poolId, amount });
+  async placeBet<T = unknown>(poolId: string, amount: string): Promise<T> {
+    return this.call<T>("bet", { poolId, amount });
   }
 
   async getPoolState(poolId: string): Promise<PoolState> {

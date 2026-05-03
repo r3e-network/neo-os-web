@@ -37,6 +37,8 @@ describe("EdgeClient", () => {
   beforeEach(() => {
     fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
+    window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -77,6 +79,29 @@ describe("EdgeClient", () => {
     expect(init.headers["Authorization"]).toBe("Bearer secret-token-123");
   });
 
+  it("should include the browser wallet session token when no explicit token is set", async () => {
+    fetchSpy.mockResolvedValue(mockResponse({ ok: true }));
+    window.sessionStorage.setItem("sb-access-token", "wallet-session-jwt");
+    const client = new EdgeClient("app-1", "https://edge.example.com");
+
+    await client.call("os-storage-get");
+
+    const [, init] = fetchSpy.mock.calls[0];
+    expect(init.headers["Authorization"]).toBe("Bearer wallet-session-jwt");
+  });
+
+  it("should prefer explicit auth token over browser storage", async () => {
+    fetchSpy.mockResolvedValue(mockResponse({ ok: true }));
+    window.sessionStorage.setItem("sb-access-token", "wallet-session-jwt");
+    const client = new EdgeClient("app-1", "https://edge.example.com");
+    client.setAuthToken("explicit-token");
+
+    await client.call("os-storage-get");
+
+    const [, init] = fetchSpy.mock.calls[0];
+    expect(init.headers["Authorization"]).toBe("Bearer explicit-token");
+  });
+
   it("should work without auth token (no Authorization header)", async () => {
     fetchSpy.mockResolvedValue(mockResponse({ ok: true }));
     const client = new EdgeClient("app-1", "https://edge.example.com");
@@ -94,6 +119,15 @@ describe("EdgeClient", () => {
     const client = new EdgeClient("app-1", "https://edge.example.com");
 
     const result = await client.call("os-storage-get");
+    expect(result).toEqual(payload);
+  });
+
+  it("should unwrap the standard OS response envelope", async () => {
+    const payload = { currentStreak: 3, totalCheckins: 7 };
+    fetchSpy.mockResolvedValue(mockResponse({ ok: true, data: payload }));
+    const client = new EdgeClient("app-1", "https://edge.example.com");
+
+    const result = await client.call("os-checkin-streak");
     expect(result).toEqual(payload);
   });
 
@@ -373,12 +407,16 @@ describe("GameProxy", () => {
   });
 
   it("placeBet() should call os-game-bet with poolId and amount", async () => {
-    await game.placeBet("pool-abc", "2.5");
+    const betResult = { betId: "bet-abc" };
+    edgeCallSpy.mockResolvedValue(betResult);
+
+    const result = await game.placeBet("pool-abc", "2.5");
 
     expect(edgeCallSpy).toHaveBeenCalledWith("os-game-bet", {
       poolId: "pool-abc",
       amount: "2.5",
     });
+    expect(result).toEqual(betResult);
   });
 
   it("getPoolState() should call os-game-status with poolId", async () => {

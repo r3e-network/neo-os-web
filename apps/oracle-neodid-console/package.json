@@ -1,0 +1,9 @@
+{
+  "name": "miniapp-oracle-neodid-console",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build"
+  }
+}

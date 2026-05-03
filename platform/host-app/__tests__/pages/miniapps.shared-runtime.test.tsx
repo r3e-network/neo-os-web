@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import MiniAppDetailPage from "../../pages/miniapps/[id]";
+import MiniAppDetailPage, { getServerSideProps } from "../../pages/miniapps/[id]";
 
 jest.mock("../../components/layout", () => ({
   Layout: ({ children }: { children: React.ReactNode }) => (
@@ -59,6 +59,15 @@ jest.mock("next/router", () => ({
 }));
 
 describe("MiniAppDetailPage shared runtime", () => {
+  it("returns 404 for archived miniapp ids", async () => {
+    const result = await getServerSideProps({
+      params: { id: "miniapp-neo-swap" },
+      req: { headers: { host: "127.0.0.1:3000" } },
+    } as any);
+
+    expect(result).toEqual({ notFound: true });
+  });
+
   it("renders shared runtime bindings for shared-mode apps", () => {
     render(
       <MiniAppDetailPage
@@ -97,6 +106,7 @@ describe("MiniAppDetailPage shared runtime", () => {
             },
           },
         }}
+        miniAppNav={[]}
         notifications={[]}
         sharedRuntime={{
           network: "testnet",

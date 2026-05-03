@@ -17,12 +17,12 @@ namespace NeoMiniAppPlatform.Contracts
     //  GAME MECHANICS:
     //  - Operators create machines with weighted prize items
     //  - Items are NEP-17 tokens or NEP-11 NFTs with escrowed inventory
-    //  - Players pay GAS to pull; a deterministic seed selects the prize
+    //  - Players pay GAS to pull; Morpheus VRF selects the prize
     //  - Settlement verifies the selection on-chain and transfers the asset
     //  - Transparent odds via on-chain weights, verifiable randomness
     //
     //  SECURITY:
-    //  - Seed stored before resolution (prevents manipulation)
+    //  - Oracle request is stored before resolution
     //  - On-chain re-derivation of selected item at settlement
     //  - Reentrancy guard on all state-changing operations
     //  - Only machine owner/admin can manage inventory
@@ -329,14 +329,14 @@ namespace NeoMiniAppPlatform.Contracts
         // ===================================================================
 
         /// <summary>
-        /// Initiate a gacha pull.  Stores a deterministic seed for later
-        /// on-chain verification during settlement.
+        /// Initiate a gacha pull.  Stores the play before requesting VRF
+        /// randomness from the configured oracle.
         ///
         /// FLOW:
         /// 1. Validate machine is active and has inventory
         /// 2. Consume prepaid GAS credit
-        /// 3. Generate deterministic seed (block + player + playId)
-        /// 4. Store play data with seed
+        /// 3. Store play data
+        /// 4. Request VRF randomness and map requestId to playId
         ///
         /// Returns: playId
         /// </summary>
@@ -361,9 +361,6 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger playId = AppGetInt(appId, GA_PREFIX_PLAY_ID) + 1;
             AppPut(appId, GA_PREFIX_PLAY_ID, playId);
 
-            // Generate deterministic seed from block context
-            ByteString seed = GenerateGachaSeed(playId, player);
-
             GachaPlay play = new GachaPlay
             {
                 Player = player,
@@ -372,33 +369,57 @@ namespace NeoMiniAppPlatform.Contracts
                 Price = machine.Price,
                 Timestamp = Runtime.Time,
                 Resolved = false,
-                Seed = seed
+                Seed = (ByteString)new byte[0]
             };
             StoreGachaPlay(appId, playId, play);
 
+            ByteString payload = StdLib.Serialize(new object[] { appId, playId, machineId });
+            BigInteger requestId = RequestOracleForCallback(player, "vrf_random", payload);
+            Storage.Put(Storage.CurrentContext, AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId), playId);
+            StoreOracleRequestContext(requestId, appId, GameType_Gacha, playId);
+
             ReleaseReentrancyLock(appId);
 
-            OnGachaPlayInitiated(appId, player, machineId, playId, seed);
+            OnGachaPlayInitiated(appId, player, machineId, playId, (ByteString)new byte[0]);
             return playId;
         }
 
         /// <summary>
-        /// Resolve a gacha pull.  Re-derives the selected item from the
-        /// stored seed on-chain, then transfers the prize.
+        /// Resolve a gacha pull using oracle-provided VRF bytes, then transfer
+        /// the prize atomically.
         ///
         /// SECURITY:
-        /// - Re-calculates expected selection from stored seed
-        /// - Asserts that randomResult matches the expected selection
+        /// - Only the configured oracle can call this entry point
+        /// - Request-bound callbacks verify requestId -> playId before payout
         /// - Transfers prize atomically
         /// </summary>
         public static void ResolveGachaPull(string appId, BigInteger playId, BigInteger randomResult)
         {
+            ValidateOracle();
+            ResolveGachaPullFromOracle(appId, playId, 0, (ByteString)randomResult.ToByteArray());
+        }
+
+        private static void ResolveGachaPullFromOracle(
+            string appId,
+            BigInteger playId,
+            BigInteger requestId,
+            ByteString oracleResult)
+        {
             RequireRegistered(appId);
             RequireGameType(appId, GameType_Gacha);
+
+            if (requestId > 0)
+            {
+                byte[] reqKey = AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId);
+                ByteString mappedPlay = Storage.Get(Storage.CurrentContext, reqKey);
+                ExecutionEngine.Assert(mappedPlay != null && (BigInteger)mappedPlay == playId, "oracle request mismatch");
+                Storage.Delete(Storage.CurrentContext, reqKey);
+            }
 
             GachaPlay play = LoadGachaPlay(appId, playId);
             ExecutionEngine.Assert(play.Player != UInt160.Zero, "play not found");
             ExecutionEngine.Assert(!play.Resolved, "already resolved");
+            ExecutionEngine.Assert(oracleResult != null && oracleResult.Length > 0, "oracle result missing");
 
             AcquireReentrancyLock(appId);
 
@@ -406,13 +427,8 @@ namespace NeoMiniAppPlatform.Contracts
             GachaMachine machine = LoadGachaMachine(appId, machineId);
             ExecutionEngine.Assert(machine.Creator != UInt160.Zero, "machine not found");
 
-            // Re-derive expected selection from stored seed
-            ByteString seed = play.Seed;
-            ExecutionEngine.Assert(seed != null && seed.Length > 0, "seed missing");
+            ByteString seed = NormalizeOracleSeed(oracleResult);
             BigInteger expectedIndex = CalculateGachaSelection(appId, seed, machineId, machine.ItemCount);
-
-            // Validate the provided result matches on-chain calculation
-            ExecutionEngine.Assert(randomResult == expectedIndex, "selection mismatch");
 
             if (expectedIndex == 0)
             {
@@ -613,18 +629,12 @@ namespace NeoMiniAppPlatform.Contracts
         }
 
         /// <summary>
-        /// Generate a deterministic seed from block data + player + playId.
-        /// In production, this would use the oracle's VRF seed.
+        /// Normalize oracle VRF bytes before weighted selection.
         /// </summary>
-        private static ByteString GenerateGachaSeed(BigInteger playId, UInt160 player)
+        private static ByteString NormalizeOracleSeed(ByteString oracleResult)
         {
-            // Combine transaction hash, player address, and playId for seed
-            return CryptoLib.Sha256(
-                Helper.Concat(
-                    Helper.Concat(
-                        (ByteString)(byte[])Runtime.ExecutingScriptHash,
-                        (ByteString)(byte[])player),
-                    (ByteString)playId.ToByteArray()));
+            ExecutionEngine.Assert(oracleResult != null && oracleResult.Length > 0, "oracle result missing");
+            return CryptoLib.Sha256(oracleResult);
         }
 
         /// <summary>Pop the last token from a gacha item's token list.</summary>

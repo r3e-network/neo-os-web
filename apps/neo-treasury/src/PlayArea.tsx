@@ -42,6 +42,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
     await dispatch("refresh");
   };
 
+  const formatNumber = (value: unknown, maximumFractionDigits = 2) => {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return "0";
+    return amount.toLocaleString(undefined, { maximumFractionDigits });
+  };
+
+  const formatCategoryDetail = (cat: { name: string; [key: string]: unknown }) => {
+    const walletCount = Array.isArray(cat.wallets) ? cat.wallets.length : 0;
+    return [
+      walletCount > 0 ? `${walletCount} ${t("wallets") || "wallets"}` : null,
+      `${formatNumber(cat.totalNeo, 4)} NEO`,
+      `${formatNumber(cat.totalGas, 4)} GAS`,
+      `$${formatNumber(cat.totalUsd, 2)}`,
+    ].filter(Boolean).join(" | ");
+  };
+
   return (
     <div className="treasury-play-area">
       {/* Stats Bar */}
@@ -85,12 +101,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
                 {data.categories.map((cat: { name: string; [key: string]: unknown }, idx: number) => (
                   <div key={idx} className="category-row">
                     <span className="category-name">{cat.name}</span>
-                    <span className="category-detail">
-                      {Object.entries(cat)
-                        .filter(([k]) => k !== "name")
-                        .map(([k, v]) => `${k}: ${v}`)
-                        .join(" | ")}
-                    </span>
+                    <span className="category-detail">{formatCategoryDetail(cat)}</span>
                   </div>
                 ))}
               </div>

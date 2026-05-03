@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/prepare-standalone.mjs",
     "start": "next start",
     "test": "jest",
     "test:e2e": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && playwright test --reporter=line",

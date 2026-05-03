@@ -28,10 +28,24 @@ function getClientIp(req: NextApiRequest): string {
   return req.socket.remoteAddress ?? "unknown";
 }
 
+function getRequestPath(req: NextApiRequest): string {
+  if (!req.url) return "unknown";
+
+  try {
+    return new URL(req.url, "http://internal").pathname;
+  } catch {
+    return req.url.split("?")[0] || "unknown";
+  }
+}
+
+export function defaultRateLimitKey(req: NextApiRequest): string {
+  return `${getClientIp(req)}:${getRequestPath(req)}`;
+}
+
 export function rateLimit(config?: RateLimitConfig) {
   const windowMs = config?.windowMs ?? 60_000;
   const max = config?.max ?? 60;
-  const keyGenerator = config?.keyGenerator ?? getClientIp;
+  const keyGenerator = config?.keyGenerator ?? defaultRateLimitKey;
 
   const store = new Map<string, SlidingWindowEntry>();
 

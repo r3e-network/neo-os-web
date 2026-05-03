@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-oracle-compute-lab",
+  "name": "Oracle Compute Lab",
+  "name_zh": "预言机计算实验室",
+  "version": "1.0.0",
+  "description": "Build Morpheus off-chain compute requests with inspectable inputs.",
+  "description_zh": "构建输入可审查的 Morpheus 链下计算请求。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "oracle",
+    "morpheus",
+    "compute",
+    "workflow"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/oracle-compute-lab/index.html",
+    "icon": "/miniapps/oracle-compute-lab/logo.jpg",
+    "banner": "/miniapps/oracle-compute-lab/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://oracle-compute-lab"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-05-01T00:00:00Z",
+  "updatedAt": "2026-05-01T00:00:00Z"
+}

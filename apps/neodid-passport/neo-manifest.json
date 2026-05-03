@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neodid-passport",
+  "name": "NeoDID Passport",
+  "name_zh": "NeoDID 身份护照",
+  "version": "1.0.0",
+  "description": "Compose portable NeoDID credential previews for identity flows.",
+  "description_zh": "为身份流程生成可携带的 NeoDID 凭证预览。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": [
+    "neodid",
+    "identity",
+    "credential",
+    "passport"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/neodid-passport/index.html",
+    "icon": "/miniapps/neodid-passport/logo.jpg",
+    "banner": "/miniapps/neodid-passport/banner.jpg"
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neodid-passport"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "createdAt": "2026-05-01T00:00:00Z",
+  "updatedAt": "2026-05-01T00:00:00Z"
+}

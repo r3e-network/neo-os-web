@@ -16,8 +16,11 @@ export type MiniAppManifestCore = {
 
 const SUPPORTED_PERMISSION_KEYS = new Set([
   "wallet",
+  "aa",
+  "confidential",
   "payments",
   "governance",
+  "randomness",
   "rng",
   "datafeed",
   "storage",
@@ -26,6 +29,14 @@ const SUPPORTED_PERMISSION_KEYS = new Set([
   "automation",
   "apps",
   "secrets",
+  "badges",
+  "checkin",
+  "escrow",
+  "games",
+  "leaderboard",
+  "nft",
+  "storage",
+  "vesting",
 ]);
 
 const SUPPORTED_STATS_KEYS = new Set([

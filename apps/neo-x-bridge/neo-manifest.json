@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-x-bridge",
+  "name": "Neo X Bridge",
+  "name_zh": "Neo X 跨链桥",
+  "version": "1.0.0",
+  "description": "Operate Neo N3 and Neo X asset bridge, Message Bridge, and operation status tracking in one console.",
+  "description_zh": "在一个控制台里操作 Neo N3 与 Neo X 的资产桥、Message Bridge 和状态追踪。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "DeFi",
+  "tags": [
+    "bridge",
+    "neo-x",
+    "message-bridge",
+    "transfer",
+    "defi"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet",
+    "neo-x-mainnet",
+    "neo-x-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/neo-x-bridge/index.html",
+    "icon": "/miniapps/neo-x-bridge/logo.jpg",
+    "banner": "/miniapps/neo-x-bridge/banner.jpg"
+  },
+  "permissions": [
+    "wallet",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-x-bridge"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-05-01T00:00:00Z",
+  "updatedAt": "2026-05-03T00:00:00Z"
+}

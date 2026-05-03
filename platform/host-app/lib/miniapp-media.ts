@@ -46,6 +46,7 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-profitanchor": ["profitanchor"],
   "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
+  "miniapp-neo-pay-shared-example": ["neo-pay"],
   "miniapp-stream-vault": ["neo-pay", "stream-vault"],
   "miniapp-unbreakablevault": ["unbreakable-vault"],
 };
@@ -310,17 +311,12 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
 
 export function buildModernImageSources(url?: string | null): ModernImageSources {
   const source = toNonEmptyString(url);
-  if (!source || !source.startsWith("/miniapp-assets/")) return {};
+  if (!source) return {};
 
-  const match = source.match(/^(.*)\.(?:jpe?g|png)([?#].*)?$/i);
-  if (!match) return {};
-
-  const base = match[1];
-  const suffix = match[2] || "";
-  return {
-    avif: `${base}.avif${suffix}`,
-    webp: `${base}.webp${suffix}`,
-  };
+  // Do not invent derived AVIF/WEBP URLs. Not every MiniApp has generated
+  // modern variants, and speculative <source> entries create noisy production
+  // 404s. Manifests can still opt into modern assets via media variants.
+  return {};
 }
 
 export function withMiniAppCardAssets<T extends Pick<MiniAppInfo, "app_id" | "entry_url"> & Partial<MiniAppInfo>>(

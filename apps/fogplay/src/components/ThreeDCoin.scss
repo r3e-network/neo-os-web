@@ -11,3 +11,24 @@
 .coin-container:not(.flipping) { animation: coin-bounce 3s infinite ease-in-out; }
 @keyframes coin-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .is-flipping, .coin-container:not(.flipping), .coin-container { animation: none; } }
+
+@media (max-width: 520px) {
+  .coin-scene {
+    width: 164px;
+    height: 164px;
+  }
+
+  .coin-container {
+    width: 148px;
+    height: 148px;
+  }
+
+  .coin-symbol {
+    font-size: 40px;
+  }
+
+  .coin-shadow {
+    width: 112px;
+    height: 112px;
+  }
+}

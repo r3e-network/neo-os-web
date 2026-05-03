@@ -811,3 +811,55 @@
   .checkin-streak-number { animation: none; }
 }
 
+@media (max-width: 520px) {
+  .checkin-play-area {
+    gap: 20px;
+    padding: 22px 10px;
+  }
+
+  .checkin-week-row {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+
+  .checkin-week-day-slot {
+    min-width: 0;
+    padding: 8px 2px;
+
+    &.today-ready {
+      transform: none;
+    }
+  }
+
+  .checkin-day-icon {
+    font-size: 14px;
+  }
+
+  .checkin-day-label {
+    font-size: 9px;
+  }
+
+  .checkin-stats-grid {
+    gap: 8px;
+  }
+
+  .checkin-stat-item {
+    min-width: 0;
+    padding: 12px 4px;
+  }
+
+  .checkin-stat-value {
+    max-width: 100%;
+    font-size: 18px;
+    overflow-wrap: anywhere;
+  }
+
+  .checkin-stat-label {
+    max-width: 100%;
+    font-size: 9px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+}

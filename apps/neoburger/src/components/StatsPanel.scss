@@ -1,8 +1,0 @@
-@use "../pages/index/neoburger-theme.scss" as *;
-.stats-container { display: flex; flex-direction: column; gap: 20px; }
-.section { padding: 16px; background: var(--burger-surface, #1f1a14); border: 1px solid rgba(245, 158, 11, 0.12); border-radius: 18px; }
-.section-content { display: flex; flex-direction: column; gap: 8px; }
-.section-title { font-size: 16px; font-weight: 700; }
-.section-strong { font-size: 14px; font-weight: 600; }
-.section-text { font-size: 13px; opacity: 0.82; line-height: 1.6; }
-.center { text-align: center; }

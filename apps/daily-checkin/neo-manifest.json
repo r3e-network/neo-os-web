@@ -37,7 +37,8 @@
   },
   "permissions": [
     "invoke:primary",
-    "read:blockchain"
+    "read:blockchain",
+    "checkin"
   ],
   "features": {
     "stateless": true,

@@ -37,7 +37,9 @@ Notes:
 
 - `payGAS` / `vote` return an `invocation` intent plus a `request_id`. The host (or wallet integration) should sign and submit the invocation.
 - This SDK also exposes:
-  - `sdk.wallet.invokeInvocation(invocation)` (NeoLine N3 integration)
+  - `sdk.wallet.getProviderInfo()` to identify NEP-21, NeoLine, or EIP-1193 wallet context
+  - `sdk.wallet.signMessage(message)` for wallet-auth and binding flows
+  - `sdk.wallet.invokeInvocation(invocation)` (NEP-21 dAPI first, NeoLine N3 fallback)
   - `sdk.wallet.invokeIntent(request_id)` for intents created during this session
   - `sdk.payments.payGASAndInvoke(...)` / `sdk.governance.voteAndInvoke(...)` convenience helpers
   - `sdk.stats.getMyUsage(appId?, date?)` for per-user daily usage (base units)
@@ -165,7 +167,7 @@ const manifest = {
 };
 
 const res = await host.apps.register({ manifest });
-// Host app: build/sign tx using res.invocation (NeoLine/O3/OneGate) and submit.
+// Host app: build/sign tx using res.invocation (NEP-21/NeoLine/O3/OneGate) and submit.
 ```
 
 ## `window.MiniAppSDK`

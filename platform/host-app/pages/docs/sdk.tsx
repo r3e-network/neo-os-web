@@ -72,11 +72,12 @@ export default function SdkGuidePage() {
           <pre className="mt-4 overflow-x-auto rounded-lg bg-gray-950 p-4 text-sm text-gray-100">
             <code>{`const sdk = window.MiniAppSDK;
 
-const account = await sdk.wallet.connect();
-const tx = await sdk.invoke({
-  contractHash,
+const address = await sdk.wallet.getAddress();
+const provider = await sdk.wallet.getProviderInfo?.();
+const tx = await sdk.wallet.invokeInvocation?.({
+  contract_hash,
   method: "operationName",
-  args,
+  params: args,
 });`}</code>
           </pre>
           <p className="mt-4 text-sm leading-6 text-gray-600">

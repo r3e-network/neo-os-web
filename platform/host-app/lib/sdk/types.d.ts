@@ -32,6 +32,22 @@ export type InvocationIntent = {
     params: ContractParam[];
 };
 export type TxResult = unknown;
+export type WalletProviderKind = "nep21" | "neoline" | "evm" | "host";
+export type WalletProviderInfo = {
+    kind: WalletProviderKind;
+    name?: string;
+    network?: number;
+    address?: string;
+    accountHash?: string;
+};
+export type SignedMessage = {
+    publicKey: string;
+    data: string;
+    signature?: string;
+    account?: string;
+    salt?: string;
+    message: string;
+};
 export type IntentWithTx<TIntent> = {
     intent: TIntent;
     tx: TxResult;
@@ -45,15 +61,16 @@ export type PayGASResponse = {
     };
     invocation: InvocationIntent;
 };
-export type VoteNEOResponse = {
+export type VoteBNEOResponse = {
     request_id: string;
     user_id: string;
     intent: "governance";
     constraints: {
-        governance: "NEO_ONLY";
+        governance: "BNEO_ONLY";
     };
     invocation: InvocationIntent;
 };
+export type VoteNEOResponse = VoteBNEOResponse;
 export type RNGResponse = {
     request_id: string;
     app_id: string;
@@ -222,6 +239,7 @@ export type ComputeJob = {
     encrypted_output?: string;
     output_hash?: string;
     signature?: string;
+    attestation?: string;
 };
 export type AutomationTriggerRequest = {
     name: string;
@@ -304,6 +322,20 @@ export type ChainTransaction = {
     submitted_at: string;
     confirmed_at?: string;
 };
+export type GasSponsorCheckResponse = {
+    eligible: boolean;
+    gas_balance: string;
+    daily_limit: string;
+    used_today: string;
+    remaining: string;
+    resets_at: string;
+};
+export type GasSponsorRequestResponse = {
+    request_id: string;
+    amount: string;
+    status: string;
+    tx_hash: string | null;
+};
 export type TransactionsListParams = {
     app_id?: string;
     limit?: number;
@@ -314,10 +346,30 @@ export type TransactionsListResponse = {
     has_more: boolean;
     last_id?: string;
 };
+export type PrivacyMerklePathResponse = {
+    pathElements: string[];
+    pathIndices: number[];
+    root: string;
+};
+export type PrivacyRelayRequest = {
+    proof: string;
+    nullifierHash: string;
+    root: string;
+    recipient: string;
+    relayerFee: string;
+    asset: string;
+    amount: string;
+};
+export type PrivacyRelayResponse = {
+    status: string;
+    txHash: string;
+};
 export interface MiniAppSDK {
     getAddress?: () => Promise<string>;
     wallet: {
         getAddress(): Promise<string>;
+        getProviderInfo?: () => Promise<WalletProviderInfo>;
+        signMessage?: (message: string) => Promise<SignedMessage>;
         invokeIntent?: (requestId: string) => Promise<unknown>;
         invokeInvocation?: (invocation: InvocationIntent) => Promise<TxResult>;
     };
@@ -326,8 +378,8 @@ export interface MiniAppSDK {
         payGASAndInvoke?: (appId: string, amount: string, memo?: string) => Promise<IntentWithTx<PayGASResponse>>;
     };
     governance: {
-        vote(appId: string, proposalId: string, neoAmount: string, support?: boolean): Promise<VoteNEOResponse>;
-        voteAndInvoke?: (appId: string, proposalId: string, neoAmount: string, support?: boolean) => Promise<IntentWithTx<VoteNEOResponse>>;
+        vote(appId: string, proposalId: string, bneoAmount: string, support?: boolean): Promise<VoteBNEOResponse>;
+        voteAndInvoke?: (appId: string, proposalId: string, bneoAmount: string, support?: boolean) => Promise<IntentWithTx<VoteBNEOResponse>>;
     };
     rng: {
         requestRandom(appId: string): Promise<RNGResponse>;
@@ -343,6 +395,14 @@ export interface MiniAppSDK {
     };
     transactions: {
         list(params: TransactionsListParams): Promise<TransactionsListResponse>;
+    };
+    privacy: {
+        getMerklePath(commitment: string): Promise<PrivacyMerklePathResponse>;
+        relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse>;
+    };
+    gasSponsor: {
+        check(): Promise<GasSponsorCheckResponse>;
+        request(amount: string): Promise<GasSponsorRequestResponse>;
     };
 }
 export interface HostSDK {
@@ -418,6 +478,8 @@ export interface HostSDK {
     stats: MiniAppSDK["stats"];
     events: MiniAppSDK["events"];
     transactions: MiniAppSDK["transactions"];
+    privacy: MiniAppSDK["privacy"];
+    gasSponsor: MiniAppSDK["gasSponsor"];
 }
 export type MiniAppSDKConfig = {
     edgeBaseUrl: string;

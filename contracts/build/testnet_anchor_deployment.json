@@ -1,131 +1,141 @@
 {
   "network": "neo-n3-testnet",
   "rpc_url": "https://testnet1.neo.coz.io:443",
-  "deployer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
-  "deployer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-  "platform_anchor": "0xee1819916a6b8c7a8c30506af3318c758850033a",
-  "platform_defi": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
+  "deployer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "deployer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "platform_anchor": "0xefce9fda773bcd752ea7070eeac8c4d8bc0c0ab9",
+  "platform_defi": "0xb43bd0ded09b5d79ed858484106affc1c858483c",
   "aa_core": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38",
   "candidate": "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d",
   "aa_accounts": {
-    "profitanchor-agent-1": "0xbe0fdf1d35b1326ba717413b99079fd8fef3d58e",
-    "trustanchor-agent-1": "0xedd74c61d99a30c471aa4dc1c5579ceaf3310f2a"
+    "profitanchor-agent-1": "0xb80443cc91e13ea4a08b05fc9e872297d9346e5f",
+    "trustanchor-agent-1": "0xe236292368a344ceb85c5e0e8743e4dd9bbf74bf"
   },
   "transactions": [
     {
       "label": "Deploy PlatformAnchor",
-      "txid": "0x738f37a5cd332e46e3e0a053460e4b27ce1c8f177ce84cb5ddab0038d9194084",
-      "valid_until_block": 15513851
+      "txid": "0x1eef46834d8e80d7760a24a6ec649f6c3dc369ba23bd949d83c0862003928cc9",
+      "valid_until_block": 15695019
     },
     {
       "label": "Deploy PlatformDeFi",
-      "txid": "0x9d93d389b6c16d2f4e7d7d6002f69467cab57fd251dde91f39c7e4bfd7faf5a2",
-      "valid_until_block": 15513853
+      "txid": "0x202df85d673856a2e4b88921ef91cccb2637c9cb4c269cbf43fdbec1effbdd63",
+      "valid_until_block": 15695021
     },
     {
       "label": "Register miniapp-trustanchor",
-      "txid": "0xe82d630abc5d2ea937410922d614e3ff2474f15d6aa5560a98d5a39442b952dc",
-      "valid_until_block": 15513854
+      "txid": "0xc9c82d22c23499845480a253c04ac47e6d8bcf84183801d5762cff9ae3461f73",
+      "valid_until_block": 15695022
     },
     {
       "label": "Register miniapp-profitanchor",
-      "txid": "0x89a7b8ce45e5a9466f3042ca98866c2ff5baa0e61fdad0a22b31342cd4c49124",
-      "valid_until_block": 15513856
+      "txid": "0x4877827e006327a624643c458d86a69c8d6c04c68c15f39d876bc61c4ecb67cc",
+      "valid_until_block": 15695024
     },
     {
       "label": "Register miniapp-self-loan",
-      "txid": "0x1112f4e722772ac7de325298bef4b41c458ae2f627272ebb3e1f06a8a74ce27c",
-      "valid_until_block": 15513857
+      "txid": "0xa1f872b1a228752b5817338810430bdf782e2f7966c5fce3e86f312d9a9cddb1",
+      "valid_until_block": 15695026
+    },
+    {
+      "label": "TrustAnchor agent AA",
+      "txid": "0x4e9dbbbfeeea973f2e261af86014ce38a679a986390a433444cdfdc6ea3a7924",
+      "valid_until_block": 15695028
+    },
+    {
+      "label": "ProfitAnchor agent AA",
+      "txid": "0x512c8266a9e76e1c9c471514fd4e20e74eb595945c55ab99e799171b79812e15",
+      "valid_until_block": 15695029
     },
     {
       "label": "Register miniapp-trustanchor AA agent",
-      "txid": "0x424840247a7b29086ce89208f889a0202709f66385cfd4ab239e3feb77946854",
-      "valid_until_block": 15513859
+      "txid": "0xb7eeda386371aa86fc930698411ce6f9043bfa2764d836115d624191993787ed",
+      "valid_until_block": 15695031
     },
     {
       "label": "Register miniapp-profitanchor AA agent",
-      "txid": "0xf0b6c04c5a6665a245a0e608ec86b567cd03566673d316d441b670bf3b3af347",
-      "valid_until_block": 15513861
+      "txid": "0x59ae7c58e67a82fbf06ab51d27a8978a62dacf4ce87c7221de13415716592d6f",
+      "valid_until_block": 15695032
     },
     {
       "label": "Set ProfitAnchor agent score",
-      "txid": "0xae2af0f5f509964f2b4c7b9d6072aaf02e7695b8563f470d0bab97541e95bf1f",
-      "valid_until_block": 15513863
+      "txid": "0x9c2f1bee4982dc7aff5cc328f5369b06af7c16ba0cd7fccec238177a81a7aaca",
+      "valid_until_block": 15695035
     },
     {
       "label": "Configure SelfLoan ProfitAnchor",
-      "txid": "0x069de0249ffb9e8146750206a8224ffcfb170c99a04875e74555a52dae7c454f",
-      "valid_until_block": 15513864
+      "txid": "0x873422e35ba6a60454aad1fb45cd25aab9541e3ee4af6ea7f3fa0922349a91d6",
+      "valid_until_block": 15695036
     },
     {
       "label": "TrustAnchor stake 1 NEO",
-      "txid": "0x562fd4e9a6655a0fdaab39e9a21673f171e33dfa2e5ab8884fc356625b95a153",
-      "valid_until_block": 15513866
+      "txid": "0xf5798a9e0b8f575a612f56e5b258f1c9bf55b8af2b4e2be1cf30e2f857a42cfe",
+      "valid_until_block": 15695037
     },
     {
       "label": "TrustAnchor pooled vote",
-      "txid": "0x0e7d5dfdbd83f7a79bffc59e1ee7b443f7375cc30b393fa6ef3748d0e17caed6",
-      "valid_until_block": 15513867
+      "txid": "0x4da0d3d8f68883462f2f6f5a695b6ac62bf0e1f540146b5a0377a205e817bdf1",
+      "valid_until_block": 15695039
     },
     {
       "label": "TrustAnchor withdraw 1 NEO",
-      "txid": "0xc044b182f3b1933cfc3f4e9a6e40c5f11aeb837709b85ecc24bad6b9228e2141",
-      "valid_until_block": 15513869
+      "txid": "0x559430488d6db3829ca1cff5fed591276dc4cef9aa9a9eee20c355d48b5b6b0c",
+      "valid_until_block": 15695040
     },
     {
       "label": "ProfitAnchor stake 1 NEO",
-      "txid": "0xacd038e8c734f4a91bf5221593ba12e1f3ee224dad5b6f63c0622877d69588c8",
-      "valid_until_block": 15513870
+      "txid": "0xa916735e2187fcd42229c42c1ee52a2ef9deeff52b5aaadf6bc75888cd32219e",
+      "valid_until_block": 15695042
     },
     {
       "label": "ProfitAnchor fund 0.01 GAS credit",
-      "txid": "0xa3fe29e7146f5fe1717240c4565984f9fcb8c986a00fd991ee7da49bf0596dfb",
-      "valid_until_block": 15513872
+      "txid": "0x17a323ebc3f6dbc5ab7b7eddfaed2a413dcb6378e6deb30e94db15d9a7d3c331",
+      "valid_until_block": 15695043
     },
     {
       "label": "ProfitAnchor fund rewards",
-      "txid": "0xed439db34668405cc9caeb87faa34db6a14374a31f4e7c98089314f473866419",
-      "valid_until_block": 15513873
+      "txid": "0xa518cc9e82326a87b4f0f9e1a0795b8746da2779e1daf8ed2a89c3759ae67137",
+      "valid_until_block": 15695045
     },
     {
       "label": "ProfitAnchor claim rewards",
-      "txid": "0xa6fd31c51a0a57021731110de7cfd5afd8a16f59fe96e57e1d4b8244d786d190",
-      "valid_until_block": 15513875
+      "txid": "0xf123907ee439e0715e5cab7265023f56a05ed049bcdab3ca95de80129c7d425c",
+      "valid_until_block": 15695047
     },
     {
       "label": "ProfitAnchor vote best candidate",
-      "txid": "0x11ccd5c18072ffa5706e58bdc02079c6a0e7a6c98924f6d4f9110030a3e0b31d",
-      "valid_until_block": 15513877
+      "txid": "0xcdbc893603d52bed73561cc7a8ac59c064d0b41bbec5842dd83ce742e18e0ba8",
+      "valid_until_block": 15695048
     },
     {
       "label": "ProfitAnchor withdraw 1 NEO",
-      "txid": "0x29fa11fd25451f4e6f9572acb2b97268468acab54206561ac5e975a75a1d53dc",
-      "valid_until_block": 15513878
+      "txid": "0xf5a0986c52fe289d9ddde968b8c78a3a40eb60a768dddaad74ad36e804ea0271",
+      "valid_until_block": 15695051
     },
     {
       "label": "SelfLoan seed 0.2 GAS",
-      "txid": "0x668dacb70ecbdd413e3a1d773ff8e1d7cdc8e2b2986b7aca9e2bbfc494810384",
-      "valid_until_block": 15513880
+      "txid": "0x468f37d8954b452ce619fde9c37d32aa65267fd2ea59b7908f847e1839afebc7",
+      "valid_until_block": 15695052
     },
     {
       "label": "SelfLoan deposit 1 NEO collateral",
-      "txid": "0x23cc871fd6985d166ec05662dac8a27c97dbf257f609a2367b50a1f75b5ddb66",
-      "valid_until_block": 15513882
+      "txid": "0x94e95be970e001adc2187282f0e74a7f52340dc84cf4da6f66b7189b2ce94776",
+      "valid_until_block": 15695054
     },
     {
       "label": "SelfLoan create loan",
-      "txid": "0xa4442d1d06cb2839bef0f0ed2eafd8f2bee13c10107a166e8fff7663b54c20d2",
-      "valid_until_block": 15513884
+      "txid": "0xc4f0fd79da65e2fe8313067cd1236b9148d4d60b33aec76ee9b085cf687a8ce2",
+      "valid_until_block": 15695055
     },
     {
       "label": "SelfLoan sync ProfitAnchor vote",
-      "txid": "0x3bffe2fed8622f3c59917345d3dd98310406a3f4b97af25281ccd8a2b9e039f5",
-      "valid_until_block": 15513887
+      "txid": "0xbba9f70881f3489dcdd98f561207e133de6f4e287f22b5e66372ef9910d8212d",
+      "valid_until_block": 15695058
     },
     {
       "label": "SelfLoan repay and close loan",
-      "txid": "0x0ae81f32f9a6c94b2c7e67d12783b5c1e34f4b45034a824d13909fdd1021d171",
-      "valid_until_block": 15513888
+      "txid": "0x0c90f67ba3d98f045c8556665dd3474ef41d11d03cc4266201bed90c1f177d2e",
+      "valid_until_block": 15695059
     }
   ],
   "validation": {
@@ -145,5 +155,5 @@
       "stake_after_withdraw": "0"
     }
   },
-  "generated_at_utc": "2026-04-25T15:12:53Z"
+  "generated_at_utc": "2026-05-02T08:12:09Z"
 }

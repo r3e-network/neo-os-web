@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ type Props = {
   title?: string;
   showTitle?: boolean;
   className?: string;
+  variant?: "card" | "embedded";
 };
 
 export function OperationPanel({
@@ -19,32 +21,41 @@ export function OperationPanel({
   title = "Trade",
   showTitle = true,
   className,
+  variant = "card",
 }: Props) {
   const [activeTabIdx, setActiveTabIdx] = useState(0);
 
   if (!operations.length) return null;
 
   const activeOp = operations[activeTabIdx];
+  const embedded = variant === "embedded";
 
   return (
     <div
       className={cn(
-        "bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden",
+        embedded
+          ? "overflow-hidden rounded-lg bg-transparent"
+          : "overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm",
         className,
       )}
     >
       {showTitle && (
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div
+          className={cn(
+            "border-b border-gray-100",
+            embedded ? "px-0 pb-3" : "px-5 py-4",
+          )}
+        >
           <h3 className="text-lg font-bold text-gray-900 m-0">{title}</h3>
         </div>
       )}
 
       {/* Segmented Control for Operations */}
       {operations.length > 1 && (
-        <div className="p-2">
+        <div className={embedded ? "pb-3" : "p-2"}>
           <div
             className={cn(
-              "grid gap-1 rounded-xl bg-gray-100 p-1",
+              "grid gap-1 rounded-lg bg-gray-100 p-1",
               operations.length > 3
                 ? "grid-cols-2"
                 : "grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))]",
@@ -56,7 +67,7 @@ export function OperationPanel({
                 type="button"
                 onClick={() => setActiveTabIdx(idx)}
                 className={cn(
-                  "min-h-11 px-2 py-2 text-center text-xs font-semibold leading-tight rounded-lg transition-all duration-200 cursor-pointer border-none focus-visible:outline-none sm:text-sm",
+                  "min-h-10 cursor-pointer rounded-md border-none px-2 py-2 text-center text-xs font-semibold leading-tight transition-all duration-200 focus-visible:outline-none sm:text-sm",
                   activeTabIdx === idx
                     ? getTabActiveColor(op.button_style)
                     : "text-gray-500 hover:text-gray-700 bg-transparent",
@@ -70,7 +81,7 @@ export function OperationPanel({
       )}
 
       {/* Active Operation Form */}
-      <div className="p-5">
+      <div className={embedded ? "pt-1" : "p-5"}>
         <OperationForm
           key={`${activeTabIdx}:${activeOp.method || activeOp.name}`}
           op={activeOp}
@@ -220,7 +231,7 @@ function OperationForm({
       )}
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm break-words">
+        <div className="break-words rounded-lg bg-red-50 p-3 text-sm text-red-600">
           {error}
         </div>
       )}
@@ -228,7 +239,7 @@ function OperationForm({
       <button
         type="button"
         className={cn(
-          "w-full py-3.5 mt-2 rounded-xl font-bold text-base cursor-pointer transition-all border-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neo",
+          "mt-2 w-full cursor-pointer rounded-lg border-none py-3.5 text-base font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neo",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           getBtnClass(),
         )}
@@ -254,7 +265,7 @@ function ParamInput({
 
   if (param.type === "boolean") {
     return (
-      <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:border-neo/50 transition-colors">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:border-neo/50">
         <input
           type="checkbox"
           className="w-5 h-5 rounded border-gray-300 text-neo focus:ring-neo focus:ring-offset-gray-900"
@@ -279,7 +290,7 @@ function ParamInput({
         <div className="relative">
           <select
             id={selectId}
-            className="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all"
+            className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 transition-all focus:border-neo focus:outline-none focus:ring-2 focus:ring-neo/50"
             value={value}
             onChange={(e) => onChange(e.target.value)}
           >
@@ -290,19 +301,7 @@ function ParamInput({
             ))}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -323,7 +322,7 @@ function ParamInput({
             : "text"
         }
         step={param.type === "amount" ? "any" : "1"}
-        className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-neo/50 focus:border-neo transition-all placeholder:text-gray-400"
+        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-neo focus:outline-none focus:ring-2 focus:ring-neo/50"
         placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
         value={value}
         onChange={(e) => onChange(e.target.value)}

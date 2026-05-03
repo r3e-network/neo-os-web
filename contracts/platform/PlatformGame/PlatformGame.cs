@@ -61,6 +61,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] PREFIX_ORACLE            = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_PAUSED            = new byte[] { 0x04 };
         private static readonly byte[] PREFIX_ABSTRACT_ACCOUNT  = new byte[] { 0x07 };
+        private static readonly byte[] PREFIX_ORACLE_REQUEST    = new byte[] { 0x08 };
         private static readonly byte[] PREFIX_DIRECT_GAS_CREDIT = new byte[] { 0x70 };
 
         // ---------------------------------------------------------------
@@ -89,6 +90,13 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("AdminTimelockProposed")]
         public static event AdminTimelockProposedHandler OnAdminTimelockProposed;
+
+        private struct OracleRequestContext
+        {
+            public string AppId;
+            public BigInteger GameType;
+            public BigInteger OperationId;
+        }
 
         // ===================================================================
         //  Lifecycle
@@ -312,6 +320,36 @@ namespace NeoMiniAppPlatform.Contracts
                 "onOracleResult");
         }
 
+        private static byte[] OracleRequestKey(BigInteger requestId)
+        {
+            return (byte[])Helper.Concat(
+                (ByteString)PREFIX_ORACLE_REQUEST,
+                (ByteString)requestId.ToByteArray());
+        }
+
+        private static void StoreOracleRequestContext(
+            BigInteger requestId,
+            string appId,
+            BigInteger gameType,
+            BigInteger operationId)
+        {
+            ExecutionEngine.Assert(requestId > 0, "invalid oracle request");
+            OracleRequestContext context = new OracleRequestContext
+            {
+                AppId = appId,
+                GameType = gameType,
+                OperationId = operationId
+            };
+            Storage.Put(Storage.CurrentContext, OracleRequestKey(requestId), StdLib.Serialize(context));
+        }
+
+        private static OracleRequestContext LoadOracleRequestContext(BigInteger requestId)
+        {
+            ByteString data = Storage.Get(Storage.CurrentContext, OracleRequestKey(requestId));
+            ExecutionEngine.Assert(data != null, "oracle request context not found");
+            return (OracleRequestContext)StdLib.Deserialize(data);
+        }
+
         /// <summary>
         /// Oracle callback entry point.  Dispatches to the appropriate
         /// game module based on the appId embedded in the payload.
@@ -324,34 +362,30 @@ namespace NeoMiniAppPlatform.Contracts
             string error)
         {
             ValidateOracle();
+            OracleRequestContext context = LoadOracleRequestContext(requestId);
 
-            // The payload contains [appId, betId/playId]
-            // We need to figure out which game module this belongs to.
-            // CoinFlip bets store a request-to-bet mapping.
-            // For now we check CoinFlip first (it has the mapping), then Gacha.
-
-            // Try CoinFlip dispatch -- check all registered CoinFlip appIds
-            // by looking up request-to-bet mapping (the mapping key includes appId)
-            // Since we cannot enumerate appIds, the oracle payload must include
-            // the appId for routing.
-
-            // Decode payload (serialized as [appId, operationId])
             if (!success)
             {
-                // Failed oracle request -- nothing to do
+                Storage.Delete(Storage.CurrentContext, OracleRequestKey(requestId));
                 return;
             }
-
-            // NOTE: In a production system, the payload would be deserialized
-            // to extract appId and operationId.  Since Neo smart contracts
-            // have limited reflection, the oracle request payload was
-            // serialized with StdLib.Serialize.  We deserialize it here.
+            ExecutionEngine.Assert(requestType == "vrf_random", "unexpected oracle request");
             ExecutionEngine.Assert(result != null && result.Length > 0, "empty oracle result");
 
-            // The betId/playId mapping was stored at request time with the appId.
-            // The game modules handle their own resolution via their public
-            // ResolveCoinFlipBet / ResolveGachaPull methods which are called
-            // by the oracle callback contract with the decoded parameters.
+            if (context.GameType == GameType_CoinFlip)
+            {
+                ResolveCoinFlipBetFromOracle(context.AppId, context.OperationId, requestId, result);
+            }
+            else if (context.GameType == GameType_Gacha)
+            {
+                ResolveGachaPullFromOracle(context.AppId, context.OperationId, requestId, result);
+            }
+            else
+            {
+                ExecutionEngine.Assert(false, "unsupported oracle game type");
+            }
+
+            Storage.Delete(Storage.CurrentContext, OracleRequestKey(requestId));
         }
 
         #endregion

@@ -69,7 +69,7 @@ async function exerciseRenderedTabs(page: Page) {
 }
 
 async function expectOperationSurface(page: Page) {
-  const operationSurface = page.getByRole("complementary").first();
+  const operationSurface = page.getByTestId("miniapp-actions");
   await expect(operationSurface).toBeVisible();
   await expect(operationSurface.getByRole("heading").first()).toBeVisible();
   await expect(operationSurface).toContainText("Connect wallet from the top navigation");
@@ -80,6 +80,13 @@ async function expectOperationSurface(page: Page) {
   }
 }
 
+async function expectWalletEntryPoint(page: Page) {
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(
+    navigation.getByRole("button", { name: /log in \/ sign up/i }),
+  ).toBeVisible({ timeout: 15_000 });
+}
+
 test.describe("Flagship MiniApp frontend workflows", () => {
   for (const app of FLAGSHIP_APPS) {
     test(`${app.name} renders navigation, tabs, and operation surface`, async ({ page }) => {
@@ -88,9 +95,12 @@ test.describe("Flagship MiniApp frontend workflows", () => {
       await expectNoPageCrash(page);
       await expect(page.getByRole("heading", { name: app.name, level: 1 })).toBeVisible();
       await expect(page.getByText(app.category).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: /log in \/ sign up/i })).toBeVisible();
+      await expectWalletEntryPoint(page);
       await expect(page.getByText("App ID:")).toBeVisible();
-      await expect(page.getByText(app.id, { exact: true })).toBeVisible();
+      await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
+      await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
+      await expect(page.getByTestId("miniapp-info")).toBeVisible();
+      await expect(page.getByTestId("miniapp-actions")).toContainText(app.id);
 
       await exerciseRenderedTabs(page);
       await expectOperationSurface(page);

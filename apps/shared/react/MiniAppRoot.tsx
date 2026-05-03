@@ -217,7 +217,9 @@ export function MiniAppRoot({
     new Map<string, (...args: unknown[]) => Promise<unknown>>(),
   );
   const loadErrorRef = useRef(createObservable<Error | null>(null));
+  const stateSubscriptionsRef = useRef<Array<() => void>>([]);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [stateVersion, setStateVersion] = useState(0);
 
   // Sync loadError observable to React state
   useEffect(() => {
@@ -336,6 +338,11 @@ export function MiniAppRoot({
             for (const [key, value] of Object.entries(result.state)) {
               appStateRef.current[key] = value;
             }
+            stateSubscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
+            stateSubscriptionsRef.current = Object.values(appStateRef.current).map((observable) =>
+              observable.subscribe(() => setStateVersion((version) => version + 1)),
+            );
+            setStateVersion((version) => version + 1);
           }
 
           loadDataFnRef.current = result?.loadData;
@@ -366,6 +373,8 @@ export function MiniAppRoot({
       if (fireworksTimerRef.current !== null) {
         clearTimeout(fireworksTimerRef.current);
       }
+      stateSubscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
+      stateSubscriptionsRef.current = [];
       services.destroy();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -430,7 +439,7 @@ export function MiniAppRoot({
     }));
     // Re-derive when status changes (proxy for state updates)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sidebarDefs, tFn, status]);
+  }, [sidebarDefs, tFn, status, stateVersion]);
 
   const sidebarTitle = tFn(manifest.sidebar?.titleKey ?? "overview");
   const hasOperations = (manifest.operations?.length ?? 0) > 0;

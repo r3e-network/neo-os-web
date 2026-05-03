@@ -24,6 +24,25 @@ function base58Encode(bytes: Uint8Array): string {
   return out || base58Alphabet[0];
 }
 
+function base58Decode(value: string): Uint8Array {
+  let x = 0n;
+  for (const char of value) {
+    const index = base58Alphabet.indexOf(char);
+    if (index < 0) throw new Error("invalid base58 character");
+    x = x * 58n + BigInt(index);
+  }
+
+  let hex = x.toString(16);
+  if (hex.length % 2 !== 0) hex = `0${hex}`;
+  const bytes = hex ? decodeHex(hex) : new Uint8Array();
+  const leadingZeroes = Array.from(value).findIndex((char) => char !== base58Alphabet[0]);
+  if (leadingZeroes <= 0) return bytes;
+
+  const out = new Uint8Array(leadingZeroes + bytes.length);
+  out.set(bytes, leadingZeroes);
+  return out;
+}
+
 function decodeHex(hex: string): Uint8Array {
   const trimmed = hex.trim();
   if (trimmed.length % 2 !== 0) throw new Error("invalid hex length");
@@ -105,6 +124,32 @@ export function publicKeyToAddress(publicKeyBytes: Uint8Array): string {
   return base58Encode(addressBytes);
 }
 
+export function addressToScriptHash(addressOrHash: string): string {
+  const value = String(addressOrHash ?? "").trim();
+  const normalizedHash = value.match(/^0x[0-9a-fA-F]{40}$/)?.[0];
+  if (normalizedHash) return normalizedHash.toLowerCase();
+
+  const bareHash = value.match(/^[0-9a-fA-F]{40}$/)?.[0];
+  if (bareHash) return `0x${bareHash.toLowerCase()}`;
+
+  const decoded = base58Decode(value);
+  if (decoded.length !== 25) throw new Error("invalid Neo address length");
+
+  const payload = decoded.slice(0, 21);
+  const checksum = decoded.slice(21);
+  const expectedChecksum = sha256(sha256(payload)).slice(0, 4);
+  for (let i = 0; i < checksum.length; i++) {
+    if (checksum[i] !== expectedChecksum[i]) throw new Error("invalid Neo address checksum");
+  }
+  if (payload[0] !== 0x35) throw new Error("unsupported Neo address version");
+
+  const scriptHash = Array.from(payload.slice(1))
+    .reverse()
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return `0x${scriptHash}`;
+}
+
 export function verifyNeoSignature(
   address: string,
   message: string,
@@ -125,4 +170,3 @@ export function verifyNeoSignature(
     return false;
   }
 }
-

@@ -1,36 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { ExternalMiniAppFrame } from "./ExternalMiniAppFrame";
-import { FederatedMiniApp } from "./FederatedMiniApp";
-import { parseFederatedEntryUrl } from "../lib/miniapp";
-import { isManifestMiniAppEntryUrl } from "../lib/miniapp-entry-url";
 import { MiniAppInfo } from "./types";
 import { getMiniAppContractHash, getRpcNetwork, getRpcUrl } from "@/lib/rpc-helpers";
-import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
-import { FlagshipHero } from "./playarea/FlagshipHero";
+import { PlayAreaRegistry } from "./playarea/PlayAreaRegistry";
 
 export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
-  const isManifestMode = isManifestMiniAppEntryUrl(app.entry_url);
-  const federated = isManifestMode
-    ? null
-    : parseFederatedEntryUrl(app.entry_url, app.app_id);
-  const externalUrl = !isManifestMode && !federated ? app.entry_url : null;
-
-  if (federated) {
-    return (
-      <div className="w-full h-[600px] rounded-2xl overflow-hidden bg-white relative border border-gray-200 shadow-sm">
-        <FederatedMiniApp
-          appId={federated.appId}
-          view={federated.view}
-          remote={federated.remote}
-        />
-      </div>
-    );
-  }
-
-  if (externalUrl) {
-    return <ExternalMiniAppFrame src={externalUrl} title={app.name} />;
-  }
-
   return <LiveContractView app={app} />;
 }
 
@@ -162,72 +135,6 @@ function timeAgo(msTimestamp: number): string {
   return `${Math.floor(hr / 24)}d ago`;
 }
 
-/* ── Stat card ───────────────────────────────────────────────────────── */
-
-function Stat({
-  label,
-  value,
-  accent = false,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="text-center p-4 rounded-xl bg-gray-50 border border-gray-100">
-      <div
-        className={`text-2xl font-black ${accent ? "text-emerald-600" : "text-gray-900"}`}
-      >
-        {value}
-      </div>
-      <div className="text-[11px] font-semibold text-gray-400 uppercase mt-1">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-/* ── Activity row ────────────────────────────────────────────────────── */
-
-function ActivityRow({
-  icon,
-  primary,
-  secondary,
-  amount,
-  accent = false,
-}: {
-  icon: string;
-  primary: string;
-  secondary?: string;
-  amount?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
-      <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-black ${accent ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
-      >
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">
-          {primary}
-        </div>
-        {secondary && (
-          <div className="text-[11px] text-gray-400 truncate">{secondary}</div>
-        )}
-      </div>
-      {amount && (
-        <div
-          className={`text-sm font-bold tabular-nums ${accent ? "text-emerald-600" : "text-gray-900"}`}
-        >
-          {amount}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── Live contract view ──────────────────────────────────────────────── */
 
 type Activity = {
@@ -301,133 +208,18 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
     return m;
   }, [stats]);
 
-  // Pull a leader hint out of the activity feed when present (e.g. for the
-  // LastSurvivor hero, the first row's primary text starts with
-  // "Current leader: …").
-  const leader = useMemo(() => {
-    const first = activity?.rows.find((row) => row.icon === "👑");
-    if (!first) return undefined;
-    const m = first.primary.match(/Current leader:\s*(.+)/i);
-    return m ? m[1].trim() : undefined;
-  }, [activity]);
-
   return (
-    <div className="w-full rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-sm">
-      {/* Header */}
-      <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100">
-        <MiniAppLogo
-          appId={app.app_id}
-          category={app.category}
-          entryUrl={app.entry_url}
-          logoUrl={app.logo_url}
-          manifest={app.manifest || null}
-          alt={app.name}
-          className="w-10 h-10 rounded-xl"
-        />
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900">{app.name}</h3>
-          <p className="text-xs text-gray-400">{app.description}</p>
-        </div>
-        {contractHash && (
-          <span className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-            Live on {getRpcNetwork() === "testnet" ? "Testnet" : "Mainnet"}
-          </span>
-        )}
-      </div>
-
-      {/* Hero (per-flagship attractive band) */}
-      {!loading && stats.length > 0 && (
-        <div className="px-6 pt-6">
-          <FlagshipHero appId={app.app_id} stats={statsMap} leader={leader} />
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="p-6">
-        {loading && stats.length === 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-20 rounded-xl bg-gray-50 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-sm text-gray-400">{error}</p>
-            <button
-              type="button"
-              onClick={() => loadContractData({ isInitial: true })}
-              className="mt-2 text-xs font-semibold text-emerald-600 hover:underline cursor-pointer"
-            >
-              Retry
-            </button>
-          </div>
-        ) : stats.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {stats.map((s, i) => (
-              <Stat key={i} label={s.label} value={s.value} accent={s.accent} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-sm text-gray-400">
-            No contract deployed on {getRpcNetwork()} yet. Use the operations
-            panel to interact.
-          </div>
-        )}
-
-        {/* Live activity */}
-        {activity && (
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                </span>
-                {activity.title}
-              </h4>
-              <span className="text-[10px] font-semibold text-gray-400 uppercase">
-                {activity.rows.length}{" "}
-                {activity.rows.length === 1 ? "item" : "items"}
-              </span>
-            </div>
-            {activity.rows.length === 0 ? (
-              <div className="text-center py-6 text-xs text-gray-400">
-                {activity.emptyText || "Nothing yet — be the first."}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {activity.rows.map((row, i) => (
-                  <ActivityRow key={i} {...row} />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {contractHash && (
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-[11px] text-gray-300 font-mono">
-              {contractHash}
-            </span>
-            <a
-              href={`https://neotube.io/contract/${contractHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] font-semibold text-emerald-600 hover:underline"
-            >
-              View on NeoTube &rarr;
-            </a>
-          </div>
-        )}
-      </div>
-    </div>
+    <PlayAreaRegistry
+      app={app}
+      stats={stats}
+      statsMap={statsMap}
+      activity={activity}
+      loading={loading}
+      error={error}
+      contractHash={contractHash}
+      network={getRpcNetwork()}
+      onRefresh={() => loadContractData({ isInitial: true })}
+    />
   );
 }
 
