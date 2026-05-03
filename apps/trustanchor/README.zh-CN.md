@@ -26,10 +26,9 @@ TrustAnchor 是面向治理的 NEO 质押 anchor 小程序。它使用共享
 - 管理员操作仅限路由配置和仅投票同步。
 - GAS 奖励使用共享的 reward-per-NEO 累加器记账。
 
-## 借鉴 NeoBurger 的边界
+## 投票收益路由边界
 
-NeoBurger 证明了池化 NEO 投票和候选人路由对 GAS 收益的价值。
-TrustAnchor 保留路由思想，但不提供管理员托管用户质押或已记账 GAS 的路径。
+TrustAnchor 支持池化 NEO 投票和候选人路由以提升 GAS 收益，但不提供管理员托管用户质押或已记账 GAS 的路径。
 
 ## 部署
 

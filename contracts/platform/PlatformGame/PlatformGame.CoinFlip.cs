@@ -139,6 +139,7 @@ namespace NeoMiniAppPlatform.Contracts
             // Map requestId -> betId for callback resolution
             byte[] reqKey = AppKey(appId, CF_PREFIX_REQ_TO_BET, requestId);
             Storage.Put(Storage.CurrentContext, reqKey, betId);
+            StoreOracleRequestContext(requestId, appId, GameType_CoinFlip, betId);
 
             ReleaseReentrancyLock(appId);
 
@@ -156,14 +157,33 @@ namespace NeoMiniAppPlatform.Contracts
         /// Resolve a coin flip bet with oracle-provided randomness.
         ///
         /// SECURITY:
-        /// - Only the platform contract's OnOracleResult dispatches here
+        /// - Only the configured oracle can call this entry point
+        /// - Request-bound callbacks verify requestId -> betId before payout
         /// - Bet data is read from storage (not from callback params)
         /// - Resolved flag prevents double-settlement
         /// - Reentrancy guard protects state
         /// </summary>
         public static void ResolveCoinFlipBet(string appId, BigInteger betId, ByteString oracleResult)
         {
+            ValidateOracle();
+            ResolveCoinFlipBetFromOracle(appId, betId, 0, oracleResult);
+        }
+
+        private static void ResolveCoinFlipBetFromOracle(
+            string appId,
+            BigInteger betId,
+            BigInteger requestId,
+            ByteString oracleResult)
+        {
             RequireRegistered(appId);
+
+            if (requestId > 0)
+            {
+                byte[] reqKey = AppKey(appId, CF_PREFIX_REQ_TO_BET, requestId);
+                ByteString mappedBet = Storage.Get(Storage.CurrentContext, reqKey);
+                ExecutionEngine.Assert(mappedBet != null && (BigInteger)mappedBet == betId, "oracle request mismatch");
+                Storage.Delete(Storage.CurrentContext, reqKey);
+            }
 
             CoinFlipBet bet = LoadCoinFlipBet(appId, betId);
             ExecutionEngine.Assert(bet.Player != UInt160.Zero, "bet not found");

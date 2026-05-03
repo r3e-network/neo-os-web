@@ -100,7 +100,7 @@ describe("/api/miniapps/template-market", () => {
     );
   });
 
-  it("returns config error when service role is unavailable", async () => {
+  it("returns an empty marketplace when service role is unavailable", async () => {
     hasServiceRoleSupabase.mockReturnValue(false);
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
@@ -108,11 +108,14 @@ describe("/api/miniapps/template-market", () => {
 
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(500);
+    expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData())).toEqual({
-      error: {
-        code: "CONFIG_ERROR",
-        message: "Template marketplace is not available",
+      templates: [],
+      filters: {
+        kind: "all",
+        source: "all",
+        verified: "all",
+        limit: 60,
       },
     });
   });

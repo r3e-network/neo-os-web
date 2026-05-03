@@ -15,7 +15,9 @@ export default async function handler(
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
-    return apiError.internal(res, "Edge functions not configured");
+    res.setHeader("Cache-Control", "no-store, private");
+    res.status(200).json({ transactions: [], total: 0 });
+    return;
   }
 
   const params = new URLSearchParams();

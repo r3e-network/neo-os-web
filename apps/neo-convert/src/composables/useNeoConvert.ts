@@ -74,20 +74,33 @@ export function useNeoConvert({ chain, balance, eventBus, clipboard, t }: UseNeo
   let balanceCleanups: Array<() => void> = [];
 
   // ── Formatted values for manifest stat/sidebar bindings ─────────────
-  const deviceMode = createDerived(() =>
-    isMobile.get() ? t("sidebarMobile") : t("sidebarDesktop"),
+  const deviceMode = createDerived(
+    () => isMobile.get() ? t("sidebarMobile") : t("sidebarDesktop"),
+    [isMobile],
   );
 
-  const formattedNeoBalance = createDerived(() => `${neoBalance.get()} NEO`, []);
-  const formattedGasBalance = createDerived(() =>
-    `${gasBalance.get().toFixed(gasBalance.get() % 1 === 0 ? 0 : 4)} GAS`,
+  const formattedNeoBalance = createDerived(
+    () => `${neoBalance.get()} NEO`,
+    [neoBalance],
   );
-  const formattedAccountsGenerated = createDerived(() => String(accountsGenerated.get()), []);
-  const hasGeneratedAccount = createDerived(() => generatedAccount.get() !== null, []);
-  const hasConversionResult = createDerived(() =>
-    converter.result.get().address !== "" ||
-    converter.result.get().publicKey !== "" ||
-    converter.result.get().opcodes.length > 0,
+  const formattedGasBalance = createDerived(
+    () => `${gasBalance.get().toFixed(gasBalance.get() % 1 === 0 ? 0 : 4)} GAS`,
+    [gasBalance],
+  );
+  const formattedAccountsGenerated = createDerived(
+    () => String(accountsGenerated.get()),
+    [accountsGenerated],
+  );
+  const hasGeneratedAccount = createDerived(
+    () => generatedAccount.get() !== null,
+    [generatedAccount],
+  );
+  const hasConversionResult = createDerived(
+    () =>
+      converter.result.get().address !== "" ||
+      converter.result.get().publicKey !== "" ||
+      converter.result.get().opcodes.length > 0,
+    [converter.result],
   );
 
   // ── Data Loading ────────────────────────────────────────────────────

@@ -179,6 +179,7 @@ describe("MiniAppDetailPage shared invoke", () => {
             },
           },
         }}
+        miniAppNav={[]}
         notifications={[]}
         sharedRuntime={{
           network: "testnet",

@@ -44,7 +44,6 @@ export { ConsoleMiniApp } from "./ConsoleMiniApp";
 export { DetailCardGrid } from "./DetailCardGrid";
 
 // ── Launchers ──
-export { FlamingoLauncherPage } from "./FlamingoLauncherPage";
 export { OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp";
 
 // ── Type Exports ──

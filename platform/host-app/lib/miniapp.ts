@@ -78,8 +78,30 @@ function normalizeEntryUrl(raw: unknown, appId: string): string {
   return resolveMiniAppEntryUrlOrManifest(raw, appId);
 }
 
+function chooseRuntimeEntryUrl(
+  rawEntryUrl: unknown,
+  manifestEntryUrl: unknown,
+  fallbackEntryUrl: unknown,
+): unknown {
+  const manifestEntry = toString(manifestEntryUrl).trim();
+  const raw = toString(rawEntryUrl).trim();
+  if (raw) return rawEntryUrl;
+  if (manifestEntry.startsWith("/miniapps/")) return fallbackEntryUrl;
+  return manifestEntryUrl ?? fallbackEntryUrl;
+}
+
 export function normalizeCategory(value: unknown): MiniAppCategory {
   const raw = toString(value).trim().toLowerCase();
+  const aliases: Record<string, MiniAppCategory> = {
+    game: "gaming",
+    games: "gaming",
+    finance: "defi",
+    tool: "utility",
+    tools: "utility",
+    console: "utility",
+    oracle: "data",
+  };
+  if (aliases[raw]) return aliases[raw];
   if (
     raw === "gaming" ||
     raw === "defi" ||
@@ -183,12 +205,17 @@ function normalizeDeveloper(
 export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniAppInfo | null {
   const obj = asObject(raw);
   const manifestCandidate = asObject(obj.manifest ?? fallback?.manifest);
+  const manifestUrls = asObject(manifestCandidate.urls);
   const rawAppId = toString(obj.app_id ?? obj.appid ?? fallback?.app_id).trim();
   const appId = canonicalizeMiniAppId(rawAppId) || rawAppId;
   if (!appId) return null;
 
   const entryUrl = normalizeEntryUrl(
-    obj.entry_url ?? manifestCandidate.entry_url ?? fallback?.entry_url,
+    chooseRuntimeEntryUrl(
+      obj.entry_url ?? manifestCandidate.entry_url,
+      manifestUrls.entry,
+      fallback?.entry_url,
+    ),
     appId,
   );
   if (!entryUrl) return null;

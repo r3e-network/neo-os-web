@@ -69,6 +69,11 @@ export const baseMessages = {
   walletNotConnected: { en: "Wallet Not Connected", zh: "钱包未连接" },
   copy: { en: "Copy", zh: "复制" },
   copied: { en: "Copied", zh: "已复制" },
+  copyFailed: { en: "Copy failed", zh: "复制失败" },
+  previewWaiting: {
+    en: "Run the form to preview the request payload.",
+    zh: "运行表单以预览请求载荷。",
+  },
   errorTitle: { en: "Something went wrong", zh: "出现错误" },
   unexpectedError: { en: "An unexpected error occurred", zh: "发生了意外错误" },
 
@@ -109,6 +114,7 @@ export const baseMessages = {
 
   // --- Documentation keys ---
   docsSubtitle: { en: "Documentation", zh: "文档" },
+  docSubtitle: { en: "Documentation", zh: "文档" },
   docDescription: {
     en: "Learn how to use this miniapp",
     zh: "了解如何使用此迷你应用",

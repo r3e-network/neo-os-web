@@ -1,13 +1,12 @@
-import { getKernelHash } from "../_shared/kernel-rpc.ts";
+import { normalizeUInt160 } from "../_shared/contracts.ts";
 import { buildInvocationIntent, createOSHandler } from "../_shared/os-service.ts";
-
-const CONTRACT_HASH = getKernelHash();
 
 export const handler = createOSHandler(
   { scopeName: "os-checkin-claim", permission: "checkin" },
-  async ({ appId, userId }) => {
-    return buildInvocationIntent(CONTRACT_HASH, "ClaimRewards", [
-      { type: "String", value: appId },
+  async ({ policy, userId }) => {
+    const contractHash = policy?.contractHash;
+    if (!contractHash) throw new Error("checkin contract hash not configured");
+    return buildInvocationIntent(normalizeUInt160(contractHash), "claimRewards", [
       { type: "Hash160", value: userId },
     ]);
   },

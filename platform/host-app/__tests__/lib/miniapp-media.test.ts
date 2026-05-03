@@ -212,14 +212,25 @@ describe("miniapp-media helpers", () => {
       expect(app.logo_url).toBe("/miniapp-assets/prediction-market/logo.jpg");
       expect(app.banner_url).toBe("/miniapp-assets/prediction-market/banner.jpg");
     });
+
+    it("reuses NeoPay media for the shared-mode example", () => {
+      const app = withMiniAppCardAssets({
+        app_id: "miniapp-neo-pay-shared-example",
+        entry_url: "mf://manifest?app=miniapp-neo-pay-shared-example",
+        name: "NeoPay Shared Mode Example",
+        description: "test",
+        icon: "💳",
+        category: "defi",
+      });
+
+      expect(app.logo_url).toBe("/miniapp-assets/neo-pay/logo.jpg");
+      expect(app.banner_url).toBe("/miniapp-assets/neo-pay/banner.jpg");
+    });
   });
 
   describe("buildModernImageSources", () => {
-    it("derives modern formats for canonical generated miniapp assets", () => {
-      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({
-        avif: "/miniapp-assets/fogplay/banner.avif",
-        webp: "/miniapp-assets/fogplay/banner.webp",
-      });
+    it("does not invent speculative modern asset URLs", () => {
+      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({});
     });
 
     it("keeps external and vector assets on their original source", () => {

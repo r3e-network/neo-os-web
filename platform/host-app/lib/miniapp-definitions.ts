@@ -7,6 +7,7 @@ import { applyBuiltInMiniAppDefaults } from "./miniapp-builtins";
 import { resolveMiniAppEntryUrlOrManifest } from "./miniapp-entry-url";
 import { logger } from "./logger";
 import { canonicalizeMiniAppId } from "./miniapp-id";
+import { isArchivedMiniAppId, isArchivedMiniAppSlug } from "./archived-miniapps";
 
 type Dict = Record<string, unknown>;
 
@@ -126,6 +127,20 @@ function resolveManifestEntryUrl(rawEntryUrl: unknown, appId: string): string {
   return resolveMiniAppEntryUrlOrManifest(rawEntryUrl, appId);
 }
 
+function resolveProductionRuntimeEntryUrl(
+  rawEntryUrl: unknown,
+  urlsEntry: unknown,
+  appId: string,
+): unknown {
+  const bundledEntry = asString(urlsEntry);
+  const raw = asString(rawEntryUrl);
+  if (raw) return rawEntryUrl;
+  if (bundledEntry.startsWith("/miniapps/")) {
+    return `mf://manifest?app=${encodeURIComponent(appId)}`;
+  }
+  return urlsEntry;
+}
+
 function titleCase(input: string): string {
   return input
     .split(/[-_]/g)
@@ -141,6 +156,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const template = asObject(obj.template ?? manifest.template);
   const contract = asObject(obj.contract ?? manifest.contract);
   const media = asObject(obj.media ?? manifest.media);
+  const urls = asObject(obj.urls ?? manifest.urls);
   const integration = asObject(obj.integration ?? manifest.integration);
   const contractTemplate = asObject(obj.contract_template ?? template.contract_template ?? manifest.contract_template);
   const frontendTemplate = asObject(obj.frontend_template ?? template.frontend_template ?? manifest.frontend_template);
@@ -164,7 +180,10 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const descriptionEn = asOptionalString(obj.description_en ?? i18n.description_en ?? manifest.description_en);
   const descriptionZh = asOptionalString(obj.description_zh ?? i18n.description_zh ?? manifest.description_zh);
   const templateType = asOptionalString(obj.template_type ?? template.template_type ?? manifest.template_type);
-  const entryUrl = resolveManifestEntryUrl(obj.entry_url, appId);
+  const entryUrl = resolveManifestEntryUrl(
+    resolveProductionRuntimeEntryUrl(obj.entry_url, urls.entry, appId),
+    appId,
+  );
   const contractHash = asString(obj.contract_hash ?? contract.contract_hash ?? manifest.contract_hash);
   const templateId = asString(obj.template_id ?? contract.template_id ?? manifest.template_id);
   const initParams = obj.init_params ?? contract.init_params ?? manifest.init_params;
@@ -177,8 +196,15 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     media.logo_url ??
     media.logo ??
     asMediaAssetUrl(media.icon) ??
+    asMediaAssetUrl(urls.icon) ??
     manifest.logo_url;
-  const bannerUrl = obj.banner_url ?? content.banner_url ?? media.banner_url ?? media.banner ?? manifest.banner_url;
+  const bannerUrl =
+    obj.banner_url ??
+    content.banner_url ??
+    media.banner_url ??
+    media.banner ??
+    asMediaAssetUrl(urls.banner) ??
+    manifest.banner_url;
   const logoVariants = normalizeMediaVariants(media.logo_variants ?? asObject(manifest.media).logo_variants);
   const bannerVariants = normalizeMediaVariants(media.banner_variants ?? asObject(manifest.media).banner_variants);
   const docsUrl = obj.docs_url ?? content.docs_url ?? manifest.docs_url;
@@ -365,6 +391,7 @@ async function listBundledManifestSlugs(): Promise<string[]> {
       if (!entry.isDirectory()) continue;
       const slug = entry.name.trim();
       if (!slug || slug === "shared") continue;
+      if (isArchivedMiniAppSlug(slug)) continue;
       const manifestPath = path.join(appsDir, slug, "neo-manifest.json");
       if (!existsSync(manifestPath) || !statSync(manifestPath).isFile()) continue;
       slugs.push(slug);
@@ -378,12 +405,16 @@ async function listBundledManifestSlugs(): Promise<string[]> {
 
 function buildManifestOnlyDefinition(slug: string, bundledManifest: Dict): Dict {
     const appId = canonicalizeAppId(bundledManifest.id, slug);
+    const urls = asObject(bundledManifest.urls);
     return {
       app_id: appId,
       name: asString(bundledManifest.name) || titleCase(slug),
       description: asString(bundledManifest.description),
       category: asString(bundledManifest.category) || "utility",
-      entry_url: resolveMiniAppEntryUrlOrManifest(bundledManifest.entry_url, appId),
+      entry_url: resolveMiniAppEntryUrlOrManifest(
+        resolveProductionRuntimeEntryUrl(bundledManifest.entry_url, urls.entry, appId),
+        appId,
+      ),
       status: "active",
       manifest: bundledManifest,
     };
@@ -488,14 +519,19 @@ export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
   for (const definition of loaded.definitions) {
     const app = coerceMiniAppInfo(definition.payload);
     if (!app) continue;
+    if (isArchivedMiniAppId(app.app_id)) continue;
     apps.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
   }
   return apps;
 }
 
 export async function loadBundledMiniAppById(appId: string): Promise<MiniAppInfo | null> {
-  const normalizedTarget = canonicalizeMiniAppId(appId) || String(appId || "").trim();
+  const normalizedTarget = canonicalizeMiniAppId(appId, {
+    fallbackSlug: appId,
+    coerceMiniappPrefix: true,
+  }) || String(appId || "").trim();
   if (!normalizedTarget) return null;
+  if (isArchivedMiniAppId(normalizedTarget) || isArchivedMiniAppSlug(appId)) return null;
 
   const definitionApps = await loadMiniAppDefinitions();
   const definitionMatch = definitionApps.find((app) => app.app_id === normalizedTarget) || null;

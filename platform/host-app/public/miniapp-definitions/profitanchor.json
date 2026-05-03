@@ -49,7 +49,7 @@
           {
             "type": "notice",
             "tone": "success",
-            "content": "ProfitAnchor keeps the useful NeoBurger pattern - monitor candidate returns and route voting to better GAS yield - while narrowing admin authority to profit scoring and vote-only sync."
+            "content": "ProfitAnchor monitors candidate returns and routes voting toward better GAS yield while narrowing admin authority to profit scoring and vote-only sync."
           },
           {
             "type": "key_value",

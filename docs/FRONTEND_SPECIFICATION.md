@@ -199,17 +199,12 @@ for:
 - `miniapp-oracle-price-console`
 - `miniapp-oracle-vrf-console`
 - `miniapp-neo-x-bridge`
-- `miniapp-flamingo-swap`
-- `miniapp-flamingo-lend`
-- `miniapp-flamingo-earn`
-- `miniapp-flamingo-analytics`
-- `miniapp-flamingo-action-center`
 
 These newer integration miniapps are **launcher / adapter surfaces**:
 
 - they intentionally do not reimplement third-party protocol logic
 - they provide curated discovery, official launch URLs, and wallet/network guidance
-- bridge execution and Flamingo protocol execution remain on the official third-party surfaces
+- bridge execution remains on the official third-party surfaces
 
 Current flagship payment matrix:
 

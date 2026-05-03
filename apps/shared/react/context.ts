@@ -56,7 +56,7 @@ export function createObservable<T>(initial: T): Observable<T> {
  */
 export function createDerived<T>(
   compute: () => T,
-  deps: Observable[],
+  deps: Observable[] = [],
 ): Observable<T> {
   return {
     get: compute,

@@ -126,14 +126,14 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
     const t = useCallback(
       (key: keyof MergedMessages<T>, args?: InterpolationArgs): string => {
         const entry = mergedRef.current[key];
-        if (!entry) return String(key);
+        if (!entry) return "";
 
         let str = "";
         if (typeof entry === "string") {
           str = entry;
         } else {
           str =
-            entry[sharedLocale] || entry.en || entry.zh || String(key);
+            entry[sharedLocale] || entry.en || entry.zh || "";
         }
 
         return args ? interpolate(str, args) : str;

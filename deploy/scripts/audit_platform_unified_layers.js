@@ -9,9 +9,6 @@ const APPS_DIR = path.join(ROOT, "apps");
 const ROOT_FACTORY_ALLOWLIST = [
   "createMiniApp(",
   "createConsolePage(",
-  "createFlamingoLauncherPage(",
-  "useFlamingoLauncherPage(",
-  "<FlamingoLauncherPage",
 ];
 
 const APP_ALLOWLIST_FOR_DIRECT_WALLET = new Set([
@@ -23,12 +20,12 @@ const APP_ALLOWLIST_FOR_DIRECT_WALLET = new Set([
   "neo-multisig",
   "neo-ns",
   "neo-pay",
-  "neo-swap",
   "oracle-price-console",
   "recovery-guardian",
   "soulbound-certificate",
   "event-ticket-pass",
 ]);
+const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);
 
 const findings = [];
 const CHAIN_METHOD_MARKERS = [
@@ -64,6 +61,7 @@ function listApps() {
   return fs
     .readdirSync(APPS_DIR, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "shared")
+    .filter((entry) => !ARCHIVED_APP_SLUGS.has(entry.name.trim().toLowerCase()))
     .map((entry) => entry.name)
     .sort();
 }

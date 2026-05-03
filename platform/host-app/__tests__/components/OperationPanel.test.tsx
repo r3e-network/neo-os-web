@@ -24,7 +24,7 @@ describe("OperationPanel", () => {
         {
           name: "candidate",
           label: "Candidate",
-          type: "text" as const,
+          type: "string" as const,
           default_value: "candidate-a",
         },
       ],

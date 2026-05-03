@@ -23,7 +23,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0xee1819916a6b8c7a8c30506af3318c758850033a"
+    "neo-n3-testnet": "0xefce9fda773bcd752ea7070eeac8c4d8bc0c0ab9"
   },
   "supported_networks": [
     "neo-n3-mainnet",
@@ -60,5 +60,5 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-04-25T00:00:00Z"
+  "updatedAt": "2026-05-02T00:00:00Z"
 }

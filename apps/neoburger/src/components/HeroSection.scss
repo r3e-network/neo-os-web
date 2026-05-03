@@ -1,9 +1,0 @@
-.hero { background: var(--burger-hero-gradient); border-radius: 28px; padding: 24px; text-align: center; }
-.hero-content { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.hero-title { font-size: 24px; font-weight: 800; }
-.hero-subtitle { font-size: 14px; opacity: 0.82; line-height: 1.6; max-width: 400px; }
-.hero-bubbles { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }
-.hero-bubble { padding: 16px 20px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(245, 158, 11, 0.15); border-radius: 16px; min-width: 120px; }
-.bubble-title { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.6; }
-.bubble-value { display: block; font-size: 20px; font-weight: 700; margin: 4px 0; }
-.bubble-subvalue { display: block; font-size: 11px; opacity: 0.5; }
