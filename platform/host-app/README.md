@@ -16,7 +16,6 @@ Current capabilities:
 
 - `/miniapps` lists the active catalog.
 - `/miniapps/<app_id>` renders the Polymarket-style detail surface with host-native playareas.
-- `/launch/<app_id>` is a permanent compatibility redirect to `/miniapps/<app_id>` and does not render a launch shell.
 - Settings UI includes wallet binding (`wallet-nonce` + `wallet-bind`) and intents (`pay-gas` / `vote-neo`).
 - AppRegistry workflow for `app-register` / `app-update-manifest`.
 - CSP headers set via `platform/host-app/middleware.ts` with per-request nonces.
@@ -120,7 +119,7 @@ MiniApps are configuration-driven and rendered by the host runtime from manifest
 
 - JSON/YAML/Markdown frontend spec
 - per-app host-native playarea
-- no separate remote launch shell required
+- no separate remote shell required
 
 Open a manifest app via:
 

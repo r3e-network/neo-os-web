@@ -9,7 +9,7 @@ Register and manage human-readable .neo domain names for your wallet
 | **App ID** | `miniapp-neo-ns` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -32,7 +32,7 @@ Neo Name Service lets you register memorable .neo domains that map to your walle
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Name Service from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Name Service from your Neo MiniApp dashboard
 2. **Connect Wallet**: Connect your Neo wallet to register or manage domains
 3. **Ensure GAS Balance**: Have sufficient GAS for registration fees
 

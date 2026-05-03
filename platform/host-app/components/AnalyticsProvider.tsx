@@ -9,7 +9,7 @@ import {
   trackPageView,
   trackEvent,
   trackClick,
-  trackMiniAppLaunch,
+  trackMiniAppOpen,
   getSessionId,
   type AnalyticsEventType,
 } from "@/lib/monitoring/analytics";
@@ -146,7 +146,7 @@ export function useAnalytics() {
 
   const trackMiniApp = useCallback(
     (appId: string, appName: string, source?: string) => {
-      return trackMiniAppLaunch(appId, appName, { source });
+      return trackMiniAppOpen(appId, appName, { source });
     },
     [],
   );

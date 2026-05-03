@@ -9,7 +9,7 @@ Support ecosystem developers with tips
 | **App ID** | `miniapp-dev-tipping` |
 | **Category** | Social |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app)
+| **Framework** | Host-native React playarea
 
 
 ## How It Works

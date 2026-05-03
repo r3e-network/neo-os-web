@@ -9,7 +9,7 @@ NEP-11 event tickets with QR check-in.
 | **App ID** | `miniapp-event-ticket-pass` |
 | **Category** | Social |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Features
 

@@ -100,7 +100,7 @@ npm run build
 
 | Layer             | Technology                   |
 | ----------------- | ---------------------------- |
-| Frontend          | Vue 3 + TypeScript (uni-app) |
+| Frontend          | Host-native React + TypeScript |
 | Smart Contract    | C# / Neo N3                  |
 | Health Monitoring | Keeper (Automated Alerts)    |
 | Collateral        | NEO (Staking Yield → GAS)    |

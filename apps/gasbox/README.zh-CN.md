@@ -90,7 +90,7 @@ npm run build
 
 | 层级     | 技术                          |
 | -------- | ----------------------------- |
-| 前端     | Vue 3 + TypeScript（uni-app） |
+| 前端     | Host-native React + TypeScript |
 | 智能合约 | C# / Neo N3                   |
 | 随机数   | VRF（链上可验证随机函数）     |
 | 交互方式 | 直接钱包调用                 |

@@ -9,7 +9,7 @@ shipped in March 2026. It is not a product wishlist or future-state design deck.
 Frontend code owned here covers:
 
 - `platform/host-app`: the public host shell, miniapp catalog, detail pages,
-  legacy launch redirects, stats pages, and host-side API routes
+  stats pages, and host-side API routes
 - `platform/admin-console`: operational and admin UX
 - `apps/*`: miniapp frontends loaded by the host (all using `defineMiniApp()`)
 - shared frontend runtime code under `apps/shared/*`:
@@ -59,8 +59,6 @@ include:
 - `/home`
 - `/miniapps`
 - `/miniapps/[id]`
-- `/launch/[id]` (legacy permanent redirect to `/miniapps/[id]`)
-- `/app/[id]`
 - `/explorer`
 - `/docs`
 - `/developer`
@@ -195,10 +193,10 @@ for:
 - `miniapp-oracle-vrf-console`
 - `miniapp-neo-x-bridge`
 
-These newer integration miniapps are **launcher / adapter surfaces**:
+These newer integration miniapps are **integration / adapter surfaces**:
 
 - they intentionally do not reimplement third-party protocol logic
-- they provide curated discovery, official launch URLs, and wallet/network guidance
+- they provide curated discovery, official app URLs, and wallet/network guidance
 - bridge execution remains on the official third-party surfaces
 
 Current flagship payment matrix:

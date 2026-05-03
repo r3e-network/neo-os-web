@@ -92,7 +92,7 @@ npm run build
 
 | Layer              | Technology                                |
 | ------------------ | ----------------------------------------- |
-| Frontend           | Vue 3 + TypeScript (uni-app)              |
+| Frontend           | Host-native React + TypeScript              |
 | Smart Contract     | C# / Neo N3                               |
 | Result Path        | Direct Oracle callback                    |
 | Randomness         | Morpheus Oracle                           |
