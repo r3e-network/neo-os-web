@@ -42,27 +42,27 @@ const (
 	selfLoanGasSeed = int64(20_000_000)
 	aaTimelock      = int64(30 * 24 * 60 * 60)
 
-	defaultRPCURL     = "https://testnet1.neo.coz.io:443"
-	defaultAAHash     = "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"
-	defaultCandidate  = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d"
-	neoNativeHashLE   = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
-	gasNativeHashLE   = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
-	reportOutputPath  = "contracts/build/testnet_anchor_deployment.json"
+	defaultRPCURL    = "https://testnet1.neo.coz.io:443"
+	defaultAAHash    = "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"
+	defaultCandidate = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d"
+	neoNativeHashLE  = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
+	gasNativeHashLE  = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
+	reportOutputPath = "contracts/build/testnet_anchor_deployment.json"
 )
 
 type deploymentReport struct {
-	Network          string            `json:"network"`
-	RPCURL           string            `json:"rpc_url"`
-	Deployer         string            `json:"deployer"`
-	DeployerHash     string            `json:"deployer_hash"`
-	PlatformAnchor   string            `json:"platform_anchor"`
-	PlatformDeFi     string            `json:"platform_defi"`
-	AACore           string            `json:"aa_core"`
-	Candidate        string            `json:"candidate"`
-	AAAccounts       map[string]string `json:"aa_accounts"`
-	Transactions     []txRecord        `json:"transactions"`
-	Validation       map[string]any    `json:"validation"`
-	GeneratedAtUTC   string            `json:"generated_at_utc"`
+	Network        string            `json:"network"`
+	RPCURL         string            `json:"rpc_url"`
+	Deployer       string            `json:"deployer"`
+	DeployerHash   string            `json:"deployer_hash"`
+	PlatformAnchor string            `json:"platform_anchor"`
+	PlatformDeFi   string            `json:"platform_defi"`
+	AACore         string            `json:"aa_core"`
+	Candidate      string            `json:"candidate"`
+	AAAccounts     map[string]string `json:"aa_accounts"`
+	Transactions   []txRecord        `json:"transactions"`
+	Validation     map[string]any    `json:"validation"`
+	GeneratedAtUTC string            `json:"generated_at_utc"`
 }
 
 type txRecord struct {
