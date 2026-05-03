@@ -279,28 +279,3 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
 
   return withMiniAppCardAssets(app);
 }
-
-export type FederatedEntry = {
-  remote: string;
-  appId: string;
-  view?: string;
-};
-
-export function parseFederatedEntryUrl(entryUrl: string, fallbackAppId: string): FederatedEntry | null {
-  const raw = toString(entryUrl).trim();
-  if (!raw.startsWith("mf://")) return null;
-
-  const normalized = raw.replace(/^mf:\/\//, "https://");
-  try {
-    const url = new URL(normalized);
-    const remote = url.host.trim();
-    if (!remote) return null;
-    const appId = url.searchParams.get("app")?.trim() || fallbackAppId;
-    const view = url.searchParams.get("view")?.trim() || undefined;
-    return { remote, appId, view };
-  } catch {
-    // Fall back to default when URL parsing fails (e.g., raw app-id string passed)
-    if (!fallbackAppId) return null;
-    return { remote: "miniapp", appId: fallbackAppId };
-  }
-}

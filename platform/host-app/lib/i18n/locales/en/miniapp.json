@@ -38,13 +38,6 @@
     "flip": "Flip Coin",
     "result": "Result"
   },
-  "diceGame": {
-    "title": "Dice Game",
-    "roll": "Roll Dice",
-    "rollOver": "Roll Over",
-    "rollUnder": "Roll Under",
-    "target": "Target"
-  },
   "lottery": {
     "title": "Lottery",
     "buyTicket": "Buy Ticket",

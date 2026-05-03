@@ -2,8 +2,8 @@ import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
 
 describe("miniapp-id canonicalization", () => {
   it("maps known alias ids to canonical ids", () => {
-    expect(canonicalizeMiniAppId("miniapp-dice-game")).toBe("miniapp-dicegame");
-    expect(canonicalizeMiniAppId("dice-game")).toBe("miniapp-dicegame");
+    expect(canonicalizeMiniAppId("miniapp-red-envelope")).toBe("miniapp-redenvelope");
+    expect(canonicalizeMiniAppId("red-envelope")).toBe("miniapp-redenvelope");
   });
 
   it("maps legacy marketing aliases to the current flagship app ids", () => {

@@ -61,7 +61,7 @@ jest.mock("next/router", () => ({
 describe("MiniAppDetailPage shared runtime", () => {
   it("returns 404 for archived miniapp ids", async () => {
     const result = await getServerSideProps({
-      params: { id: "miniapp-neo-swap" },
+      params: { id: "miniapp-flamingo" },
       req: { headers: { host: "127.0.0.1:3000" } },
     } as any);
 
@@ -73,7 +73,7 @@ describe("MiniAppDetailPage shared runtime", () => {
       <MiniAppDetailPage
         app={{
           app_id: "miniapp-neo-pay-shared-example",
-          name: "NeoPay Shared Mode Example",
+          name: "NeoPay Modular Fixture",
           description: "Shared mode app",
           icon: "🧩",
           category: "defi",

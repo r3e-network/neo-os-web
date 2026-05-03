@@ -22,7 +22,7 @@ Primary rule:
 ## MiniApp Lifecycle (Developer + Host)
 
 1. **Build the MiniApp**
-    - Create a bundle (Module Federation or iframe bundle).
+    - Author a manifest and host-native playarea definition.
     - Author `manifest.json` following the current host schema and existing `apps/*/neo-manifest.json` examples.
     - Use `defineMiniApp()` as the sole entry point. Call `ctx.os.*` for OS services.
 2. **Register or Update Manifest**

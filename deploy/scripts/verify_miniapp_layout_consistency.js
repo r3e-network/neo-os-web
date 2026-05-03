@@ -7,7 +7,6 @@ const ROOT = path.resolve(__dirname, "../..");
 const APPS_DIR = path.join(ROOT, "apps");
 const ACCEPTED_MARKERS = [
   "<MiniAppPage",
-  "<OfficialLauncherMiniApp",
   "<ConsoleMiniApp",
 ];
 const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);

@@ -277,7 +277,7 @@ export const BLUEPRINT_TEMPLATES: Record<string, DetailTemplate> = {
       { id: "reviews", label: "Reviews", type: "reviews" },
       { id: "news", label: "News", type: "news" },
     ],
-    operation_panel: { title: "Play", subtitle: "Configure game parameters and start playing.", cta_label: "Launch Game" },
+    operation_panel: { title: "Play", subtitle: "Configure game parameters and start playing.", cta_label: "Open MiniApp" },
   },
   defi: {
     layout: "default",

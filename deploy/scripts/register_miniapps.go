@@ -1,7 +1,7 @@
 //go:build scripts
 
 // Batch register platform MiniApps to AppRegistry contract.
-// Usage: go run -tags=scripts scripts/register_miniapps.go
+// Usage: go run -tags=scripts ./deploy/scripts/register_miniapps.go
 package main
 
 import (
@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -30,42 +31,26 @@ type MiniAppRegistration struct {
 	Permissions []string
 }
 
-var miniApps = []MiniAppRegistration{
-	// Gaming apps
-	{"miniapp-lottery", "Lottery", "mf://manifest?app=miniapp-lottery", []string{"wallet", "payments", "rng"}},
-	{"miniapp-fogplay", "Coin Flip", "mf://manifest?app=miniapp-fogplay", []string{"wallet", "payments", "rng"}},
-	{"miniapp-dicegame", "Dice Game", "mf://manifest?app=miniapp-dicegame", []string{"wallet", "payments", "rng"}},
-	{"miniapp-secret-poker", "Secret Poker", "mf://manifest?app=miniapp-secret-poker", []string{"wallet", "payments", "rng", "compute"}},
-	{"miniapp-redenvelope", "Red Envelope", "mf://manifest?app=miniapp-redenvelope", []string{"wallet", "payments", "rng"}},
-	{"miniapp-gascircle", "GAS Circle", "mf://manifest?app=miniapp-gascircle", []string{"wallet", "payments", "rng", "automation"}},
-	{"miniapp-fog-chess", "Fog Chess", "mf://manifest?app=miniapp-fog-chess", []string{"wallet", "payments", "rng", "compute"}},
-	{"miniapp-scratch-card", "Scratch Card", "mf://manifest?app=miniapp-scratch-card", []string{"wallet", "payments", "rng"}},
-	{"miniapp-neo-crash", "Neo Crash", "mf://manifest?app=miniapp-neo-crash", []string{"wallet", "payments", "rng"}},
-	// DeFi apps
-	{"miniapp-predictionmarket", "Prediction Market", "mf://manifest?app=miniapp-predictionmarket", []string{"wallet", "payments", "datafeed"}},
-	{"miniapp-il-guard", "IL Guard", "mf://manifest?app=miniapp-il-guard", []string{"wallet", "payments", "datafeed", "automation"}},
-	{"miniapp-grid-bot", "Grid Bot", "mf://manifest?app=miniapp-grid-bot", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"miniapp-ai-trader", "AI Trader", "mf://manifest?app=miniapp-ai-trader", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"miniapp-flashloan", "Flash Loan", "mf://manifest?app=miniapp-flashloan", []string{"wallet", "payments"}},
-	{"miniapp-dark-pool", "Dark Pool", "mf://manifest?app=miniapp-dark-pool", []string{"wallet", "payments", "compute"}},
-	{"miniapp-dutch-auction", "Dutch Auction", "mf://manifest?app=miniapp-dutch-auction", []string{"wallet", "payments"}},
-	// Governance apps
-	{"miniapp-secretvote", "Secret Vote", "mf://manifest?app=miniapp-secretvote", []string{"wallet", "payments", "governance"}},
-	{"miniapp-gov-booster", "Gov Booster", "mf://manifest?app=miniapp-gov-booster", []string{"wallet", "payments", "governance", "automation", "datafeed"}},
-	{"miniapp-gov-merc", "Gov Merc", "mf://manifest?app=miniapp-gov-merc", []string{"wallet", "payments", "governance"}},
-	// NFT apps
-	{"miniapp-nft-evolve", "NFT Evolve", "mf://manifest?app=miniapp-nft-evolve", []string{"wallet", "payments", "rng", "datafeed", "automation"}},
-	{"miniapp-schrodinger-nft", "Schrodinger NFT", "mf://manifest?app=miniapp-schrodinger-nft", []string{"wallet", "payments", "rng"}},
-	// Utility apps
-	{"miniapp-bridge-guardian", "Bridge Guardian", "mf://manifest?app=miniapp-bridge-guardian", []string{"wallet", "payments", "datafeed", "automation", "compute"}},
-	{"miniapp-guardian-policy", "Guardian Policy", "mf://manifest?app=miniapp-guardian-policy", []string{"wallet", "payments", "compute"}},
-	{"miniapp-price-ticker", "Price Ticker", "mf://manifest?app=miniapp-price-ticker", []string{"wallet", "datafeed"}},
-	{"miniapp-dead-switch", "Dead Switch", "mf://manifest?app=miniapp-dead-switch", []string{"wallet", "payments", "automation"}},
-	{"miniapp-heritage-trust", "Heritage Trust", "mf://manifest?app=miniapp-heritage-trust", []string{"wallet", "payments", "automation"}},
-	{"miniapp-time-capsule", "Time Capsule", "mf://manifest?app=miniapp-time-capsule", []string{"wallet", "payments"}},
+type catalogManifest struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
 }
 
 func main() {
+	miniApps, err := loadMiniAppsFromCatalog()
+	if err != nil {
+		fmt.Printf("❌ Failed to load MiniApp catalog: %v\n", err)
+		os.Exit(1)
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "--list-only" {
+		for _, app := range miniApps {
+			fmt.Printf("%s\t%s\t%s\n", app.AppID, app.Name, app.EntryURL)
+		}
+		return
+	}
+
 	fmt.Println("╔════════════════════════════════════════════════════════════════╗")
 	fmt.Println("║   Batch Register MiniApps to AppRegistry                       ║")
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
@@ -164,6 +149,97 @@ func main() {
 	fmt.Println("\n╔════════════════════════════════════════════════════════════════╗")
 	fmt.Printf("║   Results: %d registered, %d skipped, %d failed               \n", registered, skipped, failed)
 	fmt.Println("╚════════════════════════════════════════════════════════════════╝")
+}
+
+func loadMiniAppsFromCatalog() ([]MiniAppRegistration, error) {
+	appsDir := strings.TrimSpace(os.Getenv("MINIAPP_CATALOG_DIR"))
+	if appsDir == "" {
+		appsDir = "apps"
+	}
+	hostBaseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("HOST_APP_BASE_URL")), "/")
+	if hostBaseURL == "" {
+		hostBaseURL = "https://neomini.app"
+	}
+
+	entries, err := os.ReadDir(appsDir)
+	if err != nil {
+		return nil, err
+	}
+
+	archivedSlugs := map[string]bool{
+		"flamingo":   true,
+		"flaminggo":  true,
+		"neoburger":  true,
+		"neo-burger": true,
+	}
+	archivedIDs := map[string]bool{
+		"miniapp-flamingo":   true,
+		"miniapp-flaminggo":  true,
+		"miniapp-neoburger":  true,
+		"miniapp-neo-burger": true,
+	}
+
+	apps := make([]MiniAppRegistration, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Name() == "shared" {
+			continue
+		}
+		if archivedSlugs[strings.ToLower(entry.Name())] {
+			continue
+		}
+
+		manifestPath := filepath.Join(appsDir, entry.Name(), "neo-manifest.json")
+		payload, err := os.ReadFile(manifestPath)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", manifestPath, err)
+		}
+
+		var manifest catalogManifest
+		if err := json.Unmarshal(payload, &manifest); err != nil {
+			return nil, fmt.Errorf("%s: %w", manifestPath, err)
+		}
+
+		appID := strings.TrimSpace(manifest.ID)
+		if appID == "" || archivedIDs[appID] {
+			continue
+		}
+		name := strings.TrimSpace(manifest.Name)
+		if name == "" {
+			name = appID
+		}
+
+		apps = append(apps, MiniAppRegistration{
+			AppID:       appID,
+			Name:        name,
+			EntryURL:    fmt.Sprintf("%s/miniapps/%s", hostBaseURL, appID),
+			Permissions: normalizeManifestPermissions(manifest.Permissions),
+		})
+	}
+
+	sort.Slice(apps, func(i, j int) bool {
+		return apps[i].AppID < apps[j].AppID
+	})
+	return apps, nil
+}
+
+func normalizeManifestPermissions(values []string) []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		permission := strings.TrimSpace(value)
+		if permission == "" || seen[permission] {
+			continue
+		}
+		seen[permission] = true
+		out = append(out, permission)
+	}
+	if len(out) == 0 {
+		return []string{"read:blockchain"}
+	}
+	return out
 }
 
 func buildManifest(app MiniAppRegistration, pubKeyHex string) map[string]any {

@@ -378,28 +378,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Sender", "Message", "Developer", "Receipt"],
     },
   },
-  "miniapp-dicegame": {
-    title: "Dice roll table",
-    subtitle: "Set the target range, size the bet, and preview the VRF-backed dice roll before submission.",
-    tone: "amber",
-    icon: <Dice5 className="h-5 w-5" />,
-    fields: [
-      { key: "target", label: "Target under", defaultValue: "50", type: "number" },
-      { key: "amount", label: "Bet", defaultValue: "1", suffix: "GAS", type: "number" },
-    ],
-    cards: [
-      { label: "Win chance", value: "50%" },
-      { label: "Randomness", value: "VRF" },
-      { label: "Payout", value: "variable" },
-    ],
-    steps: ["Choose range", "Preview odds", "Request VRF", "Resolve roll"],
-    primaryAction: "Stage dice roll",
-    visual: {
-      layout: "scoreboard",
-      headline: "VRF dice board",
-      slots: ["Target", "Odds", "Roll", "Payout"],
-    },
-  },
   "miniapp-event-ticket-pass": {
     title: "Ticket issuer and check-in",
     subtitle: "Issue NEP-11 event passes, preview QR check-in, and track used versus active tickets.",
@@ -620,6 +598,29 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       slots: ["Address", "Script hash", "Endian", "Copy"],
     },
   },
+  "miniapp-neo-swap": {
+    title: "Neo swap quote desk",
+    subtitle: "Build a token swap preview with route, slippage, and settlement state before submitting through the shared action console.",
+    tone: "emerald",
+    icon: <ArrowRightLeft className="h-5 w-5" />,
+    fields: [
+      { key: "from", label: "From asset", defaultValue: "NEO" },
+      { key: "amount", label: "Amount", defaultValue: "10", suffix: "NEO", type: "number" },
+    ],
+    cards: [
+      { label: "Route", value: "best path" },
+      { label: "Slippage", value: "0.5%" },
+      { label: "Settlement", value: "wallet" },
+    ],
+    steps: ["Select assets", "Preview quote", "Check slippage", "Stage swap"],
+    primaryAction: "Preview swap route",
+    visual: {
+      layout: "converter",
+      headline: "Swap quote route",
+      slots: ["NEO", "Route", "GAS", "Confirm"],
+      footnote: "The shared operation panel handles wallet submission after the quote is reviewed.",
+    },
+  },
   "miniapp-neo-multisig": {
     title: "Multisig signing room",
     subtitle: "Create a multisig request, collect signatures, and keep threshold progress visible.",
@@ -794,28 +795,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       layout: "timeline",
       headline: "Recovery path",
       slots: ["Ticket", "Guardian", "Timelock", "Recover"],
-    },
-  },
-  "miniapp-secretvote": {
-    title: "Private ballot room",
-    subtitle: "Cast a confidential vote with sealed choice, proof readiness, and reveal phase status.",
-    tone: "violet",
-    icon: <LockKeyhole className="h-5 w-5" />,
-    fields: [
-      { key: "proposal", label: "Proposal", defaultValue: "Treasury grant" },
-      { key: "choice", label: "Choice", defaultValue: "Approve" },
-    ],
-    cards: [
-      { label: "Privacy", value: "sealed" },
-      { label: "Proof", value: "ZK ready" },
-      { label: "Reveal", value: "after close" },
-    ],
-    steps: ["Select proposal", "Seal choice", "Submit proof", "Reveal tally"],
-    primaryAction: "Stage private vote",
-    visual: {
-      layout: "ballot",
-      headline: "Sealed ballot",
-      slots: ["Choice", "Nullifier", "Proof", "Tally"],
     },
   },
   "miniapp-soulbound-certificate": {

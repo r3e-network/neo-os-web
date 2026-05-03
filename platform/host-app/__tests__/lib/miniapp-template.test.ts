@@ -16,7 +16,6 @@ describe("miniapp-template", () => {
         "miniapp-trustanchor": expect.any(Object),
         "miniapp-soulbound-certificate": expect.any(Object),
         "miniapp-unbreakablevault": expect.any(Object),
-        "miniapp-secret-vote": expect.any(Object),
       }),
     );
   });

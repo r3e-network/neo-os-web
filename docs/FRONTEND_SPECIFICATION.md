@@ -9,7 +9,7 @@ shipped in March 2026. It is not a product wishlist or future-state design deck.
 Frontend code owned here covers:
 
 - `platform/host-app`: the public host shell, miniapp catalog, detail pages,
-  launch pages, stats pages, and host-side API routes
+  legacy launch redirects, stats pages, and host-side API routes
 - `platform/admin-console`: operational and admin UX
 - `apps/*`: miniapp frontends loaded by the host (all using `defineMiniApp()`)
 - shared frontend runtime code under `apps/shared/*`:
@@ -32,7 +32,7 @@ Current production target is **Neo N3 only**.
 - Zustand
 - TanStack Query
 - `@r3e/neo-js-sdk`
-- Module Federation for selected miniapp entry loading
+- host-native playarea registry for miniapp-specific interaction surfaces
 - Supabase-backed host APIs for stats, notifications, publish workflow, and auth-linked features
 
 ## Host Responsibilities
@@ -41,7 +41,7 @@ The host frontend is responsible for:
 
 - catalog browsing and miniapp discovery
 - featured / flagship presentation
-- miniapp launch and embedding
+- miniapp catalog/detail rendering with unified information and operation panels
 - wallet-aware transaction prompting
 - host-side proxy calls for Oracle / AA / relay / stats / notifications
 - review / rating / comment surfaces
@@ -59,7 +59,7 @@ include:
 - `/home`
 - `/miniapps`
 - `/miniapps/[id]`
-- `/launch/[id]`
+- `/launch/[id]` (legacy permanent redirect to `/miniapps/[id]`)
 - `/app/[id]`
 - `/explorer`
 - `/docs`
@@ -87,20 +87,15 @@ Operational/API routes currently implemented include:
 
 ## MiniApp Runtime Model
 
-The host supports two runtime patterns:
-
-- `mf://...` Module Federation entrypoints
-- hosted miniapp bundles referenced by manifest metadata
-
-The host resolves the miniapp definition, loads the frontend, and injects the
-platform runtime surface used by MiniApps.
+The host resolves each miniapp definition and renders a single web detail page:
+shared catalog, information, status, reviews, and operation panels stay common,
+while the playarea is selected by `PlayAreaRegistry` for the app id.
 
 ### defineMiniApp() Entry Pattern (OS v2)
 
-All miniapps use `defineMiniApp()` as the **sole** entry point. There are zero
-`App.legacy.vue` files remaining. The function creates a Vue app, wraps the
-PlayArea component inside MiniAppRoot, and wires i18n, reactive state, sidebar,
-and operation panel actions.
+Miniapp packages can still use `defineMiniApp()` for local package previews, but
+the public host renders production miniapp detail pages directly through the
+host-native playarea registry.
 
 ```ts
 defineMiniApp({
