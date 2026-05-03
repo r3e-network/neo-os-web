@@ -1,6 +1,6 @@
 # Automation Copilot
 
-User-facing launcher for pricefeed-backed automation, AA runbooks, and Morpheus execution recipes.
+User-facing console for pricefeed-backed automation, AA runbooks, and Morpheus execution recipes.
 
 ## Scope
 
@@ -9,7 +9,7 @@ This miniapp does not embed its own scheduler or TEE runtime. It acts as the pro
 It provides:
 
 - datafeed documentation and runtime explorer entry points
-- AA workspace launch path for execution-side flows
+- AA workspace entry path for execution-side flows
 - runbook-centric automation guidance
 - an explicit separation between pricefeed and request-response workloads
 

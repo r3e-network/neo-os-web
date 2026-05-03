@@ -9,7 +9,7 @@ Convert Neo addresses, private keys, and script hashes
 | **App ID** | `miniapp-neo-convert` |
 | **Category** | utilities |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 

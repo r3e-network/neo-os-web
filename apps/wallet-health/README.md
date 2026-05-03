@@ -9,7 +9,7 @@ Wallet Health is a front-end utility that helps Neo users review wallet readines
 | **App ID** | `miniapp-wallet-health` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -32,7 +32,7 @@ Wallet Health provides a complete security and readiness checkup for your Neo N3
 
 ### Getting Started
 
-1. **Launch the App**: Open Wallet Health from your Neo MiniApp dashboard
+1. **Open the App**: Open Wallet Health from your Neo MiniApp dashboard
 2. **Connect Your Wallet**: Click "Connect Wallet" to link your Neo N3 wallet
 3. **Review Health Dashboard**: See your wallet health score and recommendations
 
@@ -134,7 +134,7 @@ Wallet Health provides a complete security and readiness checkup for your Neo N3
 │   └───────────────────────────┼──────────────────────────┘  │
 │                               │                             │
 │   ┌───────────────────────────▼──────────────────────────┐  │
-│   │              Vue 3 Composition Logic                  │  │
+│   │              Host-native React State Logic                  │  │
 │   │  ┌────────────────────────────────────────────────┐  │  │
 │   │  │  State Management                              │  │  │
 │   │  │  - balances (neo, gas)                         │  │  │
@@ -148,7 +148,7 @@ Wallet Health provides a complete security and readiness checkup for your Neo N3
 │   │              Data Sources                             │  │
 │   │  ┌──────────────┐  ┌──────────────────────────────┐  │  │
 │   │  │  @neo/       │  │  Local Storage               │  │  │
-│   │  │  uniapp-sdk  │  │  (uni.getStorageSync)        │  │  │
+│   │  │  host wallet SDK  │  │  (localStorage)        │  │  │
 │   │  │              │  │  - checklistState            │  │  │
 │   │  │  - address   │  │  - Persistent across sessions│  │  │
 │   │  │  - chainType │  │                              │  │  │
@@ -196,7 +196,7 @@ return 'High Risk';
 - No analytics or tracking
 
 **Data Persistence:**
-- Uses uni-app storage API
+- Uses host runtime storage API
 - Survives app restarts
 - Cleared if app data deleted
 - Not synced across devices

@@ -9,7 +9,7 @@
 | **应用 ID** | `miniapp-time-capsule` |
 | **分类** | nft |
 | **版本** | 1.0.0 |
-| **框架** | Vue 3 (uni-app) |
+| **框架** | Host-native React playarea |
 
 ## 功能特性
 

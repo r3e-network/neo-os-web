@@ -9,7 +9,7 @@ Explore Neo N3 blockchain - transactions, addresses, contracts
 | **App ID** | `miniapp-explorer` |
 | **Category** | tools |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -30,7 +30,7 @@ Explorer provides a comprehensive view of the Neo N3 blockchain. Search transact
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Explorer from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Explorer from your Neo MiniApp dashboard
 2. **Select Network**: Choose between MainNet or TestNet using the network selector
 3. **Search Blockchain Data**: Enter any of the following in the search box:
    - Transaction hash (e.g., `0x...`)
@@ -75,7 +75,7 @@ Explorer provides a comprehensive view of the Neo N3 blockchain. Search transact
 
 Neo Explorer operates as a lightweight blockchain data viewer with the following components:
 
-**Frontend (Vue 3 + uni-app):**
+**Frontend (Host-native React):**
 - Responsive layout with tab-based navigation
 - Matrix-themed UI with custom CSS animations
 - Client-side caching for improved performance

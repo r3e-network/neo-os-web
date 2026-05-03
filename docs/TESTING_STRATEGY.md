@@ -45,7 +45,7 @@ cd platform/edge/functions && deno test _shared/*_test.ts
   - `lib/` -- 25 files (auth, csrf, edge, fetch, miniapp utilities, supabase, r2)
   - `components/` -- host-native playareas, AppNewsList, Social widgets, Leaderboard
   - `hooks/` -- 4 files (useCommunity, useGamification, useRealtimeNotifications)
-  - `pages/` -- app detail, legacy launch redirect, miniapps index, shared runtime/invoke
+  - `pages/` -- miniapp detail, miniapps index, shared runtime/invoke
 - **394 test cases** total
 - **6 E2E specs** (Playwright): `platform/host-app/e2e/` -- homepage, navigation, wallet, platform-pages, miniapps-list, miniapp-detail
 

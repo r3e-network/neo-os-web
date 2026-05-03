@@ -1,4 +1,4 @@
-export function buildMiniAppLaunchUrl(
+export function buildMiniAppUrl(
   appId: string,
   query?: Record<string, string | number | boolean | null | undefined>,
 ): string {

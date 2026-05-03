@@ -47,18 +47,6 @@ module.exports = {
       lines: 85,
       statements: 85,
     },
-    "./pages/app/[id].tsx": {
-      branches: 50,
-      functions: 50,
-      lines: 60,
-      statements: 60,
-    },
-    "./pages/launch/[id].tsx": {
-      branches: 10,
-      functions: 15,
-      lines: 25,
-      statements: 25,
-    },
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   transform: {

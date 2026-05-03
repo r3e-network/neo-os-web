@@ -9,7 +9,7 @@ Track Neo Foundation and Ecosystem Fund balances
 | **App ID** | `miniapp-neo-treasury` |
 | **Category** | Utility |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
@@ -32,7 +32,7 @@ The Neo Treasury MiniApp provides real-time transparency into the assets held by
 
 ### Getting Started
 
-1. **Launch the App**: Open Neo Treasury from your Neo MiniApp dashboard
+1. **Open the App**: Open Neo Treasury from your Neo MiniApp dashboard
 2. **View Overview**: Total treasury value and statistics load automatically
 3. **Explore Details**: Navigate to individual founder tabs for breakdowns
 
@@ -113,7 +113,7 @@ The Neo Treasury MiniApp provides real-time transparency into the assets held by
 │                          │                                  │
 │                          ▼                                  │
 │   ┌──────────────────────────────────────────────┐         │
-│   │   Vue 3 Frontend                             │         │
+│   │   Host-native React Playarea                             │         │
 │   │   - Total Summary Card                       │         │
 │   │   - Price Grid                               │         │
 │   │   - Founder Lists                            │         │

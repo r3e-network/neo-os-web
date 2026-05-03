@@ -9,7 +9,7 @@ Store photo memories on Neo per wallet address, with optional AES-GCM encryption
 | **App ID** | `miniapp-forever-album` |
 | **Category** | social |
 | **Version** | 1.1.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works

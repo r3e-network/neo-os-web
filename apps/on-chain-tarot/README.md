@@ -9,7 +9,7 @@ Blockchain fortune telling with verifiable randomness
 | **App ID** | `miniapp-onchaintarot` |
 | **Category** | Gaming |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Features
 

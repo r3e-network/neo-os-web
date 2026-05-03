@@ -9,7 +9,7 @@ Time-locked message hashes with public fishing and local content storage
 | **App ID** | `miniapp-time-capsule` |
 | **Category** | nft |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 
 ## How It Works

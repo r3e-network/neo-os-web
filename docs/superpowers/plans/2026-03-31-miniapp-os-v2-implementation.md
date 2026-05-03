@@ -9,7 +9,7 @@
 
 **Architecture:** 15 OS system service contracts (6 new, 4 promoted from modules, 5 kept as-is) replace the 4-hop ModuleRegistry→RecipeRegistry→InstanceRegistry→ServiceGateway chain. Frontend gets OS proxy layer through PlatformContext. Edge functions act as Binder (auth + permission + rate limit proxy).
 
-**Tech Stack:** C# / Neo N3 SmartContract Framework (contracts), TypeScript / Vue 3 (frontend), Deno (edge functions)
+**Tech Stack:** C# / Neo N3 SmartContract Framework (contracts), TypeScript / host-native React (frontend), Deno (edge functions)
 
 **Spec:** `docs/superpowers/specs/2026-03-31-miniapp-os-v2-design.md`
 

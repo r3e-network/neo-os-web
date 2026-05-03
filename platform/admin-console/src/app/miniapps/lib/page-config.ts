@@ -226,7 +226,7 @@ export const BLUEPRINT_TEMPLATES: Record<string, DetailTemplate> = {
       { id: "forum", label: "Forum", type: "forum" },
       { id: "news", label: "News", type: "news" },
     ],
-    operation_panel: { title: "Operations", subtitle: "Configure parameters and submit.", cta_label: "Launch App" },
+    operation_panel: { title: "Operations", subtitle: "Configure parameters and submit.", cta_label: "Open App" },
   },
   prediction: {
     layout: "prediction",

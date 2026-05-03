@@ -46,7 +46,7 @@
 
 ## 技术细节
 
-- 使用 Vue 3 和 TypeScript 构建
+- 使用 Host-native React 和 TypeScript 构建
 - 使用 @shared/utils/wallet-sdk 进行区块链交互
 - 移动优先的响应式布局
 - 支持英文和简体中文

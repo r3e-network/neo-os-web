@@ -2,8 +2,7 @@
   "hero": {
     "title": "Neo MiniApp Platform",
     "subtitle": "Build and deploy decentralized applications with TEE-powered security",
-    "exploreApps": "Explore Apps",
-    "launchApp": "Open App"
+    "exploreApps": "Explore Apps"
   },
   "features": {
     "title": "Features",

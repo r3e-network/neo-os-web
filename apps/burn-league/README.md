@@ -9,7 +9,7 @@ Burn-to-earn league - destroy GAS for platform equity
 | **App ID** | `miniapp-burn-league` |
 | **Category** | DeFi |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Features
 
