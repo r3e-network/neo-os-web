@@ -24,20 +24,20 @@ describe("miniapp-definitions loader", () => {
     process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
 
     fs.writeFileSync(
-      path.join(definitionsDir, "prediction-market.json"),
+      path.join(definitionsDir, "neo-swap.json"),
       JSON.stringify(
         {
-          app_id: "miniapp-predictionmarket",
-          name: "Prediction Market",
-          entry_url: "mf://manifest?app=miniapp-predictionmarket",
+          app_id: "miniapp-neo-swap",
+          name: "Neo Swap",
+          entry_url: "mf://manifest?app=miniapp-neo-swap",
           content: {
             category: "defi",
-            logo_url: "/miniapp-assets/prediction-market/logo.jpg",
-            banner_url: "/miniapp-assets/prediction-market/banner.jpg",
+            logo_url: "/miniapp-assets/neo-swap/logo.jpg",
+            banner_url: "/miniapp-assets/neo-swap/banner.jpg",
           },
           frontend_spec: {
             format: "markdown",
-            content: "# Prediction Market\n\nThis app is fully template-driven.",
+            content: "# Neo Swap\n\nThis app is fully template-driven.",
           },
         },
         null,
@@ -48,16 +48,16 @@ describe("miniapp-definitions loader", () => {
 
     const apps = await loadMiniAppDefinitions();
     expect(apps.length).toBeGreaterThan(0);
-    expect(getApp(apps, "miniapp-predictionmarket")).toEqual(
+    expect(getApp(apps, "miniapp-neo-swap")).toEqual(
       expect.objectContaining({
-        app_id: "miniapp-predictionmarket",
-        name: "Prediction Market",
+        app_id: "miniapp-neo-swap",
+        name: "Neo Swap",
         category: "defi",
-        logo_url: "/miniapp-assets/prediction-market/logo.jpg",
-        banner_url: "/miniapp-assets/prediction-market/banner.jpg",
+        logo_url: "/miniapp-assets/neo-swap/logo.jpg",
+        banner_url: "/miniapp-assets/neo-swap/banner.jpg",
       }),
     );
-    expect(getApp(apps, "miniapp-predictionmarket")?.detail_template?.tabs?.[0]).toEqual(
+    expect(getApp(apps, "miniapp-neo-swap")?.detail_template?.tabs?.[0]).toEqual(
       expect.objectContaining({
         id: "overview",
       }),
@@ -281,11 +281,11 @@ describe("miniapp-definitions loader", () => {
     process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
 
     fs.writeFileSync(
-      path.join(definitionsDir, "neo-pay.shared.json"),
+      path.join(definitionsDir, "neo-pay.modular-fixture.json"),
       JSON.stringify(
         {
           app_id: "miniapp-neo-pay-shared-example",
-          name: "NeoPay Shared Mode Example",
+          name: "NeoPay Modular Fixture",
           entry_url: "mf://manifest?app=miniapp-neo-pay",
           contract_composition: {
             mode: "shared",
@@ -314,15 +314,24 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
-  it("does not publish archived third-party swap miniapps from bundled manifests", async () => {
+  it("publishes the supported Neo Swap manifest from the active bundled catalog", async () => {
     const definitionsDir = path.join(tempRoot, "defs-archived");
     fs.mkdirSync(definitionsDir, { recursive: true });
     process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
 
     const apps = await loadMiniAppDefinitions();
-    expect(getApp(apps, "miniapp-neo-swap")).toBeUndefined();
-    await expect(loadBundledMiniAppById("miniapp-neo-swap")).resolves.toBeNull();
-    await expect(loadBundledMiniAppById("neo-swap")).resolves.toBeNull();
+    expect(getApp(apps, "miniapp-neo-swap")).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-neo-swap",
+        name: "Neo Swap",
+      }),
+    );
+    await expect(loadBundledMiniAppById("miniapp-neo-swap")).resolves.toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-neo-swap",
+        name: "Neo Swap",
+      }),
+    );
   });
 
   it("resolves the current network contract hash from manifest contracts", async () => {
@@ -435,11 +444,11 @@ describe("miniapp-definitions loader", () => {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(definitionsDir, "lottery.example.json"),
+      path.join(definitionsDir, "sample.example.json"),
       JSON.stringify(
         {
-          app_id: "lottery-example",
-          name: "Lottery Example",
+          app_id: "sample-example",
+          name: "Sample Example",
         },
         null,
         2,
@@ -447,12 +456,12 @@ describe("miniapp-definitions loader", () => {
       "utf-8",
     );
     fs.writeFileSync(
-      path.join(definitionsDir, "dice-game.json"),
+      path.join(definitionsDir, "red-envelope.json"),
       JSON.stringify(
         {
-          app_id: "dice-game",
-          name: "Dice Game",
-          entry_url: "https://example.com/dice-game",
+          app_id: "red-envelope",
+          name: "Red Envelope",
+          entry_url: "https://example.com/red-envelope",
           content: {
             category: "gaming",
           },
@@ -481,10 +490,10 @@ describe("miniapp-definitions loader", () => {
     const apps = await loadMiniAppDefinitions();
     const byId = new Map(apps.map((app) => [app.app_id, app]));
     expect(apps.length).toBeGreaterThanOrEqual(2);
-    expect(byId.get("miniapp-dicegame")).toEqual(
+    expect(byId.get("miniapp-redenvelope")).toEqual(
       expect.objectContaining({
-        app_id: "miniapp-dicegame",
-        entry_url: "https://example.com/dice-game",
+        app_id: "miniapp-redenvelope",
+        entry_url: "https://example.com/red-envelope",
       }),
     );
     expect(byId.get("miniapp-fogplay")).toEqual(
@@ -493,7 +502,7 @@ describe("miniapp-definitions loader", () => {
         entry_url: "mf://manifest?app=miniapp-fogplay",
       }),
     );
-    expect(byId.has("miniapp-lottery-example")).toBe(false);
+    expect(byId.has("miniapp-sample-example")).toBe(false);
   });
 
   it("keeps bundled SelfLoan host operations aligned with the PlatformDeFi ABI", async () => {

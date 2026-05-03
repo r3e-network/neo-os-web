@@ -20,7 +20,7 @@ describe("App Redirect Page", () => {
 
     it("should handle different app IDs correctly", async () => {
       const context = {
-        params: { id: "miniapp-lottery" },
+        params: { id: "miniapp-gasbox" },
         req: { headers: { host: "localhost:3000" } },
       } as any;
 
@@ -28,7 +28,7 @@ describe("App Redirect Page", () => {
 
       expect(result).toEqual({
         redirect: {
-          destination: "/miniapps/miniapp-lottery",
+          destination: "/miniapps/miniapp-gasbox",
           permanent: true,
         },
       });

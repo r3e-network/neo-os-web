@@ -8,9 +8,7 @@ NeoPay 是一个流式支付协议，将可编程货币的能力带入日常场�
 
 可以把它理解为 Web3 版的可编程归属金库：资金锁定在智能合约中，按时释放，受益人随时可领。发送方保留取消权以回收未释放的资金，而受益人则可以确信已释放的资金不会被撤回。
 
-> **当前状态**：`MiniAppNeoPay` 智能合约已经部署到测试网，并且与当前前端 ABI 保持一致。主网部署仍待完成。
->
-> **共享模式示例定义**：仓库已新增 `platform/host-app/public/miniapp-definitions/neo-pay.shared.json`，用来描述基于 `recipe.payment_streams.v1`、`module.funding_vault` 与 `module.stream_vesting` 的 NeoPay shared-mode 示例，不会替换当前生效的 `neo-pay.json`。
+> **当前状态**：`MiniAppNeoPay` 智能合约已经部署到测试网和主网，当前前端会按 manifest 使用对应网络的合约地址。
 
 ## 使用方法
 

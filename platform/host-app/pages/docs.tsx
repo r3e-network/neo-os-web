@@ -558,7 +558,7 @@ function PlatformServicesContent() {
       </h3>
       <CodeBlock
         code={`// End-user MiniApp flow
-const randomResult = await window.MiniAppSDK.rng.requestRandom("miniapp-lottery");
+const randomResult = await window.MiniAppSDK.rng.requestRandom("miniapp-gasbox");
 console.log(randomResult.request_id, randomResult.randomness);
 `}
         language="typescript"

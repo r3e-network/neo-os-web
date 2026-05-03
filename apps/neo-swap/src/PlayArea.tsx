@@ -31,8 +31,7 @@ interface Token {
 
 const popularPairs = [
   { id: "neo-gas", name: "NEO/GAS", rate: "1:45.2" },
-  { id: "gas-bneo", name: "GAS/bNEO", rate: "1:0.95" },
-  { id: "neo-flm", name: "NEO/FLM", rate: "1:125.8" },
+  { id: "gas-neo", name: "GAS/NEO", rate: "1:0.0221" },
 ];
 
 export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {

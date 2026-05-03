@@ -133,8 +133,6 @@ const APP_ICONS: Record<string, LucideIcon> = {
   "miniapp-deadswitch": Skull,
 
   // Governance
-  "miniapp-secretvote": Vote,
-  "miniapp-predictionmarket": BarChart3,
   "miniapp-govbooster": Rocket,
   "miniapp-burnleague": Flame,
   "miniapp-masqueradedao": Drama,

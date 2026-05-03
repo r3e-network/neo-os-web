@@ -1,7 +1,6 @@
 import { canonicalizeMiniAppId } from "./miniapp-id";
 
 const ARCHIVED_MINIAPP_IDS = new Set([
-  "miniapp-neo-swap",
   "miniapp-neoburger",
   "miniapp-neo-burger",
   "miniapp-flamingo",
@@ -9,7 +8,6 @@ const ARCHIVED_MINIAPP_IDS = new Set([
 ]);
 
 const ARCHIVED_MINIAPP_SLUGS = new Set([
-  "neo-swap",
   "neoburger",
   "neo-burger",
   "flamingo",

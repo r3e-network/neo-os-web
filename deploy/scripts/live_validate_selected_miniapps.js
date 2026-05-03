@@ -55,7 +55,6 @@ const SELECTED_TASKS = [
   ["millionpiecemap", runMillionPieceMap],
   ["graveyard", runGraveyard],
   ["heritagetrust", runHeritageTrust],
-  ["dicegame", runDiceGame],
   ["gascircle", runGasCircle],
   ["turtlematch", runTurtleMatch],
 ];
@@ -99,7 +98,6 @@ const ORACLE_UPDATER_WIF = String(
 
 const ADDRESSES = {
   flashloan: "0xde8e595d8d3c293731db499367ee2a768e1e458b",
-  dicegame: "0x1e448bf07a742da74084d4c64a61052980beb496",
   gascircle: "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
   exfiles: "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
   masqueradedao: "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
@@ -962,54 +960,6 @@ async function runHeritageTrust() {
     guardianTx: asTxid(guardianTx),
     heartbeatTx: asTxid(heartbeatTx),
     cancelTx: asTxid(cancelTx),
-  };
-}
-
-async function runDiceGame() {
-  const contractHash = ADDRESSES.dicegame;
-  const contract = appContract(contractHash, admin);
-  const oraclePrecheck = await assertOracleBackedAppReady("dicegame", contractHash);
-  const requestFee = BigInt(oraclePrecheck.requestFee || "0");
-  const minimumAdminFunding = 100000000n + 5000000n + requestFee;
-  await ensureAccountHasGas(admin, minimumAdminFunding, "dicegame");
-  const houseBalance = await getGasBalance(contractHash);
-  if (houseBalance < 100000000n) {
-    await transferGAS(adminGas, admin, contractHash, "100000000", null);
-  }
-  await topUpOracleCallbackCredit(contractHash);
-  const betAmount = "5000000";
-  await transferGAS(adminGas, admin, contractHash, betAmount, "miniapp-dicegame:bet");
-
-  const placeTx = await contract.invoke("placeBet", [
-    Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
-    Neon.sc.ContractParam.integer("3"),
-    Neon.sc.ContractParam.integer(betAmount),
-  ]);
-  const placeLog = await waitForLog(placeTx);
-  if (placeLog.execution.vmstate !== "HALT") throw new Error(placeLog.execution.exception || "placeBet failed");
-  const rngRequested = findNotification(placeLog.execution, contractHash, "RngRequested");
-  const betId = String(stackValue(rngRequested?.state?.value?.[0]));
-  const requestId = String(stackValue(rngRequested?.state?.value?.[1]));
-  const resultBytes = crypto.randomBytes(32);
-  const fulfillTx = await ensureOracleRequestFulfilled(requestId, "rng", resultBytes);
-  let bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: betId }]);
-  const deadline = Date.now() + 45000;
-  while (bet[4] !== true && Date.now() < deadline) {
-    await sleep(2000);
-    bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: betId }]);
-  }
-  if (bet[4] !== true) throw new Error("bet not resolved after oracle fulfillment");
-  const rolled = (BigInt(resultBytes[0]) % 6n) + 1n;
-  const expectedPayout = rolled === 3n ? (BigInt(betAmount) * 6n * 95n) / 100n : 0n;
-  return {
-    contractHash,
-    oraclePrecheck,
-    betId,
-    requestId,
-    placeTx: asTxid(placeTx),
-    fulfillTx,
-    rolled: rolled.toString(),
-    expectedPayout: expectedPayout.toString(),
   };
 }
 

@@ -9,8 +9,6 @@ NeoPay is a streaming payment protocol that brings the power of programmable mon
 Think of it as the Web3 equivalent of a programmable vesting or subscription vault: funds are locked in a smart contract, released on schedule, and claimable by the beneficiary at any time. The sender retains the ability to cancel and reclaim unreleased funds, while the beneficiary has full assurance that released funds cannot be revoked.
 
 > **Current status**: the `MiniAppNeoPay` smart contract is deployed on both testnet and mainnet, and the current frontend targets the network-specific contract address from the manifest.
->
-> **Shared-mode example definition**: the repo now includes a modular shared-mode NeoPay example at `platform/host-app/public/miniapp-definitions/neo-pay.shared.json`. It models `recipe.payment_streams.v1` with `module.funding_vault` and `module.stream_vesting` without changing the live bundled `neo-pay.json`.
 
 ## How to Use
 

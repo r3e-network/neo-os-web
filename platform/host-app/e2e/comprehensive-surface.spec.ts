@@ -33,7 +33,6 @@ const PLATFORM_ROUTES = [
   "/account",
   "/analytics",
   "/stats",
-  "/federated",
   "/secrets",
   "/login",
   "/privacy",
@@ -49,7 +48,6 @@ const MUTATING_OR_EXTERNAL_BUTTON =
 
 const READ_ONLY_POST_ENDPOINTS = new Set(["/api/rpc/neo-read"]);
 const ARCHIVED_MINIAPP_IDS = new Set([
-  "miniapp-neo-swap",
   "miniapp-neoburger",
   "miniapp-neo-burger",
   "miniapp-flamingo",

@@ -508,6 +508,11 @@ export function invalidateManifestCache(): void {
   cachedManifestTimestamp = 0;
 }
 
+function isStaticMiniAppRuntimePath(pathname: string): boolean {
+  const [root, slug] = pathname.split("/").filter(Boolean);
+  return root === "miniapps" && Boolean(slug) && !slug.startsWith("miniapp-");
+}
+
 export function __resetWalletForTests(): void {
   walletInstance = null;
   cachedDapiProvider = null;
@@ -519,7 +524,7 @@ async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
   if (cachedManifest !== undefined && now - cachedManifestTimestamp < CACHED_MANIFEST_TTL_MS) {
     return cachedManifest;
   }
-  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/miniapps/")) {
+  if (typeof window !== "undefined" && !isStaticMiniAppRuntimePath(window.location.pathname)) {
     cachedManifest = null;
     cachedManifestTimestamp = now;
     return null;
