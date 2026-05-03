@@ -101,7 +101,7 @@ describe("miniAppConfigSchema modular constraints", () => {
   it("round-trips shared-mode instance id and registry hashes through form converters", () => {
     const form = {
       app_id: "miniapp-neo-pay-shared-example",
-      name: "NeoPay Shared",
+      name: "NeoPay Modular Fixture",
       entry_url: "mf://manifest?app=miniapp-neo-pay",
       blueprint: "defi",
       version: "1.0.0",

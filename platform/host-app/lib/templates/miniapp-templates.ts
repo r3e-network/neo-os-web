@@ -304,26 +304,6 @@ const T_UNBREAKABLE_VAULT: AppTemplate = {
   ],
 };
 
-const T_SECRET_VOTE: AppTemplate = {
-  detail_template: {
-    layout: "prediction",
-    hero: { eyebrow: "Private Vote", disclaimer: "Voter eligibility can be NeoDID-gated while ballot content stays opaque until reveal or tally." },
-    tabs: [
-      { id: "proposal", label: "Proposal", type: "content", blocks: [
-        { type: "notice", tone: "info", content: "Run private or semi-private ballots with identity gating, clear proposal context, and controlled tally windows." },
-        { type: "key_value", title: "Ballot Model", items: [{ key: "Eligibility", value: "NeoDID / credential-gated" }, { key: "Privacy", value: "Private ballot path" }, { key: "Tally", value: "Reveal or controlled result flow" }] },
-      ]},
-      { id: "reviews", label: "Reviews", type: "reviews" }
-    ],
-    operation_panel: { title: "Vote Privately", subtitle: "Prepare a confidential vote or inspect the ballot state.", cta_label: "Open Secret Vote", operations: [] },
-  },
-  operations: [
-    op("Cast Private Vote", "castPrivateVote", "primary"),
-    op("Reveal / Finalize", "finalizeVote", "secondary"),
-  ],
-};
-
-
 export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
   "miniapp-fogplay": T_COINFLIP,
   "miniapp-dailycheckin": T_DAILY_CHECKIN,
@@ -340,5 +320,4 @@ export const MINIAPP_TEMPLATES: Record<string, AppTemplate> = {
   "miniapp-trustanchor": T_TRUSTANCHOR,
   "miniapp-soulbound-certificate": T_SOULBOUND_CERTIFICATE,
   "miniapp-unbreakablevault": T_UNBREAKABLE_VAULT,
-  "miniapp-secret-vote": T_SECRET_VOTE,
 };

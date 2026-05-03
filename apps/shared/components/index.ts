@@ -43,9 +43,6 @@ export { ScrollReveal } from "./ScrollReveal";
 export { ConsoleMiniApp } from "./ConsoleMiniApp";
 export { DetailCardGrid } from "./DetailCardGrid";
 
-// ── Launchers ──
-export { OfficialLauncherMiniApp } from "./OfficialLauncherMiniApp";
-
 // ── Type Exports ──
 export type { CardVariant } from "../components-react";
 export type { StatsDisplayItem, StatsDisplayLayout } from "./StatsDisplay";
@@ -53,4 +50,3 @@ export type { ActionModalVariant, ActionModalSize } from "./ActionModal";
 export type { HeroVariant } from "./HeroSection";
 export type { HeroStatsStripItem } from "./HeroStatsStrip";
 export type { BadgeStatus } from "./StatusBadge";
-export type { LauncherCard, LauncherAction, LauncherToggle } from "./OfficialLauncherMiniApp";

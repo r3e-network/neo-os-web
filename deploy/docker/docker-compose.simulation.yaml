@@ -394,7 +394,7 @@ services:
       - NEOACCOUNTS_SERVICE_URL=https://neoaccounts:8085
       - GLOBALSIGNER_SERVICE_URL=${GLOBALSIGNER_SERVICE_URL:-https://globalsigner:8092}
       - SIMULATION_ENABLED=${SIMULATION_ENABLED:-true}
-      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-miniapp-lottery,miniapp-fogplay,miniapp-dicegame,miniapp-scratch-card,miniapp-mega-millions,miniapp-gas-spin,miniapp-predictionmarket,miniapp-flashloan,miniapp-price-ticker,miniapp-price-predict,miniapp-turbo-options,miniapp-il-guard,miniapp-secretvote,miniapp-secret-poker,miniapp-micro-predict,miniapp-redenvelope,miniapp-gascircle,miniapp-gov-booster,miniapp-ai-trader,miniapp-grid-bot,miniapp-nft-evolve,miniapp-bridge-guardian,miniapp-fog-chess}
+      - SIMULATION_MINIAPPS=${SIMULATION_MINIAPPS:-miniapp-fogplay,miniapp-gasbox,miniapp-redenvelope,miniapp-onchaintarot,miniapp-profitanchor,miniapp-trustanchor,miniapp-neo-x-bridge,miniapp-neo-swap}
       - SIMULATION_TX_INTERVAL_MIN_MS=${SIMULATION_TX_INTERVAL_MIN_MS:-15000}
       - SIMULATION_TX_INTERVAL_MAX_MS=${SIMULATION_TX_INTERVAL_MAX_MS:-15000}
       - SIMULATION_WORKERS_PER_APP=${SIMULATION_WORKERS_PER_APP:-1}

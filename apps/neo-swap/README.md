@@ -1,6 +1,6 @@
 # Neo Swap
 
-Swap NEO and GAS instantly via Flamingo DEX
+Swap NEO and GAS with route preview and wallet settlement
 
 ## Overview
 
@@ -9,24 +9,24 @@ Swap NEO and GAS instantly via Flamingo DEX
 | **App ID** | `miniapp-neo-swap` |
 | **Category** | DeFi |
 | **Version** | 1.0.0 |
-| **Framework** | Vue 3 (uni-app) |
+| **Framework** | Host-native React playarea |
 
 ## Summary
 
-Fast, secure token swapping on Neo N3
+Fast, secure token swap planning on Neo N3
 
-Neo Swap provides direct swaps between NEO and GAS using Flamingo's on-chain router. It uses the platform data feed for price quotes and submits swaps via wallet invocation. With deep liquidity pools and minimal slippage, you can exchange your tokens instantly and securely.
+Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wallet-submitted settlement from the unified MiniApp detail page. Prices come from the platform data feed; the shared operation panel handles final wallet submission and status tracking.
 
 ## Features
 
-- **⚡ Instant Swaps**: Direct NEO/GAS swaps via Flamingo DEX router with sub-minute settlement
-- **💰 Live Price Quotes**: Real-time exchange rates from the platform data feed
-- **📉 Low Slippage**: Deep NEO/GAS liquidity pools ensure minimal price impact
-- **🔒 Secure Transactions**: All swaps executed through audited Flamingo smart contracts
-- **💧 Liquidity Provision**: Add liquidity to pools and earn fees from trades
-- **📊 Rate Display**: Clear visualization of exchange rates and minimum received amounts
-- **🎨 Modern UI**: Clean, intuitive interface designed for both beginners and advanced users
-- **📱 Mobile Optimized**: Fully responsive design works seamlessly on mobile wallets
+- **Instant route preview**: Direct NEO/GAS quote flow with sub-minute wallet settlement expectations
+- **Live price quotes**: Real-time exchange rates from the platform data feed
+- **Slippage review**: Minimum received, price impact, and tolerance controls before submission
+- **Wallet-gated execution**: Final submissions require the connected wallet and shared operation panel
+- **Route context**: Liquidity and route details for planning larger trades
+- **Rate display**: Clear visualization of exchange rates and minimum received amounts
+- **Modern UI**: Clean, intuitive interface designed for both beginners and advanced users
+- **Mobile optimized**: Fully responsive design works seamlessly on mobile wallets
 
 ## Usage
 
@@ -47,23 +47,23 @@ Neo Swap provides direct swaps between NEO and GAS using Flamingo's on-chain rou
    - Price impact percentage
 4. **Adjust Slippage** (optional): Set your preferred slippage tolerance
 5. **Click "Swap"**: Confirm the transaction in your wallet
-6. **Wait for Confirmation**: The swap executes on-chain within seconds
+6. **Wait for Confirmation**: The submitted transaction settles on-chain within seconds
 7. **Receive Tokens**: Your new tokens appear in your wallet automatically
 
-### Adding Liquidity
+### Reviewing Liquidity
 
-1. **Go to Pool Tab**: Switch to the liquidity provision section
-2. **Select Token Pair**: Choose the NEO/GAS pool
-3. **Enter Amounts**: Input the amount of each token you want to add
-   - The ratio is automatically balanced based on current pool prices
-4. **Review Details**: Check your share of the pool and expected returns
-5. **Click "Add Liquidity"**: Confirm the transaction
-6. **Receive LP Tokens**: You'll receive liquidity provider tokens representing your share
+1. **Go to Pool Tab**: Switch to the liquidity context section
+2. **Select Token Pair**: Choose the NEO/GAS route
+3. **Enter Amount**: Input the amount you want to swap
+   - The quote updates from current route data
+4. **Review Details**: Check depth, expected output, and price impact
+5. **Review route context**: Use pool depth, share, and expected return data to plan the trade
+6. **Submit from the operation panel**: Wallet submission stays in the shared platform flow
 
-**Benefits of Providing Liquidity:**
-- Earn fees from every swap transaction
-- Contribute to ecosystem stability
-- No minimum lock-up period
+**Benefits of reviewing liquidity:**
+- Understand expected price impact before signing
+- Avoid accidental execution during thin liquidity
+- Keep swap status and wallet submission in one shared panel
 
 ### Understanding Rates
 
@@ -93,8 +93,8 @@ Neo Swap provides direct swaps between NEO and GAS using Flamingo's on-chain rou
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐  │
-│   │   User      │────►│  Neo Swap   │────►│  Flamingo DEX   │  │
-│   │   Wallet    │     │   UI        │     │    Router       │  │
+│   │   User      │────►│  Neo Swap   │────►│  Swap Route     │  │
+│   │   Wallet    │     │   UI        │     │  Wallet Submit  │  │
 │   └─────────────┘     └─────────────┘     └─────────────────┘  │
 │          │                   │                      │          │
 │          │                   │                      ▼          │
@@ -119,13 +119,13 @@ Neo Swap provides direct swaps between NEO and GAS using Flamingo's on-chain rou
 
 ### Swap Process
 
-1. **Quote Request**: User enters amount, app queries Flamingo router for quote
-2. **Price Calculation**: Current pool reserves determine exchange rate
+1. **Quote Request**: User enters amount, app builds a route preview
+2. **Price Calculation**: Current data feed and liquidity context determine the exchange rate
 3. **Slippage Protection**: Minimum output calculated based on user tolerance
 4. **Transaction Build**: Swap parameters encoded for contract invocation
 5. **Wallet Signing**: User signs transaction in their wallet
-6. **On-Chain Execution**: Transaction submitted to Neo N3 blockchain
-7. **Confirmation**: Tokens transferred atomically via smart contract
+6. **On-Chain Execution**: Transaction submitted to the Neo N3 blockchain
+7. **Confirmation**: Tokens settle through the wallet-submitted route
 8. **Balance Update**: UI reflects new balances after confirmation
 
 ### Liquidity Pool Mechanics
@@ -146,17 +146,17 @@ Price = x / y (GAS price in NEO)
 ```
 
 **Fee Structure**:
-- 0.3% fee on all swaps
-- Fees distributed pro-rata to liquidity providers
-- No protocol fees (100% to LPs)
+- Route fees are included in the received-amount preview
+- The app shows minimum received before wallet confirmation
+- Platform custody fees are not added by this MiniApp
 
 ### Security Features
 
-- **Audited Contracts**: Flamingo contracts have been security audited
+- **Wallet-Gated Submission**: No swap is submitted without explicit wallet confirmation
 - **Reentrancy Protection**: All external calls protected against reentrancy
 - **Deadline Protection**: Transactions include expiration timestamps
 - **Slippage Checks**: Minimum output enforced at contract level
-- **No Admin Keys**: No centralized control over user funds
+- **No Custody**: The platform does not take custody of user funds
 
 ## Permissions
 
@@ -173,9 +173,9 @@ Note: Wallet access is required to sign the swap transaction.
 
 ## On-chain behavior
 
-- Swaps execute via the Flamingo router contract (third-party deployment).
-- Price quotes use the platform data feed.
-- No platform-owned swap contract is deployed for this app.
+- Swaps are previewed in the MiniApp and submitted through the shared wallet flow.
+- Price quotes use the platform data feed and liquidity context.
+- No platform-owned custody contract is deployed for this app.
 
 ## Network Configuration
 
@@ -224,7 +224,7 @@ Note: Wallet access is required to sign the swap transaction.
 ## Assets
 
 - **Allowed Assets**: NEO, GAS
-- **Supported Pairs**: NEO/GAS, GAS/bNEO, NEO/FLM
+- **Supported Pairs**: NEO/GAS
 - **Minimum Swap**: 0.01 GAS or 0.001 NEO
 - **Maximum Swap**: Limited by pool liquidity
 
@@ -246,35 +246,20 @@ npm run build
 ```
 apps/neo-swap/
 ├── src/
-│   ├── pages/
-│   │   ├── index/
-│   │   │   ├── index.vue              # Main app component
-│   │   │   └── components/
-│   │   │       ├── SwapTab.vue        # Swap interface
-│   │   │       ├── PoolTab.vue        # Liquidity provision
-│   │   │       ├── TokenInput.vue     # Amount input component
-│   │   │       ├── TokenSelectorModal.vue
-│   │   │       ├── RateDetails.vue    # Rate display
-│   │   │       └── AddLiquidityForm.vue
-│   │   └── docs/
-│   │       └── index.vue              # Documentation view
-│   ├── composables/
-│   │   └── useI18n.ts                 # Internationalization
-│   └── static/
-│       ├── neo-token.png
-│       ├── gas-token.png
-│       └── flm-token.png
+│   ├── main.tsx                       # Host-native playarea entry
+│   ├── manifest.ts                    # Platform-rendered app metadata
+│   └── locale/
+│       └── messages.ts                # Localized copy
+├── neo-manifest.json                  # Platform catalog manifest
 ├── package.json
 └── README.md
 ```
 
 ### Component Details
 
-- **SwapTab**: Main swapping interface with token selection and amount input
-- **PoolTab**: Liquidity provision interface for adding/removing liquidity
-- **TokenInput**: Reusable input component with balance display
-- **TokenSelectorModal**: Modal for choosing input/output tokens
-- **RateDetails**: Shows exchange rate, price impact, and route information
+- **Playarea entry**: Host-native route preview with token selection and amount input
+- **Manifest**: Shared MiniApp detail-page metadata, permissions, docs, and operation wiring
+- **Messages**: Localized labels, empty states, and wallet submission copy
 
 ## Troubleshooting
 
@@ -290,7 +275,7 @@ apps/neo-swap/
 **Price impact too high:**
 - Split your trade into smaller amounts
 - Wait for more liquidity to be added to the pool
-- Consider using a different DEX for very large trades
+- Consider splitting or delaying very large trades
 
 **Rate different from expected:**
 - Prices change constantly based on pool ratios
@@ -303,6 +288,4 @@ apps/neo-swap/
 
 ## Support
 
-For questions about Flamingo DEX or swap mechanics, visit the Flamingo Finance documentation.
-
-For issues with this MiniApp, contact the Neo MiniApp team.
+For questions about swap mechanics or this MiniApp, contact the Neo MiniApp team.

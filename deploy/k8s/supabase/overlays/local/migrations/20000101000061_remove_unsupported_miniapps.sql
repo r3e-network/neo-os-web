@@ -1,7 +1,7 @@
 -- =============================================================================
--- Migration: Remove unsupported third-party swap miniapps
+-- Migration: Remove unsupported third-party miniapps
 -- Date: 2026-05-03
--- Description: Neo Swap / Flamingo and NeoBurger surfaces are no longer
+-- Description: Flamingo and NeoBurger surfaces are no longer
 --   supported by the platform catalog. Remove any stale rows from production
 --   Supabase tables so API catalog reads cannot republish them from DB state.
 -- =============================================================================
@@ -11,7 +11,6 @@ BEGIN;
 DO $$
 DECLARE
   archived_app_ids text[] := ARRAY[
-    'miniapp-neo-swap',
     'miniapp-neoburger',
     'miniapp-neo-burger',
     'miniapp-flamingo',

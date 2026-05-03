@@ -1,4 +1,6 @@
 import React from "react";
+import fs from "fs";
+import path from "path";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
@@ -8,60 +10,24 @@ import {
 } from "../../components/playarea/PlayAreaRegistry";
 import type { MiniAppInfo } from "../../components/types";
 
-const ACTIVE_MINIAPP_IDS = [
-  "miniapp-aa-account-lab",
-  "miniapp-aa-market-hub",
-  "miniapp-aa-permissions-lab",
-  "miniapp-aa-relay-console",
-  "miniapp-aa-session-key-lab",
-  "miniapp-automation-copilot",
-  "miniapp-breakupcontract",
-  "miniapp-burn-league",
-  "miniapp-council-governance",
-  "miniapp-dailycheckin",
-  "miniapp-dev-tipping",
-  "miniapp-dicegame",
-  "miniapp-event-ticket-pass",
-  "miniapp-explorer",
-  "miniapp-flashloan",
-  "miniapp-fogplay",
-  "miniapp-forever-album",
-  "miniapp-gas-sponsor",
-  "miniapp-gasbox",
-  "miniapp-gov-merc",
-  "miniapp-graveyard",
-  "miniapp-last-survivor",
-  "miniapp-memorial-shrine",
-  "miniapp-milestone-escrow",
-  "miniapp-neo-convert",
-  "miniapp-neo-multisig",
-  "miniapp-neo-ns",
-  "miniapp-neo-pay",
-  "miniapp-neo-pay-shared-example",
-  "miniapp-neo-sign-anything",
-  "miniapp-neo-treasury",
-  "miniapp-neo-x-bridge",
-  "miniapp-neodid-passport",
-  "miniapp-onchaintarot",
-  "miniapp-oracle-compute-lab",
-  "miniapp-oracle-http-console",
-  "miniapp-oracle-neodid-console",
-  "miniapp-oracle-price-console",
-  "miniapp-oracle-seal-console",
-  "miniapp-oracle-vrf-console",
-  "miniapp-profitanchor",
-  "miniapp-quadratic-funding",
-  "miniapp-recovery-guardian",
-  "miniapp-redenvelope",
-  "miniapp-secretvote",
-  "miniapp-self-loan",
-  "miniapp-soulbound-certificate",
-  "miniapp-time-capsule",
-  "miniapp-timestamp-proof",
-  "miniapp-trustanchor",
-  "miniapp-unbreakablevault",
-  "miniapp-wallet-health",
-];
+function loadActiveMiniAppIds() {
+  const repoRoot = path.resolve(__dirname, "../../../..");
+  const appsRoot = path.join(repoRoot, "apps");
+
+  return fs
+    .readdirSync(appsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(appsRoot, entry.name, "neo-manifest.json"))
+    .filter((manifestPath) => fs.existsSync(manifestPath))
+    .map((manifestPath) => {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as { app_id?: string; id?: string };
+      return manifest.app_id || manifest.id;
+    })
+    .filter((appId): appId is string => Boolean(appId))
+    .sort();
+}
+
+const ACTIVE_MINIAPP_IDS = loadActiveMiniAppIds();
 
 const baseApp: MiniAppInfo = {
   app_id: "miniapp-last-survivor",
@@ -137,17 +103,16 @@ describe("PlayAreaRegistry", () => {
   });
 
   it("has a native playarea binding for every active MiniApp in the local catalog", () => {
-    expect(ACTIVE_MINIAPP_IDS).toHaveLength(52);
+    expect(ACTIVE_MINIAPP_IDS).toHaveLength(50);
     expect(ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId))).toEqual([]);
   });
 
   it.each([
     ["miniapp-aa-account-lab", "AA account registration lab"],
-    ["miniapp-dicegame", "Dice roll table"],
     ["miniapp-gas-sponsor", "Gas sponsor policy desk"],
     ["miniapp-milestone-escrow", "Milestone escrow board"],
     ["miniapp-neo-multisig", "Multisig signing room"],
-    ["miniapp-secretvote", "Private ballot room"],
+    ["miniapp-neo-swap", "Neo swap quote desk"],
     ["miniapp-wallet-health", "Wallet safety checkup"],
   ])("renders a profiled playarea for %s", (appId, heading) => {
     renderPlayarea({

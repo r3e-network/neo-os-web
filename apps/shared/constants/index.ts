@@ -187,8 +187,8 @@ export const APP_IDS = {
   /** Coin flip miniapp */
   COIN_FLIP: "miniapp-fogplay",
 
-  /** Lottery miniapp */
-  LOTTERY: "miniapp-lottery",
+  /** GASBox miniapp */
+  GASBOX: "miniapp-gasbox",
 
   /** Self-loan miniapp */
   SELF_LOAN: "miniapp-self-loan",
@@ -204,11 +204,11 @@ export const APP_IDS = {
  * Event name constants
  */
 export const EVENT_NAMES = {
-  /** Lottery ticket purchased */
-  TICKET_PURCHASED: "TicketPurchased",
+  /** GASBox pull requested */
+  GACHA_PULL_REQUESTED: "GachaPullRequested",
 
-  /** Lottery ticket revealed */
-  TICKET_REVEALED: "TicketRevealed",
+  /** GASBox prize revealed */
+  GACHA_PRIZE_REVEALED: "GachaPrizeRevealed",
 
   /** Loan created */
   LOAN_CREATED: "LoanCreated",

@@ -30,11 +30,12 @@ The frontend and contract schemas should mirror each other instead of evolving i
 
 `frontend_composition` should describe reusable UI/runtime primitives instead of one-off layouts.
 
-Current reusable frontend primitives already visible in this repo:
+Current reusable frontend primitives visible in the host-native runtime:
 
-- `MiniAppPage.vue`
-- `ConsoleMiniApp.vue`
-- `OfficialLauncherMiniApp.vue`
+- `MiniAppPage`
+- `ConsoleMiniApp`
+- `PlayAreaRegistry`
+- `OperationPanel`
 - `createMiniApp.ts`
 
 These imply a composable frontend taxonomy:

@@ -1,8 +1,8 @@
 /**
  * Neo Swap -- React Entry Point (OS Services Pattern)
  *
- * Wrapper around the external Flamingo swap router and NEO/GAS native
- * contracts. All chain calls target third-party contracts.
+ * Host-native NEO/GAS swap console. Quotes are previewed in the MiniApp
+ * playarea, while wallet submission stays in the shared action console.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";

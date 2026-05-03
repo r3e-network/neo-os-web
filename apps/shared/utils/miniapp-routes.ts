@@ -12,7 +12,7 @@ export function buildMiniAppLaunchUrl(
     params.set(key, normalized);
   }
 
-  const basePath = `/launch/${normalizedAppId}`;
+  const basePath = `/miniapps/${normalizedAppId}`;
   const queryString = params.toString();
   return queryString ? `${basePath}?${queryString}` : basePath;
 }

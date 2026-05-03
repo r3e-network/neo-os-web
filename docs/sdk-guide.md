@@ -11,9 +11,9 @@ proxies:
 
 ## Runtime Model
 
-- The host provides `window.MiniAppSDK` for legacy host-injected operations.
-- MiniApps run in a sandbox (Module Federation or `iframe`) with strict CSP.
-- MiniApps communicate with the host via a restricted message channel (allowlisted origins).
+- The public host renders MiniApps as one native web surface under `/miniapps/<app_id>`.
+- App-specific interaction lives in the host playarea registry; wallet and oracle actions flow through shared operation panels and SDK helpers.
+- Legacy host-injected SDK helpers remain for package previews and compatibility, but new production UX should use the native detail surface.
 - **All new miniapps use `defineMiniApp()`** with `ctx.os.*` for OS services and
   `ctx.services.*` for platform services. There are zero legacy `App.legacy.vue`
   files remaining.
@@ -303,21 +303,21 @@ contracts** - they only pay via the SDK, and the platform handles the rest.
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Example: Lottery MiniApp
+### Example: FogPlay MiniApp
 
 ```ts
-// User buys 5 lottery tickets
+// User stages a coin-flip payment
 const payment = await window.MiniAppSDK.payments.payGAS(
-    "miniapp-lottery",
-    "0.5", // 0.5 GAS for 5 tickets
-    "lottery:round:42:tickets:5",
+    "miniapp-fogplay",
+    "0.1",
+    "fogplay:round:42:heads",
 );
 await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 
 // That's it! The platform handles:
-// - Recording tickets in MiniAppLottery contract
-// - Drawing winners using VRF
-// - Sending payouts to winners
+// - Capturing the wager intent
+// - Requesting randomness through the approved oracle path
+// - Settling the result through the MiniApp contract
 ```
 
 ### Why This Architecture?
@@ -335,34 +335,20 @@ await window.MiniAppSDK.wallet.invokeIntent?.(payment.request_id);
 
 ## Platform MiniApps
 
-The platform includes 24 platform MiniApps demonstrating SDK usage patterns:
+The platform catalog currently includes 50 active MiniApps demonstrating SDK usage patterns:
 
 | Category   | App ID                      | Description                          |
 | ---------- | --------------------------- | ------------------------------------ |
-| Gaming     | `miniapp-lottery`           | Lottery with provable VRF randomness |
-| Gaming     | `miniapp-fogplay`         | 50/50 double-or-nothing              |
-| Gaming     | `miniapp-dicegame`         | Roll dice, win up to 6x              |
-| Gaming     | `miniapp-scratch-card`      | Instant win scratch cards            |
-| Gaming     | `miniapp-gas-spin`          | Lucky wheel with VRF                 |
-| Gaming     | `miniapp-secret-poker`      | TEE Texas Hold'em                    |
-| Gaming     | `miniapp-fog-chess`         | Chess with fog of war                |
-| DeFi       | `miniapp-predictionmarket` | Price movement predictions           |
+| Gaming     | `miniapp-fogplay`           | Coin flip with oracle-backed settlement |
+| Gaming     | `miniapp-gasbox`            | GASBox gacha machine                 |
+| Gaming     | `miniapp-onchaintarot`      | 78-card on-chain tarot reading       |
 | DeFi       | `miniapp-flashloan`         | Instant borrow and repay             |
-| DeFi       | `miniapp-price-ticker`      | Real-time price feeds                |
-| DeFi       | `miniapp-price-predict`     | Binary options trading               |
-| DeFi       | `miniapp-micro-predict`     | 60-second predictions                |
-| DeFi       | `miniapp-turbo-options`     | Ultra-fast binary options            |
-| DeFi       | `miniapp-il-guard`          | Impermanent loss protection          |
-| DeFi       | `miniapp-ai-trader`         | Autonomous AI trading                |
-| DeFi       | `miniapp-grid-bot`          | Automated grid trading               |
-| DeFi       | `miniapp-bridge-guardian`   | Cross-chain asset bridge             |
-| Social     | `miniapp-redenvelope`      | Social GAS red packets               |
-| Social     | `miniapp-gascircle`        | Daily savings circle                 |
-| Social     | `miniapp-canvas`            | Collaborative pixel art canvas       |
-| Governance | `miniapp-secretvote`       | Privacy-preserving voting            |
-| Governance | `miniapp-gov-booster`       | bNEO governance tools                |
-| Security   | `miniapp-guardian-policy`   | TEE transaction security             |
-| Gaming     | `miniapp-nft-evolve`        | Dynamic NFT evolution                |
+| DeFi       | `miniapp-neo-swap`          | Neo N3 swap quote desk               |
+| Cross-chain| `miniapp-neo-x-bridge`      | Neo N3 / Neo X bridge console        |
+| Social     | `miniapp-redenvelope`       | Social GAS red packets               |
+| Governance | `miniapp-profitanchor`      | Profit route voting                  |
+| Governance | `miniapp-trustanchor`       | Trust route staking                  |
+| Identity   | `miniapp-neodid-passport`   | NeoDID credential console            |
 # Note
 
 The current flagship direction (MiniApp-OS v2) is:

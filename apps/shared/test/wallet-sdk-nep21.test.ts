@@ -206,7 +206,7 @@ describe("wallet-sdk NEP-21 support", () => {
   });
 
   it("does not request a root neo-manifest from host-rendered pages", async () => {
-    window.history.replaceState({}, "", "/launch/miniapp-profitanchor");
+    window.history.replaceState({}, "", "/miniapps/miniapp-profitanchor");
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
 
