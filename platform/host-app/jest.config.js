@@ -16,7 +16,6 @@ module.exports = {
     "!pages/_error.tsx",
     "!pages/api/**",
     "!pages/index.tsx",
-    "!pages/federated.tsx",
     "!pages/test.tsx",
     "!components/index.ts",
     "!**/*.d.ts",
@@ -43,12 +42,6 @@ module.exports = {
       statements: 70,
     },
     "./components/AppNewsList.tsx": {
-      branches: 85,
-      functions: 85,
-      lines: 85,
-      statements: 85,
-    },
-    "./components/LaunchDock.tsx": {
       branches: 85,
       functions: 85,
       lines: 85,

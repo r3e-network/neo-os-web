@@ -9,40 +9,8 @@ function randomNonce(): string {
   return btoa(binary);
 }
 
-function parseFederatedOrigins(): string[] {
-  const raw = (process.env.NEXT_PUBLIC_MF_REMOTES || "").trim();
-  if (!raw) return [];
-
-  const origins = new Set<string>();
-  const entries = raw
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  for (const entry of entries) {
-    const separator = entry.includes("@")
-      ? "@"
-      : entry.includes("=")
-        ? "="
-        : null;
-    if (!separator) continue;
-    const [, urlRaw] = entry.split(separator);
-    const url = String(urlRaw || "").trim();
-    if (!url) continue;
-    try {
-      origins.add(new URL(url).origin);
-    } catch {
-      // Skip malformed URL entries in ALLOWED_ORIGINS
-      continue;
-    }
-  }
-
-  return Array.from(origins);
-}
-
 function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
-  const federatedOrigins = parseFederatedOrigins();
   const externalFontStyleSources = [
     "https://fonts.googleapis.com",
     "https://api.fontshare.com",
@@ -51,14 +19,6 @@ function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = 
   if (options.allowMiniAppEmbedding) {
     styleSources.push(...externalFontStyleSources);
   }
-
-  const trustedMiniAppFrameOrigins = ["https://vote.r3e.network"];
-  const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
-  const frameSrc = frameOrigins
-    ? `'self' ${frameOrigins}`
-    : isDev
-      ? "'self' https:"
-      : ["'self'", ...trustedMiniAppFrameOrigins].join(" ");
 
   const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const connectSources = ["'self'"];
@@ -91,15 +51,13 @@ function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = 
     "https://edge.meshmini.app",
     "https://control.meshmini.app",
   );
-  connectSources.push(...federatedOrigins);
   const auth0Issuer = (process.env.AUTH0_ISSUER_BASE_URL || "").trim();
   if (auth0Issuer) {
     connectSources.push(auth0Issuer);
   }
   const connectSrc = connectSources.join(" ");
 
-  const scriptSources = ["'self'", `'nonce-${nonce}'`, ...federatedOrigins];
-  // Module Federation requires 'unsafe-eval' for dynamic code loading
+  const scriptSources = ["'self'", `'nonce-${nonce}'`];
   if (isDev) {
     scriptSources.push("'unsafe-eval'");
   }
@@ -114,7 +72,7 @@ function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = 
     "img-src 'self' data: https:",
     "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
-    `frame-src ${frameSrc}`,
+    "frame-src 'none'",
     options.allowMiniAppEmbedding
       ? "frame-ancestors 'self' https://neomini.app https://*.miniapp.r3e.network"
       : "frame-ancestors 'none'",

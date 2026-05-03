@@ -7,27 +7,22 @@ This **Next.js** host runs on **Vercel** and serves as the entry point for MiniA
 Responsibilities:
 
 - enforce MiniApp manifest policy (permissions/limits/assets) via Edge gating
-- sandbox MiniApps via **Module Federation remotes** and `iframe` containers
-- strict CSP + postMessage allowlists
-- provide `window.MiniAppSDK` for federated apps and same-origin iframes
-- surface wallet binding, intent submission, AppRegistry workflows, and AA relay proxying
+- render MiniApps in the unified host-native three-column product layout
+- resolve catalog manifests into shared information panels, operation panels, and per-app playareas
+- strict CSP for the host runtime and platform APIs
+- surface NEP-21 wallet binding, intent submission, AppRegistry workflows, Morpheus proxies, and AA relay proxying
 
 Current capabilities:
 
-- `pages/index.tsx` loads MiniApps via `entry_url` and supports:
-  - `mf://...` Module Federation manifests
-  - canonical `https://...` iframe launches
-  - bare `*.matrix` / `*.neo` entry domains, normalized to `https://...`
-- `pages/federated.tsx` is a dedicated Module Federation loader.
-- `window.MiniAppSDK` is exposed for federated MiniApps and injected into same-origin iframes.
+- `/miniapps` lists the active catalog.
+- `/miniapps/<app_id>` renders the Polymarket-style detail surface with host-native playareas.
+- `/launch/<app_id>` is a permanent compatibility redirect to `/miniapps/<app_id>` and does not render a launch shell.
 - Settings UI includes wallet binding (`wallet-nonce` + `wallet-bind`) and intents (`pay-gas` / `vote-neo`).
 - AppRegistry workflow for `app-register` / `app-update-manifest`.
 - CSP headers set via `platform/host-app/middleware.ts` with per-request nonces.
 
 ## Production Configuration
 
-- `MINIAPP_FRAME_ORIGINS`: space-separated `frame-src` allowlist for embedded iframes.
-- `NEXT_PUBLIC_MF_REMOTES`: comma-separated Module Federation remotes (e.g. `miniapp@https://cdn.miniapps.com/miniapps/miniapp-mf`).
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.
 - `EDGE_RPC_ALLOWLIST`: comma-separated Edge function names that `/api/rpc/*` may call (`*` to allow all).
 - `AA_RELAY_URL`: external `neo-abstract-account` relay URL used by `/api/aa/relay`.
@@ -119,82 +114,17 @@ consistent for the host UI (same `EDGE_BASE_URL` / `NEXT_PUBLIC_SUPABASE_URL` re
 
 ## Local Runs
 
-### Module Federation Remotes (Optional)
-
-This repository no longer includes a dedicated local legacy-remote workspace.
-Run the host app and point `NEXT_PUBLIC_MF_REMOTES` to any reachable remote.
-
-```bash
-cd platform/host-app
-NEXT_PUBLIC_MF_REMOTES=miniapp@https://cdn.example.com/miniapps/remoteEntry.js npm run dev
-```
-
-Then open:
-
-- `http://localhost:3000/?entry_url=mf://manifest?app=miniapp-price-ticker`
-
 ### Manifest Runtime (Recommended)
 
-MiniApps are configuration-driven and rendered by host runtime from manifest specs:
+MiniApps are configuration-driven and rendered by the host runtime from manifests plus the playarea registry:
 
 - JSON/YAML/Markdown frontend spec
-- no Vue/uniapp bundle required
-
-### Shared-Mode Definition To Registration Plan
-
-For shared-mode MiniApps, the host-side app definition can also be the source of truth for
-contract recipe/runtime/module wiring. The modular registration helper will enrich omitted
-plan fields from `contract_composition` before any transaction is signed.
-
-Operator-managed values still stay in the plan:
-
-- registry hashes
-- module contract hashes
-- owner / developer / operator identities
-
-Example source definition:
-
-- `platform/host-app/public/miniapp-definitions/neo-pay.shared.json`
-
-Example thin plan that relies on the definition for recipe/runtime/module_bindings while still
-providing operator-managed module hashes:
-
-- `deploy/config/modular-neopay.shared.from-definition.example.json`
-
-Validate the generated plan shape before any dry-run or live registration:
-
-```bash
-go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
-  --plan deploy/config/modular-neopay.shared.from-definition.example.json \
-  --validate-only
-```
-
-If you want to see the guardrails fail before signer/RPC setup, use:
-
-```bash
-go run -tags=scripts ./deploy/scripts/register_modular_instance.go \
-  --plan deploy/config/modular-neopay.shared.bad-plan.example.json \
-  --validate-only
-```
-
-That bad plan is expected to fail on recipe/runtime/binding mismatches before `--dry-run`.
+- per-app host-native playarea
+- no separate remote launch shell required
 
 Open a manifest app via:
 
-- `http://localhost:3000/launch/<app_id>`
-- or `entry_url=mf://manifest?app=<app_id>`
-
-### External Domain Runtime
-
-The host also supports external iframe launches through canonical URLs and
-normalized bare domains:
-
-- `https://wallet.matrix/apps/swap`
-- `wallet.matrix/apps/swap`
-- `smartwallet.neo/console`
-
-Bare `.matrix` / `.neo` domains are normalized to `https://...` during admin
-validation, catalog ingestion, and launch rendering.
+- `http://localhost:3000/miniapps/<app_id>`
 
 ## Recommended Validation
 
@@ -211,7 +141,7 @@ Inside `platform/host-app`, the equivalent command is:
 npm run test:full
 ```
 
-## Module Federation (MiniApps)
+## Manifest Runtime (MiniApps)
 
 MiniApp manifests use the manifest runtime scheme:
 
@@ -238,19 +168,3 @@ The host expects a Neo N3 browser wallet. The host UI supports **NEP-21 dAPI wal
    - click `Submit via Wallet` to call NEP-21 `invoke` or the legacy wallet invoke API
 
 If `pay-gas` / `vote-neo` returns `WALLET_REQUIRED`, bind a wallet first.
-
-## Cross-Origin MiniApps
-
-Cross-origin MiniApps launched from external domains run inside sandboxed
-iframes. The host currently guarantees:
-
-- launch support for `https://...`, bare `*.matrix`, and bare `*.neo` entry domains
-- CSP `frame-src` enforcement via `MINIAPP_FRAME_ORIGINS`
-- same-origin host routes for AA relay (`/api/aa/relay`) and edge RPC proxying
-
-The host does **not** currently ship a general postMessage wallet/AA bridge for
-cross-origin MiniApps. Cross-origin apps that need AA, oracle, or wallet flows
-must either:
-
-- integrate directly with the relevant public/host endpoints, or
-- ship their own bridge/client logic.

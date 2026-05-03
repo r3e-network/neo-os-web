@@ -441,11 +441,15 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
   const definitionsDir = getDefinitionsDir();
   const definitions: MiniAppDefinitionPayload[] = [];
   const errors: MiniAppDefinitionLoadError[] = [];
+  const restrictDefinitionsToBundledSlugs = !asString(process.env.MINIAPP_DEFINITIONS_DIR);
+  const bundledSlugs = await listBundledManifestSlugs();
+  const bundledSlugSet = new Set(bundledSlugs);
 
   try {
     const entries = await fs.readdir(definitionsDir, { withFileTypes: true });
     const definitionFiles = entries
       .filter((entry) => entry.isFile() && fileHasSupportedDefinitionExtension(entry.name) && !shouldSkipDefinitionFile(entry.name))
+      .filter((entry) => !restrictDefinitionsToBundledSlugs || bundledSlugSet.has(getSlugFromFilename(entry.name)))
       .map((entry) => entry.name)
       .sort();
 
@@ -479,7 +483,6 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
     }
 
     const definitionSlugs = new Set(definitions.map((definition) => definition.slug));
-    const bundledSlugs = await listBundledManifestSlugs();
     for (const slug of bundledSlugs) {
       if (definitionSlugs.has(slug)) continue;
       try {

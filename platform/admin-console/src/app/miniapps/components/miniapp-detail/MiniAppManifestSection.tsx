@@ -24,7 +24,6 @@ const SELECTED_TARGETS: Record<string, string> = {
   "miniapp-millionpiecemap": "millionpiecemap",
   "miniapp-graveyard": "graveyard",
   "miniapp-heritagetrust": "heritagetrust",
-  "miniapp-dicegame": "dicegame",
   "miniapp-gascircle": "gascircle",
   "miniapp-turtlematch": "turtlematch",
 };

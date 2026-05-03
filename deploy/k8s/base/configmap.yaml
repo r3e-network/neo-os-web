@@ -101,7 +101,7 @@ data:
 
   # Simulation service defaults (dev/test only).
   SIMULATION_ENABLED: "false"
-  SIMULATION_MINIAPPS: "miniapp-lottery,miniapp-fogplay,miniapp-dicegame"
+  SIMULATION_MINIAPPS: "miniapp-fogplay,miniapp-gasbox,miniapp-redenvelope,miniapp-onchaintarot"
   SIMULATION_TX_INTERVAL_MIN_MS: "1000"
   SIMULATION_TX_INTERVAL_MAX_MS: "5000"
   SIMULATION_WORKERS_PER_APP: "2"

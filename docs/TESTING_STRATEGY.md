@@ -40,12 +40,12 @@ cd platform/edge/functions && deno test _shared/*_test.ts
 
 ### Host App Tests (Jest)
 
-- **79 test files** across `platform/host-app/__tests__/`
+- Host app test files across `platform/host-app/__tests__/`
   - `api/` -- 31 files (admin, catalog, cron, morpheus, search, chain endpoints)
   - `lib/` -- 25 files (auth, csrf, edge, fetch, miniapp utilities, supabase, r2)
-  - `components/` -- 8 files (LaunchDock, AppNewsList, Social widgets, Leaderboard, FederatedMiniApp)
+  - `components/` -- host-native playareas, AppNewsList, Social widgets, Leaderboard
   - `hooks/` -- 4 files (useCommunity, useGamification, useRealtimeNotifications)
-  - `pages/` -- 5 files (app detail, launch, miniapps index, shared runtime/invoke)
+  - `pages/` -- app detail, legacy launch redirect, miniapps index, shared runtime/invoke
 - **394 test cases** total
 - **6 E2E specs** (Playwright): `platform/host-app/e2e/` -- homepage, navigation, wallet, platform-pages, miniapps-list, miniapp-detail
 

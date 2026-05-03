@@ -92,7 +92,7 @@ describe("shared-mode runtime resolver", () => {
     const { resolveSharedModeRuntime } = require("../../lib/chain/shared-mode");
     const runtime = await resolveSharedModeRuntime({
       app_id: "miniapp-neo-pay-shared-example",
-      name: "NeoPay Shared",
+      name: "NeoPay Modular Fixture",
       description: "",
       icon: "🧩",
       category: "defi",
@@ -208,7 +208,7 @@ describe("shared-mode runtime resolver", () => {
     const recipe = resolveSharedOperationRecipe(
       {
         app_id: "miniapp-neo-pay-shared-example",
-        name: "NeoPay Shared",
+        name: "NeoPay Modular Fixture",
         description: "",
         icon: "🧩",
         category: "defi",

@@ -74,7 +74,7 @@ describe("MiniAppDetailPage shared invoke", () => {
       <MiniAppDetailPage
         app={{
           app_id: "miniapp-neo-pay-shared-example",
-          name: "NeoPay Shared Mode Example",
+          name: "NeoPay Modular Fixture",
           description: "Shared mode app",
           icon: "🧩",
           category: "defi",
