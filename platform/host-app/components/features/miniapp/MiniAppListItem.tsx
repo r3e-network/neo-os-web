@@ -91,7 +91,7 @@ export const MiniAppListItem = memo(function MiniAppListItem({
 
           <div className="hidden sm:flex items-center gap-6 text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors">
             <div className="flex items-center gap-1 justify-end text-neo opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300">
-              <span className="font-bold">Launch &rarr;</span>
+              <span className="font-bold">Open app &rarr;</span>
             </div>
           </div>
         </div>

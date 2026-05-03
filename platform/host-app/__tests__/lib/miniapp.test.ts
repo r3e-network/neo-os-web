@@ -82,6 +82,38 @@ describe("miniapp coercion", () => {
     expect(app.permissions.aa).toBe(true);
   });
 
+  it("allows same-origin published miniapp entries", () => {
+    const app = coerceMiniAppInfo({
+      app_id: "miniapp-local-production",
+      entry_url: "/miniapps/local-production/index.html",
+      permissions: {},
+    });
+
+    expect(app?.entry_url).toBe("/miniapps/local-production/index.html");
+  });
+
+  it("maps legacy bundled manifest category aliases into host categories", () => {
+    const cases = [
+      ["games", "gaming"],
+      ["game", "gaming"],
+      ["finance", "defi"],
+      ["tools", "utility"],
+      ["tool", "utility"],
+      ["oracle", "data"],
+    ] as const;
+
+    for (const [rawCategory, normalizedCategory] of cases) {
+      const app = coerceMiniAppInfo({
+        app_id: `miniapp-category-${rawCategory}`,
+        entry_url: `https://example.com/${rawCategory}`,
+        category: rawCategory,
+        permissions: {},
+      });
+
+      expect(app?.category).toBe(normalizedCategory);
+    }
+  });
+
   it("defaults non-flagship miniapps to beta while preserving flagship active state", () => {
     const nonFlagship = applyBuiltInMiniAppDefaults({
       app_id: "miniapp-on-chain-tarot",

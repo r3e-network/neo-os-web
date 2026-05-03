@@ -4,7 +4,7 @@ set -euo pipefail
 shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 SRC_DIR="$PROJECT_ROOT/platform/edge/functions"
 DEST_DIR="$PROJECT_ROOT/supabase/functions"

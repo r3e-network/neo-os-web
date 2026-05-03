@@ -36,20 +36,30 @@ export function useWalletHealth({ chain, balance, eventBus, storage, t }: UseWal
   const health = useHealthScore(analysis.gasOk, storage);
 
   // ── Formatted display values ─────────────────────────────────────────
-  const connectionStatus = createDerived(() =>
-    analysis.address.get() ? t("statusConnected") : t("statusDisconnected"),
+  const connectionStatus = createDerived(
+    () => analysis.address.get() ? t("statusConnected") : t("statusDisconnected"),
+    [analysis.address],
   );
   const networkLabel = createDerived(() => "Neo N3", []);
-  const isConnected = createDerived(() => Boolean(analysis.address.get()), []);
+  const isConnected = createDerived(() => Boolean(analysis.address.get()), [analysis.address]);
 
   // ── Health stats array for the dashboard grid ────────────────────────
-  const healthStats = createDerived<HealthStat[]>(() => [
-    { label: t("statConnection"), value: connectionStatus.get() },
-    { label: t("statNetwork"), value: networkLabel.get() },
-    { label: t("statNeo"), value: analysis.neoDisplay.get() },
-    { label: t("statGas"), value: analysis.gasDisplay.get() },
-    { label: t("statScore"), value: `${health.safetyScore.get()}%` },
-  ], []);
+  const healthStats = createDerived<HealthStat[]>(
+    () => [
+      { label: t("statConnection"), value: connectionStatus.get() },
+      { label: t("statNetwork"), value: networkLabel.get() },
+      { label: t("statNeo"), value: analysis.neoDisplay.get() },
+      { label: t("statGas"), value: analysis.gasDisplay.get() },
+      { label: t("statScore"), value: `${health.safetyScore.get()}%` },
+    ],
+    [
+      connectionStatus,
+      networkLabel,
+      analysis.neoDisplay,
+      analysis.gasDisplay,
+      health.safetyScore,
+    ],
+  );
 
   return {
     // From useWalletAnalysis

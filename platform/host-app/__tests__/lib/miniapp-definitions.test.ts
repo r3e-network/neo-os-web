@@ -119,6 +119,39 @@ describe("miniapp-definitions loader", () => {
     );
   });
 
+  it("keeps bundled manifest urls.entry behind the native manifest runtime", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-urls-entry");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "tarot.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-onchaintarot",
+          name: "On-chain Tarot",
+          urls: {
+            entry: "/miniapps/on-chain-tarot/index.html",
+            icon: "/miniapps/on-chain-tarot/logo.jpg",
+            banner: "/miniapps/on-chain-tarot/banner.jpg",
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    expect(getApp(apps, "miniapp-onchaintarot")).toEqual(
+      expect.objectContaining({
+        entry_url: "mf://manifest?app=miniapp-onchaintarot",
+        logo_url: "/miniapps/on-chain-tarot/logo.jpg",
+        banner_url: "/miniapps/on-chain-tarot/banner.jpg",
+      }),
+    );
+  });
+
   it("preserves modular contract composition metadata in bundled definitions", async () => {
     const definitionsDir = path.join(tempRoot, "defs-composition");
     fs.mkdirSync(definitionsDir, { recursive: true });
@@ -279,6 +312,17 @@ describe("miniapp-definitions loader", () => {
         }),
       }),
     );
+  });
+
+  it("does not publish archived third-party swap miniapps from bundled manifests", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-archived");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    const apps = await loadMiniAppDefinitions();
+    expect(getApp(apps, "miniapp-neo-swap")).toBeUndefined();
+    await expect(loadBundledMiniAppById("miniapp-neo-swap")).resolves.toBeNull();
+    await expect(loadBundledMiniAppById("neo-swap")).resolves.toBeNull();
   });
 
   it("resolves the current network contract hash from manifest contracts", async () => {
@@ -458,16 +502,27 @@ describe("miniapp-definitions loader", () => {
     const byMethod = new Map(operations.map((operation) => [operation.method, operation] as const));
 
     expect(byMethod.has("repayDebt")).toBe(false);
-    expect(byMethod.get("repayLoan")?.params.map((param) => [param.name, param.type])).toEqual([
+    expect(byMethod.get("repayLoan")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
       ["loanId", "integer"],
     ]);
-    expect(byMethod.get("addCollateral")?.params.map((param) => [param.name, param.type])).toEqual([
+    expect(byMethod.get("addCollateral")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
       ["loanId", "integer"],
     ]);
-    expect(byMethod.get("syncProfitAnchorVote")?.params.map((param) => [param.name, param.type])).toEqual([
+    expect(byMethod.get("syncProfitAnchorVote")?.params?.map((param) => [param.name, param.type])).toEqual([
       ["appId", "string"],
     ]);
+  });
+
+  it("loads bundled miniapps by the public MiniApp slug", async () => {
+    const app = await loadBundledMiniAppById("self-loan");
+
+    expect(app).toEqual(
+      expect.objectContaining({
+        app_id: "miniapp-self-loan",
+        entry_url: "mf://manifest?app=miniapp-self-loan",
+      }),
+    );
   });
 });

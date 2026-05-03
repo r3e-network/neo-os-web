@@ -16,7 +16,7 @@ export function LaunchDock({
   appId,
   wallet,
   networkLatency,
-  runtimeLabel = "Focused Launch View",
+  runtimeLabel = "Focused MiniApp View",
   onExit,
   onShare,
 }: LaunchDockProps) {
@@ -39,16 +39,16 @@ export function LaunchDock({
   const walletDotBg = wallet.connected ? "bg-emerald-500" : "bg-red-500";
 
   return (
-    <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-4 gap-4 z-50 border-b border-white/[0.08]">
+    <div className="fixed top-0 inset-x-0 h-12 bg-[rgba(10,10,10,0.95)] backdrop-blur-sm flex items-center px-3 sm:px-4 gap-2 sm:gap-4 z-50 border-b border-white/[0.08]">
       {/* Left: App Name */}
-      <div className="min-w-0 max-w-[320px]">
+      <div className="min-w-0 flex-1 sm:flex-none sm:max-w-[320px]">
         <div
-          className="truncate max-w-[320px] text-base font-semibold text-gray-100"
+          className="truncate max-w-full sm:max-w-[320px] text-sm sm:text-base font-semibold text-gray-100"
           title={appName}
         >
           {appName}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[10px] font-semibold uppercase text-gray-400">
+        <div className="mt-0.5 hidden items-center gap-2 text-[10px] font-semibold uppercase text-gray-400 sm:flex">
           <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] text-gray-300">
             Runtime Mode
           </span>
@@ -66,7 +66,7 @@ export function LaunchDock({
       <div className="flex-1" />
 
       {/* Right section: Wallet, Network, Share, Exit */}
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {/* Wallet Status */}
         <div className="flex items-center gap-1.5">
           <div
@@ -76,7 +76,7 @@ export function LaunchDock({
           <span className="sr-only">
             Wallet status: {wallet.connected ? "connected" : "disconnected"}
           </span>
-          <span className="text-sm text-gray-500 font-mono">
+          <span className="hidden text-sm text-gray-500 font-mono sm:inline">
             {walletDisplay}
           </span>
         </div>
@@ -88,7 +88,7 @@ export function LaunchDock({
             aria-hidden="true"
           />
           <span className="sr-only">Network status: {networkStatus.label}</span>
-          <span className="text-sm text-gray-500 font-mono">
+          <span className="hidden text-sm text-gray-500 font-mono min-[420px]:inline sm:inline">
             {networkLatency !== null
               ? `${networkLatency}ms`
               : networkStatus.label}

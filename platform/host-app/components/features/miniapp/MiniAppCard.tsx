@@ -161,7 +161,7 @@ export const MiniAppCard = memo(function MiniAppCard({
 
           <div className="border-t border-gray-200/50 pt-4 mt-auto flex items-center justify-end text-xs font-semibold text-gray-500">
             <div className="text-neo flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300 transform">
-              Launch <span aria-hidden="true">&rarr;</span>
+              Open app <span aria-hidden="true">&rarr;</span>
             </div>
           </div>
         </CardContent>

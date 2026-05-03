@@ -10,7 +10,7 @@
  * - Abstract Account (AA) via social login
  */
 import { ref, type Ref } from "vue";
-import { getMiniAppContractHash, getNetwork, type NeoNetwork, N3INDEX_API } from "../constants/rpc";
+import { getMiniAppContractHash, getNetwork, type NeoNetwork, N3INDEX_API, MAINNET_MAGIC, TESTNET_MAGIC } from "../constants/rpc";
 import { MiniAppError } from "./errorHandling";
 
 // Error codes for i18n-compatible error handling
@@ -36,9 +36,10 @@ export interface WalletSDK {
   invokeMultiple: (params: BatchInvokeParams) => Promise<InvokeResult>;
   invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
   getBalance: (asset: string) => Promise<string | number>;
+  send?: (asset: string, amount: string | number, to: string, from?: string) => Promise<InvokeResult>;
   getContractAddress: () => Promise<string>;
   /** Sign a message with the connected wallet */
-  signMessage?: (message: string) => Promise<{ publicKey?: string; data?: string } | null>;
+  signMessage?: (message: string) => Promise<{ publicKey?: string; data?: string; signature?: string; account?: string; pubkey?: string } | null>;
   /** Switch the wallet to a different chain/network */
   switchToAppChain?: (chainId: string) => Promise<void>;
 }
@@ -161,7 +162,68 @@ interface NeoLineN3 {
     address: string;
     contracts: string[];
   }) => Promise<{ [asset: string]: { amount: string; contract: string }[] }>;
+  signMessage?: (params: { message: string }) => Promise<string | { publicKey?: string; data?: string; signature?: string }>;
 }
+
+// ---------------------------------------------------------------------------
+// NEP-21 dAPI provider interface
+// ---------------------------------------------------------------------------
+
+type NeoDapiEventName = "accountchanged" | "accountschanged" | "networkchanged";
+
+type NeoDapiAccount = {
+  hash: string;
+  address?: string;
+  label?: string;
+  isDefault?: boolean;
+};
+
+type NeoDapiInvocation = {
+  hash: string;
+  operation: string;
+  args?: ContractArg[];
+  abortOnFail?: boolean;
+};
+
+type NeoDapiAuthenticationResponse = {
+  network?: number;
+  address?: string;
+  nonce?: string;
+  pubkey?: string;
+  signature?: string;
+};
+
+interface NeoDapiProvider {
+  compatibility?: string[];
+  dapiVersion?: string;
+  extra?: unknown;
+  name?: string;
+  network?: number;
+  supportedNetworks?: number[];
+  version?: string;
+  website?: string;
+  on?: (event: NeoDapiEventName, listener: () => void) => void;
+  removeListener?: (event: NeoDapiEventName, listener: () => void) => void;
+  authenticate?: (payload: {
+    action: "Authentication";
+    grant_type: "Signature";
+    allowed_algorithms: ["ECDSA-P256"];
+    domain: string;
+    networks: number[];
+    nonce: string;
+    timestamp: number;
+  }) => Promise<NeoDapiAuthenticationResponse>;
+  call?: (invocation: NeoDapiInvocation) => Promise<InvokeResult>;
+  getAccounts: () => Promise<NeoDapiAccount[]>;
+  getBalance?: (asset: string, account?: string) => Promise<unknown>;
+  invoke?: (invocations: NeoDapiInvocation[], signers?: WalletSigner[], suggestedSystemFee?: string) => Promise<unknown>;
+  send?: (asset: string, from: string, to: string, amount: string, data?: ContractArg) => Promise<unknown>;
+  signMessage?: (message: string, account?: string) => Promise<{ signature: string; account: string; pubkey: string }>;
+}
+
+type ActiveWalletProvider =
+  | { kind: "nep21"; provider: NeoDapiProvider }
+  | { kind: "neoline"; provider: NeoLineN3 };
 
 type MiniAppManifest = {
   id?: string;
@@ -173,6 +235,9 @@ declare global {
   interface Window {
     NEOLineN3?: { Init: new () => NeoLineN3 };
     neo3Dapi?: NeoLineN3;
+    Neo?: { DapiProvider?: NeoDapiProvider };
+    neoDapiProvider?: NeoDapiProvider;
+    neoDapi?: NeoDapiProvider;
   }
 }
 
@@ -247,6 +312,193 @@ function mapSigners(signers?: WalletSigner[]) {
   }));
 }
 
+const DAPI_SCOPE_BY_NUMBER: Record<number, string> = {
+  0: "None",
+  1: "CalledByEntry",
+  16: "CustomContracts",
+  32: "CustomGroups",
+  64: "WitnessRules",
+  128: "Global",
+};
+
+const DAPI_SCOPE_BY_NAME: Record<string, string> = {
+  none: "None",
+  calledbyentry: "CalledByEntry",
+  customcontracts: "CustomContracts",
+  customgroups: "CustomGroups",
+  rules: "WitnessRules",
+  witnessrules: "WitnessRules",
+  global: "Global",
+};
+
+function normalizeDapiSignerScope(scope: string | number): string {
+  if (typeof scope === "number" && Number.isFinite(scope)) {
+    if (DAPI_SCOPE_BY_NUMBER[scope]) return DAPI_SCOPE_BY_NUMBER[scope];
+    const parts = Object.entries(DAPI_SCOPE_BY_NUMBER)
+      .filter(([bit]) => Number(bit) !== 0 && (scope & Number(bit)) === Number(bit))
+      .map(([, name]) => name);
+    return parts.length ? parts.join(", ") : "CalledByEntry";
+  }
+
+  const raw = String(scope ?? "").trim();
+  if (/^\d+$/.test(raw)) {
+    return normalizeDapiSignerScope(parseInt(raw, 10));
+  }
+  if (raw.includes(",")) {
+    const parts = raw
+      .split(",")
+      .map((part) => DAPI_SCOPE_BY_NAME[part.trim().toLowerCase()] ?? part.trim())
+      .filter(Boolean);
+    return parts.length ? parts.join(", ") : "CalledByEntry";
+  }
+
+  return DAPI_SCOPE_BY_NAME[raw.toLowerCase()] ?? (raw || "CalledByEntry");
+}
+
+function mapDapiSigners(signers?: WalletSigner[], accountHash?: string | null, currentAddress?: string | null) {
+  return signers?.map((signer) => ({
+    account: accountHash && currentAddress && signer.account === currentAddress ? accountHash : signer.account,
+    scopes: normalizeDapiSignerScope(signer.scopes),
+    ...(signer.allowedContracts?.length ? { allowedContracts: signer.allowedContracts } : {}),
+    ...(signer.allowedGroups?.length ? { allowedGroups: signer.allowedGroups } : {}),
+    ...(signer.rules?.length ? { rules: signer.rules } : {}),
+  }));
+}
+
+function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
+  if (!candidate || typeof candidate !== "object") return false;
+  const provider = candidate as Partial<NeoDapiProvider>;
+  return typeof provider.getAccounts === "function" && (
+    typeof provider.invoke === "function" ||
+    typeof provider.call === "function" ||
+    typeof provider.send === "function" ||
+    typeof provider.signMessage === "function"
+  );
+}
+
+let cachedDapiProvider: NeoDapiProvider | null = null;
+let dapiReadyListenerInstalled = false;
+let dapiWaiters: Array<(provider: NeoDapiProvider) => void> = [];
+
+function readImmediateDapiProvider(): NeoDapiProvider | null {
+  if (cachedDapiProvider) return cachedDapiProvider;
+  if (typeof window === "undefined") return null;
+  const candidates = [
+    window.Neo?.DapiProvider,
+    window.neoDapiProvider,
+    window.neoDapi,
+  ];
+  const provider = candidates.find(isNeoDapiProvider) ?? null;
+  if (provider) cachedDapiProvider = provider;
+  return provider;
+}
+
+function installDapiReadyListener(): void {
+  if (dapiReadyListenerInstalled || typeof window === "undefined") return;
+  dapiReadyListenerInstalled = true;
+  window.addEventListener("Neo.DapiProvider.ready", (event: Event) => {
+    const provider = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
+    if (!isNeoDapiProvider(provider)) return;
+    cachedDapiProvider = provider;
+    const waiters = dapiWaiters;
+    dapiWaiters = [];
+    waiters.forEach((resolve) => resolve(provider));
+  });
+}
+
+function waitForDapiProvider(timeoutMs = 3000): Promise<NeoDapiProvider> {
+  installDapiReadyListener();
+  const immediate = readImmediateDapiProvider();
+  if (immediate) return Promise.resolve(immediate);
+
+  return new Promise((resolve, reject) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const waiter = (provider: NeoDapiProvider) => {
+      clearTimeout(timeout);
+      resolve(provider);
+    };
+    timeout = setTimeout(() => {
+      dapiWaiters = dapiWaiters.filter((entry) => entry !== waiter);
+      reject(new Error("NEP-21 dAPI provider not detected."));
+    }, timeoutMs);
+    dapiWaiters.push(waiter);
+    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.request", {
+      detail: { version: "1.0" },
+    }));
+  });
+}
+
+function resolveNetworkFromMagic(network?: number): NeoNetwork | null {
+  if (network === MAINNET_MAGIC) return "mainnet";
+  if (network === TESTNET_MAGIC) return "testnet";
+  return null;
+}
+
+function chainTypeFromDapiNetwork(network?: number): string {
+  const resolved = resolveNetworkFromMagic(network);
+  return resolved ? `neo-n3-${resolved}` : "neo-n3";
+}
+
+function buildDapiInvocation(params: InvokeParams): NeoDapiInvocation {
+  return {
+    hash: params.scriptHash,
+    operation: normalizeOperationName(params.operation),
+    args: params.args ?? [],
+  };
+}
+
+function normalizeTxResult(result: unknown): InvokeResult {
+  if (typeof result === "string") return { txid: result, tx: result };
+  if (result && typeof result === "object") {
+    const record = result as Record<string, unknown>;
+    const txid = String(record.txid ?? record.tx ?? record.hash ?? "");
+    return {
+      ...(result as InvokeResult),
+      ...(txid ? { txid, tx: txid } : {}),
+    };
+  }
+  return {};
+}
+
+function normalizeBalanceResult(result: unknown, assetHash: string): string | number {
+  if (typeof result === "string" || typeof result === "number") return result;
+  if (result && typeof result === "object") {
+    const record = result as Record<string, unknown>;
+    if (typeof record.amount === "string" || typeof record.amount === "number") return record.amount;
+
+    const direct = record[assetHash] ?? record[assetHash.toLowerCase()] ?? record[assetHash.toUpperCase()];
+    if (typeof direct === "string" || typeof direct === "number") return direct;
+
+    if (Array.isArray(direct)) {
+      const match = direct.find((entry) => entry && typeof entry === "object" && (entry as Record<string, unknown>).contract === assetHash);
+      const amount = (match as Record<string, unknown> | undefined)?.amount;
+      if (typeof amount === "string" || typeof amount === "number") return amount;
+    }
+  }
+  return "0";
+}
+
+function encodeBase64Utf8(value: string): string {
+  if (typeof btoa === "function") {
+    return btoa(unescape(encodeURIComponent(value)));
+  }
+  return value;
+}
+
+function createNonce(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+}
+
+function getAuthenticationDomain(): string {
+  if (typeof window === "undefined") return "localhost";
+  return window.location.host || window.location.hostname || "localhost";
+}
+
 let cachedManifest: MiniAppManifest | null | undefined;
 let cachedManifestTimestamp = 0;
 const CACHED_MANIFEST_TTL_MS = 30000; // 30 seconds
@@ -256,13 +508,28 @@ export function invalidateManifestCache(): void {
   cachedManifestTimestamp = 0;
 }
 
+export function __resetWalletForTests(): void {
+  walletInstance = null;
+  cachedDapiProvider = null;
+  dapiWaiters = [];
+}
+
 async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
   const now = Date.now();
   if (cachedManifest !== undefined && now - cachedManifestTimestamp < CACHED_MANIFEST_TTL_MS) {
     return cachedManifest;
   }
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/miniapps/")) {
+    cachedManifest = null;
+    cachedManifestTimestamp = now;
+    return null;
+  }
   try {
-    const response = await fetch("/neo-manifest.json", { cache: "no-store" });
+    const manifestUrl =
+      typeof window === "undefined"
+        ? "/neo-manifest.json"
+        : new URL("neo-manifest.json", window.location.href).toString();
+    const response = await fetch(manifestUrl, { cache: "no-store" });
     if (!response.ok) {
       cachedManifest = null;
       cachedManifestTimestamp = now;
@@ -285,7 +552,11 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
   const address = ref<string | null>(null);
   const chainType = ref("neo-n3");
+  const chainId = ref("neo-n3");
   let neoline: NeoLineN3 | null = null;
+  let activeProvider: ActiveWalletProvider | null = null;
+  let dapiAccountHash: string | null = null;
+  let dapiEventsAttached = false;
 
   const ensureNeoLine = async (): Promise<NeoLineN3> => {
     if (neoline) return neoline;
@@ -328,16 +599,140 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     });
   };
 
+  const ensureWalletProvider = async (): Promise<ActiveWalletProvider> => {
+    if (activeProvider) return activeProvider;
+
+    const immediateDapi = readImmediateDapiProvider();
+    if (immediateDapi) {
+      activeProvider = { kind: "nep21", provider: immediateDapi };
+      return activeProvider;
+    }
+
+    if (typeof window !== "undefined" && (window.neo3Dapi || window.NEOLineN3)) {
+      activeProvider = { kind: "neoline", provider: await ensureNeoLine() };
+      return activeProvider;
+    }
+
+    return new Promise((resolve, reject) => {
+      const errors: Error[] = [];
+      const resolveOnce = (provider: ActiveWalletProvider) => {
+        if (activeProvider) return;
+        activeProvider = provider;
+        resolve(provider);
+      };
+      const rejectIfDone = (error: unknown) => {
+        errors.push(error instanceof Error ? error : new Error(String(error)));
+        if (errors.length >= 2 && !activeProvider) {
+          reject(new Error("Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension."));
+        }
+      };
+
+      waitForDapiProvider(3000)
+        .then((provider) => resolveOnce({ kind: "nep21", provider }))
+        .catch(rejectIfDone);
+      ensureNeoLine()
+        .then((provider) => resolveOnce({ kind: "neoline", provider }))
+        .catch(rejectIfDone);
+    });
+  };
+
+  const updateDapiNetwork = (provider: NeoDapiProvider) => {
+    const nextChainType = chainTypeFromDapiNetwork(provider.network);
+    chainType.value = nextChainType;
+    chainId.value = nextChainType;
+  };
+
+  const setDapiAccount = (account: NeoDapiAccount) => {
+    dapiAccountHash = account.hash;
+    address.value = account.address || account.hash;
+  };
+
+  const resolveDapiAccount = (account?: string | null): string => {
+    if (account && dapiAccountHash && account === address.value) return dapiAccountHash;
+    return account ?? dapiAccountHash ?? address.value ?? "";
+  };
+
+  const connectDapi = async (provider: NeoDapiProvider) => {
+    updateDapiNetwork(provider);
+
+    try {
+      const accounts = await provider.getAccounts();
+      const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
+      if (account?.hash) {
+        setDapiAccount(account);
+        return;
+      }
+    } catch (_e) {
+      // Some providers require an authentication prompt before account access.
+    }
+
+    if (!provider.authenticate) {
+      throw new Error("NEP-21 wallet did not return any account.");
+    }
+
+    const supportedNetworks = provider.supportedNetworks?.length
+      ? provider.supportedNetworks
+      : [MAINNET_MAGIC, TESTNET_MAGIC];
+    const authenticated = await provider.authenticate({
+      action: "Authentication",
+      grant_type: "Signature",
+      allowed_algorithms: ["ECDSA-P256"],
+      domain: getAuthenticationDomain(),
+      networks: supportedNetworks,
+      nonce: createNonce(),
+      timestamp: Date.now(),
+    });
+
+    if (authenticated.network) {
+      chainType.value = chainTypeFromDapiNetwork(authenticated.network);
+      chainId.value = chainType.value;
+    }
+    if (!authenticated.address) {
+      throw new Error("NEP-21 wallet authentication did not return an address.");
+    }
+    dapiAccountHash = null;
+    address.value = authenticated.address;
+  };
+
   const connect = async () => {
-    const nl = await ensureNeoLine();
-    const account = await nl.getAccount();
+    const wallet = await ensureWalletProvider();
+    if (wallet.kind === "nep21") {
+      await connectDapi(wallet.provider);
+      if (!dapiEventsAttached) {
+        dapiEventsAttached = true;
+        const handleAccountChanged = () => {
+          void connectDapi(wallet.provider).catch(() => {
+            dapiAccountHash = null;
+            address.value = null;
+          });
+        };
+        wallet.provider.on?.("networkchanged", () => updateDapiNetwork(wallet.provider));
+        wallet.provider.on?.("accountchanged", handleAccountChanged);
+        wallet.provider.on?.("accountschanged", handleAccountChanged);
+      }
+      return;
+    }
+
+    const account = await wallet.provider.getAccount();
     address.value = account.address;
   };
 
   const invokeContract = async (params: InvokeParams): Promise<InvokeResult> => {
-    const nl = await ensureNeoLine();
+    const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
-    const result = await nl.invoke({
+
+    if (wallet.kind === "nep21") {
+      if (!wallet.provider.invoke) {
+        throw new MiniAppError("Connected NEP-21 wallet does not support invoke.", ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED, undefined, undefined, undefined, ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED);
+      }
+      const result = await wallet.provider.invoke(
+        [buildDapiInvocation(params)],
+        mapDapiSigners(params.signers, dapiAccountHash, address.value),
+      );
+      return normalizeTxResult(result);
+    }
+
+    const result = await wallet.provider.invoke({
       scriptHash: params.scriptHash,
       operation: normalizeOperationName(params.operation),
       args: params.args ?? [],
@@ -347,10 +742,21 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const invokeMultiple = async (params: BatchInvokeParams): Promise<InvokeResult> => {
-    const nl = await ensureNeoLine();
+    const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
 
-    const provider = nl.invokeMultiple || nl.invokeMulti;
+    if (wallet.kind === "nep21") {
+      if (!wallet.provider.invoke) {
+        throw new MiniAppError("Connected NEP-21 wallet does not support invoke.", ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED, undefined, undefined, undefined, ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED);
+      }
+      const result = await wallet.provider.invoke(
+        (params.invokeArgs ?? []).map(buildDapiInvocation),
+        mapDapiSigners(params.signers, dapiAccountHash, address.value),
+      );
+      return normalizeTxResult(result);
+    }
+
+    const provider = wallet.provider.invokeMultiple || wallet.provider.invokeMulti;
     if (!provider) {
       throw new MiniAppError("Connected Neo wallet does not support invokeMultiple.", ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED, undefined, undefined, undefined, ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED);
     }
@@ -367,8 +773,15 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const invokeRead = async (params: InvokeParams): Promise<InvokeResult> => {
-    const nl = await ensureNeoLine();
-    return nl.invokeRead({
+    const wallet = await ensureWalletProvider();
+    if (wallet.kind === "nep21") {
+      if (!wallet.provider.call) {
+        throw new MiniAppError("Connected NEP-21 wallet does not support call.", ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED, undefined, undefined, undefined, ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED);
+      }
+      return wallet.provider.call(buildDapiInvocation(params));
+    }
+
+    return wallet.provider.invokeRead({
       scriptHash: params.scriptHash,
       operation: normalizeOperationName(params.operation),
       args: params.args,
@@ -376,7 +789,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   };
 
   const getBalance = async (asset: string): Promise<string | number> => {
-    const nl = await ensureNeoLine();
+    const wallet = await ensureWalletProvider();
     if (!address.value) return "0";
 
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
@@ -384,7 +797,13 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
     const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
-    const result = await nl.getBalance({
+    if (wallet.kind === "nep21") {
+      if (!wallet.provider.getBalance) return "0";
+      const result = await wallet.provider.getBalance(contractHash, dapiAccountHash ?? address.value);
+      return normalizeBalanceResult(result, contractHash);
+    }
+
+    const result = await wallet.provider.getBalance({
       address: address.value,
       contracts: [contractHash],
     });
@@ -392,6 +811,61 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const balances = Object.values(result).flat();
     const match = balances.find((b) => b.contract === contractHash);
     return match?.amount ?? "0";
+  };
+
+  const send = async (asset: string, amount: string | number, to: string, from?: string): Promise<InvokeResult> => {
+    const wallet = await ensureWalletProvider();
+    if (!address.value) await connect();
+
+    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
+    const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
+    const contractHash = asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
+
+    if (wallet.kind === "nep21" && wallet.provider.send) {
+      const result = await wallet.provider.send(
+        contractHash,
+        resolveDapiAccount(from),
+        to,
+        String(amount),
+      );
+      return normalizeTxResult(result);
+    }
+
+    return invokeContract({
+      scriptHash: contractHash,
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: from ?? address.value },
+        { type: "Hash160", value: to },
+        { type: "Integer", value: String(amount) },
+        { type: "Any", value: null },
+      ],
+    });
+  };
+
+  const signMessage = async (message: string) => {
+    const wallet = await ensureWalletProvider();
+    if (!address.value) await connect();
+
+    if (wallet.kind === "nep21") {
+      if (!wallet.provider.signMessage) {
+        throw new Error("Connected NEP-21 wallet does not support signMessage.");
+      }
+      const signed = await wallet.provider.signMessage(encodeBase64Utf8(message), dapiAccountHash ?? address.value ?? undefined);
+      return {
+        publicKey: signed.pubkey,
+        data: signed.signature,
+        signature: signed.signature,
+        account: signed.account,
+        pubkey: signed.pubkey,
+      };
+    }
+
+    if (!wallet.provider.signMessage) {
+      throw new Error("Connected Neo wallet does not support signMessage.");
+    }
+    const signed = await wallet.provider.signMessage({ message });
+    return typeof signed === "string" ? { data: signed, signature: signed } : signed;
   };
 
   const getContractAddress = async (): Promise<string> => {
@@ -413,12 +887,15 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   walletInstance = {
     address,
     chainType,
+    chainId,
     connect,
     invokeContract,
     invokeMultiple,
     invokeRead,
     getBalance,
+    send,
     getContractAddress,
+    signMessage,
   };
 
   return walletInstance;

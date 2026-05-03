@@ -1,4 +1,4 @@
-.premium-arena { width: 100%; padding: 40px 20px; position: relative; background: var(--coin-arena-bg); border-radius: 32px; border: 1px solid var(--coin-arena-border); overflow: hidden; backdrop-filter: blur(20px); }
+.premium-arena { box-sizing: border-box; width: 100%; padding: 40px 20px; position: relative; background: var(--coin-arena-bg); border-radius: 32px; border: 1px solid var(--coin-arena-border); overflow: hidden; backdrop-filter: blur(20px); }
 .arena-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; }
 .arena-bg { position: absolute; inset: 0; z-index: -1; }
 .arena-orbit { position: absolute; top: 50%; left: 50%; width: 250px; height: 250px; border: 1px dashed var(--coin-orbit-border); border-radius: 50%; transform: translate(-50%, -50%); animation: rotate 60s linear infinite; }
@@ -13,3 +13,24 @@
 .outcome-tag { font-size: 8px; font-weight: 700; opacity: 0.8; color: var(--coin-white); }
 @keyframes rotate { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .arena-orbit { animation: none; } }
+
+@media (max-width: 520px) {
+  .premium-arena {
+    padding: 30px 10px;
+    border-radius: 24px;
+  }
+
+  .arena-content {
+    min-height: 332px;
+  }
+
+  .arena-orbit {
+    width: 212px;
+    height: 212px;
+  }
+
+  .arena-glow {
+    width: 126px;
+    height: 126px;
+  }
+}

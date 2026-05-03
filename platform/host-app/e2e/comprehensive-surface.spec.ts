@@ -48,6 +48,13 @@ const MUTATING_OR_EXTERNAL_BUTTON =
   /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|o3|connect|disconnect|delete|remove|rollback|publish|deploy|upload|import|export|download|submit miniapp|send email|verify email|performance monitor|monitoring dashboard|open builder|go back|stake|swap|claim|create|verify|request|finalize|repay|withdraw|add collateral|sync|issue)\b/i;
 
 const READ_ONLY_POST_ENDPOINTS = new Set(["/api/rpc/neo-read"]);
+const ARCHIVED_MINIAPP_IDS = new Set([
+  "miniapp-neo-swap",
+  "miniapp-neoburger",
+  "miniapp-neo-burger",
+  "miniapp-flamingo",
+  "miniapp-flaminggo",
+]);
 
 function readMiniApps() {
   const apps: Array<{ id: string; name: string; slug: string }> = [];
@@ -62,6 +69,7 @@ function readMiniApps() {
     ) as MiniAppManifest;
     const id = String(manifest.id || "").trim();
     if (!id) continue;
+    if (ARCHIVED_MINIAPP_IDS.has(id)) continue;
 
     apps.push({
       id,
@@ -472,6 +480,26 @@ test.describe("Comprehensive frontend surface", () => {
 
       const route = `/miniapps/${app.id}`;
       await gotoHealthy(page, route);
+      await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
+      await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
+      await expect(page.getByTestId("miniapp-info")).toBeVisible();
+      await expect(page.getByTestId("miniapp-actions")).toBeVisible();
+      await expect(page.getByTestId("miniapp-detail-layout")).toHaveJSProperty(
+        "children.length",
+        3,
+      );
+      await expect(
+        page.getByTestId("miniapp-list-rail").locator(`a[href="/miniapps/${app.id}"]`),
+        `${app.id} should appear in the shared miniapp list rail`,
+      ).toHaveCount(1);
+      const railLinkCount = await page
+        .getByTestId("miniapp-list-rail")
+        .locator("a")
+        .count();
+      expect(
+        railLinkCount,
+        `${app.id} should expose a populated shared miniapp list rail`,
+      ).toBeGreaterThan(10);
       await expect(
         page.locator("body"),
         `${app.id} should render its display name`,

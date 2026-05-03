@@ -90,8 +90,14 @@ verify_runtime_catalog_contract() {
   envelope_version="$(jq -r '.envelope.version' "$runtime_catalog_file")"
   risk_plane="$(jq -r '.topology.riskPlane' "$runtime_catalog_file")"
   automation_tee_required="$(jq -r '.workflows[] | select(.id == "automation.upkeep") | .execution.teeRequired' "$runtime_catalog_file")"
-  mapfile -t workflow_ids < <(jq -r '.workflows[].id' "$runtime_catalog_file")
-  mapfile -t automation_trigger_kinds < <(jq -r '.automation.triggerKinds[]' "$runtime_catalog_file")
+  workflow_ids=()
+  while IFS= read -r workflow_id; do
+    workflow_ids+=("$workflow_id")
+  done < <(jq -r '.workflows[].id' "$runtime_catalog_file")
+  automation_trigger_kinds=()
+  while IFS= read -r trigger_kind; do
+    automation_trigger_kinds+=("$trigger_kind")
+  done < <(jq -r '.automation.triggerKinds[]' "$runtime_catalog_file")
 
   for consumer_catalog in "$platform_catalog" "$aa_catalog"; do
     if [[ ! -s "$consumer_catalog" ]]; then

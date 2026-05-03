@@ -51,7 +51,11 @@ if [[ $run_local -eq 1 ]]; then
 fi
 
 if [[ $run_live -eq 1 ]]; then
-  bash "$SCRIPT_DIR/run_live_testnet_validation.sh" "${live_args[@]}"
+  if [[ ${#live_args[@]} -gt 0 ]]; then
+    bash "$SCRIPT_DIR/run_live_testnet_validation.sh" "${live_args[@]}"
+  else
+    bash "$SCRIPT_DIR/run_live_testnet_validation.sh"
+  fi
 fi
 
 echo ""

@@ -8,7 +8,7 @@ set -euo pipefail
 # local dev containers (Postgres/Auth/Edge runtime/etc.) via the Docker socket.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 USE_DOCKER="${SUPABASE_CLI_USE_DOCKER:-}"
 CLI_BIN="${SUPABASE_CLI_BIN:-}"

@@ -34,14 +34,21 @@ defineMiniApp({
       tarot.flipCard(Number(index));
     });
 
+    ctx.registerAction("setQuestion", async (value: unknown) => {
+      tarot.question.set(String(value ?? "").slice(0, 200));
+    });
+
     return {
       state: {
         drawn: tarot.drawn,
         isLoading: tarot.isLoading,
         hasDrawn: tarot.hasDrawn,
         allFlipped: tarot.allFlipped,
+        allRevealedDisplay: tarot.allRevealedDisplay,
         readingsCount: tarot.readingsCount,
         cardsDrawnCount: tarot.cardsDrawnCount,
+        question: tarot.question,
+        readingMode: tarot.readingMode,
       },
       loadData: tarot.loadAll,
     };

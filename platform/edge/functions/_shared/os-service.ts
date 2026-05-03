@@ -18,7 +18,8 @@ import { readJsonBody } from "./request.ts";
 import { error, json } from "./response.ts";
 import { requireRateLimit } from "./ratelimit.ts";
 import { requireScope } from "./scopes.ts";
-import { requireAuth, type AuthContext } from "./supabase.ts";
+import { addressToScriptHash } from "./neo.ts";
+import { requireAuth, requirePrimaryWallet, type AuthContext } from "./supabase.ts";
 import { fetchMiniAppPolicy, permissionEnabled, type MiniAppPolicy } from "./apps.ts";
 
 // ---------------------------------------------------------------------------
@@ -27,7 +28,10 @@ import { fetchMiniAppPolicy, permissionEnabled, type MiniAppPolicy } from "./app
 
 export type OSRequest = {
   appId: string;
+  /** Neo script hash for the authenticated user's verified primary wallet. */
   userId: string;
+  walletAddress: string;
+  walletHash: string;
   params: Record<string, unknown>;
   auth: AuthContext;
   policy: MiniAppPolicy | null;
@@ -62,6 +66,96 @@ interface RpcResponse {
   id: number;
   result?: unknown;
   error?: { code: number; message: string };
+}
+
+function decodeBase64Bytes(value: string): Uint8Array {
+  const bin = atob(value);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function stackBytes(item: Record<string, unknown>): Uint8Array {
+  const value = String(item.value ?? "");
+  if (item.type === "ByteString" || item.type === "Buffer") {
+    try {
+      return decodeBase64Bytes(value);
+    } catch (_err) {
+      return new TextEncoder().encode(value);
+    }
+  }
+  if (item.type === "Integer") {
+    let hex = BigInt(value || "0").toString(16);
+    if (hex.length % 2 !== 0) hex = `0${hex}`;
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < out.length; i++) {
+      out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    }
+    return out;
+  }
+  return new Uint8Array();
+}
+
+function stackMapKey(item: unknown): string {
+  const parsed = parseNeoStackValue(item);
+  return typeof parsed === "string" ? parsed : String(parsed ?? "");
+}
+
+export function parseNeoStackValue(item: unknown): unknown {
+  if (!item || typeof item !== "object") return item ?? null;
+  const typed = item as Record<string, unknown>;
+  const type = String(typed.type ?? "");
+
+  switch (type) {
+    case "Integer":
+      return String(typed.value ?? "0");
+    case "Boolean":
+      return Boolean(typed.value);
+    case "String":
+    case "Hash160":
+    case "Hash256":
+      return String(typed.value ?? "");
+    case "ByteString":
+    case "Buffer":
+    case "ByteArray": {
+      const bytes = stackBytes(typed);
+      const text = new TextDecoder().decode(bytes);
+      if (/^[\x20-\x7E]*$/.test(text)) return text;
+      if (bytes.length === 20) {
+        return `0x${Array.from(bytes).reverse().map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+      }
+      return String(typed.value ?? "");
+    }
+    case "Array":
+    case "Struct":
+      return Array.isArray(typed.value) ? typed.value.map(parseNeoStackValue) : [];
+    case "Map":
+      if (!Array.isArray(typed.value)) return {};
+      return Object.fromEntries(
+        typed.value.map((entry) => {
+          if (Array.isArray(entry) && entry.length === 2) {
+            return [stackMapKey(entry[0]), parseNeoStackValue(entry[1])];
+          }
+          const record = entry as Record<string, unknown>;
+          return [stackMapKey(record.key), parseNeoStackValue(record.value)];
+        }),
+      );
+    default:
+      return typed.value ?? null;
+  }
+}
+
+export function parseInvokeResultValue(result: unknown): unknown {
+  if (!result || typeof result !== "object") return result ?? null;
+  const obj = result as Record<string, unknown>;
+  const state = String(obj.state ?? "");
+  if (state === "FAULT") {
+    throw new Error(String(obj.exception ?? "contract invocation fault"));
+  }
+  if (!Array.isArray(obj.stack)) return result;
+  if (obj.stack.length === 0) return null;
+  if (obj.stack.length === 1) return parseNeoStackValue(obj.stack[0]);
+  return obj.stack.map(parseNeoStackValue);
 }
 
 /**
@@ -202,6 +296,16 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
       return error(400, "app_id required", "APP_ID_REQUIRED", req);
     }
 
+    const wallet = await requirePrimaryWallet(auth.userId, req);
+    if (wallet instanceof Response) return wallet;
+
+    let walletHash: string;
+    try {
+      walletHash = addressToScriptHash(wallet.address);
+    } catch (_err) {
+      return error(428, "valid primary Neo wallet binding required", "WALLET_INVALID", req);
+    }
+
     // 5. App policy + optional permission gate
     const policyResult = await fetchMiniAppPolicy(appId, req);
     if (policyResult instanceof Response) return policyResult;
@@ -215,7 +319,9 @@ export function createOSHandler(opts: OSHandlerOptions, handlerFn: OSHandlerFn) 
     try {
       const result = await handlerFn({
         appId,
-        userId: auth.userId,
+        userId: walletHash,
+        walletAddress: wallet.address,
+        walletHash,
         params: body,
         auth,
         policy,

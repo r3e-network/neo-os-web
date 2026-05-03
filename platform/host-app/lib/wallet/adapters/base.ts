@@ -59,6 +59,12 @@ export interface WalletAdapter {
 
   /** Invoke a smart contract */
   invoke(params: InvokeParams): Promise<TransactionResult>;
+
+  /** Subscribe to wallet account changes when supported by the provider */
+  onAccountChanged?(listener: () => void | Promise<void>): () => void;
+
+  /** Subscribe to wallet network changes when supported by the provider */
+  onNetworkChanged?(listener: () => void | Promise<void>): () => void;
 }
 
 /** Wallet connection error types */

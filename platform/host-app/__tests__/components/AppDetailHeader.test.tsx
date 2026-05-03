@@ -19,7 +19,9 @@ describe("AppDetailHeader", () => {
     const onBack = jest.fn();
     render(<AppDetailHeader app={mockApp} onBack={onBack} />);
 
-    expect(screen.getByText("Test App")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Test App" }),
+    ).toBeInTheDocument();
     expect(screen.getByAltText("Test App")).toBeInTheDocument();
     expect(screen.getByText("gaming")).toBeInTheDocument();
   });
@@ -45,7 +47,9 @@ describe("AppDetailHeader", () => {
     const onBack = jest.fn();
     render(<AppDetailHeader app={mockApp} onBack={onBack} />);
 
-    expect(screen.getByText("Test App")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Test App" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/unavailable/i)).toBeInTheDocument();
   });
 

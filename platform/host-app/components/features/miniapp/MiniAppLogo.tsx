@@ -90,11 +90,6 @@ const APP_ICONS: Record<string, LucideIcon> = {
 
   // DeFi
   "miniapp-flashloan": Zap,
-  "miniapp-flamingo-swap": Repeat,
-  "miniapp-flamingo-lend": HandCoins,
-  "miniapp-flamingo-earn": Coins,
-  "miniapp-flamingo-analytics": BarChart3,
-  "miniapp-flamingo-action-center": ClipboardList,
   "miniapp-aitrader": Brain,
   "miniapp-gridbot": Grid3X3,
   "miniapp-bridgeguardian": Shield,
@@ -241,9 +236,12 @@ export function MiniAppLogo({
   if (logoSource) {
     return (
       <div
-        className={`flex-shrink-0 ${sizeClasses[size]} rounded-xl overflow-hidden bg-gray-100 ${className}`}
+        className={`relative flex-shrink-0 ${sizeClasses[size]} overflow-hidden rounded-xl bg-gradient-to-br ${gradient} shadow-lg ${className}`}
       >
-        <picture className="block h-full w-full">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Icon size={iconSizes[size]} className="text-white" strokeWidth={2} />
+        </div>
+        <picture className="absolute inset-0 block h-full w-full">
           {modernSources.avif && (
             <source srcSet={modernSources.avif} type="image/avif" />
           )}
@@ -253,7 +251,7 @@ export function MiniAppLogo({
           <img
             src={logoSource}
             alt={alt || appId}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
             onError={() => {

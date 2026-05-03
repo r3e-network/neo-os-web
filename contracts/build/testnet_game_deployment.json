@@ -1,42 +1,42 @@
 {
   "network": "neo-n3-testnet",
   "rpc_url": "https://testnet1.neo.coz.io:443",
-  "deployer": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
-  "deployer_hash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
-  "platform_game": "0x1021e9e5c17285e706c293a39c525de13100ed92",
+  "deployer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "deployer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "platform_game": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
   "transactions": [
     {
       "label": "Deploy PlatformGame",
-      "txid": "0x2b9636f38a081764593b020d4263570373904e74620bd1021e4894d10e280f41",
-      "valid_until_block": 15514165
+      "txid": "0xd4d08b00c8ff84dccbdb9f576365549856b8f38526fb6807229ca7ae27f75d0c",
+      "valid_until_block": 15695005
     },
     {
       "label": "Register miniapp-last-survivor",
-      "txid": "0xcab96b858b702e26389ff450b33dc3771fbb7e10079d8c813f284410ec1eae80",
-      "valid_until_block": 15514167
+      "txid": "0xa69d8dc480ed2c3277e59151861b6f98b449bb98dff7dbfac0c981f5bf7bbf58",
+      "valid_until_block": 15695007
     },
     {
       "label": "LastSurvivor start countdown round",
-      "txid": "0x004b101f3d7caf801e1ac2eb40792e79d5a6d59177861ba3edc532cafec47dbe",
-      "valid_until_block": 15514168
+      "txid": "0xa0db4f68e825b71d78d0c39510239021a9abf568bc5376907999a0165db7a8e8",
+      "valid_until_block": 15695009
     },
     {
       "label": "LastSurvivor fund key purchase",
-      "txid": "0xd9b518e0ecd01c7066e9848998bf8b1be73629da08fbb0cb92e1e5e11ff01ed1",
-      "valid_until_block": 15514170
+      "txid": "0x76ad96a16ddc760121e94c346df34d57c3b87a93704d0754ef60c3beee2d8bbb",
+      "valid_until_block": 15695012
     },
     {
       "label": "LastSurvivor buy countdown key",
-      "txid": "0x5a0d2ef54d1392c314d5824b7c32f1df439fc694e1a879be62b7cdf4977c41ca",
-      "valid_until_block": 15514172
+      "txid": "0xa7ce0e328d99cce9d57271f1b3be84d3230f0dce418fb1aa6dbca5fdf8c5f46d",
+      "valid_until_block": 15695015
     }
   ],
   "validation": {
     "app_id": "miniapp-last-survivor",
     "game_type": "1",
     "round_id": "1",
-    "start_tx": "0x004b101f3d7caf801e1ac2eb40792e79d5a6d59177861ba3edc532cafec47dbe",
+    "start_tx": "0xa0db4f68e825b71d78d0c39510239021a9abf568bc5376907999a0165db7a8e8",
     "total_keys_after": "1"
   },
-  "generated_at_utc": "2026-04-25T15:29:30Z"
+  "generated_at_utc": "2026-05-02T08:11:27Z"
 }

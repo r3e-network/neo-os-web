@@ -89,5 +89,6 @@ export const manifest: MiniAppManifest = {
   // ── Permissions ───────────────────────────────────────────────────────
   permissions: {
     payments: true,
+    checkin: true,
   },
 };

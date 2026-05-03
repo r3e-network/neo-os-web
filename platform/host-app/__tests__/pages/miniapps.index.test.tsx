@@ -78,18 +78,17 @@ describe("MiniAppsPage", () => {
     jest.clearAllMocks();
   });
 
-  it("shows only flagship apps", async () => {
+  it("shows all catalog miniapps as cards", async () => {
     render(<MiniAppsPage />);
 
     await waitFor(() => {
       expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
     });
 
-    // Non-flagship apps are hidden
-    expect(screen.queryByText("On-Chain Tarot")).not.toBeInTheDocument();
+    expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
   });
 
-  it("renders bundled flagship props immediately before the catalog refresh completes", async () => {
+  it("renders bundled MiniApp props immediately before the catalog refresh completes", async () => {
     render(
       <MiniAppsPage
         initialApps={[
@@ -97,22 +96,26 @@ describe("MiniAppsPage", () => {
             app_id: "miniapp-gasbox",
             name: "GasBox",
             description: "bundled flagship",
+            icon: "G",
             category: "gaming",
             entry_url: "mf://manifest?app=miniapp-gasbox",
+            permissions: {},
           },
           {
             app_id: "miniapp-on-chain-tarot",
             name: "On-Chain Tarot",
             description: "non-flagship bundled app",
+            icon: "T",
             category: "utility",
             entry_url: "mf://manifest?app=miniapp-on-chain-tarot",
+            permissions: {},
           },
         ]}
       />,
     );
 
     expect(screen.getByText("GasBox")).toBeInTheDocument();
-    expect(screen.queryByText("On-Chain Tarot")).not.toBeInTheDocument();
+    expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith(
       "/api/miniapps/catalog",
       expect.any(Object),

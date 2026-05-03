@@ -19,6 +19,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { MiniAppTemplateConfig, TabConfig } from "@shared/types/template-config";
 import type { StatusMessage } from "../react/hooks/useStatusMessage";
+import { AppIcon } from "./AppIcon";
 import "./MiniAppPage.scss";
 
 // ============================================================================
@@ -66,7 +67,7 @@ export interface MiniAppPageProps {
 // Constants
 // ============================================================================
 
-const DEFAULT_BRAND_ICON = "app";
+const DEFAULT_BRAND_ICON = "puzzle";
 const DEFAULT_DOCS_ICON = "docs";
 
 // ============================================================================
@@ -137,6 +138,7 @@ export function MiniAppPage({
   const [activeInfoTab, setActiveInfoTab] = useState(infoTabs[0]?.key ?? "stats");
   const customInfoTabs = useMemo(() => infoTabs.filter((tab) => tab.key !== "stats" && tab.key !== "history"), [infoTabs]);
   const hasInfoContent = infoTabs.length > 0;
+  const hasOperationPanel = typeof renderOperation === "function";
 
   const submitComment = useCallback(() => {
     if (newComment.trim()) {
@@ -241,12 +243,12 @@ export function MiniAppPage({
       )}
 
       {/* THREE-COLUMN LAYOUT */}
-      <div className="page-grid">
+      <div className={`page-grid${hasOperationPanel ? "" : " page-grid--no-operation"}`}>
         {/* LEFT SIDEBAR */}
         <aside className="sidebar-left" aria-label={t("navigationSidebar")}>
           <div className="sidebar-brand">
             <div className="brand-mark">
-              <span className="app-icon" aria-hidden="true">{brandIcon}</span>
+              <AppIcon name={brandIcon} size={22} className="app-icon" />
             </div>
             <div className="brand-text">
               <span className="brand-name">{t("title")}</span>
@@ -266,7 +268,7 @@ export function MiniAppPage({
                 aria-label={t(tab.labelKey)}
                 onClick={() => setActiveTab(tab.key)}
               >
-                <span className="nav-icon app-icon" aria-hidden="true">{tab.icon}</span>
+                <AppIcon name={tab.icon ?? DEFAULT_BRAND_ICON} size={18} className="nav-icon app-icon" />
                 <span className="nav-label">{t(tab.labelKey)}</span>
                 {activeTab === tab.key && <span className="nav-indicator" />}
               </button>
@@ -443,12 +445,11 @@ export function MiniAppPage({
           </section>
         </main>
 
-        {/* RIGHT SIDEBAR */}
-        <aside className="sidebar-right" aria-label={t("operationsPanel")}>
-          <div className="operation-panel">
-            {renderOperation?.()}
-          </div>
-        </aside>
+        {hasOperationPanel && (
+          <aside className="sidebar-right" aria-label={t("operationsPanel")}>
+            <div className="operation-panel">{renderOperation()}</div>
+          </aside>
+        )}
       </div>
     </div>
   );

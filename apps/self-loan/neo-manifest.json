@@ -24,7 +24,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "neo-n3-testnet": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada"
+    "neo-n3-testnet": "0xb43bd0ded09b5d79ed858484106affc1c858483c"
   },
   "supported_networks": [
     "neo-n3-mainnet",
@@ -60,7 +60,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-16T00:00:00Z",
+  "updatedAt": "2026-05-02T00:00:00Z",
   "featured": true,
   "featured_order": 1,
   "technologies": {

@@ -128,17 +128,25 @@ export function useMilestoneEscrow({
   const address = createObservable("");
 
   // ── Computed (manifest stat/sidebar bindings) ─────────────────────────
-  const creatorEscrowCount = createDerived(() => creatorEscrows.get().length, []);
-  const beneficiaryEscrowCount = createDerived(() => beneficiaryEscrows.get().length, []);
-  const activeCount = createDerived(() =>
-    creatorEscrows.get().filter((e) => e.status === "active").length,
+  const creatorEscrowCount = createDerived(
+    () => creatorEscrows.get().length,
+    [creatorEscrows],
   );
-  const completedCount = createDerived(() =>
-    creatorEscrows.get().filter((e) => e.status === "completed").length,
+  const beneficiaryEscrowCount = createDerived(
+    () => beneficiaryEscrows.get().length,
+    [beneficiaryEscrows],
+  );
+  const activeCount = createDerived(
+    () => creatorEscrows.get().filter((e) => e.status === "active").length,
+    [creatorEscrows],
+  );
+  const completedCount = createDerived(
+    () => creatorEscrows.get().filter((e) => e.status === "completed").length,
+    [creatorEscrows],
   );
 
   // Contract readiness: true once we have a wallet address
-  const contractReady = createDerived(() => Boolean(address.get()), []);
+  const contractReady = createDerived(() => Boolean(address.get()), [address]);
 
   // ── Display helpers (exposed as refs for PlayArea) ────────────────────
 

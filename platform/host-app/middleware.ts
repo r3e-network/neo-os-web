@@ -40,9 +40,17 @@ function parseFederatedOrigins(): string[] {
   return Array.from(origins);
 }
 
-function buildCSP(nonce: string): string {
+function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
   const federatedOrigins = parseFederatedOrigins();
+  const externalFontStyleSources = [
+    "https://fonts.googleapis.com",
+    "https://api.fontshare.com",
+  ];
+  const styleSources = ["'self'", "'unsafe-inline'"];
+  if (options.allowMiniAppEmbedding) {
+    styleSources.push(...externalFontStyleSources);
+  }
 
   const trustedMiniAppFrameOrigins = ["https://vote.r3e.network"];
   const frameOrigins = (process.env.MINIAPP_FRAME_ORIGINS || "").trim();
@@ -77,6 +85,7 @@ function buildCSP(nonce: string): string {
     "https://*.r3e.network",
     "https://*.seed.r3e.network",
     "https://*.neo.coz.io",
+    "https://api.n3index.dev",
     "https://*.sentry.io",
     "https://oracle.meshmini.app",
     "https://edge.meshmini.app",
@@ -100,12 +109,15 @@ function buildCSP(nonce: string): string {
     "default-src 'self'",
     // Next.js uses inline scripts; nonce-based CSP keeps this strict without 'unsafe-inline'.
     `script-src ${scriptSrc}`,
-    "style-src 'self' 'unsafe-inline'",
+    `style-src ${styleSources.join(" ")}`,
+    `style-src-elem ${styleSources.join(" ")}`,
     "img-src 'self' data: https:",
+    "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
     `frame-src ${frameSrc}`,
-    // Prevent the host itself being embedded.
-    "frame-ancestors 'none'",
+    options.allowMiniAppEmbedding
+      ? "frame-ancestors 'self' https://neomini.app https://*.miniapp.r3e.network"
+      : "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
     `form-action 'self'${auth0Issuer ? ` ${auth0Issuer}` : ""}`,
@@ -114,7 +126,11 @@ function buildCSP(nonce: string): string {
   return csp.join("; ");
 }
 
-function setSecurityHeaders(res: NextResponse): void {
+function setSecurityHeaders(
+  res: NextResponse,
+  options: { frameOptions?: "DENY" | "SAMEORIGIN" | null } = {},
+): void {
+  const frameOptions = options.frameOptions === undefined ? "DENY" : options.frameOptions;
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set(
@@ -125,12 +141,17 @@ function setSecurityHeaders(res: NextResponse): void {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=()",
   );
-  res.headers.set("X-Frame-Options", "DENY");
+  if (frameOptions) {
+    res.headers.set("X-Frame-Options", frameOptions);
+  } else {
+    res.headers.delete("X-Frame-Options");
+  }
 }
 
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
+  const isMiniAppRuntimeAsset = pathname.startsWith("/miniapps/");
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
@@ -149,8 +170,13 @@ export function middleware(req: NextRequest) {
     request: { headers: requestHeaders },
   });
 
-  res.headers.set("Content-Security-Policy", buildCSP(nonce));
-  setSecurityHeaders(res);
+  res.headers.set(
+    "Content-Security-Policy",
+    buildCSP(nonce, { allowMiniAppEmbedding: isMiniAppRuntimeAsset }),
+  );
+  setSecurityHeaders(res, {
+    frameOptions: isMiniAppRuntimeAsset ? null : "DENY",
+  });
 
   return res;
 }

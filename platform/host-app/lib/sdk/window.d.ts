@@ -1,7 +1,7 @@
-import type { MiniAppSDKConfig } from "./types.js";
+import type { MiniAppSDK, MiniAppSDKConfig } from "./types.js";
 declare global {
     interface Window {
-        MiniAppSDK?: unknown;
+        MiniAppSDK?: MiniAppSDK;
     }
 }
 export declare function installMiniAppSDK(cfg: MiniAppSDKConfig): void;

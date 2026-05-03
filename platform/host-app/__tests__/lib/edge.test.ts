@@ -63,3 +63,46 @@ describe("resolveInternalBaseUrl", () => {
     ).toThrow("Unable to resolve base URL");
   });
 });
+
+describe("getEdgeFunctionsBaseUrl", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...originalEnv };
+    delete process.env.EDGE_BASE_URL;
+    delete process.env.NEXT_PUBLIC_EDGE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  it("prefers EDGE_BASE_URL over public edge and Supabase URLs", () => {
+    process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
+    process.env.NEXT_PUBLIC_EDGE_URL = "https://public-edge.example";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+
+    const { getEdgeFunctionsBaseUrl } = require("../../lib/edge");
+
+    expect(getEdgeFunctionsBaseUrl()).toBe("https://edge.example/functions/v1");
+  });
+
+  it("uses NEXT_PUBLIC_EDGE_URL before falling back to Supabase", () => {
+    process.env.NEXT_PUBLIC_EDGE_URL = "https://edge-gateway.example";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+
+    const { getEdgeFunctionsBaseUrl } = require("../../lib/edge");
+
+    expect(getEdgeFunctionsBaseUrl()).toBe("https://edge-gateway.example/functions/v1");
+  });
+
+  it("falls back to Supabase functions when no edge gateway is configured", () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co/";
+
+    const { getEdgeFunctionsBaseUrl } = require("../../lib/edge");
+
+    expect(getEdgeFunctionsBaseUrl()).toBe("https://project.supabase.co/functions/v1");
+  });
+});

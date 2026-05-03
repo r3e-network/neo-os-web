@@ -2,11 +2,12 @@ import Head from "next/head";
 import type { GetStaticProps } from "next";
 import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
+import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
-import { isFlagshipMiniApp, sortMiniApps } from "@/lib/miniapp-showcase";
+import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
@@ -56,7 +57,7 @@ const defaultAccent = {
 
 /* ── Flagship card ───────────────────────────────────────────────────── */
 
-function FlagshipCard({
+function MiniAppListingCard({
   app,
   large = false,
 }: {
@@ -74,64 +75,68 @@ function FlagshipCard({
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
-      className={`group relative flex flex-col rounded-2xl bg-white border border-gray-200/80 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${large ? "sm:flex-row col-span-full" : ""}`}
+      className={`group relative overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:border-emerald-300 hover:shadow-md ${large ? "col-span-full" : ""}`}
     >
-      {/* Colored header band */}
       <div
-        className={`relative bg-gradient-to-br ${accent.gradient} ${large ? "sm:w-2/5 min-h-[200px]" : "h-32"} flex items-center justify-center p-6`}
-      >
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_50%,white,transparent_70%)]" />
-        <MiniAppLogo
-          appId={app.app_id}
-          category={app.category}
-          entryUrl={app.entry_url}
-          logoUrl={app.logo_url}
-          manifest={app.manifest || null}
-          alt={app.name}
-          size="lg"
-          className={`relative drop-shadow-lg ${large ? "w-20 h-20" : "w-14 h-14"} rounded-2xl bg-white/20 backdrop-blur-sm p-2`}
-        />
-      </div>
+        className={`h-1.5 bg-gradient-to-r ${accent.gradient}`}
+        aria-hidden="true"
+      />
 
-      {/* Content */}
-      <div
-        className={`flex flex-col justify-center p-5 ${large ? "flex-1 py-8 px-8" : ""}`}
-      >
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className={`flex items-center gap-1 text-[10px] font-bold uppercase ${live ? "text-emerald-600" : "text-amber-600"}`}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              {live && (
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
-              )}
-              <span
-                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-500" : "bg-amber-500"}`}
-              />
-            </span>
-            {statusLabel}
-          </span>
-          <span className="text-[10px] font-bold uppercase text-gray-300">
-            |
-          </span>
-          <span className="text-[10px] font-bold uppercase text-gray-400">
-            {app.category}
-          </span>
+      <div className={`flex gap-4 p-4 ${large ? "sm:p-5" : ""}`}>
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-1.5">
+          <MiniAppLogo
+            appId={app.app_id}
+            category={app.category}
+            entryUrl={app.entry_url}
+            logoUrl={app.logo_url}
+            manifest={app.manifest || null}
+            alt={app.name}
+            size="lg"
+            className="h-full w-full rounded-lg"
+          />
         </div>
-        <h3
-          className={`font-bold text-gray-900 group-hover:${accent.text} transition-colors ${large ? "text-2xl" : "text-lg"}`}
-        >
-          {app.name}
-        </h3>
-        <p
-          className={`mt-1.5 text-gray-500 leading-relaxed ${large ? "text-sm line-clamp-3 max-w-md" : "text-xs line-clamp-2"}`}
-        >
-          {app.description}
-        </p>
-        <div
-          className={`mt-3 text-xs font-semibold ${accent.text} opacity-0 group-hover:opacity-100 transition-opacity`}
-        >
-          Open app &rarr;
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span
+              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${live ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+            >
+              <span className="relative flex h-1.5 w-1.5">
+                {live && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+                )}
+                <span
+                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-500" : "bg-amber-500"}`}
+                />
+              </span>
+              {statusLabel}
+            </span>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
+              {app.category}
+            </span>
+          </div>
+
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className={`m-0 truncate font-bold text-gray-900 transition-colors group-hover:text-gray-950 ${large ? "text-xl" : "text-base"}`}
+            >
+              {app.name}
+            </h3>
+            <ArrowUpRight
+              className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-emerald-600"
+              aria-hidden="true"
+            />
+          </div>
+
+          <p
+            className={`mt-1.5 text-gray-500 leading-relaxed ${large ? "max-w-3xl text-sm line-clamp-2" : "text-xs line-clamp-2"}`}
+          >
+            {app.description}
+          </p>
+
+          <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-700">
+            Open app
+          </div>
         </div>
       </div>
     </Link>
@@ -147,13 +152,26 @@ type MiniAppsPageProps = {
 const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
 
 function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
-  return JSON.parse(JSON.stringify(apps)) as MiniAppInfo[];
+  return apps.map((app) => ({
+    app_id: app.app_id,
+    name: app.name,
+    description: app.description,
+    icon: app.icon,
+    logo_url: app.logo_url ?? null,
+    banner_url: app.banner_url ?? null,
+    category: app.category,
+    entry_url: app.entry_url,
+    contract_hash: app.contract_hash ?? null,
+    status: app.status ?? null,
+    source: app.source,
+    permissions: app.permissions ?? {},
+  }));
 }
 
 export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
   const initialApps = sortMiniApps(
-    definitions.filter((app) => isFlagshipMiniApp(app.app_id)),
+    definitions.filter((app) => app.status !== "disabled"),
     "featured",
   );
 
@@ -219,17 +237,47 @@ export default function MiniAppsPage({
     );
   }, [hasInitialApps, sortedInitialApps]);
 
-  const flagships = useMemo(
+  const listedApps = useMemo(
     () =>
       sortMiniApps(
-        allApps.filter((a) => isFlagshipMiniApp(a.app_id)),
+        allApps.filter((a) => a.status !== "disabled"),
         "featured",
       ),
     [allApps],
   );
+  const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const categories = useMemo(
+    () =>
+      Array.from(new Set(listedApps.map((app) => app.category).filter(Boolean))).sort(),
+    [listedApps],
+  );
+  const filteredApps = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return listedApps.filter((app) => {
+      const live = Boolean(app.contract_hash);
+      const statusLabel = live
+        ? "live"
+        : app.status === "pending"
+          ? "pending"
+          : "source-ready";
+      const matchesStatus =
+        statusFilter === "all" || statusFilter === statusLabel;
+      const matchesCategory =
+        categoryFilter === "all" || app.category === categoryFilter;
+      const matchesQuery =
+        !normalizedQuery ||
+        app.name.toLowerCase().includes(normalizedQuery) ||
+        app.app_id.toLowerCase().includes(normalizedQuery) ||
+        app.description.toLowerCase().includes(normalizedQuery) ||
+        app.category.toLowerCase().includes(normalizedQuery);
+      return matchesStatus && matchesCategory && matchesQuery;
+    });
+  }, [categoryFilter, listedApps, query, statusFilter]);
 
-  const hero = flagships[0];
-  const rest = flagships.slice(1);
+  const hero = filteredApps[0];
+  const rest = filteredApps.slice(1);
   const networkLabel =
     getRpcNetwork() === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 
@@ -239,26 +287,74 @@ export default function MiniAppsPage({
         <title>MiniApps - R3E Network</title>
       </Head>
 
-      <div className="min-h-screen bg-[#FAFBFC] pt-20">
+      <div className="min-h-screen bg-[#f6f8fb] pt-20">
         {/* ── Hero ──────────────────────────────────────────────────── */}
-        <section className="bg-white border-b border-gray-100 px-4 py-12 sm:px-6 sm:py-16">
-          <div className="mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-xs font-bold text-emerald-700 uppercase">
-                {networkLabel}
-              </span>
+        <section className="border-b border-gray-200 bg-white px-4 py-8 sm:px-6">
+          <div className="mx-auto max-w-6xl">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                  </span>
+                  <span className="text-xs font-bold uppercase text-emerald-700">
+                    {networkLabel}
+                  </span>
+                </div>
+                <h1 className="m-0 text-3xl font-black text-gray-900 sm:text-4xl">
+                  MiniApps
+                </h1>
+                <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-500">
+                  Browse supported miniapps. Pick one and start using it.
+                </p>
+              </div>
+
+              <div className="grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm sm:min-w-[360px]">
+                <label className="relative block">
+                  <span className="sr-only">Search MiniApps</span>
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search by name, category, app ID"
+                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
+                  />
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SlidersHorizontal
+                    className="h-4 w-4 text-gray-400"
+                    aria-hidden="true"
+                  />
+                  {[
+                    ["all", "All"],
+                    ["live", "Live"],
+                    ["source-ready", "Source-ready"],
+                    ["pending", "Pending"],
+                  ].map(([value, label]) => {
+                    const active = statusFilter === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setStatusFilter(value)}
+                        className={`cursor-pointer rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                          active
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl font-black text-gray-900 sm:text-5xl">
-              Flagship MiniApps
-            </h1>
-            <p className="mt-4 mx-auto max-w-lg text-base text-gray-500 leading-relaxed">
-              Nine flagship miniapps with production workflows. Pick one and
-              start using it.
-            </p>
           </div>
         </section>
 
@@ -273,26 +369,64 @@ export default function MiniAppsPage({
           </div>
         )}
 
-        {/* ── Flagships ─────────────────────────────────────────────── */}
-        <section className="px-4 py-10 sm:px-6 sm:py-14">
-          <div className="mx-auto max-w-5xl">
+        {/* ── MiniApps ──────────────────────────────────────────────── */}
+        <section className="px-4 py-8 sm:px-6 sm:py-10">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="m-0 text-base font-bold text-gray-900">
+                  Catalog
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  {filteredApps.length} of {listedApps.length} MiniApps shown
+                </p>
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-1">
+                {["all", ...categories].map((category) => {
+                  const active = categoryFilter === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      onClick={() => setCategoryFilter(category)}
+                      className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                        active
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 9 }, (_, i) => (
                   <div
                     key={i}
-                    className={`rounded-2xl bg-white border border-gray-200 ${i === 0 ? "col-span-full h-52" : "h-44"}`}
+                    className={`rounded-lg border border-gray-200 bg-white ${i === 0 ? "col-span-full h-32" : "h-36"}`}
                   >
-                    <div className="animate-pulse h-full rounded-2xl bg-gray-50" />
+                    <div className="h-full animate-pulse rounded-lg bg-gray-50" />
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {hero && <FlagshipCard app={hero} large />}
-                {rest.map((app) => (
-                  <FlagshipCard key={app.app_id} app={app} />
-                ))}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {hero ? (
+                  <>
+                    <MiniAppListingCard app={hero} large />
+                    {rest.map((app) => (
+                      <MiniAppListingCard key={app.app_id} app={app} />
+                    ))}
+                  </>
+                ) : (
+                  <div className="col-span-full rounded-lg border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-sm text-gray-500">
+                    No MiniApps match the current filters.
+                  </div>
+                )}
               </div>
             )}
           </div>

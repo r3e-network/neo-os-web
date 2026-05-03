@@ -3,7 +3,18 @@ export { createAdminSDK, AdminSDK } from "./admin.js";
 export { installMiniAppSDK } from "./window.js";
 
 // Core types
-export type { ContractParam, InvocationIntent, MiniAppSDK, MiniAppSDKConfig, HostSDK, MiniAppUsage, MiniAppUsageResponse } from "./types.js";
+export type {
+  ContractParam,
+  InvocationIntent,
+  MiniAppSDK,
+  MiniAppSDKConfig,
+  HostSDK,
+  MiniAppUsage,
+  MiniAppUsageResponse,
+  SignedMessage,
+  WalletProviderInfo,
+  WalletProviderKind,
+} from "./types.js";
 
 // Admin types
 export type {

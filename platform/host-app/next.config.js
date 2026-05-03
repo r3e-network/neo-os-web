@@ -6,15 +6,22 @@ try {
 
 const MINIAPP_CORS_ORIGIN = "https://neomini.app";
 
+function resolvePackagePath(packageName, subpath = "") {
+  const packageJson = require.resolve(`${packageName}/package.json`, {
+    paths: [__dirname],
+  });
+  return path.join(path.dirname(packageJson), subpath);
+}
+
 const MiniAppCSP = `
   default-src 'self' 'unsafe-inline' data: blob:;
   script-src 'self' 'unsafe-inline' 'unsafe-hashes' blob:;
   script-src-elem 'self' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  style-src-elem 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://*.r3e.network https://*.seed.r3e.network https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  connect-src 'self' https://*.r3e.network https://*.seed.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
   frame-src 'none';
   frame-ancestors 'self' https://neomini.app https://*.miniapp.r3e.network;
   form-action 'self';
@@ -28,11 +35,11 @@ const MainCSP = `
   default-src 'self' 'unsafe-inline';
   script-src 'self' 'unsafe-inline' blob: 'unsafe-hashes';
   script-src-elem 'self' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  style-src-elem 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
+  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com;
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
-  connect-src 'self' https://*.r3e.network https://*.neo.coz.io https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
+  connect-src 'self' https://*.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
   frame-src 'self' blob:;
   frame-ancestors 'self';
   form-action 'self';
@@ -72,6 +79,17 @@ const nextConfig = {
     scrollRestoration: true,
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
   },
+  webpack(config) {
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      react: resolvePackagePath("react"),
+      "react-dom": resolvePackagePath("react-dom"),
+      "react/jsx-runtime": resolvePackagePath("react", "jsx-runtime.js"),
+      "react/jsx-dev-runtime": resolvePackagePath("react", "jsx-dev-runtime.js"),
+    };
+    return config;
+  },
   outputFileTracingIncludes: {
     "/api/**/*": ["./public/miniapp-definitions/**/*"],
   },
@@ -90,7 +108,6 @@ const nextConfig = {
           { key: "Access-Control-Allow-Origin", value: MINIAPP_CORS_ORIGIN },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: MiniAppCSP },
           {
             key: "Permissions-Policy",

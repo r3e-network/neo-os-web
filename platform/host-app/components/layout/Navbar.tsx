@@ -77,16 +77,17 @@ export function Navbar() {
     >
       <div className="mx-auto flex min-w-0 max-w-[1600px] items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <div className="flex min-w-0 items-center gap-4 xl:gap-8">
+        <div className="flex min-w-0 items-center gap-3 xl:gap-8">
           <Link
             href="/"
-            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
+            prefetch={false}
+            className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
           >
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
               <span className="text-base font-black text-white">R3E</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">
-              R3E <span className="text-emerald-600">Network</span>
+            <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
+              R3E <span className="hidden text-emerald-600 sm:inline">Network</span>
             </span>
           </Link>
 
@@ -96,6 +97,7 @@ export function Navbar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
+                  prefetch={false}
                   aria-current={
                     router.pathname.startsWith(link.href) ? "page" : undefined
                   }
@@ -136,18 +138,18 @@ export function Navbar() {
         </form>
 
         {/* Right Actions */}
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <NotificationDropdown walletAddress={walletAddress} />
 
           {/* Language Switcher */}
           <button
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
-            className="px-3 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-2 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
             aria-label="Switch language"
           >
             <Globe size={18} aria-hidden="true" />
-            <span className="text-sm font-semibold">
+            <span className="hidden text-sm font-semibold sm:inline">
               {locale === "en" ? "EN" : "中"}
             </span>
           </button>
@@ -196,6 +198,7 @@ export function Navbar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   aria-current={
                     router.pathname.startsWith(link.href) ? "page" : undefined

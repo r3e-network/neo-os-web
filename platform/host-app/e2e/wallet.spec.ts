@@ -19,6 +19,7 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByText("Neo Ecosystem")).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with github/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "NEP-21" })).toBeVisible();
     await expect(page.getByRole("button", { name: "NeoLine" })).toBeVisible();
     await expect(page.getByRole("button", { name: "O3" })).toBeVisible();
     await expect(page.getByRole("button", { name: "OneGate" })).toBeVisible();
@@ -31,8 +32,8 @@ test.describe("Wallet Connection", () => {
     await connectButton.click();
     await expect(page.getByRole("heading", { name: "Welcome to R3E" })).toBeVisible();
 
-    const walletImages = page.locator('img[alt="NeoLine"], img[alt="O3"], img[alt="OneGate"]');
-    await expect(walletImages).toHaveCount(3);
+    const walletImages = page.locator('img[alt="NEP-21"], img[alt="NeoLine"], img[alt="O3"], img[alt="OneGate"]');
+    await expect(walletImages).toHaveCount(4);
   });
 
   test("should open and close login modal", async ({ page }) => {

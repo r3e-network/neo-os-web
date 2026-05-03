@@ -27,7 +27,7 @@ const appMessages = {
   aaContractInput: { en: "AA Contract Hash", zh: "AA 合约哈希" },
   aaContractHint: { en: "Defaults to the canonical AA core for the current network.", zh: "默认使用当前网络的标准 AA Core。" },
   accountIdInput: { en: "Account ID Hash", zh: "Account ID 哈希" },
-  accountIdHint: { en: "Paste the 20-byte accountId hash for the deterministic AA address.", zh: "填写该确定性 AA 地址对应的 20 字节 accountId 哈希。" },
+  accountIdHint: { en: "Paste the 20-byte Account ID hash for the deterministic AA address.", zh: "填写该确定性 AA 地址对应的 20 字节 Account ID 哈希。" },
   priceInput: { en: "Price (GAS)", zh: "价格（GAS）" },
   pricePlaceholder: { en: "1.5", zh: "1.5" },
   titleInput: { en: "Listing Title", zh: "Listing 标题" },

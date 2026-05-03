@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   WalletAdapter,
+  Nep21Adapter,
   NeoLineAdapter,
   O3Adapter,
   OneGateAdapter,
@@ -11,7 +12,7 @@ import {
   WalletNotInstalledError,
 } from "./adapters";
 
-export type WalletProvider = "neoline" | "o3" | "onegate" | "wif";
+export type WalletProvider = "nep21" | "neoline" | "o3" | "onegate" | "wif";
 
 interface WalletState {
   connected: boolean;
@@ -34,11 +35,19 @@ interface WalletActions {
 type WalletStore = WalletState & WalletActions;
 
 const adapters: Record<WalletProvider, WalletAdapter> = {
+  nep21: new Nep21Adapter(),
   neoline: new NeoLineAdapter(),
   o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
   wif: new WifAdapter(),
 };
+
+let walletEventCleanup: (() => void) | null = null;
+
+function clearWalletEventCleanup() {
+  walletEventCleanup?.();
+  walletEventCleanup = null;
+}
 
 export const useWalletStore = create<WalletStore>()(
   persist(
@@ -57,6 +66,7 @@ export const useWalletStore = create<WalletStore>()(
         set({ loading: true, error: null });
 
         const adapter = adapters[provider];
+        clearWalletEventCleanup();
 
         try {
           if (provider === "wif") {
@@ -73,6 +83,43 @@ export const useWalletStore = create<WalletStore>()(
             balance,
             loading: false,
           });
+
+          const cleanups: Array<() => void> = [];
+          if (adapter.onAccountChanged) {
+            cleanups.push(adapter.onAccountChanged(async () => {
+              try {
+                const nextAccount = await adapter.connect();
+                const nextBalance = await adapter.getBalance(nextAccount.address);
+                set({
+                  connected: true,
+                  address: nextAccount.address,
+                  publicKey: nextAccount.publicKey,
+                  provider,
+                  balance: nextBalance,
+                  loading: false,
+                  error: null,
+                });
+              } catch (_e: unknown) {
+                set({
+                  connected: false,
+                  address: "",
+                  publicKey: "",
+                  provider: null,
+                  balance: null,
+                  loading: false,
+                  error: "Wallet account changed. Please reconnect.",
+                });
+              }
+            }));
+          }
+          if (adapter.onNetworkChanged) {
+            cleanups.push(adapter.onNetworkChanged(async () => {
+              await get().refreshBalance();
+            }));
+          }
+          walletEventCleanup = cleanups.length
+            ? () => cleanups.forEach((cleanup) => cleanup())
+            : null;
         } catch (err) {
           const message =
             err instanceof WalletNotInstalledError
@@ -85,6 +132,7 @@ export const useWalletStore = create<WalletStore>()(
 
       connectWif: async (wif: string) => {
         set({ loading: true, error: null });
+        clearWalletEventCleanup();
 
         const adapter = adapters.wif as WifAdapter;
 
@@ -120,6 +168,7 @@ export const useWalletStore = create<WalletStore>()(
 
       disconnect: () => {
         const { provider } = get();
+        clearWalletEventCleanup();
         if (provider) {
           adapters[provider].disconnect();
         }
@@ -170,6 +219,7 @@ const walletIcon = (label: string) =>
 
 /** Available wallet options */
 export const walletOptions = [
+  { id: "nep21" as const, name: "NEP-21", icon: walletIcon("21") },
   { id: "neoline" as const, name: "NeoLine", icon: walletIcon("NL") },
   { id: "o3" as const, name: "O3", icon: walletIcon("O3") },
   { id: "onegate" as const, name: "OneGate", icon: walletIcon("OG") },

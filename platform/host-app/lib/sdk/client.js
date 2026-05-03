@@ -1,31 +1,198 @@
-async function getInjectedWalletAddress() {
-    if (typeof window === "undefined") {
-        throw new Error("wallet.getAddress must be called in a browser context");
+const MAINNET_MAGIC = 860833102;
+const TESTNET_MAGIC = 894710606;
+function encodeBase64Utf8(value) {
+    if (typeof btoa !== "function")
+        return value;
+    return btoa(unescape(encodeURIComponent(value)));
+}
+function createNonce() {
+    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
     }
+    return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
+}
+function isNeoDapiProvider(candidate) {
+    if (!candidate || typeof candidate !== "object")
+        return false;
+    const provider = candidate;
+    return typeof provider.getAccounts === "function" || typeof provider.authenticate === "function";
+}
+function readImmediateDapiProvider() {
+    if (typeof window === "undefined")
+        return null;
     const g = window;
-    // NeoLine N3 (common browser wallet).
-    const neoline = g?.NEOLineN3;
-    if (neoline && typeof neoline.Init === "function") {
-        const inst = new neoline.Init();
-        if (inst && typeof inst.getAccount === "function") {
-            const res = await inst.getAccount();
-            const addr = String(res?.address ?? res?.account?.address ?? "").trim();
-            if (addr)
-                return addr;
+    const candidates = [
+        g.Neo?.DapiProvider,
+        g.neoDapiProvider,
+        g.neoDapi,
+    ];
+    return candidates.find(isNeoDapiProvider) ?? null;
+}
+function waitForDapiProvider(timeoutMs = 750) {
+    const immediate = readImmediateDapiProvider();
+    if (immediate)
+        return Promise.resolve(immediate);
+    if (typeof window === "undefined")
+        return Promise.resolve(null);
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (provider) => {
+            if (settled)
+                return;
+            settled = true;
+            window.removeEventListener("Neo.DapiProvider.ready", onReady);
+            resolve(provider);
+        };
+        const onReady = (event) => {
+            const provider = event.detail?.provider;
+            if (isNeoDapiProvider(provider))
+                finish(provider);
+        };
+        window.addEventListener("Neo.DapiProvider.ready", onReady);
+        setTimeout(() => finish(null), timeoutMs);
+        window.dispatchEvent(new CustomEvent("Neo.DapiProvider.request", {
+            detail: { version: "1.0" },
+        }));
+    });
+}
+function getAuthenticationDomain() {
+    if (typeof window === "undefined")
+        return "localhost";
+    return window.location.host || window.location.hostname || "localhost";
+}
+async function getNeoDapiContext(allowAuthenticate = true) {
+    const provider = await waitForDapiProvider();
+    if (!provider)
+        return null;
+    let accounts = [];
+    if (provider.getAccounts) {
+        try {
+            accounts = await provider.getAccounts();
+        }
+        catch {
+            accounts = [];
         }
     }
-    throw new Error("neo wallet not detected (install NeoLine N3) or host must bridge wallet.getAddress");
+    const account = accounts.find((entry) => entry.isDefault) ?? accounts[0];
+    if (account) {
+        const address = String(account.address ?? account.hash ?? "").trim();
+        if (address) {
+            return {
+                kind: "nep21",
+                address,
+                accountHash: String(account.hash ?? "").trim() || undefined,
+                provider,
+            };
+        }
+    }
+    if (!allowAuthenticate || !provider.authenticate)
+        return null;
+    const authenticated = await provider.authenticate({
+        action: "Authentication",
+        grant_type: "Signature",
+        allowed_algorithms: ["ECDSA-P256"],
+        domain: getAuthenticationDomain(),
+        networks: provider.supportedNetworks?.length ? provider.supportedNetworks : [MAINNET_MAGIC, TESTNET_MAGIC],
+        nonce: createNonce(),
+        timestamp: Date.now(),
+    });
+    const address = String(authenticated.address ?? "").trim();
+    if (!address)
+        return null;
+    return { kind: "nep21", address, provider };
 }
-function getNeoLineN3Instance() {
-    if (typeof window === "undefined") {
-        throw new Error("wallet invocation must be called in a browser context");
-    }
+async function getNeoLineContext() {
+    if (typeof window === "undefined")
+        return null;
     const g = window;
-    const neoline = g?.NEOLineN3;
-    if (!neoline || typeof neoline.Init !== "function") {
-        throw new Error("NeoLine N3 not detected (install the NeoLine extension)");
+    const neoline = g.NEOLineN3 ?? g.NEOLine;
+    if (!neoline || typeof neoline.Init !== "function")
+        return null;
+    const instance = new neoline.Init();
+    if (!instance || typeof instance.getAccount !== "function")
+        return null;
+    const res = await instance.getAccount();
+    const address = String(res?.address ?? res?.account?.address ?? "").trim();
+    if (!address)
+        return null;
+    return { kind: "neoline", address, instance };
+}
+async function getEvmContext() {
+    if (typeof window === "undefined")
+        return null;
+    const g = window;
+    if (!g.ethereum || typeof g.ethereum.request !== "function")
+        return null;
+    try {
+        const accounts = await g.ethereum.request({ method: "eth_accounts" });
+        if (Array.isArray(accounts) && accounts.length > 0) {
+            const address = String(accounts[0] ?? "").trim();
+            if (address)
+                return { kind: "evm", address, provider: g.ethereum };
+        }
     }
-    return new neoline.Init();
+    catch {
+        // User denied request or wallet unavailable — try the next wallet option.
+    }
+    return null;
+}
+async function getInjectedWalletContext(options = {}) {
+    if (typeof window === "undefined") {
+        throw new Error("wallet methods must be called in a browser context");
+    }
+    const dapi = await getNeoDapiContext(options.allowDapiAuthenticate ?? true);
+    if (dapi)
+        return dapi;
+    const neoline = await getNeoLineContext();
+    if (neoline)
+        return neoline;
+    if (options.includeEvm ?? true) {
+        const evm = await getEvmContext();
+        if (evm)
+            return evm;
+    }
+    throw new Error("NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods");
+}
+async function getInjectedWalletAddress() {
+    return (await getInjectedWalletContext()).address;
+}
+async function getWalletProviderInfo() {
+    const context = await getInjectedWalletContext({ allowDapiAuthenticate: false });
+    if (context.kind === "nep21") {
+        return {
+            kind: "nep21",
+            name: context.provider.name || "NEP-21 dAPI",
+            network: context.provider.network,
+            address: context.address,
+            accountHash: context.accountHash,
+        };
+    }
+    if (context.kind === "neoline")
+        return { kind: "neoline", name: "NeoLine N3", address: context.address };
+    return { kind: "evm", name: "EIP-1193", address: context.address };
+}
+async function signInjectedWalletMessage(message) {
+    const context = await getInjectedWalletContext({ includeEvm: false });
+    if (context.kind === "nep21") {
+        if (!context.provider.signMessage)
+            throw new Error("NEP-21 wallet does not support signMessage");
+        const signed = await context.provider.signMessage(encodeBase64Utf8(message), context.accountHash ?? context.address);
+        const signature = String(signed.signature ?? signed.data ?? "");
+        return {
+            publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
+            data: signature,
+            signature,
+            account: signed.account,
+            salt: String(signed.salt ?? ""),
+            message: String(signed.message ?? message),
+        };
+    }
+    if (context.kind === "neoline" && context.instance.signMessage) {
+        return context.instance.signMessage({ message });
+    }
+    throw new Error("Connected wallet does not support signMessage");
 }
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
 // This is used for GAS.Transfer where the 'from' parameter must be the user's address.
@@ -43,48 +210,64 @@ function resolveInvocationParams(params, userAddress) {
         return param;
     });
 }
-async function invokeNeoLineInvocation(invocation) {
-    const inst = getNeoLineN3Instance();
-    if (!inst || typeof inst.invoke !== "function") {
-        throw new Error("wallet does not support invoke (NeoLine N3 required)");
-    }
+async function invokeDirectInvocation(invocation) {
+    const context = await getInjectedWalletContext();
     const scriptHash = String(invocation.contract_hash ?? "").trim();
     const operation = String(invocation.method ?? "").trim();
     if (!scriptHash)
         throw new Error("invocation missing contract_hash");
     if (!operation)
         throw new Error("invocation missing method");
-    // Get user's wallet address for SENDER placeholder resolution and signing
-    const address = await getInjectedWalletAddress();
-    // Resolve SENDER placeholders in params with the user's actual address
+    if (context.kind === "evm") {
+        const data = "0x"; // Evm encoding placeholder
+        return await context.provider.request({
+            method: "eth_sendTransaction",
+            params: [{
+                    from: context.address,
+                    to: scriptHash,
+                    data: data
+                }]
+        });
+    }
+    const signerAccount = context.kind === "nep21"
+        ? (context.accountHash ?? context.address)
+        : context.address;
+    // Resolve SENDER placeholders in params with the user's actual Neo account.
     const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
-    const args = resolveInvocationParams(rawArgs, address);
-    // NeoLine SDKs vary slightly in accepted shapes; try a small set of candidates.
-    // SECURITY: Use CalledByEntry scope by default (most restrictive).
-    // Only fall back to Global scope if explicitly required by the contract.
+    const args = resolveInvocationParams(rawArgs, signerAccount);
+    if (context.kind === "nep21") {
+        if (!context.provider.invoke) {
+            throw new Error("NEP-21 wallet does not support invoke");
+        }
+        return context.provider.invoke([{ hash: scriptHash, operation, args }], [{ account: signerAccount, scopes: "CalledByEntry" }]);
+    }
+    if (!context.instance || typeof context.instance.invoke !== "function") {
+        throw new Error("wallet does not support invoke (NEP-21 dAPI or NeoLine N3 required)");
+    }
+    // Try strict CalledByEntry signer payloads with/without 0x script hash prefix.
     const candidates = [
-        { scriptHash, operation, args, signers: [{ account: address, scopes: "CalledByEntry" }] },
+        { scriptHash, operation, args, signers: [{ account: signerAccount, scopes: "CalledByEntry" }] },
         {
             scriptHash: scriptHash.replace(/^0x/i, ""),
             operation,
             args,
-            signers: [{ account: address, scopes: "CalledByEntry" }],
+            signers: [{ account: signerAccount, scopes: "CalledByEntry" }],
         },
-        { scriptHash, operation, args, signers: [{ account: address, scopes: 1 }] },
-        { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args, signers: [{ account: address, scopes: 1 }] },
-        { scriptHash, operation, args },
-        { scriptHash: scriptHash.replace(/^0x/i, ""), operation, args },
     ];
     let lastErr = null;
     for (const params of candidates) {
         try {
-            return await inst.invoke(params);
+            return await context.instance.invoke(params);
         }
         catch (err) {
             lastErr = err;
         }
     }
-    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr ?? "invoke failed"));
+    const tried = candidates
+        .map((c, i) => `#${i + 1}{scriptHash=${c.scriptHash},scopes=${String(c.signers?.[0]?.scopes ?? "none")}}`)
+        .join("; ");
+    const lastMessage = lastErr instanceof Error ? lastErr.message : String(lastErr ?? "invoke failed");
+    throw new Error(`NeoLine invoke failed after ${candidates.length} candidate(s): ${tried}. Last error: ${lastMessage}`);
 }
 async function requestJSON(cfg, path, init) {
     const base = cfg.edgeBaseUrl.replace(/\/$/, "");
@@ -104,8 +287,19 @@ async function requestJSON(cfg, path, init) {
     const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
     const text = await resp.text();
     if (!resp.ok)
-        throw new Error(text || `request failed (${resp.status})`);
-    return JSON.parse(text);
+        throw new Error(`request failed (${resp.status})`);
+    try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed !== "object" || parsed === null) {
+            throw new Error(`unexpected non-object response from ${path}`);
+        }
+        return parsed;
+    }
+    catch (err) {
+        if (err instanceof SyntaxError)
+            throw new Error(`invalid JSON response from ${path}`);
+        throw new Error(`requestJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
 }
 async function requestHostJSON(cfg, path, init) {
     const base = cfg.edgeBaseUrl.replace(/\/$/, "");
@@ -120,8 +314,19 @@ async function requestHostJSON(cfg, path, init) {
     const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
     const text = await resp.text();
     if (!resp.ok)
-        throw new Error(text || `request failed (${resp.status})`);
-    return JSON.parse(text);
+        throw new Error(`request failed (${resp.status})`);
+    try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed !== "object" || parsed === null) {
+            throw new Error(`unexpected non-object response from ${path}`);
+        }
+        return parsed;
+    }
+    catch (err) {
+        if (err instanceof SyntaxError)
+            throw new Error(`invalid JSON response from ${path}`);
+        throw new Error(`requestHostJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
 }
 export function createMiniAppSDK(cfg) {
     const pendingInvocations = new Map();
@@ -133,6 +338,12 @@ export function createMiniAppSDK(cfg) {
             async getAddress() {
                 return getInjectedWalletAddress();
             },
+            async getProviderInfo() {
+                return getWalletProviderInfo();
+            },
+            async signMessage(message) {
+                return signInjectedWalletMessage(message);
+            },
             async invokeIntent(requestId) {
                 const id = String(requestId ?? "").trim();
                 if (!id)
@@ -141,10 +352,10 @@ export function createMiniAppSDK(cfg) {
                 if (!invocation)
                     throw new Error("unknown request_id (no pending invocation)");
                 pendingInvocations.delete(id);
-                return invokeNeoLineInvocation(invocation);
+                return invokeDirectInvocation(invocation);
             },
             async invokeInvocation(invocation) {
-                return invokeNeoLineInvocation(invocation);
+                return invokeDirectInvocation(invocation);
             },
         },
         payments: {
@@ -153,42 +364,32 @@ export function createMiniAppSDK(cfg) {
                     method: "POST",
                     body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
                 });
-                try {
-                    pendingInvocations.set(res.request_id, res.invocation);
-                }
-                catch (e) {
-                    console.warn("[sdk] pendingInvocations.set failed:", e instanceof Error ? e.message : String(e));
-                }
+                pendingInvocations.set(res.request_id, res.invocation);
                 return res;
             },
             async payGASAndInvoke(appId, amount, memo) {
                 const intent = await this.payGAS(appId, amount, memo);
-                const tx = await invokeNeoLineInvocation(intent.invocation);
+                const tx = await invokeDirectInvocation(intent.invocation);
                 return { intent, tx };
             },
         },
         governance: {
-            async vote(appId, proposalId, neoAmount, support) {
-                const res = await requestJSON(cfg, "/vote-neo", {
+            async vote(appId, proposalId, bneoAmount, support) {
+                const res = await requestJSON(cfg, "/vote-bneo", {
                     method: "POST",
                     body: JSON.stringify({
                         app_id: appId,
                         proposal_id: proposalId,
-                        neo_amount: neoAmount,
+                        bneo_amount: bneoAmount,
                         support,
                     }),
                 });
-                try {
-                    pendingInvocations.set(res.request_id, res.invocation);
-                }
-                catch (e) {
-                    console.warn("[sdk] pendingInvocations.set failed:", e instanceof Error ? e.message : String(e));
-                }
+                pendingInvocations.set(res.request_id, res.invocation);
                 return res;
             },
-            async voteAndInvoke(appId, proposalId, neoAmount, support) {
-                const intent = await this.vote(appId, proposalId, neoAmount, support);
-                const tx = await invokeNeoLineInvocation(intent.invocation);
+            async voteAndInvoke(appId, proposalId, bneoAmount, support) {
+                const intent = await this.vote(appId, proposalId, bneoAmount, support);
+                const tx = await invokeDirectInvocation(intent.invocation);
                 return { intent, tx };
             },
         },
@@ -202,6 +403,8 @@ export function createMiniAppSDK(cfg) {
         },
         datafeed: {
             async getPrice(symbol) {
+                if (!symbol || typeof symbol !== "string" || !symbol.trim())
+                    throw new Error("symbol is required");
                 return requestJSON(cfg, `/datafeed-price?symbol=${encodeURIComponent(symbol)}`, {
                     method: "GET",
                 });
@@ -246,6 +449,34 @@ export function createMiniAppSDK(cfg) {
                 if (params.after_id)
                     qs.set("after_id", params.after_id);
                 return requestJSON(cfg, `/transactions-list?${qs.toString()}`, { method: "GET" });
+            },
+        },
+        privacy: {
+            async getMerklePath(commitment) {
+                if (!commitment || typeof commitment !== "string" || !commitment.trim())
+                    throw new Error("commitment is required");
+                return requestJSON(cfg, `/privacy-merkle-path?commitment=${encodeURIComponent(commitment)}`, {
+                    method: "GET",
+                });
+            },
+            async relay(params) {
+                return requestJSON(cfg, "/privacy-relay", {
+                    method: "POST",
+                    body: JSON.stringify(params),
+                });
+            },
+        },
+        gasSponsor: {
+            async check() {
+                return requestJSON(cfg, "/gas-sponsor-check", { method: "GET" });
+            },
+            async request(amount) {
+                if (!amount || typeof amount !== "string" || !amount.trim())
+                    throw new Error("amount is required");
+                return requestJSON(cfg, "/gas-sponsor-request", {
+                    method: "POST",
+                    body: JSON.stringify({ amount }),
+                });
             },
         },
     };
@@ -313,6 +544,8 @@ export function createHostSDK(cfg) {
                 return requestHostJSON(cfg, "/compute-jobs", { method: "GET" });
             },
             async getJob(id) {
+                if (!id || typeof id !== "string" || !id.trim())
+                    throw new Error("id is required for getJob");
                 return requestHostJSON(cfg, `/compute-job?id=${encodeURIComponent(id)}`, { method: "GET" });
             },
         },
@@ -327,6 +560,8 @@ export function createHostSDK(cfg) {
                 });
             },
             async getTrigger(id) {
+                if (!id || typeof id !== "string" || !id.trim())
+                    throw new Error("id is required for getTrigger");
                 return requestHostJSON(cfg, `/automation-trigger?id=${encodeURIComponent(id)}`, {
                     method: "GET",
                 });
@@ -375,6 +610,8 @@ export function createHostSDK(cfg) {
                 return requestHostJSON(cfg, "/secrets-list", { method: "GET" });
             },
             async get(name) {
+                if (!name || typeof name !== "string" || !name.trim())
+                    throw new Error("name is required for secrets.get");
                 return requestHostJSON(cfg, `/secrets-get?name=${encodeURIComponent(name)}`, {
                     method: "GET",
                 });

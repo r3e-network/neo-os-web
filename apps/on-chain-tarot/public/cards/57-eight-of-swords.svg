@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 744 1040" role="img" aria-labelledby="title desc">
+  <title id="title">Eight of Swords - Neo Tarot</title>
+  <desc id="desc">A premium Neo styled tarot card for Eight of Swords.</desc>
+
+  <defs>
+    <linearGradient id="card-bg-card-57" x1="0" y1="0" x2="744" y2="1040" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#02070c"/>
+      <stop offset="0.42" stop-color="#0a1b23"/>
+      <stop offset="1" stop-color="#090713"/>
+    </linearGradient>
+    <linearGradient id="scene-sky-card-57" x1="0" y1="130" x2="0" y2="790" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e9d79f"/>
+      <stop offset="0.14" stop-color="#00d9ff"/>
+      <stop offset="0.45" stop-color="#123443"/>
+      <stop offset="1" stop-color="#071018"/>
+    </linearGradient>
+    <radialGradient id="scene-aura-card-57" cx="50%" cy="33%" r="62%">
+      <stop offset="0" stop-color="#d6efff" stop-opacity="0.54"/>
+      <stop offset="0.36" stop-color="#00d9ff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#03070c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb-card-57" cx="50%" cy="35%" r="58%">
+      <stop offset="0" stop-color="#fff8ce"/>
+      <stop offset="0.35" stop-color="#d6efff"/>
+      <stop offset="1" stop-color="#00d9ff" stop-opacity="0.26"/>
+    </radialGradient>
+    <linearGradient id="gold-line" x1="68" y1="68" x2="676" y2="968" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff0b9"/>
+      <stop offset="0.28" stop-color="#c8953f"/>
+      <stop offset="0.54" stop-color="#fff4bf"/>
+      <stop offset="0.78" stop-color="#a87327"/>
+      <stop offset="1" stop-color="#f9da83"/>
+    </linearGradient>
+    <linearGradient id="foil-card-57" x1="130" y1="140" x2="610" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d6efff" stop-opacity="0.92"/>
+      <stop offset="0.42" stop-color="#00d9ff" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#f4c76b" stop-opacity="0.86"/>
+    </linearGradient>
+    <filter id="soft-glow-card-57" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0 0 0 0 0 0.9 0 0 0 0 0.68 0 0 0 .68 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="paper-card-57" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="74" result="noise"/>
+      <feColorMatrix in="noise" type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.08"/></feComponentTransfer>
+      <feBlend mode="soft-light" in2="SourceGraphic"/>
+    </filter>
+    <clipPath id="scene-clip-card-57">
+      <rect x="88" y="126" width="568" height="640" rx="28"/>
+    </clipPath>
+  </defs>
+
+  <rect width="744" height="1040" rx="54" fill="#010307"/>
+  <rect x="18" y="18" width="708" height="1004" rx="46" fill="url(#card-bg-card-57)"/>
+  <rect x="18" y="18" width="708" height="1004" rx="46" fill="url(#scene-aura-card-57)" opacity="0.28"/>
+  <rect x="44" y="44" width="656" height="952" rx="36" fill="none" stroke="url(#gold-line)" stroke-width="4"/>
+  <rect x="62" y="62" width="620" height="916" rx="28" fill="none" stroke="#d6efff" stroke-opacity="0.36" stroke-width="2"/>
+  <path d="M110 92h166l22 22h148l22-22h166M110 948h166l22-22h148l22 22h166" stroke="url(#gold-line)" stroke-width="2.6" fill="none"/>
+  <path d="M91 156V87h70M653 156V87h-70M91 884v69h70M653 884v69h-70" stroke="url(#gold-line)" stroke-width="3" fill="none"/>
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="112" y="118" font-size="30" font-weight="900" fill="#f8e2a4" letter-spacing="0">VIII</text>
+    <text x="632" y="924" font-size="30" font-weight="900" text-anchor="end" fill="#f8e2a4" letter-spacing="0">VIII</text>
+    <text x="372" y="96" font-size="22" font-weight="900" text-anchor="middle" fill="#f8e2a4" letter-spacing="7">NEO TAROT</text>
+  </g>
+  <circle cx="110" cy="110" r="12" fill="#d6efff" opacity="0.72"/>
+  <circle cx="634" cy="110" r="12" fill="#00d9ff" opacity="0.72"/>
+  <circle cx="110" cy="930" r="12" fill="#00d9ff" opacity="0.72"/>
+  <circle cx="634" cy="930" r="12" fill="#d6efff" opacity="0.72"/>
+  <linearGradient id="neo-shield-fill" x1="0" y1="0" x2="84" y2="124" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#00e599"/>
+    <stop offset="1" stop-color="#00a66a"/>
+  </linearGradient>
+
+  <g transform="translate(330 108) scale(1)" opacity="0.95">
+    <path d="M0 12L42 0l42 12v48c0 31-20 52-42 64C20 112 0 91 0 60V12Z" fill="url(#neo-shield-fill)" stroke="#00e599" stroke-opacity="0.82" stroke-width="2"/>
+    <path d="M42 18l23 8v31c0 16-9 29-23 38-14-9-23-22-23-38V26l23-8Z" fill="#07111c" stroke="#00d9ff" stroke-opacity="0.38" stroke-width="2"/>
+    <path d="M30 76V35l24 47V41" fill="none" stroke="#00e599" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g clip-path="url(#scene-clip-card-57)" filter="url(#paper-card-57)">
+    <rect x="88" y="126" width="568" height="640" rx="28" fill="url(#scene-sky-card-57)"/>
+    <rect x="88" y="126" width="568" height="640" rx="28" fill="url(#scene-aura-card-57)"/>
+    <path d="M88 126h568v640H88Z" fill="#000" opacity="0.08"/>
+    <g><path d="M383 527L174 256" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M480 580L271 309" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M577 203L368 362" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M174 256L465 415" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M271 309L562 468" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M368 362L159 521" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M465 415L256 574" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M562 468L353 197" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M159 521L450 250" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><path d="M256 574L547 303" stroke="#00d9ff" stroke-opacity="0.18" stroke-width="1.4"/><circle cx="383" cy="527" r="5" fill="#fff7cf" opacity="0.88"/><circle cx="480" cy="580" r="2" fill="#00d9ff" opacity="0.54"/><circle cx="577" cy="203" r="2" fill="#fff7cf" opacity="0.54"/><circle cx="174" cy="256" r="3" fill="#00d9ff" opacity="0.54"/><circle cx="271" cy="309" r="2" fill="#fff7cf" opacity="0.88"/><circle cx="368" cy="362" r="5" fill="#00d9ff" opacity="0.54"/><circle cx="465" cy="415" r="3" fill="#fff7cf" opacity="0.54"/><circle cx="562" cy="468" r="2" fill="#00d9ff" opacity="0.54"/><circle cx="159" cy="521" r="2" fill="#fff7cf" opacity="0.88"/><circle cx="256" cy="574" r="3" fill="#00d9ff" opacity="0.54"/><circle cx="353" cy="197" r="5" fill="#fff7cf" opacity="0.54"/><circle cx="450" cy="250" r="2" fill="#00d9ff" opacity="0.54"/><circle cx="547" cy="303" r="3" fill="#fff7cf" opacity="0.88"/><circle cx="144" cy="356" r="2" fill="#00d9ff" opacity="0.54"/><circle cx="241" cy="409" r="2" fill="#fff7cf" opacity="0.54"/><circle cx="338" cy="462" r="5" fill="#00d9ff" opacity="0.54"/><circle cx="435" cy="515" r="2" fill="#fff7cf" opacity="0.88"/><circle cx="532" cy="568" r="2" fill="#00d9ff" opacity="0.54"/><circle cx="129" cy="191" r="3" fill="#fff7cf" opacity="0.54"/><circle cx="226" cy="244" r="2" fill="#00d9ff" opacity="0.54"/></g>
+  <path d="M88 710c74-92 132-104 212-34 74-90 132-120 220-18 42-42 82-44 136 12v96H88Z" fill="#06151c" opacity="0.88"/>
+  <path d="M88 688c86-82 142-88 216-28 80-104 158-126 252-18 34-28 62-34 100-8" fill="none" stroke="#00d9ff" stroke-opacity="0.34" stroke-width="3"/>
+  <path d="M88 764c132-62 252-72 360-30 74 28 142 28 208-10" fill="none" stroke="#d6efff" stroke-opacity="0.34" stroke-width="4"/>
+  <path d="M118 768c128-38 240-34 336 12 66 30 124 28 172-4" fill="none" stroke="#f8e2a4" stroke-opacity="0.16" stroke-width="2"/>
+  <circle cx="111" cy="282" r="48" fill="#d6efff" opacity="0.16"/><g><path d="M92 742V579h24v163Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M98 599h20M98 625h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M140 742V548h32v194Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M146 568h20M146 594h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M188 742V659h40v83Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M194 679h20M194 705h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M236 742V628h24v114Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M242 648h20M242 674h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M284 742V597h32v145Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M290 617h20M290 643h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M332 742V566h40v176Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M338 586h20M338 612h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M380 742V535h24v207Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M386 555h20M386 581h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M428 742V646h32v96Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M434 666h20M434 692h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M476 742V615h40v127Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M482 635h20M482 661h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M524 742V584h24v158Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M530 604h20M530 630h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M572 742V553h32v189Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M578 573h20M578 599h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M620 742V664h40v78Z" fill="#041018" opacity="0.76" stroke="#00d9ff" stroke-opacity="0.24"/><path d="M626 684h20M626 710h20" stroke="#d6efff" stroke-opacity="0.32"/><path d="M88 742h568" stroke="#d6efff" stroke-opacity="0.24" stroke-width="3"/></g><g filter="url(#soft-glow-card-57)"><g transform="translate(292 322) rotate(0) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(452 322) rotate(0) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(292 454) rotate(0) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(452 454) rotate(0) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(292 586) rotate(180) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(452 586) rotate(180) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(292 718) rotate(180) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g><g transform="translate(452 718) rotate(180) scale(0.5676)"><path d="M0-92V78" stroke="#d6efff" stroke-width="10" stroke-linecap="round"/><path d="M-42 8h84M-18 78h36M0-112l26 28H-26L0-112Z" fill="none" stroke="#00d9ff" stroke-width="8" stroke-linejoin="round"/></g></g>
+  </g>
+  <rect x="88" y="126" width="568" height="640" rx="28" fill="none" stroke="url(#gold-line)" stroke-width="4"/>
+  <rect x="104" y="142" width="536" height="608" rx="20" fill="none" stroke="#d6efff" stroke-opacity="0.28" stroke-width="2"/>
+
+  <g font-family="Georgia, Times New Roman, serif">
+    <path d="M126 792h492l38 42-38 42H126l-38-42 38-42Z" fill="#070b10" fill-opacity="0.91" stroke="url(#gold-line)" stroke-width="3"/>
+    <path d="M150 808h444M150 860h444" stroke="#d6efff" stroke-opacity="0.18" stroke-width="2"/>
+    <text x="372" y="846" text-anchor="middle" font-size="32" font-weight="800" fill="#f8e2a4" letter-spacing="3">EIGHT OF SWORDS</text>
+  </g>
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="372" y="912" text-anchor="middle" font-size="15" font-weight="900" fill="#d6efff" letter-spacing="4">MOTION MIND</text>
+    <text x="372" y="944" text-anchor="middle" font-size="12" font-weight="800" fill="#8fa4b3" letter-spacing="3">MIND ON NEO</text>
+  </g>
+  <text x="372" y="976" text-anchor="middle" font-family="Inter, ui-sans-serif, system-ui" font-size="11" font-weight="900" fill="#5a7485" letter-spacing="5">ORACLE VERIFIED READING</text>
+</svg>

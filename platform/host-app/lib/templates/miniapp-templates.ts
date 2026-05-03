@@ -24,7 +24,7 @@ function gaming(notice: string, kvExtra: KV[], steps: string[], ops: OperationEn
         { id: "leaderboard", label: "Leaderboard", type: "content" },
         { id: "reviews", label: "Reviews", type: "reviews" }
       ],
-      operation_panel: { title: "Play", subtitle: "Configure game parameters and start playing.", cta_label: "Launch Game", operations: [] },
+      operation_panel: { title: "Play", subtitle: "Configure game parameters and start playing.", cta_label: "Open Game", operations: [] },
     },
     operations: ops,
   };

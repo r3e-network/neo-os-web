@@ -161,6 +161,7 @@ stringData:
 EOF
     fi
 
+    chmod 600 "$SECRETS_FILE"
     log_success "Secrets generated and saved to $SECRETS_FILE"
 
     # Display important values
@@ -168,7 +169,7 @@ EOF
     log_info "=== Supabase Configuration ==="
     echo "SUPABASE_URL: https://supabase.localhost"
     echo "SUPABASE_ANON_KEY: $anon_key"
-    echo "SUPABASE_SERVICE_KEY: $service_role_key"
+    echo "SUPABASE_SERVICE_KEY: <redacted; stored in $env_file>"
     echo ""
     log_warn "Save these values! You'll need them to configure your services."
     echo ""

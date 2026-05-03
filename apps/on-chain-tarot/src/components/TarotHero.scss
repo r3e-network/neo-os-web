@@ -1,9 +1,77 @@
-.hero-container { margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.tarot-scene { width: 80px; height: 120px; }
-.tarot-card-back-hero { width: 100%; height: 100%; background: linear-gradient(135deg, #1a0a2e, #2d1b4e); border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(167, 139, 250, 0.3); transition: all 0.5s; &.tarot-card-back--drawn { opacity: 0.3; transform: scale(0.9); } }
-.tarot-card-inner-hero { display: flex; align-items: center; justify-content: center; }
-.tarot-symbol { font-size: 32px; color: #a78bfa; }
-.hero-stats { display: flex; gap: 24px; }
-.hero-stat { display: flex; flex-direction: column; align-items: center; }
-.hero-stat-value { font-size: 24px; font-weight: 900; color: #a78bfa; }
-.hero-stat-label { font-size: 10px; font-weight: 600; color: rgba(255, 255, 255, 0.5); text-transform: uppercase; }
+.hero-container {
+  width: min(100%, 760px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.tarot-scene {
+  position: relative;
+  width: 172px;
+  height: 126px;
+}
+
+.tarot-card-back-hero {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 78px;
+  aspect-ratio: 744 / 1040;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34);
+  transform-origin: 50% 104%;
+  transition: opacity 420ms ease, transform 420ms ease;
+}
+
+.tarot-card-back-hero--left {
+  transform: translateX(-102%) rotate(-16deg);
+}
+
+.tarot-card-back-hero--center {
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 2;
+}
+
+.tarot-card-back-hero--right {
+  transform: translateX(2%) rotate(16deg);
+}
+
+.tarot-card-back--drawn {
+  opacity: 0.42;
+  filter: saturate(0.72);
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.hero-stat {
+  min-width: 118px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 229, 153, 0.16);
+  border-radius: 12px;
+  background: rgba(3, 12, 19, 0.58);
+}
+
+.hero-stat-value {
+  color: #f7fbff;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero-stat-label {
+  color: #8fa4b3;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
