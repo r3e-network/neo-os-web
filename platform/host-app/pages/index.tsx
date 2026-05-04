@@ -68,7 +68,7 @@ export default function LandingPage() {
     (async () => {
       try {
         const res = await fetch("/api/miniapps/catalog", {
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(10_000),
         });
         if (!active) return;
         if (!res.ok) return;

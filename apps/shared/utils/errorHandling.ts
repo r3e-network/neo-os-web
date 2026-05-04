@@ -41,7 +41,9 @@ export class WalletConnectionError extends MiniAppError {
     super(
       message,
       "WALLET_CONNECTION",
-      translator ? translator(userMessageKey) : "Please connect your wallet to continue.",
+      translator
+        ? translator(userMessageKey)
+        : "Please connect your wallet to continue.",
       details,
       translator,
       userMessageKey,
@@ -59,7 +61,9 @@ export class ContractError extends MiniAppError {
     super(
       message,
       "CONTRACT_ERROR",
-      translator ? translator(userMessageKey) : "Contract operation failed. Please try again.",
+      translator
+        ? translator(userMessageKey)
+        : "Contract operation failed. Please try again.",
       details,
       translator,
       userMessageKey,
@@ -77,7 +81,9 @@ export class TransactionError extends MiniAppError {
     super(
       message,
       "TRANSACTION_ERROR",
-      translator ? translator(userMessageKey) : "Transaction failed. Please check your balance and try again.",
+      translator
+        ? translator(userMessageKey)
+        : "Transaction failed. Please check your balance and try again.",
       details,
       translator,
       userMessageKey,
@@ -90,13 +96,20 @@ export class TransactionError extends MiniAppError {
  * Insufficient balance error
  */
 export class InsufficientBalanceError extends MiniAppError {
-  constructor(required: number, available: number, symbol: string = "GAS", translator?: Translator) {
+  constructor(
+    required: number,
+    available: number,
+    symbol: string = "GAS",
+    translator?: Translator,
+  ) {
     const message = `Insufficient ${symbol} balance. Required: ${required}, Available: ${available}`;
     const userMessageKey = "insufficientBalanceError";
     super(
       message,
       "INSUFFICIENT_BALANCE",
-      translator ? translator(userMessageKey) : `Insufficient ${symbol} balance.`,
+      translator
+        ? translator(userMessageKey)
+        : `Insufficient ${symbol} balance.`,
       { required, available, symbol },
       translator,
       userMessageKey,
@@ -114,7 +127,9 @@ export class NetworkError extends MiniAppError {
     super(
       message,
       "NETWORK_ERROR",
-      translator ? translator(userMessageKey) : "Network error. Please check your connection and try again.",
+      translator
+        ? translator(userMessageKey)
+        : "Network error. Please check your connection and try again.",
       details,
       translator,
       userMessageKey,
@@ -127,14 +142,21 @@ export class NetworkError extends MiniAppError {
  * Validation error
  */
 export class ValidationError extends MiniAppError {
-  constructor(message: string, field?: string, details?: unknown, translator?: Translator) {
+  constructor(
+    message: string,
+    field?: string,
+    details?: unknown,
+    translator?: Translator,
+  ) {
     const detailsObj =
       typeof details === "object" && details !== null ? details : {};
     const userMessageKey = "validationError";
     super(
       message,
       "VALIDATION_ERROR",
-      translator ? translator(userMessageKey) : "Invalid input. Please check and try again.",
+      translator
+        ? translator(userMessageKey)
+        : "Invalid input. Please check and try again.",
       { field, ...detailsObj },
       translator,
       userMessageKey,
@@ -409,7 +431,9 @@ export async function retryAsync<T>(
   }
 
   throw lastError
-    ? new Error(`retryAsync(${maxAttempts} attempts) failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`)
+    ? new Error(
+        `retryAsync(${maxAttempts} attempts) failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+      )
     : new Error(`retryAsync(${maxAttempts} attempts) failed: unknown error`);
 }
 
@@ -441,7 +465,7 @@ export async function pollForEvent<T>(
   },
 ): Promise<T | null> {
   const {
-    timeoutMs = 30000,
+    timeoutMs = 10_000,
     pollIntervalMs = 1500,
     errorMessage = "Event not found in time",
   } = options || {};
@@ -459,7 +483,14 @@ export async function pollForEvent<T>(
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
 
-  throw new MiniAppError(errorMessage, ERROR_CODE_EVENT_NOT_FOUND, undefined, undefined, undefined, ERROR_CODE_EVENT_NOT_FOUND);
+  throw new MiniAppError(
+    errorMessage,
+    ERROR_CODE_EVENT_NOT_FOUND,
+    undefined,
+    undefined,
+    undefined,
+    ERROR_CODE_EVENT_NOT_FOUND,
+  );
 }
 
 /**

@@ -12,12 +12,16 @@ function logMTLSStatus(message: string) {
 }
 
 function isPublicRuntimeHost(hostname: string) {
-  const host = String(hostname || "").trim().toLowerCase();
-  return [
-    "oracle.meshmini.app",
-    "edge.meshmini.app",
-    "control.meshmini.app",
-  ].includes(host) || host.endsWith(".workers.dev");
+  const host = String(hostname || "")
+    .trim()
+    .toLowerCase();
+  return (
+    [
+      "oracle.meshmini.app",
+      "edge.meshmini.app",
+      "control.meshmini.app",
+    ].includes(host) || host.endsWith(".workers.dev")
+  );
 }
 
 function canUsePublicRuntimeWithoutMTLS(url: string) {
@@ -34,9 +38,9 @@ function maybeAttachRuntimeAuth(headers: Headers, url: string) {
   if (headers.get("authorization")) return;
 
   const token =
-    getEnv("MORPHEUS_RUNTIME_TOKEN")
-    ?? getEnv("PHALA_API_TOKEN")
-    ?? getEnv("PHALA_SHARED_SECRET");
+    getEnv("MORPHEUS_RUNTIME_TOKEN") ??
+    getEnv("PHALA_API_TOKEN") ??
+    getEnv("PHALA_SHARED_SECRET");
   if (!token) return;
 
   headers.set("authorization", `Bearer ${token}`);
@@ -66,7 +70,9 @@ function getMTLSClient(): Deno.HttpClient | undefined {
 
   if (typeof Deno.createHttpClient !== "function") {
     mtlsClient = null;
-    logMTLSStatus("mTLS disabled: Deno.createHttpClient unavailable (enable --unstable).");
+    logMTLSStatus(
+      "mTLS disabled: Deno.createHttpClient unavailable (enable --unstable).",
+    );
     return undefined;
   }
 
@@ -92,7 +98,12 @@ export async function requestJSON(
   req?: Request,
 ): Promise<unknown | Response> {
   if (isProductionEnv() && !url.toLowerCase().startsWith("https://")) {
-    return error(400, "TEE service URL must use https:// in production", "INSECURE_TEE_URL", req);
+    return error(
+      400,
+      "TEE service URL must use https:// in production",
+      "INSECURE_TEE_URL",
+      req,
+    );
   }
 
   const headers = new Headers(init.headers);
@@ -107,7 +118,10 @@ export async function requestJSON(
     try {
       body = JSON.stringify(init.body);
     } catch (_e: unknown) {
-      console.warn("[tee] JSON.stringify failed, using String() fallback:", _e instanceof Error ? _e.message : String(_e));
+      console.warn(
+        "[tee] JSON.stringify failed, using String() fallback:",
+        _e instanceof Error ? _e.message : String(_e),
+      );
       body = String(init.body);
     }
   }
@@ -116,14 +130,19 @@ export async function requestJSON(
     method: init.method,
     headers,
     body,
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(10_000),
   };
 
   const client = getMTLSClient();
   if (client) {
     requestInit.client = client;
   } else if (isProductionEnv() && !canUsePublicRuntimeWithoutMTLS(url)) {
-    return error(503, "mTLS is required for TEE service calls in production", "MTLS_REQUIRED", req);
+    return error(
+      503,
+      "mTLS is required for TEE service calls in production",
+      "MTLS_REQUIRED",
+      req,
+    );
   }
 
   try {
@@ -131,7 +150,12 @@ export async function requestJSON(
 
     const text = await resp.text();
     if (!resp.ok) {
-      return error(resp.status, "upstream request failed", "UPSTREAM_ERROR", req);
+      return error(
+        resp.status,
+        "upstream request failed",
+        "UPSTREAM_ERROR",
+        req,
+      );
     }
 
     if (!text) return {};
@@ -154,6 +178,10 @@ export async function postJSON(
   return requestJSON(url, { method: "POST", headers, body }, req);
 }
 
-export async function getJSON(url: string, headers: Record<string, string> = {}, req?: Request): Promise<unknown | Response> {
+export async function getJSON(
+  url: string,
+  headers: Record<string, string> = {},
+  req?: Request,
+): Promise<unknown | Response> {
   return requestJSON(url, { method: "GET", headers }, req);
 }

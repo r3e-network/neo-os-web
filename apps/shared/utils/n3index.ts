@@ -93,7 +93,10 @@ export interface ValidatorInfo {
 
 // ─── Fetch helper ────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, params?: Record<string, string | number>): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  params?: Record<string, string | number>,
+): Promise<T> {
   const url = new URL(`${N3INDEX_BASE}${path}`);
   if (params) {
     for (const [key, val] of Object.entries(params)) {
@@ -115,10 +118,12 @@ async function apiFetch<T>(path: string, params?: Record<string, string | number
 // ─── Indexer API ─────────────────────────────────────────────────────────
 
 /** Health check */
-export const healthCheck = () => apiFetch<{ status: string }>("/indexer/healthz");
+export const healthCheck = () =>
+  apiFetch<{ status: string }>("/indexer/healthz");
 
 /** Network indexing status */
-export const getNetworkStatus = (network: Network) => apiFetch<NetworkStatus>(`/indexer/v1/networks/${network}/status`);
+export const getNetworkStatus = (network: Network) =>
+  apiFetch<NetworkStatus>(`/indexer/v1/networks/${network}/status`);
 
 /** Explorer-style network summary */
 export const getNetworkSummary = (network: Network) =>
@@ -129,18 +134,32 @@ export const getAccount = (network: Network, address: string) =>
   apiFetch<AccountInfo>(`/indexer/v1/networks/${network}/accounts/${address}`);
 
 /** Account transactions */
-export const getAccountTransactions = (network: Network, address: string, limit = 20) =>
-  apiFetch<AccountTransaction[]>(`/indexer/v1/networks/${network}/accounts/${address}/transactions`, { limit });
+export const getAccountTransactions = (
+  network: Network,
+  address: string,
+  limit = 20,
+) =>
+  apiFetch<AccountTransaction[]>(
+    `/indexer/v1/networks/${network}/accounts/${address}/transactions`,
+    { limit },
+  );
 
 /** Contract overview */
 export const getContract = (network: Network, contractHash: string) =>
-  apiFetch<ContractInfo>(`/indexer/v1/networks/${network}/contracts/${contractHash}`);
+  apiFetch<ContractInfo>(
+    `/indexer/v1/networks/${network}/contracts/${contractHash}`,
+  );
 
 /** Contract events (decoded) */
 export const getContractEvents = (
   network: Network,
   contractHash: string,
-  params?: { event_name?: string; tx_hash?: string; limit?: number; offset?: number },
+  params?: {
+    event_name?: string;
+    tx_hash?: string;
+    limit?: number;
+    offset?: number;
+  },
 ) =>
   apiFetch<ContractEvent[]>(
     `/indexer/v1/networks/${network}/contracts/${contractHash}/events`,
@@ -153,11 +172,15 @@ export const getToken = (network: Network, contractHash: string) =>
 
 /** Daily chain analytics */
 export const getDailyAnalytics = (network: Network, limit = 7) =>
-  apiFetch<unknown[]>(`/indexer/v1/networks/${network}/analytics/daily`, { limit });
+  apiFetch<unknown[]>(`/indexer/v1/networks/${network}/analytics/daily`, {
+    limit,
+  });
 
 /** Validator directory */
 export const getValidators = (network: Network) =>
-  apiFetch<ValidatorInfo[]>(`/indexer/v1/networks/${network}/metadata/validators`);
+  apiFetch<ValidatorInfo[]>(
+    `/indexer/v1/networks/${network}/metadata/validators`,
+  );
 
 /** Contract metadata lookup */
 export const getContractMetadata = (network: Network, hashes: string[]) =>
@@ -174,7 +197,10 @@ export const getAddressMetadata = (network: Network, addresses: string[]) =>
 // ─── REST API (PostgREST raw access) ─────────────────────────────────────
 
 /** Generic REST query */
-export const restQuery = <T = unknown>(table: string, params?: Record<string, string>) =>
+export const restQuery = <T = unknown>(
+  table: string,
+  params?: Record<string, string>,
+) =>
   apiFetch<T[]>(`/rest/v1/${table}`, params as Record<string, string | number>);
 
 /** Query blocks */
@@ -186,21 +212,40 @@ export const getTransactions = (network: Network, limit = 10) =>
   restQuery("transactions", { network: `eq.${network}`, limit: String(limit) });
 
 /** Query NEP-17 transfers */
-export const getNep17Transfers = (network: Network, txid?: string, limit = 20) => {
-  const params: Record<string, string> = { network: `eq.${network}`, limit: String(limit) };
+export const getNep17Transfers = (
+  network: Network,
+  txid?: string,
+  limit = 20,
+) => {
+  const params: Record<string, string> = {
+    network: `eq.${network}`,
+    limit: String(limit),
+  };
   if (txid) params.txid = `eq.${txid}`;
   return restQuery("nep17_transfers", params);
 };
 
 /** Query NEP-11 transfers */
-export const getNep11Transfers = (network: Network, txid?: string, limit = 20) => {
-  const params: Record<string, string> = { network: `eq.${network}`, limit: String(limit) };
+export const getNep11Transfers = (
+  network: Network,
+  txid?: string,
+  limit = 20,
+) => {
+  const params: Record<string, string> = {
+    network: `eq.${network}`,
+    limit: String(limit),
+  };
   if (txid) params.txid = `eq.${txid}`;
   return restQuery("nep11_transfers", params);
 };
 
 /** Query contract events via REST */
-export const restContractEvents = (network: Network, contractHash: string, eventName?: string, limit = 20) => {
+export const restContractEvents = (
+  network: Network,
+  contractHash: string,
+  eventName?: string,
+  limit = 20,
+) => {
   const params: Record<string, string> = {
     network: `eq.${network}`,
     contract_hash: `eq.${contractHash}`,
@@ -212,11 +257,17 @@ export const restContractEvents = (network: Network, contractHash: string, event
 
 /** Token balances view */
 export const getNep17Balances = (network: Network, limit = 10) =>
-  restQuery("v_nep17_balances", { network: `eq.${network}`, limit: String(limit) });
+  restQuery("v_nep17_balances", {
+    network: `eq.${network}`,
+    limit: String(limit),
+  });
 
 /** Daily chain analytics view */
 export const restDailyAnalytics = (network: Network, limit = 7) =>
-  restQuery("v_daily_chain_analytics", { network: `eq.${network}`, limit: String(limit) });
+  restQuery("v_daily_chain_analytics", {
+    network: `eq.${network}`,
+    limit: String(limit),
+  });
 
 // ─── Convenience: wait for tx confirmation ──────────────────────────────
 
@@ -227,12 +278,15 @@ export const restDailyAnalytics = (network: Network, limit = 7) =>
 export async function waitForTransaction(
   network: Network,
   txid: string,
-  timeoutMs = 60000,
+  timeoutMs = 10_000,
 ): Promise<ContractEvent[] | null> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
-      const events = await getContractEvents(network, "", { tx_hash: txid, limit: 10 });
+      const events = await getContractEvents(network, "", {
+        tx_hash: txid,
+        limit: 10,
+      });
       if (events.length > 0) return events;
     } catch (e) {
       console.warn("[n3index] waitForTransaction poll failed:", e);

@@ -538,7 +538,7 @@ export default function DeveloperPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: definitionText }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(10_000),
       });
       const data = await res.json().catch((e: unknown) => {
         console.warn(
@@ -580,7 +580,7 @@ export default function DeveloperPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: definitionPayloadText }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(10_000),
       });
       const previewData = await previewRes.json().catch((e: unknown) => {
         console.warn(
@@ -634,7 +634,7 @@ export default function DeveloperPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(upsertBody),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(10_000),
       });
       const data = await res.json().catch((e: unknown) => {
         console.warn(
