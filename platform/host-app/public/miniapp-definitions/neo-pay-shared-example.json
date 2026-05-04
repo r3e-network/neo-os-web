@@ -1,0 +1,292 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-neo-pay-shared-example",
+  "name": "NeoPay Shared Runtime",
+  "description": "A shared-mode NeoPay console that composes the funding vault and stream vesting modules through the MiniApp instance registry.",
+  "template_type": "defi",
+  "category": "DeFi",
+  "tags": [
+    "neopay",
+    "shared-runtime",
+    "payment-streams",
+    "modules"
+  ],
+  "version": "1.0.0",
+  "status": "beta",
+  "developer": {
+    "name": "R3E Network",
+    "url": "https://r3e.network"
+  },
+  "entry_url": "mf://manifest?app=miniapp-neo-pay-shared-example",
+  "media": {
+    "icon": "/miniapp-assets/neo-pay/logo.jpg",
+    "banner": "/miniapp-assets/neo-pay/banner.jpg"
+  },
+  "permissions": {
+    "payments": true
+  },
+  "contract_composition": {
+    "mode": "shared",
+    "instance_id": "neopay:testnet:default",
+    "registries": {
+      "module_registry": "0x7666a46644dca58e8c3b308b34e83db440e04991",
+      "recipe_registry": "0xe22bc8072f616974a64c0da1dfda845945d4215f",
+      "instance_registry": "0x5b9a6d1ca5fdbc95d4307990551682a3b7a1d5d6"
+    },
+    "module_bindings": {
+      "vault": {
+        "module_id": "module.funding_vault",
+        "version": "1.0.0"
+      },
+      "stream": {
+        "module_id": "module.stream_vesting",
+        "version": "1.0.0"
+      }
+    },
+    "runtime_preview": {
+      "instance": {
+        "instance_id": "neopay:testnet:default",
+        "app_id": "miniapp-neo-pay",
+        "recipe_id": "recipe.payment_streams.v1",
+        "recipe_version": "1.0.0",
+        "runtime_mode": "shared",
+        "owner_hash": "0x3867f413618043571ec490b19c4691ddf65e066d",
+        "developer_hash": "0x3867f413618043571ec490b19c4691ddf65e066d",
+        "status": 1,
+        "upgrade_pending": false,
+        "updated_at": "2026-03-16T00:00:00.000Z"
+      },
+      "recipe": {
+        "recipe_id": "recipe.payment_streams.v1",
+        "version": "1.0.0",
+        "allowed_runtime_mode": "shared",
+        "active": true,
+        "module_refs": [
+          {
+            "binding": "vault"
+          },
+          {
+            "binding": "stream"
+          }
+        ],
+        "required_fields": {
+          "required": [
+            "escrow_assets"
+          ]
+        },
+        "operation_schema": {
+          "actions": [
+            "createStream"
+          ]
+        },
+        "compatibility_metadata": {
+          "app_id": "miniapp-neo-pay"
+        }
+      },
+      "modules": [
+        {
+          "binding": "vault",
+          "module_id": "module.funding_vault",
+          "version": "1.0.0",
+          "contract_hash": "0x958bccb2ec9292461977ef1d2f1222d4e7861537",
+          "risk_profile": "custody",
+          "active": true,
+          "compatibility_metadata": {
+            "accepted_assets": [
+              "NEO",
+              "GAS"
+            ]
+          }
+        },
+        {
+          "binding": "stream",
+          "module_id": "module.stream_vesting",
+          "version": "1.0.0",
+          "contract_hash": "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+          "risk_profile": "payments",
+          "active": true,
+          "compatibility_metadata": {
+            "recipe": "recipe.payment_streams.v1"
+          }
+        }
+      ]
+    }
+  },
+  "frontend_composition": {
+    "shell_recipe": "shell.launcher.v1",
+    "operation_recipes": [
+      {
+        "operation": "createSharedStream",
+        "binding": "stream",
+        "method": "createStream",
+        "args": [
+          {
+            "source": "instance.instanceId",
+            "type": "String"
+          },
+          {
+            "source": "wallet.address",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.beneficiary",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.asset",
+            "type": "Hash160"
+          },
+          {
+            "source": "input.totalAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.rateAmount",
+            "type": "Integer",
+            "scale": 8
+          },
+          {
+            "source": "input.intervalSeconds",
+            "type": "Integer"
+          },
+          {
+            "source": "input.title",
+            "type": "String"
+          },
+          {
+            "source": "input.notes",
+            "type": "String"
+          }
+        ]
+      }
+    ]
+  },
+  "operations": [
+    {
+      "name": "Create Stream",
+      "method": "createSharedStream",
+      "description": "Create a shared-runtime payment stream through the stream vesting module.",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "beneficiary",
+          "type": "address",
+          "label": "Beneficiary Address",
+          "required": true,
+          "placeholder": "N..."
+        },
+        {
+          "name": "asset",
+          "type": "hash160",
+          "label": "Asset",
+          "required": true,
+          "default_value": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "hidden": true
+        },
+        {
+          "name": "totalAmount",
+          "type": "amount",
+          "label": "Total Amount",
+          "required": true,
+          "placeholder": "20"
+        },
+        {
+          "name": "rateAmount",
+          "type": "amount",
+          "label": "Release Per Interval",
+          "required": true,
+          "placeholder": "1.5"
+        },
+        {
+          "name": "intervalSeconds",
+          "type": "integer",
+          "label": "Interval Seconds",
+          "required": true,
+          "default_value": "2592000",
+          "hidden": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "label": "Stream Name",
+          "required": true,
+          "placeholder": "Monthly payroll stream"
+        },
+        {
+          "name": "notes",
+          "type": "string",
+          "label": "Notes",
+          "required": false,
+          "placeholder": "Optional context"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": true,
+    "activity_feed": true,
+    "stats_display": [
+      "total_transactions",
+      "total_gas_used"
+    ]
+  },
+  "detail_template": {
+    "layout": "default",
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "This console demonstrates shared-mode composition: the app instance points at a recipe, and the recipe binds payment operations to reusable modules."
+          },
+          {
+            "type": "key_value",
+            "title": "Runtime Composition",
+            "items": [
+              {
+                "key": "Instance",
+                "value": "neopay:testnet:default"
+              },
+              {
+                "key": "Recipe",
+                "value": "recipe.payment_streams.v1@1.0.0"
+              },
+              {
+                "key": "Modules",
+                "value": "funding_vault + stream_vesting"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      },
+      {
+        "id": "forum",
+        "label": "Forum",
+        "type": "forum"
+      },
+      {
+        "id": "news",
+        "label": "News",
+        "type": "news"
+      }
+    ],
+    "operation_panel": {
+      "title": "Shared Stream",
+      "subtitle": "Compose a stream vesting call through the shared runtime module binding.",
+      "operations": []
+    }
+  },
+  "docs_url": "https://docs.r3e.network/neopay"
+}

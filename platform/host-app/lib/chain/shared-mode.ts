@@ -98,6 +98,41 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function pickString(source: Dict, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function pickObject(source: Dict, ...keys: string[]): Dict {
+  for (const key of keys) {
+    const value = asObject(source[key]);
+    if (Object.keys(value).length > 0) return value;
+  }
+  return {};
+}
+
+function pickBoolean(source: Dict, defaultValue = false, ...keys: string[]): boolean {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "boolean") return value;
+  }
+  return defaultValue;
+}
+
+function pickNumber(source: Dict, defaultValue = 0, ...keys: string[]): number {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+  return defaultValue;
+}
+
 function parseInteger(item?: StackItem): bigint {
   if (!item || item.type !== "Integer") return 0n;
   return BigInt(item.value || "0");
@@ -284,6 +319,127 @@ function extractBindings(instance: SharedModeInstanceInfo): SharedModeModuleBind
     .filter((item): item is SharedModeModuleBinding => Boolean(item));
 }
 
+function resolveEmbeddedSharedRuntime(
+  app: MiniAppInfo,
+  network: Network,
+  registries: SharedModeRuntimeInfo["registries"],
+): SharedModeRuntimeInfo | null {
+  const composition = asObject(asObject(app.manifest).contract_composition);
+  const preview = pickObject(composition, "runtime_preview", "runtimePreview");
+  if (Object.keys(preview).length === 0) return null;
+
+  const instanceSource = pickObject(preview, "instance");
+  const recipeSource = pickObject(preview, "recipe");
+  const moduleBindings = pickObject(
+    instanceSource,
+    "module_bindings",
+    "moduleBindings",
+  );
+  const fallbackBindings = pickObject(
+    composition,
+    "module_bindings",
+    "moduleBindings",
+  );
+
+  const instance: SharedModeInstanceInfo = {
+    instanceId:
+      pickString(instanceSource, "instance_id", "instanceId") ||
+      resolveInstanceId(app),
+    appId: pickString(instanceSource, "app_id", "appId") || app.app_id,
+    recipeId: pickString(instanceSource, "recipe_id", "recipeId"),
+    recipeVersion:
+      pickString(instanceSource, "recipe_version", "recipeVersion") ||
+      "1.0.0",
+    runtimeMode:
+      pickString(instanceSource, "runtime_mode", "runtimeMode") || "shared",
+    ownerHash: pickString(instanceSource, "owner_hash", "ownerHash") || null,
+    operatorHash:
+      pickString(instanceSource, "operator_hash", "operatorHash") || null,
+    developerHash:
+      pickString(instanceSource, "developer_hash", "developerHash") || null,
+    routerContractHash:
+      pickString(instanceSource, "router_contract_hash", "routerContractHash") ||
+      null,
+    moduleBindings:
+      Object.keys(moduleBindings).length > 0 ? moduleBindings : fallbackBindings,
+    configHash: pickString(instanceSource, "config_hash", "configHash") || null,
+    frontendRef:
+      pickString(instanceSource, "frontend_ref", "frontendRef") || null,
+    status: pickNumber(instanceSource, 1, "status"),
+    upgradePending: pickBoolean(
+      instanceSource,
+      false,
+      "upgrade_pending",
+      "upgradePending",
+    ),
+    updatedAt: pickString(instanceSource, "updated_at", "updatedAt") || null,
+  };
+
+  if (!instance.instanceId || !instance.recipeId) return null;
+
+  const recipe: SharedModeRecipeInfo | null =
+    Object.keys(recipeSource).length > 0
+      ? {
+          recipeId:
+            pickString(recipeSource, "recipe_id", "recipeId") ||
+            instance.recipeId,
+          version:
+            pickString(recipeSource, "version", "recipe_version", "recipeVersion") ||
+            instance.recipeVersion,
+          allowedRuntimeMode:
+            pickString(recipeSource, "allowed_runtime_mode", "allowedRuntimeMode") ||
+            instance.runtimeMode ||
+            null,
+          routerTemplateId:
+            pickString(recipeSource, "router_template_id", "routerTemplateId") ||
+            null,
+          active: pickBoolean(recipeSource, true, "active"),
+          moduleRefs: asArray(recipeSource.module_refs ?? recipeSource.moduleRefs) || null,
+          requiredFields:
+            pickObject(recipeSource, "required_fields", "requiredFields") ||
+            null,
+          operationSchema:
+            pickObject(recipeSource, "operation_schema", "operationSchema") ||
+            null,
+          compatibilityMetadata:
+            pickObject(
+              recipeSource,
+              "compatibility_metadata",
+              "compatibilityMetadata",
+            ) || null,
+        }
+      : null;
+
+  const modules = asArray(preview.modules)
+    .map((entry): SharedModeModuleInfo | null => {
+      const source = asObject(entry);
+      const binding = pickString(source, "binding");
+      const moduleId = pickString(source, "module_id", "moduleId");
+      const version = pickString(source, "version");
+      if (!binding || !moduleId || !version) return null;
+      return {
+        binding,
+        moduleId,
+        version,
+        contractHash: pickString(source, "contract_hash", "contractHash") || null,
+        riskProfile: pickString(source, "risk_profile", "riskProfile") || null,
+        active: pickBoolean(source, true, "active"),
+        compatibilityMetadata:
+          pickObject(source, "compatibility_metadata", "compatibilityMetadata") ||
+          null,
+      };
+    })
+    .filter((item): item is SharedModeModuleInfo => Boolean(item));
+
+  return {
+    network,
+    registries,
+    instance,
+    recipe,
+    modules,
+  };
+}
+
 export function isSharedModeApp(app: MiniAppInfo | null | undefined): boolean {
   if (!app?.manifest) return false;
   const composition = asObject(asObject(app.manifest).contract_composition);
@@ -374,50 +530,55 @@ export async function resolveSharedModeRuntime(
   if (!instanceId) return null;
 
   const registries = resolveRegistries(manifest, network);
+  const embeddedRuntime = resolveEmbeddedSharedRuntime(app, network, registries);
   if (!registries.instanceRegistry || !registries.recipeRegistry || !registries.moduleRegistry) {
-    return null;
+    return embeddedRuntime;
   }
 
-  const instanceRes = await invokeRead(
-    registries.instanceRegistry,
-    "getInstance",
-    [{ type: "String", value: instanceId }],
-    network,
-  );
-  const instance = decodeInstanceInfo(instanceRes.stack?.[0]);
-  if (!instance || !instance.instanceId) return null;
+  try {
+    const instanceRes = await invokeRead(
+      registries.instanceRegistry,
+      "getInstance",
+      [{ type: "String", value: instanceId }],
+      network,
+    );
+    const instance = decodeInstanceInfo(instanceRes.stack?.[0]);
+    if (!instance || !instance.instanceId) return embeddedRuntime;
 
-  const recipeRes = await invokeRead(
-    registries.recipeRegistry,
-    "getRecipe",
-    [
-      { type: "String", value: instance.recipeId },
-      { type: "String", value: instance.recipeVersion },
-    ],
-    network,
-  );
-  const recipe = decodeRecipeInfo(recipeRes.stack?.[0]);
-
-  const modules: SharedModeModuleInfo[] = [];
-  for (const binding of extractBindings(instance)) {
-    const moduleRes = await invokeRead(
-      registries.moduleRegistry,
-      "getModule",
+    const recipeRes = await invokeRead(
+      registries.recipeRegistry,
+      "getRecipe",
       [
-        { type: "String", value: binding.moduleId },
-        { type: "String", value: binding.version },
+        { type: "String", value: instance.recipeId },
+        { type: "String", value: instance.recipeVersion },
       ],
       network,
     );
-    const decoded = decodeModuleInfo(binding.binding, moduleRes.stack?.[0]);
-    if (decoded) modules.push(decoded);
-  }
+    const recipe = decodeRecipeInfo(recipeRes.stack?.[0]);
 
-  return {
-    network,
-    registries,
-    instance,
-    recipe,
-    modules,
-  };
+    const modules: SharedModeModuleInfo[] = [];
+    for (const binding of extractBindings(instance)) {
+      const moduleRes = await invokeRead(
+        registries.moduleRegistry,
+        "getModule",
+        [
+          { type: "String", value: binding.moduleId },
+          { type: "String", value: binding.version },
+        ],
+        network,
+      );
+      const decoded = decodeModuleInfo(binding.binding, moduleRes.stack?.[0]);
+      if (decoded) modules.push(decoded);
+    }
+
+    return {
+      network,
+      registries,
+      instance,
+      recipe,
+      modules,
+    };
+  } catch {
+    return embeddedRuntime;
+  }
 }
