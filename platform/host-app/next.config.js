@@ -91,7 +91,10 @@ const nextConfig = {
     return config;
   },
   outputFileTracingIncludes: {
-    "/api/**/*": ["./public/miniapp-definitions/**/*"],
+    "/api/**/*": [
+      "./public/miniapp-definitions/**/*",
+      "../../apps/on-chain-tarot/public/cards/**/*",
+    ],
   },
   turbopack: {
     root: path.resolve(__dirname, "../.."),
@@ -153,6 +156,14 @@ const nextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/miniapps/on-chain-tarot/cards/:file",
+        destination: "/api/miniapps/on-chain-tarot/cards/:file",
       },
     ];
   },
