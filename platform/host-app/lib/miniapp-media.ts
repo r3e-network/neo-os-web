@@ -73,6 +73,27 @@ function unique(items: Array<string | null | undefined>): string[] {
   return out;
 }
 
+function isLegacyBundledMiniAppAssetUrl(value: string): boolean {
+  const url = toNonEmptyString(value);
+  return url.startsWith("/miniapps/");
+}
+
+function splitLegacyBundledAssetUrls(items: string[]): {
+  preferred: string[];
+  legacy: string[];
+} {
+  const preferred: string[] = [];
+  const legacy: string[] = [];
+  for (const item of items) {
+    if (isLegacyBundledMiniAppAssetUrl(item)) {
+      legacy.push(item);
+    } else {
+      preferred.push(item);
+    }
+  }
+  return { preferred, legacy };
+}
+
 function normalizeSlug(value: string): string {
   return value.trim().replace(/^\/+|\/+$/g, "");
 }
@@ -288,22 +309,24 @@ function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entr
 export function buildMiniAppLogoSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "logo", options.preferences);
+  const explicit = splitLegacyBundledAssetUrls(unique([options.logoURL, ...variants]));
   return unique([
-    options.logoURL,
-    ...variants,
+    ...explicit.preferred,
     primary.logoURL,
     ...getMiniAppAssetCandidates("logo", options.appID, options.entryURL),
+    ...explicit.legacy,
   ]);
 }
 
 export function buildMiniAppBannerSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "banner", options.preferences);
+  const explicit = splitLegacyBundledAssetUrls(unique([options.bannerURL, ...variants]));
   return unique([
-    options.bannerURL,
-    ...variants,
+    ...explicit.preferred,
     primary.bannerURL,
     ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
+    ...explicit.legacy,
   ]);
 }
 
