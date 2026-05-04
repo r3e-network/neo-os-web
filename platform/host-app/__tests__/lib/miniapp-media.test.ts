@@ -101,6 +101,17 @@ describe("miniapp-media helpers", () => {
       expect(result).toEqual(expect.arrayContaining(["/miniapps/red-envelope/static/icon.svg"]));
     });
 
+    it("demotes legacy bundled manifest media behind generated host assets", () => {
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-self-loan",
+        entryURL: "mf://manifest?app=miniapp-self-loan",
+        logoURL: "/miniapps/self-loan/logo.jpg",
+      });
+
+      expect(result[0]).toBe("/miniapp-assets/self-loan/logo.jpg");
+      expect(result).toContain("/miniapps/self-loan/logo.jpg");
+    });
+
     it("prioritizes best matching logo variant by theme/locale", () => {
       expect(
         buildMiniAppLogoSources({
@@ -159,6 +170,17 @@ describe("miniapp-media helpers", () => {
 
       expect(result[0]).toBe("/miniapp-assets/neo-swap/banner.jpg");
       expect(result).toEqual(expect.arrayContaining(["/miniapps/neo-swap/static/banner.svg"]));
+    });
+
+    it("demotes legacy bundled banner media behind generated host assets", () => {
+      const result = buildMiniAppBannerSources({
+        appID: "miniapp-self-loan",
+        entryURL: "mf://manifest?app=miniapp-self-loan",
+        bannerURL: "/miniapps/self-loan/banner.jpg",
+      });
+
+      expect(result[0]).toBe("/miniapp-assets/self-loan/banner.jpg");
+      expect(result).toContain("/miniapps/self-loan/banner.jpg");
     });
 
     it("prioritizes best matching banner variant by theme", () => {
