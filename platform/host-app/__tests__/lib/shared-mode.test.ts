@@ -133,6 +133,75 @@ describe("shared-mode runtime resolver", () => {
     );
   });
 
+  it("falls back to manifest runtime preview when registry reads are unavailable", async () => {
+    const invokeRead = jest.fn().mockRejectedValue(new Error("rpc unavailable"));
+    jest.doMock("../../lib/chain/rpc-client", () => ({
+      invokeRead,
+    }));
+
+    const { resolveSharedModeRuntime } = require("../../lib/chain/shared-mode");
+    const runtime = await resolveSharedModeRuntime({
+      app_id: "miniapp-neo-pay-shared-example",
+      name: "NeoPay Shared Runtime",
+      description: "",
+      icon: "N",
+      category: "defi",
+      entry_url: "mf://manifest?app=miniapp-neo-pay-shared-example",
+      permissions: { payments: true },
+      manifest: {
+        contract_composition: {
+          mode: "shared",
+          instance_id: "neopay:testnet:default",
+          registries: {
+            module_registry: "0x1",
+            recipe_registry: "0x2",
+            instance_registry: "0x3",
+          },
+          module_bindings: {
+            stream: {
+              module_id: "module.stream_vesting",
+              version: "1.0.0",
+            },
+          },
+          runtime_preview: {
+            instance: {
+              app_id: "miniapp-neo-pay",
+              recipe_id: "recipe.payment_streams.v1",
+              recipe_version: "1.0.0",
+              runtime_mode: "shared",
+              status: 1,
+            },
+            modules: [
+              {
+                binding: "stream",
+                module_id: "module.stream_vesting",
+                version: "1.0.0",
+                contract_hash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+                risk_profile: "payments",
+                active: true,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(runtime).toEqual(
+      expect.objectContaining({
+        instance: expect.objectContaining({
+          instanceId: "neopay:testnet:default",
+          recipeId: "recipe.payment_streams.v1",
+        }),
+        modules: [
+          expect.objectContaining({
+            binding: "stream",
+            contractHash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+          }),
+        ],
+      }),
+    );
+  });
+
   it("builds shared invoke args from recipe bindings and wallet/input sources", async () => {
     const { buildSharedInvokeArgs } = require("../../lib/chain/shared-mode");
 

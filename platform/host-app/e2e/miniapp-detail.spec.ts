@@ -362,9 +362,11 @@ test.describe("MiniApp Detail", () => {
       actionPanel.getByRole("heading", { name: "Shared Runtime", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("recipe.payment_streams.v1@1.0.0"),
+      actionPanel.getByText("recipe.payment_streams.v1@1.0.0"),
     ).toBeVisible();
-    await expect(page.getByText("module.stream_vesting@1.0.0")).toBeVisible();
+    await expect(
+      actionPanel.getByText("module.stream_vesting@1.0.0"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: /log in \/ sign up/i }).click();
     await page.getByRole("button", { name: "NeoLine" }).click();

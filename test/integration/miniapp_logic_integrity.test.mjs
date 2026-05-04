@@ -77,6 +77,11 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function asObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value;
+}
+
 function extractHostOperations(definition, manifest) {
   const frontendSpec = definition?.frontend_spec || manifest?.frontend_spec || {};
   const detailTemplate = definition?.detail_template || manifest?.detail_template || {};
@@ -98,6 +103,25 @@ function extractHostOperations(definition, manifest) {
     if (operations.length > 0) return operations;
   }
   return [];
+}
+
+function contractComposition(definition, manifest) {
+  return asObject(
+    definition?.contract_composition ||
+      definition?.manifest?.contract_composition ||
+      manifest?.contract_composition,
+  );
+}
+
+function sharedOperationRecipes(definition, manifest) {
+  const frontendComposition = asObject(
+    definition?.frontend_composition ||
+      definition?.manifest?.frontend_composition ||
+      manifest?.frontend_composition,
+  );
+  return asArray(frontendComposition.operation_recipes).filter(
+    (recipe) => recipe?.operation && recipe?.binding && recipe?.method,
+  );
 }
 
 function expectedAbiParamTypes(operation) {
@@ -148,6 +172,17 @@ test("every bundled MiniApp operation maps to a deployed testnet ABI method", as
 
     const contractHash = String(manifest.contracts?.[NEO_TESTNET_KEY] || "").trim();
     if (!contractHash) {
+      const composition = contractComposition(definition, manifest);
+      if (String(composition.mode || "").toLowerCase() === "shared") {
+        const recipes = sharedOperationRecipes(definition, manifest);
+        for (const operation of operations) {
+          checkedOperations++;
+          if (!recipes.some((recipe) => recipe.operation === operation.method)) {
+            failures.push(`${slug}.${operation.method} has no shared runtime operation recipe`);
+          }
+        }
+        continue;
+      }
       failures.push(`${slug}: exposes ${operations.length} operation(s) but has no ${NEO_TESTNET_KEY} contract hash`);
       continue;
     }
