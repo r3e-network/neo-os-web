@@ -1,14 +1,22 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { jsonError } from "@/lib/api-utils";
-import { createProxyHeaders, resolveHostAppBaseURL } from "@/lib/host-admin-proxy";
+import {
+  createProxyHeaders,
+  resolveHostAppBaseURL,
+} from "@/lib/host-admin-proxy";
 
 function parseDryRun(value: unknown): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "number") return value === 1;
   if (typeof value !== "string") return false;
   const normalized = value.trim().toLowerCase();
-  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+  return (
+    normalized === "1" ||
+    normalized === "true" ||
+    normalized === "yes" ||
+    normalized === "on"
+  );
 }
 
 export async function POST(req: Request) {
@@ -30,7 +38,10 @@ export async function POST(req: Request) {
 
   let upstreamURL: URL;
   try {
-    upstreamURL = new URL("/api/miniapps/admin/import-definitions", hostAppBaseURL);
+    upstreamURL = new URL(
+      "/api/miniapps/admin/import-definitions",
+      hostAppBaseURL,
+    );
   } catch {
     return jsonError("Invalid MINIAPP_HOST_APP_BASE_URL", 500);
   }
@@ -41,13 +52,16 @@ export async function POST(req: Request) {
       method: "POST",
       headers: createProxyHeaders(req),
       body: JSON.stringify({ dry_run: dryRun }),
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(10_000),
     });
 
     const contentType = response.headers.get("content-type") || "";
     if (!contentType.includes("application/json")) {
       const text = await response.text();
-      return jsonError(`Unexpected import response: ${text || response.statusText}`, 502);
+      return jsonError(
+        `Unexpected import response: ${text || response.statusText}`,
+        502,
+      );
     }
 
     const payload = await response.json();

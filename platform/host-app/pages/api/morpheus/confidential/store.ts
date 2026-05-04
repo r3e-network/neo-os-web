@@ -3,6 +3,8 @@ import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
 import { resolveMorpheusPublicApiCandidates } from "@/lib/morpheus-endpoints";
 
+const MORPHEUS_CONFIDENTIAL_TIMEOUT_MS = 10_000;
+
 function resolveMorpheusPublicApiUrl(networkInput?: string | null) {
   // Confidential store still lives behind the web gateway `/api/confidential/store`.
   const candidates = resolveMorpheusPublicApiCandidates(networkInput);
@@ -36,7 +38,10 @@ export default async function handler(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    MORPHEUS_CONFIDENTIAL_TIMEOUT_MS,
+  );
 
   try {
     const upstream = await fetch(`${baseUrl}/api/confidential/store`, {

@@ -2,7 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 const EDGE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -16,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const url = `${EDGE_URL}/functions/v1/transactions-list?${params}`;
     const response = await fetch(url, {
       headers: { "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!response.ok) {
@@ -26,7 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const data = await response.json();
     return res.status(200).json(data);
   } catch (error) {
-    console.error("Transactions API error:", error instanceof Error ? error.message : String(error));
+    console.error(
+      "Transactions API error:",
+      error instanceof Error ? error.message : String(error),
+    );
     return res.status(200).json({ transactions: [] });
   }
 }

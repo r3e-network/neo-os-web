@@ -10,7 +10,9 @@ export interface MiniAppData {
 }
 
 async function fetchMiniApps(): Promise<MiniAppData[]> {
-  const res = await fetch("/api/miniapp-stats", { signal: AbortSignal.timeout(30000) });
+  const res = await fetch("/api/miniapp-stats", {
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error("Failed to fetch");
   const data = await res.json();
   return data.stats || [];

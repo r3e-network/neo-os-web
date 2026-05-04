@@ -48,7 +48,7 @@ export const TIME_CONSTANTS = {
   COUNTDOWN_UPDATE_INTERVAL_MS: 1000,
 
   /** Default timeout for async operations */
-  DEFAULT_TIMEOUT_MS: 30000,
+  DEFAULT_TIMEOUT_MS: 10000,
 
   /** Celebration/fireworks overlay duration */
   CELEBRATION_DURATION_MS: 3000,

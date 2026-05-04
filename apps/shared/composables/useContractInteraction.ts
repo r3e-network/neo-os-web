@@ -55,12 +55,18 @@ export function useContractInteraction(options: ContractInteractionOptions) {
   const wallet = externalWallet ?? (useWallet() as WalletSDK);
   const { connect, invokeContract, invokeRead } = wallet;
   const address = refToObservable(wallet.address);
-  const { contractAddress, ensure: ensureContractAddress, ensureSafe } = useContractAddress(t);
+  const {
+    contractAddress,
+    ensure: ensureContractAddress,
+    ensureSafe,
+  } = useContractAddress(t);
   const { payGAS } = usePayments(appId);
   const { list: listEvents } = useEvents();
 
   const isProcessing: Observable<boolean> = createObservable(false);
-  const paymentError: Observable<Error | null> = createObservable<Error | null>(null);
+  const paymentError: Observable<Error | null> = createObservable<Error | null>(
+    null,
+  );
   const paymentSuccess: Observable<boolean> = createObservable(false);
   let successTimer: ReturnType<typeof setTimeout> | null = null;
   let waitTimers: ReturnType<typeof setTimeout>[] = [];
@@ -83,7 +89,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    * Read-only contract call with automatic result parsing.
    * Returns the parsed first stack item (or array if multiple).
    */
-  const read = async (operation: string, args?: InvokeArg[], scriptHash?: string): Promise<unknown> => {
+  const read = async (
+    operation: string,
+    args?: InvokeArg[],
+    scriptHash?: string,
+  ): Promise<unknown> => {
     const contract = scriptHash ?? (await ensureContractAddress());
     const result = await invokeRead({
       scriptHash: contract,
@@ -97,7 +107,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
    * Read-only call that returns an array of parsed stack items.
    * Useful when the contract returns a Struct/Array with multiple fields.
    */
-  const readArray = async (operation: string, args?: InvokeArg[], scriptHash?: string): Promise<unknown[]> => {
+  const readArray = async (
+    operation: string,
+    args?: InvokeArg[],
+    scriptHash?: string,
+  ): Promise<unknown[]> => {
     const result = await read(operation, args, scriptHash);
     return Array.isArray(result) ? result : [result];
   };
@@ -116,8 +130,18 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     paymentMemo: string,
     operation: string,
     args: InvokeArg[],
-    scriptHash?: string
-  ): Promise<{ txid: string; receiptId: string; waitForEvent: (targetTxid: string, eventName: string, timeoutMs?: number) => Promise<unknown>; triggerSuccess: () => void; tx: unknown }> => {
+    scriptHash?: string,
+  ): Promise<{
+    txid: string;
+    receiptId: string;
+    waitForEvent: (
+      targetTxid: string,
+      eventName: string,
+      timeoutMs?: number,
+    ) => Promise<unknown>;
+    triggerSuccess: () => void;
+    tx: unknown;
+  }> => {
     await ensureWallet();
     const contract = scriptHash ?? (await ensureContractAddress());
 
@@ -140,7 +164,11 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
       const txid = extractTxid(tx);
 
-      const waitForEvent = async (targetTxid: string, eventName: string, timeoutMs = 30000) => {
+      const waitForEvent = async (
+        targetTxid: string,
+        eventName: string,
+        timeoutMs = 10_000,
+      ) => {
         return pollForTxEvent({
           listEvents: async () => {
             const result = await listEvents({
@@ -169,7 +197,8 @@ export function useContractInteraction(options: ContractInteractionOptions) {
 
       return { txid, receiptId, waitForEvent, triggerSuccess, tx };
     } catch (error: unknown) {
-      const sanitized = error instanceof Error ? error.message : "Payment operation failed";
+      const sanitized =
+        error instanceof Error ? error.message : "Payment operation failed";
       paymentError.set(error instanceof Error ? error : new Error(sanitized));
       throw new Error(sanitized);
     } finally {
@@ -220,7 +249,8 @@ export function useContractInteraction(options: ContractInteractionOptions) {
     signers?: WalletSigner[],
   ) => {
     await ensureWallet();
-    if (!address.get()) throw new Error("Wallet address not set after connection");
+    if (!address.get())
+      throw new Error("Wallet address not set after connection");
     const contract = scriptHash ?? (await ensureContractAddress());
 
     await invokeContract({
