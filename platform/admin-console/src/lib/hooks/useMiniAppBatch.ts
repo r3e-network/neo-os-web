@@ -92,17 +92,30 @@ export function useImportMiniAppDefinitions() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ dryRun }: { dryRun?: boolean } = {}): Promise<MiniAppDefinitionImportResult> => {
+    mutationFn: async ({
+      dryRun,
+    }: { dryRun?: boolean } = {}): Promise<MiniAppDefinitionImportResult> => {
       const response = await fetch("/api/miniapps/import-definitions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAdminAuthHeaders(),
+        },
         body: JSON.stringify({ dry_run: Boolean(dryRun) }),
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(10_000),
       });
 
-      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
-        error?: string;
-      } & Partial<MiniAppDefinitionImportResult> | null;
+      const payload = (await response.json().catch((e: unknown) => {
+        console.warn(
+          "[useMiniApps] failed to parse JSON response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      })) as
+        | ({
+            error?: string;
+          } & Partial<MiniAppDefinitionImportResult>)
+        | null;
 
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to import definition files");
@@ -136,17 +149,30 @@ export function useImportMiniAppBatch() {
     }): Promise<MiniAppBatchImportResult> => {
       const response = await fetch("/api/miniapps/import-batch", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAdminAuthHeaders(),
+        },
         body: JSON.stringify(input),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.timeout(10_000),
       });
 
-      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
-        error?: string;
-      } & Partial<MiniAppBatchImportResult> | null;
+      const payload = (await response.json().catch((e: unknown) => {
+        console.warn(
+          "[useMiniApps] failed to parse JSON response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      })) as
+        | ({
+            error?: string;
+          } & Partial<MiniAppBatchImportResult>)
+        | null;
 
       if (!response.ok) {
-        throw new Error(payload?.error || "Failed to import uploaded definitions");
+        throw new Error(
+          payload?.error || "Failed to import uploaded definitions",
+        );
       }
 
       if (!payload || typeof payload !== "object") {
@@ -175,14 +201,25 @@ export function useRollbackMiniAppBatchImport() {
     }): Promise<MiniAppBatchRollbackResult> => {
       const response = await fetch("/api/miniapps/import-batch/rollback", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAdminAuthHeaders(),
+        },
         body: JSON.stringify(input),
-        signal: AbortSignal.timeout(60000),
+        signal: AbortSignal.timeout(10_000),
       });
 
-      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
-        error?: string;
-      } & Partial<MiniAppBatchRollbackResult> | null;
+      const payload = (await response.json().catch((e: unknown) => {
+        console.warn(
+          "[useMiniApps] failed to parse JSON response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      })) as
+        | ({
+            error?: string;
+          } & Partial<MiniAppBatchRollbackResult>)
+        | null;
 
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to rollback import batch");
@@ -214,14 +251,25 @@ export function useCreateMiniAppMediaUploadUrl() {
     }): Promise<MiniAppMediaUploadUrlResult> => {
       const response = await fetch("/api/miniapps/admin/media/upload-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          ...getAdminAuthHeaders(),
+        },
         body: JSON.stringify(input),
         signal: AbortSignal.timeout(20000),
       });
 
-      const payload = (await response.json().catch((e: unknown) => { console.warn("[useMiniApps] failed to parse JSON response:", e instanceof Error ? e.message : String(e)); return null; })) as {
-        error?: string;
-      } & Partial<MiniAppMediaUploadUrlResult> | null;
+      const payload = (await response.json().catch((e: unknown) => {
+        console.warn(
+          "[useMiniApps] failed to parse JSON response:",
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      })) as
+        | ({
+            error?: string;
+          } & Partial<MiniAppMediaUploadUrlResult>)
+        | null;
 
       if (!response.ok) {
         throw new Error(payload?.error || "Failed to create media upload URL");

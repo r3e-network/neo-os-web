@@ -1,4 +1,4 @@
-export const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+export const DEFAULT_FETCH_TIMEOUT_MS = 10_000;
 
 export type ApiError = {
   message: string;
@@ -24,9 +24,15 @@ function isRequest(value: RequestInfo | URL): value is Request {
 function shouldAttachWalletToken(input: RequestInfo | URL): boolean {
   if (typeof window === "undefined") return false;
   try {
-    const rawUrl = isRequest(input) ? input.url : input instanceof URL ? input.toString() : String(input);
+    const rawUrl = isRequest(input)
+      ? input.url
+      : input instanceof URL
+        ? input.toString()
+        : String(input);
     const url = new URL(rawUrl, window.location.origin);
-    return url.origin === window.location.origin && url.pathname.startsWith("/api/");
+    return (
+      url.origin === window.location.origin && url.pathname.startsWith("/api/")
+    );
   } catch (_e: unknown) {
     return false;
   }
@@ -41,7 +47,10 @@ function readWalletSessionToken(): string {
   }
 }
 
-function applyDefaultHeaders(input: RequestInfo | URL, init?: RequestInit): RequestInit {
+function applyDefaultHeaders(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): RequestInit {
   const token = shouldAttachWalletToken(input) ? readWalletSessionToken() : "";
   const inputIsRequest = isRequest(input);
   if (!inputIsRequest && !token) return init || {};
@@ -56,7 +65,10 @@ function applyDefaultHeaders(input: RequestInfo | URL, init?: RequestInit): Requ
   return { ...init, headers };
 }
 
-function applyDefaultSignal(input: RequestInfo | URL, init?: RequestInit): RequestInit {
+function applyDefaultSignal(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): RequestInit {
   const withHeaders = applyDefaultHeaders(input, init);
   if (withHeaders.signal) return withHeaders;
   return {
@@ -74,7 +86,10 @@ async function parseJSONSafe(res: Response): Promise<unknown> {
   try {
     return await res.json();
   } catch (_e: unknown) {
-    console.warn("[fetch-client] failed to parse JSON response:", _e instanceof Error ? _e.message : String(_e));
+    console.warn(
+      "[fetch-client] failed to parse JSON response:",
+      _e instanceof Error ? _e.message : String(_e),
+    );
     return null;
   }
 }
@@ -90,7 +105,10 @@ function toRequestError(res: Response, payload: unknown): RequestError {
   return new RequestError(message, code, res.status || 0);
 }
 
-export async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+export async function fetchJSON<T>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<T> {
   const res = await fetch(input, applyDefaultSignal(input, init));
   const payload = await parseJSONSafe(res);
   if (!res.ok) {
@@ -99,13 +117,19 @@ export async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit)
   return payload as T;
 }
 
-export async function fetchOK(input: RequestInfo | URL, init?: RequestInit): Promise<void> {
+export async function fetchOK(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<void> {
   const res = await fetch(input, applyDefaultSignal(input, init));
   if (res.ok) return;
   throw toRequestError(res, await parseJSONSafe(res));
 }
 
-export function toApiError(err: unknown, fallbackCode = "NETWORK_ERROR"): ApiError {
+export function toApiError(
+  err: unknown,
+  fallbackCode = "NETWORK_ERROR",
+): ApiError {
   if (err instanceof RequestError) {
     return { message: err.message, code: err.code };
   }

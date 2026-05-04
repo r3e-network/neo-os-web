@@ -31,7 +31,11 @@ interface InvokeResponse {
 /**
  * Transfer GAS from platform account to user
  */
-export async function transferGas(requestId: string, toAddress: string, amount: string): Promise<InvokeResponse> {
+export async function transferGas(
+  requestId: string,
+  toAddress: string,
+  amount: string,
+): Promise<InvokeResponse> {
   const config = getServiceConfig();
 
   // Convert decimal amount to integer (8 decimals) using parseDecimalToInt to avoid floating-point precision loss
@@ -48,11 +52,11 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
       { type: "Integer", value: amountInt },
       { type: "Any", value: "" },
     ],
-    wait: true,
+    wait: false,
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
   let res: Response;
   try {
     res = await fetch(`${config.txProxyUrl}/invoke`, {
@@ -64,9 +68,11 @@ export async function transferGas(requestId: string, toAddress: string, amount: 
   } catch (err) {
     clearTimeout(timeoutId);
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error("TxProxy request timed out after 30s");
+      throw new Error("TxProxy request timed out after 10s");
     }
-    throw new Error(`TxProxy request failed: ${err instanceof Error ? err.message : String(err)}`);
+    throw new Error(
+      `TxProxy request failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   } finally {
     clearTimeout(timeoutId);
   }

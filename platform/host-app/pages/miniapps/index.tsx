@@ -200,7 +200,7 @@ export default function MiniAppsPage({
     mountedRef.current = true;
     if (!hasInitialApps) setLoading(true);
     setFetchError(false);
-    fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(30000) })
+    fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(10_000) })
       .then((r) => {
         if (!r.ok) throw new Error(`Catalog request failed: ${r.status}`);
         return r.json();
@@ -232,9 +232,7 @@ export default function MiniAppsPage({
 
   useEffect(() => {
     if (!hasInitialApps) return;
-    setAllApps((current) =>
-      current.length > 0 ? current : sortedInitialApps,
-    );
+    setAllApps((current) => (current.length > 0 ? current : sortedInitialApps));
   }, [hasInitialApps, sortedInitialApps]);
 
   const listedApps = useMemo(
@@ -250,7 +248,9 @@ export default function MiniAppsPage({
   const [statusFilter, setStatusFilter] = useState("all");
   const categories = useMemo(
     () =>
-      Array.from(new Set(listedApps.map((app) => app.category).filter(Boolean))).sort(),
+      Array.from(
+        new Set(listedApps.map((app) => app.category).filter(Boolean)),
+      ).sort(),
     [listedApps],
   );
   const filteredApps = useMemo(() => {

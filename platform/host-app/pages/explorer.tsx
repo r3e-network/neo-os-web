@@ -36,7 +36,7 @@ export default function ExplorerPage() {
     try {
       const res = await fetch(
         `/api/explorer/search?q=${encodeURIComponent(query)}`,
-        { signal: AbortSignal.timeout(30000) },
+        { signal: AbortSignal.timeout(10_000) },
       );
       const data = await res.json();
       if (data.error) {

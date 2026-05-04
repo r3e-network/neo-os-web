@@ -8,8 +8,8 @@ import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
-const FETCH_TIMEOUT_MS = 30000; // 30 seconds
-const MAX_RETRIES = 2;
+const FETCH_TIMEOUT_MS = 10_000;
+const MAX_RETRIES = 0;
 const RETRY_DELAY_MS = 1000;
 
 async function fetchWithTimeout(
