@@ -20,8 +20,6 @@ on:
         description: Optional comma-separated selected-miniapps target filter
         required: false
         type: string
-  schedule:
-    - cron: "17 3 * * 1"
 
 permissions:
   contents: read

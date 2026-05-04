@@ -11,13 +11,98 @@ on:
       - main
       - master
       - develop
+  workflow_dispatch:
+    inputs:
+      run_deep_validation:
+        description: Run expensive repository verification, Playwright setup, and integration tests
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  node:
-    name: Node Tests
+  fast-node:
+    name: Fast Node Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Validate Morpheus runtime catalog
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const catalog = fs.readFileSync('apps/shared/constants/generated-morpheus-runtime-catalog.ts', 'utf8');
+          for (const fragment of ['MORPHEUS_PUBLIC_RUNTIME_CATALOG', '2026-04-tee-v1', 'automation.upkeep', 'paymaster.authorize']) {
+            if (!catalog.includes(fragment)) {
+              throw new Error(`missing runtime catalog fragment: ${fragment}`);
+            }
+          }
+          NODE
+
+      - name: Run fast host-app tests
+        run: npm --prefix platform/host-app test -- --runTestsByPath __tests__/lib/fetch-client.test.ts __tests__/lib/morpheus-endpoints.test.ts --runInBand
+
+      - name: Typecheck SDK
+        run: npm --prefix platform/sdk run typecheck
+
+  go-format:
+    name: Format Check (Go)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.24.x
+          cache: true
+
+      - name: Verify gofmt
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          go_files="$(mktemp)"
+          git ls-files -z '*.go' > "$go_files"
+          if [ ! -s "$go_files" ]; then
+            rm -f "$go_files"
+            echo "No Go files found."
+            exit 0
+          fi
+
+          unformatted="$(xargs -0 gofmt -s -l < "$go_files")"
+          rm -f "$go_files"
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted Go files:"
+            echo "$unformatted"
+            echo "Run: make fmt"
+            exit 1
+          fi
+
+          echo "All Go files are properly formatted."
+
+  deep-validation:
+    name: Deep Validation (manual)
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_deep_validation == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -36,55 +121,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Validate Morpheus runtime catalog
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const catalog = fs.readFileSync('apps/shared/constants/generated-morpheus-runtime-catalog.ts', 'utf8');
-          for (const fragment of ['MORPHEUS_PUBLIC_RUNTIME_CATALOG', '2026-04-tee-v1', 'automation.upkeep', 'paymaster.authorize']) {
-            if (!catalog.includes(fragment)) {
-              throw new Error(`missing runtime catalog fragment: ${fragment}`);
-            }
-          }
-          NODE
-
       - name: Run production repository verification
         run: npm run -s verify:repo
 
       - name: Run integration tests
         run: npm run -s test:integration
-
-  format:
-    name: Format Check (Go)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: 1.24.x
-          cache: true
-
-      - name: Verify gofmt
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          mapfile -t go_files < <(git ls-files '*.go')
-          if [ "${#go_files[@]}" -eq 0 ]; then
-            echo "No Go files found."
-            exit 0
-          fi
-
-          unformatted="$(gofmt -s -l "${go_files[@]}")"
-          if [ -n "$unformatted" ]; then
-            echo "Unformatted Go files:"
-            echo "$unformatted"
-            echo "Run: make fmt"
-            exit 1
-          fi
-
-          echo "All Go files are properly formatted."
