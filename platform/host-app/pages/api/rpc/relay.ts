@@ -18,6 +18,7 @@ interface RPCJsonBody {
 
 const MAX_BODY_SIZE = 256 * 1024; // 256 KB
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024; // 2 MB
+const FETCH_TIMEOUT_MS = 10_000;
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -118,7 +119,7 @@ export default async function handler(
   const headers = forwardEdgeRpcHeaders(req);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
     const upstream = await fetch(url.toString(), {
       method,

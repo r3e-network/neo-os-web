@@ -1,17 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import {
-  forwardEdgeRpcHeaders,
-  getEdgeFunctionsBaseUrl,
-} from "@/lib/edge";
+import { forwardEdgeRpcHeaders, getEdgeFunctionsBaseUrl } from "@/lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
-const FETCH_TIMEOUT_MS = 30000;
+const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BODY_SIZE = 256 * 1024;
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024;
 
-function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> } {
+function parseAllowlist(raw: string): {
+  allowAll: boolean;
+  entries: Set<string>;
+} {
   const entries = String(raw || "")
     .split(",")
     .map((entry) => entry.trim())
@@ -23,7 +23,9 @@ function parseAllowlist(raw: string): { allowAll: boolean; entries: Set<string> 
 }
 
 function isMiniAppEdgeEndpointAllowed(endpoint: string): boolean {
-  const { allowAll, entries } = parseAllowlist(process.env.MINIAPP_EDGE_ALLOWLIST || "");
+  const { allowAll, entries } = parseAllowlist(
+    process.env.MINIAPP_EDGE_ALLOWLIST || "",
+  );
   if (allowAll) return true;
   if (entries.size > 0) return entries.has(endpoint);
   return endpoint.startsWith("os-");
@@ -48,7 +50,10 @@ async function readRawBody(req: NextApiRequest): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -58,7 +63,10 @@ async function fetchWithTimeout(url: string, options: RequestInit): Promise<Resp
   }
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   if (standardLimit(req, res)) return;
 
   const endpoint = String(req.query.endpoint || "").trim();

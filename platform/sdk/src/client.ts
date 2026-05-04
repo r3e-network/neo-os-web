@@ -49,6 +49,7 @@ import type {
 
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
+const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
 
 /** NeoLine N3 wallet interface */
 interface NeoLineN3Wallet {
@@ -56,7 +57,10 @@ interface NeoLineN3Wallet {
 }
 
 interface NeoLineN3Instance {
-  getAccount: () => Promise<{ address?: string; account?: { address?: string } }>;
+  getAccount: () => Promise<{
+    address?: string;
+    account?: { address?: string };
+  }>;
   signMessage?: (params: { message: string }) => Promise<SignedMessage>;
   invoke: (params: NeoLineInvokeParams) => Promise<unknown>;
 }
@@ -108,8 +112,15 @@ type NeoDapiProvider = {
     pubkey?: string;
     signature?: string;
   }>;
-  invoke?: (invocations: DapiInvocation[], signers?: Array<Record<string, unknown>>, suggestedSystemFee?: string) => Promise<unknown>;
-  signMessage?: (message: string, account?: string) => Promise<{
+  invoke?: (
+    invocations: DapiInvocation[],
+    signers?: Array<Record<string, unknown>>,
+    suggestedSystemFee?: string,
+  ) => Promise<unknown>;
+  signMessage?: (
+    message: string,
+    account?: string,
+  ) => Promise<{
     signature?: string;
     data?: string;
     account?: string;
@@ -121,7 +132,12 @@ type NeoDapiProvider = {
 };
 
 type InjectedWalletContext =
-  | { kind: "nep21"; address: string; accountHash?: string; provider: NeoDapiProvider }
+  | {
+      kind: "nep21";
+      address: string;
+      accountHash?: string;
+      provider: NeoDapiProvider;
+    }
   | { kind: "neoline"; address: string; instance: NeoLineN3Instance }
   | { kind: "evm"; address: string; provider: EIP1193Provider };
 
@@ -142,10 +158,15 @@ function encodeBase64Utf8(value: string): string {
 }
 
 function createNonce(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.getRandomValues === "function"
+  ) {
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
-    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join(
+      "",
+    );
   }
   return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
@@ -153,17 +174,16 @@ function createNonce(): string {
 function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
   if (!candidate || typeof candidate !== "object") return false;
   const provider = candidate as Partial<NeoDapiProvider>;
-  return typeof provider.getAccounts === "function" || typeof provider.authenticate === "function";
+  return (
+    typeof provider.getAccounts === "function" ||
+    typeof provider.authenticate === "function"
+  );
 }
 
 function readImmediateDapiProvider(): NeoDapiProvider | null {
   if (typeof window === "undefined") return null;
   const g = window as unknown as WindowWithInjectedWallets;
-  const candidates = [
-    g.Neo?.DapiProvider,
-    g.neoDapiProvider,
-    g.neoDapi,
-  ];
+  const candidates = [g.Neo?.DapiProvider, g.neoDapiProvider, g.neoDapi];
   return candidates.find(isNeoDapiProvider) ?? null;
 }
 
@@ -181,14 +201,17 @@ function waitForDapiProvider(timeoutMs = 750): Promise<NeoDapiProvider | null> {
       resolve(provider);
     };
     const onReady = (event: Event) => {
-      const provider = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
+      const provider = (event as CustomEvent<{ provider?: unknown }>).detail
+        ?.provider;
       if (isNeoDapiProvider(provider)) finish(provider);
     };
     window.addEventListener("Neo.DapiProvider.ready", onReady);
     setTimeout(() => finish(null), timeoutMs);
-    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.request", {
-      detail: { version: "1.0" },
-    }));
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.request", {
+        detail: { version: "1.0" },
+      }),
+    );
   });
 }
 
@@ -197,7 +220,9 @@ function getAuthenticationDomain(): string {
   return window.location.host || window.location.hostname || "localhost";
 }
 
-async function getNeoDapiContext(allowAuthenticate = true): Promise<Extract<InjectedWalletContext, { kind: "nep21" }> | null> {
+async function getNeoDapiContext(
+  allowAuthenticate = true,
+): Promise<Extract<InjectedWalletContext, { kind: "nep21" }> | null> {
   const provider = await waitForDapiProvider();
   if (!provider) return null;
 
@@ -230,7 +255,9 @@ async function getNeoDapiContext(allowAuthenticate = true): Promise<Extract<Inje
     grant_type: "Signature",
     allowed_algorithms: ["ECDSA-P256"],
     domain: getAuthenticationDomain(),
-    networks: provider.supportedNetworks?.length ? provider.supportedNetworks : [MAINNET_MAGIC, TESTNET_MAGIC],
+    networks: provider.supportedNetworks?.length
+      ? provider.supportedNetworks
+      : [MAINNET_MAGIC, TESTNET_MAGIC],
     nonce: createNonce(),
     timestamp: Date.now(),
   });
@@ -239,7 +266,10 @@ async function getNeoDapiContext(allowAuthenticate = true): Promise<Extract<Inje
   return { kind: "nep21", address, provider };
 }
 
-async function getNeoLineContext(): Promise<Extract<InjectedWalletContext, { kind: "neoline" }> | null> {
+async function getNeoLineContext(): Promise<Extract<
+  InjectedWalletContext,
+  { kind: "neoline" }
+> | null> {
   if (typeof window === "undefined") return null;
   const g = window as unknown as WindowWithInjectedWallets;
   const neoline = g.NEOLineN3 ?? g.NEOLine;
@@ -252,12 +282,17 @@ async function getNeoLineContext(): Promise<Extract<InjectedWalletContext, { kin
   return { kind: "neoline", address, instance };
 }
 
-async function getEvmContext(): Promise<Extract<InjectedWalletContext, { kind: "evm" }> | null> {
+async function getEvmContext(): Promise<Extract<
+  InjectedWalletContext,
+  { kind: "evm" }
+> | null> {
   if (typeof window === "undefined") return null;
   const g = window as unknown as WindowWithInjectedWallets;
   if (!g.ethereum || typeof g.ethereum.request !== "function") return null;
   try {
-    const accounts = await g.ethereum.request({ method: "eth_accounts" }) as unknown;
+    const accounts = (await g.ethereum.request({
+      method: "eth_accounts",
+    })) as unknown;
     if (Array.isArray(accounts) && accounts.length > 0) {
       const address = String(accounts[0] ?? "").trim();
       if (address) return { kind: "evm", address, provider: g.ethereum };
@@ -268,7 +303,9 @@ async function getEvmContext(): Promise<Extract<InjectedWalletContext, { kind: "
   return null;
 }
 
-async function getInjectedWalletContext(options: { allowDapiAuthenticate?: boolean; includeEvm?: boolean } = {}): Promise<InjectedWalletContext> {
+async function getInjectedWalletContext(
+  options: { allowDapiAuthenticate?: boolean; includeEvm?: boolean } = {},
+): Promise<InjectedWalletContext> {
   if (typeof window === "undefined") {
     throw new Error("wallet methods must be called in a browser context");
   }
@@ -284,7 +321,9 @@ async function getInjectedWalletContext(options: { allowDapiAuthenticate?: boole
     if (evm) return evm;
   }
 
-  throw new Error("NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods");
+  throw new Error(
+    "NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods",
+  );
 }
 
 async function getInjectedWalletAddress(): Promise<string> {
@@ -292,7 +331,9 @@ async function getInjectedWalletAddress(): Promise<string> {
 }
 
 async function getWalletProviderInfo(): Promise<WalletProviderInfo> {
-  const context = await getInjectedWalletContext({ allowDapiAuthenticate: false });
+  const context = await getInjectedWalletContext({
+    allowDapiAuthenticate: false,
+  });
   if (context.kind === "nep21") {
     return {
       kind: "nep21",
@@ -302,15 +343,22 @@ async function getWalletProviderInfo(): Promise<WalletProviderInfo> {
       accountHash: context.accountHash,
     };
   }
-  if (context.kind === "neoline") return { kind: "neoline", name: "NeoLine N3", address: context.address };
+  if (context.kind === "neoline")
+    return { kind: "neoline", name: "NeoLine N3", address: context.address };
   return { kind: "evm", name: "EIP-1193", address: context.address };
 }
 
-async function signInjectedWalletMessage(message: string): Promise<SignedMessage> {
+async function signInjectedWalletMessage(
+  message: string,
+): Promise<SignedMessage> {
   const context = await getInjectedWalletContext({ includeEvm: false });
   if (context.kind === "nep21") {
-    if (!context.provider.signMessage) throw new Error("NEP-21 wallet does not support signMessage");
-    const signed = await context.provider.signMessage(encodeBase64Utf8(message), context.accountHash ?? context.address);
+    if (!context.provider.signMessage)
+      throw new Error("NEP-21 wallet does not support signMessage");
+    const signed = await context.provider.signMessage(
+      encodeBase64Utf8(message),
+      context.accountHash ?? context.address,
+    );
     const signature = String(signed.signature ?? signed.data ?? "");
     return {
       publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
@@ -329,7 +377,10 @@ async function signInjectedWalletMessage(message: string): Promise<SignedMessage
 
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
 // This is used for GAS.Transfer where the 'from' parameter must be the user's address.
-function resolveInvocationParams(params: InvocationIntent["params"], userAddress: string): InvocationIntent["params"] {
+function resolveInvocationParams(
+  params: InvocationIntent["params"],
+  userAddress: string,
+): InvocationIntent["params"] {
   return params.map((param) => {
     if (param.type === "Hash160" && param.value === "SENDER") {
       return { type: "Hash160", value: userAddress };
@@ -344,7 +395,9 @@ function resolveInvocationParams(params: InvocationIntent["params"], userAddress
   });
 }
 
-async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unknown> {
+async function invokeDirectInvocation(
+  invocation: InvocationIntent,
+): Promise<unknown> {
   const context = await getInjectedWalletContext();
 
   const scriptHash = String(invocation.contract_hash ?? "").trim();
@@ -357,17 +410,20 @@ async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unk
     const data = "0x"; // Evm encoding placeholder
     return await context.provider.request({
       method: "eth_sendTransaction",
-      params: [{
-        from: context.address,
-        to: scriptHash,
-        data: data
-      }]
+      params: [
+        {
+          from: context.address,
+          to: scriptHash,
+          data: data,
+        },
+      ],
     });
   }
 
-  const signerAccount = context.kind === "nep21"
-    ? (context.accountHash ?? context.address)
-    : context.address;
+  const signerAccount =
+    context.kind === "nep21"
+      ? (context.accountHash ?? context.address)
+      : context.address;
 
   // Resolve SENDER placeholders in params with the user's actual Neo account.
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
@@ -384,12 +440,19 @@ async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unk
   }
 
   if (!context.instance || typeof context.instance.invoke !== "function") {
-    throw new Error("wallet does not support invoke (NEP-21 dAPI or NeoLine N3 required)");
+    throw new Error(
+      "wallet does not support invoke (NEP-21 dAPI or NeoLine N3 required)",
+    );
   }
 
   // Try strict CalledByEntry signer payloads with/without 0x script hash prefix.
   const candidates = [
-    { scriptHash, operation, args, signers: [{ account: signerAccount, scopes: "CalledByEntry" }] },
+    {
+      scriptHash,
+      operation,
+      args,
+      signers: [{ account: signerAccount, scopes: "CalledByEntry" }],
+    },
     {
       scriptHash: scriptHash.replace(/^0x/i, ""),
       operation,
@@ -408,13 +471,25 @@ async function invokeDirectInvocation(invocation: InvocationIntent): Promise<unk
   }
 
   const tried = candidates
-    .map((c, i) => `#${i + 1}{scriptHash=${c.scriptHash},scopes=${String(c.signers?.[0]?.scopes ?? "none")}}`)
+    .map(
+      (c, i) =>
+        `#${i + 1}{scriptHash=${c.scriptHash},scopes=${String(c.signers?.[0]?.scopes ?? "none")}}`,
+    )
     .join("; ");
-  const lastMessage = lastErr instanceof Error ? lastErr.message : String(lastErr ?? "invoke failed");
-  throw new Error(`NeoLine invoke failed after ${candidates.length} candidate(s): ${tried}. Last error: ${lastMessage}`);
+  const lastMessage =
+    lastErr instanceof Error
+      ? lastErr.message
+      : String(lastErr ?? "invoke failed");
+  throw new Error(
+    `NeoLine invoke failed after ${candidates.length} candidate(s): ${tried}. Last error: ${lastMessage}`,
+  );
 }
 
-async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
+async function requestJSON<T>(
+  cfg: MiniAppSDKConfig,
+  path: string,
+  init: RequestInit,
+): Promise<T> {
   const base = cfg.edgeBaseUrl.replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 
@@ -429,7 +504,11 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
     if (apiKey) headers.set("X-API-Key", apiKey);
   }
 
-  const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
+  const resp = await fetch(url, {
+    ...init,
+    headers,
+    signal: init.signal ?? AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS),
+  });
   const text = await resp.text();
   if (!resp.ok) throw new Error(`request failed (${resp.status})`);
   try {
@@ -439,12 +518,19 @@ async function requestJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Request
     }
     return parsed as T;
   } catch (err) {
-    if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
-    throw new Error(`requestJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
+    if (err instanceof SyntaxError)
+      throw new Error(`invalid JSON response from ${path}`);
+    throw new Error(
+      `requestJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
-async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: RequestInit): Promise<T> {
+async function requestHostJSON<T>(
+  cfg: MiniAppSDKConfig,
+  path: string,
+  init: RequestInit,
+): Promise<T> {
   const base = cfg.edgeBaseUrl.replace(/\/$/, "");
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 
@@ -457,7 +543,11 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
   }
   headers.set("X-API-Key", apiKey);
 
-  const resp = await fetch(url, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(30000) });
+  const resp = await fetch(url, {
+    ...init,
+    headers,
+    signal: init.signal ?? AbortSignal.timeout(DEFAULT_REQUEST_TIMEOUT_MS),
+  });
   const text = await resp.text();
   if (!resp.ok) throw new Error(`request failed (${resp.status})`);
   try {
@@ -467,8 +557,11 @@ async function requestHostJSON<T>(cfg: MiniAppSDKConfig, path: string, init: Req
     }
     return parsed as T;
   } catch (err) {
-    if (err instanceof SyntaxError) throw new Error(`invalid JSON response from ${path}`);
-    throw new Error(`requestHostJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`);
+    if (err instanceof SyntaxError)
+      throw new Error(`invalid JSON response from ${path}`);
+    throw new Error(
+      `requestHostJSON(${path}) failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 }
 
@@ -493,7 +586,8 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const id = String(requestId ?? "").trim();
         if (!id) throw new Error("request_id required");
         const invocation = pendingInvocations.get(id);
-        if (!invocation) throw new Error("unknown request_id (no pending invocation)");
+        if (!invocation)
+          throw new Error("unknown request_id (no pending invocation)");
         pendingInvocations.delete(id);
         return invokeDirectInvocation(invocation);
       },
@@ -502,7 +596,11 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
     },
     payments: {
-      async payGAS(appId: string, amount: string, memo?: string): Promise<PayGASResponse> {
+      async payGAS(
+        appId: string,
+        amount: string,
+        memo?: string,
+      ): Promise<PayGASResponse> {
         const res = await requestJSON<PayGASResponse>(cfg, "/pay-gas", {
           method: "POST",
           body: JSON.stringify({ app_id: appId, amount_gas: amount, memo }),
@@ -517,7 +615,12 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
       },
     },
     governance: {
-      async vote(appId: string, proposalId: string, bneoAmount: string, support?: boolean): Promise<VoteBNEOResponse> {
+      async vote(
+        appId: string,
+        proposalId: string,
+        bneoAmount: string,
+        support?: boolean,
+      ): Promise<VoteBNEOResponse> {
         const res = await requestJSON<VoteBNEOResponse>(cfg, "/vote-bneo", {
           method: "POST",
           body: JSON.stringify({
@@ -530,7 +633,12 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         pendingInvocations.set(res.request_id, res.invocation);
         return res;
       },
-      async voteAndInvoke(appId: string, proposalId: string, bneoAmount: string, support?: boolean) {
+      async voteAndInvoke(
+        appId: string,
+        proposalId: string,
+        bneoAmount: string,
+        support?: boolean,
+      ) {
         const intent = await this.vote(appId, proposalId, bneoAmount, support);
         const tx = await invokeDirectInvocation(intent.invocation);
         return { intent, tx };
@@ -546,10 +654,15 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
     datafeed: {
       async getPrice(symbol: string): Promise<PriceResponse> {
-        if (!symbol || typeof symbol !== "string" || !symbol.trim()) throw new Error("symbol is required");
-        return requestJSON<PriceResponse>(cfg, `/datafeed-price?symbol=${encodeURIComponent(symbol)}`, {
-          method: "GET",
-        });
+        if (!symbol || typeof symbol !== "string" || !symbol.trim())
+          throw new Error("symbol is required");
+        return requestJSON<PriceResponse>(
+          cfg,
+          `/datafeed-price?symbol=${encodeURIComponent(symbol)}`,
+          {
+            method: "GET",
+          },
+        );
       },
     },
     stats: {
@@ -558,8 +671,12 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         const qs = new URLSearchParams();
         if (resolvedAppId) qs.set("app_id", resolvedAppId);
         if (date) qs.set("date", date);
-        const path = qs.toString() ? `/miniapp-usage?${qs.toString()}` : "/miniapp-usage";
-        const res = await requestJSON<MiniAppUsageResponse>(cfg, path, { method: "GET" });
+        const path = qs.toString()
+          ? `/miniapp-usage?${qs.toString()}`
+          : "/miniapp-usage";
+        const res = await requestJSON<MiniAppUsageResponse>(cfg, path, {
+          method: "GET",
+        });
         return res.usage;
       },
     },
@@ -571,24 +688,41 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
         if (params.contract_hash) qs.set("contract_hash", params.contract_hash);
         if (params.limit) qs.set("limit", String(params.limit));
         if (params.after_id) qs.set("after_id", params.after_id);
-        return requestJSON<EventsListResponse>(cfg, `/events-list?${qs.toString()}`, { method: "GET" });
+        return requestJSON<EventsListResponse>(
+          cfg,
+          `/events-list?${qs.toString()}`,
+          { method: "GET" },
+        );
       },
     },
     transactions: {
-      async list(params: TransactionsListParams): Promise<TransactionsListResponse> {
+      async list(
+        params: TransactionsListParams,
+      ): Promise<TransactionsListResponse> {
         const qs = new URLSearchParams();
         if (params.app_id) qs.set("app_id", params.app_id);
         if (params.limit) qs.set("limit", String(params.limit));
         if (params.after_id) qs.set("after_id", params.after_id);
-        return requestJSON<TransactionsListResponse>(cfg, `/transactions-list?${qs.toString()}`, { method: "GET" });
+        return requestJSON<TransactionsListResponse>(
+          cfg,
+          `/transactions-list?${qs.toString()}`,
+          { method: "GET" },
+        );
       },
     },
     privacy: {
-      async getMerklePath(commitment: string): Promise<PrivacyMerklePathResponse> {
-        if (!commitment || typeof commitment !== "string" || !commitment.trim()) throw new Error("commitment is required");
-        return requestJSON<PrivacyMerklePathResponse>(cfg, `/privacy-merkle-path?commitment=${encodeURIComponent(commitment)}`, {
-          method: "GET",
-        });
+      async getMerklePath(
+        commitment: string,
+      ): Promise<PrivacyMerklePathResponse> {
+        if (!commitment || typeof commitment !== "string" || !commitment.trim())
+          throw new Error("commitment is required");
+        return requestJSON<PrivacyMerklePathResponse>(
+          cfg,
+          `/privacy-merkle-path?commitment=${encodeURIComponent(commitment)}`,
+          {
+            method: "GET",
+          },
+        );
       },
       async relay(params: PrivacyRelayRequest): Promise<PrivacyRelayResponse> {
         return requestJSON<PrivacyRelayResponse>(cfg, "/privacy-relay", {
@@ -599,14 +733,21 @@ export function createMiniAppSDK(cfg: MiniAppSDKConfig): MiniAppSDK {
     },
     gasSponsor: {
       async check(): Promise<GasSponsorCheckResponse> {
-        return requestJSON<GasSponsorCheckResponse>(cfg, "/gas-sponsor-check", { method: "GET" });
+        return requestJSON<GasSponsorCheckResponse>(cfg, "/gas-sponsor-check", {
+          method: "GET",
+        });
       },
       async request(amount: string): Promise<GasSponsorRequestResponse> {
-        if (!amount || typeof amount !== "string" || !amount.trim()) throw new Error("amount is required");
-        return requestJSON<GasSponsorRequestResponse>(cfg, "/gas-sponsor-request", {
-          method: "POST",
-          body: JSON.stringify({ amount }),
-        });
+        if (!amount || typeof amount !== "string" || !amount.trim())
+          throw new Error("amount is required");
+        return requestJSON<GasSponsorRequestResponse>(
+          cfg,
+          "/gas-sponsor-request",
+          {
+            method: "POST",
+            body: JSON.stringify({ amount }),
+          },
+        );
       },
     },
   };
@@ -625,7 +766,14 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           body: JSON.stringify({}),
         });
       },
-      async bindWallet(params: { address: string; publicKey: string; signature: string; message: string; nonce: string; label?: string }): Promise<WalletBindResponse> {
+      async bindWallet(params: {
+        address: string;
+        publicKey: string;
+        signature: string;
+        message: string;
+        nonce: string;
+        label?: string;
+      }): Promise<WalletBindResponse> {
         return requestJSON<WalletBindResponse>(cfg, "/wallet-bind", {
           method: "POST",
           body: JSON.stringify({
@@ -640,7 +788,9 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
       },
     },
     apps: {
-      async register(params: { manifest: Record<string, unknown> }): Promise<AppRegisterResponse> {
+      async register(params: {
+        manifest: Record<string, unknown>;
+      }): Promise<AppRegisterResponse> {
         return requestJSON<AppRegisterResponse>(cfg, "/app-register", {
           method: "POST",
           body: JSON.stringify({
@@ -648,13 +798,19 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           }),
         });
       },
-      async updateManifest(params: { manifest: Record<string, unknown> }): Promise<AppUpdateManifestResponse> {
-        return requestJSON<AppUpdateManifestResponse>(cfg, "/app-update-manifest", {
-          method: "POST",
-          body: JSON.stringify({
-            manifest: params.manifest,
-          }),
-        });
+      async updateManifest(params: {
+        manifest: Record<string, unknown>;
+      }): Promise<AppUpdateManifestResponse> {
+        return requestJSON<AppUpdateManifestResponse>(
+          cfg,
+          "/app-update-manifest",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              manifest: params.manifest,
+            }),
+          },
+        );
       },
     },
     oracle: {
@@ -673,78 +829,137 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
         });
       },
       async listJobs(): Promise<ComputeJob[]> {
-        return requestHostJSON<ComputeJob[]>(cfg, "/compute-jobs", { method: "GET" });
+        return requestHostJSON<ComputeJob[]>(cfg, "/compute-jobs", {
+          method: "GET",
+        });
       },
       async getJob(id: string): Promise<ComputeJob> {
-        if (!id || typeof id !== "string" || !id.trim()) throw new Error("id is required for getJob");
-        return requestHostJSON<ComputeJob>(cfg, `/compute-job?id=${encodeURIComponent(id)}`, { method: "GET" });
+        if (!id || typeof id !== "string" || !id.trim())
+          throw new Error("id is required for getJob");
+        return requestHostJSON<ComputeJob>(
+          cfg,
+          `/compute-job?id=${encodeURIComponent(id)}`,
+          { method: "GET" },
+        );
       },
     },
     automation: {
       async listTriggers(): Promise<AutomationTrigger[]> {
-        return requestHostJSON<AutomationTrigger[]>(cfg, "/automation-triggers", { method: "GET" });
+        return requestHostJSON<AutomationTrigger[]>(
+          cfg,
+          "/automation-triggers",
+          { method: "GET" },
+        );
       },
-      async createTrigger(params: AutomationTriggerRequest): Promise<AutomationTrigger> {
+      async createTrigger(
+        params: AutomationTriggerRequest,
+      ): Promise<AutomationTrigger> {
         return requestHostJSON<AutomationTrigger>(cfg, "/automation-triggers", {
           method: "POST",
           body: JSON.stringify(params),
         });
       },
       async getTrigger(id: string): Promise<AutomationTrigger> {
-        if (!id || typeof id !== "string" || !id.trim()) throw new Error("id is required for getTrigger");
-        return requestHostJSON<AutomationTrigger>(cfg, `/automation-trigger?id=${encodeURIComponent(id)}`, {
-          method: "GET",
-        });
+        if (!id || typeof id !== "string" || !id.trim())
+          throw new Error("id is required for getTrigger");
+        return requestHostJSON<AutomationTrigger>(
+          cfg,
+          `/automation-trigger?id=${encodeURIComponent(id)}`,
+          {
+            method: "GET",
+          },
+        );
       },
-      async updateTrigger(id: string, params: AutomationTriggerRequest): Promise<AutomationTrigger> {
-        return requestHostJSON<AutomationTrigger>(cfg, "/automation-trigger-update", {
-          method: "POST",
-          body: JSON.stringify({ id, ...params }),
-        });
+      async updateTrigger(
+        id: string,
+        params: AutomationTriggerRequest,
+      ): Promise<AutomationTrigger> {
+        return requestHostJSON<AutomationTrigger>(
+          cfg,
+          "/automation-trigger-update",
+          {
+            method: "POST",
+            body: JSON.stringify({ id, ...params }),
+          },
+        );
       },
       async deleteTrigger(id: string): Promise<AutomationDeleteResponse> {
-        return requestHostJSON<AutomationDeleteResponse>(cfg, "/automation-trigger-delete", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
+        return requestHostJSON<AutomationDeleteResponse>(
+          cfg,
+          "/automation-trigger-delete",
+          {
+            method: "POST",
+            body: JSON.stringify({ id }),
+          },
+        );
       },
       async enableTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-enable", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
+        return requestHostJSON<AutomationStatusResponse>(
+          cfg,
+          "/automation-trigger-enable",
+          {
+            method: "POST",
+            body: JSON.stringify({ id }),
+          },
+        );
       },
       async disableTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-disable", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
+        return requestHostJSON<AutomationStatusResponse>(
+          cfg,
+          "/automation-trigger-disable",
+          {
+            method: "POST",
+            body: JSON.stringify({ id }),
+          },
+        );
       },
       async resumeTrigger(id: string): Promise<AutomationStatusResponse> {
-        return requestHostJSON<AutomationStatusResponse>(cfg, "/automation-trigger-resume", {
-          method: "POST",
-          body: JSON.stringify({ id }),
-        });
+        return requestHostJSON<AutomationStatusResponse>(
+          cfg,
+          "/automation-trigger-resume",
+          {
+            method: "POST",
+            body: JSON.stringify({ id }),
+          },
+        );
       },
-      async listExecutions(id: string, limit?: number): Promise<AutomationExecution[]> {
+      async listExecutions(
+        id: string,
+        limit?: number,
+      ): Promise<AutomationExecution[]> {
         const qs = new URLSearchParams({ id });
-        if (typeof limit === "number" && Number.isFinite(limit)) qs.set("limit", String(limit));
-        return requestHostJSON<AutomationExecution[]>(cfg, `/automation-trigger-executions?${qs.toString()}`, {
-          method: "GET",
-        });
+        if (typeof limit === "number" && Number.isFinite(limit))
+          qs.set("limit", String(limit));
+        return requestHostJSON<AutomationExecution[]>(
+          cfg,
+          `/automation-trigger-executions?${qs.toString()}`,
+          {
+            method: "GET",
+          },
+        );
       },
     },
     secrets: {
       async list(): Promise<SecretsListResponse> {
-        return requestHostJSON<SecretsListResponse>(cfg, "/secrets-list", { method: "GET" });
-      },
-      async get(name: string): Promise<SecretsGetResponse> {
-        if (!name || typeof name !== "string" || !name.trim()) throw new Error("name is required for secrets.get");
-        return requestHostJSON<SecretsGetResponse>(cfg, `/secrets-get?name=${encodeURIComponent(name)}`, {
+        return requestHostJSON<SecretsListResponse>(cfg, "/secrets-list", {
           method: "GET",
         });
       },
-      async upsert(name: string, value: string): Promise<SecretsUpsertResponse> {
+      async get(name: string): Promise<SecretsGetResponse> {
+        if (!name || typeof name !== "string" || !name.trim())
+          throw new Error("name is required for secrets.get");
+        return requestHostJSON<SecretsGetResponse>(
+          cfg,
+          `/secrets-get?name=${encodeURIComponent(name)}`,
+          {
+            method: "GET",
+          },
+        );
+      },
+      async upsert(
+        name: string,
+        value: string,
+      ): Promise<SecretsUpsertResponse> {
         return requestHostJSON<SecretsUpsertResponse>(cfg, "/secrets-upsert", {
           method: "POST",
           body: JSON.stringify({ name, value }),
@@ -756,18 +971,32 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
           body: JSON.stringify({ name }),
         });
       },
-      async setPermissions(name: string, services: string[]): Promise<SecretsPermissionsResponse> {
-        return requestHostJSON<SecretsPermissionsResponse>(cfg, "/secrets-permissions", {
-          method: "POST",
-          body: JSON.stringify({ name, services }),
-        });
+      async setPermissions(
+        name: string,
+        services: string[],
+      ): Promise<SecretsPermissionsResponse> {
+        return requestHostJSON<SecretsPermissionsResponse>(
+          cfg,
+          "/secrets-permissions",
+          {
+            method: "POST",
+            body: JSON.stringify({ name, services }),
+          },
+        );
       },
     },
     apiKeys: {
       async list(): Promise<APIKeysListResponse> {
-        return requestJSON<APIKeysListResponse>(cfg, "/api-keys-list", { method: "GET" });
+        return requestJSON<APIKeysListResponse>(cfg, "/api-keys-list", {
+          method: "GET",
+        });
       },
-      async create(params: { name: string; scopes?: string[]; description?: string; expires_at?: string }): Promise<APIKeyCreateResponse> {
+      async create(params: {
+        name: string;
+        scopes?: string[];
+        description?: string;
+        expires_at?: string;
+      }): Promise<APIKeyCreateResponse> {
         return requestJSON<APIKeyCreateResponse>(cfg, "/api-keys-create", {
           method: "POST",
           body: JSON.stringify({
@@ -787,23 +1016,39 @@ export function createHostSDK(cfg: MiniAppSDKConfig): HostSDK {
     },
     gasbank: {
       async getAccount(): Promise<GasBankAccountResponse> {
-        return requestJSON<GasBankAccountResponse>(cfg, "/gasbank-account", { method: "GET" });
-      },
-      async listDeposits(): Promise<GasBankDepositsResponse> {
-        return requestJSON<GasBankDepositsResponse>(cfg, "/gasbank-deposits", { method: "GET" });
-      },
-      async createDeposit(params: { amount: string; from_address: string; tx_hash?: string }): Promise<GasBankDepositCreateResponse> {
-        return requestJSON<GasBankDepositCreateResponse>(cfg, "/gasbank-deposit", {
-          method: "POST",
-          body: JSON.stringify({
-            amount: params.amount,
-            from_address: params.from_address,
-            tx_hash: params.tx_hash,
-          }),
+        return requestJSON<GasBankAccountResponse>(cfg, "/gasbank-account", {
+          method: "GET",
         });
       },
+      async listDeposits(): Promise<GasBankDepositsResponse> {
+        return requestJSON<GasBankDepositsResponse>(cfg, "/gasbank-deposits", {
+          method: "GET",
+        });
+      },
+      async createDeposit(params: {
+        amount: string;
+        from_address: string;
+        tx_hash?: string;
+      }): Promise<GasBankDepositCreateResponse> {
+        return requestJSON<GasBankDepositCreateResponse>(
+          cfg,
+          "/gasbank-deposit",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              amount: params.amount,
+              from_address: params.from_address,
+              tx_hash: params.tx_hash,
+            }),
+          },
+        );
+      },
       async listTransactions(): Promise<GasBankTransactionsResponse> {
-        return requestJSON<GasBankTransactionsResponse>(cfg, "/gasbank-transactions", { method: "GET" });
+        return requestJSON<GasBankTransactionsResponse>(
+          cfg,
+          "/gasbank-transactions",
+          { method: "GET" },
+        );
       },
     },
   };

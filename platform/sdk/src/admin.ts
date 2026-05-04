@@ -50,9 +50,13 @@ export interface AnalyticsResponse {
   }>;
 }
 
+const DEFAULT_ADMIN_REQUEST_TIMEOUT_MS = 10_000;
+
 function assertServerOnly() {
   if (typeof window !== "undefined") {
-    throw new Error("AdminSDK is server-only. Do not bundle it into client-side code.");
+    throw new Error(
+      "AdminSDK is server-only. Do not bundle it into client-side code.",
+    );
   }
 }
 
@@ -71,8 +75,16 @@ export class AdminSDK {
    * Fetch all services health status
    */
   async getServicesHealth(): Promise<ServiceHealthResponse[]> {
-    const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-    const response = await fetch(`${this.config.adminBaseUrl}/api/services/health`, { headers, signal: AbortSignal.timeout(30000) });
+    const headers = this.config.adminApiKey
+      ? { "X-Admin-Key": this.config.adminApiKey }
+      : undefined;
+    const response = await fetch(
+      `${this.config.adminBaseUrl}/api/services/health`,
+      {
+        headers,
+        signal: AbortSignal.timeout(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS),
+      },
+    );
     if (!response.ok) {
       throw new Error(`Failed to fetch services health (${response.status})`);
     }
@@ -83,8 +95,13 @@ export class AdminSDK {
    * Fetch analytics overview
    */
   async getAnalytics(): Promise<AnalyticsResponse> {
-    const headers = this.config.adminApiKey ? { "X-Admin-Key": this.config.adminApiKey } : undefined;
-    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, { headers, signal: AbortSignal.timeout(30000) });
+    const headers = this.config.adminApiKey
+      ? { "X-Admin-Key": this.config.adminApiKey }
+      : undefined;
+    const response = await fetch(`${this.config.adminBaseUrl}/api/analytics`, {
+      headers,
+      signal: AbortSignal.timeout(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS),
+    });
     if (!response.ok) {
       throw new Error(`Failed to fetch analytics (${response.status})`);
     }
@@ -96,15 +113,20 @@ export class AdminSDK {
    */
   async getMiniApps(): Promise<MiniAppListResponse[]> {
     if (!this.config.serviceRoleKey) {
-      throw new Error("getMiniApps: serviceRoleKey is required for admin operations");
+      throw new Error(
+        "getMiniApps: serviceRoleKey is required for admin operations",
+      );
     }
-    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`, {
-      headers: {
-        apikey: this.config.serviceRoleKey,
-        Authorization: `Bearer ${this.config.serviceRoleKey}`,
+    const response = await fetch(
+      `${this.config.supabaseUrl}/rest/v1/miniapps?select=*&order=created_at.desc`,
+      {
+        headers: {
+          apikey: this.config.serviceRoleKey,
+          Authorization: `Bearer ${this.config.serviceRoleKey}`,
+        },
+        signal: AbortSignal.timeout(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS),
       },
-      signal: AbortSignal.timeout(30000),
-    });
+    );
     if (!response.ok) {
       throw new Error(`Failed to fetch MiniApps (${response.status})`);
     }
@@ -116,15 +138,20 @@ export class AdminSDK {
    */
   async getUsers(): Promise<UserListResponse[]> {
     if (!this.config.serviceRoleKey) {
-      throw new Error("getUsers: serviceRoleKey is required for admin operations");
+      throw new Error(
+        "getUsers: serviceRoleKey is required for admin operations",
+      );
     }
-    const response = await fetch(`${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`, {
-      headers: {
-        apikey: this.config.serviceRoleKey,
-        Authorization: `Bearer ${this.config.serviceRoleKey}`,
+    const response = await fetch(
+      `${this.config.supabaseUrl}/rest/v1/users?select=*&order=created_at.desc`,
+      {
+        headers: {
+          apikey: this.config.serviceRoleKey,
+          Authorization: `Bearer ${this.config.serviceRoleKey}`,
+        },
+        signal: AbortSignal.timeout(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS),
       },
-      signal: AbortSignal.timeout(30000),
-    });
+    );
     if (!response.ok) {
       throw new Error(`Failed to fetch users (${response.status})`);
     }
@@ -134,25 +161,41 @@ export class AdminSDK {
   /**
    * Update MiniApp status
    */
-  async updateMiniAppStatus(appId: string, status: "active" | "disabled"): Promise<void> {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+  async updateMiniAppStatus(
+    appId: string,
+    status: "active" | "disabled",
+  ): Promise<void> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
     if (this.config.adminApiKey) {
       headers["X-Admin-Key"] = this.config.adminApiKey;
     }
-    const response = await fetch(`${this.config.adminBaseUrl}/api/miniapps/update-status`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ appId, status }),
-      signal: AbortSignal.timeout(30000),
-    });
+    const response = await fetch(
+      `${this.config.adminBaseUrl}/api/miniapps/update-status`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ appId, status }),
+        signal: AbortSignal.timeout(DEFAULT_ADMIN_REQUEST_TIMEOUT_MS),
+      },
+    );
     if (!response.ok) {
       throw new Error(`Failed to update MiniApp status (${response.status})`);
     }
 
-    const payload = await response.json().catch((e: unknown) => { console.warn("[admin-sdk] failed to parse status update response JSON:", e instanceof Error ? e.message : String(e)); return null; });
+    const payload = await response.json().catch((e: unknown) => {
+      console.warn(
+        "[admin-sdk] failed to parse status update response JSON:",
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    });
     if (payload?.requires_onchain_confirmation) {
       const serialized = JSON.stringify(payload.invocation ?? {}, null, 2);
-      console.warn(`On-chain confirmation required for status change. Submit invocation:\n${serialized}`);
+      console.warn(
+        `On-chain confirmation required for status change. Submit invocation:\n${serialized}`,
+      );
     }
   }
 }
