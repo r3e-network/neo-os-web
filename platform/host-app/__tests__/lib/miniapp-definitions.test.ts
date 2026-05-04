@@ -146,8 +146,8 @@ describe("miniapp-definitions loader", () => {
     expect(getApp(apps, "miniapp-onchaintarot")).toEqual(
       expect.objectContaining({
         entry_url: "mf://manifest?app=miniapp-onchaintarot",
-        logo_url: "/miniapps/on-chain-tarot/logo.jpg",
-        banner_url: "/miniapps/on-chain-tarot/banner.jpg",
+        logo_url: "/miniapp-assets/on-chain-tarot/logo.jpg",
+        banner_url: "/miniapp-assets/on-chain-tarot/banner.jpg",
       }),
     );
   });
