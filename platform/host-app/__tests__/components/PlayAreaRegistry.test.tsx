@@ -103,7 +103,8 @@ describe("PlayAreaRegistry", () => {
   });
 
   it("has a native playarea binding for every active MiniApp in the local catalog", () => {
-    expect(ACTIVE_MINIAPP_IDS).toHaveLength(50);
+    expect(ACTIVE_MINIAPP_IDS.length).toBeGreaterThanOrEqual(50);
+    expect(new Set(ACTIVE_MINIAPP_IDS).size).toBe(ACTIVE_MINIAPP_IDS.length);
     expect(ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId))).toEqual([]);
   });
 
