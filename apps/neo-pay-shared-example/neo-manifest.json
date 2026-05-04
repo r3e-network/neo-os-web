@@ -1,0 +1,59 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-neo-pay-shared-example",
+  "name": "NeoPay Shared Runtime",
+  "version": "1.0.0",
+  "description": "Shared-mode NeoPay console that composes payment streams from reusable MiniApp modules.",
+  "category": "finance",
+  "tags": [
+    "neopay",
+    "shared-runtime",
+    "payment-streams",
+    "modules"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "website": "https://r3e.network"
+  },
+  "supported_networks": [
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "mf://manifest?app=miniapp-neo-pay-shared-example",
+    "icon": "/miniapp-assets/neo-pay/logo.jpg",
+    "banner": "/miniapp-assets/neo-pay/banner.jpg"
+  },
+  "permissions": [
+    "invoke:shared-runtime",
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://neo-pay-shared-runtime"
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-05-04T00:00:00Z",
+  "updatedAt": "2026-05-04T00:00:00Z",
+  "featured": false,
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "This shared-mode example uses direct Neo N3 wallet invocation."
+    },
+    "neodid": {
+      "enabled": false,
+      "description": "NeoDID verification is not part of this payment-stream example."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "Payment stream calls execute directly against shared on-chain modules."
+    }
+  }
+}

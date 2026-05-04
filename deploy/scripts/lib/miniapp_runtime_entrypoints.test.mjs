@@ -21,6 +21,17 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+function readJson(relativePath) {
+  return JSON.parse(read(relativePath));
+}
+
+function isHostNativeMiniApp(appName) {
+  const manifestPath = path.join("apps", appName, "neo-manifest.json");
+  const manifest = readJson(manifestPath);
+  const entry = String(manifest.urls?.entry || manifest.entry_url || "").trim();
+  return entry.startsWith("mf://");
+}
+
 function parseSource(relativePath) {
   const fullPath = path.join(repoRoot, relativePath);
   const scriptKind = fullPath.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -35,6 +46,8 @@ function parseSource(relativePath) {
 
 test("miniapp index.html entrypoints resolve to existing source files", () => {
   for (const appName of listMiniAppDirs()) {
+    if (isHostNativeMiniApp(appName)) continue;
+
     const relativeIndexPath = path.join("apps", appName, "index.html");
     const indexSource = read(relativeIndexPath);
     const match = indexSource.match(/<script type="module" src="\.\/src\/([^"]+)"><\/script>/);
