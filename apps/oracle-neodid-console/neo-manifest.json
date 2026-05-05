@@ -30,9 +30,13 @@
     "icon": "/miniapps/oracle-neodid-console/logo.jpg",
     "banner": "/miniapps/oracle-neodid-console/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": {
+    "read": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "aa": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

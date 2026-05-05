@@ -10,6 +10,8 @@
   "category_name": "Tools",
   "category_name_zh": "工具",
   "tags": [
+    "morpheus",
+    "privacy",
     "neodid",
     "identity",
     "credential",
@@ -30,9 +32,13 @@
     "icon": "/miniapps/neodid-passport/logo.jpg",
     "banner": "/miniapps/neodid-passport/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": {
+    "read": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "aa": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

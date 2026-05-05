@@ -1,10 +1,16 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { MiniAppInfo } from "./types";
+import { MiniAppInfo, MiniAppLaunchContext } from "./types";
 import { getMiniAppContractHash, getRpcNetwork, getRpcUrl } from "@/lib/rpc-helpers";
 import { PlayAreaRegistry } from "./playarea/PlayAreaRegistry";
 
-export function MiniAppPlayfield({ app }: { app: MiniAppInfo }) {
-  return <LiveContractView app={app} />;
+export function MiniAppPlayfield({
+  app,
+  launchContext = null,
+}: {
+  app: MiniAppInfo;
+  launchContext?: MiniAppLaunchContext | null;
+}) {
+  return <LiveContractView app={app} launchContext={launchContext} />;
 }
 
 /* ── RPC helpers ─────────────────────────────────────────────────────── */
@@ -115,8 +121,10 @@ function isZeroAddr(b64: string | undefined): boolean {
   }
 }
 
+const LAST_SURVIVOR_ROLLOVER_LABEL = "Rollover Ready";
+
 function fmtCountdown(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "Round Ended";
+  if (!Number.isFinite(seconds) || seconds <= 0) return LAST_SURVIVOR_ROLLOVER_LABEL;
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
@@ -151,7 +159,13 @@ type Activity = {
 
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
 
-function LiveContractView({ app }: { app: MiniAppInfo }) {
+function LiveContractView({
+  app,
+  launchContext,
+}: {
+  app: MiniAppInfo;
+  launchContext?: MiniAppLaunchContext | null;
+}) {
   const [stats, setStats] = useState<
     Array<{ label: string; value: string; accent?: boolean }>
   >([]);
@@ -218,6 +232,7 @@ function LiveContractView({ app }: { app: MiniAppInfo }) {
       error={error}
       contractHash={contractHash}
       network={getRpcNetwork()}
+      launchContext={launchContext}
       onRefresh={() => loadContractData({ isInitial: true })}
     />
   );
@@ -264,9 +279,9 @@ async function fetchAppStats(
           const status = paused
             ? "Paused"
             : !active
-              ? "Awaiting Restart"
+              ? "Next Round Pending"
               : expiredButOpen
-                ? "Awaiting Settlement"
+                ? LAST_SURVIVOR_ROLLOVER_LABEL
                 : "Open for Bids";
 
           return [
@@ -275,7 +290,7 @@ async function fetchAppStats(
               value:
                 active && !expiredButOpen
                   ? fmtCountdown(remainingSec)
-                  : "Round Ended",
+                  : LAST_SURVIVOR_ROLLOVER_LABEL,
               accent: active && !expiredButOpen,
             },
             { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: pot > 0 },
@@ -317,9 +332,9 @@ async function fetchAppStats(
           ]);
 
         const status = !active
-          ? "Awaiting Restart"
+          ? "Next Round Pending"
           : expiredButOpen
-            ? "Awaiting Settlement"
+            ? LAST_SURVIVOR_ROLLOVER_LABEL
             : "Open for Bids";
 
         return [
@@ -328,7 +343,7 @@ async function fetchAppStats(
             value:
               active && !expiredButOpen
                 ? fmtCountdown(remainingSec)
-                : "Round Ended",
+                : LAST_SURVIVOR_ROLLOVER_LABEL,
             accent: active && !expiredButOpen,
           },
           { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: pot > 0 },
@@ -571,11 +586,11 @@ async function fetchAppStats(
       }
 
       default:
-        return [{ label: "Contract", value: "Active" }];
+        return [{ label: "Live stats", value: "Not configured" }];
     }
   } catch (err) {
     console.warn("[LiveContractView] fetchAppStats failed for", appId, err);
-    return [{ label: "Status", value: "Online" }];
+    return [{ label: "Live stats", value: "Unavailable" }];
   }
 }
 

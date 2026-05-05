@@ -72,6 +72,17 @@ function renderPlayarea(app: Partial<MiniAppInfo>) {
       error={null}
       contractHash="0x1234567890abcdef1234567890abcdef12345678"
       network="testnet"
+      launchContext={{
+        appId: app.app_id ?? baseApp.app_id,
+        source: "url",
+        operation: null,
+        tab: null,
+        network: null,
+        params: {},
+        keys: [],
+        hasParams: false,
+        signature: "",
+      }}
       onRefresh={jest.fn()}
     />,
   );
@@ -102,10 +113,80 @@ describe("PlayAreaRegistry", () => {
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
   });
 
+  it("presents an ended LastSurvivor round as rollover-ready instead of final", () => {
+    render(
+      <PlayAreaRegistry
+        app={baseApp}
+        stats={[
+          { label: "Countdown", value: "Rollover Ready", accent: false },
+          { label: "Prize Pool", value: "12.50 GAS", accent: true },
+          { label: "Status", value: "Next Round Pending", accent: false },
+        ]}
+        statsMap={{
+          Countdown: "Rollover Ready",
+          "Prize Pool": "12.50 GAS",
+          Status: "Next Round Pending",
+          "Key Price": "0.05 GAS",
+        }}
+        activity={null}
+        loading={false}
+        error={null}
+        contractHash="0x1234567890abcdef1234567890abcdef12345678"
+        network="testnet"
+        onRefresh={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Next round is ready to start")).toBeVisible();
+    expect(screen.getAllByText("Rollover Ready").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Round Ended")).not.toBeInTheDocument();
+  });
+
   it("has a native playarea binding for every active MiniApp in the local catalog", () => {
     expect(ACTIVE_MINIAPP_IDS.length).toBeGreaterThanOrEqual(50);
     expect(new Set(ACTIVE_MINIAPP_IDS).size).toBe(ACTIVE_MINIAPP_IDS.length);
     expect(ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId))).toEqual([]);
+  });
+
+  it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
+    expect(hasNativePlayArea("miniapp-private-transfer")).toBe(true);
+
+    renderPlayarea({
+      app_id: "miniapp-private-transfer",
+      name: "Confidential Transfer",
+      category: "defi",
+      description: "Private transfer powered by Morpheus confidential compute",
+      permissions: {
+        confidential: true,
+        datafeed: false,
+        governance: false,
+        payments: true,
+        randomness: false,
+        aa: false,
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Confidential transfer desk" })).toBeVisible();
+    expect(screen.getAllByText("Morpheus confidential compute").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /seal private transfer/i })).toBeVisible();
+    expect(screen.getByLabelText("Recipient")).toHaveValue("");
+    expect(screen.getByLabelText(/Amount/)).toHaveValue(null);
+    expect(screen.getByLabelText("Private memo")).toHaveValue("");
+    expect(screen.queryByText("N...recipient")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("private payment")).not.toBeInTheDocument();
+  });
+
+  it("renders explorer as a real live search console instead of a static profiled preview", () => {
+    renderPlayarea({
+      app_id: "miniapp-explorer",
+      name: "Explorer",
+      category: "utility",
+      description: "Search Neo blocks, transactions, addresses, and contracts",
+    });
+
+    expect(screen.getByRole("heading", { name: "Live explorer console" })).toBeVisible();
+    expect(screen.getByLabelText("Explorer query")).toBeVisible();
+    expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -125,7 +206,8 @@ describe("PlayAreaRegistry", () => {
 
     expect(screen.getByTestId(`native-playarea-${appId}`)).toBeVisible();
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
-    expect(screen.getByText("Ready to submit")).toBeVisible();
+    expect(screen.getByText("Prepare wallet action")).toBeVisible();
+    expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
   it("renders On-chain Tarot as a draw and flip table using the 78-card deck index", async () => {
@@ -180,6 +262,10 @@ describe("PlayAreaRegistry", () => {
     });
     expect(screen.getByRole("heading", { name: "Neo X bridge control console" })).toBeVisible();
     expect(screen.getByText("Message Bridge")).toBeVisible();
+    expect(screen.getByLabelText("Target contract")).toHaveValue("");
+    expect(screen.getByLabelText("Message")).toHaveValue("");
+    expect(screen.queryByDisplayValue("0xAxLabs...")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("sync:miniapp-state")).not.toBeInTheDocument();
 
     renderPlayarea({
       app_id: "miniapp-oracle-http-console",
@@ -189,5 +275,48 @@ describe("PlayAreaRegistry", () => {
     });
     expect(screen.getByRole("heading", { name: "HTTP Oracle Console" })).toBeVisible();
     expect(screen.getByText("Result verifier")).toBeVisible();
+  });
+
+  it("prefills native playareas from OneGate launch params", () => {
+    render(
+      <PlayAreaRegistry
+        app={{
+          ...baseApp,
+          app_id: "miniapp-neo-x-bridge",
+          name: "Neo X Bridge",
+          category: "defi",
+          description: "Bridge console",
+        }}
+        stats={[]}
+        statsMap={{}}
+        activity={null}
+        loading={false}
+        error={null}
+        contractHash="0x1234567890abcdef1234567890abcdef12345678"
+        network="testnet"
+        launchContext={{
+          appId: "miniapp-neo-x-bridge",
+          source: "onegate",
+          operation: "messageBridge",
+          tab: null,
+          network: "testnet",
+          params: {
+            amount: "3.5",
+            direction: "Neo X -> Neo N3",
+            targetContract: "0xabcdef",
+            message: "sync state",
+          },
+          keys: ["amount", "direction", "targetContract", "message"],
+          hasParams: true,
+          signature: "amount=3.5&direction=Neo%20X%20-%3E%20Neo%20N3",
+        }}
+        onRefresh={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Amount")).toHaveValue(3.5);
+    expect(screen.getByLabelText("Target contract")).toHaveValue("0xabcdef");
+    expect(screen.getByLabelText("Message")).toHaveValue("sync state");
+    expect(screen.getAllByText("Neo X -> Neo N3").length).toBeGreaterThan(0);
   });
 });

@@ -1,5 +1,8 @@
 import type { MiniAppCategory, MiniAppInfo } from "../components/types";
-import { resolveMiniAppEntryUrlOrManifest } from "./miniapp-entry-url";
+import {
+  normalizeMiniAppDappUrl,
+  resolveMiniAppEntryUrlOrManifest,
+} from "./miniapp-entry-url";
 import { withMiniAppCardAssets } from "./miniapp-media";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 import { resolveMiniAppDetailConfig } from "./miniapp-template";
@@ -78,6 +81,19 @@ function normalizeEntryUrl(raw: unknown, appId: string): string {
   return resolveMiniAppEntryUrlOrManifest(raw, appId);
 }
 
+function normalizeDappUrl(
+  rawDappUrl: unknown,
+  manifestEntryUrl: unknown,
+  fallback?: MiniAppInfo["dapp_url"],
+): string | null {
+  return (
+    normalizeMiniAppDappUrl(rawDappUrl) ||
+    normalizeMiniAppDappUrl(manifestEntryUrl) ||
+    normalizeMiniAppDappUrl(fallback) ||
+    null
+  );
+}
+
 function chooseRuntimeEntryUrl(
   rawEntryUrl: unknown,
   manifestEntryUrl: unknown,
@@ -121,6 +137,28 @@ export function normalizePermissions(
   value: unknown,
   fallback?: MiniAppInfo["permissions"],
 ): MiniAppInfo["permissions"] {
+  if (Array.isArray(value)) {
+    const entries = value
+      .map((entry) => toString(entry).trim().toLowerCase())
+      .filter(Boolean);
+    const includesAny = (...needles: string[]) =>
+      entries.some((entry) => needles.some((needle) => entry.includes(needle)));
+    const oracle = includesAny("oracle", "morpheus", "datafeed", "feed", "vrf", "randomness", "compute", "neodid");
+    const compute = includesAny("compute", "confidential", "privacy", "seal", "neodid");
+    return {
+      payments: includesAny("payment", "pay", "gasbank") || fallback?.payments,
+      governance: includesAny("governance", "vote") || fallback?.governance,
+      randomness: includesAny("randomness", "rng", "vrf") || fallback?.randomness,
+      datafeed: includesAny("datafeed", "feed", "price") || fallback?.datafeed,
+      confidential: includesAny("confidential", "privacy", "private", "seal", "neodid") || fallback?.confidential,
+      oracle: oracle || fallback?.oracle,
+      compute: compute || fallback?.compute,
+      storage: includesAny("storage") || fallback?.storage,
+      cross_chain: includesAny("cross_chain", "cross-chain", "bridge") || fallback?.cross_chain,
+      aa: includesAny("aa", "abstract_account", "session-key", "recovery") || fallback?.aa,
+    };
+  }
+
   const raw = asObject(value);
   const has = (key: string) => Object.prototype.hasOwnProperty.call(raw, key);
   const payments = has("payments") ? raw.payments : fallback?.payments;
@@ -128,6 +166,10 @@ export function normalizePermissions(
   const randomness = has("randomness") || has("rng") ? (raw.randomness ?? raw.rng) : fallback?.randomness;
   const datafeed = has("datafeed") ? raw.datafeed : fallback?.datafeed;
   const confidential = has("confidential") ? raw.confidential : fallback?.confidential;
+  const oracle = has("oracle") ? raw.oracle : fallback?.oracle;
+  const compute = has("compute") ? raw.compute : fallback?.compute;
+  const storage = has("storage") ? raw.storage : fallback?.storage;
+  const crossChain = has("cross_chain") || has("crossChain") ? (raw.cross_chain ?? raw.crossChain) : fallback?.cross_chain;
   const aa = has("aa") || has("abstract_account") ? (raw.aa ?? raw.abstract_account) : fallback?.aa;
 
   return {
@@ -136,6 +178,10 @@ export function normalizePermissions(
     randomness: Boolean(randomness),
     datafeed: Boolean(datafeed),
     confidential: Boolean(confidential),
+    oracle: Boolean(oracle),
+    compute: Boolean(compute),
+    storage: Boolean(storage),
+    cross_chain: Boolean(crossChain),
     aa: Boolean(aa),
   };
 }
@@ -219,6 +265,11 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     appId,
   );
   if (!entryUrl) return null;
+  const dappUrl = normalizeDappUrl(
+    obj.dapp_url ?? manifestCandidate.dapp_url ?? manifestUrls.dapp,
+    manifestUrls.entry,
+    fallback?.dapp_url,
+  );
 
   const name = toString(obj.name ?? manifestCandidate.name ?? fallback?.name ?? appId).trim() || appId;
   const description = toString(obj.description ?? manifestCandidate.description ?? fallback?.description ?? "").trim();
@@ -264,6 +315,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     docs_url: docsUrl,
     category,
     entry_url: entryUrl,
+    dapp_url: dappUrl,
     contract_hash: contractHash || null,
     status: status ?? null,
     source,

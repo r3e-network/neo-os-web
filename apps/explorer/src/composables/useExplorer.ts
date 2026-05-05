@@ -42,8 +42,8 @@ export interface TransactionRecord {
 }
 
 export interface ExplorerStats {
-  mainnet: { height: number; txCount: number };
-  testnet: { height: number; txCount: number };
+  mainnet: { height: number; txCount: number | null };
+  testnet: { height: number; txCount: number | null };
 }
 
 export interface UseExplorerOptions {
@@ -65,25 +65,6 @@ const getApiBase = () => {
 };
 
 const API_BASE = getApiBase();
-const isLocalPreview = typeof window !== "undefined" && ["127.0.0.1", "localhost"].includes(window.location.hostname);
-
-const LOCAL_STATS_MOCK: ExplorerStats = {
-  mainnet: { height: 6482031, txCount: 134209874 },
-  testnet: { height: 582441, txCount: 2841937 },
-};
-
-const LOCAL_RECENT_MOCK: Record<"mainnet" | "testnet", TransactionRecord[]> = {
-  mainnet: [
-    { hash: "0x8f0a81db92c8a8b0d99577ad44d4d6f1835ff3b9e1d34a6bca8f1c2d20a4f001", vmState: "HALT", blockIndex: 6482031, blockTime: "2026-02-07T09:12:00.000Z", sender: "Nb2f7G2kq3dN5Jq8m7j1vWkz4Z9K2p6mQ" },
-    { hash: "0x3cbb4a71f3b63a1ea8ef0f0b0dfde1d6a83807f8e4a7e9bc0ca4ffb49e9e2002", vmState: "HALT", blockIndex: 6482028, blockTime: "2026-02-07T09:08:00.000Z", sender: "NeUQdQ5Ti3sB5Nw2vHg2Wd1nBv8zMP4v2K" },
-    { hash: "0xf8e2cd54d3a2f70f1b0eb7c2cd1b32ad9f4632f0570f780f9c7d2d6fb9133003", vmState: "FAULT", blockIndex: 6482023, blockTime: "2026-02-07T09:02:00.000Z", sender: "NLsQmVGr8c1Yf5oTj4T1kqqfY4Hw4i1XzQ" },
-  ],
-  testnet: [
-    { hash: "0x1aa233f3f5b6b8c8d9e01ab12cd34ef56ab78cd90ef1234567890abcdeff1001", vmState: "HALT", blockIndex: 582441, blockTime: "2026-02-07T09:11:00.000Z", sender: "NX1Wg6A4Zwq8n4QfY5K7Q9dW3Qx1s9R2LM" },
-    { hash: "0x2bb344f4a6c7d8e9f001bc23de45fa67bc89de01fa2345678901bcdef0aa2002", vmState: "HALT", blockIndex: 582437, blockTime: "2026-02-07T09:06:00.000Z", sender: "NV5hV7mVj3Gm1jW5Qv2dC9A4vV6x2N9DQP" },
-    { hash: "0x3cc45505b7d8e9f0012cd34ef56ab78cd90ef1234567890abcdeff1122333003", vmState: "HALT", blockIndex: 582430, blockTime: "2026-02-07T08:57:00.000Z", sender: "Nex8kL8zS4mD2fG7pN5qR7uV1xY2wZ3aBc" },
-  ],
-};
 
 const parseResponseData = (payload: unknown) => {
   if (typeof payload === "string") {
@@ -95,6 +76,14 @@ const parseResponseData = (payload: unknown) => {
   }
   return payload;
 };
+
+const normalizeTx = (tx: Record<string, unknown>): TransactionRecord => ({
+  hash: String(tx.hash || tx.tx_hash || ""),
+  vmState: String(tx.vmState || tx.vm_state || tx.vmstate || ""),
+  blockIndex: Number(tx.blockIndex || tx.block_index || tx.blockindex || 0),
+  blockTime: String(tx.blockTime || tx.block_time || tx.blocktime || ""),
+  sender: String(tx.sender || ""),
+});
 
 // ============================================================================
 // Composable
@@ -114,7 +103,7 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
   });
 
   // ── Formatted values for manifest bindings ───────────────────────────
-  const formatNum = (n: number) => formatNumber(n, 0);
+  const formatNum = (n: number | null) => (typeof n === "number" ? formatNumber(n, 0) : t("notAvailable"));
 
   const mainnetHeight: Observable = {
     get: () => formatNum(stats.get().mainnet.height),
@@ -150,19 +139,13 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
 
     let freshStats: ExplorerStats | null = null;
 
-    if (isLocalPreview) {
-      freshStats = LOCAL_STATS_MOCK;
-    }
-
-    if (!freshStats) {
-      try {
-        const res = await fetch(`${API_BASE}/stats`);
-        if (res.ok) {
-          freshStats = parseResponseData(await res.json());
-        }
-      } catch (e) {
-        console.warn("[useExplorer] fetch stats failed, using cached:", e instanceof Error ? e.message : String(e));
+    try {
+      const res = await fetch(`${API_BASE}/stats`);
+      if (res.ok) {
+        freshStats = parseResponseData(await res.json()) as ExplorerStats;
       }
+    } catch (e) {
+      console.warn("[useExplorer] fetch stats failed, using cached:", e instanceof Error ? e.message : String(e));
     }
 
     if (freshStats && typeof freshStats === "object") {
@@ -178,22 +161,16 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     let freshTxs: TransactionRecord[] = [];
     let hasFreshTxs = false;
 
-    if (isLocalPreview) {
-      freshTxs = LOCAL_RECENT_MOCK[selectedNetwork.get()];
-      hasFreshTxs = true;
-    }
-
-    if (!hasFreshTxs) {
-      try {
-        const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
-        if (res.ok) {
-          const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
-          freshTxs = Array.isArray(parsed?.transactions) ? (parsed.transactions as TransactionRecord[]) : [];
-          hasFreshTxs = true;
-        }
-      } catch (e) {
-        console.warn("[useExplorer] fetch txs failed, using cached:", e instanceof Error ? e.message : String(e));
+    try {
+      const res = await fetch(`${API_BASE}/recent?network=${selectedNetwork.get()}&limit=10`);
+      if (res.ok) {
+        const parsed = parseResponseData(await res.json()) as Record<string, unknown> | null;
+        const rows = Array.isArray(parsed?.transactions) ? (parsed.transactions as Record<string, unknown>[]) : [];
+        freshTxs = rows.map(normalizeTx).filter((tx) => tx.hash);
+        hasFreshTxs = true;
       }
+    } catch (e) {
+      console.warn("[useExplorer] fetch txs failed, using cached:", e instanceof Error ? e.message : String(e));
     }
 
     if (hasFreshTxs) {
@@ -212,22 +189,6 @@ export function useExplorer({ chain, eventBus, t }: UseExplorerOptions) {
     searchResult.set(null);
 
     try {
-      if (isLocalPreview) {
-        const txMatch = recentTxs.get().find((tx) =>
-          String(tx?.hash || "").toLowerCase().includes(query.toLowerCase()),
-        );
-        if (txMatch) {
-          searchResult.set({ type: "transaction", data: txMatch });
-        } else if (query.length >= 20) {
-          const transactions = recentTxs.get().slice(0, 3);
-          searchResult.set({
-            type: "address",
-            data: { address: query, txCount: transactions.length, transactions },
-          });
-        }
-        return;
-      }
-
       const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}&network=${selectedNetwork.get()}`);
       if (res.ok) {
         searchResult.set(parseResponseData(await res.json()));

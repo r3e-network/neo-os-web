@@ -99,9 +99,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       )}
 
-      {readingMode !== "idle" && (
+      {readingMode === "oracle" && (
         <div className={`tarot-reading-mode tarot-reading-mode--${readingMode}`}>
-          {t(readingMode === "oracle" ? "oracleVerified" : "localPreview")}
+          {t("oracleVerified")}
         </div>
       )}
 

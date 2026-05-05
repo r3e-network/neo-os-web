@@ -36,10 +36,6 @@ defineMiniApp({
       );
     });
 
-    ctx.registerAction("claimPrize", async () => {
-      await ctx.services.notify.guard(() => game.claimPrize(), "prizeClaimed");
-    });
-
     return {
       state: {
         roundId: game.roundId,
@@ -51,7 +47,6 @@ defineMiniApp({
         keyValidationError: game.keyValidationError,
         history: game.history,
         isBuyingKeys: game.isBuyingKeys,
-        isClaiming: game.isClaiming,
         isLoading: game.isLoading,
         countdown: game.countdown,
         dangerLevel: game.dangerLevel,
@@ -62,7 +57,7 @@ defineMiniApp({
         formattedRound: game.formattedRound,
         totalPotDisplay: game.totalPotDisplay,
         roundStatusDisplay: game.roundStatusDisplay,
-        canClaim: game.canClaim,
+        needsLifecycleSync: game.needsLifecycleSync,
         estimatedCost: game.estimatedCost,
       },
       loadData: game.loadAll,

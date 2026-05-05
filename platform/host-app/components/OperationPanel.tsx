@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { OperationEntry, OperationParam } from "./types";
+import { MiniAppLaunchContext, OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
+import { buildLaunchParamValues } from "@/lib/miniapp-launch-params";
 
 type Props = {
   operations: OperationEntry[];
@@ -13,6 +14,8 @@ type Props = {
   showTitle?: boolean;
   className?: string;
   variant?: "card" | "embedded";
+  disabledReason?: string | null;
+  launchContext?: MiniAppLaunchContext | null;
 };
 
 export function OperationPanel({
@@ -22,12 +25,22 @@ export function OperationPanel({
   showTitle = true,
   className,
   variant = "card",
+  disabledReason = null,
+  launchContext = null,
 }: Props) {
-  const [activeTabIdx, setActiveTabIdx] = useState(0);
+  const requestedOperationIndex = useMemo(
+    () => resolveRequestedOperationIndex(operations, launchContext?.operation),
+    [launchContext?.operation, operations],
+  );
+  const [activeTabIdx, setActiveTabIdx] = useState(requestedOperationIndex);
 
   if (!operations.length) return null;
 
-  const activeOp = operations[activeTabIdx];
+  useEffect(() => {
+    setActiveTabIdx(requestedOperationIndex);
+  }, [requestedOperationIndex]);
+
+  const activeOp = operations[Math.min(activeTabIdx, operations.length - 1)] ?? operations[0];
   const embedded = variant === "embedded";
 
   return (
@@ -86,10 +99,26 @@ export function OperationPanel({
           key={`${activeTabIdx}:${activeOp.method || activeOp.name}`}
           op={activeOp}
           onInvoke={onInvoke}
+          disabledReason={disabledReason}
+          launchContext={launchContext}
         />
       </div>
     </div>
   );
+}
+
+function resolveRequestedOperationIndex(
+  operations: OperationEntry[],
+  requested?: string | null,
+): number {
+  const needle = String(requested || "").trim().toLowerCase();
+  if (!needle) return 0;
+  const index = operations.findIndex((operation) =>
+    [operation.method, operation.name]
+      .map((value) => String(value || "").trim().toLowerCase())
+      .includes(needle),
+  );
+  return index >= 0 ? index : 0;
 }
 
 function getTabActiveColor(style?: string) {
@@ -152,22 +181,37 @@ function normalizeSelectOptions(options: unknown[]): Array<{ label: string; valu
 function OperationForm({
   op,
   onInvoke,
+  disabledReason,
+  launchContext,
 }: {
   op: OperationEntry;
   onInvoke: Props["onInvoke"];
+  disabledReason?: string | null;
+  launchContext?: MiniAppLaunchContext | null;
 }) {
-  const [values, setValues] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    for (const p of op.params ?? []) {
-      init[p.name] = getInitialParamValue(p);
-    }
-    return init;
-  });
+  const initialValues = useMemo(
+    () =>
+      buildLaunchParamValues(
+        op.params ?? [],
+        launchContext?.params,
+      ),
+    [launchContext?.signature, op],
+  );
+  const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setValues(initialValues);
+    setError(null);
+  }, [initialValues]);
+
   const handleSubmit = async () => {
     if (submitting) return;
+    if (disabledReason) {
+      setError(disabledReason);
+      return;
+    }
 
     const missingRequired = (op.params ?? []).find(
       (param) => param.required && !String(values[param.name] ?? "").trim(),
@@ -217,7 +261,9 @@ function OperationForm({
             key={param.name}
             param={param}
             value={values[param.name] ?? ""}
-            onChange={(value) => setValues({ ...values, [param.name]: value })}
+            onChange={(value) =>
+              setValues((current) => ({ ...current, [param.name]: value }))
+            }
           />
         ))}
 
@@ -231,8 +277,20 @@ function OperationForm({
       )}
 
       {error && (
-        <div className="break-words rounded-lg bg-red-50 p-3 text-sm text-red-600">
+        <div
+          aria-live="polite"
+          className="break-words rounded-lg bg-red-50 p-3 text-sm text-red-600"
+        >
           {error}
+        </div>
+      )}
+
+      {disabledReason && !error && (
+        <div
+          aria-live="polite"
+          className="break-words rounded-lg bg-amber-50 p-3 text-sm text-amber-700"
+        >
+          {disabledReason}
         </div>
       )}
 
@@ -244,7 +302,9 @@ function OperationForm({
           getBtnClass(),
         )}
         onClick={handleSubmit}
-        disabled={submitting}
+        aria-disabled={submitting || Boolean(disabledReason)}
+        title={disabledReason || undefined}
+        disabled={submitting || Boolean(disabledReason)}
       >
         {submitting ? "Processing..." : op.name}
       </button>

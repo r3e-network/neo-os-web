@@ -6,9 +6,10 @@
  * a state-bound summary section, and an action button that triggers a registered handler.
  */
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import type { OperationDefinition, OperationFieldDefinition } from "@shared/types/miniapp-manifest";
 import type { Observable } from "../react/context";
+import type { MiniAppLaunchContext } from "../utils/launch-params";
 import "./MiniAppOperationPanel.scss";
 
 // ============================================================================
@@ -29,24 +30,39 @@ export interface MiniAppOperationPanelProps {
    * in the emitted formData. Defaults to false.
    */
   scaleAmounts?: boolean;
+  launchContext?: MiniAppLaunchContext | null;
 }
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function initFormData(operations: OperationDefinition[]): Record<string, Record<string, unknown>> {
+function initFieldValue(
+  field: OperationFieldDefinition,
+  launchParams: Record<string, string>,
+): unknown {
+  const launched = launchParams[field.key];
+  if (launched !== undefined && launched !== "") {
+    if (field.type === "toggle") {
+      return /^(true|1|yes|on)$/i.test(launched);
+    }
+    return launched;
+  }
+  if (field.default !== undefined) return field.default;
+  return field.type === "toggle" ? false : "";
+}
+
+function initFormData(
+  operations: OperationDefinition[],
+  launchParams: Record<string, string> = {},
+): Record<string, Record<string, unknown>> {
   const data: Record<string, Record<string, unknown>> = {};
   for (const operation of operations) {
     const operationData: Record<string, unknown> = {};
     data[operation.key] = operationData;
     if (operation.fields) {
       for (const field of operation.fields) {
-        if (field.default !== undefined) {
-          operationData[field.key] = field.default;
-        } else {
-          operationData[field.key] = field.type === "toggle" ? false : "";
-        }
+        operationData[field.key] = initFieldValue(field, launchParams);
       }
     }
   }
@@ -63,8 +79,13 @@ export function MiniAppOperationPanel({
   state: _state,
   onAction,
   scaleAmounts = false,
+  launchContext = null,
 }: MiniAppOperationPanelProps) {
-  const [formData, setFormData] = useState<Record<string, Record<string, unknown>>>(() => initFormData(operations));
+  const initialFormData = useMemo(
+    () => initFormData(operations, launchContext?.params),
+    [launchContext?.signature, operations],
+  );
+  const [formData, setFormData] = useState<Record<string, Record<string, unknown>>>(initialFormData);
   const [formErrors, setFormErrors] = useState<Record<string, Record<string, string>>>(() => {
     const errors: Record<string, Record<string, string>> = {};
     for (const op of operations) {
@@ -75,6 +96,10 @@ export function MiniAppOperationPanel({
   const [submittingOps, setSubmittingOps] = useState<Set<string>>(() => new Set());
   const formDataRef = useRef(formData);
   formDataRef.current = formData;
+
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [initialFormData]);
 
   // --------------------------------------------------------------------------
   // Field Accessors

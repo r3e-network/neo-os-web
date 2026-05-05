@@ -25,6 +25,40 @@
     "neo-n3-mainnet": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
     "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "lastsurvivor.miniapp.neo"
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "countdown-auction",
+        "platform": "PlatformGame",
+        "appId": "miniapp-last-survivor",
+        "moduleType": 1,
+        "registration": {
+          "method": "registerGame",
+          "type": 1
+        },
+        "operations": {
+          "start_round": "startCountdownRound",
+          "buy_keys": "buyCountdownKeys",
+          "rollover": "checkAndEndCountdownRound",
+          "status": "getCountdownStatus"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "",
+            "registered": false
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

@@ -1,11 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { MiniAppInfo } from "@/components/types";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { relaxedLimit } from "@/lib/rate-limit";
 import {
+  filterCatalogByNetwork,
   filterCatalogByAppId,
   loadMiniAppCatalog,
+  resolveCatalogNetwork,
+  supportsCatalogNetwork,
 } from "@/lib/miniapp-catalog";
+import { getRpcNetwork } from "@/lib/rpc-helpers";
 import {
   loadBundledMiniAppById,
   loadMiniAppDefinitions,
@@ -21,6 +26,7 @@ import {
 const BUNDLE_AUTHORITATIVE_FIELDS = [
   "contract_hash",
   "entry_url",
+  "dapp_url",
   "permissions",
   "operations",
   "logo_url",
@@ -61,6 +67,8 @@ export default async function handler(
   const search = String(req.query.search || "")
     .trim()
     .toLowerCase();
+  const network = resolveCatalogNetwork(req.query.network)
+    || resolveCatalogNetwork(getRpcNetwork());
 
   try {
     const remoteCatalog = await loadMiniAppCatalog(status, {
@@ -76,6 +84,9 @@ export default async function handler(
       const app = remote
         ? mergeBundle(remote as CatalogApp, bundled as CatalogApp | null)
         : (bundled as CatalogApp);
+      if (!supportsCatalogNetwork(app as MiniAppInfo, network)) {
+        return apiError.notFound(res, "MiniApp not found on requested network");
+      }
       res.status(200).json({ app });
       return;
     }
@@ -108,6 +119,7 @@ export default async function handler(
         if (!seen.has(id)) mergedCatalog.push(b);
       }
     }
+    mergedCatalog = filterCatalogByNetwork(mergedCatalog as MiniAppInfo[], network) as CatalogApp[];
 
     if (search) {
       mergedCatalog = mergedCatalog.filter((item) => {

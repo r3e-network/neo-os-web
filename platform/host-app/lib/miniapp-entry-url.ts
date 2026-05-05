@@ -35,6 +35,23 @@ export function normalizeMiniAppEntryUrl(value: unknown): string | null {
   }
 }
 
+export function normalizeMiniAppDappUrl(value: unknown): string | null {
+  const raw = asTrimmedString(value);
+  if (!raw || raw.startsWith("mf://")) return null;
+
+  if (raw.startsWith("/miniapps/")) {
+    return raw;
+  }
+
+  try {
+    const parsed = new URL(maybePrefixEntryUrlScheme(raw));
+    if (!["http:", "https:"].includes(parsed.protocol)) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function isManifestMiniAppEntryUrl(entryUrl: string): boolean {
   return String(entryUrl || "").trim().startsWith("mf://manifest?");
 }

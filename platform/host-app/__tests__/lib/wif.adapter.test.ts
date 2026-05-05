@@ -105,6 +105,7 @@ describe("WifAdapter", () => {
       address: "NDirectWifAddress",
       publicKey: "03directpub",
       label: "Direct WIF",
+      network: "testnet",
     });
     expect(mockAccountSign).toHaveBeenCalledWith("7369676e2d6d65");
     expect(signed).toEqual({
@@ -170,6 +171,44 @@ describe("WifAdapter", () => {
       "invokefunction",
       "calculatenetworkfee",
       "sendrawtransaction",
+    ]);
+  });
+
+  it("does not relay when live network fee estimation fails", async () => {
+    mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body));
+      if (body.method === "getblockcount") return rpcResponse(100);
+      if (body.method === "getversion") return rpcResponse({ protocol: { network: 894710606 } });
+      if (body.method === "invokefunction") {
+        return rpcResponse({ state: "HALT", gasconsumed: "100", stack: [] });
+      }
+      if (body.method === "calculatenetworkfee") {
+        return { ok: false, status: 503, text: async () => "fee unavailable" };
+      }
+      if (body.method === "sendrawtransaction") {
+        throw new Error("sendrawtransaction must not be called");
+      }
+      throw new Error(`unexpected method ${body.method}`);
+    });
+
+    const adapter = new WifAdapter();
+    await adapter.connectWithWif("test-wif");
+
+    await expect(
+      adapter.invoke({
+        scriptHash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        operation: "transfer",
+        args: [{ type: "Hash160", value: "NDirectWifAddress" }],
+        signers: [{ account: "NDirectWifAddress", scopes: 1 }],
+      }),
+    ).rejects.toThrow(/network fee/i);
+
+    const rpcBodies = mockFetch.mock.calls.map(([, init]) => JSON.parse(String(init.body)));
+    expect(rpcBodies.map((body) => body.method)).toEqual([
+      "getblockcount",
+      "getversion",
+      "invokefunction",
+      "calculatenetworkfee",
     ]);
   });
 });

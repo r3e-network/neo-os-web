@@ -25,6 +25,9 @@
     "neo-n3-mainnet": "0xf970f4ccecd765b63732b821775dc38c25d74f23",
     "neo-n3-testnet": ""
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "neoswap.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet"
   ],

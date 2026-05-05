@@ -11,29 +11,53 @@ export default function SearchResultDisplay({ t, result, formatTime }: SearchRes
   if (!result) return null;
 
   const data = result.data as Record<string, unknown> | undefined;
+  const read = (camel: string, snake: string = camel) => data?.[camel] ?? data?.[snake] ?? "";
 
   return (
     <div className="result-section">
       <span className="section-title">{t("searchResult")}</span>
+
+      {result.type === "block" && (
+        <NeoCard variant="erobo" className="result-card">
+          <div className="result-rows">
+            <div className="result-row">
+              <span className="label">{t("block")}</span>
+              <span className="value mono">{String(read("index"))}</span>
+            </div>
+            <div className="result-row">
+              <span className="label">{t("hash")}</span>
+              <span className="value mono">{String(read("hash"))}</span>
+            </div>
+            <div className="result-row">
+              <span className="label">{t("transactionsLabel")}</span>
+              <span className="value mono">{String(read("tx_count"))}</span>
+            </div>
+            <div className="result-row">
+              <span className="label">{t("time")}</span>
+              <span className="value">{formatTime(read("time"))}</span>
+            </div>
+          </div>
+        </NeoCard>
+      )}
 
       {result.type === "transaction" && (
         <NeoCard variant="erobo" className="result-card">
           <div className="result-rows">
             <div className="result-row">
               <span className="label">{t("hash")}</span>
-              <span className="value mono">{String(data?.hash ?? "")}</span>
+              <span className="value mono">{String(read("hash"))}</span>
             </div>
             <div className="result-row">
               <span className="label">{t("block")}</span>
-              <span className="value mono">{String(data?.blockIndex ?? "")}</span>
+              <span className="value mono">{String(read("blockIndex", "block_index"))}</span>
             </div>
             <div className="result-row">
               <span className="label">{t("time")}</span>
-              <span className="value">{formatTime(data?.blockTime)}</span>
+              <span className="value">{formatTime(read("blockTime", "block_time"))}</span>
             </div>
             <div className="result-row">
               <span className="label">{t("sender")}</span>
-              <span className="value mono">{String(data?.sender ?? "")}</span>
+              <span className="value mono">{String(read("sender"))}</span>
             </div>
           </div>
         </NeoCard>

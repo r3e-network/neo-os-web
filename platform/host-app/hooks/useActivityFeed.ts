@@ -3,6 +3,7 @@ import type { OnChainActivity } from "../components/types";
 import { logger } from "../lib/logger";
 import { fetchJSON, toApiError } from "@/lib/fetch-client";
 import { useRealtimeNotifications } from "./useRealtimeNotifications";
+import { getRpcNetwork } from "@/lib/rpc-helpers";
 
 interface UseActivityFeedOptions {
   appId?: string;
@@ -44,6 +45,7 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
       try {
         const params = new URLSearchParams();
         if (appId) params.set("app_id", appId);
+        params.set("network", getRpcNetwork());
         params.set("limit", "50");
 
         const fetchMaybe = async <T,>(url: string): Promise<T | null> => {

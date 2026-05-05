@@ -1,4 +1,3 @@
-import { NeoButton } from "@shared/components-react";
 import "./DangerRingHero.scss";
 
 interface DangerRingHeroProps {
@@ -7,12 +6,9 @@ interface DangerRingHeroProps {
   dangerLevel: string;
   shouldPulse: boolean;
   formattedPot: string;
-  canClaim: boolean;
-  isClaiming: boolean;
-  onClaim: () => void;
 }
 
-export default function DangerRingHero({ t, countdown, dangerLevel, shouldPulse, formattedPot, canClaim, isClaiming, onClaim }: DangerRingHeroProps) {
+export default function DangerRingHero({ t, countdown, dangerLevel, shouldPulse, formattedPot }: DangerRingHeroProps) {
   return (
     <div className="danger-ring-hero">
       <div className={`danger-ring ${dangerLevel}${shouldPulse ? " pulse" : ""}`}>
@@ -34,16 +30,6 @@ export default function DangerRingHero({ t, countdown, dangerLevel, shouldPulse,
         </div>
         <div className="pot-glow-bar" />
       </div>
-
-      {canClaim && (
-        <div className="hero-claim-banner" role="alert">
-          <div className="claim-trophy" aria-hidden="true">&#x1F3C6;</div>
-          <span className="claim-text">{t("youWon")}</span>
-          <NeoButton variant="primary" size="lg" block loading={isClaiming} onClick={onClaim} aria-label={t("claimPrize")}>
-            {t("claimPrize")}
-          </NeoButton>
-        </div>
-      )}
     </div>
   );
 }

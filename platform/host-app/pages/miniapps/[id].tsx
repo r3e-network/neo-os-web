@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
@@ -70,7 +76,12 @@ import { useRealtimeNotifications } from "../../hooks/useRealtimeNotifications";
 import { coerceMiniAppInfo } from "../../lib/miniapp";
 import { fetchWithTimeout, resolveInternalBaseUrl } from "../../lib/edge";
 import { loadBundledMiniAppById } from "../../lib/miniapp-definitions";
-import { loadMiniAppCatalog } from "../../lib/miniapp-catalog";
+import {
+  type CatalogNetwork,
+  loadMiniAppCatalog,
+  resolveCatalogNetwork,
+  supportsCatalogNetwork,
+} from "../../lib/miniapp-catalog";
 import { isArchivedMiniAppId } from "../../lib/archived-miniapps";
 import { logger } from "../../lib/logger";
 import { MiniAppLogo } from "../../components/features/miniapp/MiniAppLogo";
@@ -84,6 +95,18 @@ import {
 } from "../../lib/chain";
 import type { InvokeParams } from "../../lib/wallet/adapters/base";
 import { getWalletAdapter, useWalletStore } from "../../lib/wallet/store";
+import { getRpcNetwork } from "../../lib/rpc-helpers";
+import {
+  assertWalletNetworkMatchesTarget,
+  getWalletNetworkGuardReason,
+  neoNetworkLabel,
+} from "../../lib/neo-network";
+import {
+  injectRuntimeAppIdParam,
+  resolveMiniAppContractDomain,
+  resolveMiniAppRuntime,
+} from "../../lib/miniapp-runtime";
+import { parseMiniAppLaunchContext } from "../../lib/miniapp-launch-params";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -137,6 +160,47 @@ export default function MiniAppDetailPage({
 
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
+  const walletNetwork = useWalletStore((state) => state.network);
+  const targetNetwork = getRpcNetwork();
+  const targetNetworkLabel = neoNetworkLabel(targetNetwork);
+  const targetCatalogNetwork = useMemo(
+    () => resolvePageCatalogNetwork(targetNetwork),
+    [targetNetwork],
+  );
+  const routerPath = typeof router.asPath === "string" ? router.asPath : "";
+  const launchContext = useMemo(
+    () => parseMiniAppLaunchContext(routerPath, app?.app_id),
+    [app?.app_id, routerPath],
+  );
+  const appSupportsTargetNetwork = app
+    ? supportsPageCatalogNetwork(app, targetCatalogNetwork)
+    : false;
+  const walletNetworkLabel = walletNetwork ? neoNetworkLabel(walletNetwork) : "Not verified";
+  const networkGuardReason = walletConnected
+    ? getWalletNetworkGuardReason(walletNetwork, targetNetwork)
+    : null;
+  const networkAvailabilityReason = appSupportsTargetNetwork
+    ? null
+    : `${app?.name || "This MiniApp"} is not deployed or enabled on ${targetNetworkLabel}. Switch to a supported network before submitting transactions.`;
+  const networkSafetyOk = walletConnected && !networkGuardReason && appSupportsTargetNetwork;
+  const resolvedRuntime = useMemo(
+    () => app ? resolveMiniAppRuntime(app, targetNetwork) : null,
+    [app, targetNetwork],
+  );
+  const directContractHash = useMemo(
+    () => app ? resolveNetworkContractHash(app, targetCatalogNetwork) : null,
+    [app, targetCatalogNetwork],
+  );
+  const contractDomainBinding = useMemo(
+    () =>
+      app
+        ? resolveMiniAppContractDomain(app, targetNetwork, resolvedRuntime)
+        : null,
+    [app, resolvedRuntime, targetNetwork],
+  );
+  const runtimeDisabledReason =
+    resolvedRuntime?.mode === "platform" ? resolvedRuntime.disabledReason : null;
+  const operationDisabledReason = networkAvailabilityReason || networkGuardReason || runtimeDisabledReason;
 
   const showNews = app?.news_integration !== false;
   const showSecrets = app?.permissions?.confidential === true;
@@ -167,16 +231,26 @@ export default function MiniAppDetailPage({
 
   const operations = useMemo(() => {
     const panelOps = app?.detail_template?.operation_panel?.operations;
-    if (Array.isArray(panelOps) && panelOps.length > 0) return panelOps;
-    return Array.isArray(app?.operations) ? app.operations : [];
-  }, [app?.detail_template?.operation_panel?.operations, app?.operations]);
+    const sourceOps = Array.isArray(panelOps) && panelOps.length > 0
+      ? panelOps
+      : Array.isArray(app?.operations) ? app.operations : [];
+    if (resolvedRuntime?.mode !== "platform") return sourceOps;
+    return sourceOps.map((operation) => injectRuntimeAppIdParam(operation, resolvedRuntime));
+  }, [app?.detail_template?.operation_panel?.operations, app?.operations, resolvedRuntime]);
 
   useEffect(() => {
     if (!tabs.length) return;
+    if (
+      launchContext.tab &&
+      tabs.some((tab) => tab.id === launchContext.tab)
+    ) {
+      setActiveTab(launchContext.tab);
+      return;
+    }
     if (!tabs.some((tab) => tab.id === activeTab)) {
       setActiveTab(tabs[0].id);
     }
-  }, [activeTab, tabs]);
+  }, [activeTab, launchContext.tab, tabs]);
 
   if (error || !app) {
     return (
@@ -215,9 +289,41 @@ export default function MiniAppDetailPage({
         if (!walletConnected || !walletAddress) {
           throw new Error("Connect wallet before sending transactions.");
         }
+        assertWalletNetworkMatchesTarget(walletNetwork, targetNetwork);
+        if (!appSupportsTargetNetwork) {
+          throw new Error(networkAvailabilityReason || "MiniApp is not enabled on the selected network.");
+        }
 
         let txid: string;
-        if (sharedRuntime && isSharedModeApp(app)) {
+        if (resolvedRuntime?.mode === "platform") {
+          if (!resolvedRuntime.writesEnabled || !resolvedRuntime.contractHash) {
+            throw new Error(
+              resolvedRuntime.disabledReason ||
+              "Platform runtime is not available on the selected network.",
+            );
+          }
+
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
+          }
+
+          const args = buildInvokeArgs(
+            operation.params ?? [],
+            values,
+            walletAddress,
+          );
+          const invokePayload: InvokeParams = {
+            scriptHash: resolvedRuntime.contractHash,
+            operation: operation.method,
+            args,
+          };
+          invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
+          const result = await adapter.invoke(invokePayload);
+          txid = result.txid;
+        } else if (sharedRuntime && isSharedModeApp(app)) {
           const sharedOperation = resolveSharedOperationRecipe(
             app,
             operation.method,
@@ -263,7 +369,7 @@ export default function MiniAppDetailPage({
           const result = await adapter.invoke(invokePayload);
           txid = result.txid;
         } else {
-          if (!app.contract_hash) {
+          if (!directContractHash) {
             throw new Error(
               "Contract hash is not configured for this miniapp.",
             );
@@ -285,7 +391,7 @@ export default function MiniAppDetailPage({
             }
 
             const invokePayload: InvokeParams = {
-              scriptHash: app.contract_hash,
+              scriptHash: directContractHash,
               operation: operation.method,
               args,
             };
@@ -315,7 +421,7 @@ export default function MiniAppDetailPage({
         throw invokeError;
       }
     },
-    [app, sharedRuntime, walletAddress, walletConnected],
+    [app, appSupportsTargetNetwork, directContractHash, networkAvailabilityReason, resolvedRuntime, sharedRuntime, targetNetwork, walletAddress, walletConnected, walletNetwork],
   );
 
   const operationPanel = app.detail_template?.operation_panel;
@@ -323,6 +429,20 @@ export default function MiniAppDetailPage({
     operationPanel?.title ||
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
+  const contractDisplayValue =
+    networkAvailabilityReason
+      ? `Not deployed on ${targetNetworkLabel}`
+      :
+    resolvedRuntime?.mode === "platform"
+      ? resolvedRuntime.contractHash || "Platform runtime not deployed on this network"
+      : directContractHash || "Shared / frontend runtime";
+  const runtimeDisplayValue =
+    resolvedRuntime?.mode === "platform"
+      ? `${resolvedRuntime.platform || "Platform runtime"} / ${resolvedRuntime.registered ? "registered" : "not registered"}`
+      : isSharedModeApp(app)
+        ? "Shared module runtime"
+        : "Integrated dApp runtime";
+  const contractDomainDisplayValue = contractDomainBinding?.domain || null;
 
   return (
     <Layout hideFooter>
@@ -345,7 +465,7 @@ export default function MiniAppDetailPage({
                 aria-label="MiniApp play area"
                 data-testid="miniapp-playarea"
               >
-                <MiniAppPlayfield app={app} />
+                <MiniAppPlayfield app={app} launchContext={launchContext} />
               </section>
 
               <section
@@ -382,12 +502,18 @@ export default function MiniAppDetailPage({
                     </span>
                   </div>
                 </div>
-                <div className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
                   <InfoPill label="App ID" value={app.app_id} />
                   <InfoPill
                     label="Contract"
-                    value={app.contract_hash || "Shared / frontend runtime"}
+                    value={contractDisplayValue}
                   />
+                  {contractDomainDisplayValue && (
+                    <InfoPill
+                      label="Domain"
+                      value={contractDomainDisplayValue}
+                    />
+                  )}
                 </div>
               </section>
 
@@ -496,7 +622,7 @@ export default function MiniAppDetailPage({
             </section>
 
             <aside
-              className="order-3 self-start space-y-3 xl:order-none xl:sticky xl:top-24"
+              className="order-2 self-start space-y-3 xl:order-none xl:sticky xl:top-24"
               aria-label="MiniApp actions"
               data-testid="miniapp-actions"
             >
@@ -526,6 +652,26 @@ export default function MiniAppDetailPage({
                   </p>
                 )}
 
+                {launchContext.hasParams && (
+                  <div
+                    className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800"
+                    data-testid="launch-params-status"
+                  >
+                    <p className="m-0 font-semibold">
+                      Launch parameters applied
+                    </p>
+                    <p className="m-0 break-words">
+                      Source: {launchContext.source}
+                      {launchContext.operation
+                        ? ` · Operation: ${launchContext.operation}`
+                        : ""}
+                      {launchContext.keys.length > 0
+                        ? ` · Fields: ${launchContext.keys.join(", ")}`
+                        : ""}
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   <Wallet className="h-4 w-4 text-gray-400" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">
@@ -534,6 +680,29 @@ export default function MiniAppDetailPage({
                       : "Connect wallet from the top navigation to submit on-chain transactions."}
                   </span>
                 </div>
+
+                <div
+                  className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                    networkSafetyOk
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                  data-testid="network-safety-status"
+                >
+                  <div className="flex items-start gap-2">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="m-0 font-semibold">Target: {targetNetworkLabel}</p>
+                      <p className="m-0 break-words">Wallet: {walletNetworkLabel}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {networkAvailabilityReason && (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                    {networkAvailabilityReason}
+                  </div>
+                )}
 
                 {invokeFeedback && (
                   <div
@@ -554,6 +723,8 @@ export default function MiniAppDetailPage({
                     showTitle={false}
                     className="mt-4"
                     variant="embedded"
+                    disabledReason={operationDisabledReason}
+                    launchContext={launchContext}
                   />
                 )}
 
@@ -647,20 +818,34 @@ export default function MiniAppDetailPage({
                     {app.app_id}
                   </code>
                 </p>
-                {app.contract_hash && (
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Contract Hash:{" "}
-                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {app.contract_hash}
-                    </code>
-                  </p>
-                )}
+                <p className="my-1.5 text-xs text-gray-500">
+                  Contract Hash:{" "}
+                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                    {contractDisplayValue}
+                  </code>
+                </p>
                 <p className="my-1.5 text-xs text-gray-500">
                   Runtime:{" "}
                   <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                    Native MiniApp page
+                    {runtimeDisplayValue}
                   </span>
                 </p>
+                {contractDomainBinding && (
+                  <p
+                    className="my-1.5 text-xs text-gray-500"
+                    data-testid="contract-domain-binding"
+                  >
+                    {formatContractDomainNetwork(contractDomainBinding.network)} Domain:{" "}
+                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
+                      {contractDomainBinding.domain}
+                    </code>{" "}
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${contractDomainBadgeClass(contractDomainBinding.source)}`}
+                    >
+                      {formatContractDomainSource(contractDomainBinding.source)}
+                    </span>
+                  </p>
+                )}
                 {app.docs_url && (
                   <p className="my-1.5 text-xs text-gray-500">
                     Docs URL:{" "}
@@ -762,6 +947,7 @@ function MiniAppListRail({
   miniapps: MiniAppNavItem[];
 }) {
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const categories = useMemo(
     () =>
@@ -771,7 +957,7 @@ function MiniAppListRail({
     [miniapps],
   );
   const filteredMiniapps = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
     return miniapps.filter((item) => {
       const matchesCategory =
         categoryFilter === "all" || item.category === categoryFilter;
@@ -783,12 +969,12 @@ function MiniAppListRail({
         item.category.toLowerCase().includes(normalizedQuery)
       );
     });
-  }, [categoryFilter, miniapps, query]);
+  }, [categoryFilter, miniapps, deferredQuery]);
   const visibleMiniapps = filteredMiniapps.slice(0, 80);
 
   return (
     <aside
-      className="order-2 self-start rounded-lg border border-gray-200 bg-white p-3 shadow-sm xl:order-none xl:sticky xl:top-24"
+      className="order-3 self-start rounded-lg border border-gray-200 bg-white p-3 shadow-sm xl:order-none xl:sticky xl:top-24"
       aria-label="MiniApp list"
       data-testid="miniapp-list-rail"
     >
@@ -796,7 +982,7 @@ function MiniAppListRail({
         <div>
           <h2 className="m-0 text-sm font-bold text-gray-900">MiniApps</h2>
           <p className="mt-1 text-xs text-gray-500">
-            {filteredMiniapps.length} active surfaces
+            {filteredMiniapps.length} MiniApps
           </p>
         </div>
         <Link
@@ -887,6 +1073,21 @@ function MiniAppListRail({
       </nav>
     </aside>
   );
+}
+
+function formatContractDomainNetwork(network: string): string {
+  return network === "neo-n3-mainnet" ? "Mainnet" : "Testnet";
+}
+
+function formatContractDomainSource(source: string): string {
+  if (source === "expected") return "expected";
+  return "configured";
+}
+
+function contractDomainBadgeClass(source: string): string {
+  return source === "expected"
+    ? "bg-amber-100 text-amber-700"
+    : "bg-emerald-100 text-emerald-700";
 }
 
 function InfoPill({ label, value }: { label: string; value: string }) {
@@ -1065,6 +1266,71 @@ function findCatalogAppById(miniapps: MiniAppInfo[], appId: string): MiniAppInfo
   return miniapps.find((item) => item.app_id.toLowerCase() === target) ?? null;
 }
 
+function getRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function getString(value: unknown): string {
+  return value === undefined || value === null ? "" : String(value).trim();
+}
+
+function resolvePageCatalogNetwork(value: unknown): CatalogNetwork | null {
+  const raw = getString(value).toLowerCase();
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "neo-n3-mainnet";
+  if (raw === "testnet" || raw === "neo-n3-testnet") return "neo-n3-testnet";
+  return null;
+}
+
+function supportsPageCatalogNetwork(
+  app: MiniAppInfo,
+  network: CatalogNetwork | null,
+): boolean {
+  if (!network) return true;
+  const manifest = getRecord(app.manifest);
+  const supported = Array.isArray(manifest.supported_networks)
+    ? manifest.supported_networks
+        .map(resolvePageCatalogNetwork)
+        .filter((item): item is CatalogNetwork => Boolean(item))
+    : [];
+  if (supported.length > 0 && !supported.includes(network)) return false;
+
+  const runtimeModules = Array.isArray(getRecord(manifest.runtime).modules)
+    ? getRecord(manifest.runtime).modules as unknown[]
+    : [];
+  const supportsPlatformRuntime = runtimeModules.some((rawModule) => {
+    const networks = getRecord(getRecord(rawModule).networks);
+    const networkConfig = getRecord(networks[network]);
+    return Boolean(getString(networkConfig.contract_hash));
+  });
+  if (supportsPlatformRuntime) return true;
+
+  const contracts = getRecord(manifest.contracts);
+  const hasNetworkedContracts = Object.values(contracts).some((value) =>
+    Boolean(getString(value)),
+  );
+  if (!hasNetworkedContracts) {
+    return Boolean(app.contract_hash) || supported.length > 0 || !manifest.supported_networks;
+  }
+
+  return Boolean(resolveNetworkContractHash(app, network));
+}
+
+function resolveNetworkContractHash(
+  app: MiniAppInfo,
+  network: CatalogNetwork | null,
+): string | null {
+  if (!network) return app.contract_hash || null;
+  const contracts = getRecord(getRecord(app.manifest).contracts);
+  const shortKey = network === "neo-n3-mainnet" ? "mainnet" : "testnet";
+  const networkHash = getString(contracts[network] ?? contracts[shortKey]);
+  if (networkHash) return networkHash;
+  const hasNetworkedContracts = Object.values(contracts).some((value) =>
+    Boolean(getString(value)),
+  );
+  return hasNetworkedContracts ? null : app.contract_hash || null;
+}
+
 function withBundledAuthoritativeFields(
   remote: MiniAppInfo | null,
   bundled: MiniAppInfo | null,
@@ -1083,6 +1349,23 @@ function withBundledAuthoritativeFields(
   };
 }
 
+function appendNavItemIfMissing(
+  items: MiniAppNavItem[],
+  app: MiniAppInfo,
+): MiniAppNavItem[] {
+  if (items.some((item) => item.app_id === app.app_id)) return items;
+  return [
+    {
+      app_id: app.app_id,
+      name: app.name,
+      category: app.category,
+      entry_url: app.entry_url,
+      logo_url: app.logo_url ?? null,
+    },
+    ...items,
+  ];
+}
+
 // Server-Side Props
 export const getServerSideProps: GetServerSideProps<
   AppDetailPageProps
@@ -1095,21 +1378,24 @@ export const getServerSideProps: GetServerSideProps<
   }
 
   const fallback = await loadBundledMiniAppById(id);
-  const miniAppNav = await loadMiniAppCatalog("active").catch((e: unknown) => {
+  const targetNetwork = getRpcNetwork();
+  const catalogNetwork = resolveCatalogNetwork(targetNetwork);
+  const rawMiniAppNav = await loadMiniAppCatalog("active", {
+    includeManifest: true,
+  }).catch((e: unknown) => {
     console.warn(
       "[miniapps/id] miniapp navigation catalog failed:",
       e instanceof Error ? e.message : String(e),
     );
     return [];
   });
-  const miniAppNavItems = toMiniAppNavItems(miniAppNav);
 
   try {
     const baseUrl = resolveInternalBaseUrl(
       context.req as RequestLike | undefined,
     );
     const catalogApp = withBundledAuthoritativeFields(
-      findCatalogAppById(miniAppNav, id),
+      findCatalogAppById(rawMiniAppNav, id),
       fallback,
     );
     const notifRes = await fetchWithTimeout(
@@ -1138,9 +1424,13 @@ export const getServerSideProps: GetServerSideProps<
     if (!app) {
       return { notFound: true };
     }
+    const miniAppNavItems = appendNavItemIfMissing(
+      toMiniAppNavItems(rawMiniAppNav),
+      app,
+    );
 
-    const sharedRuntime = isSharedModeApp(app)
-      ? await resolveSharedModeRuntime(app, "testnet").catch((e: unknown) => {
+    const sharedRuntime = supportsCatalogNetwork(app, catalogNetwork) && isSharedModeApp(app)
+      ? await resolveSharedModeRuntime(app, targetNetwork).catch((e: unknown) => {
           console.warn(
             "[miniapps/id] shared runtime resolve failed:",
             e instanceof Error ? e.message : String(e),
@@ -1163,7 +1453,9 @@ export const getServerSideProps: GetServerSideProps<
       return {
         props: {
           app: sanitizeForJson(fallback),
-          miniAppNav: sanitizeForJson(miniAppNavItems),
+          miniAppNav: sanitizeForJson(
+            appendNavItemIfMissing(toMiniAppNavItems(rawMiniAppNav), fallback),
+          ),
           notifications: [],
           sharedRuntime: null,
           error:
@@ -1174,7 +1466,7 @@ export const getServerSideProps: GetServerSideProps<
     return {
       props: {
         app: null,
-        miniAppNav: sanitizeForJson(miniAppNavItems),
+        miniAppNav: sanitizeForJson(toMiniAppNavItems(rawMiniAppNav)),
         notifications: [],
         sharedRuntime: null,
         error: "Failed to load app details",

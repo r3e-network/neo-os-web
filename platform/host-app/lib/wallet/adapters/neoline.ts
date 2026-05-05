@@ -14,6 +14,7 @@ import {
   WalletConnectionError,
 } from "./base";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork, type NeoNetwork } from "@/lib/neo-network";
 
 /** NeoLine wallet provider interface */
 interface NeoLineProvider {
@@ -30,6 +31,8 @@ interface NeoLineWindow {
 interface NeoLineInstance {
   getAccount(): Promise<{ address: string; label: string }>;
   getPublicKey(): Promise<{ address: string; publicKey: string }>;
+  getNetwork?(): Promise<unknown>;
+  network?: unknown;
   getBalance(params: { address: string }): Promise<
     Array<{
       contract: string;
@@ -105,6 +108,7 @@ export class NeoLineAdapter implements WalletAdapter {
         address: account.address,
         publicKey: pubKey.publicKey,
         label: account.label,
+        network: await this.getNetwork(),
       };
     } catch (error) {
       throw new WalletConnectionError(`Failed to connect to NeoLine: ${error instanceof Error ? error.message : String(error)}`);
@@ -113,6 +117,18 @@ export class NeoLineAdapter implements WalletAdapter {
 
   async disconnect(): Promise<void> {
     this.instance = null;
+  }
+
+  async getNetwork(): Promise<NeoNetwork | null> {
+    const instance = await this.getInstance();
+    const source = typeof instance.getNetwork === "function"
+      ? await instance.getNetwork()
+      : instance.network;
+    if (source && typeof source === "object") {
+      const record = source as Record<string, unknown>;
+      return normalizeNeoNetwork(record.network ?? record.chainId ?? record.id);
+    }
+    return normalizeNeoNetwork(source);
   }
 
   async getBalance(address: string): Promise<WalletBalance> {

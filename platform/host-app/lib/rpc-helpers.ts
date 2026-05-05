@@ -33,12 +33,14 @@ const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
     "miniapp-dailycheckin": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
     "miniapp-flashloan": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
     "miniapp-unbreakablevault": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0",
+    "miniapp-profitanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "miniapp-trustanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
   },
   testnet: {
     "miniapp-last-survivor": "0x1021e9e5c17285e706c293a39c525de13100ed92",
     "miniapp-self-loan": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
-    "miniapp-profitanchor": "0xee1819916a6b8c7a8c30506af3318c758850033a",
-    "miniapp-trustanchor": "0xee1819916a6b8c7a8c30506af3318c758850033a",
+    "miniapp-profitanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "miniapp-trustanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
   },
 };
 

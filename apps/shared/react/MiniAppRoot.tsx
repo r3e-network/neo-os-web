@@ -44,6 +44,10 @@ import { StandardAppShell } from "../templates/StandardAppShell";
 import { MiniAppPage } from "../components/MiniAppPage";
 import { MiniAppOperationPanel } from "../components/MiniAppOperationPanel";
 import type { TranslationMap } from "../utils/i18n";
+import {
+  readMiniAppLaunchContext,
+  type MiniAppLaunchContext,
+} from "../utils/launch-params";
 
 // ============================================================================
 // Props
@@ -60,6 +64,7 @@ export interface PlayAreaProps {
   clearStatus: () => void;
   loadError: Error | null;
   retryLoad: () => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
 interface MiniAppRootProps {
@@ -83,6 +88,7 @@ export interface MiniAppSetupContext {
   state: ObservableState;
   setStatus: (msg: string, type: StatusType) => void;
   clearStatus: () => void;
+  launchContext: MiniAppLaunchContext;
   registerAction: (
     key: string,
     handler: (...args: unknown[]) => Promise<unknown>,
@@ -178,6 +184,10 @@ export function MiniAppRoot({
     servicesRef.current = PlatformServices.create(appId, { t: tFn });
   }
   const services = servicesRef.current;
+  const launchContext = useMemo(
+    () => readMiniAppLaunchContext(appId),
+    [appId],
+  );
 
   // --------------------------------------------------------------------------
   // Status & Fireworks
@@ -329,6 +339,7 @@ export function MiniAppRoot({
             state: appStateRef.current,
             setStatus: setStatusWithFireworks,
             clearStatus,
+            launchContext,
             registerAction,
           };
 
@@ -483,6 +494,7 @@ export function MiniAppRoot({
                           t={tFn}
                           state={appStateRef.current}
                           onAction={handleAction}
+                          launchContext={launchContext}
                         />
                       )
                     : undefined
@@ -498,6 +510,7 @@ export function MiniAppRoot({
                   clearStatus={clearStatus}
                   loadError={loadError}
                   retryLoad={reloadData}
+                  launchContext={launchContext}
                 />
               </MiniAppPage>
             </StandardAppShell>

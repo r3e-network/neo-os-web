@@ -73,25 +73,6 @@ function extractReadingId(value: unknown): string {
   return String(data.readingId ?? data.reading_id ?? data.poolId ?? data.pool_id ?? "").trim();
 }
 
-function getRandomUint32(): number {
-  const cryptoApi = globalThis.crypto;
-  if (cryptoApi?.getRandomValues) {
-    const buffer = new Uint32Array(1);
-    cryptoApi.getRandomValues(buffer);
-    return buffer[0] ?? 0;
-  }
-  return Math.floor(Math.random() * 0x100000000);
-}
-
-function drawLocalPreviewCards(): number[] {
-  const deck = Array.from({ length: TAROT_DECK.length }, (_, index) => index);
-  for (let index = 0; index < 3; index += 1) {
-    const pickIndex = index + (getRandomUint32() % (deck.length - index));
-    [deck[index], deck[pickIndex]] = [deck[pickIndex]!, deck[index]!];
-  }
-  return deck.slice(0, 3);
-}
-
 function normalizeReadingCards(cards: unknown): number[] {
   if (!Array.isArray(cards)) throw new Error("invalid reading cards");
 
@@ -124,7 +105,7 @@ export function useTarot({
   const allRevealedDisplay = createDerived(() => allFlipped.get() ? t("yes") : t("no"), [drawn]);
   const question = createObservable("");
   const isLoading = createObservable(false);
-  const readingMode = createObservable<"idle" | "oracle" | "preview">("idle");
+  const readingMode = createObservable<"idle" | "oracle">("idle");
 
   /**
    * Poll for a completed reading via StorageProxy.
@@ -172,25 +153,19 @@ export function useTarot({
 
     try {
       const prompt = question.get().trim() || t("defaultQuestion");
-      let cardIds: number[] | null = null;
-      let nextReadingMode: "oracle" | "preview" = "oracle";
-
+      let result: unknown;
       try {
-        // Step 1: Request reading via GameProxy. Deployed tarot-specific
-        // backends may return a readingId directly or inside { ok, data }.
-        const result = await gameService.placeBet("tarot", prompt.slice(0, 200));
-        const readingId = extractReadingId(result);
-        if (!readingId) throw new Error(t("readingUnavailable"));
-
-        // Step 2: Poll for completed reading via StorageProxy.
-        const reading = await waitForReading(readingId);
-        if (!reading) throw new Error(t("readingPending"));
-        cardIds = reading.cards;
-      } catch (error) {
-        console.warn("[on-chain-tarot] oracle reading unavailable; using local preview:", error instanceof Error ? error.message : String(error));
-        cardIds = drawLocalPreviewCards();
-        nextReadingMode = "preview";
+        result = await gameService.placeBet("tarot", prompt.slice(0, 200));
+      } catch {
+        throw new Error(t("readingUnavailable"));
       }
+      const readingId = extractReadingId(result);
+      if (!readingId) throw new Error(t("readingUnavailable"));
+
+      // Step 2: Poll for completed reading via StorageProxy.
+      const reading = await waitForReading(readingId);
+      if (!reading) throw new Error(t("readingPending"));
+      const cardIds = reading.cards;
 
       // Step 3: Map card IDs to deck entries
       drawn.set(normalizeReadingCards(cardIds).map((cardId: number) => {
@@ -212,7 +187,7 @@ export function useTarot({
         }
         return { ...card, flipped: false };
       }));
-      readingMode.set(nextReadingMode);
+      readingMode.set("oracle");
 
       readingsCount.set(readingsCount.get() + 1);
       question.set("");

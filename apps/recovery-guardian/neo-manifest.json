@@ -10,6 +10,8 @@
   "category_name": "Utility",
   "category_name_zh": "工具",
   "tags": [
+    "morpheus",
+    "privacy",
     "aa",
     "recovery",
     "guardian",
@@ -32,9 +34,13 @@
     "icon": "/miniapps/recovery-guardian/logo.jpg",
     "banner": "/miniapps/recovery-guardian/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": {
+    "read": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "aa": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

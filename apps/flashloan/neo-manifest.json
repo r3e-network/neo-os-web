@@ -23,6 +23,9 @@
     "neo-n3-mainnet": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
     "neo-n3-testnet": "0xde8e595d8d3c293731db499367ee2a768e1e458b"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "flashloan.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

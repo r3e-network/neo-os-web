@@ -19,6 +19,7 @@ describe("wallet store NEP-21 events", () => {
       connected: false,
       address: "",
       publicKey: "",
+      network: null,
       provider: null,
       balance: null,
       loading: false,
@@ -29,6 +30,7 @@ describe("wallet store NEP-21 events", () => {
   it("refreshes the connected account after the standard accountchanged event", async () => {
     const listeners = new Map<string, ProviderListener>();
     const provider = {
+      network: 894710606,
       getAccounts: jest.fn()
         .mockResolvedValueOnce([
           { hash: "0xinitial", address: "NInitialAddress", isDefault: true },
@@ -50,6 +52,7 @@ describe("wallet store NEP-21 events", () => {
 
     await useWalletStore.getState().connect("nep21");
     expect(useWalletStore.getState().address).toBe("NInitialAddress");
+    expect(useWalletStore.getState().network).toBe("testnet");
 
     listeners.get("accountchanged")?.();
     await new Promise((resolve) => setTimeout(resolve, 0));

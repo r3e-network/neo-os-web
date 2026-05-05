@@ -1,13 +1,19 @@
 import Head from "next/head";
+import type { GetStaticProps } from "next";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentType,
+} from "react";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { MiniAppCard, MiniAppListItem } from "@/components/features/miniapp";
+import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import {
   partitionMiniApps,
@@ -15,6 +21,12 @@ import {
   filterMiniAppsByCategory,
   sortMiniApps,
 } from "@/lib/miniapp-showcase";
+import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import {
+  filterCatalogByNetwork,
+  resolveCatalogNetwork,
+} from "@/lib/miniapp-catalog";
+import { getRpcNetwork } from "@/lib/rpc-helpers";
 import {
   Rocket,
   Shield,
@@ -22,7 +34,6 @@ import {
   Globe,
   Cpu,
   LayoutGrid,
-  List,
   Filter,
   Gamepad2,
   Coins,
@@ -32,13 +43,16 @@ import {
   Wrench,
   Code2,
   ChevronRight,
+  ArrowUpRight,
+  CheckCircle2,
+  Layers3,
+  Search,
 } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
 
 // Category definitions with icons
 const CATEGORY_ICONS: Record<
   string,
-  React.ComponentType<{ size?: number | string; className?: string }>
+  ComponentType<{ size?: number | string; className?: string }>
 > = {
   all: LayoutGrid,
   gaming: Gamepad2,
@@ -49,34 +63,100 @@ const CATEGORY_ICONS: Record<
   utility: Wrench,
 };
 
-export default function LandingPage() {
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+export type LandingPageProps = {
+  initialApps?: MiniAppInfo[];
+};
+
+const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
+
+function toSerializableRecord(
+  value: Record<string, unknown> | null | undefined,
+): Record<string, unknown> | null {
+  if (!value) return null;
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
+}
+
+function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
+  return apps.map((app) => ({
+    app_id: app.app_id,
+    name: app.name,
+    description: app.description,
+    icon: app.icon,
+    logo_url: app.logo_url ?? null,
+    banner_url: app.banner_url ?? null,
+    category: app.category,
+    entry_url: app.entry_url,
+    contract_hash: app.contract_hash ?? null,
+    status: app.status ?? null,
+    source: app.source ?? "miniapp",
+    permissions: toSerializableRecord(
+      app.permissions ?? {},
+    ) as MiniAppInfo["permissions"],
+    manifest: toSerializableRecord(app.manifest),
+  }));
+}
+
+export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
+  const definitions = await loadMiniAppDefinitions();
+  const network = resolveCatalogNetwork(getRpcNetwork());
+  const initialApps = sortMiniApps(
+    filterCatalogByNetwork(
+      definitions.filter((app) => app.status !== "disabled"),
+      network,
+    ),
+    "featured",
+  );
+
+  return {
+    props: {
+      initialApps: serializeMiniApps(initialApps),
+    },
+    revalidate: 60,
+  };
+};
+
+export default function LandingPage({
+  initialApps = EMPTY_INITIAL_APPS,
+}: LandingPageProps = {}) {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<"featured" | "recent" | "name">(
     "featured",
   );
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>([]);
-  const [toolApps, setToolApps] = useState<MiniAppInfo[]>([]);
-
-  const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
-  const y2 = useTransform(scrollY, [0, 1000], [0, -200]);
+  const [catalogLoading, setCatalogLoading] = useState(initialApps.length === 0);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const [catalogApps, setCatalogApps] = useState<MiniAppInfo[]>(() => {
+    return sortMiniApps(initialApps, "featured");
+  });
+  const [featuredApps, setFeaturedApps] = useState<MiniAppInfo[]>(() => {
+    const partitions = partitionMiniApps(initialApps);
+    return partitions.flagship;
+  });
+  const [toolApps, setToolApps] = useState<MiniAppInfo[]>(() => {
+    const partitions = partitionMiniApps(initialApps);
+    return partitions.tools;
+  });
+  const targetNetwork = getRpcNetwork();
+  const networkLabel =
+    targetNetwork === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const res = await fetch("/api/miniapps/catalog", {
+        const res = await fetch(`/api/miniapps/catalog?network=${targetNetwork}`, {
           signal: AbortSignal.timeout(10_000),
         });
         if (!active) return;
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
-        const allApps = Array.isArray(data?.apps) ? data.apps : [];
+        const allApps = Array.isArray(data?.apps)
+          ? sortMiniApps(data.apps as MiniAppInfo[], "featured")
+          : [];
         const partitions = partitionMiniApps(allApps as MiniAppInfo[]);
-        setCatalogApps(partitions.flagship);
+        setCatalogApps(allApps);
+        setFeaturedApps(partitions.flagship);
         setToolApps(partitions.tools);
       } catch (err) {
         logger.error("Failed to fetch miniapp catalog:", err);
@@ -87,7 +167,7 @@ export default function LandingPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [targetNetwork]);
 
   const categories = useMemo(() => {
     const counts = buildCategoryCounts(catalogApps);
@@ -138,9 +218,34 @@ export default function LandingPage() {
   }, [catalogApps]);
 
   const filteredApps = useMemo(() => {
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
     const filtered = filterMiniAppsByCategory(catalogApps, selectedCategory);
-    return sortMiniApps(filtered, sortBy).slice(0, 12);
-  }, [selectedCategory, sortBy, catalogApps]);
+    return sortMiniApps(
+      normalizedQuery
+        ? filtered.filter((app) =>
+            [app.name, app.app_id, app.description, app.category]
+              .filter(Boolean)
+              .some((value) =>
+                String(value).toLowerCase().includes(normalizedQuery),
+              ),
+          )
+        : filtered,
+      sortBy,
+    );
+  }, [selectedCategory, sortBy, catalogApps, deferredQuery]);
+
+  const featuredList =
+    featuredApps.length > 0
+      ? featuredApps
+      : partitionMiniApps(initialApps).flagship;
+  const platformStats = [
+    {
+      label: "Enabled apps",
+      value: String(catalogApps.length || initialApps.length),
+    },
+    { label: "Featured", value: String(featuredList.length) },
+    { label: "Operator tools", value: String(toolApps.length) },
+  ];
 
   return (
     <Layout>
@@ -152,83 +257,172 @@ export default function LandingPage() {
         />
       </Head>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 pb-40">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neo/10 via-background to-background -z-20" />
+      <section className="border-b border-gray-200 bg-[#f6f8fb] px-4 pb-10 pt-28 sm:px-6">
+        <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-gray-500">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">
+                {networkLabel}
+              </span>
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
+                NEP-21 wallet ready
+              </span>
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
+                OneGate dApp export
+              </span>
+            </div>
 
-        {/* Abstract 3D Orbs/Glows */}
-        <motion.div
-          style={{ y: y1 }}
-          className="absolute top-[10%] left-[5%] w-[400px] h-[400px] bg-neo/20 blur-[150px] rounded-full mix-blend-screen pointer-events-none"
-        />
-        <motion.div
-          style={{ y: y2 }}
-          className="absolute bottom-[20%] right-[5%] w-[500px] h-[500px] bg-[#7000FF]/20 blur-[150px] rounded-full mix-blend-screen pointer-events-none"
-        />
-        <div className="absolute top-[40%] left-[45%] w-[300px] h-[300px] bg-[#00D4FF]/15 blur-[120px] rounded-full pointer-events-none" />
+            <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
+              <div>
+                <h1 className="m-0 max-w-4xl text-4xl font-black leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
+                  Neo MiniApps, ready to play and operate.
+                </h1>
+                <p className="mt-5 max-w-3xl text-base leading-7 text-gray-600 sm:text-lg">
+                  A single production interface for Neo N3 games, payments,
+                  oracle tools, account abstraction, bridge workflows, ratings,
+                  comments, contract state, and wallet-safe operations.
+                </p>
+                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/miniapps">
+                    <Button className="h-12 rounded-lg bg-gray-950 px-5 text-sm font-bold text-white hover:bg-gray-800">
+                      Open MiniApp Catalog
+                      <Rocket className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </Link>
+                  <Link href="/developer">
+                    <Button
+                      variant="outline"
+                      className="h-12 rounded-lg border-gray-200 bg-white px-5 text-sm font-bold text-gray-900 hover:bg-gray-50"
+                    >
+                      Developer Console
+                      <Code2 className="ml-2 h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
 
-        <div className="mx-auto max-w-7xl px-4 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+              <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="m-0 text-xs font-semibold uppercase text-gray-400">
+                      Platform Status
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      Live app shell with native play areas
+                    </p>
+                  </div>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <Layers3 className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {platformStats.map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-lg border border-gray-200 bg-white p-3"
+                    >
+                      <p className="m-0 truncate text-[11px] font-semibold text-gray-400">
+                        {item.label}
+                      </p>
+                      <p className="m-0 mt-1 truncate text-lg font-black text-gray-900">
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-2 text-sm text-gray-600">
+                  {[
+                    "Strict mainnet and testnet isolation",
+                    "Shared action console across every app",
+                    "Native PlayArea registry, no iframe shell",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <CheckCircle2
+                        className="h-4 w-4 text-emerald-600"
+                        aria-hidden="true"
+                      />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <aside
+            className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+            data-testid="homepage-featured-apps"
           >
-            <Badge
-              variant="outline"
-              className="mb-8 border-neo/30 bg-white/50 backdrop-blur-md text-neo px-5 py-1.5 text-sm font-medium shadow-[0_0_15px_rgba(0,229,153,0.15)] neo-glow cursor-default"
-            >
-              ✨ Welcome to the Intelligent Edge
-            </Badge>
-            <h1 className="text-5xl sm:text-6xl md:text-8xl font-blacker text-gray-900 leading-[1.1]">
-              The Operating System <br />
-              <span className="neo-gradient-text drop-shadow-sm">For Web3</span>
-            </h1>
-            <p className="mx-auto mt-8 max-w-3xl text-lg sm:text-xl text-gray-600 font-medium leading-relaxed">
-              Experience the power of Neo N3 with unified identity,
-              zero-friction wallet connectivity, and the most secure execution
-              environment for decentralized apps.
-            </p>
-
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-5">
-              <Link href="/miniapps" className="group">
-                <Button
-                  size="lg"
-                  className="animated-gradient-bg text-dark-950 font-bold px-10 h-16 rounded-full text-lg shadow-[0_0_40px_rgba(0,229,153,0.4)] hover:shadow-[0_0_60px_rgba(0,229,153,0.6)] transition-all duration-300 border-none group-hover:scale-105"
-                >
-                  Explore Ecosystem{" "}
-                  <Rocket
-                    className="ml-3 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
-                    size={20}
-                    aria-hidden="true"
-                  />
-                </Button>
-              </Link>
-              <Link href="/developer" className="group">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="glass-panel text-gray-900 hover:text-neo font-bold px-10 h-16 rounded-full text-lg hover:bg-white/90 transition-all duration-300 group-hover:scale-105 border-gray-200/50"
-                >
-                  Start Building{" "}
-                  <Code2
-                    className="ml-3 group-hover:rotate-12 transition-transform"
-                    width={20}
-                    height={20}
-                    aria-hidden="true"
-                  />
-                </Button>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="m-0 text-xs font-semibold uppercase text-gray-400">
+                  Featured Apps
+                </p>
+                <h2 className="m-0 mt-1 text-lg font-bold text-gray-900">
+                  Start here
+                </h2>
+              </div>
+              <Link
+                href="/miniapps"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-emerald-300 hover:text-emerald-700"
+              >
+                View all
               </Link>
             </div>
-          </motion.div>
+            <div className="space-y-2">
+              {featuredList.map((app) => (
+                <HomeMiniAppRow key={app.app_id} app={app} />
+              ))}
+              {catalogLoading && featuredList.length === 0 && (
+                <div className="space-y-2">
+                  {Array.from({ length: 9 }, (_, index) => (
+                    <div
+                      key={index}
+                      className="h-16 animate-pulse rounded-xl bg-gray-100"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </aside>
         </div>
       </section>
 
       {/* Main Content Section */}
-      <section className="py-16 px-4 bg-transparent min-h-screen relative z-10">
+      <section className="bg-[#f6f8fb] px-4 py-10 sm:px-6">
         <div className="mx-auto max-w-[1600px]">
-          <div className="flex flex-col lg:flex-row gap-10">
+          <div className="mb-6 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_420px]">
+            <div>
+              <h2 className="m-0 text-2xl font-black text-gray-900">
+                MiniApp Catalog
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
+                Browse polished apps by category, then open the unified detail
+                view with the app-specific play area and shared action console.
+              </p>
+            </div>
+            <label className="relative block self-end">
+              <span className="sr-only">Search MiniApps</span>
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search apps, categories, or IDs"
+                className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+          </div>
+
+          <div
+            className="flex flex-col gap-6 lg:flex-row"
+            data-testid="homepage-catalog"
+          >
             {/* Sidebar Filters */}
-            <aside className="hidden lg:block w-72 shrink-0 space-y-8">
+            <aside className="hidden w-72 shrink-0 space-y-8 lg:block">
               <div className="sticky top-24">
                 <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 mb-6 px-2">
                   <Filter size={20} aria-hidden="true" className="text-neo" />
@@ -277,7 +471,7 @@ export default function LandingPage() {
 
             {/* Main Content */}
             <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 glass-panel p-2 rounded-2xl">
+              <div className="mb-6 flex flex-col justify-between gap-4 rounded-xl border border-gray-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2 overflow-x-auto p-1 no-scrollbar w-full sm:w-auto">
                   {(["featured", "recent", "name"] as const).map((opt) => (
                     <Button
@@ -296,80 +490,27 @@ export default function LandingPage() {
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 px-3">
-                  <div className="bg-gray-200/50 rounded-xl p-1.5 flex items-center border border-gray-300/30">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("grid")}
-                      aria-label="Grid view"
-                      className={cn(
-                        "p-2 rounded-lg transition-all focus-visible:outline-none",
-                        viewMode === "grid"
-                          ? "bg-white text-gray-900 shadow"
-                          : "text-gray-500 hover:text-gray-700",
-                      )}
-                    >
-                      <LayoutGrid size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("list")}
-                      aria-label="List view"
-                      className={cn(
-                        "p-2 rounded-lg transition-all focus-visible:outline-none",
-                        viewMode === "list"
-                          ? "bg-white text-gray-900 shadow"
-                          : "text-gray-500 hover:text-gray-700",
-                      )}
-                    >
-                      <List size={18} />
-                    </button>
-                  </div>
+                <div className="px-3 text-sm font-semibold text-gray-500">
+                  {filteredApps.length} shown
                 </div>
               </div>
 
-              <div
-                className={cn(
-                  "grid gap-6",
-                  viewMode === "grid"
-                    ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                    : "grid-cols-1 gap-4",
-                )}
-              >
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {catalogLoading ? (
-                  Array.from({ length: 6 }, (_, i) => (
+                  Array.from({ length: 6 }, (_, index) => (
                     <div
-                      key={i}
-                      className="glass-card rounded-3xl overflow-hidden"
+                      key={index}
+                      className="h-28 animate-pulse rounded-xl border border-gray-200 bg-white"
                     >
-                      <div className="h-48 w-full bg-gray-200/50 animate-pulse" />
-                      <div className="p-6 space-y-4">
-                        <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 animate-pulse" />
-                        <div className="h-4 w-full rounded-lg bg-gray-200/50 animate-pulse" />
-                        <div className="h-4 w-1/2 rounded-lg bg-gray-200/50 animate-pulse" />
-                      </div>
                     </div>
                   ))
                 ) : filteredApps.length > 0 ? (
-                  filteredApps.map((app, idx) => (
-                    <motion.div
-                      key={app.app_id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-50px" }}
-                      transition={{ duration: 0.5, delay: idx * 0.05 }}
-                      className="group"
-                    >
-                      {viewMode === "grid" ? (
-                        <MiniAppCard app={app} />
-                      ) : (
-                        <MiniAppListItem app={app} />
-                      )}
-                    </motion.div>
+                  filteredApps.map((app) => (
+                    <HomeMiniAppRow key={app.app_id} app={app} spacious />
                   ))
                 ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500 glass-panel rounded-3xl">
-                    <LayoutGrid className="w-16 h-16 mb-4 text-gray-300" />
+                  <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-gray-500">
+                    <LayoutGrid className="mb-4 h-12 w-12 text-gray-300" />
                     <p className="text-xl font-semibold">No apps found</p>
                     <p className="text-sm mt-2">Try adjusting your filters.</p>
                   </div>
@@ -381,20 +522,14 @@ export default function LandingPage() {
       </section>
 
       {/* Account & Oracle Tools */}
-      <section className="py-20 px-4">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-10 flex items-end justify-between gap-6">
+      <section className="bg-white px-4 py-14 sm:px-6">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="mb-6 flex items-end justify-between gap-6">
             <div>
-              <Badge
-                variant="outline"
-                className="mb-4 border-sky-400/30 bg-sky-500/5 px-4 py-1 text-sky-300"
-              >
-                Operator Toolkit
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900">
+              <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
                 Account & Oracle Tools
               </h2>
-              <p className="mt-4 max-w-3xl text-base md:text-lg text-gray-600 font-medium">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
                 Focused miniapps for AA registration, permissions, relay checks,
                 and Morpheus Oracle interaction.
               </p>
@@ -409,31 +544,17 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {catalogLoading ? (
               Array.from({ length: 3 }, (_, i) => (
-                <div key={i} className="glass-card rounded-3xl overflow-hidden">
-                  <div className="h-48 w-full bg-gray-200/50 animate-pulse" />
-                  <div className="p-6 space-y-4">
-                    <div className="h-6 w-3/4 rounded-lg bg-gray-200/50 animate-pulse" />
-                    <div className="h-4 w-full rounded-lg bg-gray-200/50 animate-pulse" />
-                  </div>
-                </div>
+                <div key={i} className="h-24 animate-pulse rounded-xl bg-gray-100" />
               ))
             ) : toolApps && toolApps.length > 0 ? (
-              toolApps.map((app, idx) => (
-                <motion.div
-                  key={app.app_id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.4, delay: idx * 0.04 }}
-                >
-                  <MiniAppCard app={app} />
-                </motion.div>
+              toolApps.map((app) => (
+                <HomeMiniAppRow key={app.app_id} app={app} spacious />
               ))
             ) : (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-500 glass-panel rounded-3xl">
+              <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 py-12 text-gray-500">
                 <Wrench className="w-12 h-12 mb-3 text-gray-300" />
                 <p className="text-base font-semibold">
                   No tools available yet
@@ -448,22 +569,19 @@ export default function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-32 px-4 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-neo/5 blur-[100px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#7000FF]/5 blur-[100px] rounded-full pointer-events-none" />
-
-        <div className="mx-auto max-w-7xl relative z-10">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-black text-gray-900">
-              Why <span className="neo-gradient-text">Build on Neo N3?</span>
+      <section className="bg-[#f6f8fb] px-4 py-16 sm:px-6">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="mb-8">
+            <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
+              Platform Capabilities
             </h2>
-            <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto font-medium">
-              A comprehensive toolkit for developers, bringing extreme
-              performance and native capabilities to the web3 environment.
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
+              The shared shell keeps every app consistent while leaving the top
+              play area free for each product's own gameplay or workflow.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <FeatureItem
               icon={Shield}
               title="Confidential TEE"
@@ -489,49 +607,90 @@ export default function LandingPage() {
       </section>
 
       {/* Hero CTA Section */}
-      <section className="py-24 px-4 pb-40">
-        <div className="mx-auto max-w-6xl">
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            className="relative rounded-[2.5rem] animated-gradient-bg p-1 md:p-1.5 overflow-hidden shadow-[0_0_50px_rgba(0,229,153,0.3)] hover:shadow-[0_0_80px_rgba(112,0,255,0.4)] transition-all duration-700"
-          >
-            <div className="absolute top-0 right-0 p-12 opacity-[0.03] text-black">
-              <Code2 width={340} height={340} aria-hidden="true" />
-            </div>
-
-            <div className="relative z-10 bg-white/95 backdrop-blur-2xl rounded-[2.2rem] h-full p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-10">
-              <div className="max-w-2xl">
-                <h2 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
-                  Supercharge Your Next <br /> Decentralized App.
-                </h2>
-                <p className="mt-6 text-gray-600 text-xl font-medium">
-                  Use our React SDK to embed blockchain interactions, manage
-                  identity, and scale your application effortlessly.
-                </p>
-                <div className="mt-10 flex flex-wrap gap-4">
-                  <Button className="bg-gray-900 border border-gray-900 text-white hover:bg-gray-800 px-10 h-14 rounded-full text-lg font-bold transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 block sm:inline-flex items-center justify-center">
-                    Get Started <ChevronRight className="ml-2 w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="border-gray-200 text-gray-900 bg-transparent hover:bg-gray-100 px-8 h-14 rounded-full text-lg font-bold transition-all"
-                  >
-                    View Documentation
-                  </Button>
-                </div>
-              </div>
-
-              <div className="hidden lg:block relative w-64 h-64">
-                <div className="absolute inset-0 bg-neo/20 blur-[60px] rounded-full" />
-                <div className="relative h-full w-full rounded-[2rem] border border-white/20 glass-panel flex items-center justify-center group">
-                  <Rocket className="w-24 h-24 text-neo group-hover:-translate-y-3 group-hover:scale-110 transition-all duration-500 ease-out" />
-                </div>
-              </div>
-            </div>
-          </motion.div>
+      <section className="bg-white px-4 py-16 sm:px-6">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-gray-200 bg-gray-950 p-6 text-white shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
+          <div>
+            <h2 className="m-0 text-2xl font-black md:text-3xl">
+              Build and publish a Neo MiniApp.
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">
+              Use the same shell, wallet adapters, operation panel, media
+              pipeline, and catalog validation that the flagship apps use.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/developer">
+              <Button className="h-12 rounded-lg bg-neo px-5 text-sm font-bold text-gray-950 hover:bg-neo/90">
+                Start Building
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/docs">
+              <Button
+                variant="outline"
+                className="h-12 rounded-lg border-white/20 bg-transparent px-5 text-sm font-bold text-white hover:bg-white/10"
+              >
+                Read Docs
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
     </Layout>
+  );
+}
+
+function HomeMiniAppRow({
+  app,
+  spacious = false,
+}: {
+  app: MiniAppInfo;
+  spacious?: boolean;
+}) {
+  const live = Boolean(app.contract_hash);
+  return (
+    <Link
+      href={`/miniapps/${app.app_id}`}
+      className={cn(
+        "group flex min-w-0 items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-emerald-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500",
+        spacious && "p-4",
+      )}
+    >
+      <MiniAppLogo
+        appId={app.app_id}
+        category={app.category}
+        entryUrl={app.entry_url}
+        logoUrl={app.logo_url}
+        manifest={app.manifest || null}
+        size={spacious ? "lg" : "md"}
+        className="shrink-0"
+        alt={app.name}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-bold text-gray-900">
+            {app.name}
+          </span>
+          <span
+            className={cn(
+              "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
+              live
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-gray-200 bg-gray-50 text-gray-500",
+            )}
+          >
+            {live ? "Live" : "Tool"}
+          </span>
+        </span>
+        <span className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+          {app.description}
+        </span>
+      </span>
+      <ArrowUpRight
+        className="h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-emerald-600"
+        aria-hidden="true"
+      />
+    </Link>
   );
 }
 
@@ -540,20 +699,19 @@ function FeatureItem({
   title,
   desc,
 }: {
-  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  icon: ComponentType<{ size?: number | string; className?: string }>;
   title: string;
   desc: string;
 }) {
   return (
-    <Card className="glass-card hover:border-neo/50 p-8 border border-gray-200 bg-white/50 text-left hover:-translate-y-2 transition-all duration-500 rounded-[2rem] group relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-neo/5 group-hover:bg-neo/10 blur-[40px] rounded-full transition-all duration-500" />
-      <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-900 mb-6 group-hover:scale-110 group-hover:bg-neo group-hover:text-dark-950 group-hover:border-neo transition-all duration-500 shadow-sm relative z-10">
+    <Card className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:border-emerald-300 hover:shadow-md">
+      <div className="relative z-10 mb-5 flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-900 transition-colors group-hover:border-emerald-200 group-hover:bg-emerald-50 group-hover:text-emerald-700">
         <Icon size={26} aria-hidden="true" />
       </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-4 relative z-10">
+      <h3 className="relative z-10 mb-3 text-lg font-bold text-gray-900">
         {title}
       </h3>
-      <p className="text-gray-600 text-base leading-relaxed font-medium relative z-10">
+      <p className="relative z-10 text-sm font-medium leading-6 text-gray-600">
         {desc}
       </p>
     </Card>

@@ -100,18 +100,10 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         <NeoButton
           variant="secondary"
           loading={isRequesting}
-          aria-label={t("previewRecipe") || "Preview Recipe"}
-          onClick={() => dispatch("previewRecipePayload")}
+          aria-label={t("buildRecipe") || "Build Recipe"}
+          onClick={() => dispatch("buildRecipePayload")}
         >
-          {t("previewRecipe") || "Preview Recipe"}
-        </NeoButton>
-        <NeoButton
-          variant="secondary"
-          loading={isRequesting}
-          aria-label={t("requestRandomness") || "Jitter"}
-          onClick={() => dispatch("loadJitter")}
-        >
-          {t("requestRandomness") || "Jitter"}
+          {t("buildRecipe") || "Build Recipe"}
         </NeoButton>
       </div>
 

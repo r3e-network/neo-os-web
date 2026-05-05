@@ -104,4 +104,22 @@ describe("/api/rpc/neo", () => {
     expect(res._getStatusCode()).toBe(400);
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  it("rejects calls that do not explicitly select mainnet or testnet", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        method: "sendrawtransaction",
+        params: ["signed-tx"],
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: "network must be explicitly set to mainnet or testnet",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 });

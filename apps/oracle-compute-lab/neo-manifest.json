@@ -30,9 +30,13 @@
     "icon": "/miniapps/oracle-compute-lab/logo.jpg",
     "banner": "/miniapps/oracle-compute-lab/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": {
+    "read": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "datafeed": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

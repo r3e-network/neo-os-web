@@ -19,6 +19,9 @@
     "neo-n3-mainnet": "0xfb5d6b25c974a301e34c570dd038de8c25f3ae56",
     "neo-n3-testnet": "0x5cdf29c30727ce06696736ae0fb49abd9fd79730"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "onchaintarot.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
