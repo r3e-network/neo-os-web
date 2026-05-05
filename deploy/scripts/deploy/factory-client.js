@@ -390,7 +390,7 @@ const TEMPLATES = {
     type: 'priceticker',
     category: 'defi',
     configSchema: {
-      assets: { type: 'array', default: ['NEO', 'GAS', 'FLM'] },
+      assets: { type: 'array', default: ['NEO', 'GAS'] },
       updateInterval: { type: 'integer', default: 300 }
     }
   }
