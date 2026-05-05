@@ -55,7 +55,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         {
             string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
 
-            Assert.Contains("GetRewardReserve(appId) + GetTotalGasCredit() + amount", code);
+            Assert.Contains("GetTotalRewardReserve() + GetTotalGasCredit() + amount", code);
+            Assert.Contains("PutTotalRewardReserve(GetTotalRewardReserve() + amount)", code);
+            Assert.Contains("PutTotalRewardReserve(GetTotalRewardReserve() - amount)", code);
             Assert.Contains("Runtime.CheckWitness(funder)", code);
             Assert.Contains("private static void ConsumeGasCredit(UInt160 user, BigInteger amount)", code);
         }
