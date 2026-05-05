@@ -18,11 +18,15 @@ import {
   WalletConnectionError,
   WalletTransactionError,
 } from "./base";
+import {
+  MAINNET_MAGIC,
+  TESTNET_MAGIC,
+  normalizeNeoNetwork,
+  type NeoNetwork,
+} from "@/lib/neo-network";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const MAINNET_MAGIC = 860833102;
-const TESTNET_MAGIC = 894710606;
 
 type DapiEventName = "accountchanged" | "accountschanged" | "networkchanged";
 
@@ -234,7 +238,12 @@ export class Nep21Adapter implements WalletAdapter {
       if (account?.hash) {
         this.accountHash = account.hash;
         this.address = account.address || account.hash;
-        return { address: this.address, publicKey: "", label: account.label };
+        return {
+          address: this.address,
+          publicKey: "",
+          label: account.label,
+          network: normalizeNeoNetwork(provider.network),
+        };
       }
 
       if (!provider.authenticate) {
@@ -252,7 +261,11 @@ export class Nep21Adapter implements WalletAdapter {
       if (!authenticated.address) throw new WalletConnectionError("NEP-21 wallet authentication did not return an address");
       this.accountHash = null;
       this.address = authenticated.address;
-      return { address: authenticated.address, publicKey: authenticated.pubkey || "" };
+      return {
+        address: authenticated.address,
+        publicKey: authenticated.pubkey || "",
+        network: normalizeNeoNetwork(authenticated.network ?? provider.network),
+      };
     } catch (error) {
       if (error instanceof WalletConnectionError) throw error;
       throw new WalletConnectionError(`Failed to connect NEP-21 wallet: ${error instanceof Error ? error.message : String(error)}`);
@@ -262,6 +275,11 @@ export class Nep21Adapter implements WalletAdapter {
   async disconnect(): Promise<void> {
     this.accountHash = null;
     this.address = null;
+  }
+
+  async getNetwork(): Promise<NeoNetwork | null> {
+    const provider = await this.getProvider();
+    return normalizeNeoNetwork(provider.network);
   }
 
   onAccountChanged(listener: () => void | Promise<void>): () => void {

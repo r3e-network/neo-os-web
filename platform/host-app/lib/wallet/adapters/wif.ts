@@ -8,6 +8,7 @@
 import type * as NeoSdk from "@r3e/neo-js-sdk/browser";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { logger } from "@/lib/logger";
+import type { NeoNetwork } from "@/lib/neo-network";
 import {
   InvokeParams,
   SignedMessage,
@@ -22,7 +23,6 @@ import {
 type NeoBrowserSdk = typeof NeoSdk;
 type NeoAccount = ReturnType<NeoBrowserSdk["Account"]["fromWIF"]>;
 type ContractParamInput = Parameters<NeoBrowserSdk["sc"]["ContractParam"]["fromJson"]>[0];
-type NeoNetwork = "mainnet" | "testnet";
 
 type NeoRpcEnvelope<T> = {
   jsonrpc?: string;
@@ -78,7 +78,6 @@ type NormalizedInvocation = {
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-const DEFAULT_NETWORK_FEE = 5_000_000n;
 const VALID_UNTIL_BLOCK_DELTA = 5_760;
 const DEFAULT_MAX_SYSTEM_FEE_GAS = "20";
 
@@ -370,6 +369,7 @@ export class WifAdapter implements WalletAdapter {
       address: this.account.address,
       publicKey: String(this.account.publicKey),
       label: "Direct WIF",
+      network: getRpcNetwork(),
     };
   }
 
@@ -388,6 +388,7 @@ export class WifAdapter implements WalletAdapter {
         address: account.address,
         publicKey: String(account.publicKey),
         label: "Direct WIF",
+        network: getRpcNetwork(),
       };
     } catch (error) {
       this.wif = null;
@@ -401,6 +402,10 @@ export class WifAdapter implements WalletAdapter {
   async disconnect(): Promise<void> {
     this.wif = null;
     this.account = null;
+  }
+
+  async getNetwork(): Promise<NeoNetwork> {
+    return getRpcNetwork();
   }
 
   async getBalance(address: string): Promise<WalletBalance> {
@@ -481,16 +486,17 @@ export class WifAdapter implements WalletAdapter {
         wif: this.wif,
       });
 
-      let networkFee = DEFAULT_NETWORK_FEE;
+      let networkFee: bigint;
       try {
         const fee = await neoRpc<NeoRpcNetworkFeeResult>(network, "calculatenetworkfee", [
           serializeTransactionBase64(sdk, draft),
         ]);
         networkFee = parseFixed8(fee.networkfee || "0");
       } catch (error) {
-        logger.warn(
-          "[wif-wallet] calculatenetworkfee failed, using fallback:",
-          error instanceof Error ? error.message : String(error),
+        throw new Error(
+          `network fee estimation failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
       }
 

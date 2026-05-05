@@ -8,6 +8,23 @@ import {
 } from "@/lib/miniapp-media";
 
 describe("miniapp-media helpers", () => {
+  const originalMediaBase = process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL;
+  const originalAssetBase = process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL;
+
+  afterEach(() => {
+    if (originalMediaBase === undefined) {
+      delete process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = originalMediaBase;
+    }
+
+    if (originalAssetBase === undefined) {
+      delete process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL;
+    } else {
+      process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL = originalAssetBase;
+    }
+  });
+
   describe("resolveMiniAppSlug", () => {
     it("extracts slug from /miniapps entry URL", () => {
       expect(resolveMiniAppSlug("miniapp-fogplay", "/miniapps/fogplay/")).toBe("fogplay");
@@ -66,6 +83,24 @@ describe("miniapp-media helpers", () => {
         bannerURL: "/miniapp-assets/neo-swap/banner.jpg",
       });
     });
+
+    it("can serve primary assets from an external media base", () => {
+      process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
+
+      expect(getMiniAppPrimaryAssets("miniapp-gasbox", "/miniapps/gasbox/")).toEqual({
+        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
+        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.jpg",
+      });
+    });
+
+    it("does not duplicate the miniapp-assets prefix when the base already includes it", () => {
+      process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL = "https://media.neomini.app/miniapp-assets";
+
+      expect(getMiniAppPrimaryAssets("miniapp-gasbox", "/miniapps/gasbox/")).toEqual({
+        logoURL: "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
+        bannerURL: "https://media.neomini.app/miniapp-assets/gasbox/banner.jpg",
+      });
+    });
   });
 
   describe("buildMiniAppLogoSources", () => {
@@ -89,6 +124,35 @@ describe("miniapp-media helpers", () => {
           "/miniapps/gasbox/static/icon.svg",
         ]),
       );
+    });
+
+    it("rewrites bundled fallback logo paths to the configured media base", () => {
+      process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-gasbox",
+        entryURL: "/miniapps/gasbox/",
+        logoURL: "/custom/logo.png",
+      });
+
+      expect(result[0]).toBe("/custom/logo.png");
+      expect(result).toEqual(
+        expect.arrayContaining([
+          "https://media.neomini.app/miniapp-assets/gasbox/logo.jpg",
+          "https://media.neomini.app/miniapp-assets/gasbox/logo.svg",
+          "/miniapps/gasbox/logo.jpg",
+        ]),
+      );
+    });
+
+    it("rewrites explicit bundled logo URLs to the configured media base", () => {
+      process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-gasbox",
+        entryURL: "/miniapps/gasbox/",
+        logoURL: "/miniapp-assets/custom-app/logo.jpg",
+      });
+
+      expect(result[0]).toBe("https://media.neomini.app/miniapp-assets/custom-app/logo.jpg");
     });
 
     it("prefers generated host icons for apps with legacy static media", () => {
@@ -249,8 +313,18 @@ describe("miniapp-media helpers", () => {
   });
 
   describe("buildModernImageSources", () => {
-    it("does not invent speculative modern asset URLs", () => {
-      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({});
+    it("derives modern variants for managed miniapp media assets", () => {
+      expect(buildModernImageSources("/miniapp-assets/fogplay/banner.jpg")).toEqual({
+        avif: "/miniapp-assets/fogplay/banner.avif",
+        webp: "/miniapp-assets/fogplay/banner.webp",
+      });
+    });
+
+    it("preserves query strings when deriving managed modern variants", () => {
+      expect(buildModernImageSources("https://media.neomini.app/miniapp-assets/fogplay/logo.jpeg?v=1")).toEqual({
+        avif: "https://media.neomini.app/miniapp-assets/fogplay/logo.avif?v=1",
+        webp: "https://media.neomini.app/miniapp-assets/fogplay/logo.webp?v=1",
+      });
     });
 
     it("keeps external and vector assets on their original source", () => {

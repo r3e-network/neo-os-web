@@ -18,6 +18,32 @@ test.describe("Homepage", () => {
     await expect(connectBtn).toBeVisible();
   });
 
+  test("should enable every catalog miniapp while featuring only the flagship nine", async ({ page }) => {
+    const catalogResponse = await page.request.get("/api/miniapps/catalog");
+    expect(catalogResponse.ok()).toBeTruthy();
+    const body = await catalogResponse.json();
+    const enabledApps = Array.isArray(body.apps)
+      ? body.apps.filter((app: { status?: string }) => app.status !== "disabled")
+      : [];
+
+    expect(enabledApps.length).toBeGreaterThan(9);
+    await expect(
+      page
+        .getByTestId("homepage-featured-apps")
+        .locator('a[href^="/miniapps/miniapp-"]'),
+    ).toHaveCount(9);
+    await expect(
+      page
+        .getByTestId("homepage-catalog")
+        .locator('a[href^="/miniapps/miniapp-"]'),
+    ).toHaveCount(enabledApps.length);
+    await expect(
+      page
+        .getByTestId("homepage-catalog")
+        .locator('a[href="/miniapps/miniapp-onchaintarot"]'),
+    ).toBeVisible();
+  });
+
   test("should navigate to MiniApps page", async ({ page }) => {
     const nav = page.getByRole("navigation", { name: "Main navigation" });
     const isDesktop = (page.viewportSize()?.width ?? 1280) >= 768;

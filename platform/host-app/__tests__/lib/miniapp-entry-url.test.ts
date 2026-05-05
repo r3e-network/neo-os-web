@@ -1,5 +1,6 @@
 import {
   isManifestMiniAppEntryUrl,
+  normalizeMiniAppDappUrl,
   normalizeMiniAppEntryUrl,
   resolveMiniAppEntryUrlOrManifest,
 } from "@/lib/miniapp-entry-url";
@@ -21,5 +22,11 @@ describe("miniapp-entry-url", () => {
 
   it("falls back to manifest entry when url is invalid", () => {
     expect(resolveMiniAppEntryUrlOrManifest("not a url", "miniapp-demo")).toBe("mf://manifest?app=miniapp-demo");
+  });
+
+  it("normalizes standalone dapp urls while rejecting manifest runtime entries", () => {
+    expect(normalizeMiniAppDappUrl("/miniapps/demo/index.html")).toBe("/miniapps/demo/index.html");
+    expect(normalizeMiniAppDappUrl("wallet.matrix/apps/demo")).toBe("https://wallet.matrix/apps/demo");
+    expect(normalizeMiniAppDappUrl("mf://manifest?app=miniapp-demo")).toBeNull();
   });
 });

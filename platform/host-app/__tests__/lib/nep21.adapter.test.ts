@@ -19,6 +19,7 @@ describe("Nep21Adapter", () => {
 
   it("connects, reads balances, signs messages, and invokes through a NEP-21 provider", async () => {
     const provider = {
+      network: 894710606,
       getAccounts: jest.fn().mockResolvedValue([
         { hash: "0xuserhash", address: "NUserAddress", label: "Main", isDefault: true },
       ]),
@@ -41,7 +42,9 @@ describe("Nep21Adapter", () => {
       address: "NUserAddress",
       publicKey: "",
       label: "Main",
+      network: "testnet",
     });
+    await expect(adapter.getNetwork()).resolves.toBe("testnet");
     await expect(adapter.getBalance("NUserAddress")).resolves.toEqual({
       neo: "10",
       gas: "25.5",
@@ -85,6 +88,7 @@ describe("Nep21Adapter", () => {
     await expect(adapter.connect()).resolves.toEqual({
       address: "NAuthAddress",
       publicKey: "03authpub",
+      network: null,
     });
     expect(provider.authenticate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,6 +146,7 @@ describe("Nep21Adapter", () => {
       address: "NEventAddress",
       publicKey: "",
       label: undefined,
+      network: null,
     });
   });
 });

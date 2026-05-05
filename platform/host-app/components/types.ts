@@ -14,6 +14,7 @@ export type MiniAppInfo = {
   docs_url?: string | null;
   category: MiniAppCategory;
   entry_url: string;
+  dapp_url?: string | null;
   contract_hash?: string | null;
   news_integration?: boolean | null;
   stats_display?: string[] | null;
@@ -34,6 +35,10 @@ export type MiniAppInfo = {
     randomness?: boolean;
     datafeed?: boolean;
     confidential?: boolean;
+    oracle?: boolean;
+    compute?: boolean;
+    storage?: boolean;
+    cross_chain?: boolean;
     aa?: boolean;
   };
   limits?: {
@@ -145,6 +150,18 @@ export type WalletState = {
   address: string;
   provider: "nep21" | "neoline" | "o3" | "onegate" | null;
   balance?: { neo: string; gas: string };
+};
+
+export type MiniAppLaunchContext = {
+  appId: string | null;
+  source: string;
+  operation: string | null;
+  tab: string | null;
+  network: "mainnet" | "testnet" | null;
+  params: Record<string, string>;
+  keys: string[];
+  hasParams: boolean;
+  signature: string;
 };
 
 // =============================================================================

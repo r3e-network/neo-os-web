@@ -7,6 +7,9 @@
     "neo-n3-mainnet": "0x1d476b067a180bc54ee4f90c91489ffa123759a4",
     "neo-n3-testnet": "0x389aa2c619f0cfed5b495dd8638107d20f37e086"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "devtipping.miniapp.neo"
+  },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
   "description": "Tip and appreciate developers with crypto",

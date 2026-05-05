@@ -8,12 +8,15 @@ import { isMissingSupabaseSchemaObject, parsePostgrestErrorResponse } from "./su
 import { getSupabaseEnv } from "./supabase-env";
 import { applyMiniAppReleaseDefaults } from "./miniapp-builtins";
 import { filterArchivedMiniApps, isArchivedMiniAppId } from "./archived-miniapps";
+import { getPlatformRuntimeModules, supportsRuntimeNetwork } from "./miniapp-runtime";
 
 type MiniAppStatus = "active" | "pending" | "disabled";
 
 type LoadMiniAppCatalogOptions = {
   includeManifest?: boolean;
 };
+
+export type CatalogNetwork = "neo-n3-mainnet" | "neo-n3-testnet";
 
 type MiniAppRow = {
   app_id?: string;
@@ -47,6 +50,62 @@ function useLocalCatalogOnly(): boolean {
   return process.env.NODE_ENV === "test"
     || process.env.PLAYWRIGHT === "1"
     || process.env.MINIAPP_CATALOG_SOURCE === "local";
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+export function normalizeCatalogNetwork(value: unknown): CatalogNetwork | null {
+  const raw = asString(value).toLowerCase();
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "neo-n3-mainnet";
+  if (raw === "testnet" || raw === "neo-n3-testnet") return "neo-n3-testnet";
+  return null;
+}
+
+export function resolveCatalogNetwork(value?: unknown): CatalogNetwork | null {
+  return normalizeCatalogNetwork(value)
+    || normalizeCatalogNetwork(process.env.NEO_TARGET_NETWORK)
+    || normalizeCatalogNetwork(process.env.FLAGSHIP_NETWORK)
+    || normalizeCatalogNetwork(process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK)
+    || normalizeCatalogNetwork(process.env.NEXT_PUBLIC_FLAGSHIP_NETWORK);
+}
+
+function getContractHashForNetwork(contracts: Record<string, unknown>, network: CatalogNetwork): string {
+  const shortKey = network === "neo-n3-mainnet" ? "mainnet" : "testnet";
+  return asString(contracts[network] ?? contracts[shortKey]);
+}
+
+export function supportsCatalogNetwork(app: MiniAppInfo, network: CatalogNetwork | null): boolean {
+  if (!network) return true;
+
+  const manifest = asObject(app.manifest);
+  const supported = Array.isArray(manifest.supported_networks)
+    ? manifest.supported_networks.map(normalizeCatalogNetwork).filter(Boolean)
+    : [];
+  if (supported.length > 0 && !supported.includes(network)) return false;
+
+  const hasPlatformRuntime = getPlatformRuntimeModules(app).length > 0;
+  if (supportsRuntimeNetwork(app, network)) return true;
+
+  const contracts = asObject(manifest.contracts);
+  const manifestHasAnyContract = Object.values(contracts).some((value) => Boolean(asString(value)));
+  const topLevelContractHash = asString(app.contract_hash);
+  if (hasPlatformRuntime && !manifestHasAnyContract && !topLevelContractHash) return false;
+  if (!manifestHasAnyContract) return Boolean(topLevelContractHash) || supported.length > 0 || !manifest.supported_networks;
+
+  return Boolean(getContractHashForNetwork(contracts, network));
+}
+
+export function filterCatalogByNetwork(apps: MiniAppInfo[], network: CatalogNetwork | null): MiniAppInfo[] {
+  if (!network) return apps;
+  return apps.filter((app) => supportsCatalogNetwork(app, network));
 }
 
 async function fetchMiniAppsFromSupabase(status: MiniAppStatus, options: LoadMiniAppCatalogOptions = {}): Promise<MiniAppInfo[]> {

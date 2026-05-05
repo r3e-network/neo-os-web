@@ -30,9 +30,12 @@
     "icon": "/miniapps/oracle-seal-console/logo.jpg",
     "banner": "/miniapps/oracle-seal-console/banner.jpg"
   },
-  "permissions": [
-    "read:blockchain"
-  ],
+  "permissions": {
+    "read": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

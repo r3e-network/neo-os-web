@@ -23,6 +23,9 @@
     "neo-n3-mainnet": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
     "neo-n3-testnet": "0x4c61e5575ae9e151027f6724d07fac127d4cc25f"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "councilgovernance.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

@@ -23,6 +23,9 @@
     "neo-n3-mainnet": "0x7742a80565ef04c0b7487d1679e6efbeb2d0c6a9",
     "neo-n3-testnet": "0xf7e2a2681e66aa5e0379bd2f4590c5a0ff0ad8d8"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "breakupcontract.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

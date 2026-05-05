@@ -75,7 +75,9 @@ const T_LAST_SURVIVOR = gaming(
     "First bid adds 60 min; each next bid adds slightly less, down to 1 min.",
     "When the timer hits zero, the last bidder wins the pot (minus platform fee).",
   ],
-  []
+  [
+    op("Buy Keys", "buyCountdownKeys", "primary", [wallet("player", "Player"), int("keyCount", "Keys", "1")]),
+  ]
 );
 
 const T_DAILY_CHECKIN: AppTemplate = {

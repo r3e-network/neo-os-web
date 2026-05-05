@@ -100,12 +100,37 @@
     ],
     "operation_panel": {
       "title": "LastSurvivor",
-      "subtitle": "Each GAS transfer buys 1 key and extends the timer.",
+      "subtitle": "Buy keys while live; expired rounds are rolled forward automatically by the lifecycle keeper.",
       "cta_label": "Open LastSurvivor",
       "operations": []
     }
   },
-  "operations": [],
+  "operations": [
+    {
+      "name": "Buy Keys",
+      "method": "buyCountdownKeys",
+      "description": "Prepay GAS, buy keys for the active round, and extend the countdown.",
+      "button_style": "primary",
+      "params": [
+        {
+          "name": "player",
+          "type": "hash160",
+          "label": "Player",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "keyCount",
+          "type": "integer",
+          "label": "Keys",
+          "required": true,
+          "default_value": "1",
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
   "integration": {
     "news_integration": true,
     "reviews_enabled": true,
@@ -121,7 +146,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "LastSurvivor",
-      "subtitle": "Each GAS transfer buys 1 key and extends the timer."
+      "subtitle": "Buy keys while live; expired rounds are rolled forward automatically by the lifecycle keeper."
     }
   }
 }

@@ -1,10 +1,8 @@
 /**
  * useAutomationCopilot — Domain logic for Automation Copilot.
  *
- * Reads price feed directly from on-chain MorpheusDataFeed (no off-chain
- * HTTP). Randomness is derived locally from crypto.getRandomValues for
- * the recipe-jitter use case (this is a UI/recipe preview tool — the
- * actual on-chain VRF flow lives in flagship contracts like fogplay).
+ * Reads price feed directly from on-chain MorpheusDataFeed (no off-chain HTTP)
+ * and builds a deterministic automation recipe payload from user input.
  */
 
 import { createObservable } from "@shared/react/context";
@@ -14,16 +12,6 @@ import { EXTERNAL_INTEGRATIONS, getNetwork } from "@shared/constants/rpc";
 
 export interface UseAutomationCopilotOptions {
   t: (key: string, params?: Record<string, string | number>) => string;
-}
-
-function jitterBytesHex(): string {
-  const bytes = new Uint8Array(32);
-  if (typeof globalThis.crypto?.getRandomValues === "function") {
-    globalThis.crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
@@ -90,9 +78,9 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     }
   }
 
-  function previewRecipePayload() {
+  function buildRecipePayload() {
     latestPayload.set({
-      kind: "recipe_preview",
+      kind: "automation_recipe",
       trigger: {
         type: "price_threshold",
         asset: asset.get(),
@@ -108,19 +96,6 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
         request_response_isolation: true,
       },
       network,
-    });
-    return { success: true };
-  }
-
-  function loadJitter() {
-    // Local-only jitter (32 random bytes) for recipe scheduling preview.
-    // For verifiable on-chain randomness, see how flagship contracts like
-    // fogplay invoke the MorpheusOracle directly via a contract callback.
-    latestPayload.set({
-      kind: "jitter",
-      asset: asset.get(),
-      jitter_bytes_hex: jitterBytesHex(),
-      note: "local pseudorandomness for recipe preview only — not verifiable randomness",
     });
     return { success: true };
   }
@@ -143,8 +118,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
     datafeedHash,
     isRequesting,
     fetchCurrentPrice,
-    previewRecipePayload,
-    loadJitter,
+    buildRecipePayload,
     loadAll,
   };
 }

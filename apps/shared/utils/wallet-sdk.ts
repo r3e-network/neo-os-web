@@ -33,6 +33,8 @@ const ERROR_CODE_SPONSORSHIP_REQUEST_FAILED =
 const ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE =
   "WALLET_MINIAPP_CONTRACT_UNAVAILABLE";
 const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
+const ERROR_CODE_WALLET_NETWORK_UNVERIFIED = "WALLET_NETWORK_UNVERIFIED";
+const ERROR_CODE_WALLET_NETWORK_MISMATCH = "WALLET_NETWORK_MISMATCH";
 
 // Re-export types that were previously in @neo/types
 export interface WalletSDK {
@@ -280,6 +282,7 @@ declare global {
   interface Window {
     NEOLineN3?: { Init: new () => NeoLineN3 };
     neo3Dapi?: NeoLineN3;
+    OneGateDapiProvider?: NeoDapiProvider;
     Neo?: { DapiProvider?: NeoDapiProvider };
     neoDapiProvider?: NeoDapiProvider;
     neoDapi?: NeoDapiProvider;
@@ -456,6 +459,7 @@ function readImmediateDapiProvider(): NeoDapiProvider | null {
   if (cachedDapiProvider) return cachedDapiProvider;
   if (typeof window === "undefined") return null;
   const candidates = [
+    window.OneGateDapiProvider,
     window.Neo?.DapiProvider,
     window.neoDapiProvider,
     window.neoDapi,
@@ -507,6 +511,17 @@ function resolveNetworkFromMagic(network?: number): NeoNetwork | null {
   if (network === MAINNET_MAGIC) return "mainnet";
   if (network === TESTNET_MAGIC) return "testnet";
   return null;
+}
+
+function resolveNetworkFromChainId(chainIdValue?: string | null): NeoNetwork | null {
+  const raw = String(chainIdValue ?? "").trim().toLowerCase();
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return "mainnet";
+  if (raw === "testnet" || raw === "neo-n3-testnet") return "testnet";
+  return null;
+}
+
+function networkLabel(network: NeoNetwork): string {
+  return network === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 }
 
 function chainTypeFromDapiNetwork(network?: number): string {
@@ -602,7 +617,7 @@ export function invalidateManifestCache(): void {
 }
 
 function isStaticMiniAppRuntimePath(pathname: string): boolean {
-  const [root, slug] = pathname.split("/").filter(Boolean);
+  const [root = "", slug = ""] = pathname.split("/").filter(Boolean);
   return root === "miniapps" && Boolean(slug) && !slug.startsWith("miniapp-");
 }
 
@@ -761,6 +776,31 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     chainId.value = nextChainType;
   };
 
+  const assertWalletMatchesAppNetwork = () => {
+    const targetNetwork = getNetwork();
+    const walletNetwork = resolveNetworkFromChainId(chainId.value);
+    if (!walletNetwork) {
+      throw new MiniAppError(
+        `Wallet network is not verified. Reconnect with a NEP-21 wallet on ${networkLabel(targetNetwork)}.`,
+        ERROR_CODE_WALLET_NETWORK_UNVERIFIED,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_WALLET_NETWORK_UNVERIFIED,
+      );
+    }
+    if (walletNetwork !== targetNetwork) {
+      throw new MiniAppError(
+        `Wallet is on ${networkLabel(walletNetwork)} but this DApp targets ${networkLabel(targetNetwork)}. Switch wallet network before submitting.`,
+        ERROR_CODE_WALLET_NETWORK_MISMATCH,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_WALLET_NETWORK_MISMATCH,
+      );
+    }
+  };
+
   const setDapiAccount = (account: NeoDapiAccount) => {
     dapiAccountHash = account.hash;
     address.value = account.address || account.hash;
@@ -846,6 +886,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    assertWalletMatchesAppNetwork();
 
     if (wallet.kind === "nep21") {
       if (!wallet.provider.invoke) {
@@ -879,6 +920,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    assertWalletMatchesAppNetwork();
 
     if (wallet.kind === "nep21") {
       if (!wallet.provider.invoke) {
@@ -924,6 +966,8 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
   const invokeRead = async (params: InvokeParams): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
+    if (!address.value) await connect();
+    assertWalletMatchesAppNetwork();
     if (wallet.kind === "nep21") {
       if (!wallet.provider.call) {
         throw new MiniAppError(
@@ -948,6 +992,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const getBalance = async (asset: string): Promise<string | number> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) return "0";
+    assertWalletMatchesAppNetwork();
 
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
@@ -982,6 +1027,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   ): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
+    assertWalletMatchesAppNetwork();
 
     const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
     const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";

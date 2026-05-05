@@ -244,6 +244,14 @@ export interface PlatformPermissions {
   aa?: boolean;
   /** Access to off-chain compute */
   compute?: boolean;
+  /** Access to Morpheus confidential payload handling */
+  confidential?: boolean;
+  /** Access to Morpheus oracle request/callback services */
+  oracle?: boolean;
+  /** Access to platform storage services */
+  storage?: boolean;
+  /** Access to bridge/cross-chain services */
+  cross_chain?: boolean;
   /** Access to keeper/automation services */
   automation?: boolean;
 }

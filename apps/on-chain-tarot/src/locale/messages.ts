@@ -32,10 +32,6 @@ const appMessages = {
     en: "Oracle verified reading. Card IDs were returned by the service layer.",
     zh: "预言机验证解读：卡牌结果由服务层返回。",
   },
-  localPreview: {
-    en: "Local preview mode. The oracle backend is unavailable, so this reading is for play testing only.",
-    zh: "本地预览模式：预言机后端暂不可用，本次抽牌仅用于试玩验证。",
-  },
   neoDeck: { en: "Neo Oracle Deck", zh: "Neo 预言机牌组" },
   fullDeck: { en: "78 Neo-styled tarot cards", zh: "78 张 Neo 风格塔罗牌" },
   deckHint: {

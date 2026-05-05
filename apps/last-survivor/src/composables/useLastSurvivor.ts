@@ -13,7 +13,6 @@
  *     chain.read("getPlayerKeys", [{ type: "Hash160", value: addr }])
  *     chain.invoke("transfer", [...], { scriptHash: GAS_HASH })
  *     chain.invoke("buyKeysWithCost", [...])
- *     chain.invoke("checkAndEndRound", [...])
  *     chain.listEvents("KeysPurchased", { limit: 20 })
  *
  *   AFTER (OS proxy):
@@ -21,7 +20,6 @@
  *     ctx.os.storage.get(`playerKeys:${roundId}`)
  *     ctx.os.payment.deposit(amount, memo)
  *     ctx.os.game.placeBet("current", keyCount)
- *     ctx.os.game.settle("current", { claim: true })
  *     ctx.os.storage.list("events:")
  *     ctx.os.leaderboard.get(10)
  *
@@ -132,7 +130,6 @@ export function useLastSurvivor({
   const keyValidationError = createObservable<string | null>(null);
   const history = createObservable<HistoryEvent[]>([]);
   const isBuyingKeys = createObservable(false);
-  const isClaiming = createObservable(false);
   const isLoading = createObservable(false);
   const totalKeysInRound = createObservable(0n);
 
@@ -187,7 +184,7 @@ export function useLastSurvivor({
   const totalPotDisplay = createDerived(() => `${formatNumber(totalPot.get(), 2)} ${t("tokenGas")}`, []);
   const roundStatusDisplay = createDerived(() => isRoundActive.get() ? t("activeRound") : t("inactiveRound"), []);
 
-  const canClaim = createDerived(() => {
+  const needsLifecycleSync = createDerived(() => {
     return (
       !isRoundActive.get() &&
       !!lastBuyer.get() &&
@@ -381,33 +378,6 @@ export function useLastSurvivor({
     }
   };
 
-  /**
-   * Claim prize via GameProxy (settle round) + PaymentProxy (withdraw).
-   *
-   * The OS game service calls checkAndEndRound on the contract.
-   * The payment is automatically settled to the winner by the edge function.
-   */
-  const claimPrize = async () => {
-    if (isClaiming.get()) return;
-    isClaiming.set(true);
-    try {
-      // Settle the round — the edge function handles prize distribution
-      await gameService.settle("current", { claim: true });
-
-      // Submit the winning score to the leaderboard
-      await leaderboardService.submitScore(String(totalPot.get()));
-
-      // Hint badge service about winner achievement (fire-and-forget)
-      badgeService.award("survivor-winner", "").catch(() => {});
-
-      await loadAll();
-    } catch (e) {
-      throw e;
-    } finally {
-      isClaiming.set(false);
-    }
-  };
-
   return {
     // ── Raw State ───────────────────────────────────────────────────
     roundId,
@@ -419,7 +389,6 @@ export function useLastSurvivor({
     keyValidationError,
     history,
     isBuyingKeys,
-    isClaiming,
     isLoading,
 
     // ── Timer State ─────────────────────────────────────────────────
@@ -436,13 +405,12 @@ export function useLastSurvivor({
     formattedRound,
     totalPotDisplay,
     roundStatusDisplay,
-    canClaim,
+    needsLifecycleSync,
     estimatedCost,
     estimatedCostRaw,
 
     // ── Actions ─────────────────────────────────────────────────────
     buyKeys,
-    claimPrize,
     loadAll,
     loadUserKeys,
   };

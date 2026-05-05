@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { standardLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
-
-type NeoNetwork = "mainnet" | "testnet";
+import { isNeoNetwork, type NeoNetwork } from "@/lib/neo-network";
 
 type NeoRpcRequestBody = {
   network?: NeoNetwork;
@@ -33,10 +32,6 @@ const ALLOWED_METHODS = new Set([
 
 const MAX_BODY_SIZE = 128 * 1024;
 const FETCH_TIMEOUT_MS = 30_000;
-
-function isNeoNetwork(value: unknown): value is NeoNetwork {
-  return value === "mainnet" || value === "testnet";
-}
 
 function resolveRpcUrl(network: NeoNetwork): string {
   return network === "testnet" ? TESTNET_RPC_URL : MAINNET_RPC_URL;
@@ -73,7 +68,11 @@ export default async function handler(
     return;
   }
 
-  const network = isNeoNetwork(body.network) ? body.network : "mainnet";
+  if (!isNeoNetwork(body.network)) {
+    res.status(400).json({ error: "network must be explicitly set to mainnet or testnet" });
+    return;
+  }
+  const network = body.network;
   const params = Array.isArray(body.params) ? body.params : [];
   const rpcUrl = resolveRpcUrl(network);
 

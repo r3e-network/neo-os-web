@@ -10,6 +10,7 @@ const appsRoot = path.join(repoRoot, "apps");
 
 const args = new Set(process.argv.slice(2));
 const force = args.has("--force");
+const replaceLarger = args.has("--replace-larger");
 
 const JPG_NAMES = new Set(["logo.jpg", "banner.jpg"]);
 
@@ -76,6 +77,7 @@ async function writeVariant(source, ext) {
     return { output, bytes: stat.size, skipped: true };
   }
 
+  const tempOutput = `${output}.tmp-${process.pid}-${Date.now()}`;
   const pipeline = sharp(source).rotate();
   if (ext === "webp") {
     await pipeline
@@ -84,7 +86,7 @@ async function writeVariant(source, ext) {
         effort: 5,
         smartSubsample: true,
       })
-      .toFile(output);
+      .toFile(tempOutput);
   } else {
     await pipeline
       .avif({
@@ -92,11 +94,24 @@ async function writeVariant(source, ext) {
         effort: 6,
         chromaSubsampling: "4:4:4",
       })
-      .toFile(output);
+      .toFile(tempOutput);
   }
 
-  const stat = await fs.stat(output);
-  return { output, bytes: stat.size, skipped: false };
+  const tempStat = await fs.stat(tempOutput);
+  const existingStat = await fs.stat(output).catch(() => null);
+  if (!replaceLarger && existingStat && existingStat.size <= tempStat.size) {
+    await fs.rm(tempOutput, { force: true });
+    return {
+      output,
+      bytes: existingStat.size,
+      skipped: true,
+      keptExisting: true,
+      candidateBytes: tempStat.size,
+    };
+  }
+
+  await fs.rename(tempOutput, output);
+  return { output, bytes: tempStat.size, skipped: false };
 }
 
 const masters = [
@@ -125,6 +140,7 @@ console.log(
       masters: masters.length,
       written: outputs.flatMap((item) => [item.webp, item.avif]).filter((item) => !item.skipped).length,
       skipped: outputs.flatMap((item) => [item.webp, item.avif]).filter((item) => item.skipped).length,
+      keptExisting: outputs.flatMap((item) => [item.webp, item.avif]).filter((item) => item.keptExisting).length,
       originalBytes,
       bestModernBytes: modernBytes,
       estimatedSavingsPct:

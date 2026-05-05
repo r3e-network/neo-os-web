@@ -12,7 +12,8 @@ function getNeoRPCURL(network: "testnet" | "mainnet"): string {
 
 interface NetworkStats {
   height: number;
-  txCount: number;
+  txCount: number | null;
+  txCountSource: "indexer" | "unavailable";
 }
 
 interface ExplorerStats {
@@ -75,14 +76,16 @@ async function getNetworkStats(
   const blockData = await blockRes.json();
   const height = blockData.result || 0;
 
-  let txCount = 0;
+  let txCount: number | null = null;
+  let txCountSource: NetworkStats["txCountSource"] = "unavailable";
   try {
     txCount = await getTxCountFromIndexer(network);
+    txCountSource = "indexer";
   } catch {
-    txCount = height * 2;
+    txCount = null;
   }
 
-  return { height, txCount };
+  return { height, txCount, txCountSource };
 }
 
 async function getTxCountFromIndexer(network: string): Promise<number> {

@@ -167,8 +167,8 @@ db-seed: ## Seed database with test data
 # Frontend
 # =============================================================================
 
-export-miniapps: ## No standalone export script is currently shipped
-	@echo "export_host_miniapps.sh is not present in this repo; use the host-app build/export flow instead."
+export-miniapps: ## Build and stage standalone MiniApp dApps for host / OneGate loading
+	npm run -s export:miniapp-dapps
 
 export-supabase-functions: ## Export Edge functions into supabase/functions/
 	./deploy/scripts/export_supabase_functions.sh

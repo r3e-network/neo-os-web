@@ -51,7 +51,12 @@ import {
   Workflow,
 } from "lucide-react";
 
-import type { MiniAppInfo } from "@/components/types";
+import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
+import { getLaunchParam } from "@/lib/miniapp-launch-params";
+import {
+  buildConfidentialTransferPackage,
+  encryptJsonWithOraclePublicKey,
+} from "../../../../apps/shared/utils/morpheus-confidential-envelope";
 
 type PlayMetric = { label: string; value: string; accent?: boolean };
 type ActivityRow = {
@@ -76,6 +81,7 @@ export type PlayAreaRegistryProps = {
   error: string | null;
   contractHash: string | null;
   network: "mainnet" | "testnet";
+  launchContext?: MiniAppLaunchContext | null;
   onRefresh: () => void;
 };
 
@@ -93,7 +99,9 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-neo-pay": NeoPayPlayArea,
   "miniapp-onchaintarot": TarotPlayArea,
   "miniapp-on-chain-tarot": TarotPlayArea,
+  "miniapp-explorer": ExplorerPlayArea,
   "miniapp-neo-x-bridge": NeoXBridgePlayArea,
+  "miniapp-private-transfer": PrivateTransferPlayArea,
 };
 
 const ORACLE_APP_LABELS: Record<
@@ -162,7 +170,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "sky",
     icon: <Fingerprint className="h-5 w-5" />,
     fields: [
-      { key: "owner", label: "Owner address", defaultValue: "N...owner" },
+      { key: "owner", label: "Owner address", defaultValue: "" },
       { key: "salt", label: "Registration salt", defaultValue: "neo-aa-001" },
     ],
     cards: [
@@ -207,7 +215,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "slate",
     icon: <ClipboardCheck className="h-5 w-5" />,
     fields: [
-      { key: "verifier", label: "Verifier hash", defaultValue: "0xVerifier..." },
+      { key: "verifier", label: "Verifier hash", defaultValue: "" },
       { key: "hook", label: "Hook binding", defaultValue: "spend-limit" },
     ],
     cards: [
@@ -362,7 +370,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "rose",
     icon: <HeartHandshake className="h-5 w-5" />,
     fields: [
-      { key: "recipient", label: "Developer", defaultValue: "builder.neo" },
+      { key: "recipient", label: "Developer", defaultValue: "" },
       { key: "amount", label: "Tip amount", defaultValue: "1", suffix: "GAS", type: "number" },
     ],
     cards: [
@@ -398,28 +406,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       layout: "qr",
       headline: "Event pass preview",
       slots: ["NEP-11", "QR", "Gate", "Used"],
-    },
-  },
-  "miniapp-explorer": {
-    title: "Block search console",
-    subtitle: "Search blocks, transactions, addresses, and contracts from the same MiniApp detail surface.",
-    tone: "slate",
-    icon: <SearchCheck className="h-5 w-5" />,
-    fields: [
-      { key: "query", label: "Search", defaultValue: "tx / address / contract" },
-      { key: "network", label: "Network", defaultValue: "Neo N3" },
-    ],
-    cards: [
-      { label: "Blocks", value: "live" },
-      { label: "Contracts", value: "indexed" },
-      { label: "Addresses", value: "searchable" },
-    ],
-    steps: ["Enter query", "Resolve entity", "Inspect events", "Copy proof"],
-    primaryAction: "Run explorer query",
-    visual: {
-      layout: "ledger",
-      headline: "Explorer results",
-      slots: ["Block", "Tx", "Address", "Contract"],
     },
   },
   "miniapp-flashloan": {
@@ -472,7 +458,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "emerald",
     icon: <Coins className="h-5 w-5" />,
     fields: [
-      { key: "contract", label: "Allowed contract", defaultValue: "0xContract..." },
+      { key: "contract", label: "Allowed contract", defaultValue: "" },
       { key: "budget", label: "Daily budget", defaultValue: "5", suffix: "GAS", type: "number" },
     ],
     cards: [
@@ -582,7 +568,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "sky",
     icon: <ArrowRightLeft className="h-5 w-5" />,
     fields: [
-      { key: "input", label: "Input value", defaultValue: "N..." },
+      { key: "input", label: "Input value", defaultValue: "" },
       { key: "format", label: "Target format", defaultValue: "script hash" },
     ],
     cards: [
@@ -640,7 +626,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     visual: {
       layout: "checklist",
       headline: "Signature progress",
-      slots: ["Alice signed", "Bob pending", "Carol signed", "Threshold met"],
+      slots: ["Signer 1", "Signer 2", "Signer 3", "Threshold"],
     },
   },
   "miniapp-neo-ns": {
@@ -649,7 +635,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "emerald",
     icon: <FileKey className="h-5 w-5" />,
     fields: [
-      { key: "name", label: "Domain", defaultValue: "builder.neo" },
+      { key: "name", label: "Domain", defaultValue: "" },
       { key: "years", label: "Registration", defaultValue: "1", suffix: "year", type: "number" },
     ],
     cards: [
@@ -662,7 +648,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     visual: {
       layout: "proof",
       headline: "Name resolution",
-      slots: ["builder.neo", "owner", "resolver", "expiry"],
+      slots: ["name", "owner", "resolver", "expiry"],
     },
   },
   "miniapp-neo-pay-shared-example": {
@@ -671,7 +657,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "emerald",
     icon: <CreditCard className="h-5 w-5" />,
     fields: [
-      { key: "beneficiary", label: "Beneficiary", defaultValue: "N...beneficiary" },
+      { key: "beneficiary", label: "Beneficiary", defaultValue: "" },
       { key: "amount", label: "Total amount", defaultValue: "20", suffix: "GAS", type: "number" },
     ],
     cards: [
@@ -737,7 +723,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "sky",
     icon: <UserCheck className="h-5 w-5" />,
     fields: [
-      { key: "did", label: "NeoDID", defaultValue: "did:neo:alice" },
+      { key: "did", label: "NeoDID", defaultValue: "" },
       { key: "claim", label: "Credential claim", defaultValue: "KYC level 1" },
     ],
     cards: [
@@ -781,7 +767,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "rose",
     icon: <ShieldAlert className="h-5 w-5" />,
     fields: [
-      { key: "account", label: "AA account", defaultValue: "0xAccount..." },
+      { key: "account", label: "AA account", defaultValue: "" },
       { key: "guardian", label: "Guardian", defaultValue: "did:neo:guardian" },
     ],
     cards: [
@@ -803,7 +789,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "sky",
     icon: <BadgeCheck className="h-5 w-5" />,
     fields: [
-      { key: "recipient", label: "Recipient", defaultValue: "N...recipient" },
+      { key: "recipient", label: "Recipient", defaultValue: "" },
       { key: "title", label: "Certificate title", defaultValue: "Neo Builder" },
     ],
     cards: [
@@ -826,7 +812,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     icon: <Hourglass className="h-5 w-5" />,
     fields: [
       { key: "unlock", label: "Unlock date", defaultValue: "2026-12-31" },
-      { key: "message", label: "Message hash", defaultValue: "0xhash..." },
+      { key: "message", label: "Message hash", defaultValue: "" },
     ],
     cards: [
       { label: "Seal", value: "active" },
@@ -848,7 +834,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     icon: <Hash className="h-5 w-5" />,
     fields: [
       { key: "content", label: "Content label", defaultValue: "release-notes.pdf" },
-      { key: "digest", label: "Digest", defaultValue: "sha256:..." },
+      { key: "digest", label: "Digest", defaultValue: "" },
     ],
     cards: [
       { label: "Hash", value: "local" },
@@ -870,7 +856,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     icon: <Vault className="h-5 w-5" />,
     fields: [
       { key: "bounty", label: "Bounty", defaultValue: "100", suffix: "GAS", type: "number" },
-      { key: "hash", label: "Secret hash", defaultValue: "0xsecret..." },
+      { key: "hash", label: "Secret hash", defaultValue: "" },
     ],
     cards: [
       { label: "Vault", value: "locked" },
@@ -949,6 +935,45 @@ function parseGas(value: string): number {
 function formatGas(value: number) {
   if (!Number.isFinite(value)) return "0.00 GAS";
   return `${value.toFixed(value >= 10 ? 1 : 2)} GAS`;
+}
+
+function useLaunchParamState(
+  launchContext: MiniAppLaunchContext | null | undefined,
+  keys: string | string[],
+  fallback = "",
+) {
+  const initial = getLaunchParam(launchContext, keys, fallback);
+  const [value, setValue] = useState(initial);
+
+  useEffect(() => {
+    setValue(initial);
+  }, [initial, launchContext?.signature]);
+
+  return [value, setValue] as const;
+}
+
+function useLaunchChoiceState<T extends string>(
+  launchContext: MiniAppLaunchContext | null | undefined,
+  keys: string | string[],
+  options: readonly T[],
+  fallback: T,
+) {
+  const raw = getLaunchParam(launchContext, keys, fallback);
+  const initial = options.includes(raw as T) ? (raw as T) : fallback;
+  const [value, setValue] = useState<T>(initial);
+
+  useEffect(() => {
+    setValue(initial);
+  }, [initial, launchContext?.signature]);
+
+  return [value, setValue] as const;
+}
+
+function profileDefaultValue(field: ProfileField) {
+  const value = field.defaultValue.trim();
+  if (!value) return "";
+  if (/(\.\.\.|builder|alice|bob|carol|cip-\d+)/i.test(value)) return "";
+  return value;
 }
 
 function shortHash(value?: string | null) {
@@ -1083,7 +1108,7 @@ function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
         </div>
       ) : (
         <p className="m-0 text-sm leading-6 text-gray-500">
-          {activity?.emptyText || "No recent on-chain events yet. Use the action console when you are ready to submit."}
+          {activity?.emptyText || "No live on-chain events are available for this miniapp yet."}
         </p>
       )}
     </div>
@@ -1120,6 +1145,7 @@ function Field({
       <span className="mb-1 block text-xs font-bold uppercase text-gray-500">{label}</span>
       <div className="flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2">
         <input
+          aria-label={label}
           value={value}
           type={type}
           min={type === "number" ? "0" : undefined}
@@ -1133,10 +1159,14 @@ function Field({
 }
 
 function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, onRefresh } = props;
-  const [keys, setKeys] = useState("3");
+  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [keys, setKeys] = useLaunchParamState(launchContext, ["keys", "keyCount"], "3");
   const keyPrice = parseGas(getMetric(statsMap, "Key Price", "0.01 GAS")) || 0.01;
   const projected = Math.max(1, Number(keys) || 1) * keyPrice;
+  const status = getMetric(statsMap, "Status", "Ready");
+  const countdown = getMetric(statsMap, "Countdown", "--:--:--");
+  const needsRollover = /rollover|pending|settlement|restart/i.test(status) || /rollover/i.test(countdown);
+  const legacyMainnetDeployment = app.app_id === "miniapp-last-survivor" && network === "mainnet";
 
   return (
     <PlayShell
@@ -1153,13 +1183,23 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
             <div className="text-center">
               <p className="m-0 text-[10px] font-black uppercase text-rose-600">Countdown</p>
               <p className="m-0 mt-1 text-2xl font-black tabular-nums text-gray-950">
-                {getMetric(statsMap, "Countdown", "--:--:--")}
+                {countdown}
               </p>
-              <p className="m-0 mt-1 text-xs font-semibold text-gray-500">{getMetric(statsMap, "Status", "Ready")}</p>
+              <p className="m-0 mt-1 text-xs font-semibold text-gray-500">{status}</p>
             </div>
           </div>
         </div>
         <div className="space-y-3">
+          {needsRollover && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="m-0 text-sm font-bold text-amber-900">Next round is ready to start</p>
+              <p className="m-0 mt-1 text-xs leading-5 text-amber-800">
+                {legacyMainnetDeployment
+                  ? "This legacy mainnet deployment needs a one-time contract update or admin restart. The updated PlatformGame rolls future expirations into the next live countdown automatically."
+                  : "The lifecycle keeper settles expired rounds automatically. New key purchases also roll the game forward before applying the bid."}
+              </p>
+            </div>
+          )}
           <MetricGrid stats={stats} />
           <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
             <Field label="Keys to buy" value={keys} onChange={setKeys} type="number" suffix="keys" />
@@ -1181,9 +1221,9 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function FogPlayPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, loading, error, contractHash, network, onRefresh } = props;
-  const [side, setSide] = useState<"heads" | "tails">("heads");
-  const [amount, setAmount] = useState("0.10");
+  const { app, statsMap, stats, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [side, setSide] = useLaunchChoiceState(launchContext, ["side", "choice"], ["heads", "tails"] as const, "heads");
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "stake", "bet"], "0.10");
   const [spin, setSpin] = useState(false);
   const payout = (Number(amount) || 0) * 2;
 
@@ -1240,8 +1280,9 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function GasBoxPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, onRefresh } = props;
-  const [selected, setSelected] = useState(1);
+  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [selectedRaw, setSelectedRaw] = useLaunchParamState(launchContext, ["machine", "machineId", "box"], "1");
+  const selected = Math.max(1, Number(selectedRaw) || 1);
   const machines = Math.max(1, Number(getMetric(statsMap, "Total Machines", "3")) || 3);
 
   return (
@@ -1272,7 +1313,7 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
               <button
                 key={machine}
                 type="button"
-                onClick={() => setSelected(machine)}
+                onClick={() => setSelectedRaw(String(machine))}
                 className={`rounded-lg border px-3 py-2 text-sm font-bold ${
                   selected === machine ? "border-amber-500 bg-amber-500 text-white" : "border-gray-200 bg-white text-gray-700"
                 }`}
@@ -1292,9 +1333,9 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, onRefresh } = props;
-  const [amount, setAmount] = useState("5");
-  const [packets, setPackets] = useState("8");
+  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "total"], "5");
+  const [packets, setPackets] = useLaunchParamState(launchContext, ["packets", "count"], "8");
   const avg = (Number(amount) || 0) / Math.max(1, Number(packets) || 1);
 
   return (
@@ -1384,8 +1425,8 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, onRefresh } = props;
-  const [collateral, setCollateral] = useState("20");
+  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [collateral, setCollateral] = useLaunchParamState(launchContext, ["collateral", "neo"], "20");
   const ltv = 0.35;
   const borrowable = (Number(collateral) || 0) * ltv;
 
@@ -1424,9 +1465,9 @@ function TrustAnchorPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust" }) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, onRefresh, mode } = props;
-  const [candidate, setCandidate] = useState("Agent #1");
-  const [stake, setStake] = useState("25");
+  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh, mode } = props;
+  const [candidate, setCandidate] = useLaunchParamState(launchContext, ["candidate", "agent", "route"], "Agent #1");
+  const [stake, setStake] = useLaunchParamState(launchContext, ["stake", "amount"], "25");
   const isProfit = mode === "profit";
 
   return (
@@ -1470,9 +1511,9 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
 }
 
 function NeoPayPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, onRefresh } = props;
-  const [amount, setAmount] = useState("12");
-  const [rate, setRate] = useState("1");
+  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "total"], "12");
+  const [rate, setRate] = useLaunchParamState(launchContext, ["rate", "releaseRate"], "1");
   const duration = Math.ceil((Number(amount) || 0) / Math.max(0.01, Number(rate) || 1));
 
   return (
@@ -1619,10 +1660,306 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
   );
 }
 
+type ExplorerNetworkStats = {
+  height: number;
+  txCount: number | null;
+  txCountSource?: string;
+};
+
+type ExplorerStatsPayload = {
+  mainnet?: ExplorerNetworkStats;
+  testnet?: ExplorerNetworkStats;
+};
+
+type ExplorerSearchPayload = {
+  type?: string;
+  found?: boolean;
+  network?: string;
+  data?: Record<string, unknown>;
+  address?: string;
+  tx_count?: number;
+  transactions?: Array<Record<string, unknown>>;
+  contract_hash?: string;
+  call_count?: number;
+  calls?: Array<Record<string, unknown>>;
+  source?: string;
+};
+
+type ExplorerRecentTx = {
+  hash?: string;
+  tx_hash?: string;
+  vm_state?: string;
+  vmState?: string;
+  block_time?: string;
+  blockTime?: string;
+};
+
+function ExplorerPlayArea(props: PlayAreaRegistryProps) {
+  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const launchNetwork = launchContext?.network ?? network;
+  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet">(launchNetwork);
+  const [query, setQuery] = useLaunchParamState(launchContext, ["query", "q", "hash", "address", "height"], "");
+  const [stats, setStats] = useState<ExplorerStatsPayload | null>(null);
+  const [recent, setRecent] = useState<ExplorerRecentTx[]>([]);
+  const [result, setResult] = useState<ExplorerSearchPayload | null>(null);
+  const [status, setStatus] = useState("Ready");
+  const [isFetching, setIsFetching] = useState(false);
+
+  const loadExplorerData = useCallback(async () => {
+    setIsFetching(true);
+    setStatus("Syncing explorer APIs...");
+    try {
+      const [statsRes, recentRes] = await Promise.all([
+        fetch("/api/explorer/stats"),
+        fetch(`/api/explorer/recent?network=${selectedNetwork}&limit=5`),
+      ]);
+
+      if (!statsRes.ok) throw new Error(`stats ${statsRes.status}`);
+      const statsPayload = (await statsRes.json()) as ExplorerStatsPayload;
+      setStats(statsPayload);
+
+      if (recentRes.ok) {
+        const recentPayload = (await recentRes.json()) as { transactions?: ExplorerRecentTx[] };
+        setRecent(Array.isArray(recentPayload.transactions) ? recentPayload.transactions : []);
+      } else {
+        setRecent([]);
+      }
+      setStatus("Live chain data loaded");
+    } catch (err) {
+      setStatus(err instanceof Error ? `Explorer API unavailable: ${err.message}` : "Explorer API unavailable");
+      setRecent([]);
+    } finally {
+      setIsFetching(false);
+    }
+  }, [selectedNetwork]);
+
+  useEffect(() => {
+    setSelectedNetwork(launchContext?.network ?? network);
+  }, [launchContext?.network, network]);
+
+  useEffect(() => {
+    void loadExplorerData();
+  }, [loadExplorerData]);
+
+  const runSearch = useCallback(async () => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setStatus("Enter a block height, tx hash, address, or contract hash.");
+      return;
+    }
+    setIsFetching(true);
+    setResult(null);
+    setStatus("Resolving on chain...");
+    try {
+      const res = await fetch(
+        `/api/explorer/search?q=${encodeURIComponent(trimmed)}&network=${selectedNetwork}`,
+      );
+      const payload = (await res.json()) as ExplorerSearchPayload & { error?: string };
+      if (!res.ok || payload.error) {
+        throw new Error(payload.error || `search ${res.status}`);
+      }
+      setResult(payload);
+      setStatus(payload.found ? "Resolved from live data" : "No matching live record found");
+    } catch (err) {
+      setStatus(err instanceof Error ? `Search failed: ${err.message}` : "Search failed");
+    } finally {
+      setIsFetching(false);
+    }
+  }, [query, selectedNetwork]);
+
+  const selectedStats = stats?.[selectedNetwork];
+  const height = selectedStats?.height ? selectedStats.height.toLocaleString() : "Unavailable";
+  const txCount =
+    typeof selectedStats?.txCount === "number"
+      ? selectedStats.txCount.toLocaleString()
+      : "Indexer unavailable";
+  const resultStats: PlayMetric[] = [
+    { label: "Network", value: selectedNetwork, accent: true },
+    { label: "Block height", value: height, accent: true },
+    { label: "Indexed tx", value: txCount },
+    { label: "Result", value: result?.found ? String(result.type || "found") : "none" },
+  ];
+
+  return (
+    <PlayShell
+      app={app}
+      title="Live explorer console"
+      subtitle="Query Neo N3 blocks, transactions, addresses, and contracts through live RPC/indexer endpoints. Missing indexer data is shown as unavailable, never synthesized."
+      tone="slate"
+      side={
+        <div className="space-y-3">
+          <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+            <h3 className="m-0 flex items-center gap-2 text-sm font-black text-gray-950">
+              <History className="h-4 w-4 text-slate-600" />
+              Recent live transactions
+            </h3>
+            <div className="mt-3 space-y-2">
+              {recent.length > 0 ? (
+                recent.map((tx, index) => {
+                  const hash = String(tx.hash || tx.tx_hash || "");
+                  const state = String(tx.vmState || tx.vm_state || "");
+                  return (
+                    <button
+                      type="button"
+                      key={`${hash}:${index}`}
+                      onClick={() => setQuery(hash)}
+                      className="block w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-left transition hover:bg-white"
+                    >
+                      <span className="block truncate font-mono text-xs font-bold text-gray-950">
+                        {shortHash(hash)}
+                      </span>
+                      <span className="mt-1 block text-[11px] font-semibold text-gray-500">
+                        {state || "state unavailable"}
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="m-0 text-sm leading-6 text-gray-500">
+                  Recent transaction indexer is not configured or has no rows for this network.
+                </p>
+              )}
+            </div>
+          </div>
+          <ActivityPanel activity={props.activity} />
+        </div>
+      }
+      footer={
+        <ChainStateStrip
+          loading={loading || isFetching}
+          error={error}
+          contractHash={contractHash}
+          network={selectedNetwork}
+          onRefresh={() => {
+            onRefresh();
+            void loadExplorerData();
+          }}
+        />
+      }
+    >
+      <div className="space-y-4">
+        <MetricGrid stats={resultStats} />
+        <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {(["mainnet", "testnet"] as const).map((item) => (
+              <button
+                type="button"
+                key={item}
+                onClick={() => setSelectedNetwork(item)}
+                className={`rounded-lg border px-3 py-2 text-sm font-black transition ${
+                  selectedNetwork === item
+                    ? "border-gray-950 bg-gray-950 text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <label className="mt-4 block">
+            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
+              Explorer query
+            </span>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                aria-label="Explorer query"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void runSearch();
+                }}
+                placeholder="Block height, 0x tx/block hash, N-address, or 0x contract hash"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
+              />
+              <PrimaryAction onClick={runSearch}>
+                Run live query <SearchCheck className="h-4 w-4" />
+              </PrimaryAction>
+            </div>
+          </label>
+          <p className="m-0 mt-3 text-xs font-semibold text-gray-500" role="status">
+            {status}
+          </p>
+        </div>
+        <ExplorerResultPanel result={result} />
+      </div>
+    </PlayShell>
+  );
+}
+
+function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null }) {
+  if (!result) {
+    return (
+      <div className="rounded-lg border border-dashed border-gray-200 bg-white/70 p-4 text-sm font-semibold text-gray-500">
+        Search results will appear here after a live RPC or indexer response.
+      </div>
+    );
+  }
+
+  if (!result.found) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+        No live record found for this query on {result.network || "the selected network"}.
+        {result.source === "indexer_unavailable" ? " Address history requires the indexer service." : ""}
+      </div>
+    );
+  }
+
+  const data = result.data || {};
+  const rows =
+    result.type === "block"
+      ? [
+          ["Block", String(data.index ?? "")],
+          ["Hash", String(data.hash ?? "")],
+          ["Transactions", String(data.tx_count ?? "")],
+          ["Size", data.size == null ? "" : `${String(data.size)} bytes`],
+        ]
+      : result.type === "transaction"
+        ? [
+            ["Hash", String(data.hash ?? "")],
+            ["VM state", String(data.vm_state ?? data.vmstate ?? "")],
+            ["Block", String(data.block_index ?? data.blockindex ?? "")],
+            ["Sender", String(data.sender ?? "")],
+          ]
+        : result.type === "address"
+          ? [
+              ["Address", String(result.address ?? "")],
+              ["Transactions", String(result.tx_count ?? 0)],
+              ["Source", "indexer"],
+            ]
+          : [
+              ["Contract", String(result.contract_hash ?? "")],
+              ["Calls", String(result.call_count ?? 0)],
+              ["Source", String(result.source || "indexer")],
+            ];
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Hash className="h-4 w-4 text-emerald-600" />
+        <h3 className="m-0 text-sm font-black capitalize text-gray-950">
+          {result.type} result
+        </h3>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {rows.map(([label, value]) => (
+          <PreviewStat key={label} label={label} value={value || "Unavailable"} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, onRefresh } = props;
-  const [amount, setAmount] = useState("25");
-  const [direction, setDirection] = useState("Neo N3 -> Neo X");
+  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount"], "");
+  const [direction, setDirection] = useLaunchChoiceState(
+    launchContext,
+    ["direction", "route"],
+    ["Neo N3 -> Neo X", "Neo X -> Neo N3"] as const,
+    "Neo N3 -> Neo X",
+  );
+  const [targetContract, setTargetContract] = useLaunchParamState(launchContext, ["targetContract", "contract", "to"], "");
+  const [bridgeMessage, setBridgeMessage] = useLaunchParamState(launchContext, ["message", "payload"], "");
 
   return (
     <PlayShell
@@ -1637,7 +1974,7 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
         <ToolCard icon={<ArrowRightLeft className="h-5 w-5" />} title="Asset bridge">
           <label className="block">
             <span className="mb-1 block text-xs font-bold uppercase text-gray-500">Direction</span>
-            <select value={direction} onChange={(event) => setDirection(event.target.value)} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold">
+            <select value={direction} onChange={(event) => setDirection(event.target.value as "Neo N3 -> Neo X" | "Neo X -> Neo N3")} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold">
               <option>{"Neo N3 -> Neo X"}</option>
               <option>{"Neo X -> Neo N3"}</option>
             </select>
@@ -1646,8 +1983,8 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
           <PreviewStat label="Route" value={direction} />
         </ToolCard>
         <ToolCard icon={<MessageSquareText className="h-5 w-5" />} title="Message Bridge">
-          <Field label="Target contract" value="0xAxLabs..." onChange={() => undefined} />
-          <Field label="Message" value="sync:miniapp-state" onChange={() => undefined} />
+          <Field label="Target contract" value={targetContract} onChange={setTargetContract} />
+          <Field label="Message" value={bridgeMessage} onChange={setBridgeMessage} />
           <PreviewStat label="Encoding" value="UTF-8 payload" />
         </ToolCard>
         <ToolCard icon={<ReceiptText className="h-5 w-5" />} title="Status tracking">
@@ -1660,11 +1997,197 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
   );
 }
 
+type PrivateTransferResult = {
+  status: "idle" | "sealing" | "stored" | "error";
+  message: string;
+  noteCommitment?: string;
+  nullifier?: string;
+  secretRef?: string;
+  contract?: string;
+};
+
+function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
+  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [recipient, setRecipient] = useLaunchParamState(launchContext, ["recipient", "to", "address"], "");
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount"], "");
+  const [asset, setAsset] = useLaunchChoiceState(launchContext, ["asset", "token"], ["GAS", "NEO"] as const, "GAS");
+  const [memo, setMemo] = useLaunchParamState(launchContext, ["memo", "note"], "");
+  const [result, setResult] = useState<PrivateTransferResult>({
+    status: "idle",
+    message: "Ready to seal transfer instructions locally.",
+  });
+
+  const sealTransfer = useCallback(async () => {
+    setResult({
+      status: "sealing",
+      message: "Fetching Morpheus public key and building a local X25519 envelope.",
+    });
+    try {
+      const keyResponse = await fetch(
+        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
+      );
+      const keyMeta = await keyResponse.json().catch(() => ({}));
+      if (!keyResponse.ok || !keyMeta?.public_key) {
+        throw new Error(keyMeta?.error || "Morpheus oracle public key is unavailable");
+      }
+      if (
+        keyMeta.algorithm &&
+        keyMeta.algorithm !== "X25519-HKDF-SHA256-AES-256-GCM"
+      ) {
+        throw new Error(`Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`);
+      }
+
+      const transferPackage = await buildConfidentialTransferPackage({
+        appId: app.app_id,
+        network,
+        recipient,
+        asset,
+        amount,
+        memo,
+      });
+      const ciphertext = await encryptJsonWithOraclePublicKey(
+        String(keyMeta.public_key),
+        transferPackage.confidentialPayload,
+      );
+      const storeResponse = await fetch("/api/morpheus/confidential/store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          network,
+          target_chain: "neo_n3",
+          app_id: app.app_id,
+          name: `private-transfer:${transferPackage.publicEnvelope.note_commitment}`,
+          ciphertext,
+          public_envelope: transferPackage.publicEnvelope,
+        }),
+      });
+      const stored = await storeResponse.json().catch(() => ({}));
+      if (!storeResponse.ok) {
+        throw new Error(stored?.error || stored?.message || "Morpheus confidential store is unavailable");
+      }
+      const storedRef = String(stored.secret_ref || stored.id || stored.ref || "").trim();
+      if (!storedRef) {
+        throw new Error("Morpheus confidential store did not return a secret reference");
+      }
+
+      setResult({
+        status: "stored",
+        message: "Encrypted transfer intent stored. Only the TEE can decrypt recipient, amount, memo, and note secret.",
+        noteCommitment: transferPackage.publicEnvelope.note_commitment,
+        nullifier: transferPackage.publicEnvelope.nullifier_hash,
+        secretRef: storedRef,
+        contract: String(keyMeta.contract || ""),
+      });
+    } catch (sealError) {
+      setResult({
+        status: "error",
+        message: sealError instanceof Error ? sealError.message : String(sealError),
+      });
+    }
+  }, [amount, app.app_id, asset, memo, network, recipient]);
+
+  return (
+    <PlayShell
+      app={app}
+      title="Confidential transfer desk"
+      subtitle="A zERC20-style private transfer workflow without on-chain zk curve assumptions: seal transfer details locally, let Morpheus confidential compute validate them inside the TEE, then return a signed settlement intent."
+      tone="slate"
+      side={<PrivateTransferStatusPanel result={result} />}
+      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+    >
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="space-y-3 rounded-lg border border-gray-200 bg-white/85 p-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Recipient" value={recipient} onChange={setRecipient} />
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold uppercase text-gray-500">Asset</span>
+              <select
+                value={asset}
+                onChange={(event) => setAsset(event.target.value as "GAS" | "NEO")}
+                className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none"
+              >
+                <option>GAS</option>
+                <option>NEO</option>
+              </select>
+            </label>
+            <Field label="Amount" value={amount} onChange={setAmount} type="number" suffix={asset} />
+            <Field label="Private memo" value={memo} onChange={setMemo} />
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            <PreviewStat label="Privacy layer" value="Morpheus confidential compute" />
+            <PreviewStat label="Local encryption" value="X25519 + AES-256-GCM" />
+            <PreviewStat label="Public chain data" value="commitment + nullifier" />
+          </div>
+
+          <PrimaryAction onClick={sealTransfer}>
+            {result.status === "sealing" ? "Sealing..." : "Seal private transfer"}
+            <LockKeyhole className="h-4 w-4" />
+          </PrimaryAction>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 bg-slate-950 p-4 text-white">
+          <h3 className="m-0 flex items-center gap-2 text-sm font-black">
+            <ShieldCheck className="h-4 w-4 text-neo" />
+            Privacy flow
+          </h3>
+          <div className="mt-4 space-y-3">
+            {[
+              "Deposit asset into a public escrow or wallet-signed intent.",
+              "Encrypt recipient, amount, memo, and note secret in the browser.",
+              "Morpheus TEE decrypts, checks policy, and signs a settlement envelope.",
+              "Wallet submits release or refund with the signed result.",
+            ].map((step, index) => (
+              <div key={step} className="flex gap-3 text-sm text-slate-200">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-xs font-black">
+                  {index + 1}
+                </span>
+                <span>{step}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </PlayShell>
+  );
+}
+
+function PrivateTransferStatusPanel({ result }: { result: PrivateTransferResult }) {
+  const tone =
+    result.status === "stored"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+      : result.status === "error"
+        ? "border-red-200 bg-red-50 text-red-950"
+        : "border-gray-200 bg-white text-gray-950";
+
+  return (
+    <div className={`rounded-lg border p-4 ${tone}`}>
+      <h3 className="m-0 text-sm font-black">Morpheus confidential compute</h3>
+      <p className="mt-2 text-sm leading-6">{result.message}</p>
+      <div className="mt-3 space-y-2">
+        {result.secretRef && <PreviewStat label="Secret ref" value={result.secretRef} />}
+        {result.noteCommitment && <PreviewStat label="Note commitment" value={result.noteCommitment} />}
+        {result.nullifier && <PreviewStat label="Nullifier hash" value={result.nullifier} />}
+        {result.contract && <PreviewStat label="Oracle contract" value={shortHash(result.contract)} />}
+      </div>
+    </div>
+  );
+}
+
 function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, onRefresh } = props;
+  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const config = ORACLE_APP_LABELS[app.app_id] || { title: app.name, mode: "http" as const };
-  const [endpoint, setEndpoint] = useState(config.mode === "price" ? "TWELVEDATA:NEO-USD" : "https://api.example.com/data");
+  const [endpoint, setEndpoint] = useLaunchParamState(
+    launchContext,
+    ["endpoint", "url", "feed", "symbol"],
+    config.mode === "price" ? "TWELVEDATA:NEO-USD" : "https://oracle.meshmini.app/health",
+  );
   const [result, setResult] = useState("Ready to build request package.");
+  const [sealing, setSealing] = useState(false);
+  const confidentialMode =
+    config.mode === "compute" ||
+    config.mode === "seal" ||
+    config.mode === "neodid";
 
   const build = () => {
     const payload = {
@@ -1675,6 +2198,62 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       nep21: true,
     };
     setResult(JSON.stringify(payload, null, 2));
+  };
+
+  const seal = async () => {
+    setSealing(true);
+    try {
+      const keyResponse = await fetch(
+        `/api/morpheus/oracle/public-key?network=${encodeURIComponent(network)}`,
+      );
+      const keyMeta = await keyResponse.json().catch(() => ({}));
+      if (!keyResponse.ok || !keyMeta?.public_key) {
+        throw new Error(keyMeta?.error || "Morpheus oracle public key is unavailable");
+      }
+      const confidentialPayload = {
+        kind: `oracle.${config.mode}.confidential.v1`,
+        app_id: app.app_id,
+        mode: config.mode,
+        target_chain: "neo_n3",
+        network,
+        request: config.mode === "compute"
+          ? { workflow: "private-transfer-or-policy-check", input: endpoint }
+          : config.mode === "neodid"
+            ? { provider: "neodid", subject: endpoint }
+            : { payload: endpoint },
+      };
+      const ciphertext = await encryptJsonWithOraclePublicKey(
+        String(keyMeta.public_key),
+        confidentialPayload,
+      );
+      const storeResponse = await fetch("/api/morpheus/confidential/store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          network,
+          target_chain: "neo_n3",
+          app_id: app.app_id,
+          name: `${app.app_id}:${config.mode}`,
+          ciphertext,
+        }),
+      });
+      const stored = await storeResponse.json().catch(() => ({}));
+      setResult(JSON.stringify({
+        status: storeResponse.ok ? "sealed_ref" : "sealed_inline",
+        mode: config.mode,
+        encryption: keyMeta.algorithm || "X25519-HKDF-SHA256-AES-256-GCM",
+        encrypted_payload: storeResponse.ok ? undefined : ciphertext,
+        secret_ref: storeResponse.ok ? stored.secret_ref || stored.id || stored.ref || "stored" : undefined,
+        public_key_contract: keyMeta.contract,
+      }, null, 2));
+    } catch (sealError) {
+      setResult(JSON.stringify({
+        status: "seal_failed",
+        error: sealError instanceof Error ? sealError.message : String(sealError),
+      }, null, 2));
+    } finally {
+      setSealing(false);
+    }
   };
 
   return (
@@ -1692,8 +2271,19 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
           <PreviewStat label="Wallet path" value="NEP-21" />
         </ToolCard>
         <ToolCard icon={<LockKeyhole className="h-5 w-5" />} title="Private fields">
-          <PreviewStat label="Encryption" value={config.mode === "seal" ? "sealed" : "local JSON"} />
+          <PreviewStat label="Encryption" value={confidentialMode ? "X25519 sealed" : "optional"} />
           <PreviewStat label="Runtime" value={config.mode === "compute" ? "TEE compute" : "Morpheus oracle"} />
+          {confidentialMode && (
+            <button
+              type="button"
+              onClick={seal}
+              disabled={sealing}
+              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-65"
+            >
+              {sealing ? "Sealing..." : "Seal with Morpheus"}
+              <LockKeyhole className="h-4 w-4" />
+            </button>
+          )}
         </ToolCard>
         <ToolCard icon={<BadgeCheck className="h-5 w-5" />} title="Verification">
           <PreviewStat label="Callback" value="configured" />
@@ -1708,29 +2298,28 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
 }
 
 function ProfiledPlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, onRefresh } = props;
+  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const profile = PROFILED_PLAYAREAS[app.app_id];
   const initialValues = useCallback(
-    () =>
-      Object.fromEntries(
-        profile.fields.map((field) => [field.key, field.defaultValue]),
-      ) as Record<string, string>,
-    [profile],
-  );
+	    () =>
+	      Object.fromEntries(
+	        profile.fields.map((field) => [
+            field.key,
+            getLaunchParam(launchContext, field.key, profileDefaultValue(field)),
+          ]),
+	      ) as Record<string, string>,
+	    [launchContext, profile],
+	  );
   const [values, setValues] = useState<Record<string, string>>(initialValues);
 
   useEffect(() => {
     setValues(initialValues());
   }, [initialValues]);
 
-  const profileMetrics =
-    stats.length > 0
-      ? stats
-      : profile.cards.map((card) => ({
-          label: card.label,
-          value: card.value,
-          accent: true,
-        }));
+	  const profileMetrics =
+	    stats.length > 0
+	      ? stats
+	      : [{ label: "Live stats", value: "Unavailable" }];
 
   return (
     <PlayShell
@@ -1779,11 +2368,11 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
               </span>
               <div>
                 <p className="m-0 text-sm font-black text-gray-950">
-                  Ready to submit
+                  Prepare wallet action
                 </p>
                 <p className="m-0 text-xs text-gray-500">
-                  Review this MiniApp-specific preview, then use the shared
-                  action console for the wallet transaction.
+                  This panel prepares inputs only. Final values come from the wallet,
+                  live contract reads, and the shared action console.
                 </p>
               </div>
             </div>
@@ -1857,9 +2446,9 @@ function ProfileVisualPanel({
             {slots.map((slot, index) => (
               <div key={slot} className="rounded-lg border border-gray-200 bg-white p-3">
                 <p className="m-0 text-sm font-black text-gray-950">{slot}</p>
-                <p className="m-0 mt-1 text-xs text-gray-500">
-                  {index === 0 ? primaryInput : "review state"}
-                </p>
+	                <p className="m-0 mt-1 text-xs text-gray-500">
+	                  {index === 0 ? primaryInput : "requires live state"}
+	                </p>
               </div>
             ))}
           </div>
@@ -1873,13 +2462,10 @@ function ProfileVisualPanel({
               <div key={slot}>
                 <div className="mb-1 flex items-center justify-between text-xs font-bold text-gray-500">
                   <span>{slot}</span>
-                  <span>{72 - index * 13}%</span>
+	                  <span>live value required</span>
                 </div>
                 <div className="h-2 rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full bg-emerald-500"
-                    style={{ width: `${Math.max(18, 72 - index * 13)}%` }}
-                  />
+	                  <div className="h-full w-0 rounded-full bg-emerald-500" />
                 </div>
               </div>
             ))}
@@ -1911,7 +2497,7 @@ function ProfileVisualPanel({
 {`{
   "subject": "${primaryInput}",
   "fields": [${slots.map((slot) => `"${slot}"`).join(", ")}],
-  "status": "preview-ready"
+	  "status": "requires-wallet-and-chain-validation"
 }`}
           </pre>
         </ProfileVisualFrame>
@@ -1976,7 +2562,7 @@ function ProfileVisualPanel({
             <ArrowRightLeft className="mx-auto h-5 w-5 text-emerald-600" />
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
               <p className="m-0 text-[10px] font-bold uppercase text-emerald-600">{slots[1] || "Output"}</p>
-              <p className="m-0 mt-1 truncate font-mono text-sm font-black text-gray-950">0x...preview</p>
+	              <p className="m-0 mt-1 truncate font-mono text-sm font-black text-gray-950">derived after validation</p>
             </div>
           </div>
         </ProfileVisualFrame>
@@ -2018,7 +2604,7 @@ function ProfileVisualPanel({
               <div key={slot} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2">
                 <span className="text-sm font-black text-gray-950">{slot}</span>
                 <span className="font-mono text-xs font-bold text-gray-500">
-                  {index === 0 ? primaryInput : `${index * 12 + 8}.00`}
+	                  {index === 0 ? primaryInput : "live value required"}
                 </span>
               </div>
             ))}

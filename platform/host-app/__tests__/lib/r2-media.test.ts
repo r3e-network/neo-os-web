@@ -52,4 +52,18 @@ describe("r2-media", () => {
     expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("cache-control;content-type;host");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  it("uses the public browser media base when the server-only base is not set", async () => {
+    delete process.env.MINIAPP_MEDIA_PUBLIC_BASE_URL;
+    process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL = "https://media.neomini.app";
+
+    const result = await createMiniAppMediaUploadUrl({
+      app_id: "miniapp-demo",
+      asset_type: "banner",
+      content_type: "image/webp",
+      file_name: "banner.webp",
+    });
+
+    expect(result.public_url).toBe("https://media.neomini.app/miniapp-assets/miniapp-demo/banner.webp");
+  });
 });

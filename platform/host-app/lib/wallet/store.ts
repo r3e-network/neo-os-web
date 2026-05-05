@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   WalletAdapter,
+  WalletAccount,
+  NeoWalletNetwork,
   Nep21Adapter,
   NeoLineAdapter,
   O3Adapter,
@@ -18,6 +20,7 @@ interface WalletState {
   connected: boolean;
   address: string;
   publicKey: string;
+  network: NeoWalletNetwork | null;
   provider: WalletProvider | null;
   balance: WalletBalance | null;
   loading: boolean;
@@ -49,6 +52,19 @@ function clearWalletEventCleanup() {
   walletEventCleanup = null;
 }
 
+async function readWalletNetwork(
+  adapter: WalletAdapter,
+  account?: WalletAccount,
+): Promise<NeoWalletNetwork | null> {
+  if (account?.network) return account.network;
+  if (!adapter.getNetwork) return null;
+  try {
+    return await adapter.getNetwork();
+  } catch (_e: unknown) {
+    return null;
+  }
+}
+
 export const useWalletStore = create<WalletStore>()(
   persist(
     (set, get) => ({
@@ -56,6 +72,7 @@ export const useWalletStore = create<WalletStore>()(
       connected: false,
       address: "",
       publicKey: "",
+      network: null,
       provider: null,
       balance: null,
       loading: false,
@@ -73,12 +90,14 @@ export const useWalletStore = create<WalletStore>()(
             throw new WalletConnectionError("Use connectWif() for direct WIF wallets");
           }
           const account = await adapter.connect();
+          const network = await readWalletNetwork(adapter, account);
           const balance = await adapter.getBalance(account.address);
 
           set({
             connected: true,
             address: account.address,
             publicKey: account.publicKey,
+            network,
             provider,
             balance,
             loading: false,
@@ -89,11 +108,13 @@ export const useWalletStore = create<WalletStore>()(
             cleanups.push(adapter.onAccountChanged(async () => {
               try {
                 const nextAccount = await adapter.connect();
+                const nextNetwork = await readWalletNetwork(adapter, nextAccount);
                 const nextBalance = await adapter.getBalance(nextAccount.address);
                 set({
                   connected: true,
                   address: nextAccount.address,
                   publicKey: nextAccount.publicKey,
+                  network: nextNetwork,
                   provider,
                   balance: nextBalance,
                   loading: false,
@@ -104,6 +125,7 @@ export const useWalletStore = create<WalletStore>()(
                   connected: false,
                   address: "",
                   publicKey: "",
+                  network: null,
                   provider: null,
                   balance: null,
                   loading: false,
@@ -114,6 +136,7 @@ export const useWalletStore = create<WalletStore>()(
           }
           if (adapter.onNetworkChanged) {
             cleanups.push(adapter.onNetworkChanged(async () => {
+              set({ network: await readWalletNetwork(adapter) });
               await get().refreshBalance();
             }));
           }
@@ -138,12 +161,14 @@ export const useWalletStore = create<WalletStore>()(
 
         try {
           const account = await adapter.connectWithWif(wif);
+          const network = await readWalletNetwork(adapter, account);
           const balance = await adapter.getBalance(account.address);
 
           set({
             connected: true,
             address: account.address,
             publicKey: account.publicKey,
+            network,
             provider: "wif",
             balance,
             loading: false,
@@ -158,6 +183,7 @@ export const useWalletStore = create<WalletStore>()(
             connected: false,
             address: "",
             publicKey: "",
+            network: null,
             provider: null,
             balance: null,
             loading: false,
@@ -177,6 +203,7 @@ export const useWalletStore = create<WalletStore>()(
           connected: false,
           address: "",
           publicKey: "",
+          network: null,
           provider: null,
           balance: null,
           error: null,
@@ -189,7 +216,8 @@ export const useWalletStore = create<WalletStore>()(
 
         try {
           const balance = await adapters[provider].getBalance(address);
-          set({ balance });
+          const network = await readWalletNetwork(adapters[provider]);
+          set({ balance, network });
         } catch (_e: unknown) {
           console.warn("[wallet-store] refreshBalance failed:", _e instanceof Error ? _e.message : String(_e));
         }

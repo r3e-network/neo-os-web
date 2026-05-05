@@ -19,6 +19,9 @@
     "neo-n3-mainnet": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
     "neo-n3-testnet": "0x78fbd57ccfae14fff4b043a82eb491de542d8eb0"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "unbreakablevault.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

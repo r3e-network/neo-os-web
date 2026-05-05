@@ -25,6 +25,9 @@
     "neo-n3-mainnet": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
     "neo-n3-testnet": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "neopay.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

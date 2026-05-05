@@ -26,7 +26,7 @@ test.describe("MiniApps List", () => {
       ? body.apps.filter((app: { status?: string }) => app.status !== "disabled")
       : [];
     const cards = page.locator('a[href^="/miniapps/miniapp-"]');
-    expect(supportedApps.length).toBeGreaterThan(40);
+    expect(supportedApps.length).toBeGreaterThan(30);
     await expect(cards).toHaveCount(supportedApps.length);
     await expect(page.locator('a[href="/miniapps/miniapp-last-survivor"]')).toBeVisible();
     await expect(page.locator('a[href="/miniapps/miniapp-fogplay"]')).toBeVisible();

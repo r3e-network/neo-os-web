@@ -23,6 +23,9 @@
     "neo-n3-mainnet": "0x254421a4aeb4e731f89182776b7bc6042c40c797",
     "neo-n3-testnet": ""
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "foreveralbum.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet"
   ],

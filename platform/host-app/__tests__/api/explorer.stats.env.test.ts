@@ -15,7 +15,7 @@ describe("/api/explorer/stats env access", () => {
     delete process.env.INDEXER_SUPABASE_SERVICE_KEY;
   });
 
-  it("reads rpc env lazily at request time", async () => {
+  it("reads rpc env lazily and does not synthesize transaction counts", async () => {
     const handler = require("@/pages/api/explorer/stats").default as (
       req: NextApiRequest,
       res: NextApiResponse,
@@ -45,8 +45,8 @@ describe("/api/explorer/stats env access", () => {
     expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData())).toEqual(
       expect.objectContaining({
-        mainnet: { height: 201, txCount: 402 },
-        testnet: { height: 101, txCount: 202 },
+        mainnet: { height: 201, txCount: null, txCountSource: "unavailable" },
+        testnet: { height: 101, txCount: null, txCountSource: "unavailable" },
       }),
     );
   });

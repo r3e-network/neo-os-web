@@ -22,14 +22,48 @@
     "website": "https://r3e.network"
   },
   "contracts": {
-    "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0xefce9fda773bcd752ea7070eeac8c4d8bc0c0ab9"
+    "neo-n3-mainnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "neo-n3-testnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e"
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "profitanchor.miniapp.neo"
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "anchor-staking",
+        "platform": "PlatformAnchor",
+        "appId": "miniapp-profitanchor",
+        "moduleType": 2,
+        "registration": {
+          "method": "registerAnchorApp",
+          "type": 2
+        },
+        "operations": {
+          "stake": "stake",
+          "withdraw": "withdraw",
+          "claim": "claimRewards",
+          "stats": "getAnchorStats"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          }
+        }
+      }
+    ]
   },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/profitanchor/index.html",
     "icon": "/miniapps/profitanchor/logo.jpg",
@@ -48,7 +82,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-testnet",
+    "chain": "neo-n3-mainnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -60,5 +94,5 @@
     "transactions": true
   },
   "createdAt": "2026-04-25T00:00:00Z",
-  "updatedAt": "2026-05-02T00:00:00Z"
+  "updatedAt": "2026-05-05T00:00:00Z"
 }

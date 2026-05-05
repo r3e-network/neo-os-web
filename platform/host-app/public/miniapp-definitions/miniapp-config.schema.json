@@ -115,8 +115,21 @@
           "type": "string",
           "pattern": "^0x[a-fA-F0-9]{40}$",
           "description": "Deployed contract hash (if already deployed)"
+        },
+        "domain": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]*\\.neo$",
+          "description": "Mainnet NeoNS domain bound to the deployed contract."
+        },
+        "domains": {
+          "$ref": "#/definitions/network_domain_map",
+          "description": "Network-specific NeoNS contract domains."
         }
       }
+    },
+    "contract_domains": {
+      "$ref": "#/definitions/network_domain_map",
+      "description": "Network-specific NeoNS contract domains displayed alongside contract hashes."
     },
     "contract_template": {
       "description": "Contract template descriptor for template marketplace usage",
@@ -126,10 +139,19 @@
       "description": "Shared/router/custom modular contract composition metadata",
       "$ref": "#/definitions/contract_composition"
     },
+    "runtime": {
+      "description": "Runtime binding used by the host shell to resolve shared platform contracts or dedicated contract fallbacks.",
+      "$ref": "#/definitions/miniapp_runtime"
+    },
     "entry_url": {
       "type": "string",
       "description": "External entry URL for the MiniApp. Supports https://, mf://, or bare .matrix/.neo hostnames that will be normalized to https://.",
       "pattern": "^(?:mf://.+|https?://.+|(?:[a-z0-9-]+\\.)+(?:matrix|neo)(?::\\d+)?(?:[/?#].*)?|(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?(?:[/?#].*)?)$"
+    },
+    "dapp_url": {
+      "type": "string",
+      "description": "Standalone browser dApp URL used by OneGate and other wallet browsers. This must be a concrete http(s) URL or /miniapps/<slug>/index.html path, not an mf:// manifest runtime URL.",
+      "pattern": "^(?:/miniapps/.+|https?://.+|(?:[a-z0-9-]+\\.)+(?:matrix|neo)(?::\\d+)?(?:[/?#].*)?|(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?(?:[/?#].*)?)$"
     },
     "media": {
       "type": "object",
@@ -172,6 +194,7 @@
         "payments": { "type": "boolean", "default": false },
         "datafeed": { "type": "boolean", "default": false },
         "confidential": { "type": "boolean", "default": false },
+        "compute": { "type": "boolean", "default": false },
         "governance": { "type": "boolean", "default": false },
         "storage": { "type": "boolean", "default": false },
         "oracle": { "type": "boolean", "default": false },
@@ -438,6 +461,104 @@
         }
       },
       "additionalProperties": true
+    },
+    "miniapp_runtime": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["platform", "dedicated"]
+        },
+        "modules": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/platform_runtime_module" }
+        }
+      },
+      "required": ["mode"],
+      "additionalProperties": true
+    },
+    "platform_runtime_module": {
+      "type": "object",
+      "properties": {
+        "binding": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Host-facing capability binding, for example countdown-auction or anchor-staking."
+        },
+        "platform": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shared platform contract family, for example PlatformGame, PlatformDeFi, PlatformSocial, or PlatformAnchor."
+        },
+        "appId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registered app id passed as the hidden first argument for platform contract methods."
+        },
+        "moduleType": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "string", "minLength": 1 }
+          ]
+        },
+        "registration": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "operations": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "networks": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/platform_runtime_network_binding"
+          }
+        }
+      },
+      "required": ["binding", "platform", "appId", "networks"],
+      "additionalProperties": true
+    },
+    "platform_runtime_network_binding": {
+      "type": "object",
+      "properties": {
+        "contract_hash": {
+          "type": "string",
+          "pattern": "^(?:0x[a-fA-F0-9]{40})?$"
+        },
+        "registered": {
+          "type": "boolean",
+          "default": false
+        },
+        "domain": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]*\\.neo$",
+          "description": "NeoNS domain bound to this runtime contract on the selected network."
+        }
+      },
+      "additionalProperties": true
+    },
+    "network_domain_map": {
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.-]*\\.neo$"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "domain": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9.-]*\\.neo$"
+              }
+            },
+            "required": ["domain"],
+            "additionalProperties": true
+          }
+        ]
+      }
     },
     "contract_security_profile": {
       "type": "object",

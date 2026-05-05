@@ -56,8 +56,8 @@ export const consoleConfig: ConsoleToolConfig = {
   copyActionKey: "copy",
   copiedKey: "copied",
   fields: [
-    { key: "consumer", labelKey: "consumer", placeholderKey: "consumerPlaceholder", type: "text", defaultValue: "miniapp-game-round" },
-    { key: "salt", labelKey: "salt", placeholderKey: "saltPlaceholder", type: "text", defaultValue: "round-42" },
+    { key: "consumer", labelKey: "consumer", placeholderKey: "consumerPlaceholder", type: "text" },
+    { key: "salt", labelKey: "salt", placeholderKey: "saltPlaceholder", type: "text" },
     { key: "rounds", labelKey: "rounds", placeholderKey: "roundsPlaceholder", type: "number", defaultValue: "1" },
     {
       key: "mode",
@@ -71,10 +71,22 @@ export const consoleConfig: ConsoleToolConfig = {
     },
   ],
   buildResult(values, t) {
-    const consumer = clean(values.consumer, "miniapp-game-round");
-    const salt = clean(values.salt, "round-42");
+    const consumer = clean(values.consumer, "");
+    const salt = clean(values.salt, "");
     const rounds = clean(values.rounds, "1");
     const mode = clean(values.mode, "single-proof");
+    if (!consumer || !salt) {
+      return {
+        status: t("inputRequired"),
+        summary: t("inputRequiredSummary"),
+        rows: [],
+        payload: {
+          kind: "oracle.vrf.request",
+          status: "input_required",
+          required: ["consumer", "salt"],
+        },
+      };
+    }
     const requestId = previewId(`${consumer}|${salt}|${rounds}|${mode}`);
 
     return {
@@ -84,7 +96,7 @@ export const consoleConfig: ConsoleToolConfig = {
         { label: t("consumer"), value: consumer },
         { label: t("salt"), value: salt },
         { label: t("rounds"), value: rounds },
-        { label: t("requestId"), value: requestId },
+        { label: t("clientDigest"), value: requestId },
       ],
       payload: {
         kind: "oracle.vrf.request",
@@ -92,8 +104,7 @@ export const consoleConfig: ConsoleToolConfig = {
         salt,
         rounds,
         mode,
-        requestId,
-        digest: requestId,
+        client_digest: requestId,
       },
     };
   },
@@ -109,17 +120,20 @@ const appMessages = {
     en: "Prepare randomness requests with consumer, salt, proof mode, and repeat count.",
     zh: "用消费者、盐值、证明模式和轮次准备随机数请求。",
   },
-  runAction: { en: "Preview VRF", zh: "预览 VRF" },
+  runAction: { en: "Build VRF Request", zh: "生成 VRF 请求" },
   consumer: { en: "Consumer", zh: "消费者" },
-  consumerPlaceholder: { en: "miniapp-game-round", zh: "miniapp-game-round" },
+  consumerPlaceholder: { en: "MiniApp contract hash or app id", zh: "小程序合约哈希或 app id" },
   salt: { en: "Salt", zh: "盐值" },
-  saltPlaceholder: { en: "round-42", zh: "round-42" },
+  saltPlaceholder: { en: "Unique round or request salt", zh: "唯一回合或请求盐值" },
   rounds: { en: "Rounds", zh: "轮次" },
   roundsPlaceholder: { en: "1", zh: "1" },
   mode: { en: "Proof Mode", zh: "证明模式" },
   modeSingle: { en: "Single proof", zh: "单次证明" },
   modeBatch: { en: "Batch proof", zh: "批量证明" },
   requestId: { en: "Request ID", zh: "请求 ID" },
+  clientDigest: { en: "Client Digest", zh: "客户端摘要" },
+  inputRequired: { en: "Required fields missing", zh: "缺少必填字段" },
+  inputRequiredSummary: { en: "Enter a consumer and salt before building a VRF request.", zh: "请输入消费者和盐值后再生成 VRF 请求。" },
   vrfReady: { en: "VRF request ready", zh: "VRF 请求已准备" },
   vrfSummary: { en: "{rounds} randomness round(s) prepared", zh: "{rounds} 轮随机数已准备" },
   statNetwork: { en: "Network", zh: "网络" },

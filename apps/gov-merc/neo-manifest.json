@@ -7,6 +7,9 @@
     "neo-n3-mainnet": "0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0",
     "neo-n3-testnet": "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "govmerc.miniapp.neo"
+  },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
   "description": "Marketplace for governance voting power delegation",

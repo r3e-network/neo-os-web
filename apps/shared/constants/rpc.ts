@@ -98,6 +98,8 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-fogplay': '0xa5a4b5b82066d86eae9312f6072d1c3604882c81',
     'miniapp-self-loan': '0x942da575b31f39cbb59e64b5813b128739b44c25',
     'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
+    'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
+    'miniapp-trustanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
   },
   testnet: {
     'miniapp-last-survivor': '0x1021e9e5c17285e706c293a39c525de13100ed92',
@@ -116,6 +118,8 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-gas-sponsor': '0x31888679572bf2de61462ff9934b6265d60284f2',
     'miniapp-memorial-shrine': '0x87f0fe2ba69cd973a3274471234d3cc13ef943c5',
     'miniapp-neo-ns': '0x50ac1c37690cc2cfc594472833cf57505d5f46de',
+    'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
+    'miniapp-trustanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
   },
 };
 
@@ -187,7 +191,7 @@ export const DATA_FEED_CONTRACT_TESTNET = EXTERNAL_INTEGRATIONS.testnet.contract
 
 export function resolveNeoNetwork(network?: string | null): NeoNetwork {
   const normalized = String(network ?? '').trim().toLowerCase();
-  return normalized === 'testnet' ? 'testnet' : 'mainnet';
+  return normalized === 'testnet' || normalized === 'neo-n3-testnet' ? 'testnet' : 'mainnet';
 }
 
 /** Determine network from URL or default to mainnet. */

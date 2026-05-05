@@ -73,6 +73,34 @@ function unique(items: Array<string | null | undefined>): string[] {
   return out;
 }
 
+function getMiniAppAssetPublicBaseURL(): string {
+  return toNonEmptyString(
+    process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL ||
+      process.env.NEXT_PUBLIC_MINIAPP_ASSET_BASE_URL,
+  ).replace(/\/+$/, "");
+}
+
+function joinMiniAppAssetBase(baseURL: string, assetPath: string): string {
+  const path = assetPath.startsWith("/") ? assetPath : `/${assetPath}`;
+  if (baseURL.endsWith("/miniapp-assets") && path.startsWith("/miniapp-assets/")) {
+    return `${baseURL}${path.slice("/miniapp-assets".length)}`;
+  }
+  return `${baseURL}${path}`;
+}
+
+function resolveBundledMiniAppAssetURL(value: string | null | undefined): string {
+  const url = toNonEmptyString(value);
+  if (!url.startsWith("/miniapp-assets/")) return url;
+
+  const baseURL = getMiniAppAssetPublicBaseURL();
+  if (!baseURL) return url;
+  return joinMiniAppAssetBase(baseURL, url);
+}
+
+function resolveBundledMiniAppAssetURLs(items: Array<string | null | undefined>): string[] {
+  return unique(items.map(resolveBundledMiniAppAssetURL));
+}
+
 function isLegacyBundledMiniAppAssetUrl(value: string): boolean {
   const url = toNonEmptyString(value);
   return url.startsWith("/miniapps/");
@@ -265,8 +293,8 @@ export function getMiniAppPrimaryAssets(appID?: string | null, entryURL?: string
   if (!slug) return { logoURL: null, bannerURL: null };
 
   return {
-    logoURL: `/miniapp-assets/${slug}/logo.jpg`,
-    bannerURL: `/miniapp-assets/${slug}/banner.jpg`,
+    logoURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/logo.jpg`),
+    bannerURL: resolveBundledMiniAppAssetURL(`/miniapp-assets/${slug}/banner.jpg`),
   };
 }
 
@@ -310,7 +338,7 @@ export function buildMiniAppLogoSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "logo", options.preferences);
   const explicit = splitLegacyBundledAssetUrls(unique([options.logoURL, ...variants]));
-  return unique([
+  return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
     primary.logoURL,
     ...getMiniAppAssetCandidates("logo", options.appID, options.entryURL),
@@ -322,7 +350,7 @@ export function buildMiniAppBannerSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "banner", options.preferences);
   const explicit = splitLegacyBundledAssetUrls(unique([options.bannerURL, ...variants]));
-  return unique([
+  return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
     primary.bannerURL,
     ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
@@ -334,10 +362,16 @@ export function buildModernImageSources(url?: string | null): ModernImageSources
   const source = toNonEmptyString(url);
   if (!source) return {};
 
-  // Do not invent derived AVIF/WEBP URLs. Not every MiniApp has generated
-  // modern variants, and speculative <source> entries create noisy production
-  // 404s. Manifests can still opt into modern assets via media variants.
-  return {};
+  const match = source.match(/^([^?#]+)([?#].*)?$/);
+  const assetPath = match?.[1] || "";
+  const suffix = match?.[2] || "";
+  if (!/\/miniapp-assets\/.+\.(jpe?g)$/i.test(assetPath)) return {};
+
+  const withoutExtension = assetPath.replace(/\.(jpe?g)$/i, "");
+  return {
+    avif: `${withoutExtension}.avif${suffix}`,
+    webp: `${withoutExtension}.webp${suffix}`,
+  };
 }
 
 export function withMiniAppCardAssets<T extends Pick<MiniAppInfo, "app_id" | "entry_url"> & Partial<MiniAppInfo>>(

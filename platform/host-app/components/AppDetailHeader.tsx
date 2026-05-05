@@ -138,7 +138,7 @@ export function AppDetailHeader({ app, onBack }: Props) {
               <div className="min-w-0">
                 <p className="m-0 truncate text-sm font-black">{app.name}</p>
                 <p className="m-0 mt-1 truncate text-xs font-semibold text-white/65">
-                  Native MiniApp page
+                  Integrated dApp runtime
                 </p>
               </div>
             </div>

@@ -1,0 +1,238 @@
+.private-transfer {
+  min-height: 100%;
+  padding: 24px;
+  color: #111827;
+  background:
+    radial-gradient(circle at top left, rgba(0, 229, 153, 0.18), transparent 34%),
+    linear-gradient(135deg, #f8fafc 0%, #ffffff 52%, #ecfeff 100%);
+}
+
+.private-transfer__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.private-transfer__hero span,
+.private-transfer__status span,
+.private-transfer label span {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.private-transfer__hero h2 {
+  margin: 6px 0 8px;
+  font-size: clamp(28px, 5vw, 48px);
+  line-height: 0.95;
+  letter-spacing: 0;
+  color: #020617;
+}
+
+.private-transfer__hero p {
+  max-width: 660px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #475569;
+}
+
+.private-transfer__badge {
+  flex: 0 0 auto;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #f0f9ff;
+  font-size: 12px;
+  font-weight: 900;
+  color: #0369a1;
+}
+
+.private-transfer__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.private-transfer__panel,
+.private-transfer__status,
+.private-transfer__steps article {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.private-transfer__panel {
+  padding: 18px;
+}
+
+.private-transfer__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.private-transfer label {
+  min-width: 0;
+}
+
+.private-transfer input,
+.private-transfer select {
+  width: 100%;
+  height: 42px;
+  margin-top: 6px;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #020617;
+  font: inherit;
+  font-weight: 800;
+  outline: none;
+}
+
+.private-transfer input:focus,
+.private-transfer select:focus {
+  border-color: #00a86b;
+  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.2);
+}
+
+.private-transfer__wide {
+  grid-column: 1 / -1;
+}
+
+.private-transfer button {
+  min-height: 44px;
+  margin-top: 16px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #020617;
+  color: #ffffff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.private-transfer button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.private-transfer__status {
+  padding: 18px;
+}
+
+.private-transfer__status strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.private-transfer__status--stored {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.private-transfer__status--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.private-transfer__status dl {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.private-transfer__status div {
+  min-width: 0;
+}
+
+.private-transfer__status dt {
+  font-size: 10px;
+  font-weight: 900;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.private-transfer__status dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.private-transfer__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.private-transfer__steps article {
+  padding: 14px;
+}
+
+.private-transfer__steps article span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  background: #020617;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.private-transfer__steps article strong {
+  display: block;
+  color: #020617;
+}
+
+.private-transfer__steps article p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+@media (max-width: 900px) {
+  .private-transfer {
+    padding: 16px;
+  }
+
+  .private-transfer__hero,
+  .private-transfer__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .private-transfer__hero {
+    display: block;
+  }
+
+  .private-transfer__badge {
+    display: inline-block;
+    margin-top: 14px;
+  }
+
+  .private-transfer__steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .private-transfer__form-grid,
+  .private-transfer__steps {
+    grid-template-columns: 1fr;
+  }
+}
