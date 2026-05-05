@@ -131,29 +131,7 @@ namespace NeoMiniAppPlatform.Contracts
                 ExecutionEngine.Assert(!prev.Active, "previous round still active");
             }
 
-            BigInteger newRoundId = currentId + 1;
-            AppPut(appId, CD_PREFIX_ROUND_ID, newRoundId);
-
-            CountdownRound round = new CountdownRound
-            {
-                Id = newRoundId,
-                StartTime = Runtime.Time,
-                EndTime = Runtime.Time + CD_INITIAL_DURATION,
-                Pot = 0,
-                TotalKeys = 0,
-                LastBuyer = UInt160.Zero,
-                Winner = UInt160.Zero,
-                WinnerPrize = 0,
-                Active = true,
-                Settled = false
-            };
-            StoreCountdownRound(appId, newRoundId, round);
-
-            // Increment total rounds counter
-            BigInteger totalRounds = AppGetInt(appId, CD_PREFIX_TOTAL_ROUNDS);
-            AppPut(appId, CD_PREFIX_TOTAL_ROUNDS, totalRounds + 1);
-
-            OnCountdownRoundStarted(appId, newRoundId, round.EndTime);
+            StartNextCountdownRound(appId, 0);
         }
 
         // ===================================================================
@@ -181,17 +159,8 @@ namespace NeoMiniAppPlatform.Contracts
 
             AcquireReentrancyLock(appId);
 
-            BigInteger roundId = AppGetInt(appId, CD_PREFIX_ROUND_ID);
-            CountdownRound round = LoadCountdownRound(appId, roundId);
-            ExecutionEngine.Assert(round.Active, "no active round");
-
-            // Auto-settle if time expired
-            if (Runtime.Time >= round.EndTime)
-            {
-                SettleCountdownRound(appId, roundId);
-                ReleaseReentrancyLock(appId);
-                return;
-            }
+            CountdownRound round = EnsureActiveCountdownRound(appId);
+            BigInteger roundId = round.Id;
 
             // O(1) cost calculation via arithmetic sequence sum
             BigInteger cost = CalculateCountdownKeyCost(keyCount, round.TotalKeys);
@@ -237,14 +206,30 @@ namespace NeoMiniAppPlatform.Contracts
         public static void CheckAndEndCountdownRound(string appId)
         {
             RequireRegistered(appId);
+            RequireNotPaused(appId);
             RequireGameType(appId, GameType_Countdown);
 
+            AcquireReentrancyLock(appId);
+
             BigInteger roundId = AppGetInt(appId, CD_PREFIX_ROUND_ID);
+            if (roundId == 0)
+            {
+                StartNextCountdownRound(appId, 0);
+                ReleaseReentrancyLock(appId);
+                return;
+            }
+
             CountdownRound round = LoadCountdownRound(appId, roundId);
-            ExecutionEngine.Assert(round.Active, "no active round");
+            if (!round.Active)
+            {
+                ExecutionEngine.Assert(round.Settled, "round unavailable");
+                StartNextCountdownRound(appId, 0);
+                ReleaseReentrancyLock(appId);
+                return;
+            }
+
             ExecutionEngine.Assert(Runtime.Time >= round.EndTime, "round not ended");
 
-            AcquireReentrancyLock(appId);
             SettleCountdownRound(appId, roundId);
             ReleaseReentrancyLock(appId);
         }
@@ -386,6 +371,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             UInt160 winner = round.LastBuyer;
             BigInteger winnerPrize = round.Pot * CD_WINNER_SHARE_BPS / 10000;
+            BigInteger nextRoundPot = round.Pot * CD_NEXT_ROUND_SHARE_BPS / 10000;
 
             round.Active = false;
             round.Settled = true;
@@ -412,6 +398,64 @@ namespace NeoMiniAppPlatform.Contracts
             AppPut(appId, CD_PREFIX_TOTAL_POT_DIST, totalDistributed + round.Pot);
 
             OnCountdownWinner(appId, winner, winnerPrize, roundId);
+            StartNextCountdownRound(appId, nextRoundPot);
+        }
+
+        /// <summary>
+        /// Ensure the app has a live round. Expired rounds are settled and
+        /// immediately rolled forward so LastSurvivor never remains stopped.
+        /// </summary>
+        private static CountdownRound EnsureActiveCountdownRound(string appId)
+        {
+            BigInteger roundId = AppGetInt(appId, CD_PREFIX_ROUND_ID);
+            if (roundId == 0)
+            {
+                return StartNextCountdownRound(appId, 0);
+            }
+
+            CountdownRound round = LoadCountdownRound(appId, roundId);
+            if (round.Active)
+            {
+                if (Runtime.Time >= round.EndTime)
+                {
+                    SettleCountdownRound(appId, roundId);
+                    return LoadCountdownRound(appId, AppGetInt(appId, CD_PREFIX_ROUND_ID));
+                }
+
+                return round;
+            }
+
+            ExecutionEngine.Assert(round.Settled, "round unavailable");
+            return StartNextCountdownRound(appId, 0);
+        }
+
+        /// <summary>Start the next countdown round with an optional rollover pot.</summary>
+        private static CountdownRound StartNextCountdownRound(string appId, BigInteger seedPot)
+        {
+            BigInteger currentId = AppGetInt(appId, CD_PREFIX_ROUND_ID);
+            BigInteger newRoundId = currentId + 1;
+            AppPut(appId, CD_PREFIX_ROUND_ID, newRoundId);
+
+            CountdownRound round = new CountdownRound
+            {
+                Id = newRoundId,
+                StartTime = Runtime.Time,
+                EndTime = Runtime.Time + CD_INITIAL_DURATION,
+                Pot = seedPot,
+                TotalKeys = 0,
+                LastBuyer = UInt160.Zero,
+                Winner = UInt160.Zero,
+                WinnerPrize = 0,
+                Active = true,
+                Settled = false
+            };
+            StoreCountdownRound(appId, newRoundId, round);
+
+            BigInteger totalRounds = AppGetInt(appId, CD_PREFIX_TOTAL_ROUNDS);
+            AppPut(appId, CD_PREFIX_TOTAL_ROUNDS, totalRounds + 1);
+
+            OnCountdownRoundStarted(appId, newRoundId, round.EndTime);
+            return round;
         }
 
         /// <summary>Update player stats after a key purchase.</summary>

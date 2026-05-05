@@ -40,6 +40,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x02 };
+        private static readonly byte[] PREFIX_TOTAL_REWARD_RESERVE = new byte[] { 0x03 };
 
         private static readonly byte[] PREFIX_APP_MODE = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_APP_ADMIN = new byte[] { 0x11 };
@@ -58,6 +59,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_NEO_CREDIT = new byte[] { 0x23 };
         private static readonly byte[] PREFIX_GAS_CREDIT = new byte[] { 0x24 };
         private static readonly byte[] PREFIX_TOTAL_GAS_CREDIT = new byte[] { 0x25 };
+        private static readonly byte[] PREFIX_REWARD_REMAINDER = new byte[] { 0x26 };
 
         private static readonly byte[] PREFIX_AGENT_ACCOUNT = new byte[] { 0x30 };
         private static readonly byte[] PREFIX_AGENT_CANDIDATE = new byte[] { 0x31 };
@@ -126,6 +128,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_TOTAL_STAKERS), 0);
             Put(AppKey(appId, PREFIX_REWARD_PER_NEO), 0);
             Put(AppKey(appId, PREFIX_REWARD_RESERVE), 0);
+            Put(AppKey(appId, PREFIX_REWARD_REMAINDER), 0);
             Put(AppKey(appId, PREFIX_AGENT_COUNT), 0);
             Put(AppKey(appId, PREFIX_BEST_AGENT), 0);
             Put(AppKey(appId, PREFIX_BEST_SCORE), 0);
@@ -200,7 +203,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void Withdraw(string appId, UInt160 user, BigInteger amount)
         {
-            ValidateAnchorOpen(appId);
+            ValidateRegistered(appId);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ValidateAddress(user);
             ExecutionEngine.Assert(amount > 0, "amount must be positive");
@@ -233,12 +236,10 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger totalStaked = GetTotalStaked(appId);
             ExecutionEngine.Assert(totalStaked > 0, "no stake");
             ExecutionEngine.Assert(
-                GAS.BalanceOf(Runtime.ExecutingScriptHash) >= GetRewardReserve(appId) + GetTotalGasCredit() + amount,
+                GAS.BalanceOf(Runtime.ExecutingScriptHash) >= GetTotalRewardReserve() + GetTotalGasCredit() + amount,
                 "insufficient available GAS");
 
-            BigInteger rewardPerNeo = GetRewardPerNeo(appId) + (amount * REWARD_SCALE / totalStaked);
-            Put(AppKey(appId, PREFIX_REWARD_PER_NEO), rewardPerNeo);
-            Put(AppKey(appId, PREFIX_REWARD_RESERVE), GetRewardReserve(appId) + amount);
+            BigInteger rewardPerNeo = DistributeRewards(appId, amount, totalStaked);
 
             OnAnchorRewardsHarvested(appId, amount, rewardPerNeo);
         }
@@ -253,26 +254,28 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger totalStaked = GetTotalStaked(appId);
             ExecutionEngine.Assert(totalStaked > 0, "no stake");
 
-            BigInteger rewardPerNeo = GetRewardPerNeo(appId) + (amount * REWARD_SCALE / totalStaked);
-            Put(AppKey(appId, PREFIX_REWARD_PER_NEO), rewardPerNeo);
-            Put(AppKey(appId, PREFIX_REWARD_RESERVE), GetRewardReserve(appId) + amount);
+            BigInteger rewardPerNeo = DistributeRewards(appId, amount, totalStaked);
 
             OnAnchorRewardsHarvested(appId, amount, rewardPerNeo);
         }
 
         public static void ClaimRewards(string appId, UInt160 user)
         {
-            ValidateAnchorOpen(appId);
+            ValidateRegistered(appId);
             ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
             ValidateAddress(user);
 
             AccrueUserRewards(appId, user);
-            BigInteger amount = GetPendingRewards(appId, user);
+            BigInteger scaledPending = GetBigInteger(AppKey(appId, PREFIX_USER_PENDING_REWARD, user));
+            BigInteger amount = scaledPending / REWARD_SCALE;
             ExecutionEngine.Assert(amount > 0, "no rewards");
             ExecutionEngine.Assert(GetRewardReserve(appId) >= amount, "reward reserve short");
 
-            Put(AppKey(appId, PREFIX_USER_PENDING_REWARD, user), 0);
+            BigInteger remainingScaled = scaledPending - amount * REWARD_SCALE;
+            if (remainingScaled == 0) Delete(AppKey(appId, PREFIX_USER_PENDING_REWARD, user));
+            else Put(AppKey(appId, PREFIX_USER_PENDING_REWARD, user), remainingScaled);
             Put(AppKey(appId, PREFIX_REWARD_RESERVE), GetRewardReserve(appId) - amount);
+            PutTotalRewardReserve(GetTotalRewardReserve() - amount);
             ExecutionEngine.Assert(
                 GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
                 "GAS transfer failed");
@@ -395,6 +398,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static BigInteger GetRewardReserve(string appId) => GetBigInteger(AppKey(appId, PREFIX_REWARD_RESERVE));
 
         [Safe]
+        public static BigInteger GetTotalRewardReserve() => GetBigInteger((ByteString)PREFIX_TOTAL_REWARD_RESERVE);
+
+        [Safe]
+        public static BigInteger GetRewardRemainder(string appId) => GetBigInteger(AppKey(appId, PREFIX_REWARD_REMAINDER));
+
+        [Safe]
         public static BigInteger GetAgentCount(string appId) => GetBigInteger(AppKey(appId, PREFIX_AGENT_COUNT));
 
         [Safe]
@@ -403,11 +412,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [Safe]
         public static BigInteger GetPendingRewards(string appId, UInt160 user)
         {
+            return GetPendingRewardScaled(appId, user) / REWARD_SCALE;
+        }
+
+        private static BigInteger GetPendingRewardScaled(string appId, UInt160 user)
+        {
             BigInteger stake = GetUserStake(appId, user);
             BigInteger rewardDebt = GetBigInteger(AppKey(appId, PREFIX_USER_REWARD_DEBT, user));
             BigInteger accrued = stake * GetRewardPerNeo(appId) - rewardDebt;
             if (accrued < 0) accrued = 0;
-            return GetBigInteger(AppKey(appId, PREFIX_USER_PENDING_REWARD, user)) + (accrued / REWARD_SCALE);
+            return GetBigInteger(AppKey(appId, PREFIX_USER_PENDING_REWARD, user)) + accrued;
         }
 
         [Safe]
@@ -463,6 +477,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             result["totalStakers"] = GetTotalStakers(appId);
             result["rewardPerNeo"] = GetRewardPerNeo(appId);
             result["rewardReserve"] = GetRewardReserve(appId);
+            result["totalRewardReserve"] = GetTotalRewardReserve();
+            result["rewardRemainder"] = GetRewardRemainder(appId);
             result["agentCount"] = GetAgentCount(appId);
             result["bestAgentId"] = GetBestAgentId(appId);
             result["bestScore"] = GetBigInteger(AppKey(appId, PREFIX_BEST_SCORE));
@@ -526,9 +542,20 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void AccrueUserRewards(string appId, UInt160 user)
         {
-            BigInteger pending = GetPendingRewards(appId, user);
+            BigInteger pending = GetPendingRewardScaled(appId, user);
             Put(AppKey(appId, PREFIX_USER_PENDING_REWARD, user), pending);
             Put(AppKey(appId, PREFIX_USER_REWARD_DEBT, user), GetUserStake(appId, user) * GetRewardPerNeo(appId));
+        }
+
+        private static BigInteger DistributeRewards(string appId, BigInteger amount, BigInteger totalStaked)
+        {
+            BigInteger scaledReward = amount * REWARD_SCALE + GetRewardRemainder(appId);
+            BigInteger rewardPerNeo = GetRewardPerNeo(appId) + (scaledReward / totalStaked);
+            Put(AppKey(appId, PREFIX_REWARD_PER_NEO), rewardPerNeo);
+            Put(AppKey(appId, PREFIX_REWARD_REMAINDER), scaledReward % totalStaked);
+            Put(AppKey(appId, PREFIX_REWARD_RESERVE), GetRewardReserve(appId) + amount);
+            PutTotalRewardReserve(GetTotalRewardReserve() + amount);
+            return rewardPerNeo;
         }
 
         private static void StakeFromCredit(string appId, UInt160 user, BigInteger amount)
@@ -641,6 +668,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         private static void PutAddress(ByteString key, UInt160 value) =>
             Storage.Put(Storage.CurrentContext, key, value);
+
+        private static void PutTotalRewardReserve(BigInteger value)
+        {
+            if (value == 0) Delete((ByteString)PREFIX_TOTAL_REWARD_RESERVE);
+            else Put((ByteString)PREFIX_TOTAL_REWARD_RESERVE, value);
+        }
 
         private static BigInteger GetBigInteger(ByteString key)
         {
