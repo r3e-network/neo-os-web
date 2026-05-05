@@ -1,0 +1,58 @@
+{
+  "network": "neo-n3-mainnet",
+  "rpc_url": "https://mainnet2.neo.coz.io:443",
+  "deployer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "deployer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "platform_anchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+  "aa_core": "0x9742b4ed62a84a886f404d36149da6147528ee33",
+  "candidate": "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d",
+  "aa_accounts": {
+    "profitanchor-agent-1": "0xb80443cc91e13ea4a08b05fc9e872297d9346e5f",
+    "trustanchor-agent-1": "0xe236292368a344ceb85c5e0e8743e4dd9bbf74bf"
+  },
+  "transactions": [
+    {
+      "label": "Deploy PlatformAnchor",
+      "txid": "0x87dfc0405477f262edace4767713e83ee6b22dd505659cbfb1c8b0e8dfbef35a",
+      "valid_until_block": 9569778
+    },
+    {
+      "label": "Register miniapp-trustanchor",
+      "txid": "0x2cfc0035eeb08c339b4f099f1c5c22fd18433f7c72657f1e6db13e7c597dc622",
+      "valid_until_block": 9569780
+    },
+    {
+      "label": "Register miniapp-profitanchor",
+      "txid": "0x78d880c8a7824090b68118261a66f815d7844688a0a04ac799205c2edfbdc1e2",
+      "valid_until_block": 9569783
+    },
+    {
+      "label": "Register miniapp-trustanchor AA agent",
+      "txid": "0x0a67fdca1f81297b066a1f0f1144263b101f9a7e8127b56ad795c99e21d23754",
+      "valid_until_block": 9569785
+    },
+    {
+      "label": "Register miniapp-profitanchor AA agent",
+      "txid": "0xef929037efea6f991cd43ea27ed01f54aa02d512e4f9bbcb3ea861611c5e6e6c",
+      "valid_until_block": 9569786
+    },
+    {
+      "label": "Set ProfitAnchor agent score",
+      "txid": "0xd030e5d364d2e55d12ce52d37a228f5c395f28b824a6a86b93e094f6eda4fb98",
+      "valid_until_block": 9569789
+    }
+  ],
+  "validation": {
+    "mainnet_stake_smoke": "not_run_by_deploy_script; requires a funded user account with at least 1 NEO",
+    "profitanchor": {
+      "agent_count": "1",
+      "best_candidate_bytes": "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d",
+      "mode": "2"
+    },
+    "trustanchor": {
+      "agent_count": "1",
+      "mode": "1"
+    }
+  },
+  "generated_at_utc": "2026-05-05T00:10:39Z"
+}

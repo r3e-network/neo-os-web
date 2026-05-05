@@ -26,5 +26,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("GAS.Hash", code);
             Assert.Contains("NEO.Hash", code);
         }
+
+        [Fact]
+        public void PlatformGameCountdownSettlementImmediatelyStartsNextRound()
+        {
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
+
+            Assert.Contains("StartNextCountdownRound(appId, nextRoundPot)", code);
+            Assert.Contains("CD_NEXT_ROUND_SHARE_BPS", code);
+            Assert.Contains("return LoadCountdownRound(appId, AppGetInt(appId, CD_PREFIX_ROUND_ID));", code);
+        }
     }
 }
