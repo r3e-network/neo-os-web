@@ -38,7 +38,22 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const recentTxs = val<Array<{ hash: string; vmState: string; blockTime: unknown }>>("recentTxs") ?? [];
 
   const formatTime = (time: unknown) => {
+    if (typeof time === "number") {
+      const ms = time > 10_000_000_000 ? time : time * 1000;
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(ms));
+    }
     const dateStr = typeof time === "string" ? time : String(time ?? "");
+    if (/^\d+$/.test(dateStr)) {
+      const raw = Number(dateStr);
+      const ms = raw > 10_000_000_000 ? raw : raw * 1000;
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(ms));
+    }
     const d = new Date(dateStr);
     return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat(undefined).format(d);
   };

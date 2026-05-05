@@ -26,6 +26,39 @@
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
     "neo-n3-testnet": "0xb43bd0ded09b5d79ed858484106affc1c858483c"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "selfloan.miniapp.neo"
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "collateralized-loan",
+        "platform": "PlatformDeFi",
+        "appId": "miniapp-self-loan",
+        "moduleType": 1,
+        "registration": {
+          "method": "registerProduct",
+          "type": 1
+        },
+        "operations": {
+          "create_loan": "createLoan",
+          "repay": "repayLoan",
+          "add_collateral": "addCollateral"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "",
+            "registered": false
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0xb43bd0ded09b5d79ed858484106affc1c858483c",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

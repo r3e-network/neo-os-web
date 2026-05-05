@@ -27,15 +27,10 @@ defineMiniApp({
         successKey: "priceLoaded",
         errorKey: "fetchFailed",
       },
-      previewRecipePayload: {
-        handler: () => copilot.previewRecipePayload(),
+      buildRecipePayload: {
+        handler: () => copilot.buildRecipePayload(),
         successKey: "recipeBuilt",
         errorKey: "recipeFailed",
-      },
-      loadJitter: {
-        handler: () => copilot.loadJitter(),
-        successKey: "randomnessReady",
-        errorKey: "randomnessFailed",
       },
     });
 

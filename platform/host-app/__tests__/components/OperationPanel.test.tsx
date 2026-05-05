@@ -54,7 +54,7 @@ describe("OperationPanel", () => {
     fireEvent.change(screen.getByLabelText("Stake amount"), {
       target: { value: "25" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Vote Best Candidate" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Vote Best Candidate" })[0]);
 
     expect(screen.getByLabelText("Candidate")).toHaveValue("candidate-a");
 
@@ -111,5 +111,44 @@ describe("OperationPanel", () => {
       ),
     );
     await waitFor(() => expect(screen.getByRole("button", { name: "Flip" })).not.toBeDisabled());
+  });
+
+  it("applies launch params and opens the requested operation tab", async () => {
+    const onInvoke = jest.fn();
+
+    render(
+      <OperationPanel
+        operations={operations}
+        onInvoke={onInvoke}
+        showTitle={false}
+        launchContext={{
+          appId: "miniapp-profitanchor",
+          source: "onegate",
+          operation: "voteBestCandidate",
+          tab: null,
+          network: "testnet",
+          params: {
+            amount: "42",
+            candidate: "candidate-b",
+          },
+          keys: ["amount", "candidate"],
+          hasParams: true,
+          signature: "candidate=candidate-b&amount=42",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Candidate")).toHaveValue("candidate-b");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Vote Best Candidate" })[1]);
+    await waitFor(() =>
+      expect(onInvoke).toHaveBeenCalledWith(
+        expect.objectContaining({ method: "voteBestCandidate" }),
+        expect.objectContaining({ candidate: "candidate-b" }),
+      ),
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Stake NEO" })[0]);
+    expect(screen.getByLabelText("Stake amount")).toHaveValue(42);
   });
 });

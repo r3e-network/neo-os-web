@@ -1,5 +1,17 @@
 import { test, expect } from "@playwright/test";
 
+function isTestnetTarget() {
+  return String(
+    process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK ||
+      process.env.NEO_TARGET_NETWORK ||
+      process.env.NEXT_PUBLIC_FLAGSHIP_NETWORK ||
+      process.env.FLAGSHIP_NETWORK ||
+      "",
+  )
+    .toLowerCase()
+    .includes("testnet");
+}
+
 test.describe("MiniApp Detail", () => {
   test("should load LastSurvivor miniapp", async ({ page }) => {
     await page.goto("/miniapps/miniapp-last-survivor");
@@ -17,6 +29,20 @@ test.describe("MiniApp Detail", () => {
     // Check for any content loaded
     const content = await page.content();
     expect(content.length).toBeGreaterThan(1000);
+  });
+
+  test("should show mainnet contract domain binding", async ({ page }) => {
+    await page.goto("/miniapps/miniapp-redenvelope");
+    const domainBinding = page.getByTestId("contract-domain-binding");
+
+    if (isTestnetTarget()) {
+      await expect(domainBinding).toHaveCount(0);
+      return;
+    }
+
+    await expect(domainBinding).toBeVisible();
+    await expect(domainBinding).toContainText("Mainnet Domain");
+    await expect(domainBinding).toContainText("redenvelope.miniapp.neo");
   });
 
   test("should resolve shared-mode runtime and invoke shared module operations with a mocked NeoLine wallet", async ({
@@ -358,6 +384,14 @@ test.describe("MiniApp Detail", () => {
 
     await page.goto("/miniapps/miniapp-neo-pay-shared-example");
     const actionPanel = page.getByTestId("miniapp-actions");
+    if (!isTestnetTarget()) {
+      const unavailableMessages = actionPanel.getByText(
+        /not deployed or enabled on neo n3 mainnet/i,
+      );
+      expect(await unavailableMessages.count()).toBeGreaterThan(0);
+      return;
+    }
+
     await expect(
       actionPanel.getByRole("heading", { name: "Shared Runtime", exact: true }),
     ).toBeVisible();

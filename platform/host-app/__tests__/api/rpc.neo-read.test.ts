@@ -86,6 +86,7 @@ describe("/api/rpc/neo-read", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
       body: {
+        network: "testnet",
         contractHash: "0xabc",
         method: "isPaused",
       },
@@ -95,5 +96,23 @@ describe("/api/rpc/neo-read", () => {
 
     expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData()).result.state).toBe("FAULT");
+  });
+
+  it("rejects reads that do not explicitly select mainnet or testnet", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      body: {
+        contractHash: "0xabc",
+        method: "isPaused",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: "network must be explicitly set to mainnet or testnet",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

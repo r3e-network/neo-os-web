@@ -40,6 +40,18 @@ describe("host chain contract queries", () => {
     });
   });
 
+  it("uses deployed platform contracts for testnet platform-backed flagship apps", async () => {
+    jest.doMock("../../lib/chain/rpc-client", () => ({
+      invokeRead: jest.fn(),
+    }));
+
+    const { getFlagshipApps } = require("../../lib/chain/contract-queries");
+    const apps = getFlagshipApps("testnet");
+
+    expect(apps["miniapp-last-survivor"].contract).toBe("0x740671b10330ef6669ab8b2724437eb8d5e7a34c");
+    expect(apps["miniapp-self-loan"].contract).toBe("0xb43bd0ded09b5d79ed858484106affc1c858483c");
+  });
+
   it("parses struct return values for coin flip bet limits", async () => {
     const invokeRead = jest.fn().mockResolvedValue({
       stack: [

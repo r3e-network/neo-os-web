@@ -1,12 +1,23 @@
 import Head from "next/head";
 import type { GetStaticProps } from "next";
-import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  useDeferredValue,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { ArrowUpRight, Search, SlidersHorizontal } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import {
+  filterCatalogByNetwork,
+  resolveCatalogNetwork,
+} from "@/lib/miniapp-catalog";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 
@@ -151,6 +162,12 @@ type MiniAppsPageProps = {
 
 const EMPTY_INITIAL_APPS: MiniAppInfo[] = [];
 
+function toSerializablePermissions(
+  value: MiniAppInfo["permissions"] | null | undefined,
+): MiniAppInfo["permissions"] {
+  return JSON.parse(JSON.stringify(value ?? {})) as MiniAppInfo["permissions"];
+}
+
 function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
   return apps.map((app) => ({
     app_id: app.app_id,
@@ -163,15 +180,19 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
     entry_url: app.entry_url,
     contract_hash: app.contract_hash ?? null,
     status: app.status ?? null,
-    source: app.source,
-    permissions: app.permissions ?? {},
+    source: app.source ?? "miniapp",
+    permissions: toSerializablePermissions(app.permissions),
   }));
 }
 
 export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
+  const network = resolveCatalogNetwork(getRpcNetwork());
   const initialApps = sortMiniApps(
-    definitions.filter((app) => app.status !== "disabled"),
+    filterCatalogByNetwork(
+      definitions.filter((app) => app.status !== "disabled"),
+      network,
+    ),
     "featured",
   );
 
@@ -186,6 +207,7 @@ export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
 export default function MiniAppsPage({
   initialApps = EMPTY_INITIAL_APPS,
 }: MiniAppsPageProps = {}) {
+  const router = useRouter();
   const sortedInitialApps = useMemo(
     () => sortMiniApps(initialApps, "featured"),
     [initialApps],
@@ -195,12 +217,15 @@ export default function MiniAppsPage({
   const [loading, setLoading] = useState(!hasInitialApps);
   const [fetchError, setFetchError] = useState(false);
   const mountedRef = useRef(true);
+  const targetNetwork = getRpcNetwork();
 
   useEffect(() => {
     mountedRef.current = true;
     if (!hasInitialApps) setLoading(true);
     setFetchError(false);
-    fetch("/api/miniapps/catalog", { signal: AbortSignal.timeout(10_000) })
+    fetch(`/api/miniapps/catalog?network=${targetNetwork}`, {
+      signal: AbortSignal.timeout(10_000),
+    })
       .then((r) => {
         if (!r.ok) throw new Error(`Catalog request failed: ${r.status}`);
         return r.json();
@@ -228,7 +253,7 @@ export default function MiniAppsPage({
     return () => {
       mountedRef.current = false;
     };
-  }, [hasInitialApps]);
+  }, [hasInitialApps, targetNetwork]);
 
   useEffect(() => {
     if (!hasInitialApps) return;
@@ -244,8 +269,15 @@ export default function MiniAppsPage({
     [allApps],
   );
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    const routeQuery = typeof router.query.q === "string" ? router.query.q : "";
+    setQuery(routeQuery);
+  }, [router.query.q]);
+
   const categories = useMemo(
     () =>
       Array.from(
@@ -254,7 +286,7 @@ export default function MiniAppsPage({
     [listedApps],
   );
   const filteredApps = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
+    const normalizedQuery = deferredQuery.trim().toLowerCase();
     return listedApps.filter((app) => {
       const live = Boolean(app.contract_hash);
       const statusLabel = live
@@ -268,18 +300,19 @@ export default function MiniAppsPage({
         categoryFilter === "all" || app.category === categoryFilter;
       const matchesQuery =
         !normalizedQuery ||
-        app.name.toLowerCase().includes(normalizedQuery) ||
-        app.app_id.toLowerCase().includes(normalizedQuery) ||
-        app.description.toLowerCase().includes(normalizedQuery) ||
-        app.category.toLowerCase().includes(normalizedQuery);
+        [app.name, app.app_id, app.description, app.category]
+          .filter(Boolean)
+          .some((value) =>
+            String(value).toLowerCase().includes(normalizedQuery),
+          );
       return matchesStatus && matchesCategory && matchesQuery;
     });
-  }, [categoryFilter, listedApps, query, statusFilter]);
+  }, [categoryFilter, listedApps, deferredQuery, statusFilter]);
 
   const hero = filteredApps[0];
   const rest = filteredApps.slice(1);
   const networkLabel =
-    getRpcNetwork() === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
+    targetNetwork === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
 
   return (
     <Layout>

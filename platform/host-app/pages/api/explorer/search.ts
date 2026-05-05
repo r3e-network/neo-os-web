@@ -3,6 +3,15 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
 import { standardLimit } from "@/lib/rate-limit";
 
+type Network = "mainnet" | "testnet";
+
+function getNeoRPCURL(network: Network): string {
+  if (network === "mainnet") {
+    return process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
+  }
+  return process.env.NEO_RPC_TESTNET || "https://api.n3index.dev/testnet";
+}
+
 // Explorer Search API - proxies to Edge Function or queries indexer directly
 export default async function handler(
   req: NextApiRequest,
@@ -18,13 +27,18 @@ export default async function handler(
     return apiError.badRequest(res, "Query parameter 'q' required");
   }
 
-  // Validate and sanitize search input
+  const network: Network = req.query.network === "mainnet" ? "mainnet" : "testnet";
+
+  // Validate and sanitize search input. Only chain-resolvable identifiers are
+  // accepted: block heights, tx/block hashes, Neo addresses, and contract hashes.
   const query = q.trim().slice(0, 128);
   if (!query) {
     return apiError.badRequest(res, "Query parameter 'q' required");
   }
-  // Only allow hex hashes (0x...) and Neo N3 addresses (N...), bounded length
-  if (query.length > 256 || !/^(0x[0-9a-fA-F]+|N[A-Za-z0-9]+)$/.test(query)) {
+  if (
+    query.length > 128 ||
+    !/^(\d{1,10}|0x[0-9a-fA-F]{40}|0x[0-9a-fA-F]{64}|N[A-Za-z0-9]{20,40})$/.test(query)
+  ) {
     return apiError.badRequest(res, "Invalid search query format");
   }
 
@@ -33,25 +47,35 @@ export default async function handler(
     const indexerUrl = process.env.INDEXER_SUPABASE_URL;
     const indexerKey = process.env.INDEXER_SUPABASE_SERVICE_KEY;
 
-    if (!indexerUrl || !indexerKey) {
-      return apiError.internal(res, "Indexer not configured");
-    }
-
     const searchType = detectSearchType(query);
     let result;
 
     switch (searchType) {
-      case "transaction":
-        result = await searchTransaction(indexerUrl, indexerKey, query);
+      case "block":
+        result = await searchBlock(network, query);
+        break;
+      case "hash":
+        result = await searchTransaction(indexerUrl, indexerKey, network, query);
+        if (!result.found) result = await searchBlock(network, query);
         break;
       case "address":
+        if (!indexerUrl || !indexerKey) {
+          result = {
+            type: "address",
+            found: false,
+            network,
+            address: query,
+            source: "indexer_unavailable",
+          };
+          break;
+        }
         result = await searchAddress(indexerUrl, indexerKey, query);
         break;
       case "contract":
-        result = await searchContract(indexerUrl, indexerKey, query);
+        result = await searchContract(indexerUrl, indexerKey, network, query);
         break;
       default:
-        result = await searchAll(indexerUrl, indexerKey, query);
+        result = { type: "unknown", found: false, network, query };
     }
 
     res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=120");
@@ -67,10 +91,37 @@ export default async function handler(
 }
 
 function detectSearchType(query: string): string {
-  if (query.startsWith("0x") && query.length === 66) return "transaction";
+  if (/^\d+$/.test(query)) return "block";
+  if (query.startsWith("0x") && query.length === 66) return "hash";
   if (query.startsWith("N") && query.length === 34) return "address";
   if (query.startsWith("0x") && query.length === 42) return "contract";
   return "unknown";
+}
+
+async function rpcCall<T>(
+  network: Network,
+  method: string,
+  params: unknown[],
+): Promise<T> {
+  const response = await fetch(getNeoRPCURL(network), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method,
+      params,
+      id: 1,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) {
+    throw new Error(`RPC error: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (payload?.error) {
+    throw new Error(String(payload.error.message || payload.error.code || "RPC error"));
+  }
+  return payload?.result as T;
 }
 
 async function supabaseQuery(
@@ -95,7 +146,37 @@ async function supabaseQuery(
   }
 }
 
-async function searchTransaction(url: string, key: string, hash: string) {
+async function searchBlock(network: Network, query: string) {
+  const heightOrHash = /^\d+$/.test(query) ? Number(query) : query;
+  try {
+    const block = await rpcCall<Record<string, unknown>>(network, "getblock", [
+      heightOrHash,
+      true,
+    ]);
+    if (!block) return { type: "block", found: false, network, query };
+    const txs = Array.isArray(block.tx) ? block.tx : [];
+    return {
+      type: "block",
+      found: true,
+      network,
+      data: {
+        ...block,
+        tx_count: txs.length,
+      },
+    };
+  } catch {
+    return { type: "block", found: false, network, query };
+  }
+}
+
+async function searchTransaction(
+  url: string | undefined,
+  key: string | undefined,
+  network: Network,
+  hash: string,
+) {
+  if (!url || !key) return searchTransactionRpc(network, hash);
+
   const safeHash = encodeURIComponent(hash);
   const tx = await supabaseQuery(
     url,
@@ -103,7 +184,7 @@ async function searchTransaction(url: string, key: string, hash: string) {
     "indexer_transactions",
     `hash=eq.${safeHash}&limit=1`,
   );
-  if (!tx || tx.length === 0) return { type: "transaction", found: false };
+  if (!tx || tx.length === 0) return searchTransactionRpc(network, hash);
 
   const [traces, calls, syscalls] = await Promise.all([
     supabaseQuery(
@@ -129,6 +210,7 @@ async function searchTransaction(url: string, key: string, hash: string) {
   return {
     type: "transaction",
     found: true,
+    network,
     data: {
       ...(tx[0] as Record<string, unknown>),
       opcode_traces: traces || [],
@@ -136,6 +218,37 @@ async function searchTransaction(url: string, key: string, hash: string) {
       syscalls: syscalls || [],
     },
   };
+}
+
+async function searchTransactionRpc(network: Network, hash: string) {
+  try {
+    const tx = await rpcCall<Record<string, unknown>>(network, "getrawtransaction", [
+      hash,
+      true,
+    ]);
+    if (!tx) return { type: "transaction", found: false, network };
+    const signers = Array.isArray(tx.signers) ? tx.signers : [];
+    const firstSigner = signers[0] as Record<string, unknown> | undefined;
+    return {
+      type: "transaction",
+      found: true,
+      network,
+      data: {
+        ...tx,
+        sender: String(firstSigner?.account || ""),
+        vm_state: String(tx.vmstate || tx.vm_state || ""),
+        gas_consumed: String(tx.sysfee || tx.netfee || ""),
+        block_index: Number(tx.blockindex || tx.block_index || 0),
+        block_time: String(tx.blocktime || tx.block_time || ""),
+        opcode_traces: [],
+        contract_calls: [],
+        syscalls: [],
+      },
+      source: "rpc",
+    };
+  } catch {
+    return { type: "transaction", found: false, network };
+  }
 }
 
 async function searchAddress(url: string, key: string, address: string) {
@@ -156,7 +269,14 @@ async function searchAddress(url: string, key: string, address: string) {
   };
 }
 
-async function searchContract(url: string, key: string, contractHash: string) {
+async function searchContract(
+  url: string | undefined,
+  key: string | undefined,
+  network: Network,
+  contractHash: string,
+) {
+  if (!url || !key) return searchContractRpc(network, contractHash);
+
   const safeHash = encodeURIComponent(contractHash);
   const calls = await supabaseQuery(
     url,
@@ -168,16 +288,30 @@ async function searchContract(url: string, key: string, contractHash: string) {
   return {
     type: "contract",
     found: count > 0,
+    network,
     contract_hash: contractHash,
     call_count: count,
     calls: calls || [],
   };
 }
 
-async function searchAll(url: string, key: string, query: string) {
-  const txResult = await searchTransaction(url, key, query);
-  if (txResult.found) return txResult;
-  const addrResult = await searchAddress(url, key, query);
-  if (addrResult.found) return addrResult;
-  return { type: "unknown", found: false, query };
+async function searchContractRpc(network: Network, contractHash: string) {
+  try {
+    const contract = await rpcCall<Record<string, unknown>>(network, "getcontractstate", [
+      contractHash,
+    ]);
+    if (!contract) return { type: "contract", found: false, network, contract_hash: contractHash };
+    return {
+      type: "contract",
+      found: true,
+      network,
+      contract_hash: contractHash,
+      call_count: 0,
+      calls: [],
+      data: contract,
+      source: "rpc",
+    };
+  } catch {
+    return { type: "contract", found: false, network, contract_hash: contractHash };
+  }
 }

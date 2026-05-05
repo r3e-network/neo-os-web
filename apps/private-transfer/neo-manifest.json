@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-private-transfer",
+  "name": "Confidential Transfer",
+  "name_zh": "隐私转账",
+  "version": "1.0.0",
+  "description": "Private Neo N3 transfer intents sealed locally and verified by Morpheus confidential compute instead of on-chain zk curve verification.",
+  "description_zh": "在浏览器本地封装隐私转账意图，并通过 Morpheus 隐私计算验证，避免在 Neo 链上直接做 zk 曲线验证。",
+  "category": "defi",
+  "category_name": "DeFi",
+  "category_name_zh": "DeFi",
+  "tags": [
+    "privacy",
+    "morpheus",
+    "confidential-compute",
+    "transfer",
+    "payments"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/private-transfer/index.html",
+    "icon": "/miniapps/private-transfer/logo.jpg",
+    "banner": "/miniapps/private-transfer/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "read": true
+  },
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://private-transfer"
+  },
+  "stateSource": {
+    "type": "api",
+    "chain": "neo-n3-testnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "technologies": {
+    "tee": {
+      "enabled": true,
+      "description": "Recipient, amount, memo, and note secret are sealed with X25519-HKDF-SHA256-AES-256-GCM and only decrypted inside Morpheus confidential compute."
+    },
+    "zk": {
+      "enabled": false,
+      "description": "This MiniApp intentionally avoids Neo-side zk curve verification and uses TEE attestable privacy compute for the private transfer workflow."
+    }
+  },
+  "createdAt": "2026-05-05T00:00:00Z",
+  "updatedAt": "2026-05-05T00:00:00Z"
+}

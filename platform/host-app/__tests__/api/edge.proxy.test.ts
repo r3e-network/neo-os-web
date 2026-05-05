@@ -104,6 +104,60 @@ describe("/api/edge/[endpoint]", () => {
     );
   });
 
+  it("does not synthesize OS service data when edge is not configured", async () => {
+    delete process.env.EDGE_BASE_URL;
+    delete process.env.NEXT_PUBLIC_EDGE_URL;
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "os-game-status" },
+      headers: { "content-type": "application/json" },
+    });
+    const requestBody = Buffer.from(
+      JSON.stringify({ appId: "miniapp-last-survivor", poolId: "round-1" }),
+    );
+    process.nextTick(() => {
+      req.emit("data", requestBody);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(500);
+    expect(JSON.parse(res._getData()).error.message).toMatch(
+      /EDGE_BASE_URL/,
+    );
+  });
+
+  it("keeps write-like OS services blocked when edge is not configured", async () => {
+    delete process.env.EDGE_BASE_URL;
+    delete process.env.NEXT_PUBLIC_EDGE_URL;
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "os-payment-deposit" },
+      headers: { "content-type": "application/json" },
+    });
+    const requestBody = Buffer.from(
+      JSON.stringify({ appId: "miniapp-demo", amount: "1" }),
+    );
+    process.nextTick(() => {
+      req.emit("data", requestBody);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(500);
+    expect(JSON.parse(res._getData()).error.message).toMatch(
+      /EDGE_BASE_URL/,
+    );
+  });
+
   it("does not forward encoded-body headers after Node fetch has decoded the upstream body", async () => {
     process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
     delete process.env.MINIAPP_EDGE_ALLOWLIST;

@@ -24,6 +24,9 @@
     "neo-n3-mainnet": "0x80ea8435a88334b9b80077220097d88c440615f1",
     "neo-n3-testnet": "0x31888679572bf2de61462ff9934b6265d60284f2"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "gassponsor.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

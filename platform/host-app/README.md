@@ -28,6 +28,18 @@ Current capabilities:
 - `MORPHEUS_PUBLIC_API_URL`: preferred Morpheus web/public API origin for host-side `/api/morpheus/*` proxies.
 - `MORPHEUS_<NETWORK>_RUNTIME_URL` / `MORPHEUS_RUNTIME_URL`: preferred Morpheus runtime origin for host-side NeoDID/runtime lookups.
 - `MORPHEUS_<NETWORK>_RUNTIME_TOKEN` / `MORPHEUS_RUNTIME_TOKEN` or `PHALA_API_TOKEN` / `PHALA_SHARED_SECRET`: runtime auth for protected Morpheus endpoints.
+- `NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL`: optional public CDN/R2 base for `/miniapp-assets/*`. When set, MiniApp logo/banner URLs are resolved from this base while local development keeps using bundled assets.
+- `CRON_SECRET`: bearer secret required by protected cron endpoints.
+- `MINIAPP_LIFECYCLE_RELAYER_URL`: optional protected relayer endpoint used by `/api/cron/miniapp-lifecycle` to submit automatic PlatformGame lifecycle transactions.
+- `MINIAPP_LIFECYCLE_RELAYER_TOKEN`: optional bearer token sent to the lifecycle relayer. Keep signer material in the relayer/runtime, never in browser-visible env.
+
+MiniApp media should be generated with:
+
+```bash
+npm run assets:miniapps:optimize
+```
+
+That script keeps JPEG masters for compatibility, generates AVIF/WebP variants, and avoids replacing an existing optimized file with a larger re-encode unless `--replace-larger` is explicitly passed. Card/list images lazy-load by default; the detail hero remains eager because it is first-viewport content.
 
 ### MiniApp Approval & Governance
 
@@ -41,6 +53,7 @@ Current capabilities:
 Cron endpoint:
 
 - `GET/POST /api/cron/miniapp-publish-reminders`
+- `GET/POST /api/cron/miniapp-lifecycle?network=testnet|mainnet` scans registered countdown-style PlatformGame MiniApps and submits rollover/start recovery through the configured lifecycle relayer. Add `dry_run=true` to inspect decisions without submitting transactions.
 
 Additional references:
 
@@ -124,6 +137,21 @@ MiniApps are configuration-driven and rendered by the host runtime from manifest
 Open a manifest app via:
 
 - `http://localhost:3000/miniapps/<app_id>`
+
+### Standalone dApp Export
+
+Every source app under `apps/<slug>` must also be buildable as a standalone web dApp for wallet browsers such as OneGate:
+
+- standalone URL: `/miniapps/<slug>/index.html`
+- standalone manifest: `/miniapps/<slug>/neo-manifest.json`
+- generated catalogs: `/miniapps/catalog.json` and `/miniapps/onegate-catalog.json`
+
+Use the root scripts to verify and export the standalone surface:
+
+```bash
+npm run verify:miniapp-dapps
+npm run export:miniapp-dapps
+```
 
 ## Recommended Validation
 

@@ -64,7 +64,11 @@ function parseConfig(): R2MediaConfig | null {
 
   const host = `${accountId}.r2.cloudflarestorage.com`;
   const endpoint = `https://${host}`;
-  const publicBaseURL = asTrimmedString(process.env.MINIAPP_MEDIA_PUBLIC_BASE_URL || "https://meshmini.app").replace(/\/+$/, "");
+  const publicBaseURL = asTrimmedString(
+    process.env.MINIAPP_MEDIA_PUBLIC_BASE_URL ||
+      process.env.NEXT_PUBLIC_MINIAPP_MEDIA_PUBLIC_BASE_URL ||
+      "https://meshmini.app",
+  ).replace(/\/+$/, "");
 
   return {
     accountId,

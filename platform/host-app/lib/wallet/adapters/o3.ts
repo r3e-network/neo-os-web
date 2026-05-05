@@ -13,6 +13,7 @@ import {
   WalletNotInstalledError,
   WalletConnectionError,
 } from "./base";
+import { normalizeNeoNetwork, type NeoNetwork } from "@/lib/neo-network";
 
 /** Window with O3 wallet */
 interface O3Window {
@@ -22,6 +23,8 @@ interface O3Window {
 interface Neo3DapiInstance {
   getAccount(): Promise<{ address: string; label: string }>;
   getPublicKey(): Promise<{ address: string; publicKey: string }>;
+  getNetwork?(): Promise<unknown>;
+  network?: unknown;
   getBalance(params: { address: string; contracts: string[] }): Promise<{
     [contract: string]: { amount: string; symbol: string };
   }>;
@@ -60,6 +63,7 @@ export class O3Adapter implements WalletAdapter {
         address: account.address,
         publicKey: pubKey.publicKey,
         label: account.label,
+        network: await this.getNetwork(),
       };
     } catch (error) {
       throw new WalletConnectionError(`Failed to connect to O3: ${error instanceof Error ? error.message : String(error)}`);
@@ -68,6 +72,19 @@ export class O3Adapter implements WalletAdapter {
 
   async disconnect(): Promise<void> {
     // O3 doesn't have explicit disconnect
+  }
+
+  async getNetwork(): Promise<NeoNetwork | null> {
+    if (!this.isInstalled()) return null;
+    const api = this.getWindow().neo3Dapi;
+    const source = typeof api?.getNetwork === "function"
+      ? await api.getNetwork()
+      : api?.network;
+    if (source && typeof source === "object") {
+      const record = source as Record<string, unknown>;
+      return normalizeNeoNetwork(record.network ?? record.chainId ?? record.id);
+    }
+    return normalizeNeoNetwork(source);
   }
 
   async getBalance(address: string): Promise<WalletBalance> {

@@ -17,6 +17,7 @@ const localWorkerCount = Number.parseInt(
 const safeLocalWorkers = Number.isFinite(localWorkerCount)
   ? Math.min(4, Math.max(1, localWorkerCount))
   : 4;
+const systemChrome = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -33,7 +34,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(systemChrome ? { channel: "chrome" } : {}),
+      },
     },
   ],
   webServer: {

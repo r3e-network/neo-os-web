@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
-import { standardLimit } from "@/lib/rate-limit";
+import { relaxedLimit } from "@/lib/rate-limit";
 import { getFlagshipApps } from "@/lib/chain";
 import { rpcCall } from "@/lib/chain";
 
@@ -21,13 +21,16 @@ export default async function handler(
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
-  if (standardLimit(req, res)) return;
+  if (relaxedLimit(req, res)) return;
 
   const base = getEdgeFunctionsBaseUrl();
 
   const params = new URLSearchParams();
-  const { app_id, event_name, contract_hash, limit, after_id, tx_hash } =
+  const { app_id, event_name, contract_hash, limit, after_id, tx_hash, network } =
     req.query;
+  const targetNetwork = String(network || "").toLowerCase().includes("testnet")
+    ? "testnet"
+    : "mainnet";
 
   if (app_id) {
     const v = String(app_id);
@@ -62,7 +65,7 @@ export default async function handler(
 
   try {
     let data: unknown;
-    const flagshipApps = getFlagshipApps("testnet");
+    const flagshipApps = getFlagshipApps(targetNetwork);
     if (base) {
       const url = `${base}/events-list?${params}`;
       const upstream = await fetch(url, {
@@ -103,7 +106,7 @@ export default async function handler(
         executions?: Array<{
           notifications?: Array<Record<string, unknown>>;
         }>;
-      }>("getapplicationlog", [String(tx_hash)], "testnet");
+      }>("getapplicationlog", [String(tx_hash)], targetNetwork);
       const notifications = appLog?.executions?.[0]?.notifications || [];
       const rows = notifications.filter((row) => {
         const contract = String(row.contract || "").toLowerCase();
@@ -134,7 +137,7 @@ export default async function handler(
       if (after_id) n3Params.set("after_id", String(after_id));
       if (tx_hash) n3Params.set("tx_hash", String(tx_hash));
 
-      const n3indexUrl = `https://api.n3index.dev/indexer/v1/networks/testnet/contracts/${flagshipApps[app_id].contract}/events?${n3Params.toString()}`;
+      const n3indexUrl = `https://api.n3index.dev/indexer/v1/networks/${targetNetwork}/contracts/${flagshipApps[app_id].contract}/events?${n3Params.toString()}`;
       const upstream = await fetch(n3indexUrl, {
         signal: AbortSignal.timeout(15000),
       });

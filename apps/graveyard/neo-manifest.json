@@ -4,12 +4,13 @@
   "name": "Graveyard",
   "name_zh": "墓地",
   "version": "1.0.0",
-  "description": "On-chain encrypted memory burial with paid forgetting",
-  "description_zh": "链上墓园 — 永久纪念逝去的链上资产和项目",
+  "description": "Morpheus-sealed memory burial with paid forgetting and on-chain public commitments.",
+  "description_zh": "使用 Morpheus 隐私计算封装记忆内容，并通过链上公开承诺完成付费遗忘。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
   "tags": [
+    "morpheus",
     "memories",
     "privacy",
     "history"
@@ -23,6 +24,9 @@
     "neo-n3-mainnet": "0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1",
     "neo-n3-testnet": "0xb55aa635b10a5abb5cbac169db26a38df739778e"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "graveyard.miniapp.neo"
+  },
   "supported_networks": [
     "neo-n3-mainnet"
   ],
@@ -32,10 +36,13 @@
     "icon": "/miniapps/graveyard/logo.jpg",
     "banner": "/miniapps/graveyard/banner.jpg"
   },
-  "permissions": [
-    "invoke:primary",
-    "read:blockchain"
-  ],
+  "permissions": {
+    "payments": true,
+    "oracle": true,
+    "compute": true,
+    "confidential": true,
+    "read": true
+  },
   "features": {
     "stateless": true,
     "offlineSupport": false,

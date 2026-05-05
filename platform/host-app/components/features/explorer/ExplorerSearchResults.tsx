@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Code, Cpu, FileCode } from "lucide-react";
 import type {
+  ExplorerBlockData,
   ExplorerContractCall,
   ExplorerSearchResult,
   ExplorerTransactionData,
@@ -35,7 +36,18 @@ export function ExplorerSearchResults({
           </Card>
         );
       }
-      return <TransactionResult data={result.data} />;
+      return <TransactionResult data={result.data as ExplorerTransactionData} />;
+    case "block":
+      if (!result.data) {
+        return (
+          <Card>
+            <CardContent className="py-8 text-center text-gray-500">
+              Block data unavailable
+            </CardContent>
+          </Card>
+        );
+      }
+      return <BlockResult data={result.data as ExplorerBlockData} />;
     case "address":
       return <AddressResult result={result} />;
     case "contract":
@@ -43,6 +55,32 @@ export function ExplorerSearchResults({
     default:
       return null;
   }
+}
+
+function BlockResult({ data }: { data: ExplorerBlockData }) {
+  const time =
+    typeof data.time === "number"
+      ? new Date(data.time > 10_000_000_000 ? data.time : data.time * 1000).toLocaleString()
+      : "Unavailable";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileCode className="h-5 w-5" aria-hidden="true" />
+          Block Details
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+          <Field label="Height" value={<p className="font-mono text-xs">{data.index}</p>} />
+          <Field label="Hash" value={<p className="break-all font-mono text-xs">{data.hash}</p>} />
+          <Field label="Transactions" value={<p>{data.tx_count}</p>} />
+          <Field label="Time" value={<p>{time}</p>} />
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 function TransactionResult({ data }: { data: ExplorerTransactionData }) {

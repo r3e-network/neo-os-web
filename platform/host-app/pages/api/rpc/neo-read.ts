@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { isNeoNetwork } from "@/lib/neo-network";
 
 const MAINNET_RPC_URL =
   process.env.NEO_MAINNET_RPC_URL || "https://api.n3index.dev/mainnet";
@@ -38,8 +39,8 @@ function readFault(message: string) {
  * Proxy for read-only Neo N3 RPC calls (invokefunction).
  * Avoids CORS issues when the browser calls the Neo RPC directly.
  *
- * The "network" field selects mainnet vs testnet. Flagship contracts are deployed
- * to mainnet, so default to mainnet when unspecified.
+ * The "network" field selects mainnet vs testnet. It must be explicit so
+ * read state cannot silently fall through to the wrong environment.
  */
 export default async function handler(
   req: NextApiRequest,
@@ -54,6 +55,10 @@ export default async function handler(
     const { contractHash, method, params, network } = req.body;
     if (!contractHash || !method) {
       res.status(400).json({ error: "contractHash and method required" });
+      return;
+    }
+    if (!isNeoNetwork(network)) {
+      res.status(400).json({ error: "network must be explicitly set to mainnet or testnet" });
       return;
     }
 

@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-05-05T00:14:51.789Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "profitAnchor",
+      "trustAnchor"
+    ],
+    "selected": [
+      "profitAnchor",
+      "trustAnchor"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "profitAnchor",
+        "trustAnchor"
+      ],
+      "selected": [
+        "profitAnchor",
+        "trustAnchor"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrl": "https://ddff154546fe22d15b65667156dd4b7c611e6093-3000.dstack-pha-prod5.phala.network/mainnet",
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0x13314ea551ae127cb7ccc9a02f64106a34ff91eb",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "45225803137",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "45225803137"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "45225803137"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "skipped": true
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "readChecks": {
+        "appId": "miniapp-profitanchor",
+        "mode": "2",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "2",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "1",
+          "bestAgentId": "1",
+          "bestScore": "1000000",
+          "paused": false
+        },
+        "agentCount": "1",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0xb80443cc91e13ea4a08b05fc9e872297d9346e5f",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xb80443cc91e13ea4a08b05fc9e872297d9346e5f",
+          "weight": "0",
+          "profitScore": "1000000",
+          "active": true
+        },
+        "bestAgentId": "1",
+        "bestCandidateBytes": "33",
+        "user": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "userStake": "0",
+        "pendingRewards": "0",
+        "neoCredit": "0",
+        "gasCredit": "0"
+      },
+      "deferred": true,
+      "reason": "needs-neo-funding",
+      "message": "ProfitAnchor write flow deferred for NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32: requires 1 NEO credit or wallet balance; credit has 0, wallet has 0"
+    },
+    "trustAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "readChecks": {
+        "appId": "miniapp-trustanchor",
+        "mode": "1",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "1",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "1",
+          "bestAgentId": "0",
+          "bestScore": "0",
+          "paused": false
+        },
+        "agentCount": "1",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0xe236292368a344ceb85c5e0e8743e4dd9bbf74bf",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xe236292368a344ceb85c5e0e8743e4dd9bbf74bf",
+          "weight": "0",
+          "profitScore": "0",
+          "active": true
+        },
+        "bestAgentId": "0",
+        "bestCandidateBytes": "0",
+        "user": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "userStake": "0",
+        "pendingRewards": "0",
+        "neoCredit": "0",
+        "gasCredit": "0"
+      },
+      "deferred": true,
+      "reason": "needs-neo-funding",
+      "message": "TrustAnchor write flow deferred for NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32: requires 1 NEO credit or wallet balance; credit has 0, wallet has 0"
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}
