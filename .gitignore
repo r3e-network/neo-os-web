@@ -52,6 +52,7 @@ cmd/marble/marble
 test-results/
 apps/dashboard/test-results/
 platform/host-app/playwright-report/
+platform/edge/cov_profile/
 docs/reports/frontend-ux/
 docs/reports/miniapp-logic/
 docs/reports/morpheus-runtime/
@@ -88,7 +89,7 @@ docs/whitepaper/*.aux
 docs/whitepaper/*.toc
 
 # Supabase local dev artifacts
-supabase/.temp/
+**/supabase/.temp/
 supabase/functions/
 supabase/migrations/
 
@@ -116,6 +117,8 @@ prod-ca-*.crt
 # Secrets and credentials
 secrets/
 !**/components/**/secrets/
+!platform/host-app/pages/api/secrets/
+!platform/host-app/pages/api/secrets/**
 !infrastructure/secrets/
 credentials/
 *.secret
@@ -161,10 +164,13 @@ coordinator-enclave.signed
 test/fuzz/daemon.pid
 docs/reports/fuzz/
 docs/reports/live-smoke/
+docs/reports/mainnet-frontend-ui-audit-*/
+docs/superpowers/
 
 .worktrees/
 .omx/
 .oracle-edit
+.superpowers/
 platform/host-app/coverage/
 platform/host-app/public/miniapp-assets/**/*.jpg
 platform/host-app/public/miniapp-assets/**/*.jpeg
