@@ -1,11 +1,15 @@
-# Legacy Static MiniApps
+# Standalone MiniApp dApps
 
-This directory previously held exported static MiniApp bundles.
+This directory is the generated static dApp export surface for `apps/*`.
 
-Current runtime policy is manifest-driven:
+- Platform detail pages keep using the native manifest runtime: `mf://manifest?app=<app_id>`.
+- Each MiniApp also ships as a standalone web dApp at `/miniapps/<slug>/index.html`.
+- `catalog.json` lists the generated standalone dApp URLs and manifest URLs.
+- `onegate-catalog.json` exposes the same apps in OneGate's dApp catalog shape.
 
-- MiniApps are described by JSON/YAML/Markdown specs
-- Host renders from manifest schema/template metadata
-- Built-ins use `mf://manifest?app=<app_id>` entry URLs
+Do not edit generated bundles here. Update the source app under `apps/<slug>`, then run:
 
-Do not add new static bundles here.
+```bash
+npm run verify:miniapp-dapps
+npm run export:miniapp-dapps
+```

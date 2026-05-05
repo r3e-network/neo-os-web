@@ -124,6 +124,7 @@ const PLANNED_ATLASES = [
       "voting",
       "wallet-health",
       "zk-privacy",
+      "private-transfer",
     ],
   },
   {

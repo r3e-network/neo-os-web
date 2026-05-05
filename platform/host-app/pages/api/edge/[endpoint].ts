@@ -79,6 +79,11 @@ export default async function handler(
     return;
   }
 
+  const method = String(req.method || "GET").toUpperCase();
+  const hasBody = !(method === "GET" || method === "HEAD");
+  const rawBody = hasBody ? await readRawBody(req) : undefined;
+  const body = rawBody ? new Uint8Array(rawBody) : undefined;
+  const headers = forwardEdgeRpcHeaders(req);
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
     apiError.internal(
@@ -95,12 +100,6 @@ export default async function handler(
     apiError.internal(res, "Invalid EDGE_BASE_URL configuration");
     return;
   }
-
-  const method = String(req.method || "GET").toUpperCase();
-  const hasBody = !(method === "GET" || method === "HEAD");
-  const rawBody = hasBody ? await readRawBody(req) : undefined;
-  const body = rawBody ? new Uint8Array(rawBody) : undefined;
-  const headers = forwardEdgeRpcHeaders(req);
 
   try {
     const upstream = await fetchWithTimeout(url.toString(), {

@@ -3,10 +3,15 @@
  * Follows Interface Segregation Principle (ISP)
  */
 
+import type { NeoNetwork } from "@/lib/neo-network";
+
+export type NeoWalletNetwork = NeoNetwork;
+
 export interface WalletAccount {
   address: string;
   publicKey: string;
   label?: string;
+  network?: NeoWalletNetwork | null;
 }
 
 export interface WalletBalance {
@@ -56,6 +61,9 @@ export interface WalletAdapter {
 
   /** Sign a message */
   signMessage(message: string): Promise<SignedMessage>;
+
+  /** Return the currently selected Neo N3 network when the wallet exposes it. */
+  getNetwork?(): Promise<NeoWalletNetwork | null>;
 
   /** Invoke a smart contract */
   invoke(params: InvokeParams): Promise<TransactionResult>;

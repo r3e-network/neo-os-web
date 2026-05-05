@@ -73,18 +73,15 @@ describe("useTarot", () => {
     expect(tarot.readingMode.get()).toBe("idle");
   });
 
-  it("falls back to a playable local preview when the oracle service is unavailable", async () => {
+  it("does not synthesize a local reading when the oracle service is unavailable", async () => {
     const services = createTarotServices({ rejectBet: true });
     const tarot = useTarot({ ...services, t });
 
-    await tarot.draw();
+    await expect(tarot.draw()).rejects.toThrow("Reading unavailable");
 
-    const ids = tarot.drawn.get().map((card) => card.id);
-    expect(ids).toHaveLength(3);
-    expect(new Set(ids).size).toBe(3);
-    expect(ids.every((id) => Number.isInteger(id) && id >= 0 && id < 78)).toBe(true);
-    expect(tarot.hasDrawn.get()).toBe(true);
-    expect(tarot.readingMode.get()).toBe("preview");
+    expect(tarot.drawn.get()).toEqual([]);
+    expect(tarot.hasDrawn.get()).toBe(false);
+    expect(tarot.readingMode.get()).toBe("idle");
   });
 
   it("unwraps edge responses that use { ok, data } envelopes", async () => {

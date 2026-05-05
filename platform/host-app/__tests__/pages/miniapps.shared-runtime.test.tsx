@@ -15,7 +15,9 @@ jest.mock("../../components/AppDetailHeader", () => ({
 }));
 
 jest.mock("../../components/MiniAppPlayfield", () => ({
-  MiniAppPlayfield: () => <div data-testid="playfield" />,
+  MiniAppPlayfield: ({ launchContext }: { launchContext?: { params?: Record<string, string> } }) => (
+    <div data-testid="playfield">{launchContext?.params?.amount || ""}</div>
+  ),
 }));
 
 jest.mock("../../components/ActivityTicker", () => ({
@@ -23,7 +25,9 @@ jest.mock("../../components/ActivityTicker", () => ({
 }));
 
 jest.mock("../../components/OperationPanel", () => ({
-  OperationPanel: () => <div data-testid="operation-panel" />,
+  OperationPanel: ({ launchContext }: { launchContext?: { params?: Record<string, string> } }) => (
+    <div data-testid="operation-panel">{launchContext?.params?.amount || ""}</div>
+  ),
 }));
 
 jest.mock("../../components/features/reviews", () => ({
@@ -54,11 +58,17 @@ jest.mock("../../lib/wallet/store", () => ({
   getWalletAdapter: jest.fn(),
 }));
 
+let mockAsPath = "/miniapps/miniapp-neo-pay-shared-example";
+
 jest.mock("next/router", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), asPath: mockAsPath }),
 }));
 
 describe("MiniAppDetailPage shared runtime", () => {
+  beforeEach(() => {
+    mockAsPath = "/miniapps/miniapp-neo-pay-shared-example";
+  });
+
   it("returns 404 for archived miniapp ids", async () => {
     const result = await getServerSideProps({
       params: { id: "miniapp-flamingo" },
@@ -177,5 +187,41 @@ describe("MiniAppDetailPage shared runtime", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("module.funding_vault@1.0.0")).toBeInTheDocument();
     expect(screen.getByText("module.stream_vesting@1.0.0")).toBeInTheDocument();
+  });
+
+  it("passes OneGate launch params to playfield and operation panel", () => {
+    mockAsPath =
+      "/miniapps/miniapp-neo-pay-shared-example?source=onegate&operation=createSharedStream&amount=12.5";
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-neo-pay-shared-example",
+          name: "NeoPay Modular Fixture",
+          description: "Shared mode app",
+          icon: "N",
+          category: "defi",
+          entry_url: "mf://manifest?app=miniapp-neo-pay",
+          permissions: { payments: true },
+          detail_template: {
+            layout: "default",
+            tabs: [{ id: "overview", label: "Overview", type: "content", blocks: [] }],
+            operation_panel: {
+              title: "Create Shared Stream",
+              operations: [{ name: "Create Stream", method: "createSharedStream", params: [] }],
+            },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    expect(screen.getByTestId("playfield")).toHaveTextContent("12.5");
+    expect(screen.getByTestId("operation-panel")).toHaveTextContent("12.5");
+    expect(screen.getByTestId("launch-params-status")).toHaveTextContent(
+      "Launch parameters applied",
+    );
   });
 });

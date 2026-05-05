@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
-import { standardLimit } from "@/lib/rate-limit";
+import { relaxedLimit } from "@/lib/rate-limit";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,7 +11,7 @@ export default async function handler(
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
-  if (standardLimit(req, res)) return;
+  if (relaxedLimit(req, res)) return;
 
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {

@@ -56,7 +56,7 @@ export const consoleConfig: ConsoleToolConfig = {
   copyActionKey: "copy",
   copiedKey: "copied",
   fields: [
-    { key: "subject", labelKey: "subject", placeholderKey: "subjectPlaceholder", type: "text", defaultValue: "did:neo:alice" },
+    { key: "subject", labelKey: "subject", placeholderKey: "subjectPlaceholder", type: "text", defaultValue: "" },
     {
       key: "provider",
       labelKey: "provider",
@@ -68,14 +68,14 @@ export const consoleConfig: ConsoleToolConfig = {
         { value: "email", labelKey: "emailProvider" },
       ],
     },
-    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "verified-builder" },
-    { key: "audience", labelKey: "audience", placeholderKey: "audiencePlaceholder", type: "text", defaultValue: "neo-miniapps" },
+    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "" },
+    { key: "audience", labelKey: "audience", placeholderKey: "audiencePlaceholder", type: "text", defaultValue: "" },
   ],
   buildResult(values, t) {
-    const subject = clean(values.subject, "did:neo:unknown");
+    const subject = clean(values.subject, "");
     const provider = clean(values.provider, "wallet");
-    const claim = clean(values.claim, "verified-builder");
-    const audience = clean(values.audience, "neo-miniapps");
+    const claim = clean(values.claim, "");
+    const audience = clean(values.audience, "");
     const digest = previewId(`${subject}|${provider}|${claim}|${audience}`);
 
     return {
@@ -111,14 +111,14 @@ const appMessages = {
   },
   runAction: { en: "Build Passport", zh: "生成护照" },
   subject: { en: "Subject DID", zh: "主体 DID" },
-  subjectPlaceholder: { en: "did:neo:alice", zh: "did:neo:alice" },
+  subjectPlaceholder: { en: "Enter subject DID", zh: "输入主体 DID" },
   provider: { en: "Provider", zh: "提供方" },
   walletProvider: { en: "Wallet signature", zh: "钱包签名" },
   emailProvider: { en: "Email proof", zh: "邮箱证明" },
   claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: { en: "verified-builder", zh: "verified-builder" },
+  claimPlaceholder: { en: "Enter credential claim", zh: "输入凭证声明" },
   audience: { en: "Audience", zh: "受众" },
-  audiencePlaceholder: { en: "neo-miniapps", zh: "neo-miniapps" },
+  audiencePlaceholder: { en: "Enter relying party or app ID", zh: "输入依赖方或小程序 ID" },
   passportReady: { en: "Passport preview ready", zh: "身份护照预览已生成" },
   passportSummary: { en: "{provider} claim '{claim}' prepared", zh: "{provider} 声明“{claim}”已准备" },
   statNetwork: { en: "Network", zh: "网络" },

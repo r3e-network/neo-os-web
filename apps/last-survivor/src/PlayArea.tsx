@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NeoButton, NeoCard } from "@shared/components-react";
+import { NeoCard } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import { formatNumber } from "@shared/utils/format";
 import type { Observable } from "@shared/react/context";
@@ -48,9 +48,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const keyValidationError = val<string>("keyValidationError");
   const isBuyingKeys = bool("isBuyingKeys");
 
-  // Claim
-  const canClaim = bool("canClaim");
-  const isClaiming = bool("isClaiming");
+  const needsLifecycleSync = bool("needsLifecycleSync");
 
   // Loading
   const isLoading = bool("isLoading");
@@ -69,10 +67,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const handleBuyKeys = async () => {
     await dispatch("buyKeys", localKeyCount);
     setLocalKeyCount("1");
-  };
-
-  const handleClaimPrize = async () => {
-    await dispatch("claimPrize");
   };
 
   return (
@@ -105,9 +99,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
           dangerLevel={dangerLevel}
           shouldPulse={shouldPulse}
           formattedPot={formatNum(totalPot)}
-          canClaim={canClaim}
-          isClaiming={isClaiming}
-          onClaim={handleClaimPrize}
         />
         <DangerMeter
           t={t}
@@ -158,8 +149,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
       </div>
 
-      {/* Buy keys form (only when round is active and not claimable) */}
-      {isRoundActive && !canClaim && (
+      {/* Buy keys form */}
+      {isRoundActive && !needsLifecycleSync && (
         <NeoCard variant="erobo" className="buy-keys-card">
           <BuyKeysCard
             keyCount={localKeyCount}
@@ -173,22 +164,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </NeoCard>
       )}
 
-      {/* Claim button when round ended (standalone, in addition to hero claim) */}
-      {canClaim && !isClaiming && (
+      {/* Expired rounds are maintained by the lifecycle keeper. */}
+      {needsLifecycleSync && (
         <NeoCard variant="erobo" className="claim-card">
           <div className="claim-card-inner">
             <span className="claim-card-trophy" aria-hidden="true">*</span>
-            <span className="claim-card-text">{t("roundEnded") || "Round ended! The last buyer wins the pot."}</span>
-            <NeoButton
-              variant="primary"
-              size="lg"
-              block
-              loading={isClaiming}
-              onClick={handleClaimPrize}
-              aria-label={t("claimPrize") || "Claim Prize"}
-            >
-              {t("claimPrize") || "Claim Prize"}
-            </NeoButton>
+            <span className="claim-card-text">{t("roundEnded") || "Timer expired. The lifecycle keeper will settle and open the next round automatically."}</span>
+            <span className="claim-card-text">{t("lifecycleManaged")}</span>
           </div>
         </NeoCard>
       )}

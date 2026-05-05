@@ -39,6 +39,9 @@
     "fuzz:continuous": "FUZZ_CONTINUOUS=1 node test/fuzz/run_all.mjs",
     "sim:multiuser": "node test/fuzz/multi_user_business_sim.mjs",
     "sim:multiuser:once": "SIM_ITERATIONS=1 node test/fuzz/multi_user_business_sim.mjs",
+    "verify:miniapp-dapps": "node scripts/verify-miniapp-dapp-support.mjs",
+    "build:miniapp-dapps": "node scripts/build-miniapp-dapps.mjs",
+    "export:miniapp-dapps": "npm run -s verify:miniapp-dapps && npm run -s build:miniapp-dapps && npm run -s stage:miniapps:dist",
     "assets:miniapps:optimize": "node scripts/optimize-miniapp-assets.mjs",
     "stage:miniapps:dist": "node scripts/stage-miniapp-dists.mjs"
   },

@@ -4,6 +4,11 @@ import MiniAppDetailPage from "../../pages/miniapps/[id]";
 
 const mockPush = jest.fn();
 const mockInvoke = jest.fn();
+let mockWalletState = {
+  connected: true,
+  address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  network: "testnet" as "testnet" | "mainnet" | null,
+};
 
 jest.mock("next/router", () => ({
   useRouter: () => ({ push: mockPush }),
@@ -51,11 +56,9 @@ jest.mock("../../hooks/useActivityFeed", () => ({
 
 jest.mock("../../lib/wallet/store", () => ({
   useWalletStore: jest.fn((selector?: (state: any) => any) => {
-    const state = {
-      connected: true,
-      address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-    };
-    return typeof selector === "function" ? selector(state) : state;
+    return typeof selector === "function"
+      ? selector(mockWalletState)
+      : mockWalletState;
   }),
   getWalletAdapter: jest.fn(() => ({
     invoke: mockInvoke,
@@ -67,6 +70,16 @@ describe("MiniAppDetailPage shared invoke", () => {
     mockPush.mockReset();
     mockInvoke.mockReset();
     mockInvoke.mockResolvedValue({ txid: "0xsharedtx" });
+    mockWalletState = {
+      connected: true,
+      address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+      network: "testnet",
+    };
+    process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK = "testnet";
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_NEO_TARGET_NETWORK;
   });
 
   it("invokes the shared module contract using operation recipes", async () => {
@@ -265,6 +278,98 @@ describe("MiniAppDetailPage shared invoke", () => {
           { type: "Integer", value: "2592000" },
           { type: "String", value: "Monthly payroll stream" },
           { type: "String", value: "Optional context" },
+        ],
+        signers: [{ account: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX", scopes: 1 }],
+      });
+    });
+  });
+
+  it("invokes a platform runtime contract with the hidden appId argument", async () => {
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-last-survivor",
+          name: "Last Survivor",
+          description: "Platform game",
+          icon: "timer",
+          category: "gaming",
+          entry_url: "mf://manifest?app=miniapp-last-survivor",
+          contract_hash: "0xlegacydedicated0000000000000000000000000000",
+          permissions: { payments: true },
+          detail_template: {
+            layout: "default",
+            tabs: [
+              {
+                id: "overview",
+                label: "Overview",
+                type: "content",
+                blocks: [],
+              },
+            ],
+            operation_panel: { title: "Play", operations: [] },
+          },
+          operations: [
+            {
+              name: "Buy Keys",
+              method: "buyCountdownKeys",
+              params: [
+                {
+                  name: "player",
+                  type: "hash160",
+                  label: "Player",
+                  required: true,
+                  default_value: "$wallet",
+                  hidden: true,
+                },
+                {
+                  name: "keyCount",
+                  type: "integer",
+                  label: "Keys",
+                  required: true,
+                },
+              ],
+            },
+          ],
+          manifest: {
+            runtime: {
+              mode: "platform",
+              modules: [
+                {
+                  binding: "countdown-auction",
+                  platform: "PlatformGame",
+                  appId: "miniapp-last-survivor",
+                  moduleType: 1,
+                  networks: {
+                    "neo-n3-testnet": {
+                      contract_hash: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+                      registered: true,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Keys"), {
+      target: { value: "3" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Buy Keys" }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith({
+        scriptHash: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+        operation: "buyCountdownKeys",
+        args: [
+          { type: "String", value: "miniapp-last-survivor" },
+          { type: "Hash160", value: "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56" },
+          { type: "Integer", value: "3" },
         ],
         signers: [{ account: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX", scopes: 1 }],
       });

@@ -52,3 +52,12 @@ export { useStateBindings, useObservable } from "./hooks/useStateBindings";
 // Re-export manifest types for convenience
 export type { MiniAppManifest } from "../types/miniapp-manifest";
 export { manifestToTemplateConfig } from "../utils/manifestToTemplateConfig";
+export {
+  getLaunchParam,
+  parseMiniAppLaunchContext,
+  readMiniAppLaunchContext,
+} from "../utils/launch-params";
+export type {
+  MiniAppLaunchContext,
+  MiniAppLaunchNetwork,
+} from "../utils/launch-params";

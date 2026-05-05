@@ -24,8 +24,8 @@ export function ExplorerSearchPanel({
       <div role="search" className="mx-auto mb-8 flex max-w-2xl gap-2">
         <Input
           id="explorer-search-input"
-          aria-label="Search by transaction hash, address, or contract"
-          placeholder="Search by tx hash, address, or contract..."
+          aria-label="Search by transaction hash, address, or contract, or block height"
+          placeholder="Search by block height, tx hash, address, or contract..."
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSearch()}

@@ -9,7 +9,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Automation Copilot",
-  description: "Build and preview oracle-driven automation recipes",
+  description: "Build oracle-driven automation recipes from live Morpheus data",
   icon: "cpu",
   category: "console",
   shell: "console",

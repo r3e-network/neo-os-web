@@ -1,13 +1,24 @@
 export interface ExplorerSearchResult {
   type: string;
   found: boolean;
-  data?: ExplorerTransactionData;
+  data?: ExplorerTransactionData | ExplorerBlockData | Record<string, unknown>;
+  network?: "mainnet" | "testnet";
   address?: string;
   tx_count?: number;
   transactions?: ExplorerAddressTx[];
   contract_hash?: string;
   call_count?: number;
   calls?: ExplorerContractCall[];
+  source?: string;
+}
+
+export interface ExplorerBlockData {
+  hash: string;
+  index: number;
+  time?: number;
+  size?: number;
+  tx_count: number;
+  tx?: Array<{ hash?: string }>;
 }
 
 export interface ExplorerTransactionData {

@@ -20,7 +20,7 @@
   ],
   "default_network": "neo-n3-testnet",
   "urls": {
-    "entry": "mf://manifest?app=miniapp-neo-pay-shared-example",
+    "entry": "/miniapps/neo-pay-shared-example/index.html",
     "icon": "/miniapp-assets/neo-pay/logo.jpg",
     "banner": "/miniapp-assets/neo-pay/banner.jpg"
   },

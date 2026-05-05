@@ -146,6 +146,7 @@ describe("miniapp-definitions loader", () => {
     expect(getApp(apps, "miniapp-onchaintarot")).toEqual(
       expect.objectContaining({
         entry_url: "mf://manifest?app=miniapp-onchaintarot",
+        dapp_url: "/miniapps/on-chain-tarot/index.html",
         logo_url: "/miniapp-assets/on-chain-tarot/logo.jpg",
         banner_url: "/miniapp-assets/on-chain-tarot/banner.jpg",
       }),
@@ -533,5 +534,111 @@ describe("miniapp-definitions loader", () => {
         entry_url: "mf://manifest?app=miniapp-self-loan",
       }),
     );
+  });
+
+  it("keeps LastSurvivor lifecycle maintenance automatic instead of user-operated", async () => {
+    delete process.env.MINIAPP_DEFINITIONS_DIR;
+
+    const app = await loadBundledMiniAppById("miniapp-last-survivor");
+    const byMethod = new Map(app?.operations?.map((operation) => [operation.method, operation]));
+    const runtime = app?.manifest?.runtime as { modules?: Array<{ operations?: Record<string, string> }> } | undefined;
+
+    expect(byMethod.has("checkAndEndCountdownRound")).toBe(false);
+    expect(runtime?.modules?.[0]?.operations?.rollover).toBe("checkAndEndCountdownRound");
+    expect(byMethod.get("buyCountdownKeys")?.params?.map((param) => [param.name, param.type])).toEqual([
+      ["player", "hash160"],
+      ["keyCount", "integer"],
+    ]);
+  });
+
+  it("does not expose LastSurvivor lifecycle settlement as a standalone DApp action", () => {
+    const standaloneEntry = fs.readFileSync(
+      path.resolve(process.cwd(), "../../apps/last-survivor/src/main.tsx"),
+      "utf-8",
+    );
+
+    expect(standaloneEntry).not.toContain('registerAction("claimPrize"');
+  });
+
+  it("preserves platform runtime metadata from top-level definitions", async () => {
+    const definitionsDir = path.join(tempRoot, "defs-runtime");
+    fs.mkdirSync(definitionsDir, { recursive: true });
+    process.env.MINIAPP_DEFINITIONS_DIR = definitionsDir;
+
+    fs.writeFileSync(
+      path.join(definitionsDir, "runtime-game.json"),
+      JSON.stringify(
+        {
+          app_id: "miniapp-runtime-game",
+          name: "Runtime Game",
+          entry_url: "mf://manifest?app=miniapp-runtime-game",
+          runtime: {
+            mode: "platform",
+            modules: [
+              {
+                binding: "countdown-auction",
+                platform: "PlatformGame",
+                appId: "runtime-game",
+                moduleType: 1,
+                networks: {
+                  "neo-n3-testnet": {
+                    contract_hash: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+                    registered: true,
+                  },
+                },
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const apps = await loadMiniAppDefinitions();
+    expect(getApp(apps, "miniapp-runtime-game")?.manifest).toEqual(
+      expect.objectContaining({
+        runtime: expect.objectContaining({
+          mode: "platform",
+          modules: expect.arrayContaining([
+            expect.objectContaining({
+              platform: "PlatformGame",
+              appId: "runtime-game",
+            }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("loads platform runtime metadata for platform-backed flagship apps", async () => {
+    delete process.env.MINIAPP_DEFINITIONS_DIR;
+
+    const apps = await Promise.all([
+      loadBundledMiniAppById("miniapp-last-survivor"),
+      loadBundledMiniAppById("miniapp-profitanchor"),
+      loadBundledMiniAppById("miniapp-trustanchor"),
+      loadBundledMiniAppById("miniapp-self-loan"),
+    ]);
+
+    for (const app of apps) {
+      expect(app?.manifest).toEqual(
+        expect.objectContaining({
+          runtime: expect.objectContaining({
+            mode: "platform",
+            modules: expect.arrayContaining([
+              expect.objectContaining({
+                appId: expect.any(String),
+                platform: expect.stringMatching(/^Platform/),
+                networks: expect.any(Object),
+              }),
+            ]),
+          }),
+        }),
+      );
+      const runtime = app?.manifest?.runtime as { modules?: Array<{ appId?: string }> } | undefined;
+      expect(runtime?.modules?.[0]?.appId).toBe(app?.app_id);
+    }
   });
 });

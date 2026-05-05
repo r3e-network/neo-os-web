@@ -16,17 +16,18 @@ export const CONTRACTS = {
   fogPlay: "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
   selfLoan: "0x942da575b31f39cbb59e64b5813b128739b44c25",
   neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+  platformAnchor: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
 } as const;
 
 export const TESTNET_CONTRACTS = {
-  lastSurvivor: "0x1021e9e5c17285e706c293a39c525de13100ed92",
+  lastSurvivor: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
   gasBox: "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c",
   redEnvelope: "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
   dailyCheckin: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
   fogPlay: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
-  selfLoan: "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
+  selfLoan: "0xb43bd0ded09b5d79ed858484106affc1c858483c",
   neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-  platformAnchor: "0xee1819916a6b8c7a8c30506af3318c758850033a",
+  platformAnchor: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
 } as const;
 
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
@@ -41,11 +42,9 @@ export function getFlagshipApps(network: Network = "mainnet"): Record<string, { 
     "miniapp-fogplay": { contract: contracts.fogPlay, category: "gaming" },
     "miniapp-self-loan": { contract: contracts.selfLoan, category: "defi" },
     "miniapp-neo-pay": { contract: contracts.neoPay, category: "defi" },
+    "miniapp-trustanchor": { contract: contracts.platformAnchor, category: "defi" },
+    "miniapp-profitanchor": { contract: contracts.platformAnchor, category: "defi" },
   };
-  if (network === "testnet") {
-    apps["miniapp-trustanchor"] = { contract: TESTNET_CONTRACTS.platformAnchor, category: "defi" };
-    apps["miniapp-profitanchor"] = { contract: TESTNET_CONTRACTS.platformAnchor, category: "defi" };
-  }
   return apps;
 }
 

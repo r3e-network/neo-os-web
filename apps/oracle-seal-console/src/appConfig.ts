@@ -67,18 +67,18 @@ export const consoleConfig: ConsoleToolConfig = {
         { value: "attestation", labelKey: "purposeAttestation" },
       ],
     },
-    { key: "recipient", labelKey: "recipient", placeholderKey: "recipientPlaceholder", type: "text", defaultValue: "morpheus-oracle" },
+    { key: "recipient", labelKey: "recipient", placeholderKey: "recipientPlaceholder", type: "text", defaultValue: "" },
     {
       key: "payload",
       labelKey: "payload",
       placeholderKey: "payloadPlaceholder",
       type: "textarea",
-      defaultValue: "{\"symbol\":\"NEO\",\"maxAge\":60}",
+      defaultValue: "",
     },
   ],
   buildResult(values, t) {
     const purpose = clean(values.purpose, "oracle-input");
-    const recipient = clean(values.recipient, "morpheus-oracle");
+    const recipient = clean(values.recipient, "");
     const payload = clean(values.payload, "{}");
     const payloadDigest = previewId(payload);
     const digest = previewId(`${purpose}|${recipient}|${payloadDigest}`);
@@ -120,9 +120,9 @@ const appMessages = {
   purposeCallback: { en: "Callback secret", zh: "回调密钥" },
   purposeAttestation: { en: "Attestation", zh: "证明材料" },
   recipient: { en: "Recipient", zh: "接收方" },
-  recipientPlaceholder: { en: "morpheus-oracle", zh: "morpheus-oracle" },
+  recipientPlaceholder: { en: "Enter recipient or oracle route", zh: "输入接收方或预言机路由" },
   payload: { en: "Sensitive Payload", zh: "敏感载荷" },
-  payloadPlaceholder: { en: "{\"symbol\":\"NEO\"}", zh: "{\"symbol\":\"NEO\"}" },
+  payloadPlaceholder: { en: "Paste the private JSON payload to seal", zh: "粘贴需要封装的私密 JSON 载荷" },
   payloadDigest: { en: "Payload Digest", zh: "载荷摘要" },
   sealReady: { en: "Envelope preview ready", zh: "封装预览已生成" },
   sealSummary: { en: "{purpose} envelope prepared", zh: "{purpose} 封装已准备" },

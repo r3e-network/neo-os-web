@@ -56,7 +56,7 @@ export const consoleConfig: ConsoleToolConfig = {
   copyActionKey: "copy",
   copiedKey: "copied",
   fields: [
-    { key: "did", labelKey: "did", placeholderKey: "didPlaceholder", type: "text", defaultValue: "did:neo:builder" },
+    { key: "did", labelKey: "did", placeholderKey: "didPlaceholder", type: "text", defaultValue: "" },
     {
       key: "provider",
       labelKey: "provider",
@@ -68,14 +68,14 @@ export const consoleConfig: ConsoleToolConfig = {
         { value: "social-attestation", labelKey: "providerSocial" },
       ],
     },
-    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "human-verified" },
-    { key: "callback", labelKey: "callback", placeholderKey: "callbackPlaceholder", type: "text", defaultValue: "0x..." },
+    { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "" },
+    { key: "callback", labelKey: "callback", placeholderKey: "callbackPlaceholder", type: "text", defaultValue: "" },
   ],
   buildResult(values, t) {
-    const did = clean(values.did, "did:neo:unknown");
+    const did = clean(values.did, "");
     const provider = clean(values.provider, "neodid-registry");
-    const claim = clean(values.claim, "human-verified");
-    const callback = clean(values.callback, "0x...");
+    const claim = clean(values.claim, "");
+    const callback = clean(values.callback, "");
     const digest = previewId(`${did}|${provider}|${claim}|${callback}`);
 
     return {
@@ -111,15 +111,15 @@ const appMessages = {
   },
   runAction: { en: "Preview Verification", zh: "预览校验" },
   did: { en: "DID", zh: "DID" },
-  didPlaceholder: { en: "did:neo:builder", zh: "did:neo:builder" },
+  didPlaceholder: { en: "Enter the DID to verify", zh: "输入需要校验的 DID" },
   provider: { en: "Provider", zh: "提供方" },
   providerRegistry: { en: "NeoDID registry", zh: "NeoDID 注册表" },
   providerWallet: { en: "Wallet signature", zh: "钱包签名" },
   providerSocial: { en: "Social attestation", zh: "社交证明" },
   claim: { en: "Claim", zh: "声明" },
-  claimPlaceholder: { en: "human-verified", zh: "human-verified" },
+  claimPlaceholder: { en: "Enter the claim key to verify", zh: "输入需要校验的声明字段" },
   callback: { en: "Callback Contract", zh: "回调合约" },
-  callbackPlaceholder: { en: "0x...", zh: "0x..." },
+  callbackPlaceholder: { en: "Enter callback contract hash", zh: "输入回调合约哈希" },
   verifyReady: { en: "Verification request ready", zh: "校验请求已准备" },
   verifySummary: { en: "Claim '{claim}' queued for verification", zh: "声明“{claim}”已进入校验预览" },
   statNetwork: { en: "Network", zh: "网络" },

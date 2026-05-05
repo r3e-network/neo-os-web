@@ -4,7 +4,10 @@ import yaml from "js-yaml";
 import type { MiniAppInfo } from "@/components/types";
 import { coerceMiniAppInfo } from "./miniapp";
 import { applyBuiltInMiniAppDefaults } from "./miniapp-builtins";
-import { resolveMiniAppEntryUrlOrManifest } from "./miniapp-entry-url";
+import {
+  normalizeMiniAppDappUrl,
+  resolveMiniAppEntryUrlOrManifest,
+} from "./miniapp-entry-url";
 import { logger } from "./logger";
 import { canonicalizeMiniAppId } from "./miniapp-id";
 import { isArchivedMiniAppId, isArchivedMiniAppSlug } from "./archived-miniapps";
@@ -170,6 +173,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     template.contract_composition ??
     manifest.contract_composition,
   );
+  const runtime = asObject(obj.runtime ?? manifest.runtime);
   const logic = asObject(obj.logic ?? manifest.logic);
   const marketplace = asObject(obj.marketplace ?? manifest.marketplace);
 
@@ -184,6 +188,11 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     resolveProductionRuntimeEntryUrl(obj.entry_url, urls.entry, appId),
     appId,
   );
+  const dappUrl =
+    normalizeMiniAppDappUrl(obj.dapp_url) ||
+    normalizeMiniAppDappUrl(manifest.dapp_url) ||
+    normalizeMiniAppDappUrl(urls.dapp) ||
+    normalizeMiniAppDappUrl(urls.entry);
   const contractHash = asString(obj.contract_hash ?? contract.contract_hash ?? manifest.contract_hash);
   const templateId = asString(obj.template_id ?? contract.template_id ?? manifest.template_id);
   const initParams = obj.init_params ?? contract.init_params ?? manifest.init_params;
@@ -271,6 +280,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     description_zh: descriptionZh,
     template_type: templateType,
     entry_url: entryUrl,
+    dapp_url: dappUrl,
     description: obj.description ?? content.description ?? manifest.description,
     icon,
     category,
@@ -286,6 +296,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     frontend_template: normalizedTemplate.frontend_template,
     frontend_composition: frontendComposition,
     contract_composition: contractComposition,
+    runtime,
     i18n: normalizedI18n,
     logic,
     marketplace,
@@ -303,6 +314,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
     manifest: {
       ...manifest,
       contract_hash: contractHash || manifest.contract_hash,
+      dapp_url: dappUrl ?? manifest.dapp_url,
       template_id: templateId || manifest.template_id,
       init_params: initParams ?? manifest.init_params,
       contract: normalizedContract,
@@ -310,6 +322,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
       frontend_template: normalizedTemplate.frontend_template,
       frontend_composition: Object.keys(frontendComposition).length > 0 ? frontendComposition : manifest.frontend_composition,
       contract_composition: Object.keys(contractComposition).length > 0 ? contractComposition : manifest.contract_composition,
+      runtime: Object.keys(runtime).length > 0 ? runtime : manifest.runtime,
       template: normalizedTemplate,
       template_type: templateType ?? manifest.template_type,
       media: {
@@ -317,6 +330,10 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
         ...media,
         logo_variants: logoVariants.length > 0 ? logoVariants : asObject(manifest.media).logo_variants,
         banner_variants: bannerVariants.length > 0 ? bannerVariants : asObject(manifest.media).banner_variants,
+      },
+      urls: {
+        ...urls,
+        dapp: dappUrl ?? urls.dapp,
       },
       logic: Object.keys(logic).length > 0 ? logic : manifest.logic,
       marketplace: Object.keys(marketplace).length > 0 ? marketplace : manifest.marketplace,

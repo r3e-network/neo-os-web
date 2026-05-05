@@ -13,6 +13,7 @@ import {
   WalletNotInstalledError,
   WalletConnectionError,
 } from "./base";
+import { normalizeNeoNetwork, type NeoNetwork } from "@/lib/neo-network";
 
 /** Window with OneGate wallet */
 interface OneGateWindow {
@@ -21,6 +22,8 @@ interface OneGateWindow {
 
 interface OneGateInstance {
   getAccount(): Promise<{ address: string; publicKey: string }>;
+  getNetwork?(): Promise<unknown>;
+  network?: unknown;
   getBalance(params: { address: string }): Promise<{
     neo: string;
     gas: string;
@@ -53,6 +56,7 @@ export class OneGateAdapter implements WalletAdapter {
       return {
         address: account.address,
         publicKey: account.publicKey,
+        network: await this.getNetwork(),
       };
     } catch (error) {
       throw new WalletConnectionError(`Failed to connect to OneGate: ${error instanceof Error ? error.message : String(error)}`);
@@ -61,6 +65,19 @@ export class OneGateAdapter implements WalletAdapter {
 
   async disconnect(): Promise<void> {
     // OneGate doesn't have explicit disconnect
+  }
+
+  async getNetwork(): Promise<NeoNetwork | null> {
+    if (!this.isInstalled()) return null;
+    const api = this.getWindow().OneGate;
+    const source = typeof api?.getNetwork === "function"
+      ? await api.getNetwork()
+      : api?.network;
+    if (source && typeof source === "object") {
+      const record = source as Record<string, unknown>;
+      return normalizeNeoNetwork(record.network ?? record.chainId ?? record.id);
+    }
+    return normalizeNeoNetwork(source);
   }
 
   async getBalance(address: string): Promise<WalletBalance> {
