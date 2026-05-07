@@ -43,7 +43,7 @@ const MINIAPP_SLUG_ALIASES: Record<string, string[]> = {
   "miniapp-profitanchor": ["profitanchor"],
   "miniapp-trustanchor": ["trustanchor"],
   "miniapp-neo-pay": ["neo-pay"],
-  "miniapp-neo-pay-shared-example": ["neo-pay"],
+  "miniapp-neo-pay-shared-example": ["neo-pay-shared-example"],
   "miniapp-neo-swap": ["neo-swap"],
   "miniapp-stream-vault": ["neo-pay", "stream-vault"],
   "miniapp-unbreakablevault": ["unbreakable-vault"],
@@ -71,6 +71,15 @@ function unique(items: Array<string | null | undefined>): string[] {
     out.push(value);
   }
   return out;
+}
+
+function isRenderableImageURL(value: string): boolean {
+  return (
+    value.startsWith("/") ||
+    value.startsWith("http://") ||
+    value.startsWith("https://") ||
+    value.startsWith("data:image/")
+  );
 }
 
 function getMiniAppAssetPublicBaseURL(): string {
@@ -120,6 +129,19 @@ function splitLegacyBundledAssetUrls(items: string[]): {
     }
   }
   return { preferred, legacy };
+}
+
+function splitSvgLegacyAssets(items: string[]): {
+  svg: string[];
+  raster: string[];
+} {
+  const svg: string[] = [];
+  const raster: string[] = [];
+  for (const item of items) {
+    if (/\.svg(?:[?#].*)?$/i.test(item)) svg.push(item);
+    else raster.push(item);
+  }
+  return { svg, raster };
 }
 
 function normalizeSlug(value: string): string {
@@ -337,24 +359,32 @@ function getMiniAppAssetCandidates(asset: AssetKind, appID?: string | null, entr
 export function buildMiniAppLogoSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "logo", options.preferences);
-  const explicit = splitLegacyBundledAssetUrls(unique([options.logoURL, ...variants]));
+  const explicit = splitLegacyBundledAssetUrls(
+    unique([options.logoURL, ...variants]).filter(isRenderableImageURL),
+  );
+  const legacy = splitSvgLegacyAssets(explicit.legacy);
   return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
+    ...legacy.svg,
     primary.logoURL,
     ...getMiniAppAssetCandidates("logo", options.appID, options.entryURL),
-    ...explicit.legacy,
+    ...legacy.raster,
   ]);
 }
 
 export function buildMiniAppBannerSources(options: MediaOptions): string[] {
   const primary = getMiniAppPrimaryAssets(options.appID, options.entryURL);
   const variants = getVariantUrls(options.manifest, "banner", options.preferences);
-  const explicit = splitLegacyBundledAssetUrls(unique([options.bannerURL, ...variants]));
+  const explicit = splitLegacyBundledAssetUrls(
+    unique([options.bannerURL, ...variants]).filter(isRenderableImageURL),
+  );
+  const legacy = splitSvgLegacyAssets(explicit.legacy);
   return resolveBundledMiniAppAssetURLs([
     ...explicit.preferred,
+    ...legacy.svg,
     primary.bannerURL,
     ...getMiniAppAssetCandidates("banner", options.appID, options.entryURL),
-    ...explicit.legacy,
+    ...legacy.raster,
   ]);
 }
 

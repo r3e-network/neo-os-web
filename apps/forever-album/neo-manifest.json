@@ -4,8 +4,8 @@
   "name": "Forever Album",
   "name_zh": "永恒相册",
   "version": "1.1.0",
-  "description": "Store your photos on Neo per wallet address, with optional AES-GCM encryption.",
-  "description_zh": "永恒相册 — 将珍贵照片永久存储在链上，不可删除不可篡改",
+  "description": "Create a wallet-scoped photo vault with optional AES-GCM encryption through the platform storage and NFT service proxies.",
+  "description_zh": "永恒相册 — 通过平台存储与 NFT 服务代理创建钱包级照片保险箱，支持 AES-GCM 加密。",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
@@ -19,15 +19,11 @@
     "email": "dev@r3e.network",
     "website": "https://r3e.network"
   },
-  "contracts": {
-    "neo-n3-mainnet": "0x254421a4aeb4e731f89182776b7bc6042c40c797",
-    "neo-n3-testnet": ""
-  },
-  "contract_domains": {
-    "neo-n3-mainnet": "foreveralbum.miniapp.neo"
-  },
+  "contracts": {},
+  "contract_domains": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
@@ -36,7 +32,7 @@
     "banner": "/miniapps/forever-album/banner.jpg"
   },
   "permissions": [
-    "invoke:primary",
+    "invoke:shared-runtime",
     "read:blockchain"
   ],
   "features": {
@@ -45,7 +41,7 @@
     "deeplink": "neomainapp://forever-album"
   },
   "stateSource": {
-    "type": "n3index",
+    "type": "platform-storage",
     "chain": "neo-n3-mainnet",
     "endpoints": [
       "https://api.n3index.dev"

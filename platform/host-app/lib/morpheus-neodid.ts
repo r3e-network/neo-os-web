@@ -92,6 +92,7 @@ async function fetchRuntimeJson(path: string, network: NeoNetwork): Promise<Reco
     headers.set("x-phala-token", runtimeToken);
   }
 
+  const requestTimeoutMs = 6000;
   let lastNonRetryableText = "";
   for (const runtimeUrl of runtimeUrls) {
     try {
@@ -99,6 +100,7 @@ async function fetchRuntimeJson(path: string, network: NeoNetwork): Promise<Reco
         method: "GET",
         headers,
         cache: "no-store",
+        signal: AbortSignal.timeout(requestTimeoutMs),
       });
       const text = await response.text();
       const contentType = response.headers.get("content-type") || "application/json";

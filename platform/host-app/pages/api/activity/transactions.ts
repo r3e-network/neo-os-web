@@ -21,7 +21,11 @@ export default async function handler(
   }
 
   const params = new URLSearchParams();
-  const { app_id, limit, after_id } = req.query;
+  const { app_id, limit, after_id, network } = req.query;
+  const targetNetwork = String(network || "").toLowerCase().includes("testnet")
+    ? "testnet"
+    : "mainnet";
+  params.set("network", targetNetwork);
 
   if (app_id) {
     const appIdStr = String(app_id);

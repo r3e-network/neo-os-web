@@ -16,6 +16,92 @@ type Dict = Record<string, unknown>;
 
 const DEFINITION_EXTENSIONS = new Set([".json", ".yaml", ".yml"]);
 
+type MiniAppDefinitionsCache = {
+  at: number;
+  apps: MiniAppInfo[];
+};
+
+let cachedDefinitions: MiniAppDefinitionsCache | null = null;
+let cachedDefinitionsInFlight: Promise<MiniAppInfo[]> | null = null;
+
+function resolveDefinitionsCacheTtlMs(): number {
+  const raw = String(process.env.MINIAPP_DEFINITIONS_CACHE_TTL_MS ?? "").trim();
+  if (raw) {
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  if (process.env.PLAYWRIGHT === "1") return 120_000;
+  if (process.env.NODE_ENV === "production") return 60_000;
+  return 0;
+}
+
+const NATIVE_ONLY_MINIAPPS: Record<string, Dict> = {
+  "miniapp-wallet-health": {
+    app_id: "miniapp-wallet-health",
+    name: "Wallet Health",
+    description:
+      "Run a wallet readiness checklist covering balances, permissions, suspicious approvals, and backup posture.",
+    category: "utility",
+    template_type: "utility",
+    status: "active",
+    permissions: {
+      payments: false,
+      governance: false,
+      randomness: false,
+      datafeed: false,
+      confidential: false,
+      oracle: false,
+      compute: false,
+      storage: false,
+      cross_chain: false,
+      aa: false,
+    },
+  },
+  "miniapp-timestamp-proof": {
+    app_id: "miniapp-timestamp-proof",
+    name: "Timestamp Proof",
+    description:
+      "Hash local content, anchor the digest, and keep proof lookup straightforward.",
+    category: "utility",
+    template_type: "utility",
+    status: "active",
+    permissions: {
+      payments: false,
+      governance: false,
+      randomness: false,
+      datafeed: false,
+      confidential: false,
+      oracle: false,
+      compute: false,
+      storage: false,
+      cross_chain: false,
+      aa: false,
+    },
+  },
+  "miniapp-unbreakablevault": {
+    app_id: "miniapp-unbreakablevault",
+    name: "Unbreakable Vault",
+    description:
+      "Create a bounty vault, lock secret hash conditions, and expose the claim path clearly.",
+    category: "utility",
+    template_type: "utility",
+    status: "active",
+    permissions: {
+      payments: false,
+      governance: false,
+      randomness: false,
+      datafeed: false,
+      confidential: false,
+      oracle: false,
+      compute: false,
+      storage: false,
+      cross_chain: false,
+      aa: false,
+    },
+  },
+};
+
 export type MiniAppDefinitionPayload = {
   fileName: string;
   slug: string;
@@ -364,11 +450,14 @@ function getDefinitionsDir(): string {
 }
 
 function getBundledAppsDir(): string {
+  const fromEnv = asString(process.env.MINIAPP_APPS_DIR);
+  if (fromEnv) return fromEnv;
   return path.resolve(process.cwd(), "..", "..", "apps");
 }
 
 function getMiniAppManifestPath(slug: string): string {
-  return path.resolve(process.cwd(), "..", "..", "apps", slug, "neo-manifest.json");
+  const appsDir = getBundledAppsDir();
+  return path.resolve(appsDir, slug, "neo-manifest.json");
 }
 
 async function loadBundledManifest(slug: string): Promise<Dict | null> {
@@ -462,6 +551,31 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
   const bundledSlugs = await listBundledManifestSlugs();
   const bundledSlugSet = new Set(bundledSlugs);
 
+  async function appendManifestOnlyFallbackSlugs() {
+    const definitionSlugs = new Set(definitions.map((definition) => definition.slug));
+    for (const slug of bundledSlugs) {
+      if (definitionSlugs.has(slug)) continue;
+      try {
+        const bundledManifest = await loadBundledManifest(slug);
+        if (!bundledManifest) continue;
+        definitions.push({
+          fileName: `${slug}/neo-manifest.json`,
+          slug,
+          fullPath: getMiniAppManifestPath(slug),
+          payload: normalizeRawDefinition(buildManifestOnlyDefinition(slug, bundledManifest), slug),
+        });
+      } catch (error) {
+        const message = getErrorMessage(error);
+        errors.push({
+          fileName: `${slug}/neo-manifest.json`,
+          slug,
+          fullPath: getMiniAppManifestPath(slug),
+          error: message,
+        });
+      }
+    }
+  }
+
   try {
     const entries = await fs.readdir(definitionsDir, { withFileTypes: true });
     const definitionFiles = entries
@@ -499,50 +613,67 @@ export async function loadMiniAppDefinitionPayloads(): Promise<MiniAppDefinition
       }
     }
 
-    const definitionSlugs = new Set(definitions.map((definition) => definition.slug));
-    for (const slug of bundledSlugs) {
-      if (definitionSlugs.has(slug)) continue;
-      try {
-        const bundledManifest = await loadBundledManifest(slug);
-        if (!bundledManifest) continue;
-        definitions.push({
-          fileName: `${slug}/neo-manifest.json`,
-          slug,
-          fullPath: getMiniAppManifestPath(slug),
-          payload: normalizeRawDefinition(buildManifestOnlyDefinition(slug, bundledManifest), slug),
-        });
-      } catch (error) {
-        const message = getErrorMessage(error);
-        errors.push({
-          fileName: `${slug}/neo-manifest.json`,
-          slug,
-          fullPath: getMiniAppManifestPath(slug),
-          error: message,
-        });
-      }
-    }
+    await appendManifestOnlyFallbackSlugs();
 
     return { definitionsDir, definitions, errors };
-  } catch {
-    // Best-effort load: return what we have so far, individual parse errors are already recorded
-    return { definitionsDir, definitions: [], errors: [] };
+  } catch (error) {
+    // When the definitions directory is missing (common in `.next/standalone` builds),
+    // fall back to the bundled `apps/*/neo-manifest.json` catalog so the MiniApps
+    // surface does not appear empty.
+    logger.warn(
+      "[miniapp-definitions] failed to scan definitions directory; falling back to bundled manifests:",
+      error instanceof Error ? error.message : String(error)
+    );
+    definitions.length = 0;
+    errors.length = 0;
+    await appendManifestOnlyFallbackSlugs();
+    return { definitionsDir, definitions, errors };
   }
 }
 
 export async function loadMiniAppDefinitions(): Promise<MiniAppInfo[]> {
-  if (process.env.NODE_ENV === "test" && !process.env.MINIAPP_DEFINITIONS_DIR) {
+  // Jest/unit tests run with NODE_ENV=test and often omit MINIAPP_DEFINITIONS_DIR to avoid
+  // walking the repository filesystem. Playwright E2E runs also set NODE_ENV=test, but it
+  // still needs the real catalog to render navigation rails and validate surfaces.
+  if (
+    process.env.NODE_ENV === "test"
+    && process.env.PLAYWRIGHT !== "1"
+    && !process.env.MINIAPP_DEFINITIONS_DIR
+  ) {
     return [];
   }
 
-  const loaded = await loadMiniAppDefinitionPayloads();
-  const apps: MiniAppInfo[] = [];
-  for (const definition of loaded.definitions) {
-    const app = coerceMiniAppInfo(definition.payload);
-    if (!app) continue;
-    if (isArchivedMiniAppId(app.app_id)) continue;
-    apps.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
+  const ttlMs = resolveDefinitionsCacheTtlMs();
+  if (ttlMs > 0 && cachedDefinitions && Date.now() - cachedDefinitions.at < ttlMs) {
+    return cachedDefinitions.apps;
   }
-  return apps;
+  if (ttlMs > 0 && cachedDefinitionsInFlight) {
+    return cachedDefinitionsInFlight;
+  }
+
+  const loader = (async () => {
+    const loaded = await loadMiniAppDefinitionPayloads();
+    const apps: MiniAppInfo[] = [];
+    for (const definition of loaded.definitions) {
+      const app = coerceMiniAppInfo(definition.payload);
+      if (!app) continue;
+      if (isArchivedMiniAppId(app.app_id)) continue;
+      apps.push({ ...applyBuiltInMiniAppDefaults(app), source: "miniapp" });
+    }
+    return apps;
+  })();
+
+  if (ttlMs <= 0) return loader;
+
+  cachedDefinitionsInFlight = loader;
+  loader.then((apps) => {
+    cachedDefinitions = { at: Date.now(), apps };
+    cachedDefinitionsInFlight = null;
+  }).catch(() => {
+    cachedDefinitions = null;
+    cachedDefinitionsInFlight = null;
+  });
+  return loader;
 }
 
 export async function loadBundledMiniAppById(appId: string): Promise<MiniAppInfo | null> {
@@ -552,6 +683,13 @@ export async function loadBundledMiniAppById(appId: string): Promise<MiniAppInfo
   }) || String(appId || "").trim();
   if (!normalizedTarget) return null;
   if (isArchivedMiniAppId(normalizedTarget) || isArchivedMiniAppSlug(appId)) return null;
+
+  const nativeOnly = NATIVE_ONLY_MINIAPPS[normalizedTarget];
+  if (nativeOnly) {
+    const app = coerceMiniAppInfo(nativeOnly);
+    if (!app) return null;
+    return { ...applyBuiltInMiniAppDefaults(app), source: "miniapp" };
+  }
 
   const definitionApps = await loadMiniAppDefinitions();
   const definitionMatch = definitionApps.find((app) => app.app_id === normalizedTarget) || null;

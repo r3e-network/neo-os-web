@@ -75,22 +75,92 @@ const items = [
   },
 ];
 
-async function getContractState(rpcUrl, hash) {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
+function buildRpcCandidates(networkConfig) {
+  const candidates = [];
+  const primary = String(networkConfig?.rpcUrl || "").trim();
+  if (primary) candidates.push(primary);
+
+  // n3index is a stable public Neo JSON-RPC proxy and helps mitigate transient
+  // HTML/WAF pages returned by upstream RPC providers.
+  if (networkConfig?.key === "neo-n3-mainnet") {
+    candidates.push("https://api.n3index.dev/mainnet");
+  } else if (networkConfig?.key === "neo-n3-testnet") {
+    candidates.push("https://api.n3index.dev/testnet");
+  }
+
+  return [...new Set(candidates)];
+}
+
+async function fetchJsonRpc(rpcUrl, payload, { timeoutMs = 15000 } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(rpcUrl, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    if (!String(text || "").trim()) {
+      return {
+        ok: false,
+        status: res.status,
+        error: `empty rpc response (status=${res.status})`,
+      };
+    }
+    try {
+      return { ok: true, status: res.status, body: text ? JSON.parse(text) : {} };
+    } catch {
+      const snippet = String(text || "").trim().slice(0, 120);
+      return {
+        ok: false,
+        status: res.status,
+        error: `non-json rpc response (status=${res.status}, head=${JSON.stringify(snippet)})`,
+      };
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function getContractState(rpcCandidates, hash) {
+  let lastError = null;
+
+  for (const rpcUrl of rpcCandidates) {
+    const payload = {
       jsonrpc: "2.0",
       id: 1,
       method: "getcontractstate",
       params: [hash],
-    }),
-  });
-  const data = await res.json();
-  if (data.error) {
-    throw new Error(data.error.message || "unknown rpc error");
+    };
+
+    // Some RPC providers intermittently return HTML error pages; retry once
+    // before falling back to alternate endpoints.
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const result = await fetchJsonRpc(rpcUrl, payload);
+      if (!result.ok) {
+        lastError = new Error(`${rpcUrl}: ${result.error}`);
+        continue;
+      }
+      if (result.body?.error) {
+        lastError = new Error(
+          `${rpcUrl}: ${result.body.error.message || result.body.error.code || "unknown rpc error"}`
+        );
+        continue;
+      }
+      if (result.body?.result == null) {
+        lastError = new Error(`${rpcUrl}: missing result for getcontractstate`);
+        continue;
+      }
+      return result.body.result;
+    }
   }
-  return data.result;
+
+  throw lastError || new Error("unknown rpc error");
 }
 
 function expectedMethodsFor(item, networkKey) {
@@ -133,7 +203,7 @@ async function main() {
     }
 
     try {
-      const remote = await getContractState(networkConfig.rpcUrl, deployedHash);
+      const remote = await getContractState(buildRpcCandidates(networkConfig), deployedHash);
       const remoteMethods = Array.isArray(remote?.manifest?.abi?.methods)
         ? remote.manifest.abi.methods.map((m) => String(m.name || ""))
         : [];

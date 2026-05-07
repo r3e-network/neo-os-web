@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 640" role="img" aria-label="MiniApp Factory banner">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1440" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101B16"/>
+      <stop offset=".54" stop-color="#0B2C22"/>
+      <stop offset="1" stop-color="#FFF8F3"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="180" y1="96" x2="1040" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18D986"/>
+      <stop offset="1" stop-color="#FF8A50"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF7C2"/>
+      <stop offset=".54" stop-color="#FF8A50"/>
+      <stop offset="1" stop-color="#101B16"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="640" fill="url(#surface)"/>
+  <path d="M0 516c188-62 326-70 488-24 190 54 352 68 540-16 154-68 284-72 412-18v182H0V516Z" fill="#101B16" opacity=".62"/>
+  <circle cx="1124" cy="16" r="286" fill="#FF8A50" opacity=".16"/>
+  <circle cx="1010" cy="564" r="242" fill="#18D986" opacity=".14"/>
+  <rect x="104" y="108" width="690" height="416" rx="46" fill="#FFFFFF" fill-opacity=".08" stroke="#FFFFFF" stroke-opacity=".2"/>
+  <path d="M104 478c142-44 274-42 396 6 113 44 211 39 294-13v53H104v-46Z" fill="#FFFFFF" opacity=".06"/>
+  <text x="164" y="244" fill="#F8FFF9" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="900">MiniApp Factory</text>
+  <text x="168" y="306" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="650" opacity=".88">Package launch-ready Neo MiniApps</text>
+
+    <rect x="168" y="374" width="158" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="195" y="408" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Manifest</text>
+
+    <rect x="344" y="374" width="210" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="371" y="408" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">OneGate link</text>
+
+    <rect x="168" y="444" width="145" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="195" y="478" fill="#FFF8F3" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Catalog</text>
+
+        <g transform="translate(794 80)">
+          <rect width="410" height="320" rx="44" fill="#FFFFFF" opacity=".9"/>
+          <rect x="52" y="56" width="96" height="96" rx="24" fill="url(#panel)"/>
+          <rect x="184" y="56" width="96" height="96" rx="24" fill="url(#coin)"/>
+          <rect x="52" y="188" width="96" height="96" rx="24" fill="#FF8A50"/>
+          <rect x="184" y="188" width="96" height="96" rx="24" fill="#101B16" fill-opacity=".92"/>
+          <path d="M148 104h36M100 152v36M148 236h36M280 104h58M280 236h62" stroke="#101B16" stroke-width="14" stroke-linecap="round"/>
+          <circle cx="166" cy="170" r="28" fill="#101B16"/>
+        </g>
+</svg>

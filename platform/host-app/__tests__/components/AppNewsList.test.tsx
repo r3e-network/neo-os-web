@@ -62,7 +62,9 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={achievementNotif} />);
 
-    expect(screen.getByText("🏆")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Notification type: achievement"),
+    ).toBeInTheDocument();
   });
 
   it("displays correct icon for update type", () => {
@@ -79,7 +81,9 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={updateNotif} />);
 
-    expect(screen.getByText("🔔")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Notification type: update"),
+    ).toBeInTheDocument();
   });
 
   it("displays correct icon for warning type", () => {
@@ -96,7 +100,9 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={warningNotif} />);
 
-    expect(screen.getByText("⚠️")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Notification type: warning"),
+    ).toBeInTheDocument();
   });
 
   it("renders transaction link when tx_hash is provided", () => {
@@ -219,6 +225,8 @@ describe("AppNewsList", () => {
     ];
     render(<AppNewsList notifications={unknownTypeNotif} />);
 
-    expect(screen.getByText("📢")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Notification type: update"),
+    ).toBeInTheDocument();
   });
 });

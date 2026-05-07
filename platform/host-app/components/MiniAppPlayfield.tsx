@@ -173,8 +173,9 @@ function LiveContractView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const contractHash = getMiniAppContractHash(app.app_id) || app.contract_hash || null;
-  const rpcUrl = getRpcUrl();
+  const requestedNetwork = launchContext?.network ?? getRpcNetwork();
+  const contractHash = getMiniAppContractHash(app.app_id, requestedNetwork) || app.contract_hash || null;
+  const rpcUrl = getRpcUrl(requestedNetwork);
 
   const loadContractData = useCallback(
     async ({ isInitial = false } = {}) => {
@@ -231,7 +232,7 @@ function LiveContractView({
       loading={loading}
       error={error}
       contractHash={contractHash}
-      network={getRpcNetwork()}
+      network={requestedNetwork}
       launchContext={launchContext}
       onRefresh={() => loadContractData({ isInitial: true })}
     />
@@ -400,6 +401,20 @@ async function fetchAppStats(
           { label: "Asset", value: "GAS" },
           { label: "Distribution", value: "Random (VRF)" },
           { label: "Mode", value: "Lucky packets" },
+        ];
+      }
+
+      case "miniapp-gas-lucky-pool": {
+        const pausedStack = await invokeRead(rpcUrl, contractHash, "isPaused");
+        return [
+          {
+            label: "Status",
+            value: stackBool(pausedStack) ? "Paused" : "Active",
+            accent: !stackBool(pausedStack),
+          },
+          { label: "Asset", value: "GAS" },
+          { label: "Claim Range", value: "Configurable" },
+          { label: "Mode", value: "OneGate QR claim" },
         ];
       }
 

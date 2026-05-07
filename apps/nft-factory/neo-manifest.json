@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-nft-factory",
+  "name": "NFT Factory",
+  "name_zh": "NFT 工厂",
+  "version": "1.0.0",
+  "description": "Create NEP-11 collections from audited on-chain templates with OneGate URL parameters.",
+  "description_zh": "通过已审计链上模板创建 NEP-11 集合，并支持 OneGate 扫码传参打开。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": ["factory", "nep11", "nft", "collection", "onegate", "developer"],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/nft-factory/index.html",
+    "icon": "/miniapps/nft-factory/logo.svg",
+    "banner": "/miniapps/nft-factory/banner.svg"
+  },
+  "permissions": ["wallet:sign-message", "read:blockchain"],
+  "features": {
+    "stateless": true,
+    "offlineSupport": true,
+    "deeplink": "neomainapp://nft-factory"
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "Template plans can be submitted by AA later, but this standalone app does not require AA."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "No private computation is required for deterministic collection planning."
+    },
+    "neodid": {
+      "enabled": false,
+      "description": "Creator identity can be layered on top by signing the generated template plan."
+    }
+  },
+  "createdAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-05-07T00:00:00Z",
+  "featured": false
+}

@@ -29,6 +29,8 @@ const repoRoot = path.resolve(__dirname, "../../..");
 const appsDir = path.join(repoRoot, "apps");
 
 test.setTimeout(240_000);
+const mainnetVisibleAppIds = readMainnetVisibleAppIds();
+const mainnetContractAppIds = new Set(readMainnetContractAppIds());
 
 function readManifestBackedApps() {
   return fs
@@ -64,6 +66,12 @@ function readMainnetVisibleAppIds() {
     .map((app) => app.id);
 }
 
+function readMainnetContractAppIds() {
+  return readManifestBackedApps()
+    .filter((app) => app.hasMainnetContract)
+    .map((app) => app.id);
+}
+
 function readTestnetOnlyAppIds() {
   return readManifestBackedApps()
     .filter((app) =>
@@ -86,6 +94,24 @@ async function captureUnsafeFrontendRequests(page: Page, failures: string[]) {
     const allowedReadOnlyPost = method === "POST" && READ_ONLY_POST_ENDPOINTS.has(requestUrl.pathname);
     if (!allowedReadOnlyPost) {
       failures.push(`unexpected mutating request ${method} ${requestUrl.pathname}`);
+    }
+  });
+
+  page.on("requestfailed", (request) => {
+    const failure = request.failure();
+    const errorText = String(failure?.errorText || "").trim();
+    if (!errorText) return;
+    if (errorText.includes("net::ERR_ABORTED")) return;
+    if (!/ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_TIMED_OUT/i.test(errorText)) {
+      return;
+    }
+
+    try {
+      const requestUrl = new URL(request.url());
+      const safeUrl = `${requestUrl.origin}${requestUrl.pathname}`;
+      failures.push(`request failed: ${errorText} ${request.method().toUpperCase()} ${safeUrl}`);
+    } catch {
+      failures.push(`request failed: ${errorText} ${request.method().toUpperCase()}`);
     }
   });
 
@@ -140,10 +166,57 @@ async function collectVisibleButtons(page: Page): Promise<ButtonInfo[]> {
 }
 
 async function assertImagesLoaded(page: Page, route: string) {
+  await page.evaluate(async () => {
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const maxY = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+    );
+    for (const y of [0, Math.floor(maxY / 2), maxY]) {
+      window.scrollTo(0, y);
+      await delay(120);
+    }
+  });
+  // Avoid hanging indefinitely on slow/broken remote images. We only need a bounded
+  // check that images either load or fail deterministically.
+  await page.evaluate(async () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const withTimeout = async (promise: Promise<unknown>, timeoutMs: number) =>
+      Promise.race([promise, sleep(timeoutMs)]);
+
+    const images = Array.from(document.querySelectorAll("img"))
+      .filter((image) => Boolean(image.currentSrc || image.getAttribute("src")));
+
+    await Promise.all(
+      images.map(async (image) => {
+        if (!image.complete) {
+          await withTimeout(
+            new Promise<void>((resolve) => {
+              const done = () => {
+                image.removeEventListener("load", done);
+                image.removeEventListener("error", done);
+                resolve();
+              };
+              image.addEventListener("load", done, { once: true });
+              image.addEventListener("error", done, { once: true });
+            }),
+            2_500,
+          );
+        }
+
+        if (typeof image.decode === "function") {
+          await withTimeout(image.decode().catch(() => undefined), 2_500);
+        }
+      }),
+    );
+  });
   const broken = await page.evaluate(() =>
     Array.from(document.querySelectorAll("img"))
-      .filter((image) => image.complete && image.naturalWidth === 0)
-      .map((image) => image.getAttribute("src") || image.getAttribute("alt") || "unknown image"),
+      .filter((image) => {
+        const hasSource = Boolean(image.currentSrc || image.getAttribute("src"));
+        return hasSource && image.complete && image.naturalWidth === 0;
+      })
+      .map((image) => image.currentSrc || image.getAttribute("src") || image.getAttribute("alt") || "unknown image"),
   );
   expect(broken, `${route} should not contain broken rendered images`).toEqual([]);
 }
@@ -218,7 +291,7 @@ test.describe("Mainnet frontend safety surface", () => {
     expect(response.ok(), "mainnet catalog API should be healthy").toBeTruthy();
     const catalog = (await response.json()) as { apps?: CatalogApp[] };
     const apps = catalog.apps || [];
-    const expectedMainnetIds = readMainnetVisibleAppIds();
+    const expectedMainnetIds = mainnetVisibleAppIds;
     expect(apps.length, "mainnet catalog should expose every mainnet-visible miniapp").toBe(expectedMainnetIds.length);
 
     const ids = new Set(apps.map((app) => app.app_id));
@@ -269,17 +342,8 @@ test.describe("Mainnet frontend safety surface", () => {
     expect(requestFailures, "opening the wallet modal should not submit data").toEqual([]);
   });
 
-  test("every mainnet miniapp detail page renders native layout and guarded controls", async ({ page, request }) => {
-    const catalogResponse = await request.get("/api/miniapps/catalog?network=mainnet");
-    const catalog = (await catalogResponse.json()) as { apps?: CatalogApp[] };
-    const apps = (catalog.apps || [])
-      .filter((app) => app.status !== "disabled")
-      .sort((a, b) => String(a.app_id).localeCompare(String(b.app_id)));
-
-    expect(apps.length, "mainnet should expose the full mainnet-visible catalog").toBe(readMainnetVisibleAppIds().length);
-
-    for (const app of apps) {
-      const appId = String(app.app_id || "");
+  for (const appId of mainnetVisibleAppIds) {
+    test(`mainnet miniapp ${appId} renders native layout and guarded controls`, async ({ page }) => {
       const route = `/miniapps/${appId}`;
       const requestFailures: string[] = [];
       await captureUnsafeFrontendRequests(page, requestFailures);
@@ -291,10 +355,13 @@ test.describe("Mainnet frontend safety surface", () => {
       await expect(page.getByTestId("miniapp-info"), `${appId} should show shared app info`).toBeVisible();
       await expect(page.getByTestId("miniapp-actions"), `${appId} should show the operation panel`).toBeVisible();
       await expect(page.getByTestId("miniapp-actions"), `${appId} operation panel should identify the app`).toContainText(appId);
+      if (mainnetContractAppIds.has(appId)) {
+        await expect(page.getByTestId("miniapp-actions"), `${appId} mainnet contract app should not be disabled by stale runtime metadata`).not.toContainText(/not configured for this network|runtime not deployed/i);
+      }
       await expect(page.getByTestId("miniapp-list-rail").locator(`a[href="/miniapps/${appId}"]`)).toHaveCount(1);
       await assertImagesLoaded(page, route);
       await exerciseButtonsWithoutWallet(page, route);
       expect(requestFailures, `${appId} should not emit mutating frontend requests before wallet signing`).toEqual([]);
-    }
-  });
+    });
+  }
 });

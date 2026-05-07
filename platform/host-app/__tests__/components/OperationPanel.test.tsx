@@ -48,8 +48,7 @@ describe("OperationPanel", () => {
       />,
     );
 
-    const firstTab = screen.getAllByRole("button", { name: "Stake NEO" })[0];
-    expect(firstTab.parentElement).toHaveClass("grid-cols-2");
+    expect(screen.getByTestId("operation-tab-grid")).toHaveClass("grid-cols-2");
 
     fireEvent.change(screen.getByLabelText("Stake amount"), {
       target: { value: "25" },
@@ -150,5 +149,44 @@ describe("OperationPanel", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Stake NEO" })[0]);
     expect(screen.getByLabelText("Stake amount")).toHaveValue(42);
+  });
+
+  it("renders market-style controls inside the action box", () => {
+    render(
+      <OperationPanel
+        operations={[
+          {
+            name: "Buy Up",
+            method: "buyUp",
+            params: [
+              {
+                name: "side",
+                label: "Outcome",
+                type: "select" as const,
+                options: [
+                  { label: "Up", value: "up" },
+                  { label: "Down", value: "down" },
+                ],
+              },
+              {
+                name: "amount",
+                label: "Amount",
+                type: "amount" as const,
+                default_value: "5",
+              },
+            ],
+          },
+        ]}
+        onInvoke={jest.fn()}
+        showTitle={false}
+      />,
+    );
+
+    expect(screen.getByTestId("operation-panel-shell")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Up" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Down" })).toBeVisible();
+    expect(screen.getByLabelText("Amount")).toHaveValue(5);
+    expect(screen.getByRole("button", { name: "25 GAS" })).toBeVisible();
+    expect(screen.getByText("Wallet signed")).toBeVisible();
   });
 });

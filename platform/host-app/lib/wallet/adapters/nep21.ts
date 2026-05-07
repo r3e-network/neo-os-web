@@ -80,6 +80,7 @@ type DapiProvider = {
 
 type DapiWindow = Window & {
   Neo?: { DapiProvider?: unknown };
+  OneGateDapiProvider?: unknown;
   neoDapiProvider?: unknown;
   neoDapi?: unknown;
 };
@@ -100,6 +101,7 @@ function getImmediateProvider(): DapiProvider | null {
   const win = window as DapiWindow;
   const candidates = [
     win.Neo?.DapiProvider,
+    win.OneGateDapiProvider,
     win.neoDapiProvider,
     win.neoDapi,
   ];
@@ -191,6 +193,25 @@ function normalizeBalance(value: unknown, assetHash: string): string {
     }
   }
   return "0";
+}
+
+function mapDapiArgs(
+  args?: Array<{ type: string; value: unknown }>,
+  accountHash?: string | null,
+  currentAddress?: string | null,
+) {
+  if (!args?.length) return args ?? [];
+  return args.map((arg) => {
+    if (
+      accountHash &&
+      currentAddress &&
+      String(arg.type).toLowerCase() === "hash160" &&
+      arg.value === currentAddress
+    ) {
+      return { ...arg, value: accountHash };
+    }
+    return arg;
+  });
 }
 
 export class Nep21Adapter implements WalletAdapter {
@@ -324,7 +345,7 @@ export class Nep21Adapter implements WalletAdapter {
     const invocation: DapiInvocation = {
       hash: params.scriptHash,
       operation: normalizeOperationName(params.operation),
-      args: params.args ?? [],
+      args: mapDapiArgs(params.args, this.accountHash, this.address),
     };
     const signers = params.signers?.map((signer) => ({
       ...signer,

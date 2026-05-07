@@ -29,10 +29,12 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
     },
     "contracts": {
-      "aaCore": "0x9742b4ed62a84a886f404d36149da6147528ee33",
-      "aaWeb3AuthVerifier": "0xb4107cb2cb4bace0ebe15bc4842890734abe133a",
-      "aaSessionKeyVerifier": "0xe82b9d056c011819ff3652427682224daad0cd1f",
+      "aaCore": "0x0268a387913b250166ddec032b03332690a1ef78",
+      "aaWeb3AuthVerifier": "0x8e3a6388e02c0335912a77b7ff06d29a721c9112",
+      "aaSessionKeyVerifier": "0x74ca950d403143b2d40c15ce6d780225a728f5ec",
       "aaSocialRecoveryVerifier": "0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3",
+      "aaAddressMarket": "0x011006627a683df8af98ee12e13161317d57df5e",
+      "aaPaymaster": "0xa0defa2bc6d7a71ba1e237149287c8ca4ff46caf",
       "morpheusOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
       "oracleCallbackConsumer": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
       "morpheusDatafeed": "0x03013f49c42a14546c8bbe58f9d434c3517fccab",
@@ -45,6 +47,8 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaWeb3AuthVerifier": "web3auth.smartwallet.neo",
       "aaSessionKeyVerifier": "sessionkey.smartwallet.neo",
       "aaSocialRecoveryVerifier": "recovery.smartwallet.neo",
+      "aaAddressMarket": "market.smartwallet.neo",
+      "aaPaymaster": "paymaster.smartwallet.neo",
       "oracle": "oracle.morpheus.neo",
       "datafeed": "pricefeed.morpheus.neo",
       "neodid": "neodid.morpheus.neo"
@@ -80,6 +84,8 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaWeb3AuthVerifier": "0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d",
       "aaSessionKeyVerifier": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
       "aaSocialRecoveryVerifier": "",
+      "aaAddressMarket": "",
+      "aaPaymaster": "",
       "morpheusOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
       "oracleCallbackConsumer": "0x8c506f224d82e67200f20d9d5361f767f0756e3b",
       "morpheusDatafeed": "0x9bea75cf702f6afc09125aa6d22f082bfd2ee064",
@@ -92,6 +98,8 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaWeb3AuthVerifier": "",
       "aaSessionKeyVerifier": "",
       "aaSocialRecoveryVerifier": "",
+      "aaAddressMarket": "",
+      "aaPaymaster": "",
       "oracle": "",
       "datafeed": "",
       "neodid": ""

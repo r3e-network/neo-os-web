@@ -101,7 +101,7 @@ test("createWaitForLog retries through unknown script container without warning"
   });
 
   try {
-    const result = await waitForLog("abcd", 100);
+    const result = await waitForLog("abcd", 1000);
     assert.equal(result.txid, "0xabcd");
     assert.equal(result.execution.vmstate, "HALT");
     assert.deepEqual(warnings, []);

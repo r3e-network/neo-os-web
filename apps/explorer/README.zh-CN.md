@@ -70,7 +70,7 @@ Explorer 提供 Neo N3 区块链的全面视图。搜索交易、检查地址并
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
 | AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
 | AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| Morpheus Oracle | `0x017520f068fd602082fe5572596185e62a4ad991` |
+| Morpheus Oracle | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
 
 ## 资产
 

@@ -31,6 +31,7 @@ export default async function handler(
   const targetNetwork = String(network || "").toLowerCase().includes("testnet")
     ? "testnet"
     : "mainnet";
+  params.set("network", targetNetwork);
 
   if (app_id) {
     const v = String(app_id);
