@@ -127,7 +127,7 @@ export function compactMiniAppManifestForCatalog(
   if (Object.keys(manifest).length === 0) return null;
 
   const compact: Record<string, unknown> = {};
-  for (const key of ["supported_networks", "contracts", "runtime"] as const) {
+  for (const key of ["supported_networks", "contracts", "runtime", "deployment"] as const) {
     if (manifest[key] !== undefined && manifest[key] !== null) {
       compact[key] = manifest[key];
     }
