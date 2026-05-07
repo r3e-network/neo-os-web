@@ -6,8 +6,18 @@ const path = require("path");
 const ROOT = path.resolve(__dirname, "..", "..");
 const APPS_DIR = path.join(ROOT, "apps");
 const CONTRACTS_DIR = path.join(ROOT, "contracts");
-const TESTNET_RPC = process.env.NEO_RPC_TESTNET || process.env.NEO_RPC_URL || "https://api.n3index.dev/testnet";
-const MAINNET_RPC = process.env.NEO_RPC_MAINNET || "https://api.n3index.dev/mainnet";
+const TESTNET_NETWORK_MAGIC = 894710606;
+const MAINNET_NETWORK_MAGIC = 860833102;
+const TESTNET_RPC =
+  process.env.NEO_RPC_TESTNET ||
+  process.env.NEO_TESTNET_RPC_URL ||
+  process.env.TESTNET_RPC_URL ||
+  "https://api.n3index.dev/testnet";
+const MAINNET_RPC =
+  process.env.NEO_RPC_MAINNET ||
+  process.env.NEO_MAINNET_RPC_URL ||
+  process.env.MAINNET_RPC_URL ||
+  "https://api.n3index.dev/mainnet";
 const ARCHIVED_APP_SLUGS = new Set(["neoburger", "neo-burger", "flamingo", "flaminggo"]);
 
 function readJson(filePath) {
@@ -67,6 +77,33 @@ async function contractExists(rpcUrl, hash) {
   }
 }
 
+async function rpcCall(rpcUrl, method, params = []) {
+  const response = await fetch(rpcUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method,
+      params,
+    }),
+  });
+  const data = await response.json();
+  if (data.error) throw new Error(data.error.message || "rpc error");
+  return data.result;
+}
+
+async function assertRpcNetwork(rpcUrl, expectedMagic, label) {
+  const version = await rpcCall(rpcUrl, "getversion");
+  const networkMagic = Number(version?.protocol?.network);
+  if (networkMagic !== expectedMagic) {
+    throw new Error(
+      `${label} RPC network magic mismatch: expected ${expectedMagic}, got ${networkMagic || "unknown"}`
+    );
+  }
+  return networkMagic;
+}
+
 function classify(manifest, testnetState, mainnetState, sourcePresent) {
   const testnetHash = String(manifest.contracts?.["neo-n3-testnet"] || "").trim();
   const mainnetHash = String(manifest.contracts?.["neo-n3-mainnet"] || "").trim();
@@ -85,7 +122,28 @@ function classify(manifest, testnetState, mainnetState, sourcePresent) {
   return "stale-or-missing";
 }
 
+function deploymentStatus(manifest, network) {
+  const deployment = manifest.deployment;
+  if (!deployment || typeof deployment !== "object" || Array.isArray(deployment)) return "";
+  const entry = deployment[network] || deployment[network === "neo-n3-mainnet" ? "mainnet" : "testnet"];
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return "";
+  return String(entry.status || "").trim();
+}
+
+function deploymentReason(manifest, network) {
+  const deployment = manifest.deployment;
+  if (!deployment || typeof deployment !== "object" || Array.isArray(deployment)) return "";
+  const entry = deployment[network] || deployment[network === "neo-n3-mainnet" ? "mainnet" : "testnet"];
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) return "";
+  return String(entry.reason || "").trim();
+}
+
 async function main() {
+  const [testnetMagic, mainnetMagic] = await Promise.all([
+    assertRpcNetwork(TESTNET_RPC, TESTNET_NETWORK_MAGIC, "testnet"),
+    assertRpcNetwork(MAINNET_RPC, MAINNET_NETWORK_MAGIC, "mainnet"),
+  ]);
+
   const apps = fs.readdirSync(APPS_DIR)
     .filter((name) => !ARCHIVED_APP_SLUGS.has(String(name).trim().toLowerCase()))
     .filter((name) => fs.existsSync(path.join(APPS_DIR, name, "neo-manifest.json")));
@@ -113,10 +171,11 @@ async function main() {
       staleReadmeFlags.push("mainnet-contract-hash-mismatch");
     }
 
+    const classification = classify(manifest, testnetState, mainnetState, sourcePresent);
     rows.push({
       app,
       app_id: manifest.id || "",
-      classification: classify(manifest, testnetState, mainnetState, sourcePresent),
+      classification,
       source_present: sourcePresent,
       stateless: Boolean(manifest.features?.stateless),
       testnet_hash: testnetHash || null,
@@ -125,6 +184,12 @@ async function main() {
       mainnet_hash: mainnetHash || null,
       mainnet_exists: mainnetState.exists,
       mainnet_name: mainnetState.name,
+      mainnet_release_status: deploymentStatus(manifest, "neo-n3-mainnet") || null,
+      mainnet_release_reason: deploymentReason(manifest, "neo-n3-mainnet") || null,
+      action_required:
+        classification === "testnet-only" && deploymentStatus(manifest, "neo-n3-mainnet") !== "deferred"
+          ? "decide-mainnet-release-or-mark-deferred"
+          : null,
       stale_readme_flags: staleReadmeFlags,
     });
   }
@@ -134,10 +199,13 @@ async function main() {
     generated_at: new Date().toISOString(),
     testnet_rpc: TESTNET_RPC,
     mainnet_rpc: MAINNET_RPC,
+    testnet_network_magic: testnetMagic,
+    mainnet_network_magic: mainnetMagic,
     summary: rows.reduce((acc, row) => {
       acc[row.classification] = (acc[row.classification] || 0) + 1;
       return acc;
     }, {}),
+    action_required: rows.filter((row) => row.action_required),
     rows,
   }, null, 2));
 }
