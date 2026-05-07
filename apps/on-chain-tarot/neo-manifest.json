@@ -48,6 +48,35 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Reading Console",
+    "subtitle": "Draw or flip the reading from OneGate while the playarea stays focused on the three-card table.",
+    "operations": [
+      {
+        "name": "Draw Reading",
+        "method": "drawTarotReading",
+        "description": "Draw a fresh three-card spread in the native playarea.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "spread",
+            "type": "select",
+            "label": "Spread",
+            "default_value": "past-signal-path",
+            "options": [
+              { "label": "Past / Signal / Path", "value": "past-signal-path" }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Flip Reading",
+        "method": "flipTarotReading",
+        "description": "Reveal the current reading cards.",
+        "button_style": "secondary"
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

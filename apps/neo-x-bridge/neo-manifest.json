@@ -50,6 +50,74 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Bridge Console",
+    "subtitle": "Asset bridge, Message Bridge, and status tracking share one OneGate-ready action flow.",
+    "operations": [
+      {
+        "name": "Bridge Asset",
+        "method": "bridgeAsset",
+        "description": "Stage a Neo N3 / Neo X asset bridge intent and mirror it in the playarea route board.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "direction",
+            "type": "select",
+            "label": "Direction",
+            "default_value": "Neo N3 -> Neo X",
+            "options": [
+              { "label": "Neo N3 → Neo X", "value": "Neo N3 -> Neo X" },
+              { "label": "Neo X → Neo N3", "value": "Neo X -> Neo N3" }
+            ]
+          },
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Amount",
+            "placeholder": "0.00",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Send Message",
+        "method": "bridgeMessage",
+        "description": "Stage a Message Bridge payload for the selected target contract.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "targetContract",
+            "type": "hash160",
+            "label": "Target contract",
+            "placeholder": "0x...",
+            "required": true
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "label": "Message",
+            "placeholder": "sync:miniapp-state",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Track Operation",
+        "method": "trackBridgeOperation",
+        "description": "Track a lock, relay, or release transaction.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "txHash",
+            "type": "hash256",
+            "label": "Transaction hash",
+            "placeholder": "0x...",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

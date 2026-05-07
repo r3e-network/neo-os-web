@@ -45,6 +45,37 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Explorer Search",
+    "subtitle": "Run a live chain lookup from the right console. Results render in the central playarea.",
+    "operations": [
+      {
+        "name": "Search Chain",
+        "method": "explorerSearch",
+        "description": "Search a block height, transaction hash, address, or contract hash against the selected network.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "network",
+            "type": "select",
+            "label": "Network",
+            "default_value": "mainnet",
+            "options": [
+              { "label": "Mainnet", "value": "mainnet" },
+              { "label": "Testnet", "value": "testnet" }
+            ]
+          },
+          {
+            "name": "query",
+            "type": "string",
+            "label": "Search query",
+            "placeholder": "Block height, tx hash, address, or contract",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

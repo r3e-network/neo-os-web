@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRightLeft,
   BadgeCheck,
@@ -26,7 +26,6 @@ import {
   KeyRound,
   Landmark,
   Layers3,
-  Link2,
   LockKeyhole,
   Medal,
   MessageSquareText,
@@ -38,7 +37,6 @@ import {
   Send,
   ShieldAlert,
   ShieldCheck,
-  Sparkles,
   Ticket,
   Timer,
   UserCheck,
@@ -50,7 +48,7 @@ import {
   Workflow,
 } from "lucide-react";
 
-import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
+import type { MiniAppInfo, MiniAppLaunchContext, OperationEntry, OperationParam } from "@/components/types";
 import { getLaunchParam } from "@/lib/miniapp-launch-params";
 import { buildOneGateDirectMiniAppUrl } from "../../../../apps/shared/utils/onegate-launch";
 import {
@@ -399,9 +397,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "supply", label: "Initial supply", defaultValue: "1000000", type: "number" },
     ],
     cards: [
-      { label: "Template", value: "NEP-17" },
-      { label: "Artifact", value: "on-chain" },
-      { label: "Wallet", value: "NEP-21" },
+      { label: "Symbol", value: "R3E" },
+      { label: "Asset name", value: "R3E Credits" },
+      { label: "Supply", value: "1000000" },
     ],
     steps: ["Choose audited template", "Set token parameters", "Review owner controls", "Stage deployment"],
     primaryAction: "Stage NEP-17 launch",
@@ -422,9 +420,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "royalty", label: "Royalty", defaultValue: "5", suffix: "%", type: "number" },
     ],
     cards: [
-      { label: "Template", value: "NEP-11" },
-      { label: "Metadata", value: "IPFS/R2" },
-      { label: "Minting", value: "policy gated" },
+      { label: "Symbol", value: "ART" },
+      { label: "Collection", value: "Neo Editions" },
+      { label: "Royalty", value: "5%" },
     ],
     steps: ["Select collection template", "Attach metadata policy", "Review mint controls", "Stage collection"],
     primaryAction: "Stage NEP-11 collection",
@@ -930,6 +928,71 @@ export function hasNativePlayArea(appId: string) {
   );
 }
 
+export function getNativePlayAreaOperationFallback(appId: string): OperationEntry[] {
+  if (appId === "miniapp-gasbox") {
+    return [
+      {
+        name: "Draw Capsule",
+        method: "prepareMiniAppOperation",
+        description: "Choose the machine and draw count in the action console, then use the prepared values for the wallet action.",
+        button_style: "success",
+        params: [
+          {
+            name: "machine",
+            type: "integer",
+            label: "Machine",
+            default_value: "1",
+            required: true,
+          },
+          {
+            name: "draws",
+            type: "integer",
+            label: "Draw count",
+            default_value: "1",
+            required: true,
+          },
+        ],
+      },
+    ];
+  }
+
+  const profile = PROFILED_PLAYAREAS[appId];
+  if (!profile) return [];
+  return [
+    {
+      name: profile.primaryAction,
+      method: "prepareMiniAppOperation",
+      description: "Prepare app-specific parameters in the shared action console. The center playarea stays focused on state, preview, and workflow.",
+      button_style: "primary",
+      params: profile.fields.map(profileFieldToOperationParam),
+    },
+  ];
+}
+
+function profileFieldToOperationParam(field: ProfileField): OperationParam {
+  const defaultValue = profileDefaultValue(field);
+  const label = field.label || field.key;
+  const lower = `${field.key} ${label}`.toLowerCase();
+  const type: OperationParam["type"] =
+    field.type === "number"
+      ? field.suffix?.toUpperCase().includes("GAS") || field.suffix?.toUpperCase().includes("NEO")
+        ? "amount"
+        : "integer"
+      : lower.includes("address") || lower.includes("recipient") || lower.includes("owner")
+        ? "address"
+        : lower.includes("hash")
+          ? "hash256"
+          : "string";
+
+  return {
+    name: field.key,
+    type,
+    label,
+    default_value: defaultValue || undefined,
+    placeholder: defaultValue ? undefined : field.defaultValue || undefined,
+  };
+}
+
 export function PlayAreaRegistry(props: PlayAreaRegistryProps) {
   const Component =
     PLAYAREA_REGISTRY[props.app.app_id] ||
@@ -1005,13 +1068,6 @@ function profileDefaultValue(field: ProfileField) {
   }
   if (/^(approve|transfer|script hash|connected wallet|balances \+ approvals)$/i.test(value)) return value;
   return "";
-}
-
-function profilePlaceholderValue(field: ProfileField) {
-  const value = field.defaultValue.trim();
-  if (!value) return undefined;
-  if (field.type === "number" || field.suffix) return undefined;
-  return value;
 }
 
 function shortHash(value?: string | null) {
@@ -1099,7 +1155,7 @@ function PlayShell({
 
   return (
     <div className="bg-white">
-      <div className="border-b border-gray-200 px-4 py-4 sm:px-5">
+      <div className="border-b border-gray-200 px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
@@ -1111,20 +1167,20 @@ function PlayShell({
                 Native dApp
               </span>
             </div>
-            <h2 className="m-0 text-xl font-black tracking-tight text-gray-950 sm:text-2xl">
+            <h2 className="m-0 text-lg font-black tracking-tight text-gray-950 sm:text-xl">
               {title}
             </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-gray-600">
               {subtitle}
             </p>
           </div>
         </div>
       </div>
-      <div className="space-y-4 p-4 sm:p-5">
+      <div className="space-y-3 p-4 sm:p-5">
         <div className="min-w-0">{children}</div>
         {side && (
           <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
-            <div className="grid gap-3 xl:grid-cols-2">{side}</div>
+            <div className="max-h-44 min-w-0 overflow-auto pr-1">{side}</div>
           </div>
         )}
       </div>
@@ -1165,13 +1221,13 @@ function ChainStateStrip({
 function MetricGrid({ stats }: { stats: PlayMetric[] }) {
   if (!stats.length) return null;
   return (
-    <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
+    <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
       {stats.slice(0, 4).map((item) => (
-        <div key={item.label} className="rounded-lg border border-gray-200 bg-white p-3">
+        <div key={item.label} className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
           <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
             {item.label}
           </p>
-          <p className={`m-0 mt-1 truncate text-lg font-black ${item.accent ? "text-emerald-600" : "text-gray-950"}`}>
+          <p className={`m-0 mt-1 truncate text-sm font-black sm:text-base ${item.accent ? "text-emerald-600" : "text-gray-950"}`}>
             {item.value}
           </p>
         </div>
@@ -1182,7 +1238,7 @@ function MetricGrid({ stats }: { stats: PlayMetric[] }) {
 
 function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-gray-900">
           {activity?.title || "Recent activity"}
@@ -1214,49 +1270,6 @@ function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
   );
 }
 
-function PrimaryAction({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-900 bg-gray-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/60"
-    >
-      {children}
-    </button>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange: _onChange,
-  suffix,
-  placeholder,
-  type: _type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  suffix?: string;
-  placeholder?: string;
-  type?: "text" | "number";
-}) {
-  const displayValue = value || placeholder || "Set in action console";
-  return (
-    <div className="block">
-      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
-        {label}
-      </span>
-      <div className="flex min-h-11 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-black text-gray-950">
-          {displayValue}
-        </span>
-        {suffix && <span className="ml-2 text-xs font-bold text-gray-400">{suffix}</span>}
-      </div>
-    </div>
-  );
-}
-
 function ActionRow({
   label,
   detail,
@@ -1265,7 +1278,6 @@ function ActionRow({
   tone = "emerald",
   active,
   icon,
-  onClick,
 }: {
   label: string;
   detail?: string;
@@ -1274,7 +1286,6 @@ function ActionRow({
   tone?: PlayTone;
   active?: boolean;
   icon?: React.ReactNode;
-  onClick?: () => void;
 }) {
   const styles = toneStyle(tone);
   const className = `group flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition ${
@@ -1320,13 +1331,12 @@ function ActionBoard({
     valueLabel?: string;
     active?: boolean;
     icon?: React.ReactNode;
-    onClick?: () => void;
   }>;
   tone?: PlayTone;
 }) {
   const styles = toneStyle(tone);
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-4">
+    <section className="rounded-lg border border-gray-200 bg-white p-3.5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
@@ -1335,7 +1345,7 @@ function ActionBoard({
         <span className={`mt-1 h-2.5 w-2.5 rounded-full ${styles.accent}`} />
       </div>
       <div className="space-y-2">
-        {rows.map((row) => (
+        {rows.slice(0, 4).map((row) => (
           <ActionRow key={`${row.label}:${row.detail || row.value || ""}`} {...row} tone={tone} />
         ))}
       </div>
@@ -1343,33 +1353,9 @@ function ActionBoard({
   );
 }
 
-function ActionTicket({
-  title: _title,
-  description: _description,
-  icon: _icon,
-  tone: _tone = "emerald",
-  children: _children,
-  actionLabel: _actionLabel,
-  actionIcon: _actionIcon,
-  onAction: _onAction,
-  disabled: _disabled,
-}: {
-  title: string;
-  description?: string;
-  icon?: React.ReactNode;
-  tone?: PlayTone;
-  children: React.ReactNode;
-  actionLabel: string;
-  actionIcon?: React.ReactNode;
-  onAction?: () => void;
-  disabled?: boolean;
-}) {
-  return null;
-}
-
 function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [keys, setKeys] = useLaunchParamState(launchContext, ["keys", "keyCount"], "3");
+  const [keys] = useLaunchParamState(launchContext, ["keys", "keyCount"], "3");
   const keyPrice = parseGas(getMetric(statsMap, "Key Price", "0.01 GAS")) || 0.01;
   const projected = Math.max(1, Number(keys) || 1) * keyPrice;
   const status = getMetric(statsMap, "Status", "Ready");
@@ -1424,24 +1410,14 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
                 valueLabel: "per key",
               },
               {
-                label: "Round",
-                detail: "Automatic rollover after settlement",
-                value: getMetric(statsMap, "Round", "#0"),
-                valueLabel: "id",
+                label: "Staged buy",
+                detail: `${keys || "1"} keys from the right action console`,
+                value: formatGas(projected),
+                valueLabel: "preview",
               },
             ]}
           />
-          <ActionTicket
-            title="Buy keys"
-            description="Preview cost and round impact before preparing the wallet action."
-            icon={<Timer className="h-4 w-4" />}
-            tone="rose"
-            actionLabel="Preview key purchase"
-            actionIcon={<Timer className="h-4 w-4" />}
-          >
-            <Field label="Keys to buy" value={keys} onChange={setKeys} type="number" suffix="keys" />
-            <PreviewStat label="Estimated cost" value={formatGas(projected)} />
-          </ActionTicket>
+          <PlayAreaConsoleHint label="Buy-key inputs and wallet signing stay in the right action console; the playarea only shows live round state and the current preview." />
         </div>
         <div className="space-y-3">
           <MetricGrid stats={stats} />
@@ -1453,8 +1429,8 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
 
 function FogPlayPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [side, setSide] = useLaunchChoiceState(launchContext, ["side", "choice"], ["heads", "tails"] as const, "heads");
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "stake", "bet"], "0.10");
+  const [side] = useLaunchChoiceState(launchContext, ["side", "choice"], ["heads", "tails"] as const, "heads");
+  const [amount] = useLaunchParamState(launchContext, ["amount", "stake", "bet"], "0.10");
   const payout = (Number(amount) || 0) * 2;
 
   return (
@@ -1478,22 +1454,14 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
             valueLabel: "payout",
             active: side === option,
             icon: <Dice5 className="h-4 w-4" />,
-            onClick: () => setSide(option),
           }))}
         />
-        <ActionTicket
-          title="Bet ticket"
-          description="Set stake and outcome. The wallet action uses the selected side."
-          icon={<Dice5 className="h-4 w-4" />}
-          tone="violet"
-          actionLabel="Stage coin flip"
-          actionIcon={<Dice5 className="h-4 w-4" />}
-        >
-          <Field label="Stake" value={amount} onChange={setAmount} type="number" suffix="GAS" />
+        <div className="grid gap-2 sm:grid-cols-3">
           <PreviewStat label="Outcome" value={side} />
           <PreviewStat label="Potential payout" value={formatGas(payout)} />
           <PreviewStat label="Limits" value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`} />
-        </ActionTicket>
+        </div>
+        <PlayAreaConsoleHint label="Choose side, stake amount, and submit the flip from the right action console." />
       </div>
     </PlayShell>
   );
@@ -1501,7 +1469,7 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
 
 function GasBoxPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [selectedRaw, setSelectedRaw] = useLaunchParamState(launchContext, ["machine", "machineId", "box"], "1");
+  const [selectedRaw] = useLaunchParamState(launchContext, ["machine", "machineId", "box"], "1");
   const selected = Math.max(1, Number(selectedRaw) || 1);
   const machines = Math.max(1, Number(getMetric(statsMap, "Total Machines", "3")) || 3);
 
@@ -1529,22 +1497,15 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
                 valueLabel: "state",
                 active: selected === machine,
                 icon: <Boxes className="h-4 w-4" />,
-                onClick: () => setSelectedRaw(String(machine)),
               };
             })}
           />
-          <ActionTicket
-            title="Draw ticket"
-            description="Review the selected machine and prize pool before preparing the draw."
-            icon={<Boxes className="h-4 w-4" />}
-            tone="amber"
-            actionLabel="Stage capsule draw"
-            actionIcon={<Boxes className="h-4 w-4" />}
-          >
+          <div className="grid gap-2 sm:grid-cols-3">
             <PreviewStat label="Selected machine" value={`#${selected}`} />
             <PreviewStat label="Machines online" value={String(machines)} />
             <PreviewStat label="Draw asset" value="GAS" />
-          </ActionTicket>
+          </div>
+          <PlayAreaConsoleHint label="Machine selection and capsule draw submission are handled in the right action console." />
         </div>
         <div className="space-y-3">
           <MetricGrid stats={stats} />
@@ -1556,8 +1517,8 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
 
 function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
   const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "total"], "5");
-  const [packets, setPackets] = useLaunchParamState(launchContext, ["packets", "count"], "8");
+  const [amount] = useLaunchParamState(launchContext, ["amount", "total"], "5");
+  const [packets] = useLaunchParamState(launchContext, ["packets", "count"], "8");
   const avg = (Number(amount) || 0) / Math.max(1, Number(packets) || 1);
 
   return (
@@ -1604,18 +1565,7 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <ActionTicket
-            title="Create envelope"
-            description="Set the funding amount and number of packets for this red envelope."
-            icon={<Gift className="h-4 w-4" />}
-            tone="rose"
-            actionLabel="Prepare envelope"
-            actionIcon={<Gift className="h-4 w-4" />}
-          >
-            <Field label="Envelope amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-            <Field label="Packet count" value={packets} onChange={setPackets} type="number" suffix="claims" />
-            <PreviewStat label="Split mode" value="VRF lucky" />
-          </ActionTicket>
+          <PlayAreaConsoleHint label="Funding amount, packet count, and wallet submission stay in the right action console." />
         </div>
         <div className="space-y-3">
           <MetricGrid stats={stats} />
@@ -1627,21 +1577,14 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
 
 function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
   const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [claimKey, setClaimKey] = useLaunchParamState(launchContext, ["claimKey", "key", "code", "k"], "");
-  const [campaignId, setCampaignId] = useLaunchParamState(launchContext, ["campaignId", "campaign"], "spring-drop");
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "totalAmount", "total"], "100");
-  const [minClaim, setMinClaim] = useLaunchParamState(launchContext, ["minClaim", "min"], "1");
-  const [maxClaim, setMaxClaim] = useLaunchParamState(launchContext, ["maxClaim", "max"], "50");
-  const [maxClaims, setMaxClaims] = useLaunchParamState(launchContext, ["maxClaims", "claims", "slots"], "20");
+  const [claimKey] = useLaunchParamState(launchContext, ["claimKey", "key", "code", "k"], "");
+  const [campaignId] = useLaunchParamState(launchContext, ["campaignId", "campaign"], "spring-drop");
+  const [amount] = useLaunchParamState(launchContext, ["amount", "totalAmount", "total"], "100");
+  const [minClaim] = useLaunchParamState(launchContext, ["minClaim", "min"], "1");
+  const [maxClaim] = useLaunchParamState(launchContext, ["maxClaim", "max"], "50");
+  const [maxClaims] = useLaunchParamState(launchContext, ["maxClaims", "claims", "slots"], "20");
   const minCapacity = (Number(minClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
   const maxCapacity = (Number(maxClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
-  const claimUrl = claimKey
-    ? buildOneGateDirectMiniAppUrl("gas-lucky-pool", "miniapp-gas-lucky-pool", {
-        operation: "claimPool",
-        network,
-        claimKey,
-      })
-    : "generated when backend creates a recipient key";
 
   return (
     <PlayShell
@@ -1691,35 +1634,43 @@ function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <ActionTicket
-            title="Claim ticket"
-            description="OneGate passes claimKey through the URL. The right-side operation console submits the key and connected wallet address to the backend, then displays the amount and luck percentile."
-            icon={<Gift className="h-4 w-4" />}
-            tone="emerald"
-            actionLabel="Claim reward"
-            actionIcon={<CheckCircle2 className="h-4 w-4" />}
-            disabled={!claimKey}
-          >
-            <Field label="Claim key" value={claimKey} onChange={setClaimKey} placeholder="ogv_campaign_user_key" />
-            <PreviewStat label="Claim URL" value={claimUrl} />
-            <PreviewStat label="Wallet rule" value="key binds to the first claiming address" />
-          </ActionTicket>
+          <PlayAreaConsoleHint label="The QR claim key is prefilled into the right action console; claiming submits the key and OneGate wallet address to the backend payout service." />
         </div>
         <div className="grid gap-3">
-          <ActionTicket
-            title="Backend campaign"
-            description="Campaign setup runs on the server: configure total budget, 1-50 GAS reward bounds, claim slots, expiry, and recipient keys before sharing QR codes."
-            icon={<Coins className="h-4 w-4" />}
+          <ActionBoard
+            title="Campaign setup"
+            subtitle="Server inventory and QR keys stay separated by network and campaign."
             tone="emerald"
-            actionLabel="Stage campaign"
-            actionIcon={<Gift className="h-4 w-4" />}
-          >
-            <Field label="Campaign ID" value={campaignId} onChange={setCampaignId} />
-            <Field label="Total GAS" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-            <Field label="Minimum claim" value={minClaim} onChange={setMinClaim} type="number" suffix="GAS" />
-            <Field label="Maximum claim" value={maxClaim} onChange={setMaxClaim} type="number" suffix="GAS" />
-            <Field label="Claim slots" value={maxClaims} onChange={setMaxClaims} type="number" suffix="wallets" />
-          </ActionTicket>
+            rows={[
+              {
+                label: "Campaign",
+                detail: "Backend campaign namespace",
+                value: campaignId,
+                valueLabel: "id",
+                active: true,
+                icon: <Vault className="h-4 w-4" />,
+              },
+              {
+                label: "Budget",
+                detail: "Configured reward balance",
+                value: `${amount || "0"} GAS`,
+                valueLabel: "server",
+                icon: <Coins className="h-4 w-4" />,
+              },
+              {
+                label: "Reward bounds",
+                detail: "Luck percentile is derived from the final amount",
+                value: `${minClaim || "1"}-${maxClaim || "50"} GAS`,
+                valueLabel: "range",
+              },
+              {
+                label: "Claim slots",
+                detail: "Each generated key can only be used once",
+                value: maxClaims,
+                valueLabel: "keys",
+              },
+            ]}
+          />
           <MetricGrid stats={stats} />
         </div>
       </div>
@@ -1774,18 +1725,12 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
               })}
             </div>
           </section>
-          <ActionTicket
-            title="Check-in ticket"
-            description="Preview streak, reward, and chain state before preparing today's claim."
-            icon={<CalendarCheck className="h-4 w-4" />}
-            tone="emerald"
-            actionLabel="Prepare check-in"
-            actionIcon={<CheckCircle2 className="h-4 w-4" />}
-          >
+          <div className="grid gap-2 sm:grid-cols-3">
             <PreviewStat label="Current streak" value={`${claimed} days`} />
             <PreviewStat label="7-day reward" value={getMetric(statsMap, "7-Day Reward", "--")} />
             <PreviewStat label="Total rewarded" value={getMetric(statsMap, "Total Rewarded", "0 GAS")} />
-          </ActionTicket>
+          </div>
+          <PlayAreaConsoleHint label="Today's check-in and wallet confirmation are handled in the right action console." />
         </div>
         <ActionBoard
           title="Streak state"
@@ -1821,7 +1766,7 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
 
 function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [collateral, setCollateral] = useLaunchParamState(launchContext, ["collateral", "neo"], "20");
+  const [collateral] = useLaunchParamState(launchContext, ["collateral", "neo"], "20");
   const ltv = 0.35;
   const borrowable = (Number(collateral) || 0) * ltv;
 
@@ -1869,17 +1814,7 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <ActionTicket
-            title="Loan ticket"
-            description="Set collateral and stage a self-repaying borrow request."
-            icon={<Landmark className="h-4 w-4" />}
-            tone="sky"
-            actionLabel="Prepare loan request"
-            actionIcon={<Landmark className="h-4 w-4" />}
-          >
-            <Field label="NEO collateral" value={collateral} onChange={setCollateral} type="number" suffix="NEO" />
-            <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
-          </ActionTicket>
+          <PlayAreaConsoleHint label="Collateral amount and loan submission are controlled from the right action console." />
         </div>
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
@@ -1903,8 +1838,8 @@ function TrustAnchorPlayArea(props: PlayAreaRegistryProps) {
 
 function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust" }) {
   const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh, mode } = props;
-  const [candidate, setCandidate] = useLaunchParamState(launchContext, ["candidate", "agent", "route"], "Agent #1");
-  const [stake, setStake] = useLaunchParamState(launchContext, ["stake", "amount"], "25");
+  const [candidate] = useLaunchParamState(launchContext, ["candidate", "agent", "route"], "Agent #1");
+  const [stake] = useLaunchParamState(launchContext, ["stake", "amount"], "25");
   const isProfit = mode === "profit";
 
   return (
@@ -1929,31 +1864,9 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
               valueLabel: index === 0 ? "reward" : "state",
               active: candidate === route,
               icon: <Vote className="h-4 w-4" />,
-              onClick: () => setCandidate(route),
             }))}
           />
-          <ActionTicket
-            title="Stake and vote"
-            description="Choose route and NEO stake before preparing the wallet action."
-            icon={<Vote className="h-4 w-4" />}
-            tone={isProfit ? "emerald" : "slate"}
-            actionLabel="Stage stake and vote"
-            actionIcon={<Vote className="h-4 w-4" />}
-          >
-            <Field label="Stake amount" value={stake} onChange={setStake} type="number" suffix="NEO" />
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">Route</span>
-              <select
-                value={candidate}
-                onChange={(event) => setCandidate(event.target.value)}
-                className="min-h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none transition focus:border-gray-950 focus:ring-2 focus:ring-gray-950/10"
-              >
-                <option>Agent #1</option>
-                <option>Agent #2</option>
-                <option>Agent #3</option>
-              </select>
-            </label>
-          </ActionTicket>
+          <PlayAreaConsoleHint label="Route choice, stake amount, vote submission, and claim actions live in the right action console." />
         </div>
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Selected route" value={candidate} />
@@ -1969,8 +1882,8 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
 
 function NeoPayPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "total"], "12");
-  const [rate, setRate] = useLaunchParamState(launchContext, ["rate", "releaseRate"], "1");
+  const [amount] = useLaunchParamState(launchContext, ["amount", "total"], "12");
+  const [rate] = useLaunchParamState(launchContext, ["rate", "releaseRate"], "1");
   const duration = Math.ceil((Number(amount) || 0) / Math.max(0.01, Number(rate) || 1));
 
   return (
@@ -2017,18 +1930,7 @@ function NeoPayPlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <ActionTicket
-            title="Stream ticket"
-            description="Compose payment terms before preparing the wallet action."
-            icon={<CreditCard className="h-4 w-4" />}
-            tone="emerald"
-            actionLabel="Prepare stream"
-            actionIcon={<CreditCard className="h-4 w-4" />}
-          >
-            <Field label="Total amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-            <Field label="Release rate" value={rate} onChange={setRate} type="number" suffix="GAS / day" />
-            <PreviewStat label="Release type" value="linear" />
-          </ActionTicket>
+          <PlayAreaConsoleHint label="Stream terms, beneficiary, and wallet signing stay in the right action console." />
         </div>
         <MetricGrid stats={stats} />
       </div>
@@ -2045,10 +1947,11 @@ type TarotCard = {
 };
 
 function TarotPlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, onRefresh } = props;
+  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const [deck, setDeck] = useState<TarotCard[]>([]);
   const [drawn, setDrawn] = useState<TarotCard[]>([]);
   const [flipped, setFlipped] = useState(false);
+  const handledOperationRef = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -2077,6 +1980,16 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
     if (drawn.length === 0) drawCards();
   }, [drawCards, drawn.length]);
 
+  useEffect(() => {
+    const operation = launchContext?.operation;
+    if (operation !== "drawTarotReading" && operation !== "flipTarotReading") return;
+    const signature = `${operation}:${launchContext?.signature || ""}`;
+    if (handledOperationRef.current === signature) return;
+    handledOperationRef.current = signature;
+    if (operation === "drawTarotReading") drawCards();
+    if (operation === "flipTarotReading") setFlipped(true);
+  }, [drawCards, launchContext?.operation, launchContext?.signature]);
+
   return (
     <PlayShell
       app={app}
@@ -2095,7 +2008,7 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
       }
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-3">
           {(drawn.length ? drawn : FALLBACK_TAROT.slice(0, 3)).map((card, index) => {
             const image = card.image?.replace("./cards/", "/miniapps/on-chain-tarot/cards/");
@@ -2126,18 +2039,7 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
             );
           })}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <PrimaryAction onClick={() => setFlipped(true)}>
-            Flip reading <Sparkles className="h-4 w-4" />
-          </PrimaryAction>
-          <button
-            type="button"
-            onClick={drawCards}
-            className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
-          >
-            Draw again
-          </button>
-        </div>
+        <PlayAreaConsoleHint label="Use the action console to draw or flip a reading. Cards remain tappable for the reading table itself." />
       </div>
     </PlayShell>
   );
@@ -2181,12 +2083,13 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
   const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const launchNetwork = launchContext?.network ?? network;
   const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet">(launchNetwork);
-  const [query, setQuery] = useLaunchParamState(launchContext, ["query", "q", "hash", "address", "height"], "");
+  const [query] = useLaunchParamState(launchContext, ["query", "q", "hash", "address", "height"], "");
   const [stats, setStats] = useState<ExplorerStatsPayload | null>(null);
   const [recent, setRecent] = useState<ExplorerRecentTx[]>([]);
   const [result, setResult] = useState<ExplorerSearchPayload | null>(null);
   const [status, setStatus] = useState("Ready");
   const [isFetching, setIsFetching] = useState(false);
+  const handledSearchRef = useRef("");
 
   const loadExplorerData = useCallback(async () => {
     setIsFetching(true);
@@ -2250,6 +2153,14 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
     }
   }, [query, selectedNetwork]);
 
+  useEffect(() => {
+    if (launchContext?.operation !== "explorerSearch") return;
+    const signature = `${launchContext.signature}:${query}:${selectedNetwork}`;
+    if (!query.trim() || handledSearchRef.current === signature) return;
+    handledSearchRef.current = signature;
+    void runSearch();
+  }, [launchContext?.operation, launchContext?.signature, query, runSearch, selectedNetwork]);
+
   const selectedStats = stats?.[selectedNetwork];
   const height = selectedStats?.height ? selectedStats.height.toLocaleString() : "Unavailable";
   const txCount =
@@ -2282,11 +2193,9 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
                   const hash = String(tx.hash || tx.tx_hash || "");
                   const state = String(tx.vmState || tx.vm_state || "");
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={`${hash}:${index}`}
-                      onClick={() => setQuery(hash)}
-                      className="block w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-left transition hover:bg-white"
+                      className="block w-full rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-left"
                     >
                       <span className="block truncate font-mono text-xs font-bold text-gray-950">
                         {shortHash(hash)}
@@ -2294,7 +2203,7 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
                       <span className="mt-1 block text-[11px] font-semibold text-gray-500">
                         {state || "state unavailable"}
                       </span>
-                    </button>
+                    </div>
                   );
                 })
               ) : (
@@ -2320,49 +2229,41 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
         />
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <MetricGrid stats={resultStats} />
-        <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {(["mainnet", "testnet"] as const).map((item) => (
-              <button
-                type="button"
-                key={item}
-                onClick={() => setSelectedNetwork(item)}
-                className={`rounded-lg border px-3 py-2 text-sm font-black transition ${
-                  selectedNetwork === item
-                    ? "border-gray-950 bg-gray-950 text-white"
-                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <label className="mt-4 block">
-            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">
-              Explorer query
-            </span>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                aria-label="Explorer query"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") void runSearch();
-                }}
-                placeholder="Block height, 0x tx/block hash, N-address, or 0x contract hash"
-                className="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
-              />
-              <PrimaryAction onClick={runSearch}>
-                Run live query <SearchCheck className="h-4 w-4" />
-              </PrimaryAction>
-            </div>
-          </label>
-          <p className="m-0 mt-3 text-xs font-semibold text-gray-500" role="status">
-            {status}
-          </p>
-        </div>
+        <ActionBoard
+          title="Search state"
+          subtitle="Enter the query and network in the action console. This playarea stays focused on live chain results."
+          tone="slate"
+          rows={[
+            {
+              label: "Selected network",
+              detail: "Mainnet and testnet requests are isolated",
+              value: selectedNetwork,
+              valueLabel: "scope",
+              active: true,
+              icon: <SearchCheck className="h-4 w-4" />,
+            },
+            {
+              label: "Query",
+              detail: "Block height, transaction, address, or contract",
+              value: query.trim() ? shortHash(query.trim()) : "not set",
+              valueLabel: "input",
+            },
+            {
+              label: "Status",
+              detail: "Live API response state",
+              value: status,
+              valueLabel: isFetching ? "loading" : "state",
+            },
+            {
+              label: "Recent index",
+              detail: "Latest fetched transaction rows",
+              value: recent.length > 0 ? `${recent.length}` : "none",
+              valueLabel: "rows",
+            },
+          ]}
+        />
         <ExplorerResultPanel result={result} />
       </div>
     </PlayShell>
@@ -2434,15 +2335,15 @@ function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null 
 
 function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
   const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount"], "");
-  const [direction, setDirection] = useLaunchChoiceState(
+  const [amount] = useLaunchParamState(launchContext, ["amount"], "");
+  const [direction] = useLaunchChoiceState(
     launchContext,
     ["direction", "route"],
     ["Neo N3 -> Neo X", "Neo X -> Neo N3"] as const,
     "Neo N3 -> Neo X",
   );
-  const [targetContract, setTargetContract] = useLaunchParamState(launchContext, ["targetContract", "contract", "to"], "");
-  const [bridgeMessage, setBridgeMessage] = useLaunchParamState(launchContext, ["message", "payload"], "");
+  const [targetContract] = useLaunchParamState(launchContext, ["targetContract", "contract", "to"], "");
+  const [bridgeMessage] = useLaunchParamState(launchContext, ["message", "payload"], "");
 
   return (
     <PlayShell
@@ -2453,28 +2354,50 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
       side={<BridgeStatusPanel />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 xl:grid-cols-3">
-        <ToolCard icon={<ArrowRightLeft className="h-5 w-5" />} title="Asset bridge">
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">Direction</span>
-            <select value={direction} onChange={(event) => setDirection(event.target.value as "Neo N3 -> Neo X" | "Neo X -> Neo N3")} className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold">
-              <option>{"Neo N3 -> Neo X"}</option>
-              <option>{"Neo X -> Neo N3"}</option>
-            </select>
-          </label>
-          <Field label="Amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-          <PreviewStat label="Route" value={direction} />
-        </ToolCard>
-        <ToolCard icon={<MessageSquareText className="h-5 w-5" />} title="Message Bridge">
-          <Field label="Target contract" value={targetContract} onChange={setTargetContract} />
-          <Field label="Message" value={bridgeMessage} onChange={setBridgeMessage} />
-          <PreviewStat label="Encoding" value="UTF-8 payload" />
-        </ToolCard>
-        <ToolCard icon={<ReceiptText className="h-5 w-5" />} title="Status tracking">
-          <PreviewStat label="Lock tx" value="pending input" />
-          <PreviewStat label="Relay" value="waiting proof" />
-          <PreviewStat label="Finality" value="not submitted" />
-        </ToolCard>
+      <div className="space-y-3">
+        <ActionBoard
+          title="Bridge route"
+          subtitle="Bridge inputs live in the right action console. The playarea summarizes the chosen route and current tracking state."
+          tone="sky"
+          rows={[
+            {
+              label: "Asset bridge",
+              detail: "Direction selected from OneGate / action console",
+              value: direction,
+              valueLabel: amount ? `${amount} GAS` : "route",
+              active: true,
+              icon: <ArrowRightLeft className="h-4 w-4" />,
+            },
+            {
+              label: "Target contract",
+              detail: "Message Bridge target",
+              value: targetContract ? shortHash(targetContract) : "not set",
+              valueLabel: "hash",
+              icon: <MessageSquareText className="h-4 w-4" />,
+            },
+            {
+              label: "Message",
+              detail: bridgeMessage || "Payload set in action console",
+              value: bridgeMessage ? "ready" : "waiting",
+              valueLabel: "payload",
+              icon: <ReceiptText className="h-4 w-4" />,
+            },
+            {
+              label: "Relay",
+              detail: "Release once lock, relay, and proof are confirmed",
+              value: "waiting proof",
+              valueLabel: "state",
+            },
+          ]}
+        />
+        <MetricGrid
+          stats={[
+            { label: "Route", value: direction, accent: true },
+            { label: "Amount", value: amount ? `${amount} GAS` : "Set in action console" },
+            { label: "Target", value: targetContract ? shortHash(targetContract) : "No target" },
+            { label: "Payload", value: bridgeMessage ? "Ready" : "Empty" },
+          ]}
+        />
       </div>
     </PlayShell>
   );
@@ -2491,14 +2414,15 @@ type PrivateTransferResult = {
 
 function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
   const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [recipient, setRecipient] = useLaunchParamState(launchContext, ["recipient", "to", "address"], "");
-  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount"], "");
-  const [asset, setAsset] = useLaunchChoiceState(launchContext, ["asset", "token"], ["GAS", "NEO"] as const, "GAS");
-  const [memo, setMemo] = useLaunchParamState(launchContext, ["memo", "note"], "");
+  const [recipient] = useLaunchParamState(launchContext, ["recipient", "to", "address"], "");
+  const [amount] = useLaunchParamState(launchContext, ["amount"], "");
+  const [asset] = useLaunchChoiceState(launchContext, ["asset", "token"], ["GAS", "NEO"] as const, "GAS");
+  const [memo] = useLaunchParamState(launchContext, ["memo", "note"], "");
   const [result, setResult] = useState<PrivateTransferResult>({
     status: "idle",
     message: "Ready to seal transfer instructions locally.",
   });
+  const handledSealRef = useRef("");
 
   const sealTransfer = useCallback(async () => {
     setResult({
@@ -2569,6 +2493,14 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     }
   }, [amount, app.app_id, asset, memo, network, recipient]);
 
+  useEffect(() => {
+    if (launchContext?.operation !== "sealPrivateTransfer") return;
+    const signature = `${launchContext.signature}:${recipient}:${amount}:${asset}:${memo}`;
+    if (!recipient || !amount || handledSealRef.current === signature) return;
+    handledSealRef.current = signature;
+    void sealTransfer();
+  }, [amount, asset, launchContext?.operation, launchContext?.signature, memo, recipient, sealTransfer]);
+
   return (
     <PlayShell
       app={app}
@@ -2578,36 +2510,40 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       side={<PrivateTransferStatusPanel result={result} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="space-y-3 rounded-lg border border-gray-200 bg-white/85 p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Recipient" value={recipient} onChange={setRecipient} />
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold uppercase text-gray-500">Asset</span>
-              <select
-                value={asset}
-                onChange={(event) => setAsset(event.target.value as "GAS" | "NEO")}
-                className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none"
-              >
-                <option>GAS</option>
-                <option>NEO</option>
-              </select>
-            </label>
-            <Field label="Amount" value={amount} onChange={setAmount} type="number" suffix={asset} />
-            <Field label="Private memo" value={memo} onChange={setMemo} />
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-3">
-            <PreviewStat label="Privacy layer" value="Morpheus confidential compute" />
-            <PreviewStat label="Local encryption" value="X25519 + AES-256-GCM" />
-            <PreviewStat label="Public chain data" value="commitment + nullifier" />
-          </div>
-
-          <PrimaryAction onClick={sealTransfer}>
-            {result.status === "sealing" ? "Sealing..." : "Seal private transfer"}
-            <LockKeyhole className="h-4 w-4" />
-          </PrimaryAction>
-        </div>
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_240px]">
+        <ActionBoard
+          title="Private transfer intent"
+          subtitle="Recipient, asset, amount, and memo are submitted from the right action console, then sealed locally for Morpheus confidential compute."
+          tone="slate"
+          rows={[
+            {
+              label: "Recipient",
+              detail: recipient || "Set in action console",
+              value: recipient ? shortHash(recipient) : "waiting",
+              valueLabel: "address",
+              active: Boolean(recipient),
+              icon: <LockKeyhole className="h-4 w-4" />,
+            },
+            {
+              label: "Amount",
+              detail: "Asset and amount remain private inside the envelope",
+              value: amount ? `${amount} ${asset}` : `0 ${asset}`,
+              valueLabel: "sealed",
+            },
+            {
+              label: "Private memo",
+              detail: memo || "Optional private note",
+              value: memo ? "included" : "empty",
+              valueLabel: "private",
+            },
+            {
+              label: "Result",
+              detail: result.message,
+              value: result.status,
+              valueLabel: "state",
+            },
+          ]}
+        />
 
         <div className="rounded-lg border border-gray-200 bg-slate-950 p-4 text-white">
           <h3 className="m-0 flex items-center gap-2 text-sm font-black">
@@ -2664,19 +2600,20 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
     config.mode === "price"
       ? "TWELVEDATA:NEO-USD"
       : `${getExternalIntegrationConfig(resolveNeoNetwork(network)).morpheusPublicApiUrl}/health`;
-  const [endpoint, setEndpoint] = useLaunchParamState(
+  const [endpoint] = useLaunchParamState(
     launchContext,
     ["endpoint", "url", "feed", "symbol"],
     defaultOracleEndpoint,
   );
   const [result, setResult] = useState("Ready to build request package.");
   const [sealing, setSealing] = useState(false);
+  const handledOracleRef = useRef("");
   const confidentialMode =
     config.mode === "compute" ||
     config.mode === "seal" ||
     config.mode === "neodid";
 
-  const build = () => {
+  const build = useCallback(() => {
     const payload = {
       app_id: app.app_id,
       mode: config.mode,
@@ -2685,9 +2622,9 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       nep21: true,
     };
     setResult(JSON.stringify(payload, null, 2));
-  };
+  }, [app.app_id, config.mode, endpoint]);
 
-  const seal = async () => {
+  const seal = useCallback(async () => {
     setSealing(true);
     try {
       const keyResponse = await fetch(
@@ -2741,7 +2678,20 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
     } finally {
       setSealing(false);
     }
-  };
+  }, [app.app_id, config.mode, endpoint, network]);
+
+  useEffect(() => {
+    const operation = launchContext?.operation;
+    if (operation !== "buildOraclePackage" && operation !== "sealOracleRequest") return;
+    const signature = `${operation}:${launchContext?.signature || ""}:${endpoint}`;
+    if (handledOracleRef.current === signature) return;
+    handledOracleRef.current = signature;
+    if (operation === "sealOracleRequest" && confidentialMode) {
+      void seal();
+      return;
+    }
+    build();
+  }, [build, confidentialMode, endpoint, launchContext?.operation, launchContext?.signature, seal]);
 
   return (
     <PlayShell
@@ -2752,33 +2702,43 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       side={<OracleStatusPanel mode={config.mode} result={result} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ToolCard icon={<Radio className="h-5 w-5" />} title="Request">
-          <Field label={config.mode === "price" ? "Feed symbol" : "Endpoint"} value={endpoint} onChange={setEndpoint} />
-          <PreviewStat label="Wallet path" value="NEP-21" />
-        </ToolCard>
-        <ToolCard icon={<LockKeyhole className="h-5 w-5" />} title="Private fields">
-          <PreviewStat label="Encryption" value={confidentialMode ? "X25519 sealed" : "optional"} />
-          <PreviewStat label="Runtime" value={config.mode === "compute" ? "TEE compute" : "Morpheus oracle"} />
-          {confidentialMode && (
-            <button
-              type="button"
-              onClick={seal}
-              disabled={sealing}
-              className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-65"
-            >
-              {sealing ? "Sealing..." : "Seal with Morpheus"}
-              <LockKeyhole className="h-4 w-4" />
-            </button>
-          )}
-        </ToolCard>
-        <ToolCard icon={<BadgeCheck className="h-5 w-5" />} title="Verification">
-          <PreviewStat label="Callback" value="configured" />
-          <PreviewStat label="Envelope" value="verifiable" />
-          <PrimaryAction onClick={build}>
-            Build package <Send className="h-4 w-4" />
-          </PrimaryAction>
-        </ToolCard>
+      <div className="space-y-3">
+        <ActionBoard
+          title="Oracle request state"
+          subtitle="Request inputs are owned by the right action console. This playarea verifies the package, privacy mode, and result envelope."
+          tone="slate"
+          rows={[
+            {
+              label: config.mode === "price" ? "Feed symbol" : "Endpoint",
+              detail: endpoint || "Set in action console",
+              value: endpoint ? shortHash(endpoint) : "waiting",
+              valueLabel: "input",
+              active: Boolean(endpoint),
+              icon: <Radio className="h-4 w-4" />,
+            },
+            {
+              label: "Privacy",
+              detail: confidentialMode ? "Morpheus public key required" : "Plain oracle request",
+              value: confidentialMode ? "sealed" : "optional",
+              valueLabel: "mode",
+              icon: <LockKeyhole className="h-4 w-4" />,
+            },
+            {
+              label: "Verification",
+              detail: "Callback and result envelope remain inspectable",
+              value: "verifiable",
+              valueLabel: "state",
+              icon: <BadgeCheck className="h-4 w-4" />,
+            },
+            {
+              label: "Builder",
+              detail: sealing ? "Sealing request with Morpheus" : "Ready for action-console submit",
+              value: sealing ? "sealing" : "ready",
+              valueLabel: "state",
+            },
+          ]}
+        />
+        <PlayAreaConsoleHint label="Use the action console to build or seal the request. Mainnet and testnet oracle records remain separated by the selected network." />
       </div>
     </PlayShell>
   );
@@ -2820,28 +2780,7 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       tone={profile.tone}
       side={
         <div className="space-y-3">
-          <ActionTicket
-            title="Operation ticket"
-            description="Review the exact user inputs before the shared wallet action is prepared."
-            icon={profile.icon}
-            tone={profile.tone}
-            actionLabel={profile.primaryAction}
-            actionIcon={<ArrowRightLeft className="h-4 w-4" />}
-          >
-            {profile.fields.map((field) => (
-              <Field
-                key={field.key}
-                label={field.label}
-                value={values[field.key] ?? ""}
-                onChange={(next) =>
-                  setValues((current) => ({ ...current, [field.key]: next }))
-                }
-                suffix={field.suffix}
-                placeholder={profilePlaceholderValue(field)}
-                type={field.type}
-              />
-            ))}
-          </ActionTicket>
+          <PlayAreaConsoleHint label={`${profile.primaryAction} inputs and wallet handoff are handled in the right action console.`} />
           <ProfileWorkflowPanel profile={profile} />
           <ActivityPanel activity={activity} />
         </div>
@@ -2873,29 +2812,45 @@ function ProfileMarketPanel({
   values: Record<string, string>;
   network: "mainnet" | "testnet";
 }) {
-  const primaryInput =
-    Object.values(values)
-      .map((value) => value.trim())
-      .find(Boolean) || "Awaiting input";
   const cards = profile.cards.length > 0 ? profile.cards : [{ label: "State", value: "Ready" }];
   const rows = cards.slice(0, 4).map((card, index) => ({
     label: card.label,
     detail: profile.steps[index] || profile.visual.slots[index] || profile.visual.headline,
-    value: index === 0 ? primaryInput : card.value,
-    valueLabel: index === 0 ? "input" : "state",
+    value: profile.fields[index]
+      ? values[profile.fields[index].key]?.trim() || card.value
+      : card.value,
+    valueLabel: profile.fields[index]?.label || "state",
     active: index === 0,
     icon: index === 0 ? profile.icon : undefined,
   }));
 
-  const visualRows = profile.visual.slots
-    .slice(0, 4)
-    .map((slot, index) => ({
-      label: slot,
-      detail: profile.steps[index] || profile.visual.headline,
-      value: index === 0 ? network : index === 1 ? "ready" : "pending",
-      valueLabel: index === 0 ? "network" : "phase",
-      active: index === 0,
-    }));
+  const visualRows = [
+    {
+      label: "Network",
+      detail: "Mainnet/testnet state is isolated",
+      value: network,
+      valueLabel: "scope",
+      active: true,
+    },
+    {
+      label: "Operation",
+      detail: profile.primaryAction,
+      value: "ready",
+      valueLabel: "phase",
+    },
+    {
+      label: "Review",
+      detail: profile.steps[1] || profile.visual.headline,
+      value: "pending",
+      valueLabel: "phase",
+    },
+    {
+      label: "Submit",
+      detail: "Wallet handoff is in the action console",
+      value: "pending",
+      valueLabel: "phase",
+    },
+  ];
 
   return (
     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]">
@@ -2954,11 +2909,7 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
         <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
           <h3 className="m-0 text-lg font-black text-gray-950">{app.name}</h3>
           <p className="mt-2 text-sm leading-6 text-gray-600">{app.description}</p>
-          <div className="mt-4">
-            <PrimaryAction>
-              Open operation flow <Link2 className="h-4 w-4" />
-            </PrimaryAction>
-          </div>
+          <PlayAreaConsoleHint label="Use the right action console for wallet signing, OneGate launch parameters, and any app-specific operation inputs." />
         </div>
         <MetricGrid stats={stats} />
       </div>
@@ -2983,6 +2934,14 @@ function PreviewStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2">
       <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
       <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">{value}</p>
+    </div>
+  );
+}
+
+function PlayAreaConsoleHint({ label }: { label: string }) {
+  return (
+    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800">
+      {label}
     </div>
   );
 }

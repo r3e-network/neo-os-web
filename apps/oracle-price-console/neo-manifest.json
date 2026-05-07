@@ -45,6 +45,28 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Price Feed",
+    "subtitle": "Select a feed symbol from the action console and verify the request package in the playarea.",
+    "operations": [
+      {
+        "name": "Build Feed Request",
+        "method": "buildOraclePackage",
+        "description": "Prepare a Morpheus price-feed request package.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "symbol",
+            "type": "string",
+            "label": "Feed symbol",
+            "placeholder": "TWELVEDATA:NEO-USD",
+            "default_value": "TWELVEDATA:NEO-USD",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

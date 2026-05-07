@@ -168,7 +168,7 @@ describe("PlayAreaRegistry", () => {
 
     expect(screen.getByRole("heading", { name: "Confidential transfer desk" })).toBeVisible();
     expect(screen.getAllByText("Morpheus confidential compute").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: /seal private transfer/i })).toBeVisible();
+    expect(screen.getByText(/submitted from the right action console/i)).toBeVisible();
     expect(screen.getByText("Recipient")).toBeVisible();
     expect(screen.getByText("Amount")).toBeVisible();
     expect(screen.getByText("Private memo")).toBeVisible();
@@ -238,7 +238,8 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Live explorer console" })).toBeVisible();
-    expect(screen.getByLabelText("Explorer query")).toBeVisible();
+    expect(screen.getByText("Search state")).toBeVisible();
+    expect(screen.getByText(/Enter the query and network in the action console/i)).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
@@ -302,7 +303,7 @@ describe("PlayAreaRegistry", () => {
 
     expect(screen.getByRole("heading", { name: "Draw, flip, read" })).toBeVisible();
     await waitFor(() => expect(screen.getByText("3 cards")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: /flip reading/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Past/i }));
     expect(screen.getAllByText(/The Fool|The Magician|The High Priestess/).length).toBeGreaterThan(0);
   });
 
@@ -314,7 +315,7 @@ describe("PlayAreaRegistry", () => {
       description: "Bridge console",
     });
     expect(screen.getByRole("heading", { name: "Neo X bridge control console" })).toBeVisible();
-    expect(screen.getByText("Message Bridge")).toBeVisible();
+    expect(screen.getAllByText(/Message Bridge/).length).toBeGreaterThan(0);
     expect(screen.getByText("Target contract")).toBeVisible();
     expect(screen.getByText("Message")).toBeVisible();
     expect(screen.queryByDisplayValue("0xAxLabs...")).not.toBeInTheDocument();
@@ -368,9 +369,9 @@ describe("PlayAreaRegistry", () => {
     );
 
     expect(screen.getByText("Amount")).toBeVisible();
-    expect(screen.getByText("3.5")).toBeVisible();
+    expect(screen.getAllByText("3.5 GAS").length).toBeGreaterThan(0);
     expect(screen.getByText("Target contract")).toBeVisible();
-    expect(screen.getByText("0xabcdef")).toBeVisible();
+    expect(screen.getAllByText("0xabcdef").length).toBeGreaterThan(0);
     expect(screen.getByText("Message")).toBeVisible();
     expect(screen.getByText("sync state")).toBeVisible();
     expect(screen.getAllByText("Neo X -> Neo N3").length).toBeGreaterThan(0);

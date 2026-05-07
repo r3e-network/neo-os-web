@@ -33,6 +33,7 @@ import {
   MiniAppDetailTabType,
 } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
+import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
 import type { OnChainActivity, OperationEntry, OperationParam } from "../../components/types";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
 import { Layout } from "../../components/layout";
@@ -307,9 +308,14 @@ export default function MiniAppDetailPage({
     const sourceOps = Array.isArray(panelOps) && panelOps.length > 0
       ? panelOps
       : Array.isArray(app?.operations) ? app.operations : [];
-    if (resolvedRuntime?.mode !== "platform") return sourceOps;
-    return sourceOps.map((operation) => injectRuntimeAppIdParam(operation, resolvedRuntime));
-  }, [app?.detail_template?.operation_panel?.operations, app?.operations, resolvedRuntime]);
+    const resolvedOps = sourceOps.length > 0
+      ? sourceOps
+      : app?.app_id
+        ? getNativePlayAreaOperationFallback(app.app_id)
+        : [];
+    if (resolvedRuntime?.mode !== "platform") return resolvedOps;
+    return resolvedOps.map((operation) => injectRuntimeAppIdParam(operation, resolvedRuntime));
+  }, [app?.app_id, app?.detail_template?.operation_panel?.operations, app?.operations, resolvedRuntime]);
 
   useEffect(() => {
     if (!tabs.length) return;
@@ -359,6 +365,25 @@ export default function MiniAppDetailPage({
     async (operation: OperationEntry, values: Record<string, string>) => {
       setInvokeFeedback(null);
       try {
+        if (isFrontendLocalOperation(operation.method)) {
+          const query = buildFrontendOperationQuery(
+            router.query,
+            operation.method,
+            values,
+            targetCatalogNetwork,
+          );
+          await router.replace(
+            { pathname: router.pathname, query },
+            undefined,
+            { shallow: true },
+          );
+          setInvokeFeedback({
+            type: "success",
+            message: frontendOperationFeedback(operation.method),
+          });
+          return;
+        }
+
         if (!walletConnected || !walletAddress) {
           throw new Error("Connect wallet before sending transactions.");
         }
@@ -526,7 +551,7 @@ export default function MiniAppDetailPage({
         throw invokeError;
       }
     },
-    [app, appSupportsTargetNetwork, directContractHash, networkAvailabilityReason, resolvedRuntime, sharedRuntime, targetNetwork, walletAddress, walletConnected, walletNetwork],
+    [app, appSupportsTargetNetwork, directContractHash, networkAvailabilityReason, resolvedRuntime, router, sharedRuntime, targetCatalogNetwork, targetNetwork, walletAddress, walletConnected, walletNetwork],
   );
 
   const operationPanel = app.detail_template?.operation_panel;
@@ -534,6 +559,11 @@ export default function MiniAppDetailPage({
     operationPanel?.title ||
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
+  const operationPanelDisabledReason = operations.every((operation) =>
+    isFrontendLocalOperation(operation.method),
+  )
+    ? null
+    : operationDisabledReason;
   const contractDisplayValue =
     networkAvailabilityReason
       ? `Not deployed on ${targetNetworkLabel}`
@@ -631,7 +661,7 @@ export default function MiniAppDetailPage({
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
                   >
-                    <ReviewsTab appId={app.app_id} />
+                    <ReviewsTab appId={app.app_id} network={targetNetwork} />
                   </div>
                 )}
 
@@ -641,7 +671,7 @@ export default function MiniAppDetailPage({
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
                   >
-                    <ForumTab appId={app.app_id} />
+                    <ForumTab appId={app.app_id} network={targetNetwork} />
                   </div>
                 )}
 
@@ -720,7 +750,7 @@ export default function MiniAppDetailPage({
                     showTitle={false}
                     className="mt-4 border-0 shadow-none"
                     variant="embedded"
-                    disabledReason={operationDisabledReason}
+                    disabledReason={operationPanelDisabledReason}
                     launchContext={launchContext}
                   />
                 )}
@@ -1697,6 +1727,69 @@ function oneGateNetworkParam(network: CatalogNetwork | null): string {
   if (network === "neo-n3-mainnet") return "mainnet";
   if (network === "neo-n3-testnet") return "testnet";
   return "";
+}
+
+const FRONTEND_LOCAL_OPERATION_METHODS = new Set([
+  "explorerSearch",
+  "sealPrivateTransfer",
+  "buildOraclePackage",
+  "sealOracleRequest",
+  "drawTarotReading",
+  "flipTarotReading",
+  "bridgeAsset",
+  "bridgeMessage",
+  "trackBridgeOperation",
+  "prepareMiniAppOperation",
+]);
+
+function isFrontendLocalOperation(method?: string | null): boolean {
+  return FRONTEND_LOCAL_OPERATION_METHODS.has(String(method || ""));
+}
+
+function buildFrontendOperationQuery(
+  currentQuery: Record<string, unknown>,
+  method: string,
+  values: Record<string, string>,
+  targetNetwork: CatalogNetwork | null,
+): Record<string, string | string[]> {
+  const next: Record<string, string | string[]> = {};
+  for (const [key, value] of Object.entries(currentQuery)) {
+    if (key === "operation") continue;
+    if (Array.isArray(value)) {
+      next[key] = value.map((item) => String(item));
+    } else if (value !== undefined && value !== null) {
+      next[key] = String(value);
+    }
+  }
+
+  next.operation = method;
+  next.network = oneGateNetworkParam(targetNetwork);
+  for (const [key, value] of Object.entries(values)) {
+    const trimmed = String(value ?? "").trim();
+    if (trimmed) next[key] = trimmed;
+  }
+  next._op = String(Date.now());
+  return next;
+}
+
+function frontendOperationFeedback(method: string): string {
+  if (method === "explorerSearch") return "Explorer search parameters applied.";
+  if (method === "sealPrivateTransfer") return "Private transfer sealing started in the playarea.";
+  if (method === "sealOracleRequest") return "Oracle request sealing started in the playarea.";
+  if (method === "buildOraclePackage") return "Oracle request package rebuilt.";
+  if (method === "drawTarotReading") return "Tarot reading redrawn.";
+  if (method === "flipTarotReading") return "Tarot reading flipped.";
+  if (
+    method === "bridgeAsset" ||
+    method === "bridgeMessage" ||
+    method === "trackBridgeOperation"
+  ) {
+    return "Bridge operation parameters applied.";
+  }
+  if (method === "prepareMiniAppOperation") {
+    return "MiniApp operation parameters applied to the playarea preview.";
+  }
+  return "Operation parameters applied.";
 }
 
 function resolveDirectMiniAppSlug(app: MiniAppInfo): string {

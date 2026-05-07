@@ -14,6 +14,10 @@ import {
   resolveUserIdFromWallet,
 } from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import {
+  getSocialNetworkScope,
+  scopedSocialAppId,
+} from "@/lib/social-network-scope";
 
 type RatingRow = {
   app_id: string;
@@ -48,6 +52,8 @@ async function getRatings(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
   const wallet =
     typeof req.query.wallet === "string" ? req.query.wallet.trim() : undefined;
   if (wallet && !isValidWalletAddress(wallet)) {
@@ -83,7 +89,7 @@ async function getRatings(
   const { data, error } = await supabase
     .from("social_ratings")
     .select("app_id,rating_value,review_text")
-    .eq("app_id", appId)
+    .eq("app_id", scopedAppId)
     .limit(1000);
   if (error) {
     logger.error(
@@ -127,7 +133,7 @@ async function getRatings(
         const { data: myRating } = await serviceSupabase
           .from("social_ratings")
           .select("rating_value,review_text")
-          .eq("app_id", appId)
+          .eq("app_id", scopedAppId)
           .eq("rater_user_id", userId)
           .maybeSingle();
         if (myRating) {
@@ -179,6 +185,8 @@ async function submitRating(
   if (!authedWallet) return;
 
   const { wallet, value, review } = req.body;
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
@@ -215,7 +223,7 @@ async function submitRating(
 
   const { error } = await supabase.from("social_ratings").upsert(
     {
-      app_id: appId,
+      app_id: scopedAppId,
       rater_user_id: userId,
       rating_value: value,
       review_text:
