@@ -17,6 +17,7 @@ import type { ForumThread } from "./types";
 
 interface ForumTabProps {
   appId: string;
+  network?: "mainnet" | "testnet";
 }
 
 const categoryIcons = {
@@ -33,11 +34,12 @@ const categoryColors = {
   help: "bg-blue-100 text-blue-700",
 };
 
-export function ForumTab({ appId }: ForumTabProps) {
+export function ForumTab({ appId, network = "testnet" }: ForumTabProps) {
   const { address: walletAddress } = useWalletStore();
   const { threads, loading, fetchThreads, createThread } = useForum({
     appId,
     walletAddress,
+    network,
   });
   const [showNewThread, setShowNewThread] = useState(false);
   const [selectedThread, setSelectedThread] = useState<ForumThread | null>(
@@ -54,6 +56,7 @@ export function ForumTab({ appId }: ForumTabProps) {
       <ThreadDetail
         thread={selectedThread}
         appId={appId}
+        network={network}
         walletAddress={walletAddress}
         onBack={() => setSelectedThread(null)}
       />
@@ -292,15 +295,17 @@ function NewThreadForm({
 function ThreadDetail({
   thread,
   appId,
+  network,
   walletAddress,
   onBack,
 }: {
   thread: ForumThread;
   appId: string;
+  network: "mainnet" | "testnet";
   walletAddress?: string;
   onBack: () => void;
 }) {
-  const { fetchReplies, createReply } = useForum({ appId, walletAddress });
+  const { fetchReplies, createReply } = useForum({ appId, walletAddress, network });
   const [replies, setReplies] = useState<import("./types").ForumReply[]>([]);
   const [replyContent, setReplyContent] = useState("");
   const [submitting, setSubmitting] = useState(false);

@@ -8,9 +8,10 @@ import { useWalletStore } from "@/lib/wallet/store";
 
 interface ReviewsTabProps {
   appId: string;
+  network?: "mainnet" | "testnet";
 }
 
-export function ReviewsTab({ appId }: ReviewsTabProps) {
+export function ReviewsTab({ appId, network = "testnet" }: ReviewsTabProps) {
   const { address: walletAddress } = useWalletStore();
   const {
     rating,
@@ -27,7 +28,7 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
     loadReplies,
     loadMore,
     clearError,
-  } = useReviews({ appId, walletAddress });
+  } = useReviews({ appId, walletAddress, network });
 
   useEffect(() => {
     const controller = new AbortController();

@@ -8,6 +8,7 @@ import { fetchJSON } from "@/lib/fetch-client";
 interface UseForumOptions {
   appId: string;
   walletAddress?: string;
+  network?: "mainnet" | "testnet";
 }
 
 type ThreadsResponse = {
@@ -27,7 +28,7 @@ type ReplyResponse = {
   reply?: ForumReply;
 };
 
-export function useForum({ appId, walletAddress }: UseForumOptions) {
+export function useForum({ appId, walletAddress, network = "testnet" }: UseForumOptions) {
   const [threads, setThreads] = useState<ForumThread[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -36,7 +37,9 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
     async (category?: string) => {
       setLoading(true);
       try {
-        const url = `/api/miniapps/${encodeURIComponent(appId)}/forum/threads${category ? `?category=${encodeURIComponent(category)}` : ""}`;
+        const params = new URLSearchParams({ network });
+        if (category) params.set("category", category);
+        const url = `/api/miniapps/${encodeURIComponent(appId)}/forum/threads?${params.toString()}`;
         const data = await fetchJSON<ThreadsResponse>(url);
         setThreads(data.threads || []);
         setHasMore(Boolean(data.hasMore));
@@ -46,7 +49,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
         setLoading(false);
       }
     },
-    [appId],
+    [appId, network],
   );
 
   const createThread = useCallback(
@@ -56,7 +59,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
         const data = await fetchJSON<ThreadResponse>(`/api/miniapps/${encodeURIComponent(appId)}/forum/threads`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, title, content, category }),
+          body: JSON.stringify({ wallet: walletAddress, title, content, category, network }),
         });
         if (data.thread) {
           const thread = data.thread;
@@ -68,14 +71,14 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
       }
       return null;
     },
-    [appId, walletAddress],
+    [appId, walletAddress, network],
   );
 
   const fetchReplies = useCallback(
     async (threadId: string): Promise<ForumReply[]> => {
       try {
         const data = await fetchJSON<RepliesResponse>(
-          `/api/miniapps/${encodeURIComponent(appId)}/forum/${encodeURIComponent(threadId)}/replies`,
+          `/api/miniapps/${encodeURIComponent(appId)}/forum/${encodeURIComponent(threadId)}/replies?network=${encodeURIComponent(network)}`,
         );
         return data.replies || [];
       } catch (err) {
@@ -83,7 +86,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
       }
       return [];
     },
-    [appId],
+    [appId, network],
   );
 
   const createReply = useCallback(
@@ -95,7 +98,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ wallet: walletAddress, content }),
+            body: JSON.stringify({ wallet: walletAddress, content, network }),
           },
         );
         return data.reply || null;
@@ -104,7 +107,7 @@ export function useForum({ appId, walletAddress }: UseForumOptions) {
       }
       return null;
     },
-    [appId, walletAddress],
+    [appId, walletAddress, network],
   );
 
   return { threads, loading, hasMore, fetchThreads, createThread, fetchReplies, createReply };

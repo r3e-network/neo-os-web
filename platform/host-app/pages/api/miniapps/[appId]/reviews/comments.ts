@@ -14,6 +14,11 @@ import {
   resolveUserIdFromWallet,
 } from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import {
+  getSocialNetworkScope,
+  scopedSocialAppId,
+  unscopedSocialAppId,
+} from "@/lib/social-network-scope";
 
 type SocialCommentRow = {
   id: string;
@@ -66,6 +71,8 @@ async function getCommentsFromDB(
   res: NextApiResponse,
 ) {
   const parentId = req.query.parent_id as string | undefined;
+  const network = getSocialNetworkScope(req.query.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
   const limit = Math.min(
     Math.max(parseInt(req.query.limit as string) || 20, 1),
     100,
@@ -90,7 +97,7 @@ async function getCommentsFromDB(
       "id,app_id,author_user_id,parent_id,content,is_developer_reply,created_at,updated_at",
       { count: "exact" },
     )
-    .eq("app_id", appId)
+    .eq("app_id", scopedAppId)
     .is("deleted_at", null);
 
   if (parentId && parentId !== "null") {
@@ -150,7 +157,7 @@ async function getCommentsFromDB(
   const comments: SocialComment[] = rows
     .map((row) => ({
       id: row.id,
-      app_id: row.app_id,
+      app_id: unscopedSocialAppId(row.app_id),
       author_user_id: row.author_user_id,
       parent_id: row.parent_id,
       content: row.content,
@@ -204,6 +211,8 @@ async function createComment(
   if (!authedWallet) return;
 
   const { wallet, content, parent_id } = req.body;
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
@@ -250,7 +259,7 @@ async function createComment(
     if (parentError || !parent) {
       return apiError.notFound(res, "Parent comment not found");
     }
-    if (parent.app_id !== appId) {
+    if (parent.app_id !== scopedAppId) {
       return apiError.badRequest(
         res,
         "Parent comment belongs to different app",
@@ -271,7 +280,7 @@ async function createComment(
   const { data, error } = await supabase
     .from("social_comments")
     .insert({
-      app_id: appId,
+      app_id: scopedAppId,
       author_user_id: userId,
       parent_id: parent_id || null,
       content: content.trim(),
@@ -292,7 +301,7 @@ async function createComment(
 
   const comment: SocialComment = {
     id: data.id,
-    app_id: data.app_id,
+    app_id: unscopedSocialAppId(data.app_id),
     author_user_id: data.author_user_id,
     parent_id: data.parent_id,
     content: data.content,

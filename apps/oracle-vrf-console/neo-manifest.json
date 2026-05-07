@@ -45,6 +45,28 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "VRF Request",
+    "subtitle": "Prepare randomness request metadata in the action console and inspect the verifiable envelope in the playarea.",
+    "operations": [
+      {
+        "name": "Build VRF Request",
+        "method": "buildOraclePackage",
+        "description": "Prepare a Morpheus VRF request package.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "Seed / request tag",
+            "placeholder": "vrf:campaign-or-game-round",
+            "default_value": "vrf:miniapp-round",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

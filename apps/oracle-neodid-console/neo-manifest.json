@@ -49,6 +49,33 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "NeoDID Oracle",
+    "subtitle": "Build or seal NeoDID verification requests from the action console.",
+    "operations": [
+      {
+        "name": "Seal DID Request",
+        "method": "sealOracleRequest",
+        "description": "Encrypt the NeoDID subject and verification request for Morpheus handling.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "DID subject",
+            "placeholder": "did:neo:...",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Build Preview",
+        "method": "buildOraclePackage",
+        "description": "Build a visible NeoDID request package.",
+        "button_style": "secondary"
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

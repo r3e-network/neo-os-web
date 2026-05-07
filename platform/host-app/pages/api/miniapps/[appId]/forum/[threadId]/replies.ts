@@ -15,6 +15,10 @@ import {
   resolveUserIdFromWallet,
 } from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import {
+  getSocialNetworkScope,
+  scopedSocialAppId,
+} from "@/lib/social-network-scope";
 
 type ForumReplyRow = {
   id: string;
@@ -89,6 +93,8 @@ async function getReplies(
   }
 
   const supabase = getServerSupabaseClient();
+  const network = getSocialNetworkScope(req.query.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
   if (!supabase) {
     res.status(200).json({ replies: [] });
     return;
@@ -99,7 +105,7 @@ async function getReplies(
     .select(
       "id,thread_id,author_wallet,author_name,content,is_solution,upvotes,created_at",
     )
-    .eq("app_id", appId)
+    .eq("app_id", scopedAppId)
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -145,6 +151,8 @@ async function createReply(
   if (!authedWallet) return;
 
   const { wallet, content } = req.body;
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
@@ -172,7 +180,7 @@ async function createReply(
     .from("forum_threads")
     .select("id,is_locked")
     .eq("id", threadId)
-    .eq("app_id", appId)
+    .eq("app_id", scopedAppId)
     .single();
 
   if (threadError || !thread) {
@@ -192,7 +200,7 @@ async function createReply(
   const { data, error } = await supabase
     .from("forum_replies")
     .insert({
-      app_id: appId,
+      app_id: scopedAppId,
       thread_id: threadId,
       author_user_id: userId,
       author_wallet: wallet,
