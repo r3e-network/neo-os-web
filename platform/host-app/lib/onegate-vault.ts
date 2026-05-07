@@ -177,6 +177,10 @@ export function secureRandomFixed8(min: bigint, max: bigint): bigint {
   return min + (sample % span);
 }
 
+function secureRandomUint64String(): string {
+  return BigInt(`0x${crypto.randomBytes(8).toString("hex")}`).toString();
+}
+
 export async function claimOneGateVaultReward(
   input: { claimKey: unknown; address: unknown; network: unknown },
   deps: {
@@ -391,11 +395,12 @@ function mapReservedClaim(row: Record<string, unknown>): ReservedOneGateVaultCla
 export function createSupabaseOneGateVaultRepository(supabase: SupabaseClient): OneGateVaultRepository {
   return {
     async reserveClaim(input) {
-      const { data, error } = await supabase.rpc("onegate_vault_reserve_claim", {
+      const { data, error } = await supabase.rpc("onegate_vault_reserve_claim_v2", {
         p_key_hash: input.keyHash,
         p_wallet_address: input.address,
         p_network: input.network,
         p_request_id: input.requestId,
+        p_random_u64: secureRandomUint64String(),
       });
       if (error) throw mapSupabaseVaultError(error);
       const row = Array.isArray(data) ? data[0] : data;
@@ -409,7 +414,7 @@ export function createSupabaseOneGateVaultRepository(supabase: SupabaseClient): 
         tx_hash: input.txHash,
         request_id: input.requestId,
         submitted_at: new Date().toISOString(),
-      });
+      }, input.requestId, ["pending", "submitted"]);
     },
 
     async markPaid(input) {
@@ -418,7 +423,7 @@ export function createSupabaseOneGateVaultRepository(supabase: SupabaseClient): 
         tx_hash: input.txHash,
         request_id: input.requestId,
         paid_at: new Date().toISOString(),
-      });
+      }, input.requestId, ["pending", "submitted", "paid"]);
     },
 
     async markFailed(input) {
@@ -427,7 +432,7 @@ export function createSupabaseOneGateVaultRepository(supabase: SupabaseClient): 
         error_message: input.errorMessage.slice(0, 500),
         request_id: input.requestId,
         failed_at: new Date().toISOString(),
-      });
+      }, input.requestId, ["pending", "failed"]);
     },
 
     async getClaimStatus(input) {
@@ -450,12 +455,25 @@ export function createSupabaseOneGateVaultRepository(supabase: SupabaseClient): 
   };
 }
 
-async function updateSupabaseClaim(supabase: SupabaseClient, keyHash: string, values: Record<string, unknown>) {
-  const { error } = await supabase
+async function updateSupabaseClaim(
+  supabase: SupabaseClient,
+  keyHash: string,
+  values: Record<string, unknown>,
+  requestId: string,
+  allowedStatuses: OneGateVaultClaimStatus[],
+) {
+  const { data, error } = await supabase
     .from("onegate_vault_claim_keys")
     .update(values)
-    .eq("key_hash", keyHash);
+    .eq("key_hash", keyHash)
+    .eq("request_id", requestId)
+    .in("status", allowedStatuses)
+    .select("key_hash")
+    .maybeSingle();
   if (error) throw mapSupabaseVaultError(error);
+  if (!data) {
+    throw new OneGateVaultError("CLAIM_STATE_CONFLICT", "claim state changed before status update");
+  }
 }
 
 function mapSupabaseVaultError(error: { message?: string; code?: string }): OneGateVaultError {
@@ -466,6 +484,7 @@ function mapSupabaseVaultError(error: { message?: string; code?: string }): OneG
   if (/expired|VAULT_EXPIRED/i.test(message)) return new OneGateVaultError("VAULT_EXPIRED", message);
   if (/empty|insufficient|VAULT_EMPTY/i.test(message)) return new OneGateVaultError("VAULT_EMPTY", message);
   if (/reward.*range|INVALID_REWARD_RANGE/i.test(message)) return new OneGateVaultError("INVALID_REWARD_RANGE", message);
+  if (/state.*changed|CLAIM_STATE_CONFLICT/i.test(message)) return new OneGateVaultError("CLAIM_STATE_CONFLICT", message);
   return new OneGateVaultError("VAULT_STORAGE_ERROR", message);
 }
 
