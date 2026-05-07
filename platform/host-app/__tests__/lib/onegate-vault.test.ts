@@ -2,6 +2,7 @@ import {
   calculateOneGateVaultLuckPercent,
   claimOneGateVaultReward,
   createInMemoryOneGateVaultRepository,
+  createSupabaseOneGateVaultRepository,
   formatFixed8Gas,
   hashClaimKey,
   normalizeClaimKey,
@@ -158,5 +159,67 @@ describe("OneGate Vault off-chain claim engine", () => {
     expect(formatFixed8Gas("1")).toBe("0.00000001");
     expect(formatFixed8Gas("250000000")).toBe("2.5");
     expect(formatFixed8Gas("123456789")).toBe("1.23456789");
+  });
+
+  it("reserves Supabase claims through the hardened v2 RPC with server entropy", async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: [
+        {
+          key_hash: "hash",
+          campaign_id: "campaign-1",
+          network: "testnet",
+          status: "pending",
+          wallet_address: WALLET,
+          amount_fixed8: "300000000",
+          tx_hash: null,
+          request_id: "req-1",
+        },
+      ],
+      error: null,
+    });
+    const repository = createSupabaseOneGateVaultRepository({ rpc } as never);
+
+    await repository.reserveClaim({
+      keyHash: "hash",
+      address: WALLET,
+      network: "testnet",
+      requestId: "req-1",
+      randomInt: () => 100000000n,
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "onegate_vault_reserve_claim_v2",
+      expect.objectContaining({
+        p_key_hash: "hash",
+        p_wallet_address: WALLET,
+        p_network: "testnet",
+        p_request_id: "req-1",
+        p_random_u64: expect.stringMatching(/^\d+$/),
+      }),
+    );
+  });
+
+  it("guards Supabase claim status transitions by request id and current status", async () => {
+    const chain = {
+      update: jest.fn(() => chain),
+      eq: jest.fn(() => chain),
+      in: jest.fn(() => chain),
+      select: jest.fn(() => chain),
+      maybeSingle: jest.fn().mockResolvedValue({ data: { key_hash: "hash" }, error: null }),
+    };
+    const repository = createSupabaseOneGateVaultRepository({
+      from: jest.fn(() => chain),
+    } as never);
+
+    await repository.markSubmitted({
+      keyHash: "hash",
+      requestId: "req-1",
+      txHash: "0xreward",
+    });
+
+    expect(chain.eq).toHaveBeenCalledWith("key_hash", "hash");
+    expect(chain.eq).toHaveBeenCalledWith("request_id", "req-1");
+    expect(chain.in).toHaveBeenCalledWith("status", ["pending", "submitted"]);
+    expect(chain.select).toHaveBeenCalledWith("key_hash");
   });
 });
