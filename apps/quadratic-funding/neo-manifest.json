@@ -27,6 +27,12 @@
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-testnet",
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deferred",
+      "reason": "Testnet-only until the matching and settlement contract is recovered or reimplemented, audited, and approved for mainnet user funds."
+    }
+  },
   "urls": {
     "entry": "/miniapps/quadratic-funding/index.html",
     "icon": "/miniapps/quadratic-funding/logo.jpg",
