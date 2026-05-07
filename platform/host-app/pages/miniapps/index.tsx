@@ -20,6 +20,7 @@ import {
 } from "@/lib/miniapp-catalog-view";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
+import { BRAND } from "@/lib/brand";
 
 /* ── Color accents per flagship ──────────────────────────────────────── */
 
@@ -329,7 +330,8 @@ export default function MiniAppsPage({
   return (
     <Layout>
       <Head>
-        <title>MiniApps - R3E Network</title>
+        <title>MiniApps - {BRAND.productName}</title>
+        <meta name="description" content={BRAND.description} />
       </Head>
 
       <div className="min-h-screen bg-[#f6f8fb] pt-20">
@@ -348,10 +350,11 @@ export default function MiniAppsPage({
                   </span>
                 </div>
                 <h1 className="m-0 text-3xl font-black text-gray-900 sm:text-4xl">
-                  MiniApps
+                  Yiwu MiniApps
                 </h1>
                 <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-500">
-                  Browse supported miniapps. Pick one and start using it.
+                  Browse small, focused MiniApps for Neo N3. Pick one, open
+                  the play area, and operate from the shared action console.
                 </p>
               </div>
 

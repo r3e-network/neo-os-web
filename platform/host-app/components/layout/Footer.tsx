@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Github, Twitter } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
 const footerLinks = {
   platform: [
@@ -37,16 +38,16 @@ export function Footer() {
             >
               <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
                 <span className="text-[10px] font-black text-white leading-none">
-                  R3E
+                  {BRAND.mark}
                 </span>
               </div>
               <span className="text-2xl font-bold text-gray-900">
-                R3E <span className="text-emerald-600">Network</span>
+                {BRAND.name} <span className="text-emerald-600">MiniApps</span>
               </span>
             </Link>
             <p className="mt-6 text-sm font-medium text-gray-500 leading-relaxed max-w-sm">
-              The premier decentralized application marketplace and platform
-              engineered exclusively on the blazing-fast Neo N3 blockchain.
+              Small, focused Neo MiniApps for games, payments, oracle tools,
+              account abstraction, and OneGate-ready wallet operations.
             </p>
           </div>
 
@@ -119,7 +120,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-16 border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm font-medium text-gray-400">
-            &copy; {new Date().getFullYear()} R3E Network. All rights reserved.
+            &copy; {new Date().getFullYear()} {BRAND.productName}. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link

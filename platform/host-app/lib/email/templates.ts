@@ -14,11 +14,11 @@ export function verificationEmail(data: VerificationEmailData) {
   const shortWallet = `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}`;
 
   return {
-    subject: "R3E Network - Email Verification Code",
+    subject: "Yiwu - Email Verification Code",
     text: `Your verification code is: ${code}\n\nWallet: ${shortWallet}\nThis code expires in 10 minutes.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #00E599;">R3E Network</h2>
+        <h2 style="color: #00E599;">Yiwu</h2>
         <p>Your email verification code:</p>
         <div style="background: #f5f5f5; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 8px; font-weight: bold;">
           ${escapeHtml(code)}
@@ -50,11 +50,11 @@ export function transactionEmail(data: TransactionEmailData) {
   };
 
   return {
-    subject: `R3E Network - ${titles[type]}`,
+    subject: `Yiwu - ${titles[type]}`,
     text: `${titles[type]}\nApp: ${appName}\nAmount: ${amount}${txHash ? `\nTx: ${txHash}` : ""}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #00E599;">R3E Network</h2>
+        <h2 style="color: #00E599;">Yiwu</h2>
         <h3>${titles[type]}</h3>
         <p><strong>App:</strong> ${escapeHtml(appName)}</p>
         <p><strong>Amount:</strong> ${escapeHtml(amount)}</p>
@@ -79,11 +79,11 @@ export function chainAlertEmail(data: ChainAlertEmailData) {
   };
 
   return {
-    subject: `R3E Network - ${alertTitles[alertType]} (${network})`,
+    subject: `Yiwu - ${alertTitles[alertType]} (${network})`,
     text: `${alertTitles[alertType]}\nNetwork: ${network}\n${details}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #00E599;">R3E Network</h2>
+        <h2 style="color: #00E599;">Yiwu</h2>
         <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px;">
           <h3 style="margin: 0 0 10px 0;">${alertTitles[alertType]}</h3>
           <p><strong>Network:</strong> ${network}</p>

@@ -1,5 +1,5 @@
 /**
- * Shared Tailwind CSS preset for the Neo Miniapps Platform.
+ * Shared Tailwind CSS preset for Yiwu MiniApps.
  *
  * Contains the common design-system tokens (brand colors, dark-mode strategy)
  * used by both host-app and admin-console.  App-specific overrides live in

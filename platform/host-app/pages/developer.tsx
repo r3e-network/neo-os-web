@@ -674,7 +674,7 @@ export default function DeveloperPage() {
   return (
     <Layout>
       <Head>
-        <title>Developer Portal - Neo MiniApp Platform</title>
+        <title>Developer Portal - Yiwu MiniApps</title>
       </Head>
 
       <PageHero

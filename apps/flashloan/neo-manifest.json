@@ -15,9 +15,9 @@
     "flash"
   ],
   "developer": {
-    "name": "R3E Network",
+    "name": "Yiwu",
     "email": "dev@r3e.network",
-    "website": "https://r3e.network"
+    "website": "https://neomini.app"
   },
   "contracts": {
     "neo-n3-mainnet": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",

@@ -10,7 +10,7 @@ export default function TestPage() {
         fontSize: "24px",
       }}
     >
-      <h1>Neo MiniApp Platform</h1>
+      <h1>Yiwu MiniApps</h1>
       <p>Frontend is working!</p>
       <p>Port: 3002</p>
       <Link
