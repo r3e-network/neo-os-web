@@ -5,7 +5,7 @@ export default function StatsPage() {
   return (
     <Layout>
       <Head>
-        <title>Statistics Unavailable - R3E Network</title>
+        <title>Statistics Unavailable - Yiwu</title>
       </Head>
       <PageNotice
         eyebrow="Frontend policy"

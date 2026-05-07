@@ -39,23 +39,23 @@
   <g transform="translate(600, 150)">
     <!-- Main Title -->
     <text x="0" y="-30" font-size="48" fill="#FFFFFF" font-weight="bold"
-          font-family="system-ui" text-anchor="middle">MiniApp Platform</text>
+          font-family="system-ui" text-anchor="middle">Yiwu MiniApps</text>
     <!-- Subtitle -->
     <text x="0" y="20" font-size="20" fill="#8B949E"
-          font-family="system-ui" text-anchor="middle">TEE-Powered Decentralized Applications on Neo N3</text>
+          font-family="system-ui" text-anchor="middle">Small, focused MiniApps for Neo N3</text>
     <!-- Accent Line -->
     <rect x="-150" y="40" width="300" height="3" rx="1.5" fill="url(#cyan-accent)"/>
   </g>
 
-  <!-- R3E Network Logo (Right Side) -->
+  <!-- Yiwu Logo (Right Side) -->
   <g transform="translate(1020, 100)">
-    <!-- R3E Hexagon -->
+    <!-- Yiwu Hexagon -->
     <path d="M60 0 L110 25 L110 75 L60 100 L10 75 L10 25 Z"
           fill="none" stroke="url(#neo-green)" stroke-width="3"/>
     <text x="60" y="58" font-size="24" fill="#00E599" font-weight="bold"
-          font-family="system-ui" text-anchor="middle">R3E</text>
+          font-family="system-ui" text-anchor="middle">义乌</text>
     <text x="60" y="120" font-size="12" fill="#8B949E"
-          font-family="system-ui" text-anchor="middle">Network</text>
+          font-family="system-ui" text-anchor="middle">Yiwu</text>
   </g>
 
   <!-- MiniApp Icons (Floating) -->

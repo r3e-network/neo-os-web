@@ -39,6 +39,7 @@ import { getNativePlayAreaOperationFallback } from "../../components/playarea/Pl
 import type { OnChainActivity, OperationEntry, OperationParam } from "../../components/types";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
 import { Layout } from "../../components/layout";
+import { BRAND } from "@/lib/brand";
 
 // Lazy-load heavy tab components (only loaded when user navigates to that tab)
 const AppSecretsTab = dynamic(
@@ -595,7 +596,7 @@ export default function MiniAppDetailPage({
     <Layout hideFooter>
       <div className="min-h-screen bg-[#f6f8fb] pb-28 pt-16 text-gray-900 xl:pb-10">
         <Head>
-          <title>{`${app.name} - R3E MiniApps`}</title>
+          <title>{`${app.name} - ${BRAND.productName}`}</title>
         </Head>
         <AppDetailHeader app={app} onBack={handleBack} />
 

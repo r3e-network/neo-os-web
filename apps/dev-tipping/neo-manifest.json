@@ -16,8 +16,8 @@
   "description_zh": "开发者打赏 — 为优秀的开源贡献者发送链上小费",
   "developer": {
     "email": "dev@r3e.network",
-    "name": "R3E Network",
-    "website": "https://r3e.network"
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
   "features": {
     "deeplink": "neomainapp://dev-tipping",

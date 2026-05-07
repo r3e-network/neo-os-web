@@ -17,9 +17,9 @@
     "zero-fee"
   ],
   "developer": {
-    "name": "R3E Network",
+    "name": "Yiwu",
     "email": "dev@r3e.network",
-    "website": "https://r3e.network"
+    "website": "https://neomini.app"
   },
   "contracts": {
     "neo-n3-mainnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",

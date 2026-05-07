@@ -1,20 +1,22 @@
 <p align="center">
-  <strong>R3E MiniApps Platform</strong>
+  <strong>Yiwu MiniApps</strong>
 </p>
 
 <p align="center">
-  <a href="https://r3e.network"><img src="https://img.shields.io/badge/Live-r3e.network-00E599?style=flat-square" alt="Live"/></a>
+  <a href="https://neomini.app"><img src="https://img.shields.io/badge/Live-neomini.app-00E599?style=flat-square" alt="Live"/></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-Guide-00E599?style=flat-square" alt="Quick Start"/></a>
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/Docs-Architecture-00D9FF?style=flat-square" alt="Architecture"/></a>
   <a href="#platform-contracts"><img src="https://img.shields.io/badge/Network-Neo%20N3-blue?style=flat-square" alt="Neo N3"/></a>
-  <a href="https://github.com/r3e-network/neo-miniapp-platform"><img src="https://img.shields.io/badge/R3E-Network-00E599?style=flat-square" alt="R3E Network"/></a>
+  <a href="https://github.com/r3e-network/neo-miniapp-platform"><img src="https://img.shields.io/badge/Yiwu-MiniApps-00E599?style=flat-square" alt="Yiwu MiniApps"/></a>
 </p>
 
 ---
 
-# R3E MiniApps Platform
+# Yiwu MiniApps
 
-A Neo N3 MiniApp platform with an **Android OS-style system service architecture**
+Yiwu (义乌) is a Neo N3 MiniApp platform inspired by the world's small-commodity
+market: many small, focused, practical apps, each polished for a specific user
+scenario. The platform keeps the **Android OS-style system service architecture**
 (MiniApp-OS v2): host UX, admin tooling, 10 OS service contracts, 45 edge proxy
 functions, typed frontend proxies, and integration with the externally deployed
 Morpheus Oracle and Abstract Account stacks.
@@ -432,4 +434,4 @@ flagship admin phase and the selected-user phase.
 
 ## License
 
-Copyright © 2024 R3E Network. All rights reserved.
+Copyright © 2024 Yiwu MiniApps. All rights reserved.

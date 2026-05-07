@@ -8,6 +8,7 @@ import {
   WalletProvider,
 } from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Eye, EyeOff, KeyRound, LogOut, Wallet, X } from "lucide-react";
 
@@ -218,7 +219,7 @@ export function ConnectButton() {
 
             <div className="text-center mb-8">
               <h2 className="text-2xl font-black text-gray-900 mb-2">
-                Welcome to R3E
+                Welcome to {BRAND.name}
               </h2>
               <p className="text-sm text-gray-500">
                 Connect a wallet or sign in with email to continue.

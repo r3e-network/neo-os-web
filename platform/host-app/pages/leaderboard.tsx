@@ -14,7 +14,7 @@ export default function LeaderboardPage() {
   return (
     <Layout>
       <Head>
-        <title>Leaderboard - R3E Network</title>
+        <title>Leaderboard - Yiwu</title>
       </Head>
       <div className="pb-16 pt-20">
         <PageHero

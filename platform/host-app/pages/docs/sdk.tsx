@@ -27,7 +27,7 @@ export default function SdkGuidePage() {
   return (
     <Layout>
       <Head>
-        <title>SDK Guide | R3E Network</title>
+        <title>SDK Guide | Yiwu</title>
         <meta
           name="description"
           content="MiniApp SDK guide for wallet sessions, host runtime services, and Neo N3 contract calls."
