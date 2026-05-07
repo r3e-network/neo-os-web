@@ -190,6 +190,9 @@ export const APP_IDS = {
   /** GASBox miniapp */
   GASBOX: "miniapp-gasbox",
 
+  /** OneGate Vault miniapp */
+  GAS_LUCKY_POOL: "miniapp-gas-lucky-pool",
+
   /** Self-loan miniapp */
   SELF_LOAN: "miniapp-self-loan",
 

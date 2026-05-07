@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/prepare-standalone.mjs",
+    "build": "bash scripts/next-build-with-retry.sh",
     "start": "next start",
     "test": "jest",
-    "test:e2e": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && playwright test --reporter=line",
-    "test:full": "npm run test -- --runInBand && npm run build && npm run test:e2e",
+    "pretest:e2e": "PREPARE_E2E_STANDALONE=1 npm run -s build",
+    "test:e2e": "bash scripts/cleanup-port.sh 3004 && playwright test --reporter=line",
+    "test:full": "npm run test -- --runInBand && npm run test:e2e",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "quality:loop": "bash ./scripts/quality-loop.sh"
@@ -67,7 +68,7 @@
     "socket.io-parser": "4.2.6",
     "glob": "^11.0.0",
     "minimatch": "^10.2.1",
-    "axios": "1.15.0",
+    "axios": "1.16.0",
     "follow-redirects": "1.16.0",
     "dompurify": "3.4.0",
     "protobufjs": "7.5.5"

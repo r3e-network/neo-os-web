@@ -168,7 +168,14 @@ export async function loadMiniAppCatalog(
 
   for (const app of dbApps) {
     const appId = canonicalizeMiniAppId(app.app_id) || app.app_id;
+    if (seen.has(appId)) continue;
     const fallback = miniAppById.get(appId);
+    const appManifest = asObject(app.manifest);
+    const fallbackManifest = asObject(fallback?.manifest);
+    const mergedManifest =
+      Object.keys(appManifest).length > 0
+        ? { ...fallbackManifest, ...appManifest }
+        : fallback?.manifest;
     // DB carries live status / stats / metadata; local definition is the source of
     // truth for the operation schema (method names, params, hidden $wallet hints)
     // since those must match the deployed contract ABI which Supabase doesn't track.
@@ -181,6 +188,7 @@ export async function loadMiniAppCatalog(
       source: app.source || "verified",
       operations: merged_ops,
       detail_template: merged_detail,
+      manifest: mergedManifest,
     }));
     seen.add(appId);
   }

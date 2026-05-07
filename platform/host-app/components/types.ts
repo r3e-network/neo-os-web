@@ -57,6 +57,7 @@ export type OperationParam = {
   placeholder?: string;
   options?: string | { label: string; value: string }[];
   hidden?: boolean;
+  scale?: number;
 };
 
 export type OperationEntry = {
@@ -141,6 +142,7 @@ export type MiniAppNotification = {
   content: string;
   notification_type: string;
   source: string;
+  network?: "mainnet" | "testnet" | null;
   tx_hash?: string;
   created_at: string;
 };
@@ -219,6 +221,7 @@ export type OnChainActivity = {
   app_icon?: string;
   title: string;
   description: string;
+  network?: "mainnet" | "testnet" | null;
   tx_hash?: string;
   timestamp: string;
   status?: "pending" | "confirmed" | "failed";

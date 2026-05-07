@@ -1,5 +1,14 @@
 import { MiniAppNotification } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  Gift,
+  Info,
+  Megaphone,
+  Trophy,
+} from "lucide-react";
 
 const DORA_TX_BASE = "https://dora.coz.io/transaction/neo3";
 
@@ -52,22 +61,6 @@ function NotificationItem({
 }: {
   notification: MiniAppNotification;
 }) {
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      achievement: "🏆",
-      update: "🔔",
-      warning: "⚠️",
-      info: "ℹ️",
-      success: "✅",
-      event: "📅",
-      announcement: "📣",
-      alert: "⚠️",
-      milestone: "🏁",
-      promo: "🎁",
-    };
-    return icons[type.toLowerCase()] || "📢";
-  };
-
   const getTimeAgo = (timestamp: string) => {
     const now = new Date();
     const created = new Date(timestamp);
@@ -82,10 +75,16 @@ function NotificationItem({
     return `${diffDays}d ago`;
   };
 
+  const Icon = getTypeIcon(notification.notification_type);
+  const iconLabel = getTypeIconLabel(notification.notification_type);
+
   return (
     <div className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-neo/10 text-2xl shrink-0">
-        {getTypeIcon(notification.notification_type)}
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700"
+        aria-label={`Notification type: ${iconLabel}`}
+      >
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-center mb-1">
@@ -115,4 +114,26 @@ function NotificationItem({
       </div>
     </div>
   );
+}
+
+function getTypeIcon(type: string) {
+  const normalized = type.toLowerCase();
+  if (normalized === "achievement" || normalized === "milestone") return Trophy;
+  if (normalized === "warning" || normalized === "alert") return AlertTriangle;
+  if (normalized === "success") return CheckCircle2;
+  if (normalized === "promo") return Gift;
+  if (normalized === "announcement" || normalized === "event") return Megaphone;
+  if (normalized === "info") return Info;
+  return Bell;
+}
+
+function getTypeIconLabel(type: string): string {
+  const normalized = type.toLowerCase();
+  if (normalized === "achievement" || normalized === "milestone") return "achievement";
+  if (normalized === "warning" || normalized === "alert") return "warning";
+  if (normalized === "success") return "success";
+  if (normalized === "promo") return "promotion";
+  if (normalized === "announcement" || normalized === "event") return "announcement";
+  if (normalized === "info") return "information";
+  return "update";
 }

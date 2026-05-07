@@ -4,9 +4,11 @@ import { logger } from "../lib/logger";
 import { fetchJSON, toApiError } from "@/lib/fetch-client";
 import { useRealtimeNotifications } from "./useRealtimeNotifications";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
+import type { NeoNetwork } from "@/lib/neo-network";
 
 interface UseActivityFeedOptions {
   appId?: string;
+  network?: NeoNetwork;
   pollInterval?: number;
   maxItems?: number;
   enabled?: boolean;
@@ -23,11 +25,18 @@ const DEFAULT_POLL_INTERVAL = 5000;
 const DEFAULT_MAX_ITEMS = 100;
 
 export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityFeedState {
-  const { appId, pollInterval = DEFAULT_POLL_INTERVAL, maxItems = DEFAULT_MAX_ITEMS, enabled = true } = options;
+  const {
+    appId,
+    network = getRpcNetwork(),
+    pollInterval = DEFAULT_POLL_INTERVAL,
+    maxItems = DEFAULT_MAX_ITEMS,
+    enabled = true,
+  } = options;
 
   // Realtime notifications via WebSocket (replaces REST polling for notifications)
   const { notifications: realtimeNotifications } = useRealtimeNotifications({
     appId,
+    network,
     enabled,
   });
 
@@ -45,7 +54,7 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
       try {
         const params = new URLSearchParams();
         if (appId) params.set("app_id", appId);
-        params.set("network", getRpcNetwork());
+        params.set("network", network);
         params.set("limit", "50");
 
         const fetchMaybe = async <T,>(url: string): Promise<T | null> => {
@@ -109,7 +118,7 @@ export function useActivityFeed(options: UseActivityFeedOptions = {}): ActivityF
         setLoading(false);
       }
     },
-    [appId, enabled, maxItems],
+    [appId, enabled, maxItems, network],
   );
 
   // Initial fetch
@@ -162,6 +171,10 @@ function mergeActivities(existing: OnChainActivity[], incoming: OnChainActivity[
   return merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
+function normalizeActivityNetwork(value: unknown): NeoNetwork | null {
+  return value === "mainnet" || value === "testnet" ? value : null;
+}
+
 function transformEvent(evt: Record<string, unknown>): OnChainActivity {
   return {
     id: `evt-${evt.id}`,
@@ -169,6 +182,7 @@ function transformEvent(evt: Record<string, unknown>): OnChainActivity {
     app_id: evt.app_id ? String(evt.app_id) : null,
     title: String(evt.event_name || "Contract Event"),
     description: formatEventDescription(evt),
+    network: normalizeActivityNetwork(evt.network),
     tx_hash: evt.tx_hash ? String(evt.tx_hash) : undefined,
     timestamp: String(evt.created_at || new Date().toISOString()),
     status: "confirmed",
@@ -183,6 +197,7 @@ function transformTransaction(tx: Record<string, unknown>): OnChainActivity {
     app_id: extractAppIdFromRequestId(String(tx.request_id || "")),
     title: `${tx.method_name || "Transaction"}`,
     description: formatTxDescription(tx),
+    network: normalizeActivityNetwork(tx.network),
     tx_hash: tx.tx_hash ? String(tx.tx_hash) : undefined,
     timestamp: String(tx.submitted_at || new Date().toISOString()),
     status: status === "confirmed" ? "confirmed" : status === "failed" ? "failed" : "pending",
@@ -196,6 +211,7 @@ function transformNotification(notif: Record<string, unknown>): OnChainActivity 
     app_id: notif.app_id ? String(notif.app_id) : null,
     title: String(notif.title || "Notification"),
     description: String(notif.content || ""),
+    network: normalizeActivityNetwork(notif.network),
     tx_hash: notif.tx_hash ? String(notif.tx_hash) : undefined,
     timestamp: String(notif.created_at || new Date().toISOString()),
   };

@@ -170,6 +170,9 @@ function coerceOperationParam(raw: unknown): OperationParam | null {
     placeholder: asOptionalString(obj.placeholder),
     options: options.length > 0 ? options : undefined,
     hidden: asOptionalBoolean(obj.hidden),
+    scale: typeof obj.scale === "number" && Number.isFinite(obj.scale)
+      ? obj.scale
+      : undefined,
   };
 }
 

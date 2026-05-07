@@ -19,6 +19,10 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid request url", "INVALID_URL", req);
   }
   const appId = url.searchParams.get("app_id")?.trim();
+  const network = url.searchParams.get("network")?.trim().toLowerCase() || "mainnet";
+  if (network !== "mainnet" && network !== "testnet") {
+    return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
+  }
   const limitRaw = url.searchParams.get("limit");
   let limit = 20;
   if (limitRaw) {
@@ -32,7 +36,8 @@ export async function handler(req: Request): Promise<Response> {
   const supabase = supabaseClient();
   let query = supabase
     .from("miniapp_notifications")
-    .select("id,app_id,title,content,is_pinned,priority,created_at")
+    .select("id,app_id,title,content,notification_type,source,network,tx_hash,is_pinned,priority,created_at")
+    .eq("network", network)
     .order("is_pinned", { ascending: false })
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false })

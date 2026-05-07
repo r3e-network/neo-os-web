@@ -4,6 +4,7 @@ import { normalizeHexBytes } from "./hex.ts";
 
 export type EventsQueryParams = {
   app_id?: string;
+  network?: string;
   event_name?: string;
   contract_hash?: string;
   limit?: number;
@@ -12,6 +13,7 @@ export type EventsQueryParams = {
 
 export type TransactionsQueryParams = {
   app_id?: string;
+  network?: string;
   limit?: number;
   after_id?: string;
 };
@@ -24,6 +26,7 @@ export type EventsListResponse = {
     contract_hash: string;
     event_name: string;
     app_id: string | null;
+    network: string;
     state: Record<string, unknown> | null;
     created_at: string;
   }>;
@@ -46,6 +49,7 @@ export type TransactionsListResponse = {
     retry_count: number;
     error_message: string | null;
     rpc_endpoint: string | null;
+    network: string;
     submitted_at: string;
     confirmed_at: string | null;
   }>;
@@ -70,14 +74,21 @@ function asRecordOrNull(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function normalizeNetwork(raw: unknown): "mainnet" | "testnet" {
+  const value = String(raw ?? "mainnet").trim().toLowerCase();
+  return value === "testnet" ? "testnet" : "mainnet";
+}
+
 export async function queryEvents(params: EventsQueryParams, req?: Request): Promise<EventsListResponse | Response> {
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
+  const network = normalizeNetwork(params.network);
 
   const supabase = supabaseServiceClient();
   let query = supabase
     .from("contract_events")
-    .select("id,tx_hash,block_index,contract_hash,event_name,app_id,state,created_at")
+    .select("id,tx_hash,block_index,contract_hash,event_name,app_id,network,state,created_at")
+    .eq("network", network)
     .order("id", { ascending: false })
     .limit(limit + 1);
 
@@ -129,6 +140,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
       contract_hash: String(row.contract_hash ?? ""),
       event_name: String(row.event_name ?? ""),
       app_id: row.app_id ? String(row.app_id) : null,
+      network: normalizeNetwork(row.network),
       state: asRecordOrNull(row.state),
       created_at: String(row.created_at ?? ""),
     })),
@@ -143,11 +155,13 @@ export async function queryTransactions(
 ): Promise<TransactionsListResponse | Response> {
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
+  const network = normalizeNetwork(params.network);
 
   const supabase = supabaseServiceClient();
   let query = supabase
     .from("chain_txs")
-    .select("id,tx_hash,request_id,from_service,tx_type,contract_address,method_name,params,gas_consumed,status,retry_count,error_message,rpc_endpoint,submitted_at,confirmed_at")
+    .select("id,tx_hash,request_id,from_service,tx_type,contract_address,method_name,params,gas_consumed,status,retry_count,error_message,rpc_endpoint,network,submitted_at,confirmed_at")
+    .eq("network", network)
     .order("id", { ascending: false })
     .limit(limit + 1);
 
@@ -189,6 +203,7 @@ export async function queryTransactions(
       retry_count: Number(row.retry_count ?? 0),
       error_message: row.error_message ? String(row.error_message) : null,
       rpc_endpoint: row.rpc_endpoint ? String(row.rpc_endpoint) : null,
+      network: normalizeNetwork(row.network),
       submitted_at: String(row.submitted_at ?? ""),
       confirmed_at: row.confirmed_at ? String(row.confirmed_at) : null,
     })),

@@ -6,6 +6,14 @@ try {
 
 const MINIAPP_CORS_ORIGIN = "https://neomini.app";
 
+function parsePositiveInt(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+}
+
+const buildCpus = parsePositiveInt(process.env.NEXT_BUILD_CPUS);
+const isDevServer = process.env.NODE_ENV === "development";
+
 function resolvePackagePath(packageName, subpath = "") {
   const packageJson = require.resolve(`${packageName}/package.json`, {
     paths: [__dirname],
@@ -51,7 +59,7 @@ const MainCSP = `
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "standalone",
+  ...(isDevServer ? {} : { output: "standalone" }),
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
@@ -78,9 +86,20 @@ const nextConfig = {
     externalDir: true,
     scrollRestoration: true,
     optimizePackageImports: ["lucide-react", "recharts", "framer-motion"],
+    ...(buildCpus
+      ? {
+          cpus: buildCpus,
+          staticGenerationMaxConcurrency: 1,
+        }
+      : {}),
   },
   webpack(config) {
     config.resolve = config.resolve || {};
+    if (buildCpus) {
+      // Work around intermittent filesystem cache races during `next build`
+      // on some local environments.
+      config.cache = false;
+    }
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
       react: resolvePackagePath("react"),

@@ -101,10 +101,33 @@ describe("/api/miniapps/catalog", () => {
     expect(res._getStatusCode()).toBe(200);
     const data = JSON.parse(res._getData());
     const ids = new Set(data.apps.map((app: { app_id: string }) => app.app_id));
+    expect(ids.size).toBe(data.apps.length);
     expect(ids.has("miniapp-neo-pay")).toBe(true);
     expect(ids.has("miniapp-profitanchor")).toBe(true);
     expect(ids.has("miniapp-trustanchor")).toBe(true);
+    expect(ids.has("miniapp-soulbound-certificate")).toBe(false);
+    expect(ids.has("miniapp-quadratic-funding")).toBe(false);
+    expect(ids.has("miniapp-milestone-escrow")).toBe(false);
     expect(ids.has("miniapp-event-ticket-pass")).toBe(false);
+  });
+
+  it("returns every enabled bundled miniapp for the all scope", async () => {
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { scope: "all" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    const data = JSON.parse(res._getData());
+    const ids = new Set(data.apps.map((app: { app_id: string }) => app.app_id));
+    expect(ids.size).toBe(data.apps.length);
+    expect(data.apps.length).toBeGreaterThan(50);
+    expect(ids.has("miniapp-soulbound-certificate")).toBe(true);
+    expect(ids.has("miniapp-quadratic-funding")).toBe(true);
+    expect(ids.has("miniapp-milestone-escrow")).toBe(true);
+    expect(ids.has("miniapp-event-ticket-pass")).toBe(true);
   });
 
   it("does not return a testnet-only miniapp for a mainnet app detail request", async () => {

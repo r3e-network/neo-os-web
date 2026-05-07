@@ -19,7 +19,7 @@ test.describe("Homepage", () => {
   });
 
   test("should enable every catalog miniapp while featuring only the flagship nine", async ({ page }) => {
-    const catalogResponse = await page.request.get("/api/miniapps/catalog");
+    const catalogResponse = await page.request.get("/api/miniapps/catalog?scope=all");
     expect(catalogResponse.ok()).toBeTruthy();
     const body = await catalogResponse.json();
     const enabledApps = Array.isArray(body.apps)

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-gas-lucky-pool",
+  "name": "OneGate Vault",
+  "name_zh": "OneGate 金库",
+  "version": "1.0.0",
+  "description": "Claim a server-backed 1-50 GAS random reward by scanning a OneGate QR code with an embedded single-use key.",
+  "description_zh": "通过 OneGate 扫码打开带一次性 key 的奖励页面，由后端随机发放 1-50 GAS 奖励。",
+  "category": "social",
+  "category_name": "Social",
+  "category_name_zh": "社交",
+  "tags": [
+    "gas",
+    "reward",
+    "qr",
+    "onegate",
+    "lucky-pool",
+    "onegate-vault"
+  ],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/gas-lucky-pool/index.html",
+    "icon": "/miniapps/gas-lucky-pool/logo.png",
+    "banner": "/miniapps/gas-lucky-pool/banner.svg"
+  },
+  "media": {
+    "logo_variants": [
+      {
+        "url": "/miniapps/gas-lucky-pool/logo.png",
+        "theme": "any",
+        "density": "3x"
+      },
+      {
+        "url": "/miniapp-assets/gas-lucky-pool/logo.png",
+        "theme": "any",
+        "density": "3x"
+      }
+    ]
+  },
+  "permissions": [
+    "read:blockchain"
+  ],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://gas-lucky-pool"
+  },
+  "operation_panel": {
+    "title": "OneGate Vault",
+    "subtitle": "Submit a QR claim key and let the reward server send 1-50 GAS to the connected OneGate wallet.",
+    "operations": [
+      {
+        "name": "Claim Reward",
+        "method": "claimOneGateVault",
+        "description": "Claim once with the key embedded in the OneGate QR. The backend validates the key, chooses a 1-50 GAS random amount, sends GAS, and returns the luck percentile.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "claimKey",
+            "type": "string",
+            "label": "Claim key",
+            "placeholder": "ogv_campaign_user_key",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "Claims use a OneGate wallet address and a server-backed GAS payout rather than AA execution."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "The 1-50 GAS reward bounds and one-use keys are enforced by the backend claim engine."
+    },
+    "neodid": {
+      "enabled": false,
+      "description": "NeoDID gating is not required for the initial reward-pool release."
+    }
+  },
+  "createdAt": "2026-05-06T00:00:00Z",
+  "updatedAt": "2026-05-07T00:00:00Z",
+  "featured": false
+}

@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-asset-factory",
+  "name": "Asset Factory",
+  "name_zh": "资产工厂",
+  "version": "1.0.0",
+  "description": "Create NEP-17 assets from audited on-chain templates with OneGate URL parameters.",
+  "description_zh": "通过已审计链上模板创建 NEP-17 资产，并支持 OneGate 扫码传参打开。",
+  "category": "tools",
+  "category_name": "Tools",
+  "category_name_zh": "工具",
+  "tags": ["factory", "nep17", "asset", "token", "onegate", "developer"],
+  "developer": {
+    "name": "R3E Network",
+    "email": "dev@r3e.network",
+    "website": "https://r3e.network"
+  },
+  "contracts": {},
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "urls": {
+    "entry": "/miniapps/asset-factory/index.html",
+    "icon": "/miniapps/asset-factory/logo.svg",
+    "banner": "/miniapps/asset-factory/banner.svg"
+  },
+  "permissions": ["wallet:sign-message", "read:blockchain"],
+  "features": {
+    "stateless": true,
+    "offlineSupport": true,
+    "deeplink": "neomainapp://asset-factory"
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": false
+  },
+  "technologies": {
+    "aa": {
+      "enabled": false,
+      "description": "Template plans can be submitted by AA later, but this standalone app does not require AA."
+    },
+    "tee": {
+      "enabled": false,
+      "description": "No private computation is required for deterministic asset planning."
+    },
+    "neodid": {
+      "enabled": false,
+      "description": "Issuer identity can be layered on top by signing the generated template plan."
+    }
+  },
+  "createdAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-05-07T00:00:00Z",
+  "featured": false
+}

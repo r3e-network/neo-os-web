@@ -61,6 +61,7 @@ const MAINNET_CONTRACT_DOMAINS_BY_APP_ID: Record<string, string> = {
   "miniapp-fogplay": "fogplay.miniapp.neo",
   "miniapp-gasbox": "gasbox.miniapp.neo",
   "miniapp-redenvelope": "redenvelope.miniapp.neo",
+  "miniapp-gas-lucky-pool": "gasluckypool.miniapp.neo",
   "miniapp-dailycheckin": "dailycheckin.miniapp.neo",
   "miniapp-self-loan": "selfloan.miniapp.neo",
   "miniapp-neo-pay": "neopay.miniapp.neo",

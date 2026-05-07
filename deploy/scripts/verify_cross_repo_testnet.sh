@@ -188,10 +188,11 @@ if [[ ! -d "$AA_DIR" ]]; then
   exit 1
 fi
 
-WORKSPACE_SECRETS_ENV_FILE="$(mktemp "${TMPDIR:-/tmp}/cross-repo-testnet-secrets.XXXXXX.env")"
-WORKSPACE_RUNTIME_CATALOG_FILE="$(mktemp "${TMPDIR:-/tmp}/cross-repo-runtime-catalog.XXXXXX.json")"
+WORKSPACE_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cross-repo-testnet.XXXXXX")"
+WORKSPACE_SECRETS_ENV_FILE="$WORKSPACE_TMP_DIR/cross-repo-testnet-secrets.env"
+WORKSPACE_RUNTIME_CATALOG_FILE="$WORKSPACE_TMP_DIR/cross-repo-runtime-catalog.json"
 cleanup() {
-  rm -f "$WORKSPACE_SECRETS_ENV_FILE" "$WORKSPACE_RUNTIME_CATALOG_FILE"
+  rm -rf "$WORKSPACE_TMP_DIR"
 }
 trap cleanup EXIT
 

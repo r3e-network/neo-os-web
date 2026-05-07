@@ -117,7 +117,7 @@ describe("MiniAppsPage", () => {
     expect(screen.getByText("GasBox")).toBeInTheDocument();
     expect(screen.getByText("On-Chain Tarot")).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith(
-      "/api/miniapps/catalog?network=mainnet",
+      "/api/miniapps/catalog?scope=all",
       expect.any(Object),
     );
     await waitFor(() => {

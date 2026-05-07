@@ -1,6 +1,6 @@
 # Neo Swap
 
-Swap NEO and GAS with route preview and wallet settlement
+Preview NEO and GAS conversions with live pricefeed quotes and wallet-ready settlement notes
 
 ## Overview
 
@@ -15,14 +15,14 @@ Swap NEO and GAS with route preview and wallet settlement
 
 Fast, secure token swap planning on Neo N3
 
-Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wallet-submitted settlement from the unified MiniApp detail page. Prices come from the platform data feed; the shared operation panel handles final wallet submission and status tracking.
+Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wallet-ready settlement notes from the unified MiniApp detail page. Prices come from the platform data feed. The app no longer binds to any legacy third-party swap router contract.
 
 ## Features
 
 - **Instant route preview**: Direct NEO/GAS quote flow with sub-minute wallet settlement expectations
 - **Live price quotes**: Real-time exchange rates from the platform data feed
 - **Slippage review**: Minimum received, price impact, and tolerance controls before submission
-- **Wallet-gated execution**: Final submissions require the connected wallet and shared operation panel
+- **Wallet-ready execution notes**: The app prepares a quote and settlement checklist, but does not invoke a platform-owned swap contract
 - **Route context**: Liquidity and route details for planning larger trades
 - **Rate display**: Clear visualization of exchange rates and minimum received amounts
 - **Modern UI**: Clean, intuitive interface designed for both beginners and advanced users
@@ -46,9 +46,8 @@ Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wal
    - Minimum received (with slippage protection)
    - Price impact percentage
 4. **Adjust Slippage** (optional): Set your preferred slippage tolerance
-5. **Click "Swap"**: Confirm the transaction in your wallet
-6. **Wait for Confirmation**: The submitted transaction settles on-chain within seconds
-7. **Receive Tokens**: Your new tokens appear in your wallet automatically
+5. **Review settlement notes**: Use the quote, route context, and minimum received values before leaving the MiniApp for a wallet-approved swap route
+6. **Submit only through a supported wallet route**: The MiniApp itself does not custody funds or invoke a legacy router
 
 ### Reviewing Liquidity
 
@@ -58,7 +57,7 @@ Neo Swap provides NEO/GAS quote preview, slippage review, route context, and wal
    - The quote updates from current route data
 4. **Review Details**: Check depth, expected output, and price impact
 5. **Review route context**: Use pool depth, share, and expected return data to plan the trade
-6. **Submit from the operation panel**: Wallet submission stays in the shared platform flow
+6. **Review from the operation panel**: The shared panel keeps the quote state and wallet checklist visible
 
 **Benefits of reviewing liquidity:**
 - Understand expected price impact before signing
@@ -183,18 +182,18 @@ Note: Wallet access is required to sign the swap transaction.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x77b4349e5a62b3f77390afa50962096d66b0ab99` |
+| **Contract** | No dedicated contract; this MiniApp is a platform pricefeed quote desk |
 | **RPC** | `https://testnet1.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x77b4349e5a62b3f77390afa50962096d66b0ab99) |
+| **Explorer** | N/A |
 | **Network Magic** | `894710606` |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0xf970f4ccecd765b63732b821775dc38c25d74f23` |
+| **Contract** | No dedicated contract; this MiniApp is a platform pricefeed quote desk |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xf970f4ccecd765b63732b821775dc38c25d74f23) |
+| **Explorer** | N/A |
 | **Network Magic** | `860833102` |
 
 ## Platform Contracts
@@ -219,7 +218,7 @@ Note: Wallet access is required to sign the swap transaction.
 | RandomnessLog | `0x66493b8a2dee9f9b74a16cf01e443c3fe7452c25` |
 | AppRegistry | `0x583cabba8beff13e036230de844c2fb4118ee38c` |
 | AutomationAnchor | `0x0fd51557facee54178a5d48181dcfa1b61956144` |
-| Morpheus Oracle | `0x017520f068fd602082fe5572596185e62a4ad991` |
+| Morpheus Oracle | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
 
 ## Assets
 

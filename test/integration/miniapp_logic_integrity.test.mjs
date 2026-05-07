@@ -131,6 +131,31 @@ function expectedAbiParamTypes(operation) {
   });
 }
 
+function operationDeclaresAppId(operation) {
+  return asArray(operation?.params).some((param) => {
+    const name = String(param?.name || "").trim();
+    return name === "appId" || name === "app_id";
+  });
+}
+
+function operationUsesPlatformRuntimeInjection(manifest, operation) {
+  if (operationDeclaresAppId(operation)) return false;
+
+  const runtime = asObject(manifest?.runtime);
+  if (String(runtime?.mode || "").toLowerCase() !== "platform") return false;
+
+  const modules = asArray(runtime?.modules);
+  return modules.some((module) => {
+    const appId = String(module?.appId || "").trim();
+    if (!appId) return false;
+    const operations = asObject(module?.operations);
+    return Object.values(operations)
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .includes(operation.method);
+  });
+}
+
 function methodSignatures(contractState) {
   return asArray(contractState?.manifest?.abi?.methods).map((method) => ({
     name: String(method?.name || ""),
@@ -138,13 +163,17 @@ function methodSignatures(contractState) {
   }));
 }
 
-function hasMatchingSignature(methods, operation) {
+function hasMatchingSignature(methods, operation, { allowImplicitAppId = false } = {}) {
   const expectedTypes = expectedAbiParamTypes(operation);
   return methods.some(
     (method) =>
       method.name === operation.method &&
-      method.params.length === expectedTypes.length &&
-      method.params.every((type, index) => type === expectedTypes[index]),
+      ((method.params.length === expectedTypes.length &&
+        method.params.every((type, index) => type === expectedTypes[index])) ||
+        (allowImplicitAppId &&
+          method.params.length === expectedTypes.length + 1 &&
+          method.params[0] === "String" &&
+          method.params.slice(1).every((type, index) => type === expectedTypes[index]))),
   );
 }
 
@@ -194,9 +223,12 @@ test("every bundled MiniApp operation maps to a deployed testnet ABI method", as
 
     for (const operation of operations) {
       checkedOperations++;
-      if (!hasMatchingSignature(methods, operation)) {
+      const allowImplicitAppId = operationUsesPlatformRuntimeInjection(manifest, operation);
+      if (!hasMatchingSignature(methods, operation, { allowImplicitAppId })) {
+        const expected = expectedAbiParamTypes(operation);
+        const expectedDisplay = allowImplicitAppId ? ["String", ...expected] : expected;
         failures.push(
-          `${slug}.${operation.method}(${expectedAbiParamTypes(operation).join(",")}) is not present in ${contractHash}`,
+          `${slug}.${operation.method}(${expectedDisplay.join(",")}) is not present in ${contractHash}`,
         );
       }
     }
