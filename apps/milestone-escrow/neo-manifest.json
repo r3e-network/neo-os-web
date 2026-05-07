@@ -27,6 +27,12 @@
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-testnet",
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deferred",
+      "reason": "Testnet-only until the dedicated contract is recovered or reimplemented, audited, and approved for mainnet user funds."
+    }
+  },
   "urls": {
     "entry": "/miniapps/milestone-escrow/index.html",
     "icon": "/miniapps/milestone-escrow/logo.jpg",

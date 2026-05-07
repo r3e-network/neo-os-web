@@ -27,6 +27,12 @@
     "neo-n3-testnet"
   ],
   "default_network": "neo-n3-testnet",
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deferred",
+      "reason": "Testnet-only until the dedicated NEP-11 certificate contract is recovered or reimplemented, audited, and approved for mainnet issuance."
+    }
+  },
   "urls": {
     "entry": "/miniapps/soulbound-certificate/index.html",
     "icon": "/miniapps/soulbound-certificate/logo.jpg",
