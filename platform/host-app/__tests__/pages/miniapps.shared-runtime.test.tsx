@@ -220,6 +220,13 @@ describe("MiniAppDetailPage shared runtime", () => {
 
     expect(screen.getByTestId("playfield")).toHaveTextContent("12.5");
     expect(screen.getByTestId("operation-panel")).toHaveTextContent("12.5");
+    expect(screen.getByTestId("mobile-action-dock")).toHaveTextContent(
+      "Create Stream",
+    );
+    expect(screen.getByTestId("mobile-action-open")).toHaveAttribute(
+      "aria-controls",
+      "mobile-action-sheet",
+    );
     expect(
       screen.getByTestId("operation-panel").compareDocumentPosition(
         screen.getByTestId("onegate-launch-card"),
