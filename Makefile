@@ -1,5 +1,5 @@
 # =============================================================================
-# Neo MiniApps Platform - Makefile
+# Yiwu MiniApps - Makefile
 # Frontend/admin apps + contracts + deployment helpers
 # =============================================================================
 

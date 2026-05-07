@@ -27,6 +27,7 @@ import {
   getMiniAppCatalogAvailability,
 } from "@/lib/miniapp-catalog-view";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
+import { BRAND } from "@/lib/brand";
 import {
   Rocket,
   Shield,
@@ -246,10 +247,10 @@ export default function LandingPage({
   return (
     <Layout>
       <Head>
-        <title>R3E Network | The Premier MiniApp Platform for Neo N3</title>
+        <title>{BRAND.title}</title>
         <meta
           name="description"
-          content="Discover, connect, and use decentralized miniapps on the most secure blockchain network."
+          content={BRAND.description}
         />
       </Head>
 
@@ -271,12 +272,14 @@ export default function LandingPage({
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
               <div>
                 <h1 className="m-0 max-w-4xl text-4xl font-black leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
-                  Neo MiniApps, ready to play and operate.
+                  Yiwu MiniApps, small tools for every Neo scenario.
                 </h1>
                 <p className="mt-5 max-w-3xl text-base leading-7 text-gray-600 sm:text-lg">
-                  A single production interface for Neo N3 games, payments,
-                  oracle tools, account abstraction, bridge workflows, ratings,
-                  comments, contract state, and wallet-safe operations.
+                  Like Yiwu's small-commodity market, this is a single
+                  production interface for small, focused MiniApps: games,
+                  payments, oracle tools, account abstraction, bridge
+                  workflows, ratings, comments, contract state, and wallet-safe
+                  operations.
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link href="/miniapps">
@@ -621,7 +624,7 @@ export default function LandingPage({
         <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-gray-200 bg-gray-950 p-6 text-white shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
           <div>
             <h2 className="m-0 text-2xl font-black md:text-3xl">
-              Build and publish a Neo MiniApp.
+              Build and publish a focused MiniApp.
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">
               Use the same shell, wallet adapters, operation panel, media

@@ -5,7 +5,7 @@ export default function AnalyticsPage() {
   return (
     <Layout>
       <Head>
-        <title>Analytics Unavailable - R3E Network</title>
+        <title>Analytics Unavailable - Yiwu</title>
       </Head>
       <PageNotice
         eyebrow="Frontend policy"

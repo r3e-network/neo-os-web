@@ -16,8 +16,8 @@
   "description_zh": "时间胶囊 — 在链上封存消息和资产，设定未来某一天才能打开",
   "developer": {
     "email": "dev@r3e.network",
-    "name": "R3E Network",
-    "website": "https://r3e.network"
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
   "features": {
     "deeplink": "neomainapp://time-capsule",

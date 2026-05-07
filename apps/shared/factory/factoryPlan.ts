@@ -219,8 +219,8 @@ const TEMPLATE_REGISTRY = {
 export const DEFAULT_FACTORY_DRAFT: FactoryDraft = {
   kind: "nep17",
   nep17: {
-    name: "R3E Credits",
-    symbol: "R3E",
+    name: "Yiwu Credits",
+    symbol: "YIWU",
     decimals: "8",
     initialSupply: "1000000",
     owner: "",

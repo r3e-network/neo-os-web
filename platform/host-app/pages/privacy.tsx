@@ -23,7 +23,7 @@ export default function PrivacyPage() {
   return (
     <Layout>
       <Head>
-        <title>Privacy Policy | R3E Network</title>
+        <title>Privacy Policy | Yiwu</title>
       </Head>
 
       <PageHero

@@ -14,8 +14,8 @@
   "version": "1.0.0",
   "status": "active",
   "developer": {
-    "name": "Neo MiniApp Platform",
-    "url": "https://r3e.network"
+    "name": "Yiwu",
+    "url": "https://neomini.app"
   },
   "contract": {
     "template_id": "utility-sponsor",

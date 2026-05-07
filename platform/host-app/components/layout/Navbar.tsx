@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n/react";
 import { useWalletStore } from "@/lib/wallet/store";
+import { BRAND } from "@/lib/brand";
 
 const NotificationDropdown = dynamic(
   () =>
@@ -85,10 +86,15 @@ export function Navbar() {
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
           >
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
-              <span className="text-base font-black text-white">R3E</span>
+              <span className="text-[13px] font-black leading-none text-white">
+                {BRAND.mark}
+              </span>
             </div>
             <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
-              R3E <span className="hidden text-emerald-600 sm:inline">Network</span>
+              {BRAND.name}{" "}
+              <span className="hidden text-emerald-600 sm:inline">
+                MiniApps
+              </span>
             </span>
           </Link>
 

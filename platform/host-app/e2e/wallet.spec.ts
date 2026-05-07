@@ -14,7 +14,7 @@ test.describe("Wallet Connection", () => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();
 
-    await expect(page.getByRole("heading", { name: "Welcome to R3E" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
     await expect(page.getByText("Email & Social")).toBeVisible();
     await expect(page.getByText("Neo Ecosystem")).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
@@ -30,7 +30,7 @@ test.describe("Wallet Connection", () => {
   test("should display wallet icons", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to R3E" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
     const walletImages = page.locator('img[alt="NEP-21"], img[alt="NeoLine"], img[alt="O3"], img[alt="OneGate"]');
     await expect(walletImages).toHaveCount(4);
@@ -39,10 +39,10 @@ test.describe("Wallet Connection", () => {
   test("should open and close login modal", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();
-    await expect(page.getByRole("heading", { name: "Welcome to R3E" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
     await page.getByRole("button", { name: /close login modal/i }).click();
-    await expect(page.getByRole("heading", { name: "Welcome to R3E" })).not.toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).not.toBeVisible();
   });
 
   test("should keep the direct WIF path local-only and show invalid input safely", async ({ page }) => {

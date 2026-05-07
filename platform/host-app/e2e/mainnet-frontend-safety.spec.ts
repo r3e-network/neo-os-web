@@ -326,7 +326,7 @@ test.describe("Mainnet frontend safety surface", () => {
 
     await gotoHealthy(page, "/miniapps");
     await page.getByRole("button", { name: /log in \/ sign up/i }).click();
-    await expect(page.getByRole("heading", { name: "Welcome to R3E" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible({ timeout: 10_000 });
 
     const labels = await page.locator("button").evaluateAll((buttons) =>
       buttons.map((button) => (

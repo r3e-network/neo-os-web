@@ -11,9 +11,9 @@
   "category_name_zh": "工具",
   "tags": ["factory", "nep11", "nft", "collection", "onegate", "developer"],
   "developer": {
-    "name": "R3E Network",
+    "name": "Yiwu",
     "email": "dev@r3e.network",
-    "website": "https://r3e.network"
+    "website": "https://neomini.app"
   },
   "contracts": {},
   "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],

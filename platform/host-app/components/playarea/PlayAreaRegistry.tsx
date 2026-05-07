@@ -392,13 +392,13 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     tone: "emerald",
     icon: <Boxes className="h-5 w-5" />,
     fields: [
-      { key: "symbol", label: "Symbol", defaultValue: "R3E" },
-      { key: "name", label: "Asset name", defaultValue: "R3E Credits" },
+      { key: "symbol", label: "Symbol", defaultValue: "YIWU" },
+      { key: "name", label: "Asset name", defaultValue: "Yiwu Credits" },
       { key: "supply", label: "Initial supply", defaultValue: "1000000", type: "number" },
     ],
     cards: [
-      { label: "Symbol", value: "R3E" },
-      { label: "Asset name", value: "R3E Credits" },
+      { label: "Symbol", value: "YIWU" },
+      { label: "Asset name", value: "Yiwu Credits" },
       { label: "Supply", value: "1000000" },
     ],
     steps: ["Choose audited template", "Set token parameters", "Review owner controls", "Stage deployment"],
