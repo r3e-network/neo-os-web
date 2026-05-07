@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { OnChainActivity } from "./types";
+import { Activity, Bell, Radio, Send } from "lucide-react";
 
 interface ActivityTickerProps {
   activities: OnChainActivity[];
@@ -8,12 +9,6 @@ interface ActivityTickerProps {
   scrollSpeed?: number;
   height?: number;
 }
-
-const ACTIVITY_ICONS: Record<string, string> = {
-  transaction: "⚡",
-  event: "📡",
-  notification: "🔔",
-};
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-500",
@@ -129,15 +124,15 @@ export const ActivityTicker = ({
 
 const ActivityItem = React.memo(
   ({ activity }: { activity: OnChainActivity }) => {
-    const icon = ACTIVITY_ICONS[activity.type] || "📌";
     const statusColor = activity.status
       ? STATUS_COLORS[activity.status]
       : undefined;
+    const Icon = getActivityIcon(activity.type);
 
     return (
       <li className="flex gap-3 px-4 py-2.5 border-b border-gray-100">
-        <div className="text-base w-6 text-center shrink-0">
-          {activity.app_icon || icon}
+        <div className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-700">
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center gap-2">
@@ -176,3 +171,10 @@ const ActivityItem = React.memo(
     );
   },
 );
+
+function getActivityIcon(type: string) {
+  if (type === "transaction") return Send;
+  if (type === "event") return Radio;
+  if (type === "notification") return Bell;
+  return Activity;
+}

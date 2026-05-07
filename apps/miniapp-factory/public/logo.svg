@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MiniApp Factory logo">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18D986"/>
+      <stop offset=".58" stop-color="#FF8A50"/>
+      <stop offset="1" stop-color="#101B16"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="112" y1="90" x2="392" y2="412" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8F3"/>
+      <stop offset="1" stop-color="#18D986"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="154" y1="140" x2="372" y2="386" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7C2"/>
+      <stop offset=".48" stop-color="#FF8A50"/>
+      <stop offset="1" stop-color="#101B16"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="#101B16"/>
+  <rect x="34" y="34" width="444" height="444" rx="86" fill="url(#bg)"/>
+  <path d="M76 360c84 62 217 84 327 10 74-50 75-149 9-218C341 78 209 70 136 136 76 191 52 290 76 360Z" fill="#101B16" opacity=".22"/>
+  <path d="M92 94h112M318 420h104" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="18" stroke-linecap="round"/>
+
+        <rect x="118" y="124" width="116" height="116" rx="30" fill="#FFFFFF" fill-opacity=".9"/>
+        <rect x="278" y="124" width="116" height="116" rx="30" fill="url(#coin)"/>
+        <rect x="118" y="280" width="116" height="116" rx="30" fill="url(#panel)"/>
+        <rect x="278" y="280" width="116" height="116" rx="30" fill="#FFFFFF" fill-opacity=".82"/>
+        <path d="M234 182h44M176 240v40M336 240v40M234 338h44" stroke="#FFFFFF" stroke-opacity=".9" stroke-width="16" stroke-linecap="round"/>
+        <path d="M160 182h32M176 166v32M320 338h32M336 322v32" stroke="#101B16" stroke-width="12" stroke-linecap="round"/>
+        <circle cx="256" cy="256" r="34" fill="#101B16" stroke="#FFFFFF" stroke-opacity=".85" stroke-width="8"/>
+</svg>

@@ -27,6 +27,19 @@ function asString(value) {
   return String(value).trim();
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function sourceDeclaresAppId(source, appId) {
+  const escaped = escapeRegExp(appId);
+  const patterns = [
+    new RegExp(`\\bappId\\s*:\\s*["']${escaped}["']`),
+    new RegExp(`\\bappId\\s*=\\s*["']${escaped}["']`),
+  ];
+  return patterns.some((pattern) => pattern.test(source));
+}
+
 async function readJson(filePath) {
   const text = await fs.readFile(filePath, "utf8");
   return JSON.parse(text);
@@ -78,6 +91,24 @@ async function main() {
     for (const relative of requiredFiles) {
       if (!(await exists(path.join(appDir, relative)))) {
         failures.push({ slug, reason: `missing ${relative}` });
+      }
+    }
+
+    const mainPath = path.join(appDir, "src/main.tsx");
+    if (await exists(mainPath)) {
+      const mainSource = await fs.readFile(mainPath, "utf8");
+      const appConfigPath = path.join(appDir, "src/appConfig.ts");
+      const appConfigSource = (await exists(appConfigPath))
+        ? await fs.readFile(appConfigPath, "utf8")
+        : "";
+      if (!mainSource.includes("defineMiniApp")) {
+        failures.push({ slug, reason: "src/main.tsx must use the shared defineMiniApp runtime" });
+      }
+      if (appId && !sourceDeclaresAppId(mainSource, appId) && !sourceDeclaresAppId(appConfigSource, appId)) {
+        failures.push({
+          slug,
+          reason: `defineMiniApp runtime appId must match manifest.id (${appId})`,
+        });
       }
     }
 

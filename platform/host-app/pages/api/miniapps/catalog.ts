@@ -15,6 +15,7 @@ import {
   loadBundledMiniAppById,
   loadMiniAppDefinitions,
 } from "@/lib/miniapp-definitions";
+import { compactMiniAppManifestForCatalog } from "@/lib/miniapp-catalog-view";
 
 // The bundled JSON definitions in `public/miniapp-definitions/` and the
 // per-app `apps/<slug>/neo-manifest.json` files are version-controlled
@@ -25,6 +26,7 @@ import {
 // frontend from invoking a stale/wrong contract.
 const BUNDLE_AUTHORITATIVE_FIELDS = [
   "contract_hash",
+  "manifest",
   "entry_url",
   "dapp_url",
   "permissions",
@@ -49,6 +51,38 @@ function mergeBundle(
   return merged;
 }
 
+function compactCatalogResponseItem(item: CatalogApp): CatalogApp {
+  const compact: CatalogApp = {};
+  for (const field of [
+    "app_id",
+    "name",
+    "description",
+    "icon",
+    "category",
+    "entry_url",
+    "dapp_url",
+    "contract_hash",
+    "status",
+    "source",
+    "permissions",
+    "limits",
+    "logo_url",
+    "banner_url",
+    "docs_url",
+    "name_en",
+    "name_zh",
+    "description_en",
+    "description_zh",
+  ] as const) {
+    if (item[field] !== undefined && item[field] !== null) {
+      (compact as Record<string, unknown>)[field] = item[field];
+    }
+  }
+  const manifest = compactMiniAppManifestForCatalog(item.manifest);
+  if (manifest) compact.manifest = manifest;
+  return compact;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -67,8 +101,12 @@ export default async function handler(
   const search = String(req.query.search || "")
     .trim()
     .toLowerCase();
+  const scope = String(req.query.scope || "")
+    .trim()
+    .toLowerCase();
+  const includeAllEnabledApps = !appId && (scope === "all" || scope === "enabled");
   const network = resolveCatalogNetwork(req.query.network)
-    || resolveCatalogNetwork(getRpcNetwork());
+    || (includeAllEnabledApps ? null : resolveCatalogNetwork(getRpcNetwork()));
 
   try {
     const remoteCatalog = await loadMiniAppCatalog(status, {
@@ -119,7 +157,9 @@ export default async function handler(
         if (!seen.has(id)) mergedCatalog.push(b);
       }
     }
-    mergedCatalog = filterCatalogByNetwork(mergedCatalog as MiniAppInfo[], network) as CatalogApp[];
+    if (!includeAllEnabledApps) {
+      mergedCatalog = filterCatalogByNetwork(mergedCatalog as MiniAppInfo[], network) as CatalogApp[];
+    }
 
     if (search) {
       mergedCatalog = mergedCatalog.filter((item) => {
@@ -130,7 +170,7 @@ export default async function handler(
     }
 
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-    res.status(200).json({ apps: mergedCatalog });
+    res.status(200).json({ apps: mergedCatalog.map(compactCatalogResponseItem) });
     return;
   } catch (err) {
     logger.error(

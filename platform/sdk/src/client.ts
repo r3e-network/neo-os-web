@@ -147,6 +147,7 @@ interface WindowWithInjectedWallets extends Window {
   NEOLineN3?: NeoLineN3Wallet;
   NEOLine?: NeoLineN3Wallet;
   Neo?: { DapiProvider?: unknown };
+  OneGateDapiProvider?: unknown;
   neoDapiProvider?: unknown;
   neoDapi?: unknown;
   [key: string]: unknown;
@@ -183,7 +184,12 @@ function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
 function readImmediateDapiProvider(): NeoDapiProvider | null {
   if (typeof window === "undefined") return null;
   const g = window as unknown as WindowWithInjectedWallets;
-  const candidates = [g.Neo?.DapiProvider, g.neoDapiProvider, g.neoDapi];
+  const candidates = [
+    g.Neo?.DapiProvider,
+    g.OneGateDapiProvider,
+    g.neoDapiProvider,
+    g.neoDapi,
+  ];
   return candidates.find(isNeoDapiProvider) ?? null;
 }
 

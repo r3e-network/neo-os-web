@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NFT Factory logo">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#15D98B"/>
+      <stop offset=".58" stop-color="#B76CFF"/>
+      <stop offset="1" stop-color="#101324"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="112" y1="90" x2="392" y2="412" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8F5FF"/>
+      <stop offset="1" stop-color="#15D98B"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="154" y1="140" x2="372" y2="386" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7C2"/>
+      <stop offset=".48" stop-color="#B76CFF"/>
+      <stop offset="1" stop-color="#101324"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="#101324"/>
+  <rect x="34" y="34" width="444" height="444" rx="86" fill="url(#bg)"/>
+  <path d="M76 360c84 62 217 84 327 10 74-50 75-149 9-218C341 78 209 70 136 136 76 191 52 290 76 360Z" fill="#101324" opacity=".22"/>
+  <path d="M92 94h112M318 420h104" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="18" stroke-linecap="round"/>
+
+        <rect x="128" y="106" width="256" height="300" rx="44" fill="url(#panel)" stroke="#FFFFFF" stroke-opacity=".44" stroke-width="8"/>
+        <path d="M184 174h144v144H184V174Z" fill="#FFFFFF" fill-opacity=".92"/>
+        <path d="m256 188 64 54-64 64-64-64 64-54Z" fill="url(#coin)"/>
+        <path d="M213 248h86M225 338h62" stroke="#FFFFFF" stroke-opacity=".86" stroke-width="18" stroke-linecap="round"/>
+        <circle cx="360" cy="146" r="42" fill="#B76CFF" fill-opacity=".82"/>
+        <path d="M344 146h32M360 130v32" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+</svg>

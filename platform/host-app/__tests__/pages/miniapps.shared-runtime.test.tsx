@@ -220,8 +220,25 @@ describe("MiniAppDetailPage shared runtime", () => {
 
     expect(screen.getByTestId("playfield")).toHaveTextContent("12.5");
     expect(screen.getByTestId("operation-panel")).toHaveTextContent("12.5");
+    expect(
+      screen.getByTestId("operation-panel").compareDocumentPosition(
+        screen.getByTestId("onegate-launch-card"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("onegate-launch-card").compareDocumentPosition(
+        screen.getByTestId("launch-params-status"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByTestId("onegate-qr-logo")).toBeInTheDocument();
     expect(screen.getByTestId("launch-params-status")).toHaveTextContent(
       "Launch parameters applied",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "https://onegate.space/app/",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "appId=miniapp-neo-pay-shared-example",
     );
   });
 });

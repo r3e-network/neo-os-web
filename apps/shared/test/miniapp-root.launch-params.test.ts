@@ -33,7 +33,7 @@ describe("MiniAppRoot launch params", () => {
     const root = createRoot(container);
     root.render(
       React.createElement(MiniAppRoot, {
-        appId: "miniapp-red-envelope",
+        appId: "miniapp-redenvelope",
         playArea: PlayArea as never,
         manifest: {
           name: "Launch App",

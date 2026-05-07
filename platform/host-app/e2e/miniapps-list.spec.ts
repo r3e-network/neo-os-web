@@ -19,7 +19,7 @@ test.describe("MiniApps List", () => {
   });
 
   test("should render every supported catalog card", async ({ page }) => {
-    const catalog = await page.request.get("/api/miniapps/catalog");
+    const catalog = await page.request.get("/api/miniapps/catalog?scope=all");
     expect(catalog.ok()).toBeTruthy();
     const body = await catalog.json();
     const supportedApps = Array.isArray(body.apps)

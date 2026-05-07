@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 640" role="img" aria-label="OneGate Vault banner">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1440" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#052017"/>
+      <stop offset=".54" stop-color="#0B2C22"/>
+      <stop offset="1" stop-color="#F2FFF7"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="180" y1="96" x2="1040" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#16D982"/>
+      <stop offset="1" stop-color="#F4C84A"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF7C2"/>
+      <stop offset=".54" stop-color="#F4C84A"/>
+      <stop offset="1" stop-color="#052017"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="640" fill="url(#surface)"/>
+  <path d="M0 516c188-62 326-70 488-24 190 54 352 68 540-16 154-68 284-72 412-18v182H0V516Z" fill="#052017" opacity=".62"/>
+  <circle cx="1124" cy="16" r="286" fill="#F4C84A" opacity=".16"/>
+  <circle cx="1010" cy="564" r="242" fill="#16D982" opacity=".14"/>
+  <rect x="104" y="108" width="690" height="416" rx="46" fill="#FFFFFF" fill-opacity=".08" stroke="#FFFFFF" stroke-opacity=".2"/>
+  <path d="M104 478c142-44 274-42 396 6 113 44 211 39 294-13v53H104v-46Z" fill="#FFFFFF" opacity=".06"/>
+  <text x="164" y="244" fill="#F8FFF9" font-family="Inter, Arial, sans-serif" font-size="68" font-weight="900">OneGate Vault</text>
+  <text x="168" y="306" fill="#F2FFF7" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="650" opacity=".88">Scan, claim, and settle bounded GAS</text>
+  <text x="168" y="344" fill="#F2FFF7" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="650" opacity=".88">rewards</text>
+
+    <rect x="168" y="374" width="184" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="195" y="408" fill="#F2FFF7" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">OneGate QR</text>
+
+    <rect x="370" y="374" width="236" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="397" y="408" fill="#F2FFF7" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">1 claim / pool</text>
+
+    <rect x="168" y="444" width="197" height="52" rx="16" fill="#FFFFFF" fill-opacity=".12" stroke="#FFFFFF" stroke-opacity=".22"/>
+    <text x="195" y="478" fill="#F2FFF7" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Bounded GAS</text>
+
+        <g transform="translate(940 98)">
+          <rect width="360" height="360" rx="52" fill="#F8FFF9"/>
+          <g fill="#052017">
+            <rect x="44" y="44" width="80" height="80" rx="14"/>
+            <rect x="236" y="44" width="80" height="80" rx="14"/>
+            <rect x="44" y="236" width="80" height="80" rx="14"/>
+            <rect x="154" y="44" width="42" height="42" rx="9"/>
+            <rect x="154" y="118" width="72" height="34" rx="9"/>
+            <rect x="236" y="160" width="42" height="72" rx="9"/>
+            <rect x="154" y="236" width="42" height="80" rx="9"/>
+            <rect x="216" y="256" width="100" height="34" rx="9"/>
+            <rect x="44" y="154" width="72" height="42" rx="9"/>
+            <rect x="118" y="216" width="42" height="42" rx="9"/>
+          </g>
+          <circle cx="180" cy="180" r="72" fill="url(#coin)" stroke="#FFF7BF" stroke-width="8"/>
+          <text x="137" y="201" fill="#052017" font-family="Inter, Arial, sans-serif" font-size="52" font-weight="900">GAS</text>
+        </g>
+</svg>

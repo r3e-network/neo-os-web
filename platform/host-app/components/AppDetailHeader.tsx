@@ -122,22 +122,22 @@ export function AppDetailHeader({ app, onBack }: Props) {
             </div>
           </div>
 
-          <div className="relative hidden h-24 w-64 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-slate-950 lg:block">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(16,185,129,0.55),transparent_34%),radial-gradient(circle_at_82%_70%,rgba(14,165,233,0.35),transparent_34%),linear-gradient(135deg,#020617,#111827)]" />
-            <div className="absolute inset-0 flex items-center gap-3 px-4 text-white">
+          <div className="relative hidden h-24 w-64 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 lg:block">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(16,185,129,0.16),transparent_36%),radial-gradient(circle_at_82%_70%,rgba(14,165,233,0.14),transparent_36%)]" />
+            <div className="absolute inset-0 flex items-center gap-3 px-4 text-gray-900">
               <MiniAppLogo
                 appId={app.app_id}
                 category={app.category}
-                entryUrl={null}
-                logoUrl={null}
-                manifest={null}
+                entryUrl={app.entry_url}
+                logoUrl={app.logo_url}
+                manifest={app.manifest || null}
                 size="md"
                 className="rounded-lg shadow-none"
                 alt=""
               />
               <div className="min-w-0">
                 <p className="m-0 truncate text-sm font-black">{app.name}</p>
-                <p className="m-0 mt-1 truncate text-xs font-semibold text-white/65">
+                <p className="m-0 mt-1 truncate text-xs font-semibold text-gray-500">
                   Integrated dApp runtime
                 </p>
               </div>

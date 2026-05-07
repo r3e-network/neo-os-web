@@ -43,6 +43,23 @@ describe("miniapp coercion", () => {
     expect(app.docs_url).toBe("https://docs.example.com/app");
   });
 
+  it("uses manifest urls for bundled dapp media before generic fallbacks", () => {
+    const app = coerceMiniAppInfo({
+      app_id: "miniapp-svg-media",
+      entry_url: "/miniapps/svg-media/index.html",
+      manifest: {
+        urls: {
+          icon: "/miniapps/svg-media/logo.svg",
+          banner: "/miniapps/svg-media/banner.svg",
+        },
+      },
+      permissions: {},
+    });
+
+    expect(app?.logo_url).toBe("/miniapps/svg-media/logo.svg");
+    expect(app?.banner_url).toBe("/miniapps/svg-media/banner.svg");
+  });
+
   it("prefers manifest network contracts over a stale top-level contract hash", () => {
     process.env.NEO_TARGET_NETWORK = "testnet";
 

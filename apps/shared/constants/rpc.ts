@@ -66,6 +66,8 @@ export type ExternalIntegrationConfig = {
     aaWeb3AuthVerifier: string;
     aaSessionKeyVerifier?: string;
     aaSocialRecoveryVerifier?: string;
+    aaAddressMarket?: string;
+    aaPaymaster?: string;
     morpheusOracle: string;
     morpheusDatafeed: string;
     morpheusNeoDid?: string;
@@ -77,6 +79,8 @@ export type ExternalIntegrationConfig = {
     aaWeb3AuthVerifier?: string;
     aaSessionKeyVerifier?: string;
     aaSocialRecoveryVerifier?: string;
+    aaAddressMarket?: string;
+    aaPaymaster?: string;
     oracle?: string;
     datafeed?: string;
     neodid?: string;
@@ -94,6 +98,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-last-survivor': '0x180a3a35c088eab4feded508c2ccb1556e07a840',
     'miniapp-gasbox': '0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c',
     'miniapp-redenvelope': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
+    'miniapp-gas-lucky-pool': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
     'miniapp-dailycheckin': '0xbd4f3646e189350b9c11a659655854e6f03f9be4',
     'miniapp-fogplay': '0xa5a4b5b82066d86eae9312f6072d1c3604882c81',
     'miniapp-self-loan': '0x942da575b31f39cbb59e64b5813b128739b44c25',
@@ -105,6 +110,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-last-survivor': '0x1021e9e5c17285e706c293a39c525de13100ed92',
     'miniapp-gasbox': '0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c',
     'miniapp-redenvelope': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
+    'miniapp-gas-lucky-pool': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
     'miniapp-dailycheckin': '0xaba84da240a55410d284a656fc8dae044e6ec1a5',
     'miniapp-fogplay': '0xb115dd775a7591bb0eedef6dbf50428d50e7bc07',
     'miniapp-self-loan': '0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada',
@@ -157,6 +163,8 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaWeb3AuthVerifier: registry.contracts.aaWeb3AuthVerifier,
       aaSessionKeyVerifier: registry.contracts.aaSessionKeyVerifier,
       aaSocialRecoveryVerifier: registry.contracts.aaSocialRecoveryVerifier,
+      aaAddressMarket: registry.contracts.aaAddressMarket,
+      aaPaymaster: registry.contracts.aaPaymaster,
       morpheusOracle: registry.contracts.morpheusOracle,
       morpheusDatafeed: registry.contracts.morpheusDatafeed,
       morpheusNeoDid: registry.contracts.morpheusNeoDid,
@@ -168,6 +176,8 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaWeb3AuthVerifier: registry.domains.aaWeb3AuthVerifier,
       aaSessionKeyVerifier: registry.domains.aaSessionKeyVerifier,
       aaSocialRecoveryVerifier: registry.domains.aaSocialRecoveryVerifier,
+      aaAddressMarket: registry.domains.aaAddressMarket,
+      aaPaymaster: registry.domains.aaPaymaster,
       oracle: registry.domains.oracle,
       datafeed: registry.domains.datafeed,
       neodid: registry.domains.neodid,

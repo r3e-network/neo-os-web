@@ -23,9 +23,9 @@ import {
 } from "@/lib/miniapp-showcase";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 import {
-  filterCatalogByNetwork,
-  resolveCatalogNetwork,
-} from "@/lib/miniapp-catalog";
+  compactMiniAppManifestForCatalog,
+  getMiniAppCatalogAvailability,
+} from "@/lib/miniapp-catalog-view";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import {
   Rocket,
@@ -92,18 +92,14 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
     permissions: toSerializableRecord(
       app.permissions ?? {},
     ) as MiniAppInfo["permissions"],
-    manifest: toSerializableRecord(app.manifest),
+    manifest: compactMiniAppManifestForCatalog(app.manifest),
   }));
 }
 
 export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
-  const network = resolveCatalogNetwork(getRpcNetwork());
   const initialApps = sortMiniApps(
-    filterCatalogByNetwork(
-      definitions.filter((app) => app.status !== "disabled"),
-      network,
-    ),
+    definitions.filter((app) => app.status !== "disabled"),
     "featured",
   );
 
@@ -144,7 +140,7 @@ export default function LandingPage({
     let active = true;
     (async () => {
       try {
-        const res = await fetch(`/api/miniapps/catalog?network=${targetNetwork}`, {
+        const res = await fetch("/api/miniapps/catalog?scope=all", {
           signal: AbortSignal.timeout(10_000),
         });
         if (!active) return;
@@ -371,7 +367,11 @@ export default function LandingPage({
             </div>
             <div className="space-y-2">
               {featuredList.map((app) => (
-                <HomeMiniAppRow key={app.app_id} app={app} />
+                <HomeMiniAppRow
+                  key={app.app_id}
+                  app={app}
+                  targetNetwork={targetNetwork}
+                />
               ))}
               {catalogLoading && featuredList.length === 0 && (
                 <div className="space-y-2">
@@ -506,7 +506,12 @@ export default function LandingPage({
                   ))
                 ) : filteredApps.length > 0 ? (
                   filteredApps.map((app) => (
-                    <HomeMiniAppRow key={app.app_id} app={app} spacious />
+                    <HomeMiniAppRow
+                      key={app.app_id}
+                      app={app}
+                      targetNetwork={targetNetwork}
+                      spacious
+                    />
                   ))
                 ) : (
                   <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-gray-500">
@@ -551,7 +556,12 @@ export default function LandingPage({
               ))
             ) : toolApps && toolApps.length > 0 ? (
               toolApps.map((app) => (
-                <HomeMiniAppRow key={app.app_id} app={app} spacious />
+                <HomeMiniAppRow
+                  key={app.app_id}
+                  app={app}
+                  targetNetwork={targetNetwork}
+                  spacious
+                />
               ))
             ) : (
               <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 py-12 text-gray-500">
@@ -643,11 +653,21 @@ export default function LandingPage({
 function HomeMiniAppRow({
   app,
   spacious = false,
+  targetNetwork,
 }: {
   app: MiniAppInfo;
   spacious?: boolean;
+  targetNetwork: string;
 }) {
-  const live = Boolean(app.contract_hash);
+  const availability = getMiniAppCatalogAvailability(app, targetNetwork);
+  const statusClass =
+    availability.tone === "live"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : availability.tone === "pending"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : availability.tone === "unsupported"
+          ? "border-sky-200 bg-sky-50 text-sky-700"
+          : "border-gray-200 bg-gray-50 text-gray-500";
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
@@ -674,12 +694,10 @@ function HomeMiniAppRow({
           <span
             className={cn(
               "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase",
-              live
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-gray-50 text-gray-500",
+              statusClass,
             )}
           >
-            {live ? "Live" : "Tool"}
+            {availability.label}
           </span>
         </span>
         <span className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">

@@ -15,9 +15,9 @@ import { MiniAppLogo } from "@/components/features/miniapp/MiniAppLogo";
 import type { MiniAppInfo } from "@/components/types";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
 import {
-  filterCatalogByNetwork,
-  resolveCatalogNetwork,
-} from "@/lib/miniapp-catalog";
+  compactMiniAppManifestForCatalog,
+  getMiniAppCatalogAvailability,
+} from "@/lib/miniapp-catalog-view";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 
@@ -66,22 +66,42 @@ const defaultAccent = {
   text: "text-gray-600",
 };
 
+function getStatusFilterKey(app: MiniAppInfo, targetNetwork: string): string {
+  const availability = getMiniAppCatalogAvailability(app, targetNetwork);
+  return availability.tone === "unsupported"
+    ? "other-network"
+    : availability.tone;
+}
+
 /* ── Flagship card ───────────────────────────────────────────────────── */
 
 function MiniAppListingCard({
   app,
   large = false,
+  targetNetwork,
 }: {
   app: MiniAppInfo;
   large?: boolean;
+  targetNetwork: string;
 }) {
   const accent = flagshipAccents[app.app_id] || defaultAccent;
-  const live = Boolean(app.contract_hash);
-  const statusLabel = live
-    ? "Live"
-    : app.status === "pending"
-      ? "Pending"
-      : "Source-ready";
+  const availability = getMiniAppCatalogAvailability(app, targetNetwork);
+  const statusClass =
+    availability.tone === "live"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : availability.tone === "pending"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : availability.tone === "unsupported"
+          ? "border-sky-200 bg-sky-50 text-sky-700"
+          : "border-gray-200 bg-gray-50 text-gray-600";
+  const statusDotClass =
+    availability.tone === "live"
+      ? "bg-emerald-500"
+      : availability.tone === "pending"
+        ? "bg-amber-500"
+        : availability.tone === "unsupported"
+          ? "bg-sky-500"
+          : "bg-gray-400";
 
   return (
     <Link
@@ -110,17 +130,17 @@ function MiniAppListingCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span
-              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${live ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
+              className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${statusClass}`}
             >
               <span className="relative flex h-1.5 w-1.5">
-                {live && (
+                {availability.tone === "live" && (
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-40" />
                 )}
                 <span
-                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${live ? "bg-emerald-500" : "bg-amber-500"}`}
+                  className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusDotClass}`}
                 />
               </span>
-              {statusLabel}
+              {availability.label}
             </span>
             <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
               {app.category}
@@ -182,17 +202,14 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
     status: app.status ?? null,
     source: app.source ?? "miniapp",
     permissions: toSerializablePermissions(app.permissions),
+    manifest: compactMiniAppManifestForCatalog(app.manifest),
   }));
 }
 
 export const getStaticProps: GetStaticProps<MiniAppsPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
-  const network = resolveCatalogNetwork(getRpcNetwork());
   const initialApps = sortMiniApps(
-    filterCatalogByNetwork(
-      definitions.filter((app) => app.status !== "disabled"),
-      network,
-    ),
+    definitions.filter((app) => app.status !== "disabled"),
     "featured",
   );
 
@@ -223,7 +240,7 @@ export default function MiniAppsPage({
     mountedRef.current = true;
     if (!hasInitialApps) setLoading(true);
     setFetchError(false);
-    fetch(`/api/miniapps/catalog?network=${targetNetwork}`, {
+    fetch("/api/miniapps/catalog?scope=all", {
       signal: AbortSignal.timeout(10_000),
     })
       .then((r) => {
@@ -288,12 +305,7 @@ export default function MiniAppsPage({
   const filteredApps = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
     return listedApps.filter((app) => {
-      const live = Boolean(app.contract_hash);
-      const statusLabel = live
-        ? "live"
-        : app.status === "pending"
-          ? "pending"
-          : "source-ready";
+      const statusLabel = getStatusFilterKey(app, targetNetwork);
       const matchesStatus =
         statusFilter === "all" || statusFilter === statusLabel;
       const matchesCategory =
@@ -307,7 +319,7 @@ export default function MiniAppsPage({
           );
       return matchesStatus && matchesCategory && matchesQuery;
     });
-  }, [categoryFilter, listedApps, deferredQuery, statusFilter]);
+  }, [categoryFilter, listedApps, deferredQuery, statusFilter, targetNetwork]);
 
   const hero = filteredApps[0];
   const rest = filteredApps.slice(1);
@@ -366,7 +378,8 @@ export default function MiniAppsPage({
                   {[
                     ["all", "All"],
                     ["live", "Live"],
-                    ["source-ready", "Source-ready"],
+                    ["tool", "Tool"],
+                    ["other-network", "Other network"],
                     ["pending", "Pending"],
                   ].map(([value, label]) => {
                     const active = statusFilter === value;
@@ -450,9 +463,13 @@ export default function MiniAppsPage({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {hero ? (
                   <>
-                    <MiniAppListingCard app={hero} large />
+                    <MiniAppListingCard app={hero} targetNetwork={targetNetwork} large />
                     {rest.map((app) => (
-                      <MiniAppListingCard key={app.app_id} app={app} />
+                      <MiniAppListingCard
+                        key={app.app_id}
+                        app={app}
+                        targetNetwork={targetNetwork}
+                      />
                     ))}
                   </>
                 ) : (

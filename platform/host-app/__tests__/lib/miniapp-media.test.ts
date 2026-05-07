@@ -155,6 +155,17 @@ describe("miniapp-media helpers", () => {
       expect(result[0]).toBe("https://media.neomini.app/miniapp-assets/custom-app/logo.jpg");
     });
 
+    it("ignores non-image explicit logo values from catalog metadata", () => {
+      const result = buildMiniAppLogoSources({
+        appID: "miniapp-token-minter",
+        entryURL: "mf://manifest?app=miniapp-token-minter",
+        logoURL: "🧩",
+      });
+
+      expect(result).not.toContain("🧩");
+      expect(result[0]).toBe("/miniapp-assets/token-minter/logo.jpg");
+    });
+
     it("prefers generated host icons for apps with legacy static media", () => {
       const result = buildMiniAppLogoSources({
         appID: "miniapp-redenvelope",
@@ -266,6 +277,17 @@ describe("miniapp-media helpers", () => {
 
       expect(result[0]).toBe("https://cdn.example.com/banner-dark.png");
     });
+
+    it("ignores non-image explicit banner values from catalog metadata", () => {
+      const result = buildMiniAppBannerSources({
+        appID: "miniapp-token-minter",
+        entryURL: "mf://manifest?app=miniapp-token-minter",
+        bannerURL: "🧩",
+      });
+
+      expect(result).not.toContain("🧩");
+      expect(result[0]).toBe("/miniapp-assets/token-minter/banner.jpg");
+    });
   });
 
   describe("withMiniAppCardAssets", () => {
@@ -297,7 +319,7 @@ describe("miniapp-media helpers", () => {
       expect(app.banner_url).toBe("/miniapp-assets/neo-swap/banner.jpg");
     });
 
-    it("reuses NeoPay media for the shared-mode example", () => {
+    it("uses dedicated media for the shared-mode example", () => {
       const app = withMiniAppCardAssets({
         app_id: "miniapp-neo-pay-shared-example",
         entry_url: "mf://manifest?app=miniapp-neo-pay-shared-example",
@@ -307,8 +329,8 @@ describe("miniapp-media helpers", () => {
         category: "defi",
       });
 
-      expect(app.logo_url).toBe("/miniapp-assets/neo-pay/logo.jpg");
-      expect(app.banner_url).toBe("/miniapp-assets/neo-pay/banner.jpg");
+      expect(app.logo_url).toBe("/miniapp-assets/neo-pay-shared-example/logo.jpg");
+      expect(app.banner_url).toBe("/miniapp-assets/neo-pay-shared-example/banner.jpg");
     });
   });
 

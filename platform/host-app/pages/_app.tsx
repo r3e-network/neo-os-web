@@ -10,7 +10,6 @@ import { I18nProvider } from "@/lib/i18n/react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { useAuthStore } from "@/lib/auth/store";
-import { Inter, Outfit } from "next/font/google";
 import "@/styles/globals.css";
 
 // Lazy-load dev-only monitoring panels (excluded from production bundle)
@@ -28,9 +27,6 @@ const PerformanceReportPanel = dynamic(
     })),
   { ssr: false },
 );
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 function AuthSync({ children }: { children: ReactNode }) {
   const { user } = useUser();
@@ -66,7 +62,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
   return (
-    <div className={`${inter.variable} ${outfit.variable} font-sans`}>
+    <div className="font-sans">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"

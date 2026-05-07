@@ -48,8 +48,9 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "",
-            "registered": false
+            "contract_hash": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+            "registered": true,
+            "domain": "lastsurvivor.miniapp.neo"
           },
           "neo-n3-testnet": {
             "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",

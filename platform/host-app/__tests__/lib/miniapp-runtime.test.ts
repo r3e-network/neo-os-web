@@ -31,8 +31,9 @@ const lastSurvivorApp = {
               domain: "lastsurvivor.testnet.miniapp.neo",
             },
             "neo-n3-mainnet": {
-              contract_hash: "",
-              registered: false,
+              contract_hash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+              registered: true,
+              domain: "lastsurvivor.miniapp.neo",
             },
           },
         },
@@ -53,18 +54,18 @@ describe("miniapp runtime resolver", () => {
     });
   });
 
-  it("keeps writes disabled when the platform app is not registered on a network", () => {
+  it("enables writes when the platform app is registered on mainnet", () => {
     expect(resolveMiniAppRuntime(lastSurvivorApp, "neo-n3-mainnet")).toMatchObject({
       mode: "platform",
-      contractHash: null,
-      registered: false,
-      writesEnabled: false,
+      contractHash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      registered: true,
+      writesEnabled: true,
     });
   });
 
   it("uses runtime network support only when a runtime contract exists", () => {
     expect(supportsRuntimeNetwork(lastSurvivorApp, "neo-n3-testnet")).toBe(true);
-    expect(supportsRuntimeNetwork(lastSurvivorApp, "neo-n3-mainnet")).toBe(false);
+    expect(supportsRuntimeNetwork(lastSurvivorApp, "neo-n3-mainnet")).toBe(true);
   });
 
   it("resolves explicit platform runtime domains from the selected network binding", () => {
@@ -72,6 +73,12 @@ describe("miniapp runtime resolver", () => {
       network: "neo-n3-testnet",
       contractHash: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
       domain: "lastsurvivor.testnet.miniapp.neo",
+      source: "runtime",
+    });
+    expect(resolveMiniAppContractDomain(lastSurvivorApp, "neo-n3-mainnet")).toMatchObject({
+      network: "neo-n3-mainnet",
+      contractHash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      domain: "lastsurvivor.miniapp.neo",
       source: "runtime",
     });
   });

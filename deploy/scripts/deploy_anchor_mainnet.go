@@ -35,7 +35,7 @@ const (
 	mainnetAnchorAATimelock       = int64(30 * 24 * 60 * 60)
 	mainnetAnchorConfirm          = "I_UNDERSTAND_THIS_WRITES_MAINNET"
 	mainnetAnchorDefaultRPC       = "https://mainnet2.neo.coz.io:443"
-	mainnetAnchorDefaultAAHash    = "0x9742b4ed62a84a886f404d36149da6147528ee33"
+	mainnetAnchorDefaultAAHash    = "0x0268a387913b250166ddec032b03332690a1ef78"
 	mainnetAnchorDefaultCand      = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d"
 	mainnetAnchorReportPath       = "contracts/build/mainnet_anchor_deployment.json"
 	mainnetAnchorProfitScore      = int64(1_000_000)

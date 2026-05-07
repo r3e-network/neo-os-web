@@ -33,6 +33,31 @@ export const manifest: MiniAppManifest = {
     ],
   },
   features: { walletRequired: false, chainWarning: true },
+  operations: [
+    {
+      key: "buildPassport",
+      titleKey: "panelTitle",
+      descriptionKey: "panelDescription",
+      actionKey: "runAction",
+      actionMethod: "buildPassport",
+      fields: [
+        { key: "subject", type: "text", labelKey: "subject", placeholder: "did:neo:n3:...", required: true },
+        {
+          key: "provider",
+          type: "select",
+          labelKey: "provider",
+          default: "wallet",
+          options: [
+            { value: "wallet", labelKey: "walletProvider" },
+            { value: "github", label: "GitHub" },
+            { value: "email", labelKey: "emailProvider" },
+          ],
+        },
+        { key: "claim", type: "text", labelKey: "claim", placeholder: "wallet-ownership", required: true },
+        { key: "audience", type: "text", labelKey: "audience", placeholder: "miniapp-id" },
+      ],
+    },
+  ],
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
@@ -46,6 +71,36 @@ const clean = (value: string | undefined, fallback: string) => {
   const text = String(value ?? "").trim();
   return text.length > 0 ? text : fallback;
 };
+
+export function buildPassportResult(
+  values: Record<string, string>,
+  t: (key: string, params?: Record<string, string | number>) => string,
+) {
+  const subject = clean(values.subject, "");
+  const provider = clean(values.provider, "wallet");
+  const claim = clean(values.claim, "");
+  const audience = clean(values.audience, "");
+  const digest = previewId(`${subject}|${provider}|${claim}|${audience}`);
+
+  return {
+    status: t("passportReady"),
+    summary: t("passportSummary", { provider, claim }),
+    rows: [
+      { label: t("subject"), value: subject },
+      { label: t("provider"), value: provider },
+      { label: t("claim"), value: claim },
+      { label: t("statDigest"), value: digest },
+    ],
+    payload: {
+      kind: "neodid.passport.preview",
+      subject,
+      provider,
+      claim,
+      audience,
+      digest,
+    },
+  };
+}
 
 export const consoleConfig: ConsoleToolConfig = {
   titleKey: "panelTitle",
@@ -71,32 +126,7 @@ export const consoleConfig: ConsoleToolConfig = {
     { key: "claim", labelKey: "claim", placeholderKey: "claimPlaceholder", type: "text", defaultValue: "" },
     { key: "audience", labelKey: "audience", placeholderKey: "audiencePlaceholder", type: "text", defaultValue: "" },
   ],
-  buildResult(values, t) {
-    const subject = clean(values.subject, "");
-    const provider = clean(values.provider, "wallet");
-    const claim = clean(values.claim, "");
-    const audience = clean(values.audience, "");
-    const digest = previewId(`${subject}|${provider}|${claim}|${audience}`);
-
-    return {
-      status: t("passportReady"),
-      summary: t("passportSummary", { provider, claim }),
-      rows: [
-        { label: t("subject"), value: subject },
-        { label: t("provider"), value: provider },
-        { label: t("claim"), value: claim },
-        { label: t("statDigest"), value: digest },
-      ],
-      payload: {
-        kind: "neodid.passport.preview",
-        subject,
-        provider,
-        claim,
-        audience,
-        digest,
-      },
-    };
-  },
+  buildResult: buildPassportResult,
 };
 
 const appMessages = {

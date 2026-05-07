@@ -4,8 +4,8 @@
   "name": "Neo Swap",
   "name_zh": "Neo 兑换",
   "version": "1.0.0",
-  "description": "Swap NEO and GAS with real-time quotes, route preview, and wallet settlement",
-  "description_zh": "Neo 兑换 — NEO/GAS 实时报价、路由预览与钱包结算",
+  "description": "Preview NEO and GAS conversions with live pricefeed quotes, slippage context, and wallet-ready settlement notes",
+  "description_zh": "Neo 兑换 — 基于实时价格源预览 NEO/GAS 兑换、滑点与钱包结算说明",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
@@ -21,15 +21,11 @@
     "email": "dev@r3e.network",
     "website": "https://r3e.network"
   },
-  "contracts": {
-    "neo-n3-mainnet": "0xf970f4ccecd765b63732b821775dc38c25d74f23",
-    "neo-n3-testnet": ""
-  },
-  "contract_domains": {
-    "neo-n3-mainnet": "neoswap.miniapp.neo"
-  },
+  "contracts": {},
+  "contract_domains": {},
   "supported_networks": [
-    "neo-n3-mainnet"
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
   ],
   "default_network": "neo-n3-mainnet",
   "urls": {
@@ -38,7 +34,6 @@
     "banner": "/miniapps/neo-swap/banner.jpg"
   },
   "permissions": [
-    "invoke:primary",
     "read:blockchain"
   ],
   "features": {
