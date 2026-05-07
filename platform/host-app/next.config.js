@@ -61,6 +61,7 @@ const MainCSP = `
 const nextConfig = {
   ...(isDevServer ? {} : { output: "standalone" }),
   reactStrictMode: true,
+  devIndicators: false,
   poweredByHeader: false,
   compress: true,
   images: {

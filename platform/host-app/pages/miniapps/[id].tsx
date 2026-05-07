@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import {
   Activity,
   Bell,
+  ChevronUp,
   CheckCircle2,
   Clock3,
   ExternalLink,
@@ -21,6 +22,7 @@ import {
   Search,
   ShieldCheck,
   Wallet,
+  X,
 } from "lucide-react";
 import {
   MiniAppInfo,
@@ -172,6 +174,7 @@ export default function MiniAppDetailPage({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [mobileActionOpen, setMobileActionOpen] = useState(false);
 
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
@@ -261,6 +264,14 @@ export default function MiniAppDetailPage({
       cancelled = true;
     };
   }, [oneGateLaunchUrl]);
+  useEffect(() => {
+    if (!mobileActionOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileActionOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileActionOpen]);
   const runtimeDisabledReason =
     resolvedRuntime?.mode === "platform" ? resolvedRuntime.disabledReason : null;
   const operationDisabledReason = networkAvailabilityReason || networkGuardReason || runtimeDisabledReason;
@@ -559,6 +570,7 @@ export default function MiniAppDetailPage({
     operationPanel?.title ||
     (app.detail_template?.layout === "prediction" ? "Trade" : "Operations");
   const operationSubtitle = operationPanel?.subtitle;
+  const primaryOperationLabel = operations[0]?.name || operationTitle;
   const operationPanelDisabledReason = operations.every((operation) =>
     isFrontendLocalOperation(operation.method),
   )
@@ -581,7 +593,7 @@ export default function MiniAppDetailPage({
 
   return (
     <Layout hideFooter>
-      <div className="min-h-screen bg-[#f6f8fb] pb-10 pt-16 text-gray-900">
+      <div className="min-h-screen bg-[#f6f8fb] pb-28 pt-16 text-gray-900 xl:pb-10">
         <Head>
           <title>{`${app.name} - R3E MiniApps`}</title>
         </Head>
@@ -713,7 +725,7 @@ export default function MiniAppDetailPage({
             </section>
 
             <aside
-              className="order-2 self-start space-y-3 xl:order-none xl:sticky xl:top-24"
+              className="order-2 hidden self-start space-y-3 xl:order-none xl:sticky xl:top-24 xl:block"
               aria-label="MiniApp actions"
               data-testid="miniapp-actions"
             >
@@ -755,56 +767,12 @@ export default function MiniAppDetailPage({
                   />
                 )}
 
-                <div
-                  className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600"
-                  data-testid="onegate-launch-card"
-                >
-                  <div className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
-                    <QrCode className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                    OneGate scan link
-                  </div>
-                  <div className="mb-2 flex items-start gap-3">
-                    <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-gray-200 bg-white p-1">
-                      {oneGateQrDataUrl ? (
-                        <img
-                          src={oneGateQrDataUrl}
-                          alt={`${app.name} OneGate QR`}
-                          className="h-full w-full"
-                          loading="lazy"
-                          decoding="async"
-                          data-testid="onegate-launch-qr"
-                        />
-                      ) : (
-                        <QrCode className="h-8 w-8 text-gray-300" aria-hidden="true" />
-                      )}
-                      <img
-                        src={ONEGATE_QR_LOGO_SRC}
-                        alt="OneGate"
-                        className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-1.5 shadow-sm"
-                        loading="lazy"
-                        decoding="async"
-                        data-testid="onegate-qr-logo"
-                      />
-                    </div>
-                    <div className="min-w-0 text-xs leading-5 text-gray-500">
-                      <p className="m-0 font-semibold text-gray-700">
-                        {targetNetworkLabel}
-                      </p>
-                      <p className="m-0 break-words font-mono text-[11px]">
-                        {app.app_id}
-                      </p>
-                    </div>
-                  </div>
-                  <a
-                    href={oneGateLaunchUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block break-all font-mono text-[11px] text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-                    data-testid="onegate-launch-url"
-                  >
-                    {oneGateLaunchUrl}
-                  </a>
-                </div>
+                <OneGateLaunchCard
+                  app={app}
+                  oneGateLaunchUrl={oneGateLaunchUrl}
+                  oneGateQrDataUrl={oneGateQrDataUrl}
+                  targetNetworkLabel={targetNetworkLabel}
+                />
 
                 {launchContext.hasParams && (
                   <div
@@ -956,7 +924,7 @@ export default function MiniAppDetailPage({
                 </summary>
                 <div className="mt-3 space-y-2">
                   <p className="my-0 text-xs text-gray-500">
-                    App ID:{" "}
+                    Application ID:{" "}
                     <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
                       {app.app_id}
                     </code>
@@ -976,7 +944,7 @@ export default function MiniAppDetailPage({
                   {contractDomainBinding && (
                     <p
                       className="my-0 text-xs text-gray-500"
-                      data-testid="contract-domain-binding"
+                      data-testid="contract-domain-binding-technical"
                     >
                       {formatContractDomainNetwork(contractDomainBinding.network)} Domain:{" "}
                       <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
@@ -1001,9 +969,219 @@ export default function MiniAppDetailPage({
               </details>
             </aside>
           </div>
+
+          {operations.length > 0 && (
+            <>
+              <div
+                className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-white/95 px-3 py-3 shadow-[0_-16px_40px_rgba(15,23,42,0.12)] backdrop-blur xl:hidden"
+                data-testid="mobile-action-dock"
+              >
+                <button
+                  type="button"
+                  className="mx-auto flex min-h-[56px] w-full max-w-[520px] cursor-pointer items-center justify-between gap-3 rounded-[18px] border border-emerald-200 bg-emerald-600 px-4 py-3 text-left text-white shadow-lg shadow-emerald-900/15 transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                  onClick={() => setMobileActionOpen(true)}
+                  aria-expanded={mobileActionOpen}
+                  aria-controls="mobile-action-sheet"
+                  data-testid="mobile-action-open"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[11px] font-bold uppercase tracking-wide text-emerald-100">
+                      Action Console
+                    </span>
+                    <span className="block truncate text-sm font-bold">
+                      {primaryOperationLabel}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold">
+                    Open
+                    <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
+
+              {mobileActionOpen && (
+                <div
+                  id="mobile-action-sheet"
+                  className="fixed inset-0 z-[80] xl:hidden"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`${app.name} actions`}
+                  data-testid="mobile-action-sheet"
+                >
+                  <button
+                    type="button"
+                    className="absolute inset-0 cursor-default bg-gray-950/40"
+                    aria-label="Close actions"
+                    onClick={() => setMobileActionOpen(false)}
+                  />
+                  <section className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[28px] border border-gray-200 bg-white p-4 shadow-2xl shadow-gray-950/30">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+                          Action Console
+                        </p>
+                        <h2 className="m-0 truncate text-lg font-bold text-gray-900">
+                          {operationTitle}
+                        </h2>
+                        {operationSubtitle && (
+                          <p className="mt-1 text-xs leading-5 text-gray-500">
+                            {operationSubtitle}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                        onClick={() => setMobileActionOpen(false)}
+                        aria-label="Close actions"
+                      >
+                        <X className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </div>
+
+                    <OperationPanel
+                      operations={operations}
+                      onInvoke={handleInvoke}
+                      showTitle={false}
+                      className="border-0 shadow-none"
+                      variant="embedded"
+                      disabledReason={operationPanelDisabledReason}
+                      launchContext={launchContext}
+                    />
+
+                    <OneGateLaunchCard
+                      app={app}
+                      oneGateLaunchUrl={oneGateLaunchUrl}
+                      oneGateQrDataUrl={oneGateQrDataUrl}
+                      targetNetworkLabel={targetNetworkLabel}
+                    />
+
+                    {launchContext.hasParams && (
+                      <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+                        <p className="m-0 font-semibold">
+                          Launch parameters applied
+                        </p>
+                        <p className="m-0 break-words">
+                          Source: {launchContext.source}
+                          {launchContext.operation
+                            ? ` · Operation: ${launchContext.operation}`
+                            : ""}
+                          {launchContext.keys.length > 0
+                            ? ` · Fields: ${launchContext.keys.join(", ")}`
+                            : ""}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                      <Wallet className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">
+                        {walletConnected && walletAddress
+                          ? walletAddress
+                          : "Connect wallet from the top navigation to submit on-chain transactions."}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                        networkSafetyOk
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-amber-200 bg-amber-50 text-amber-700"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <p className="m-0 font-semibold">Target: {targetNetworkLabel}</p>
+                          <p className="m-0 break-words">Wallet: {walletNetworkLabel}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {invokeFeedback && (
+                      <div
+                        className={`mt-3 rounded-lg border px-3 py-2 text-xs break-words ${
+                          invokeFeedback.type === "success"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-red-200 bg-red-50 text-red-700"
+                        }`}
+                      >
+                        {invokeFeedback.message}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
     </Layout>
+  );
+}
+
+function OneGateLaunchCard({
+  app,
+  oneGateLaunchUrl,
+  oneGateQrDataUrl,
+  targetNetworkLabel,
+}: {
+  app: MiniAppInfo;
+  oneGateLaunchUrl: string;
+  oneGateQrDataUrl: string;
+  targetNetworkLabel: string;
+}) {
+  return (
+    <div
+      className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600"
+      data-testid="onegate-launch-card"
+    >
+      <div className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
+        <QrCode className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+        OneGate scan link
+      </div>
+      <div className="mb-2 flex items-start gap-3">
+        <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-gray-200 bg-white p-1">
+          {oneGateQrDataUrl ? (
+            <img
+              src={oneGateQrDataUrl}
+              alt={`${app.name} OneGate QR`}
+              className="h-full w-full"
+              loading="lazy"
+              decoding="async"
+              data-testid="onegate-launch-qr"
+            />
+          ) : (
+            <QrCode className="h-8 w-8 text-gray-300" aria-hidden="true" />
+          )}
+          <img
+            src={ONEGATE_QR_LOGO_SRC}
+            alt="OneGate"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-1.5 shadow-sm"
+            loading="lazy"
+            decoding="async"
+            data-testid="onegate-qr-logo"
+          />
+        </div>
+        <div className="min-w-0 text-xs leading-5 text-gray-500">
+          <p className="m-0 font-semibold text-gray-700">
+            {targetNetworkLabel}
+          </p>
+          <p className="m-0 break-words font-mono text-[11px]">
+            {app.app_id}
+          </p>
+        </div>
+      </div>
+      <a
+        href={oneGateLaunchUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block break-all font-mono text-[11px] text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+        data-testid="onegate-launch-url"
+      >
+        {oneGateLaunchUrl}
+      </a>
+    </div>
   );
 }
 
@@ -1086,6 +1264,7 @@ function MiniAppStatusBoard({
               <InfoPill
                 label={`${contractDomainBinding ? formatContractDomainNetwork(contractDomainBinding.network) : ""} Domain`.trim()}
                 value={contractDomainDisplayValue}
+                testId="contract-domain-binding"
               />
             ) : (
               <InfoPill label="Domain" value="Not configured for this network" />
@@ -1506,11 +1685,22 @@ function contractDomainBadgeClass(source: string): string {
     : "bg-emerald-100 text-emerald-700";
 }
 
-function InfoPill({ label, value }: { label: string; value: string }) {
+function InfoPill({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string;
+  testId?: string;
+}) {
   return (
-    <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+    <div
+      className="min-w-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+      data-testid={testId}
+    >
       <div className="text-[11px] font-semibold uppercase text-gray-400">
-        {label}
+        {label}:
       </div>
       <div className="mt-1 break-all font-mono text-[12px] text-gray-700">
         {value}
