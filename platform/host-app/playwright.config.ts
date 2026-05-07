@@ -13,11 +13,11 @@ const auth0TestEnv = {
 };
 
 const localWorkerCount = Number.parseInt(
-  process.env.PLAYWRIGHT_WORKERS ?? "1",
+  process.env.PLAYWRIGHT_WORKERS ?? "4",
   10,
 );
 const safeLocalWorkers = Number.isFinite(localWorkerCount)
-  ? Math.min(2, Math.max(1, localWorkerCount))
+  ? Math.min(4, Math.max(1, localWorkerCount))
   : 1;
 const systemChrome = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "1";
 
