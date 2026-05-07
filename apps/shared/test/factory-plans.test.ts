@@ -12,8 +12,8 @@ const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
 describe("Domain factory plans", () => {
   it("builds deterministic NEP-17 deployments from preloaded on-chain templates", () => {
     const input = {
-      name: "R3E Credits",
-      symbol: "R3E",
+      name: "Yiwu Credits",
+      symbol: "YIWU",
       decimals: "8",
       initialSupply: "1000000.25",
       owner: OWNER,
@@ -41,7 +41,7 @@ describe("Domain factory plans", () => {
     ]);
     expect(first.payload.standard).toBe("NEP-17");
     expect(first.payload.initParams.initialSupplyUnits).toBe("100000025000000");
-    expect(first.payload.initParams.symbol).toBe("R3E");
+    expect(first.payload.initParams.symbol).toBe("YIWU");
     expect(first.payload).not.toHaveProperty("contractManifest");
     expect(JSON.stringify(first.payload).toLowerCase()).not.toContain("\"nef\"");
     expect(JSON.stringify(first.payload).toLowerCase()).not.toContain("\"manifest\"");
@@ -120,15 +120,15 @@ describe("Domain factory plans", () => {
 
   it("derives a factory draft from OneGate query parameters", () => {
     const context = parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/asset-factory/index.html?source=onegate&operation=prepareNEP17&template=nep17&symbol=R3E&name=R3E%20Credits&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3&network=testnet",
+      "https://neomini.app/miniapps/asset-factory/index.html?source=onegate&operation=prepareNEP17&template=nep17&symbol=YIWU&name=Yiwu%20Credits&owner=NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3&network=testnet",
       "miniapp-asset-factory",
     );
 
     const draft = createFactoryDraftFromLaunchContext(context);
 
     expect(draft.kind).toBe("nep17");
-    expect(draft.nep17.symbol).toBe("R3E");
-    expect(draft.nep17.name).toBe("R3E Credits");
+    expect(draft.nep17.symbol).toBe("YIWU");
+    expect(draft.nep17.name).toBe("Yiwu Credits");
     expect(draft.nep17.owner).toBe(OWNER);
     expect(draft.nep17.network).toBe("neo-n3-testnet");
   });

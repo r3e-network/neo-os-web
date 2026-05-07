@@ -6,7 +6,7 @@ test.describe("Homepage", () => {
   });
 
   test("should load homepage", async ({ page }) => {
-    await expect(page).toHaveTitle(/R3E Network|Neo/i);
+    await expect(page).toHaveTitle(/Yiwu|Neo/i);
   });
 
   test("should display navigation", async ({ page }) => {

@@ -29,7 +29,7 @@ export default function AccountPage() {
   return (
     <Layout>
       <Head>
-        <title>Account - R3E Network</title>
+        <title>Account - Yiwu</title>
       </Head>
 
       <div className="pb-16 pt-20">

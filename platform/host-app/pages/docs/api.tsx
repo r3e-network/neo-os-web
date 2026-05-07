@@ -36,7 +36,7 @@ export default function ApiReferencePage() {
   return (
     <Layout>
       <Head>
-        <title>API Reference | R3E Network</title>
+        <title>API Reference | Yiwu</title>
         <meta
           name="description"
           content="Host API reference for MiniApp catalog, RPC, health, and browser security endpoints."

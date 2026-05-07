@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 const sections = [
   {
     title: "Platform Access",
-    body: "R3E Network provides a host interface for discovering and interacting with MiniApps. Users are responsible for reviewing each transaction before signing it with their wallet.",
+    body: "Yiwu provides a host interface for discovering and interacting with MiniApps. Users are responsible for reviewing each transaction before signing it with their wallet.",
   },
   {
     title: "On-chain Transactions",
@@ -23,14 +23,14 @@ export default function TermsPage() {
   return (
     <Layout>
       <Head>
-        <title>Terms of Service | R3E Network</title>
+        <title>Terms of Service | Yiwu</title>
       </Head>
 
       <PageHero
         align="center"
         eyebrow="Legal"
         title="Terms of Service"
-        description="Operational terms for using the R3E Network MiniApp platform and developer tooling."
+        description="Operational terms for using the Yiwu MiniApp platform and developer tooling."
       >
         <Link href="/privacy">
           <Button variant="outline">Privacy Policy</Button>

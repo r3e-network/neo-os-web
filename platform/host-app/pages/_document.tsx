@@ -6,6 +6,7 @@ import Document, {
   type DocumentContext,
   type DocumentInitialProps,
 } from "next/document";
+import { BRAND } from "@/lib/brand";
 
 type Props = DocumentInitialProps & { nonce?: string };
 
@@ -45,26 +46,26 @@ export default class MyDocument extends Document<Props> {
           )}
           <meta
             name="description"
-            content="Discover and use decentralized MiniApps on Neo N3"
+            content={BRAND.description}
           />
           <meta property="og:type" content="website" />
           <meta
             property="og:title"
-            content="R3E Network - MiniApp Platform for Neo N3"
+            content={BRAND.title}
           />
           <meta
             property="og:description"
-            content="Discover and use decentralized MiniApps on Neo N3"
+            content={BRAND.description}
           />
-          <meta property="og:site_name" content="R3E Network" />
+          <meta property="og:site_name" content={BRAND.productName} />
           <meta name="twitter:card" content="summary_large_image" />
           <meta
             name="twitter:title"
-            content="R3E Network - MiniApp Platform for Neo N3"
+            content={BRAND.title}
           />
           <meta
             name="twitter:description"
-            content="Discover and use decentralized MiniApps on Neo N3"
+            content={BRAND.description}
           />
         </Head>
         <body>

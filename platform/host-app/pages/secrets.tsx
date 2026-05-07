@@ -11,7 +11,7 @@ export default function SecretsPage() {
   return (
     <Layout>
       <Head>
-        <title>Secrets - Neo MiniApp Platform</title>
+        <title>Secrets - Yiwu MiniApps</title>
       </Head>
       <div className="mx-auto max-w-4xl px-4 py-8">
         <h1 className="text-3xl font-extrabold text-gray-900">Secret Tokens</h1>
