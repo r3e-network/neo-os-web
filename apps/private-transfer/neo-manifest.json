@@ -51,6 +51,50 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Private Transfer",
+    "subtitle": "Enter transfer details in the action console, then seal them locally for Morpheus confidential compute.",
+    "operations": [
+      {
+        "name": "Seal Transfer",
+        "method": "sealPrivateTransfer",
+        "description": "Build an encrypted transfer intent. Recipient, amount, and memo are sealed locally before being stored for Morpheus confidential compute.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "recipient",
+            "type": "address",
+            "label": "Recipient",
+            "placeholder": "N...",
+            "required": true
+          },
+          {
+            "name": "asset",
+            "type": "select",
+            "label": "Asset",
+            "default_value": "GAS",
+            "options": [
+              { "label": "GAS", "value": "GAS" },
+              { "label": "NEO", "value": "NEO" }
+            ]
+          },
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Amount",
+            "placeholder": "0.00",
+            "required": true
+          },
+          {
+            "name": "memo",
+            "type": "string",
+            "label": "Private memo",
+            "placeholder": "Optional note"
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

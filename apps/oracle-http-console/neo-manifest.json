@@ -45,6 +45,27 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Oracle Request",
+    "subtitle": "Build an HTTP oracle request from the action console and inspect the package in the playarea.",
+    "operations": [
+      {
+        "name": "Build Request",
+        "method": "buildOraclePackage",
+        "description": "Prepare an inspectable Morpheus HTTP oracle package.",
+        "button_style": "secondary",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "Endpoint",
+            "placeholder": "https://api.example.com/data",
+            "required": true
+          }
+        ]
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

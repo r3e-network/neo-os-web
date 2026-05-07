@@ -15,6 +15,11 @@ import {
   resolveUserIdFromWallet,
 } from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import {
+  getSocialNetworkScope,
+  scopedSocialAppId,
+  unscopedSocialAppId,
+} from "@/lib/social-network-scope";
 
 type ForumThreadRow = {
   id: string;
@@ -60,7 +65,7 @@ function emptyThreadResponse(res: NextApiResponse, unavailable = false) {
 function toThread(row: ForumThreadRow): ForumThread {
   return {
     id: row.id,
-    app_id: row.app_id,
+    app_id: unscopedSocialAppId(row.app_id),
     author_id: row.author_wallet,
     author_name: row.author_name,
     title: row.title,
@@ -112,6 +117,8 @@ async function getThreads(
 
   const category =
     typeof req.query.category === "string" ? req.query.category.trim() : "";
+  const network = getSocialNetworkScope(req.query.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
   if (
     category &&
     !VALID_CATEGORIES.includes(category as (typeof VALID_CATEGORIES)[number])
@@ -139,7 +146,7 @@ async function getThreads(
       "id,app_id,author_wallet,author_name,title,content,category,reply_count,view_count,is_pinned,is_locked,created_at,updated_at,last_reply_at",
       { count: "exact" },
     )
-    .eq("app_id", appId);
+    .eq("app_id", scopedAppId);
 
   if (category) {
     query = query.eq("category", category);
@@ -192,6 +199,8 @@ async function createThread(
   if (!authedWallet) return;
 
   const { wallet, title, content, category } = req.body;
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {
     return apiError.badRequest(res, "Invalid wallet address");
@@ -239,7 +248,7 @@ async function createThread(
   const { data, error } = await supabase
     .from("forum_threads")
     .insert({
-      app_id: appId,
+      app_id: scopedAppId,
       author_user_id: userId,
       author_wallet: wallet,
       author_name: formatWalletDisplayName(wallet),

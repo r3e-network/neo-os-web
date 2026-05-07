@@ -8,9 +8,10 @@ import { fetchJSON, fetchOK, toApiError } from "@/lib/fetch-client";
 interface UseReviewsOptions {
   appId: string;
   walletAddress?: string;
+  network?: "mainnet" | "testnet";
 }
 
-export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
+export function useReviews({ appId, walletAddress, network = "testnet" }: UseReviewsOptions) {
   const [rating, setRating] = useState<SocialRating | null>(null);
   const [comments, setComments] = useState<SocialComment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,21 +20,23 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
 
   const fetchRating = useCallback(async (signal?: AbortSignal) => {
     try {
-      const url = `/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings${walletAddress ? `?wallet=${encodeURIComponent(walletAddress)}` : ""}`;
+      const params = new URLSearchParams({ network });
+      if (walletAddress) params.set("wallet", walletAddress);
+      const url = `/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings?${params.toString()}`;
       const data = await fetchJSON<{ rating?: SocialRating }>(url, { signal });
       setRating(data.rating ?? null);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
       logger.warn("Failed to fetch rating:", err);
     }
-  }, [appId, walletAddress]);
+  }, [appId, network, walletAddress]);
 
   const fetchComments = useCallback(
     async (offset = 0, signal?: AbortSignal) => {
       setLoading(true);
       try {
         const data = await fetchJSON<{ comments?: SocialComment[]; hasMore?: boolean }>(
-          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}`,
+          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?limit=20&offset=${offset}&network=${encodeURIComponent(network)}`,
           { signal },
         );
         if (offset === 0) {
@@ -49,7 +52,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         setLoading(false);
       }
     },
-    [appId],
+    [appId, network],
   );
 
   const submitRating = useCallback(
@@ -59,7 +62,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/ratings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, value, review }),
+          body: JSON.stringify({ wallet: walletAddress, value, review, network }),
         });
         await fetchRating();
         return true;
@@ -68,7 +71,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
       }
       return false;
     },
-    [appId, walletAddress, fetchRating],
+    [appId, walletAddress, fetchRating, network],
   );
 
   const createComment = useCallback(
@@ -78,7 +81,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, content }),
+          body: JSON.stringify({ wallet: walletAddress, content, network }),
         });
         await fetchComments(0);
         return true;
@@ -87,7 +90,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
       }
       return false;
     },
-    [appId, walletAddress, fetchComments],
+    [appId, walletAddress, fetchComments, network],
   );
 
   const voteComment = useCallback(
@@ -97,7 +100,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/${encodeURIComponent(commentId)}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, vote_type: voteType }),
+          body: JSON.stringify({ wallet: walletAddress, vote_type: voteType, network }),
         });
         return true;
       } catch (err) {
@@ -105,7 +108,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         return false;
       }
     },
-    [appId, walletAddress],
+    [appId, walletAddress, network],
   );
 
   const replyComment = useCallback(
@@ -115,7 +118,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         await fetchOK(`/api/miniapps/${encodeURIComponent(appId)}/reviews/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ wallet: walletAddress, content, parent_id: parentId }),
+          body: JSON.stringify({ wallet: walletAddress, content, parent_id: parentId, network }),
         });
         return true;
       } catch (err) {
@@ -123,14 +126,14 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
         return false;
       }
     },
-    [appId, walletAddress],
+    [appId, walletAddress, network],
   );
 
   const loadReplies = useCallback(
     async (parentId: string): Promise<SocialComment[]> => {
       try {
         const data = await fetchJSON<{ comments?: SocialComment[] }>(
-          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?parent_id=${encodeURIComponent(parentId)}`,
+          `/api/miniapps/${encodeURIComponent(appId)}/reviews/comments?parent_id=${encodeURIComponent(parentId)}&network=${encodeURIComponent(network)}`,
         );
         return data.comments || [];
       } catch (err) {
@@ -138,7 +141,7 @@ export function useReviews({ appId, walletAddress }: UseReviewsOptions) {
       }
       return [];
     },
-    [appId],
+    [appId, network],
   );
 
   const loadMore = useCallback(async () => {
