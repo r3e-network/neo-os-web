@@ -48,6 +48,33 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Seal Console",
+    "subtitle": "Seal sensitive oracle input from the action console and inspect the encrypted reference in the playarea.",
+    "operations": [
+      {
+        "name": "Seal Payload",
+        "method": "sealOracleRequest",
+        "description": "Encrypt a sensitive payload for Morpheus confidential handling.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "Payload",
+            "placeholder": "sensitive oracle input",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Build Preview",
+        "method": "buildOraclePackage",
+        "description": "Build a visible preview package without sealing.",
+        "button_style": "secondary"
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

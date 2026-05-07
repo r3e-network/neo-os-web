@@ -49,6 +49,33 @@
       "https://api.n3index.dev"
     ]
   },
+  "operation_panel": {
+    "title": "Private Compute",
+    "subtitle": "Build or seal compute inputs from the action console. The playarea verifies the confidential package.",
+    "operations": [
+      {
+        "name": "Seal Compute Input",
+        "method": "sealOracleRequest",
+        "description": "Encrypt compute input for Morpheus confidential execution.",
+        "button_style": "success",
+        "params": [
+          {
+            "name": "endpoint",
+            "type": "string",
+            "label": "Workflow input",
+            "placeholder": "private-transfer-or-policy-check",
+            "required": true
+          }
+        ]
+      },
+      {
+        "name": "Build Preview",
+        "method": "buildOraclePackage",
+        "description": "Build a non-secret preview package for the same compute workflow.",
+        "button_style": "secondary"
+      }
+    ]
+  },
   "platform": {
     "analytics": true,
     "comments": true,

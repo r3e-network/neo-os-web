@@ -12,6 +12,10 @@ import {
   resolveUserIdFromWallet,
 } from "@/lib/wallet-user";
 import { requireWalletAuth } from "@/lib/require-wallet-auth";
+import {
+  getSocialNetworkScope,
+  scopedSocialAppId,
+} from "@/lib/social-network-scope";
 
 const VALID_VOTE_TYPES = new Set(["upvote", "downvote"]);
 
@@ -61,6 +65,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!authedWallet) return;
 
   const { wallet, vote_type } = req.body;
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  const scopedAppId = scopedSocialAppId(appId, network);
 
   if (
     !isValidWalletAddress(wallet) ||
@@ -98,7 +104,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (commentError || !comment) {
     return apiError.notFound(res, "Comment not found");
   }
-  if (comment.app_id !== appId) {
+  if (comment.app_id !== scopedAppId) {
     return apiError.badRequest(res, "Comment belongs to different app");
   }
 
