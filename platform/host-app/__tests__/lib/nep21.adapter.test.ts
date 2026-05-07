@@ -13,6 +13,7 @@ describe("Nep21Adapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     delete (window as unknown as { Neo?: unknown }).Neo;
+    delete (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider;
     delete (window as unknown as { neoDapiProvider?: unknown }).neoDapiProvider;
     delete (window as unknown as { neoDapi?: unknown }).neoDapi;
   });
@@ -66,7 +67,7 @@ describe("Nep21Adapter", () => {
     expect(provider.getBalance).toHaveBeenNthCalledWith(2, GAS_CONTRACT, "0xuserhash");
     expect(provider.signMessage).toHaveBeenCalledWith("aGVsbG8=", "0xuserhash");
     expect(provider.invoke).toHaveBeenCalledWith(
-      [{ hash: "0xcontract", operation: "transfer", args: [{ type: "Hash160", value: "NUserAddress" }] }],
+      [{ hash: "0xcontract", operation: "transfer", args: [{ type: "Hash160", value: "0xuserhash" }] }],
       [{ account: "0xuserhash", scopes: "CalledByEntry" }],
     );
   });
@@ -126,6 +127,53 @@ describe("Nep21Adapter", () => {
     }));
 
     await expect(connected).resolves.toMatchObject({ address: "NEventAddress" });
+  });
+
+  it("detects OneGate's injected NEP-21 provider immediately", async () => {
+    const provider = {
+      name: "OneGate",
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xonegatehash", address: "NOneGateAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ hash: "0xonegatetx" }),
+      signMessage: jest.fn().mockResolvedValue({
+        pubkey: "03onegate",
+        signature: "signed",
+        account: "0xonegatehash",
+      }),
+    };
+    (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider = provider;
+
+    const adapter = new Nep21Adapter();
+
+    expect(adapter.isInstalled()).toBe(true);
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NOneGateAddress",
+      network: "testnet",
+    });
+    await expect(adapter.invoke({
+      scriptHash: "0xcontract",
+      operation: "claimRangeGasPool",
+      args: [
+        { type: "String", value: "miniapp-gas-lucky-pool" },
+        { type: "Integer", value: "42" },
+        { type: "Hash160", value: "NOneGateAddress" },
+      ],
+      signers: [{ account: "NOneGateAddress", scopes: 1 }],
+    })).resolves.toEqual({ txid: "0xonegatetx" });
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [{
+        hash: "0xcontract",
+        operation: "claimRangeGasPool",
+        args: [
+          { type: "String", value: "miniapp-gas-lucky-pool" },
+          { type: "Integer", value: "42" },
+          { type: "Hash160", value: "0xonegatehash" },
+        ],
+      }],
+      [{ account: "0xonegatehash", scopes: "CalledByEntry" }],
+    );
   });
 
   it("accepts the standard Neo.DapiProvider.ready event", async () => {

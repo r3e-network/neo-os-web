@@ -23,12 +23,15 @@ import {
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { MiniAppNotification } from "../components";
 import { logger } from "../lib/logger";
+import type { NeoNetwork } from "../lib/neo-network";
 
 export type UseRealtimeNotificationsOptions = {
   /** Callback invoked when a new notification arrives */
   onNotification?: (notification: MiniAppNotification) => void;
   /** Optional filter by app_id column */
   appId?: string;
+  /** Required by MiniApp pages to keep mainnet/testnet feeds isolated */
+  network?: NeoNetwork;
   /** Optional filter by user_id column (for per-user notification channels) */
   userId?: string;
   /** Enable/disable subscription (default: true) */
@@ -76,6 +79,7 @@ export function useRealtimeNotifications(
   const {
     onNotification,
     appId,
+    network,
     userId,
     enabled = true,
     skipInitialFetch = false,
@@ -118,6 +122,11 @@ export function useRealtimeNotifications(
         if (appId && newNotification.app_id !== appId) {
           return;
         }
+        // Network is intentionally strict: a scoped page should not render
+        // records that lack a network marker after the isolation migration.
+        if (network && newNotification.network !== network) {
+          return;
+        }
 
         setNotifications((prev) => {
           const updated = [newNotification, ...prev];
@@ -141,7 +150,7 @@ export function useRealtimeNotifications(
         );
       }
     },
-    [appId, onNotification],
+    [appId, network, onNotification],
   );
 
   /**
@@ -154,8 +163,12 @@ export function useRealtimeNotifications(
     setLoading(true);
     try {
       if (appId && !userId) {
+        const params = new URLSearchParams({
+          limit: String(MAX_NOTIFICATIONS),
+        });
+        if (network) params.set("network", network);
         const response = await fetch(
-          `/api/app/${encodeURIComponent(appId)}/news?limit=${MAX_NOTIFICATIONS}`,
+          `/api/app/${encodeURIComponent(appId)}/news?${params.toString()}`,
           {
             method: "GET",
             headers: { Accept: "application/json" },
@@ -179,6 +192,9 @@ export function useRealtimeNotifications(
 
       if (appId) {
         query = query.eq("app_id", appId);
+      }
+      if (network) {
+        query = query.eq("network", network);
       }
       if (userId) {
         query = query.eq("user_id", userId);
@@ -205,7 +221,7 @@ export function useRealtimeNotifications(
         setLoading(false);
       }
     }
-  }, [skipInitialFetch, isClient, appId, userId]);
+  }, [skipInitialFetch, isClient, appId, network, userId]);
 
   /**
    * Subscribe to Supabase Realtime channel
@@ -237,7 +253,9 @@ export function useRealtimeNotifications(
     // Build channel name scoped to user/app for efficient filtering
     const channelName = userId
       ? `notifications:${userId}`
-      : "miniapp-notifications-channel";
+      : network || appId
+        ? `miniapp-notifications:${network || "all"}:${appId || "all"}`
+        : "miniapp-notifications-channel";
 
     // Build postgres_changes filter for server-side row filtering
     const pgFilter: Record<string, string> = {};
@@ -314,7 +332,7 @@ export function useRealtimeNotifications(
       );
       setIsConnected(false);
     }
-  }, [enabled, isClient, userId, handleInsert, getRetryDelay]);
+  }, [enabled, isClient, userId, network, appId, handleInsert, getRetryDelay]);
 
   /**
    * Manually trigger reconnection (resets retry count)

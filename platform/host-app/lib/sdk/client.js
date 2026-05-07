@@ -29,7 +29,12 @@ function isNeoDapiProvider(candidate) {
 function readImmediateDapiProvider() {
   if (typeof window === "undefined") return null;
   const g = window;
-  const candidates = [g.Neo?.DapiProvider, g.neoDapiProvider, g.neoDapi];
+  const candidates = [
+    g.Neo?.DapiProvider,
+    g.OneGateDapiProvider,
+    g.neoDapiProvider,
+    g.neoDapi,
+  ];
   return candidates.find(isNeoDapiProvider) ?? null;
 }
 function waitForDapiProvider(timeoutMs = 750) {

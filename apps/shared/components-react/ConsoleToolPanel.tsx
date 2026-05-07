@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Copy, Play, RotateCcw } from "lucide-react";
 import type { ObservableState } from "../react/context";
 import type { PlatformServices } from "../services";
+import type { MiniAppLaunchContext } from "../utils/launch-params";
 import { NeoButton } from "./NeoButton";
 import { NeoInput } from "./NeoInput";
 import "./ConsoleToolPanel.scss";
@@ -56,11 +57,15 @@ export interface ConsoleToolPanelProps {
   state: ObservableState;
   services: PlatformServices;
   setStatus: (msg: string, type: "success" | "error" | "info" | "warning") => void;
+  launchContext?: MiniAppLaunchContext | null;
 }
 
-function initialValues(fields: ConsoleField[]) {
+function initialValues(
+  fields: ConsoleField[],
+  launchParams: Record<string, string> = {},
+) {
   return fields.reduce<Record<string, string>>((acc, field) => {
-    acc[field.key] = field.defaultValue ?? "";
+    acc[field.key] = launchParams[field.key] ?? field.defaultValue ?? "";
     return acc;
   }, {});
 }
@@ -87,8 +92,11 @@ export function ConsoleToolPanel({
   state,
   services,
   setStatus,
+  launchContext = null,
 }: ConsoleToolPanelProps) {
-  const [values, setValues] = useState(() => initialValues(config.fields));
+  const [values, setValues] = useState(() =>
+    initialValues(config.fields, launchContext?.params),
+  );
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const payloadText = useMemo(
     () => (result ? JSON.stringify(result.payload, null, 2) : ""),

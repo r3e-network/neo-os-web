@@ -48,8 +48,9 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "",
-            "registered": false
+            "contract_hash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+            "registered": true,
+            "domain": "selfloan.miniapp.neo"
           },
           "neo-n3-testnet": {
             "contract_hash": "0xb43bd0ded09b5d79ed858484106affc1c858483c",

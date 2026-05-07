@@ -1,9 +1,11 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 import type { ConsoleToolConfig } from "@shared/components-react";
 import { previewId } from "@shared/components-react";
+import { getExternalIntegrationConfig } from "@shared/constants/rpc";
 import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const appId = "miniapp-oracle-http-console";
+const DEFAULT_HTTP_URL = `${getExternalIntegrationConfig("testnet").morpheusPublicApiUrl}/health`;
 
 export const appMeta = {
   networkLabel: "Morpheus Testnet",
@@ -66,13 +68,13 @@ export const consoleConfig: ConsoleToolConfig = {
         { value: "POST", label: "POST" },
       ],
     },
-    { key: "url", labelKey: "url", placeholderKey: "urlPlaceholder", type: "text", defaultValue: "https://oracle.meshmini.app/health" },
+    { key: "url", labelKey: "url", placeholderKey: "urlPlaceholder", type: "text", defaultValue: DEFAULT_HTTP_URL },
     { key: "jsonPath", labelKey: "jsonPath", placeholderKey: "jsonPathPlaceholder", type: "text", defaultValue: "$.status" },
     { key: "body", labelKey: "body", placeholderKey: "bodyPlaceholder", type: "textarea", defaultValue: "" },
   ],
   buildResult(values, t) {
     const method = clean(values.method, "GET");
-    const url = clean(values.url, "https://oracle.meshmini.app/health");
+    const url = clean(values.url, DEFAULT_HTTP_URL);
     const jsonPath = clean(values.jsonPath, "$.status");
     const body = clean(values.body, "");
     const digest = previewId(`${method}|${url}|${jsonPath}|${body}`);
@@ -111,7 +113,7 @@ const appMessages = {
   runAction: { en: "Preview Request", zh: "预览请求" },
   method: { en: "Method", zh: "方法" },
   url: { en: "URL", zh: "URL" },
-  urlPlaceholder: { en: "https://oracle.meshmini.app/health", zh: "https://oracle.meshmini.app/health" },
+  urlPlaceholder: { en: DEFAULT_HTTP_URL, zh: DEFAULT_HTTP_URL },
   jsonPath: { en: "JSON Path", zh: "JSON 路径" },
   jsonPathPlaceholder: { en: "$.status", zh: "$.status" },
   body: { en: "Body", zh: "Body" },

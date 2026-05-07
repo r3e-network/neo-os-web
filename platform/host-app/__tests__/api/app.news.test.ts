@@ -37,4 +37,45 @@ describe("/api/app/[id]/news", () => {
     expect(res._getStatusCode()).toBe(200);
     expect(JSON.parse(res._getData())).toEqual({ items: [], total: 0 });
   });
+
+  it("degrades optional news to an empty feed when edge is not configured", async () => {
+    Reflect.deleteProperty(process.env, "EDGE_BASE_URL");
+    global.fetch = jest.fn() as unknown as typeof global.fetch;
+
+    const handler = require("@/pages/api/app/[id]/news").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { id: "miniapp-gas-lucky-pool", limit: "5", network: "testnet" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toEqual({ items: [], total: 0 });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid network scopes before building the edge request", async () => {
+    process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
+    global.fetch = jest.fn() as unknown as typeof global.fetch;
+
+    const handler = require("@/pages/api/app/[id]/news").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { id: "miniapp-gas-lucky-pool", network: "devnet" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });

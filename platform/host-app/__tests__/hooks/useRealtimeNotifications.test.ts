@@ -773,5 +773,24 @@ describe("useRealtimeNotifications", () => {
       });
       expect(supabase.from).not.toHaveBeenCalledWith("miniapp_notifications");
     });
+
+    it("should include network when fetching app-scoped notifications", async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [] }),
+      } as Response);
+
+      renderHook(() =>
+        useRealtimeNotifications({ appId: "my-app", network: "testnet" }),
+      );
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/api/app/my-app/news?limit=50&network=testnet",
+          expect.objectContaining({ method: "GET" }),
+        );
+      });
+    });
   });
 });

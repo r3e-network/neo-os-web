@@ -301,8 +301,12 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
     detailConfig.operations = fallback.operations ?? detailConfig.operations;
   }
 
-  const logoUrl = toString(obj.logo_url ?? manifestCandidate.logo_url ?? fallback?.logo_url ?? "").trim() || null;
-  const bannerUrl = toString(obj.banner_url ?? manifestCandidate.banner_url ?? fallback?.banner_url ?? "").trim() || null;
+  const logoUrl = toString(
+    obj.logo_url ?? manifestCandidate.logo_url ?? manifestUrls.icon ?? fallback?.logo_url ?? "",
+  ).trim() || null;
+  const bannerUrl = toString(
+    obj.banner_url ?? manifestCandidate.banner_url ?? manifestUrls.banner ?? fallback?.banner_url ?? "",
+  ).trim() || null;
   const docsUrl = toString(obj.docs_url ?? manifestCandidate.docs_url ?? fallback?.docs_url ?? "").trim() || null;
 
   const app: MiniAppInfo = {

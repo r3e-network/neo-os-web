@@ -41,7 +41,6 @@ import {
   Sparkles,
   Ticket,
   Timer,
-  Trophy,
   UserCheck,
   Users,
   Vault,
@@ -53,6 +52,11 @@ import {
 
 import type { MiniAppInfo, MiniAppLaunchContext } from "@/components/types";
 import { getLaunchParam } from "@/lib/miniapp-launch-params";
+import { buildOneGateDirectMiniAppUrl } from "../../../../apps/shared/utils/onegate-launch";
+import {
+  getExternalIntegrationConfig,
+  resolveNeoNetwork,
+} from "../../../../apps/shared/constants/rpc";
 import {
   buildConfidentialTransferPackage,
   encryptJsonWithOraclePublicKey,
@@ -92,6 +96,7 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-fogplay": FogPlayPlayArea,
   "miniapp-gasbox": GasBoxPlayArea,
   "miniapp-redenvelope": RedEnvelopePlayArea,
+  "miniapp-gas-lucky-pool": GasLuckyPoolPlayArea,
   "miniapp-dailycheckin": DailyCheckinPlayArea,
   "miniapp-self-loan": SelfLoanPlayArea,
   "miniapp-profitanchor": ProfitAnchorPlayArea,
@@ -129,32 +134,18 @@ type ProfileCard = {
   value: string;
 };
 
-type ProfileVisualLayout =
-  | "pipeline"
-  | "market"
-  | "ballot"
-  | "scoreboard"
-  | "proof"
-  | "vault"
-  | "gallery"
-  | "timeline"
-  | "converter"
-  | "qr"
-  | "checklist"
-  | "ledger"
-  | "stream";
-
 type ProfileVisual = {
-  layout: ProfileVisualLayout;
   headline: string;
   slots: string[];
   footnote?: string;
 };
 
+type PlayTone = "emerald" | "violet" | "amber" | "rose" | "sky" | "slate";
+
 type PlayAreaProfile = {
   title: string;
   subtitle: string;
-  tone: "emerald" | "violet" | "amber" | "rose" | "sky" | "slate";
+  tone: PlayTone;
   icon: React.ReactNode;
   fields: ProfileField[];
   cards: ProfileCard[];
@@ -181,7 +172,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Resolve AA core", "Derive account id", "Bind owner witness", "Submit register"],
     primaryAction: "Stage account registration",
     visual: {
-      layout: "pipeline",
       headline: "Registration flow",
       slots: ["Owner", "Salt", "Account ID", "AA Core"],
       footnote: "The preview mirrors the shared AA registration path.",
@@ -204,7 +194,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Draft listing", "Lock funds", "Accept counterparty", "Settle or dispute"],
     primaryAction: "Stage listing",
     visual: {
-      layout: "market",
       headline: "Trustless listing board",
       slots: ["Draft", "Funded", "Accepted", "Settled"],
     },
@@ -226,7 +215,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Read bindings", "Compare desired policy", "Stage update", "Verify event"],
     primaryAction: "Stage permission update",
     visual: {
-      layout: "checklist",
       headline: "Binding matrix",
       slots: ["Verifier active", "Hook enabled", "Witness required", "Event audit"],
     },
@@ -248,7 +236,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Encode payload", "Attach sponsor", "Check nonce", "Relay atomically"],
     primaryAction: "Build relay package",
     visual: {
-      layout: "proof",
       headline: "Relay envelope",
       slots: ["method", "nonce", "sponsor", "signature"],
       footnote: "A relay package must be complete before it leaves the console.",
@@ -271,7 +258,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Define scope", "Set limit", "Bind verifier", "Activate key"],
     primaryAction: "Stage session key",
     visual: {
-      layout: "timeline",
       headline: "Scoped key lifecycle",
       slots: ["Issue", "Use", "Throttle", "Expire"],
     },
@@ -293,7 +279,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Select trigger", "Attach oracle", "Review action", "Enable monitor"],
     primaryAction: "Stage automation",
     visual: {
-      layout: "pipeline",
       headline: "Runbook chain",
       slots: ["Trigger", "Oracle", "Policy", "Action"],
     },
@@ -315,7 +300,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Draft terms", "Invite counterparty", "Lock assets", "Release split"],
     primaryAction: "Stage agreement",
     visual: {
-      layout: "ledger",
       headline: "Split ledger",
       slots: ["Party A", "Party B", "Shared pool", "Release"],
     },
@@ -337,7 +321,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Choose league", "Preview burn", "Submit burn", "Update rank"],
     primaryAction: "Stage burn entry",
     visual: {
-      layout: "scoreboard",
       headline: "Leaderboard impact",
       slots: ["You", "Top 10", "Weekly", "Final"],
     },
@@ -359,7 +342,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Read proposal", "Check quorum", "Stage vote", "Confirm receipt"],
     primaryAction: "Stage council vote",
     visual: {
-      layout: "ballot",
       headline: "Council ballot",
       slots: ["Approve", "Reject", "Abstain", "Needs quorum"],
     },
@@ -381,7 +363,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Pick developer", "Write note", "Preview tip", "Send receipt"],
     primaryAction: "Stage tip",
     visual: {
-      layout: "stream",
       headline: "Tip flow",
       slots: ["Sender", "Message", "Developer", "Receipt"],
     },
@@ -403,9 +384,76 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Create event", "Mint passes", "Scan QR", "Mark used"],
     primaryAction: "Stage ticket batch",
     visual: {
-      layout: "qr",
       headline: "Event pass preview",
       slots: ["NEP-11", "QR", "Gate", "Used"],
+    },
+  },
+  "miniapp-asset-factory": {
+    title: "NEP-17 asset factory",
+    subtitle: "Prepare a token launch from audited on-chain templates; only safe template parameters are customized at publish time.",
+    tone: "emerald",
+    icon: <Boxes className="h-5 w-5" />,
+    fields: [
+      { key: "symbol", label: "Symbol", defaultValue: "R3E" },
+      { key: "name", label: "Asset name", defaultValue: "R3E Credits" },
+      { key: "supply", label: "Initial supply", defaultValue: "1000000", type: "number" },
+    ],
+    cards: [
+      { label: "Template", value: "NEP-17" },
+      { label: "Artifact", value: "on-chain" },
+      { label: "Wallet", value: "NEP-21" },
+    ],
+    steps: ["Choose audited template", "Set token parameters", "Review owner controls", "Stage deployment"],
+    primaryAction: "Stage NEP-17 launch",
+    visual: {
+      headline: "Token launch checklist",
+      slots: ["Template", "Symbol", "Supply", "Owner"],
+      footnote: "The factory flow references pre-published templates instead of uploading arbitrary NEF/manifest files.",
+    },
+  },
+  "miniapp-nft-factory": {
+    title: "NEP-11 collection factory",
+    subtitle: "Configure collection metadata, mint rules, and royalty policy while keeping the audited template fixed.",
+    tone: "violet",
+    icon: <ImageIcon className="h-5 w-5" />,
+    fields: [
+      { key: "symbol", label: "Collection symbol", defaultValue: "ART" },
+      { key: "name", label: "Collection name", defaultValue: "Neo Editions" },
+      { key: "royalty", label: "Royalty", defaultValue: "5", suffix: "%", type: "number" },
+    ],
+    cards: [
+      { label: "Template", value: "NEP-11" },
+      { label: "Metadata", value: "IPFS/R2" },
+      { label: "Minting", value: "policy gated" },
+    ],
+    steps: ["Select collection template", "Attach metadata policy", "Review mint controls", "Stage collection"],
+    primaryAction: "Stage NEP-11 collection",
+    visual: {
+      headline: "Collection launch board",
+      slots: ["Template", "Metadata", "Mint policy", "Royalty"],
+    },
+  },
+  "miniapp-miniapp-factory": {
+    title: "MiniApp factory",
+    subtitle: "Assemble a platform MiniApp from approved modules, launch metadata, OneGate parameters, and template-bound contracts.",
+    tone: "sky",
+    icon: <WandSparkles className="h-5 w-5" />,
+    fields: [
+      { key: "appName", label: "MiniApp name", defaultValue: "Focused Asset" },
+      { key: "template", label: "Template", defaultValue: "utility" },
+      { key: "owner", label: "Owner address", defaultValue: "" },
+    ],
+    cards: [
+      { label: "Modules", value: "approved" },
+      { label: "OneGate", value: "URL params" },
+      { label: "Catalog", value: "ready" },
+    ],
+    steps: ["Pick app template", "Bind owner and modules", "Review OneGate launch URL", "Stage catalog entry"],
+    primaryAction: "Stage MiniApp launch",
+    visual: {
+      headline: "MiniApp publish path",
+      slots: ["Template", "Owner", "Launch URL", "Catalog"],
+      footnote: "The factory keeps the generated app focused and avoids custom contract uploads in the user flow.",
     },
   },
   "miniapp-flashloan": {
@@ -425,7 +473,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Borrow", "Execute route", "Repay", "Keep surplus"],
     primaryAction: "Stage flash route",
     visual: {
-      layout: "pipeline",
       headline: "Atomic loan path",
       slots: ["Borrow", "Trade", "Repay", "Profit"],
     },
@@ -447,7 +494,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Select photo", "Encrypt metadata", "Write hash", "Open album"],
     primaryAction: "Stage album entry",
     visual: {
-      layout: "gallery",
       headline: "Wallet album preview",
       slots: ["Photo", "Hash", "Owner", "Album"],
     },
@@ -469,7 +515,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Choose contract", "Set cap", "Enable sponsor", "Audit usage"],
     primaryAction: "Stage sponsor policy",
     visual: {
-      layout: "checklist",
       headline: "Sponsorship rules",
       slots: ["Low balance", "Contract allowlist", "Daily cap", "Usage log"],
     },
@@ -491,7 +536,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Compare delegates", "Set duration", "Delegate power", "Track result"],
     primaryAction: "Stage delegation",
     visual: {
-      layout: "market",
       headline: "Voting power offers",
       slots: ["Delegate", "Rate", "Epoch", "Reward"],
     },
@@ -513,7 +557,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Encrypt memory", "Commit hash", "Set price", "Bury record"],
     primaryAction: "Stage burial",
     visual: {
-      layout: "vault",
       headline: "Sealed memory",
       slots: ["Ciphertext", "Hash", "Price", "Buried"],
     },
@@ -535,7 +578,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Write tribute", "Preview wall", "Anchor proof", "Share memorial"],
     primaryAction: "Stage tribute",
     visual: {
-      layout: "gallery",
       headline: "Shrine wall",
       slots: ["Portrait", "Message", "Proof", "Visitors"],
     },
@@ -557,7 +599,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Fund escrow", "Submit milestone", "Approve work", "Release funds"],
     primaryAction: "Stage escrow",
     visual: {
-      layout: "timeline",
       headline: "Milestone release plan",
       slots: ["Fund", "M1", "M2", "Release"],
     },
@@ -579,7 +620,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Paste value", "Detect format", "Convert", "Copy output"],
     primaryAction: "Convert value",
     visual: {
-      layout: "converter",
       headline: "Address converter",
       slots: ["Address", "Script hash", "Endian", "Copy"],
     },
@@ -601,7 +641,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Select assets", "Preview quote", "Check slippage", "Stage swap"],
     primaryAction: "Preview swap route",
     visual: {
-      layout: "converter",
       headline: "Swap quote route",
       slots: ["NEO", "Route", "GAS", "Confirm"],
       footnote: "The shared operation panel handles wallet submission after the quote is reviewed.",
@@ -624,7 +663,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Draft transfer", "Invite signers", "Collect threshold", "Broadcast"],
     primaryAction: "Stage multisig request",
     visual: {
-      layout: "checklist",
       headline: "Signature progress",
       slots: ["Signer 1", "Signer 2", "Signer 3", "Threshold"],
     },
@@ -646,7 +684,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Search name", "Resolve price", "Register", "Set resolver"],
     primaryAction: "Stage domain registration",
     visual: {
-      layout: "proof",
       headline: "Name resolution",
       slots: ["name", "owner", "resolver", "expiry"],
     },
@@ -668,7 +705,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Fund vault", "Create stream", "Claim vested", "Cancel if needed"],
     primaryAction: "Stage shared stream",
     visual: {
-      layout: "stream",
       headline: "Shared runtime stream",
       slots: ["Vault", "Stream", "Claim", "Cancel"],
     },
@@ -690,7 +726,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Write message", "Hash digest", "Sign wallet", "Verify signature"],
     primaryAction: "Stage signature",
     visual: {
-      layout: "proof",
       headline: "Signature envelope",
       slots: ["Message", "Digest", "Signature", "Verifier"],
     },
@@ -712,7 +747,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Select fund", "Read balances", "Inspect movement", "Export proof"],
     primaryAction: "Refresh treasury",
     visual: {
-      layout: "ledger",
       headline: "Treasury ledger",
       slots: ["NEO", "GAS", "NEP-17", "History"],
     },
@@ -734,7 +768,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Load DID", "Select claims", "Package proof", "Verify request"],
     primaryAction: "Stage credential proof",
     visual: {
-      layout: "qr",
       headline: "Passport card",
       slots: ["DID", "Claim", "Issuer", "Proof"],
     },
@@ -756,7 +789,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Choose grant", "Add contribution", "Preview match", "Submit donation"],
     primaryAction: "Stage contribution",
     visual: {
-      layout: "scoreboard",
       headline: "Matching pool impact",
       slots: ["Grant A", "Grant B", "Your match", "Pool"],
     },
@@ -778,7 +810,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Open ticket", "Notify guardians", "Wait timelock", "Execute recovery"],
     primaryAction: "Stage recovery ticket",
     visual: {
-      layout: "timeline",
       headline: "Recovery path",
       slots: ["Ticket", "Guardian", "Timelock", "Recover"],
     },
@@ -800,7 +831,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Enter recipient", "Attach claim", "Mint certificate", "Share proof"],
     primaryAction: "Stage certificate",
     visual: {
-      layout: "proof",
       headline: "Soulbound credential",
       slots: ["Recipient", "Claim", "Issuer", "Token ID"],
     },
@@ -822,7 +852,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Hash message", "Set unlock", "Seal capsule", "Open later"],
     primaryAction: "Stage capsule",
     visual: {
-      layout: "timeline",
       headline: "Capsule schedule",
       slots: ["Seal", "Wait", "Unlock", "Reveal"],
     },
@@ -844,7 +873,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Hash file", "Anchor digest", "Record block", "Verify proof"],
     primaryAction: "Stage timestamp",
     visual: {
-      layout: "proof",
       headline: "Proof journal",
       slots: ["File", "SHA-256", "Block", "Verify"],
     },
@@ -866,7 +894,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Lock bounty", "Publish hash", "Submit preimage", "Release reward"],
     primaryAction: "Stage vault",
     visual: {
-      layout: "vault",
       headline: "Bounty vault",
       slots: ["Hash", "Bounty", "Preimage", "Release"],
     },
@@ -888,7 +915,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: ["Read balances", "Check approvals", "Review activity", "Export checklist"],
     primaryAction: "Run health check",
     visual: {
-      layout: "checklist",
       headline: "Safety checklist",
       slots: ["Balance ok", "No risky approvals", "Backup checked", "Recent tx clean"],
     },
@@ -973,6 +999,18 @@ function profileDefaultValue(field: ProfileField) {
   const value = field.defaultValue.trim();
   if (!value) return "";
   if (/(\.\.\.|builder|alice|bob|carol|cip-\d+)/i.test(value)) return "";
+  if (field.type === "number" || field.suffix) return value;
+  if (["action", "asset", "format", "mode", "route", "scope", "threshold", "trigger", "vote"].includes(field.key)) {
+    return value;
+  }
+  if (/^(approve|transfer|script hash|connected wallet|balances \+ approvals)$/i.test(value)) return value;
+  return "";
+}
+
+function profilePlaceholderValue(field: ProfileField) {
+  const value = field.defaultValue.trim();
+  if (!value) return undefined;
+  if (field.type === "number" || field.suffix) return undefined;
   return value;
 }
 
@@ -980,6 +1018,64 @@ function shortHash(value?: string | null) {
   if (!value) return "shared runtime";
   if (value.length <= 14) return value;
   return `${value.slice(0, 8)}...${value.slice(-6)}`;
+}
+
+const TONE_STYLES: Record<
+  PlayTone,
+  {
+    accent: string;
+    soft: string;
+    active: string;
+    text: string;
+    ring: string;
+  }
+> = {
+  emerald: {
+    accent: "bg-emerald-500",
+    soft: "bg-emerald-50",
+    active: "border-emerald-500 bg-emerald-50 text-emerald-950",
+    text: "text-emerald-700",
+    ring: "focus-visible:ring-emerald-400/40",
+  },
+  violet: {
+    accent: "bg-violet-500",
+    soft: "bg-violet-50",
+    active: "border-violet-500 bg-violet-50 text-violet-950",
+    text: "text-violet-700",
+    ring: "focus-visible:ring-violet-400/40",
+  },
+  amber: {
+    accent: "bg-amber-500",
+    soft: "bg-amber-50",
+    active: "border-amber-500 bg-amber-50 text-amber-950",
+    text: "text-amber-700",
+    ring: "focus-visible:ring-amber-400/40",
+  },
+  rose: {
+    accent: "bg-rose-500",
+    soft: "bg-rose-50",
+    active: "border-rose-500 bg-rose-50 text-rose-950",
+    text: "text-rose-700",
+    ring: "focus-visible:ring-rose-400/40",
+  },
+  sky: {
+    accent: "bg-sky-500",
+    soft: "bg-sky-50",
+    active: "border-sky-500 bg-sky-50 text-sky-950",
+    text: "text-sky-700",
+    ring: "focus-visible:ring-sky-400/40",
+  },
+  slate: {
+    accent: "bg-slate-800",
+    soft: "bg-slate-50",
+    active: "border-slate-700 bg-slate-50 text-slate-950",
+    text: "text-slate-700",
+    ring: "focus-visible:ring-slate-400/40",
+  },
+};
+
+function toneStyle(tone: PlayTone = "emerald") {
+  return TONE_STYLES[tone];
 }
 
 function PlayShell({
@@ -994,42 +1090,45 @@ function PlayShell({
   app: MiniAppInfo;
   title: string;
   subtitle: string;
-  tone?: "emerald" | "violet" | "amber" | "rose" | "sky" | "slate";
+  tone?: PlayTone;
   children: React.ReactNode;
   side?: React.ReactNode;
   footer?: React.ReactNode;
 }) {
-  const toneClass = {
-    emerald: "from-emerald-50 via-white to-teal-50 border-emerald-100",
-    violet: "from-violet-50 via-white to-indigo-50 border-violet-100",
-    amber: "from-amber-50 via-white to-orange-50 border-amber-100",
-    rose: "from-rose-50 via-white to-red-50 border-rose-100",
-    sky: "from-sky-50 via-white to-cyan-50 border-sky-100",
-    slate: "from-slate-50 via-white to-gray-50 border-slate-100",
-  }[tone];
+  const styles = toneStyle(tone);
 
   return (
-    <div className={`border bg-gradient-to-br ${toneClass}`}>
-      <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
+    <div className="bg-white">
+      <div className="border-b border-gray-200 px-4 py-4 sm:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
+              <span className="truncate text-xs font-black uppercase tracking-wide text-gray-500">
                 {app.name}
-              </p>
-              <h2 className="m-0 text-2xl font-black tracking-tight text-gray-950 sm:text-3xl">
-                {title}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-                {subtitle}
-              </p>
+              </span>
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase text-gray-500">
+                Native dApp
+              </span>
             </div>
+            <h2 className="m-0 text-xl font-black tracking-tight text-gray-950 sm:text-2xl">
+              {title}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+              {subtitle}
+            </p>
           </div>
-          {children}
         </div>
-        {side && <div className="min-w-0">{side}</div>}
       </div>
-      {footer && <div className="border-t border-gray-200 bg-white/70 px-4 py-3 sm:px-5">{footer}</div>}
+      <div className="space-y-4 p-4 sm:p-5">
+        <div className="min-w-0">{children}</div>
+        {side && (
+          <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+            <div className="grid gap-3 xl:grid-cols-2">{side}</div>
+          </div>
+        )}
+      </div>
+      {footer && <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-5">{footer}</div>}
     </div>
   );
 }
@@ -1068,7 +1167,7 @@ function MetricGrid({ stats }: { stats: PlayMetric[] }) {
   return (
     <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
       {stats.slice(0, 4).map((item) => (
-        <div key={item.label} className="rounded-lg border border-gray-200 bg-white/80 p-3">
+        <div key={item.label} className="rounded-lg border border-gray-200 bg-white p-3">
           <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
             {item.label}
           </p>
@@ -1083,7 +1182,7 @@ function MetricGrid({ stats }: { stats: PlayMetric[] }) {
 
 function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+    <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-gray-900">
           {activity?.title || "Recent activity"}
@@ -1130,32 +1229,142 @@ function PrimaryAction({ children, onClick }: { children: React.ReactNode; onCli
 function Field({
   label,
   value,
-  onChange,
+  onChange: _onChange,
   suffix,
-  type = "text",
+  placeholder,
+  type: _type = "text",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   suffix?: string;
+  placeholder?: string;
   type?: "text" | "number";
 }) {
+  const displayValue = value || placeholder || "Set in action console";
   return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-bold uppercase text-gray-500">{label}</span>
-      <div className="flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2">
-        <input
-          aria-label={label}
-          value={value}
-          type={type}
-          min={type === "number" ? "0" : undefined}
-          onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 border-0 bg-transparent text-sm font-semibold text-gray-950 outline-none"
-        />
+    <div className="block">
+      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+        {label}
+      </span>
+      <div className="flex min-h-11 items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-black text-gray-950">
+          {displayValue}
+        </span>
         {suffix && <span className="ml-2 text-xs font-bold text-gray-400">{suffix}</span>}
       </div>
-    </label>
+    </div>
   );
+}
+
+function ActionRow({
+  label,
+  detail,
+  value,
+  valueLabel,
+  tone = "emerald",
+  active,
+  icon,
+  onClick,
+}: {
+  label: string;
+  detail?: string;
+  value?: string;
+  valueLabel?: string;
+  tone?: PlayTone;
+  active?: boolean;
+  icon?: React.ReactNode;
+  onClick?: () => void;
+}) {
+  const styles = toneStyle(tone);
+  const className = `group flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition ${
+    active ? styles.active : "border-gray-200 bg-white text-gray-950"
+  }`;
+  const content = (
+    <>
+      <div className="flex min-w-0 items-center gap-3">
+        {icon && (
+          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? "bg-white/75" : styles.soft} ${styles.text}`}>
+            {icon}
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black">{label}</span>
+          {detail && <span className="mt-0.5 block truncate text-xs font-semibold text-gray-500">{detail}</span>}
+        </span>
+      </div>
+      {(value || valueLabel) && (
+        <span className="shrink-0 text-right">
+          {value && <span className="block text-sm font-black tabular-nums text-gray-950">{value}</span>}
+          {valueLabel && <span className="block text-[10px] font-black uppercase tracking-wide text-gray-400">{valueLabel}</span>}
+        </span>
+      )}
+    </>
+  );
+
+  return <div className={className}>{content}</div>;
+}
+
+function ActionBoard({
+  title,
+  subtitle,
+  rows,
+  tone = "emerald",
+}: {
+  title: string;
+  subtitle?: string;
+  rows: Array<{
+    label: string;
+    detail?: string;
+    value?: string;
+    valueLabel?: string;
+    active?: boolean;
+    icon?: React.ReactNode;
+    onClick?: () => void;
+  }>;
+  tone?: PlayTone;
+}) {
+  const styles = toneStyle(tone);
+  return (
+    <section className="rounded-lg border border-gray-200 bg-white p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
+          {subtitle && <p className="m-0 mt-1 text-xs leading-5 text-gray-500">{subtitle}</p>}
+        </div>
+        <span className={`mt-1 h-2.5 w-2.5 rounded-full ${styles.accent}`} />
+      </div>
+      <div className="space-y-2">
+        {rows.map((row) => (
+          <ActionRow key={`${row.label}:${row.detail || row.value || ""}`} {...row} tone={tone} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ActionTicket({
+  title: _title,
+  description: _description,
+  icon: _icon,
+  tone: _tone = "emerald",
+  children: _children,
+  actionLabel: _actionLabel,
+  actionIcon: _actionIcon,
+  onAction: _onAction,
+  disabled: _disabled,
+}: {
+  title: string;
+  description?: string;
+  icon?: React.ReactNode;
+  tone?: PlayTone;
+  children: React.ReactNode;
+  actionLabel: string;
+  actionIcon?: React.ReactNode;
+  onAction?: () => void;
+  disabled?: boolean;
+}) {
+  return null;
 }
 
 function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
@@ -1177,19 +1386,7 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="grid place-items-center rounded-lg border border-rose-100 bg-white/75 p-5">
-          <div className="grid h-44 w-44 place-items-center rounded-full border-[10px] border-rose-500 bg-white shadow-inner">
-            <div className="text-center">
-              <p className="m-0 text-[10px] font-black uppercase text-rose-600">Countdown</p>
-              <p className="m-0 mt-1 text-2xl font-black tabular-nums text-gray-950">
-                {countdown}
-              </p>
-              <p className="m-0 mt-1 text-xs font-semibold text-gray-500">{status}</p>
-            </div>
-          </div>
-        </div>
-        <div className="space-y-3">
+      <div className="space-y-3">
           {needsRollover && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
               <p className="m-0 text-sm font-bold text-amber-900">Next round is ready to start</p>
@@ -1200,20 +1397,54 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
               </p>
             </div>
           )}
-          <MetricGrid stats={stats} />
-          <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Live round market"
+            subtitle="Timer, pool, and key price stay visible so the user understands the round before buying."
+            tone="rose"
+            rows={[
+              {
+                label: "Countdown",
+                detail: status,
+                value: countdown,
+                valueLabel: "time left",
+                active: true,
+                icon: <Timer className="h-4 w-4" />,
+              },
+              {
+                label: "Prize pool",
+                detail: "Winner receives the current round pool",
+                value: getMetric(statsMap, "Prize Pool", "0 GAS"),
+                valueLabel: "pool",
+              },
+              {
+                label: "Key price",
+                detail: "Each purchase extends the active timer",
+                value: formatGas(keyPrice),
+                valueLabel: "per key",
+              },
+              {
+                label: "Round",
+                detail: "Automatic rollover after settlement",
+                value: getMetric(statsMap, "Round", "#0"),
+                valueLabel: "id",
+              },
+            ]}
+          />
+          <ActionTicket
+            title="Buy keys"
+            description="Preview cost and round impact before preparing the wallet action."
+            icon={<Timer className="h-4 w-4" />}
+            tone="rose"
+            actionLabel="Preview key purchase"
+            actionIcon={<Timer className="h-4 w-4" />}
+          >
             <Field label="Keys to buy" value={keys} onChange={setKeys} type="number" suffix="keys" />
-            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-              <PreviewStat label="Estimated cost" value={formatGas(projected)} />
-              <PreviewStat label="Current pool" value={getMetric(statsMap, "Prize Pool", "0 GAS")} />
-              <PreviewStat label="Current round" value={getMetric(statsMap, "Round", "#0")} />
-            </div>
-            <div className="mt-4">
-              <PrimaryAction>
-                Preview key purchase <Timer className="h-4 w-4" />
-              </PrimaryAction>
-            </div>
-          </div>
+            <PreviewStat label="Estimated cost" value={formatGas(projected)} />
+          </ActionTicket>
+        </div>
+        <div className="space-y-3">
+          <MetricGrid stats={stats} />
         </div>
       </div>
     </PlayShell>
@@ -1224,7 +1455,6 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const [side, setSide] = useLaunchChoiceState(launchContext, ["side", "choice"], ["heads", "tails"] as const, "heads");
   const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "stake", "bet"], "0.10");
-  const [spin, setSpin] = useState(false);
   const payout = (Number(amount) || 0) * 2;
 
   return (
@@ -1236,44 +1466,34 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
       side={<MetricGrid stats={stats} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="grid place-items-center rounded-lg border border-violet-100 bg-slate-950 p-5 text-white">
-          <button
-            type="button"
-            onClick={() => setSpin((value) => !value)}
-            className={`grid h-36 w-36 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 text-3xl font-black text-amber-950 shadow-2xl transition ${spin ? "rotate-180" : ""}`}
-            aria-label="Flip local coin preview"
-          >
-            {side === "heads" ? "H" : "T"}
-          </button>
-        </div>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            {(["heads", "tails"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setSide(option)}
-                className={`rounded-lg border px-4 py-3 text-sm font-black capitalize transition ${
-                  side === option
-                    ? "border-violet-500 bg-violet-600 text-white"
-                    : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+      <div className="grid gap-3">
+        <ActionBoard
+          title="Flip market"
+          subtitle="Pick one outcome and see the exact payout preview before signing."
+          tone="violet"
+          rows={(["heads", "tails"] as const).map((option) => ({
+            label: option === "heads" ? "Heads" : "Tails",
+            detail: option === "heads" ? "Oracle result equals heads" : "Oracle result equals tails",
+            value: "2.00x",
+            valueLabel: "payout",
+            active: side === option,
+            icon: <Dice5 className="h-4 w-4" />,
+            onClick: () => setSide(option),
+          }))}
+        />
+        <ActionTicket
+          title="Bet ticket"
+          description="Set stake and outcome. The wallet action uses the selected side."
+          icon={<Dice5 className="h-4 w-4" />}
+          tone="violet"
+          actionLabel="Stage coin flip"
+          actionIcon={<Dice5 className="h-4 w-4" />}
+        >
           <Field label="Stake" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-          <div className="grid gap-2 sm:grid-cols-3">
-            <PreviewStat label="Potential payout" value={formatGas(payout)} />
-            <PreviewStat label="Min bet" value={getMetric(statsMap, "Min Bet", "--")} />
-            <PreviewStat label="Max bet" value={getMetric(statsMap, "Max Bet", "--")} />
-          </div>
-          <PrimaryAction>
-            Stage coin flip <Dice5 className="h-4 w-4" />
-          </PrimaryAction>
-        </div>
+          <PreviewStat label="Outcome" value={side} />
+          <PreviewStat label="Potential payout" value={formatGas(payout)} />
+          <PreviewStat label="Limits" value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`} />
+        </ActionTicket>
       </div>
     </PlayShell>
   );
@@ -1294,38 +1514,40 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="rounded-lg border border-amber-100 bg-white/80 p-5">
-          <div className="mx-auto grid h-56 max-w-[180px] place-items-center rounded-2xl bg-gradient-to-b from-amber-400 to-orange-500 p-4 shadow-inner">
-            <div className="grid h-28 w-28 grid-cols-3 gap-1 rounded-full border-4 border-white/70 bg-white/50 p-3">
-              {["bg-rose-400", "bg-emerald-400", "bg-sky-400", "bg-violet-400", "bg-yellow-300", "bg-pink-400"].map((color, index) => (
-                <span key={`${color}:${index}`} className={`rounded-full ${color}`} />
-              ))}
-            </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-amber-700">
-              Machine #{selected}
-            </span>
-          </div>
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Machine selector"
+            subtitle="Each machine is a separate prize pool. Pick the active machine before staging a draw."
+            tone="amber"
+            rows={Array.from({ length: Math.min(machines, 6) }, (_, index) => {
+              const machine = index + 1;
+              return {
+                label: `Machine #${machine}`,
+                detail: machine === selected ? "Selected for next draw" : "Available draw pool",
+                value: machine === selected ? "selected" : "ready",
+                valueLabel: "state",
+                active: selected === machine,
+                icon: <Boxes className="h-4 w-4" />,
+                onClick: () => setSelectedRaw(String(machine)),
+              };
+            })}
+          />
+          <ActionTicket
+            title="Draw ticket"
+            description="Review the selected machine and prize pool before preparing the draw."
+            icon={<Boxes className="h-4 w-4" />}
+            tone="amber"
+            actionLabel="Stage capsule draw"
+            actionIcon={<Boxes className="h-4 w-4" />}
+          >
+            <PreviewStat label="Selected machine" value={`#${selected}`} />
+            <PreviewStat label="Machines online" value={String(machines)} />
+            <PreviewStat label="Draw asset" value="GAS" />
+          </ActionTicket>
         </div>
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: Math.min(machines, 6) }, (_, index) => index + 1).map((machine) => (
-              <button
-                key={machine}
-                type="button"
-                onClick={() => setSelectedRaw(String(machine))}
-                className={`rounded-lg border px-3 py-2 text-sm font-bold ${
-                  selected === machine ? "border-amber-500 bg-amber-500 text-white" : "border-gray-200 bg-white text-gray-700"
-                }`}
-              >
-                #{machine}
-              </button>
-            ))}
-          </div>
           <MetricGrid stats={stats} />
-          <PrimaryAction>
-            Stage capsule draw <Boxes className="h-4 w-4" />
-          </PrimaryAction>
         </div>
       </div>
     </PlayShell>
@@ -1347,31 +1569,158 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="grid place-items-center rounded-lg border border-red-100 bg-red-50 p-5">
-          <div className="relative h-44 w-36 rounded-2xl bg-gradient-to-b from-red-500 to-red-700 shadow-xl">
-            <div className="absolute left-1/2 top-14 grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-amber-300 text-xl font-black text-red-800">
-              GAS
-            </div>
-            <div className="absolute bottom-4 left-4 right-4 rounded-lg bg-white/15 p-2 text-center text-xs font-bold text-white">
-              {packets} packets
-            </div>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Envelope split"
+            subtitle="Keep the funding amount, packet count, and claim mechanics visible before sharing."
+            tone="rose"
+            rows={[
+              {
+                label: "Total funding",
+                detail: "Deposited into the envelope",
+                value: formatGas(Number(amount) || 0),
+                valueLabel: "amount",
+                active: true,
+                icon: <Gift className="h-4 w-4" />,
+              },
+              {
+                label: "Packet count",
+                detail: "Number of claimable packets",
+                value: packets,
+                valueLabel: "claims",
+              },
+              {
+                label: "Average packet",
+                detail: "Actual claim can use random split",
+                value: formatGas(avg),
+                valueLabel: "avg",
+              },
+              {
+                label: "Share code",
+                detail: "Generated after the wallet action confirms",
+                value: "pending",
+                valueLabel: "state",
+              },
+            ]}
+          />
+          <ActionTicket
+            title="Create envelope"
+            description="Set the funding amount and number of packets for this red envelope."
+            icon={<Gift className="h-4 w-4" />}
+            tone="rose"
+            actionLabel="Prepare envelope"
+            actionIcon={<Gift className="h-4 w-4" />}
+          >
             <Field label="Envelope amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
             <Field label="Packet count" value={packets} onChange={setPackets} type="number" suffix="claims" />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <PreviewStat label="Average packet" value={formatGas(avg)} />
             <PreviewStat label="Split mode" value="VRF lucky" />
-            <PreviewStat label="Share code" value="after submit" />
-          </div>
+          </ActionTicket>
+        </div>
+        <div className="space-y-3">
           <MetricGrid stats={stats} />
-          <PrimaryAction>
-            Prepare envelope <Gift className="h-4 w-4" />
-          </PrimaryAction>
+        </div>
+      </div>
+    </PlayShell>
+  );
+}
+
+function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
+  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const [claimKey, setClaimKey] = useLaunchParamState(launchContext, ["claimKey", "key", "code", "k"], "");
+  const [campaignId, setCampaignId] = useLaunchParamState(launchContext, ["campaignId", "campaign"], "spring-drop");
+  const [amount, setAmount] = useLaunchParamState(launchContext, ["amount", "totalAmount", "total"], "100");
+  const [minClaim, setMinClaim] = useLaunchParamState(launchContext, ["minClaim", "min"], "1");
+  const [maxClaim, setMaxClaim] = useLaunchParamState(launchContext, ["maxClaim", "max"], "50");
+  const [maxClaims, setMaxClaims] = useLaunchParamState(launchContext, ["maxClaims", "claims", "slots"], "20");
+  const minCapacity = (Number(minClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
+  const maxCapacity = (Number(maxClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
+  const claimUrl = claimKey
+    ? buildOneGateDirectMiniAppUrl("gas-lucky-pool", "miniapp-gas-lucky-pool", {
+        operation: "claimPool",
+        network,
+        claimKey,
+      })
+    : "generated when backend creates a recipient key";
+
+  return (
+    <PlayShell
+      app={app}
+      title="OneGate Vault"
+      subtitle="Server-backed OneGate GAS rewards: each QR carries a unique claim key, and the backend sends a randomized 1-50 GAS payout to the scanned wallet."
+      tone="emerald"
+      side={<ActivityPanel activity={activity} />}
+      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+    >
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Claim flow"
+            subtitle="OneGate passes the claim key from the QR code. The server validates the key, binds it to the wallet, sends GAS, and the page tracks the payout."
+            tone="emerald"
+            rows={[
+              {
+                label: "OneGate QR key",
+                detail: claimKey ? "Prefilled from scan parameters" : "Waiting for QR claimKey",
+                value: claimKey ? "ready" : "pending",
+                valueLabel: "key",
+                active: Boolean(claimKey),
+                icon: <Gift className="h-4 w-4" />,
+              },
+              {
+                label: "Claim range",
+                detail: "The backend chooses the final payout inside the 1-50 GAS range",
+                value: `${minClaim || "1"}-${maxClaim || "5"} GAS`,
+                valueLabel: "bounds",
+                active: true,
+                icon: <Coins className="h-4 w-4" />,
+              },
+              {
+                label: "Campaign capacity",
+                detail: "Backend inventory should cover the full configured campaign",
+                value: `${formatGas(minCapacity)} - ${formatGas(maxCapacity)}`,
+                valueLabel: "capacity",
+                icon: <Scale className="h-4 w-4" />,
+              },
+              {
+                label: "Single-use guard",
+                detail: "A used key is locked to the first wallet address",
+                value: "1x",
+                valueLabel: "key",
+                icon: <ShieldCheck className="h-4 w-4" />,
+              },
+            ]}
+          />
+          <ActionTicket
+            title="Claim ticket"
+            description="OneGate passes claimKey through the URL. The right-side operation console submits the key and connected wallet address to the backend, then displays the amount and luck percentile."
+            icon={<Gift className="h-4 w-4" />}
+            tone="emerald"
+            actionLabel="Claim reward"
+            actionIcon={<CheckCircle2 className="h-4 w-4" />}
+            disabled={!claimKey}
+          >
+            <Field label="Claim key" value={claimKey} onChange={setClaimKey} placeholder="ogv_campaign_user_key" />
+            <PreviewStat label="Claim URL" value={claimUrl} />
+            <PreviewStat label="Wallet rule" value="key binds to the first claiming address" />
+          </ActionTicket>
+        </div>
+        <div className="grid gap-3">
+          <ActionTicket
+            title="Backend campaign"
+            description="Campaign setup runs on the server: configure total budget, 1-50 GAS reward bounds, claim slots, expiry, and recipient keys before sharing QR codes."
+            icon={<Coins className="h-4 w-4" />}
+            tone="emerald"
+            actionLabel="Stage campaign"
+            actionIcon={<Gift className="h-4 w-4" />}
+          >
+            <Field label="Campaign ID" value={campaignId} onChange={setCampaignId} />
+            <Field label="Total GAS" value={amount} onChange={setAmount} type="number" suffix="GAS" />
+            <Field label="Minimum claim" value={minClaim} onChange={setMinClaim} type="number" suffix="GAS" />
+            <Field label="Maximum claim" value={maxClaim} onChange={setMaxClaim} type="number" suffix="GAS" />
+            <Field label="Claim slots" value={maxClaims} onChange={setMaxClaims} type="number" suffix="wallets" />
+          </ActionTicket>
+          <MetricGrid stats={stats} />
         </div>
       </div>
     </PlayShell>
@@ -1380,7 +1729,7 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
 
 function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
   const { app, statsMap, stats, loading, error, contractHash, network, onRefresh } = props;
-  const [claimed, setClaimed] = useState(5);
+  const [claimed] = useState(5);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
@@ -1392,33 +1741,79 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
       side={<MetricGrid stats={stats} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, index) => {
-            const active = index < claimed;
-            return (
-              <button
-                key={day}
-                type="button"
-                onClick={() => setClaimed(index + 1)}
-                className={`min-h-20 rounded-lg border px-2 py-3 text-center transition ${
-                  active ? "border-emerald-300 bg-emerald-500 text-white" : "border-gray-200 bg-white text-gray-500"
-                }`}
-              >
-                <CalendarCheck className="mx-auto mb-2 h-5 w-5" />
-                <span className="block text-xs font-black">{day}</span>
-              </button>
-            );
-          })}
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <section className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="m-0 text-sm font-black text-gray-950">Weekly claim market</h3>
+                <p className="m-0 mt-1 text-xs leading-5 text-gray-500">
+                  The streak path stays visible so the next claim feels immediate and understandable.
+                </p>
+              </div>
+              <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </div>
+            <div className="grid grid-cols-7 gap-2">
+              {days.map((day, index) => {
+                const active = index < claimed;
+                const today = index + 1 === claimed;
+                return (
+                  <div
+                    key={day}
+                    className={`min-h-20 rounded-lg border px-2 py-3 text-center ${
+                      active
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-950"
+                        : "border-gray-200 bg-white text-gray-500"
+                    }`}
+                  >
+                    <CalendarCheck className={`mx-auto mb-2 h-5 w-5 ${active ? "text-emerald-600" : "text-gray-400"}`} />
+                    <span className="block text-xs font-black">{day}</span>
+                    {today && <span className="mt-1 block text-[10px] font-black uppercase text-emerald-600">today</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+          <ActionTicket
+            title="Check-in ticket"
+            description="Preview streak, reward, and chain state before preparing today's claim."
+            icon={<CalendarCheck className="h-4 w-4" />}
+            tone="emerald"
+            actionLabel="Prepare check-in"
+            actionIcon={<CheckCircle2 className="h-4 w-4" />}
+          >
+            <PreviewStat label="Current streak" value={`${claimed} days`} />
+            <PreviewStat label="7-day reward" value={getMetric(statsMap, "7-Day Reward", "--")} />
+            <PreviewStat label="Total rewarded" value={getMetric(statsMap, "Total Rewarded", "0 GAS")} />
+          </ActionTicket>
         </div>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <PreviewStat label="Current streak" value={`${claimed} days`} />
-          <PreviewStat label="7-day reward" value={getMetric(statsMap, "7-Day Reward", "--")} />
-          <PreviewStat label="Total rewarded" value={getMetric(statsMap, "Total Rewarded", "0 GAS")} />
-        </div>
-        <PrimaryAction>
-          Mark today ready <CheckCircle2 className="h-4 w-4" />
-        </PrimaryAction>
+        <ActionBoard
+          title="Streak state"
+          subtitle="The app keeps the user focused on the next claim and the weekly completion target."
+          tone="emerald"
+          rows={[
+            {
+              label: "Today",
+              detail: claimed >= 1 ? "Eligible for today's daily claim" : "Connect wallet to start",
+              value: claimed >= 1 ? "eligible" : "not started",
+              valueLabel: "state",
+              active: true,
+              icon: <CheckCircle2 className="h-4 w-4" />,
+            },
+            {
+              label: "Weekly progress",
+              detail: "Seven consecutive claims unlock the bonus",
+              value: `${claimed}/7`,
+              valueLabel: "days",
+            },
+            {
+              label: "Reset risk",
+              detail: "Missing a day restarts the streak",
+              value: claimed >= 7 ? "complete" : `${7 - claimed} left`,
+              valueLabel: "target",
+            },
+          ]}
+        />
       </div>
     </PlayShell>
   );
@@ -1439,8 +1834,53 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="space-y-4">
-        <Field label="NEO collateral" value={collateral} onChange={setCollateral} type="number" suffix="NEO" />
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Loan position"
+            subtitle="Collateral, borrow capacity, and repayment state are visible before opening a position."
+            tone="sky"
+            rows={[
+              {
+                label: "NEO collateral",
+                detail: "Locked collateral amount",
+                value: `${collateral || "0"} NEO`,
+                valueLabel: "input",
+                active: true,
+                icon: <Landmark className="h-4 w-4" />,
+              },
+              {
+                label: "Borrowable GAS",
+                detail: "Conservative LTV preview",
+                value: formatGas(borrowable),
+                valueLabel: "35% ltv",
+              },
+              {
+                label: "Outstanding debt",
+                detail: "Current contract read",
+                value: getMetric(statsMap, "Outstanding Debt", "0 GAS"),
+                valueLabel: "debt",
+              },
+              {
+                label: "Locked collateral",
+                detail: "Total collateral in the app",
+                value: getMetric(statsMap, "Collateral Locked", "0 NEO"),
+                valueLabel: "locked",
+              },
+            ]}
+          />
+          <ActionTicket
+            title="Loan ticket"
+            description="Set collateral and stage a self-repaying borrow request."
+            icon={<Landmark className="h-4 w-4" />}
+            tone="sky"
+            actionLabel="Prepare loan request"
+            actionIcon={<Landmark className="h-4 w-4" />}
+          >
+            <Field label="NEO collateral" value={collateral} onChange={setCollateral} type="number" suffix="NEO" />
+            <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
+          </ActionTicket>
+        </div>
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
           <PreviewStat label="LTV preview" value="35%" />
@@ -1448,9 +1888,6 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
           <PreviewStat label="Outstanding debt" value={getMetric(statsMap, "Outstanding Debt", "0 GAS")} />
         </div>
         <MetricGrid stats={stats} />
-        <PrimaryAction>
-          Prepare loan request <Landmark className="h-4 w-4" />
-        </PrimaryAction>
       </div>
     </PlayShell>
   );
@@ -1479,21 +1916,44 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Stake amount" value={stake} onChange={setStake} type="number" suffix="NEO" />
-          <label className="block">
-            <span className="mb-1 block text-xs font-bold uppercase text-gray-500">Route</span>
-            <select
-              value={candidate}
-              onChange={(event) => setCandidate(event.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none"
-            >
-              <option>Agent #1</option>
-              <option>Agent #2</option>
-              <option>Agent #3</option>
-            </select>
-          </label>
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title={isProfit ? "Yield route board" : "Trust route board"}
+            subtitle="Select a route with the same compact comparison pattern used by market-style interfaces."
+            tone={isProfit ? "emerald" : "slate"}
+            rows={["Agent #1", "Agent #2", "Agent #3"].map((route, index) => ({
+              label: route,
+              detail: isProfit ? "Yield strategy candidate" : "Governance trust candidate",
+              value: index === 0 ? getMetric(statsMap, "Rewards", getMetric(statsMap, "Reward Reserve", "0 GAS")) : "live read",
+              valueLabel: index === 0 ? "reward" : "state",
+              active: candidate === route,
+              icon: <Vote className="h-4 w-4" />,
+              onClick: () => setCandidate(route),
+            }))}
+          />
+          <ActionTicket
+            title="Stake and vote"
+            description="Choose route and NEO stake before preparing the wallet action."
+            icon={<Vote className="h-4 w-4" />}
+            tone={isProfit ? "emerald" : "slate"}
+            actionLabel="Stage stake and vote"
+            actionIcon={<Vote className="h-4 w-4" />}
+          >
+            <Field label="Stake amount" value={stake} onChange={setStake} type="number" suffix="NEO" />
+            <label className="block">
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">Route</span>
+              <select
+                value={candidate}
+                onChange={(event) => setCandidate(event.target.value)}
+                className="min-h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm font-semibold text-gray-950 outline-none transition focus:border-gray-950 focus:ring-2 focus:ring-gray-950/10"
+              >
+                <option>Agent #1</option>
+                <option>Agent #2</option>
+                <option>Agent #3</option>
+              </select>
+            </label>
+          </ActionTicket>
         </div>
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Selected route" value={candidate} />
@@ -1502,9 +1962,6 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
           <PreviewStat label="Rewards" value={getMetric(statsMap, "Reward Reserve", "0 GAS")} />
         </div>
         <MetricGrid stats={stats} />
-        <PrimaryAction>
-          Stage stake and vote <Vote className="h-4 w-4" />
-        </PrimaryAction>
       </div>
     </PlayShell>
   );
@@ -1525,29 +1982,55 @@ function NeoPayPlayArea(props: PlayAreaRegistryProps) {
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Total amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
-          <Field label="Release rate" value={rate} onChange={setRate} type="number" suffix="GAS / day" />
-        </div>
-        <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-          <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase text-gray-500">
-            <span>Stream timeline</span>
-            <span>{duration} days</span>
-          </div>
-          <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-emerald-400 to-neo" />
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <PreviewStat label="Total streams" value={getMetric(statsMap, "Total Streams", "0")} />
-            <PreviewStat label="Asset" value="GAS" />
+      <div className="space-y-3">
+        <div className="grid gap-3">
+          <ActionBoard
+            title="Payment stream"
+            subtitle="Amount, cadence, and unlock horizon are visible before the stream is created."
+            tone="emerald"
+            rows={[
+              {
+                label: "Total amount",
+                detail: "Funds streamed over time",
+                value: formatGas(Number(amount) || 0),
+                valueLabel: "total",
+                active: true,
+                icon: <CreditCard className="h-4 w-4" />,
+              },
+              {
+                label: "Release rate",
+                detail: "Linear release cadence",
+                value: `${rate || "0"} GAS/day`,
+                valueLabel: "rate",
+              },
+              {
+                label: "Duration",
+                detail: "Calculated from amount and rate",
+                value: `${duration} days`,
+                valueLabel: "length",
+              },
+              {
+                label: "Active streams",
+                detail: "Current contract read",
+                value: getMetric(statsMap, "Total Streams", "0"),
+                valueLabel: "count",
+              },
+            ]}
+          />
+          <ActionTicket
+            title="Stream ticket"
+            description="Compose payment terms before preparing the wallet action."
+            icon={<CreditCard className="h-4 w-4" />}
+            tone="emerald"
+            actionLabel="Prepare stream"
+            actionIcon={<CreditCard className="h-4 w-4" />}
+          >
+            <Field label="Total amount" value={amount} onChange={setAmount} type="number" suffix="GAS" />
+            <Field label="Release rate" value={rate} onChange={setRate} type="number" suffix="GAS / day" />
             <PreviewStat label="Release type" value="linear" />
-          </div>
+          </ActionTicket>
         </div>
         <MetricGrid stats={stats} />
-        <PrimaryAction>
-          Prepare stream <CreditCard className="h-4 w-4" />
-        </PrimaryAction>
       </div>
     </PlayShell>
   );
@@ -2177,10 +2660,14 @@ function PrivateTransferStatusPanel({ result }: { result: PrivateTransferResult 
 function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
   const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const config = ORACLE_APP_LABELS[app.app_id] || { title: app.name, mode: "http" as const };
+  const defaultOracleEndpoint =
+    config.mode === "price"
+      ? "TWELVEDATA:NEO-USD"
+      : `${getExternalIntegrationConfig(resolveNeoNetwork(network)).morpheusPublicApiUrl}/health`;
   const [endpoint, setEndpoint] = useLaunchParamState(
     launchContext,
     ["endpoint", "url", "feed", "symbol"],
-    config.mode === "price" ? "TWELVEDATA:NEO-USD" : "https://oracle.meshmini.app/health",
+    defaultOracleEndpoint,
   );
   const [result, setResult] = useState("Ready to build request package.");
   const [sealing, setSealing] = useState(false);
@@ -2301,25 +2788,29 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
   const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
   const profile = PROFILED_PLAYAREAS[app.app_id];
   const initialValues = useCallback(
-	    () =>
-	      Object.fromEntries(
-	        profile.fields.map((field) => [
+    () =>
+      Object.fromEntries(
+        profile.fields.map((field) => [
             field.key,
             getLaunchParam(launchContext, field.key, profileDefaultValue(field)),
           ]),
-	      ) as Record<string, string>,
-	    [launchContext, profile],
-	  );
+      ) as Record<string, string>,
+    [launchContext, profile],
+  );
   const [values, setValues] = useState<Record<string, string>>(initialValues);
 
   useEffect(() => {
     setValues(initialValues());
   }, [initialValues]);
 
-	  const profileMetrics =
-	    stats.length > 0
-	      ? stats
-	      : [{ label: "Live stats", value: "Unavailable" }];
+  const profileMetrics =
+    stats.length > 0
+      ? stats
+      : [
+          { label: "Runtime", value: "Wallet required" },
+          { label: "State", value: "Awaiting live read" },
+          { label: "Network", value: network, accent: true },
+        ];
 
   return (
     <PlayShell
@@ -2329,6 +2820,28 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       tone={profile.tone}
       side={
         <div className="space-y-3">
+          <ActionTicket
+            title="Operation ticket"
+            description="Review the exact user inputs before the shared wallet action is prepared."
+            icon={profile.icon}
+            tone={profile.tone}
+            actionLabel={profile.primaryAction}
+            actionIcon={<ArrowRightLeft className="h-4 w-4" />}
+          >
+            {profile.fields.map((field) => (
+              <Field
+                key={field.key}
+                label={field.label}
+                value={values[field.key] ?? ""}
+                onChange={(next) =>
+                  setValues((current) => ({ ...current, [field.key]: next }))
+                }
+                suffix={field.suffix}
+                placeholder={profilePlaceholderValue(field)}
+                type={field.type}
+              />
+            ))}
+          </ActionTicket>
           <ProfileWorkflowPanel profile={profile} />
           <ActivityPanel activity={activity} />
         </div>
@@ -2343,47 +2856,62 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
         />
       }
     >
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
-        <ProfileVisualPanel profile={profile} values={values} />
-        <div className="min-w-0 space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {profile.fields.map((field) => (
-              <Field
-                key={field.key}
-                label={field.label}
-                value={values[field.key] ?? ""}
-                onChange={(next) =>
-                  setValues((current) => ({ ...current, [field.key]: next }))
-                }
-                suffix={field.suffix}
-                type={field.type}
-              />
-            ))}
-          </div>
-          <MetricGrid stats={profileMetrics} />
-          <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
-                {profile.icon}
-              </span>
-              <div>
-                <p className="m-0 text-sm font-black text-gray-950">
-                  Prepare wallet action
-                </p>
-                <p className="m-0 text-xs text-gray-500">
-                  This panel prepares inputs only. Final values come from the wallet,
-                  live contract reads, and the shared action console.
-                </p>
-              </div>
-            </div>
-            <PrimaryAction>
-              {profile.primaryAction}
-              <ArrowRightLeft className="h-4 w-4" />
-            </PrimaryAction>
-          </div>
-        </div>
+      <div className="space-y-3">
+        <ProfileMarketPanel profile={profile} values={values} network={network} />
+        <MetricGrid stats={profileMetrics} />
       </div>
     </PlayShell>
+  );
+}
+
+function ProfileMarketPanel({
+  profile,
+  values,
+  network,
+}: {
+  profile: PlayAreaProfile;
+  values: Record<string, string>;
+  network: "mainnet" | "testnet";
+}) {
+  const primaryInput =
+    Object.values(values)
+      .map((value) => value.trim())
+      .find(Boolean) || "Awaiting input";
+  const cards = profile.cards.length > 0 ? profile.cards : [{ label: "State", value: "Ready" }];
+  const rows = cards.slice(0, 4).map((card, index) => ({
+    label: card.label,
+    detail: profile.steps[index] || profile.visual.slots[index] || profile.visual.headline,
+    value: index === 0 ? primaryInput : card.value,
+    valueLabel: index === 0 ? "input" : "state",
+    active: index === 0,
+    icon: index === 0 ? profile.icon : undefined,
+  }));
+
+  const visualRows = profile.visual.slots
+    .slice(0, 4)
+    .map((slot, index) => ({
+      label: slot,
+      detail: profile.steps[index] || profile.visual.headline,
+      value: index === 0 ? network : index === 1 ? "ready" : "pending",
+      valueLabel: index === 0 ? "network" : "phase",
+      active: index === 0,
+    }));
+
+  return (
+    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]">
+      <ActionBoard
+        title={profile.visual.headline}
+        subtitle={profile.visual.footnote || profile.subtitle}
+        rows={rows}
+        tone={profile.tone}
+      />
+      <ActionBoard
+        title="Execution state"
+        subtitle="A compact state board for the app-specific flow."
+        rows={visualRows}
+        tone={profile.tone}
+      />
+    </div>
   );
 }
 
@@ -2410,270 +2938,19 @@ function ProfileWorkflowPanel({ profile }: { profile: PlayAreaProfile }) {
   );
 }
 
-function ProfileVisualPanel({
-  profile,
-  values,
-}: {
-  profile: PlayAreaProfile;
-  values: Record<string, string>;
-}) {
-  const slots = profile.visual.slots.slice(0, 4);
-  const primaryInput = Object.values(values).find(Boolean) || profile.visual.headline;
-
-  switch (profile.visual.layout) {
-    case "pipeline":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid gap-2">
-            {slots.map((slot, index) => (
-              <div key={slot} className="flex items-center gap-2">
-                <div className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                  <p className="m-0 truncate text-sm font-black text-gray-950">{slot}</p>
-                  <p className="m-0 mt-0.5 text-[11px] font-semibold text-gray-400">
-                    step {index + 1}
-                  </p>
-                </div>
-                {index < slots.length - 1 && <ArrowRightLeft className="h-4 w-4 shrink-0 text-gray-400" />}
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "market":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {slots.map((slot, index) => (
-              <div key={slot} className="rounded-lg border border-gray-200 bg-white p-3">
-                <p className="m-0 text-sm font-black text-gray-950">{slot}</p>
-	                <p className="m-0 mt-1 text-xs text-gray-500">
-	                  {index === 0 ? primaryInput : "requires live state"}
-	                </p>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "ballot":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-3">
-            {slots.map((slot, index) => (
-              <div key={slot}>
-                <div className="mb-1 flex items-center justify-between text-xs font-bold text-gray-500">
-                  <span>{slot}</span>
-	                  <span>live value required</span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100">
-	                  <div className="h-full w-0 rounded-full bg-emerald-500" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "scoreboard":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-2">
-            {slots.map((slot, index) => (
-              <div key={slot} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-amber-100 text-sm font-black text-amber-700">
-                  {index + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-black text-gray-950">
-                  {slot}
-                </span>
-                <Trophy className="h-4 w-4 text-amber-500" />
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "proof":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <pre className="m-0 overflow-auto rounded-lg bg-slate-950 p-3 text-[11px] leading-5 text-emerald-200">
-{`{
-  "subject": "${primaryInput}",
-  "fields": [${slots.map((slot) => `"${slot}"`).join(", ")}],
-	  "status": "requires-wallet-and-chain-validation"
-}`}
-          </pre>
-        </ProfileVisualFrame>
-      );
-    case "vault":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid place-items-center rounded-lg border border-gray-200 bg-slate-950 p-5 text-white">
-            <Vault className="h-12 w-12 text-neo" />
-            <p className="m-0 mt-3 text-center text-sm font-black">{primaryInput}</p>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
-              {slots.map((slot) => (
-                <span key={slot} className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-slate-200">
-                  {slot}
-                </span>
-              ))}
-            </div>
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "gallery":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid grid-cols-2 gap-2">
-            {slots.map((slot, index) => (
-              <div
-                key={slot}
-                className={`min-h-24 rounded-lg border border-gray-200 p-3 ${index % 2 === 0 ? "bg-violet-50" : "bg-emerald-50"}`}
-              >
-                <ImageIcon className="mb-3 h-5 w-5 text-gray-500" />
-                <p className="m-0 text-sm font-black text-gray-950">{slot}</p>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "timeline":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-3">
-            {slots.map((slot, index) => (
-              <div key={slot} className="flex items-center gap-3">
-                <span className={`grid h-8 w-8 place-items-center rounded-full text-xs font-black ${index === 0 ? "bg-gray-950 text-white" : "bg-gray-100 text-gray-500"}`}>
-                  {index + 1}
-                </span>
-                <div className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                  <p className="m-0 truncate text-sm font-black text-gray-950">{slot}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "converter":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid gap-3">
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <p className="m-0 text-[10px] font-bold uppercase text-gray-400">{slots[0]}</p>
-              <p className="m-0 mt-1 truncate font-mono text-sm font-black text-gray-950">{primaryInput}</p>
-            </div>
-            <ArrowRightLeft className="mx-auto h-5 w-5 text-emerald-600" />
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-              <p className="m-0 text-[10px] font-bold uppercase text-emerald-600">{slots[1] || "Output"}</p>
-	              <p className="m-0 mt-1 truncate font-mono text-sm font-black text-gray-950">derived after validation</p>
-            </div>
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "qr":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="grid place-items-center">
-            <div className="grid h-36 w-36 grid-cols-6 gap-1 rounded-lg border border-gray-200 bg-white p-3">
-              {Array.from({ length: 36 }, (_, index) => (
-                <span
-                  key={index}
-                  className={`rounded-sm ${index % 3 === 0 || index % 7 === 0 ? "bg-gray-950" : "bg-gray-100"}`}
-                />
-              ))}
-            </div>
-            <p className="m-0 mt-3 text-center text-sm font-black text-gray-950">{primaryInput}</p>
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "checklist":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-2">
-            {slots.map((slot, index) => (
-              <div key={slot} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2">
-                <CheckCircle2 className={`h-4 w-4 ${index < 2 ? "text-emerald-600" : "text-gray-300"}`} />
-                <span className="text-sm font-black text-gray-950">{slot}</span>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "ledger":
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-2">
-            {slots.map((slot, index) => (
-              <div key={slot} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2">
-                <span className="text-sm font-black text-gray-950">{slot}</span>
-                <span className="font-mono text-xs font-bold text-gray-500">
-	                  {index === 0 ? primaryInput : "live value required"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </ProfileVisualFrame>
-      );
-    case "stream":
-    default:
-      return (
-        <ProfileVisualFrame profile={profile}>
-          <div className="space-y-4">
-            <div className="h-3 overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-emerald-400 to-sky-500" />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              {slots.map((slot) => (
-                <div key={slot} className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-                  <p className="m-0 text-sm font-black text-gray-950">{slot}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </ProfileVisualFrame>
-      );
-  }
-}
-
-function ProfileVisualFrame({
-  profile,
-  children,
-}: {
-  profile: PlayAreaProfile;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0 rounded-lg border border-gray-200 bg-white/85 p-4">
-      <div className="mb-4 flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gray-950 text-white">
-          {profile.icon}
-        </span>
-        <div className="min-w-0">
-          <h3 className="m-0 text-base font-black text-gray-950">
-            {profile.visual.headline}
-          </h3>
-          {profile.visual.footnote && (
-            <p className="m-0 mt-1 text-xs leading-5 text-gray-500">
-              {profile.visual.footnote}
-            </p>
-          )}
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function GenericPlayArea(props: PlayAreaRegistryProps) {
   const { app, stats, activity, loading, error, contractHash, network, onRefresh } = props;
 
   return (
     <PlayShell
       app={app}
-      title="Native operation workspace"
-      subtitle="This MiniApp is rendered inside the host shell with a purpose-built control area and shared platform actions."
+      title={`${app.name} action console`}
+      subtitle="Review live state, prepare the primary action, and hand off the final signature through the shared platform controls."
       tone="emerald"
       side={<ActivityPanel activity={activity} />}
       footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
     >
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+      <div className="grid gap-4">
         <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
           <h3 className="m-0 text-lg font-black text-gray-950">{app.name}</h3>
           <p className="mt-2 text-sm leading-6 text-gray-600">{app.description}</p>

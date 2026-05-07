@@ -12,8 +12,12 @@ import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
 import {
   Activity,
+  Bell,
+  CheckCircle2,
+  Clock3,
   ExternalLink,
   Info,
+  QrCode,
   Search,
   ShieldCheck,
   Wallet,
@@ -29,8 +33,7 @@ import {
   MiniAppDetailTabType,
 } from "../../components";
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
-import type { OperationEntry, OperationParam } from "../../components/types";
-import { ActivityTicker } from "../../components/ActivityTicker";
+import type { OnChainActivity, OperationEntry, OperationParam } from "../../components/types";
 import { DetailContentBlocks } from "../../components/features/miniapp/DetailContentBlocks";
 import { Layout } from "../../components/layout";
 
@@ -107,6 +110,10 @@ import {
   resolveMiniAppRuntime,
 } from "../../lib/miniapp-runtime";
 import { parseMiniAppLaunchContext } from "../../lib/miniapp-launch-params";
+import {
+  buildOneGateDirectMiniAppUrl,
+  buildOneGateLaunchUrl,
+} from "../../../../apps/shared/utils/onegate-launch";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -136,6 +143,13 @@ type MiniAppNavItem = Pick<
   "app_id" | "name" | "category" | "entry_url" | "logo_url"
 >;
 
+const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
+  "miniapp-onegate-vault": "miniapp-gas-lucky-pool",
+  "onegate-vault": "miniapp-gas-lucky-pool",
+};
+
+const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
+
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
   miniAppNav: MiniAppNavItem[];
@@ -161,16 +175,16 @@ export default function MiniAppDetailPage({
   const walletConnected = useWalletStore((state) => state.connected);
   const walletAddress = useWalletStore((state) => state.address);
   const walletNetwork = useWalletStore((state) => state.network);
-  const targetNetwork = getRpcNetwork();
-  const targetNetworkLabel = neoNetworkLabel(targetNetwork);
-  const targetCatalogNetwork = useMemo(
-    () => resolvePageCatalogNetwork(targetNetwork),
-    [targetNetwork],
-  );
   const routerPath = typeof router.asPath === "string" ? router.asPath : "";
   const launchContext = useMemo(
     () => parseMiniAppLaunchContext(routerPath, app?.app_id),
     [app?.app_id, routerPath],
+  );
+  const targetNetwork = launchContext.network ?? getRpcNetwork();
+  const targetNetworkLabel = neoNetworkLabel(targetNetwork);
+  const targetCatalogNetwork = useMemo(
+    () => resolvePageCatalogNetwork(targetNetwork),
+    [targetNetwork],
   );
   const appSupportsTargetNetwork = app
     ? supportsPageCatalogNetwork(app, targetCatalogNetwork)
@@ -198,6 +212,54 @@ export default function MiniAppDetailPage({
         : null,
     [app, resolvedRuntime, targetNetwork],
   );
+  const oneGateLaunchUrl = useMemo(
+    () => {
+      if (!app) return "";
+      const launchParams = {
+        ...launchContext.params,
+        ...(launchContext.operation ? { operation: launchContext.operation } : {}),
+        network: oneGateNetworkParam(targetCatalogNetwork),
+      };
+      const directSlug = resolveDirectMiniAppSlug(app);
+      return directSlug
+        ? buildOneGateDirectMiniAppUrl(directSlug, app.app_id, launchParams)
+        : buildOneGateLaunchUrl(app.app_id, launchParams);
+    },
+    [app, launchContext.operation, launchContext.params, targetCatalogNetwork],
+  );
+  const [oneGateQrDataUrl, setOneGateQrDataUrl] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    if (!oneGateLaunchUrl) {
+      setOneGateQrDataUrl("");
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    import("qrcode")
+      .then((qrcode) =>
+        qrcode.toDataURL(oneGateLaunchUrl, {
+          errorCorrectionLevel: "H",
+          margin: 1,
+          width: 160,
+          color: {
+            dark: "#111827",
+            light: "#ffffff",
+          },
+        }),
+      )
+      .then((dataUrl) => {
+        if (!cancelled) setOneGateQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setOneGateQrDataUrl("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [oneGateLaunchUrl]);
   const runtimeDisabledReason =
     resolvedRuntime?.mode === "platform" ? resolvedRuntime.disabledReason : null;
   const operationDisabledReason = networkAvailabilityReason || networkGuardReason || runtimeDisabledReason;
@@ -206,16 +268,27 @@ export default function MiniAppDetailPage({
   const showSecrets = app?.permissions?.confidential === true;
 
   // App-specific activity feed (events + transactions poll, notifications via Realtime)
-  const { activities: appActivities } = useActivityFeed({
+  const {
+    activities: appActivities,
+    loading: activityLoading,
+    error: activityError,
+    isConnected: activityConnected,
+  } = useActivityFeed({
     appId: app?.app_id,
+    network: targetNetwork,
     pollInterval: 5000,
     enabled: Boolean(app?.app_id),
   });
 
   // Realtime notifications for the news tab (replaces SSR-only notifications prop)
-  const { notifications: realtimeNews, loading: newsLoading } =
+  const {
+    notifications: realtimeNews,
+    loading: newsLoading,
+    isConnected: newsConnected,
+  } =
     useRealtimeNotifications({
       appId: app?.app_id,
+      network: targetNetwork,
       enabled: Boolean(app?.app_id) && showNews,
     });
 
@@ -292,6 +365,38 @@ export default function MiniAppDetailPage({
         assertWalletNetworkMatchesTarget(walletNetwork, targetNetwork);
         if (!appSupportsTargetNetwork) {
           throw new Error(networkAvailabilityReason || "MiniApp is not enabled on the selected network.");
+        }
+
+        if (operation.method === "claimOneGateVault") {
+          const claimKey = String(values.claimKey || values.key || "").trim();
+          if (!claimKey) throw new Error("Claim key is required.");
+          const response = await fetch("/api/onegate-vault/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              claimKey,
+              address: walletAddress,
+              network: targetNetwork,
+            }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            const message =
+              typeof body?.error?.message === "string"
+                ? body.error.message
+                : "OneGate Vault claim failed.";
+            throw new Error(message);
+          }
+          const txid = String(body.txHash || body.tx_hash || "");
+          const amount = String(body.amount || "");
+          const luckPercent = String(body.luckPercent || "");
+          setInvokeFeedback({
+            type: "success",
+            message: amount && txid
+              ? `Reward paid: ${amount} GAS${luckPercent ? ` · luck beat ${luckPercent}%` : ""} (${txid})`
+              : "Reward claim submitted.",
+          });
+          return;
         }
 
         let txid: string;
@@ -468,65 +573,21 @@ export default function MiniAppDetailPage({
                 <MiniAppPlayfield app={app} launchContext={launchContext} />
               </section>
 
-              <section
-                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
-                aria-label="MiniApp information"
-                data-testid="miniapp-info"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    {app.detail_template?.hero?.eyebrow && (
-                      <p className="mb-2 text-xs font-semibold uppercase text-emerald-600">
-                        {app.detail_template.hero.eyebrow}
-                      </p>
-                    )}
-                    <h2 className="m-0 flex items-center gap-2 text-base font-bold text-gray-900">
-                      <Info className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                      MiniApp Information
-                    </h2>
-                    <p className="mt-2 break-words text-sm leading-6 text-gray-600">
-                      {app.description}
-                    </p>
-                    {app.detail_template?.hero?.disclaimer && (
-                      <p className="mt-2 break-words text-xs italic text-gray-500">
-                        {app.detail_template.hero.disclaimer}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold capitalize text-emerald-700">
-                      {app.status || "active"}
-                    </span>
-                    <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold capitalize text-gray-600">
-                      {app.category}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-3 text-xs sm:grid-cols-3">
-                  <InfoPill label="App ID" value={app.app_id} />
-                  <InfoPill
-                    label="Contract"
-                    value={contractDisplayValue}
-                  />
-                  {contractDomainDisplayValue && (
-                    <InfoPill
-                      label="Domain"
-                      value={contractDomainDisplayValue}
-                    />
-                  )}
-                </div>
-              </section>
-
-              {appActivities && appActivities.length > 0 && (
-                <section>
-                  <ActivityTicker
-                    activities={appActivities}
-                    title={`${app.name} Activity`}
-                    height={140}
-                    scrollSpeed={20}
-                  />
-                </section>
-              )}
+              <MiniAppStatusBoard
+                app={app}
+                activities={appActivities}
+                activityConnected={activityConnected}
+                activityError={activityError}
+                activityLoading={activityLoading}
+                contractDisplayValue={contractDisplayValue}
+                contractDomainBinding={contractDomainBinding}
+                contractDomainDisplayValue={contractDomainDisplayValue}
+                liveNotifications={liveNotifications}
+                networkLabel={targetNetworkLabel}
+                newsConnected={newsConnected}
+                newsLoading={newsLoading}
+                runtimeDisplayValue={runtimeDisplayValue}
+              />
 
               <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
                 <div
@@ -626,7 +687,7 @@ export default function MiniAppDetailPage({
               aria-label="MiniApp actions"
               data-testid="miniapp-actions"
             >
-              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+              <section className="overflow-hidden rounded-[22px] border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/5 sm:p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-gray-400">
@@ -652,6 +713,69 @@ export default function MiniAppDetailPage({
                   </p>
                 )}
 
+                {operations.length > 0 && (
+                  <OperationPanel
+                    operations={operations}
+                    onInvoke={handleInvoke}
+                    showTitle={false}
+                    className="mt-4 border-0 shadow-none"
+                    variant="embedded"
+                    disabledReason={operationDisabledReason}
+                    launchContext={launchContext}
+                  />
+                )}
+
+                <div
+                  className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-600"
+                  data-testid="onegate-launch-card"
+                >
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
+                    <QrCode className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                    OneGate scan link
+                  </div>
+                  <div className="mb-2 flex items-start gap-3">
+                    <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-lg border border-gray-200 bg-white p-1">
+                      {oneGateQrDataUrl ? (
+                        <img
+                          src={oneGateQrDataUrl}
+                          alt={`${app.name} OneGate QR`}
+                          className="h-full w-full"
+                          loading="lazy"
+                          decoding="async"
+                          data-testid="onegate-launch-qr"
+                        />
+                      ) : (
+                        <QrCode className="h-8 w-8 text-gray-300" aria-hidden="true" />
+                      )}
+                      <img
+                        src={ONEGATE_QR_LOGO_SRC}
+                        alt="OneGate"
+                        className="pointer-events-none absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gray-200 bg-white p-1.5 shadow-sm"
+                        loading="lazy"
+                        decoding="async"
+                        data-testid="onegate-qr-logo"
+                      />
+                    </div>
+                    <div className="min-w-0 text-xs leading-5 text-gray-500">
+                      <p className="m-0 font-semibold text-gray-700">
+                        {targetNetworkLabel}
+                      </p>
+                      <p className="m-0 break-words font-mono text-[11px]">
+                        {app.app_id}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={oneGateLaunchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block break-all font-mono text-[11px] text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                    data-testid="onegate-launch-url"
+                  >
+                    {oneGateLaunchUrl}
+                  </a>
+                </div>
+
                 {launchContext.hasParams && (
                   <div
                     className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800"
@@ -672,7 +796,7 @@ export default function MiniAppDetailPage({
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
                   <Wallet className="h-4 w-4 text-gray-400" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">
                     {walletConnected && walletAddress
@@ -714,18 +838,6 @@ export default function MiniAppDetailPage({
                   >
                     {invokeFeedback.message}
                   </div>
-                )}
-
-                {operations.length > 0 && (
-                  <OperationPanel
-                    operations={operations}
-                    onInvoke={handleInvoke}
-                    showTitle={false}
-                    className="mt-4"
-                    variant="embedded"
-                    disabledReason={operationDisabledReason}
-                    launchContext={launchContext}
-                  />
                 )}
 
                 {!walletConnected && (
@@ -807,59 +919,303 @@ export default function MiniAppDetailPage({
                 </section>
               )}
 
-              <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-                <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+              <details className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+                <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-                  Contract Details
-                </h3>
-                <p className="my-1.5 text-xs text-gray-500">
-                  App ID:{" "}
-                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                    {app.app_id}
-                  </code>
-                </p>
-                <p className="my-1.5 text-xs text-gray-500">
-                  Contract Hash:{" "}
-                  <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                    {contractDisplayValue}
-                  </code>
-                </p>
-                <p className="my-1.5 text-xs text-gray-500">
-                  Runtime:{" "}
-                  <span className="rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                    {runtimeDisplayValue}
-                  </span>
-                </p>
-                {contractDomainBinding && (
-                  <p
-                    className="my-1.5 text-xs text-gray-500"
-                    data-testid="contract-domain-binding"
-                  >
-                    {formatContractDomainNetwork(contractDomainBinding.network)} Domain:{" "}
-                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {contractDomainBinding.domain}
-                    </code>{" "}
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${contractDomainBadgeClass(contractDomainBinding.source)}`}
-                    >
-                      {formatContractDomainSource(contractDomainBinding.source)}
-                    </span>
-                  </p>
-                )}
-                {app.docs_url && (
-                  <p className="my-1.5 text-xs text-gray-500">
-                    Docs URL:{" "}
-                    <code className="break-all rounded bg-neo/10 px-1.5 py-0.5 font-mono text-[11px] text-neo">
-                      {app.docs_url}
+                  Technical details
+                </summary>
+                <div className="mt-3 space-y-2">
+                  <p className="my-0 text-xs text-gray-500">
+                    App ID:{" "}
+                    <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
+                      {app.app_id}
                     </code>
                   </p>
-                )}
-              </section>
+                  <p className="my-0 text-xs text-gray-500">
+                    Contract Hash:{" "}
+                    <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
+                      {contractDisplayValue}
+                    </code>
+                  </p>
+                  <p className="my-0 text-xs text-gray-500">
+                    Runtime:{" "}
+                    <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
+                      {runtimeDisplayValue}
+                    </span>
+                  </p>
+                  {contractDomainBinding && (
+                    <p
+                      className="my-0 text-xs text-gray-500"
+                      data-testid="contract-domain-binding"
+                    >
+                      {formatContractDomainNetwork(contractDomainBinding.network)} Domain:{" "}
+                      <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
+                        {contractDomainBinding.domain}
+                      </code>{" "}
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${contractDomainBadgeClass(contractDomainBinding.source)}`}
+                      >
+                        {formatContractDomainSource(contractDomainBinding.source)}
+                      </span>
+                    </p>
+                  )}
+                  {app.docs_url && (
+                    <p className="my-0 text-xs text-gray-500">
+                      Docs URL:{" "}
+                      <code className="break-all rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-[11px] text-emerald-700">
+                        {app.docs_url}
+                      </code>
+                    </p>
+                  )}
+                </div>
+              </details>
             </aside>
           </div>
         </main>
       </div>
     </Layout>
+  );
+}
+
+function MiniAppStatusBoard({
+  app,
+  activities,
+  activityConnected,
+  activityError,
+  activityLoading,
+  contractDisplayValue,
+  contractDomainBinding,
+  contractDomainDisplayValue,
+  liveNotifications,
+  networkLabel,
+  newsConnected,
+  newsLoading,
+  runtimeDisplayValue,
+}: {
+  app: MiniAppInfo;
+  activities: OnChainActivity[];
+  activityConnected: boolean;
+  activityError: string | null;
+  activityLoading: boolean;
+  contractDisplayValue: string;
+  contractDomainBinding: ReturnType<typeof resolveMiniAppContractDomain> | null;
+  contractDomainDisplayValue: string | null;
+  liveNotifications: MiniAppNotification[];
+  networkLabel: string;
+  newsConnected: boolean;
+  newsLoading: boolean;
+  runtimeDisplayValue: string;
+}) {
+  const recentActivities = activities.slice(0, 4);
+  const recentNotifications = liveNotifications.slice(0, 3);
+  const status = app.status || "active";
+
+  return (
+    <section
+      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      aria-label="MiniApp status and updates"
+      data-testid="miniapp-info"
+    >
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+        <div className="min-w-0 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {app.detail_template?.hero?.eyebrow && (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase text-emerald-700">
+                {app.detail_template.hero.eyebrow}
+              </span>
+            )}
+            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${statusBadgeClass(status)}`}>
+              {status}
+            </span>
+            <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-gray-600">
+              {app.category}
+            </span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
+              {networkLabel}
+            </span>
+          </div>
+
+          <h2 className="mt-4 flex items-center gap-2 text-base font-bold text-gray-900">
+            <Info className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+            What this MiniApp does
+          </h2>
+          <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-gray-600">
+            {app.description}
+          </p>
+          {app.detail_template?.hero?.disclaimer && (
+            <p className="mt-2 break-words text-xs leading-5 text-gray-500">
+              {app.detail_template.hero.disclaimer}
+            </p>
+          )}
+
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <InfoPill label="App ID" value={app.app_id} />
+            <InfoPill label="Runtime" value={runtimeDisplayValue} />
+            <InfoPill label="Contract" value={contractDisplayValue} />
+            {contractDomainDisplayValue ? (
+              <InfoPill
+                label={`${contractDomainBinding ? formatContractDomainNetwork(contractDomainBinding.network) : ""} Domain`.trim()}
+                value={contractDomainDisplayValue}
+              />
+            ) : (
+              <InfoPill label="Domain" value="Not configured for this network" />
+            )}
+          </div>
+
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p className="m-0">
+              Events, notifications, and actions on this page are scoped to {networkLabel}.
+              Testnet and mainnet records are queried separately.
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 bg-gray-50/70 p-4 sm:p-5 lg:border-l lg:border-t-0">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 flex items-center gap-2 text-sm font-bold text-gray-900">
+              <Activity className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+              Activity and notices
+            </h2>
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                activityConnected || newsConnected
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-gray-200 bg-white text-gray-500"
+              }`}
+            >
+              {activityConnected || newsConnected ? "Live" : "Synced"}
+            </span>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {activityLoading && recentActivities.length === 0 ? (
+              <StatusEmptyState label="Loading verified activity..." />
+            ) : recentActivities.length > 0 ? (
+              recentActivities.map((activity) => (
+                <CompactActivityRow key={activity.id} activity={activity} />
+              ))
+            ) : (
+              <StatusEmptyState label="No verified activity yet." />
+            )}
+            {activityError && (
+              <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                Activity feed is temporarily unavailable. The page remains usable.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 border-t border-gray-200 pt-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="m-0 flex items-center gap-2 text-xs font-bold uppercase text-gray-500">
+                <Bell className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                Notices
+              </h3>
+              {newsLoading && (
+                <span className="text-[11px] font-semibold text-gray-400">
+                  Loading
+                </span>
+              )}
+            </div>
+            <div className="space-y-2">
+              {recentNotifications.length > 0 ? (
+                recentNotifications.map((notification) => (
+                  <CompactNotificationRow
+                    key={notification.id}
+                    notification={notification}
+                  />
+                ))
+              ) : (
+                <StatusEmptyState label="No notices published for this MiniApp." />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CompactActivityRow({ activity }: { activity: OnChainActivity }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="m-0 truncate text-sm font-semibold text-gray-900">
+            {activity.title}
+          </p>
+          <p className="m-0 mt-1 truncate text-xs text-gray-500">
+            {activity.description}
+          </p>
+        </div>
+        <span className="shrink-0 text-[11px] text-gray-400">
+          {formatRelativeTime(activity.timestamp)}
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {activity.status && (
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${activityStatusClass(activity.status)}`}>
+            {activity.status}
+          </span>
+        )}
+        {activity.network && (
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-500">
+            {activity.network}
+          </span>
+        )}
+        {activity.tx_hash && (
+          <span className="truncate font-mono text-[11px] text-gray-500">
+            {truncateMiddle(activity.tx_hash, 8, 6)}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompactNotificationRow({
+  notification,
+}: {
+  notification: MiniAppNotification;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+      <div className="flex items-start gap-2">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="m-0 truncate text-sm font-semibold text-gray-900">
+              {notification.title}
+            </p>
+            <span className="shrink-0 text-[11px] text-gray-400">
+              {formatRelativeTime(notification.created_at)}
+            </span>
+          </div>
+          <p className="m-0 mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
+            {notification.content}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-700">
+              {notification.notification_type || "notice"}
+            </span>
+            {notification.network && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-500">
+                {notification.network}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusEmptyState({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-dashed border-gray-200 bg-white px-3 py-3 text-xs text-gray-500">
+      <Clock3 className="h-4 w-4 text-gray-400" aria-hidden="true" />
+      {label}
+    </div>
   );
 }
 
@@ -1075,6 +1431,36 @@ function MiniAppListRail({
   );
 }
 
+function statusBadgeClass(status: string): string {
+  if (status === "active") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "beta") return "border-sky-200 bg-sky-50 text-sky-700";
+  if (status === "disabled") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-gray-200 bg-gray-50 text-gray-600";
+}
+
+function activityStatusClass(status: NonNullable<OnChainActivity["status"]>): string {
+  if (status === "confirmed") return "bg-emerald-50 text-emerald-700";
+  if (status === "failed") return "bg-red-50 text-red-700";
+  return "bg-amber-50 text-amber-700";
+}
+
+function truncateMiddle(value: string, prefix = 8, suffix = 6): string {
+  if (value.length <= prefix + suffix + 3) return value;
+  return `${value.slice(0, prefix)}...${value.slice(-suffix)}`;
+}
+
+function formatRelativeTime(timestamp: string): string {
+  const time = new Date(timestamp).getTime();
+  if (!Number.isFinite(time)) return "recently";
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${Math.floor(diffHours / 24)}d ago`;
+}
+
 function formatContractDomainNetwork(network: string): string {
   return network === "neo-n3-mainnet" ? "Mainnet" : "Testnet";
 }
@@ -1210,9 +1596,12 @@ function buildInvokeArgs(
       if (!/^-?\d+(?:\.\d+)?$/.test(value)) {
         throw new Error(`${param.label || param.name} must be numeric.`);
       }
+      const scaledValue = typeof param.scale === "number"
+        ? parseScaledDecimal(value, param.scale, param.label || param.name)
+        : value;
       return {
         type: "Integer",
-        value,
+        value: scaledValue,
       };
     }
 
@@ -1250,6 +1639,23 @@ function buildInvokeArgs(
   });
 }
 
+function parseScaledDecimal(value: string, scale: number, label: string): string {
+  if (!Number.isInteger(scale) || scale < 0 || scale > 18) {
+    throw new Error(`${label} has an invalid scale.`);
+  }
+  const negative = value.startsWith("-");
+  const raw = negative ? value.slice(1) : value;
+  const [wholeRaw, fractionRaw = ""] = raw.split(".");
+  if (!wholeRaw && !fractionRaw) throw new Error(`${label} must be numeric.`);
+  if (fractionRaw.length > scale) {
+    throw new Error(`${label} supports at most ${scale} decimal places.`);
+  }
+  const whole = wholeRaw || "0";
+  const fraction = fractionRaw.padEnd(scale, "0");
+  const scaled = `${whole}${fraction}`.replace(/^0+(?=\d)/, "") || "0";
+  return negative && scaled !== "0" ? `-${scaled}` : scaled;
+}
+
 function toMiniAppNavItems(miniapps: MiniAppInfo[]): MiniAppNavItem[] {
   return miniapps.map((item) => ({
     app_id: item.app_id,
@@ -1266,6 +1672,11 @@ function findCatalogAppById(miniapps: MiniAppInfo[], appId: string): MiniAppInfo
   return miniapps.find((item) => item.app_id.toLowerCase() === target) ?? null;
 }
 
+function resolveMiniAppDetailRouteId(appId: string): string {
+  const target = appId.trim().toLowerCase();
+  return MINIAPP_DETAIL_ROUTE_ALIASES[target] || appId;
+}
+
 function getRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
@@ -1280,6 +1691,39 @@ function resolvePageCatalogNetwork(value: unknown): CatalogNetwork | null {
   if (raw === "mainnet" || raw === "neo-n3-mainnet") return "neo-n3-mainnet";
   if (raw === "testnet" || raw === "neo-n3-testnet") return "neo-n3-testnet";
   return null;
+}
+
+function oneGateNetworkParam(network: CatalogNetwork | null): string {
+  if (network === "neo-n3-mainnet") return "mainnet";
+  if (network === "neo-n3-testnet") return "testnet";
+  return "";
+}
+
+function resolveDirectMiniAppSlug(app: MiniAppInfo): string {
+  const manifest = getRecord(app.manifest);
+  const urls = getRecord(manifest.urls);
+  const candidates = [
+    app.dapp_url,
+    app.entry_url,
+    urls.dapp,
+    urls.entry,
+  ];
+
+  for (const candidate of candidates) {
+    const raw = getString(candidate);
+    if (!raw) continue;
+    try {
+      const url = new URL(raw, "https://neomini.app");
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts[0] === "miniapps" && parts[1] && !parts[1].startsWith("miniapp-")) {
+        return parts[1];
+      }
+    } catch {
+      // Keep scanning candidate URLs.
+    }
+  }
+
+  return "";
 }
 
 function supportsPageCatalogNetwork(
@@ -1370,8 +1814,19 @@ function appendNavItemIfMissing(
 export const getServerSideProps: GetServerSideProps<
   AppDetailPageProps
 > = async (context) => {
-  const { id } = context.params as { id: string };
+  const routeParams = context.params as { id: string };
+  const id = resolveMiniAppDetailRouteId(routeParams.id);
   const encodedId = encodeURIComponent(id);
+
+  if (id !== routeParams.id) {
+    const queryString = (context.req.url || "").split("?")[1];
+    return {
+      redirect: {
+        destination: `/miniapps/${id}${queryString ? `?${queryString}` : ""}`,
+        permanent: false,
+      },
+    };
+  }
 
   if (isArchivedMiniAppId(id)) {
     return { notFound: true };
@@ -1398,17 +1853,20 @@ export const getServerSideProps: GetServerSideProps<
       findCatalogAppById(rawMiniAppNav, id),
       fallback,
     );
-    const notifRes = await fetchWithTimeout(
-      `${baseUrl}/api/app/${encodedId}/news?limit=20`,
-      {},
-      2000,
-    ).catch((e: unknown) => {
-      console.warn(
-        "[miniapps/id] news fetch failed:",
-        e instanceof Error ? e.message : String(e),
-      );
-      return null;
-    });
+    const notifRes =
+      process.env.PLAYWRIGHT === "1"
+        ? null
+        : await fetchWithTimeout(
+            `${baseUrl}/api/app/${encodedId}/news?limit=20`,
+            {},
+            2000,
+          ).catch((e: unknown) => {
+            console.warn(
+              "[miniapps/id] news fetch failed:",
+              e instanceof Error ? e.message : String(e),
+            );
+            return null;
+          });
 
     const notifData = notifRes?.ok
       ? await notifRes.json().catch((e: unknown) => {

@@ -21,8 +21,8 @@
   "default_network": "neo-n3-testnet",
   "urls": {
     "entry": "/miniapps/neo-pay-shared-example/index.html",
-    "icon": "/miniapp-assets/neo-pay/logo.jpg",
-    "banner": "/miniapp-assets/neo-pay/banner.jpg"
+    "icon": "/miniapps/neo-pay-shared-example/logo.svg",
+    "banner": "/miniapps/neo-pay-shared-example/banner.svg"
   },
   "permissions": [
     "invoke:shared-runtime",

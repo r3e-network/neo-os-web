@@ -138,6 +138,39 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(provider.signMessage).toHaveBeenCalledWith("aGVsbG8=", "0x1111111111111111111111111111111111111111");
   });
 
+  it("normalizes the connected account Hash160 argument for OneGate transaction construction", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const provider = createNep21Provider({ name: "OneGate" });
+    window.OneGateDapiProvider = provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    await expect(wallet.invokeContract({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "claimRangeGasPool",
+      args: [
+        { type: "String", value: "miniapp-gas-lucky-pool" },
+        { type: "Integer", value: "42" },
+        { type: "Hash160", value: "NTestAddress" },
+      ],
+      signers: [{ account: "NTestAddress", scopes: 1 }],
+    })).resolves.toMatchObject({ txid: "0xtxid" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [{
+        hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claimRangeGasPool",
+        args: [
+          { type: "String", value: "miniapp-gas-lucky-pool" },
+          { type: "Integer", value: "42" },
+          { type: "Hash160", value: "0x1111111111111111111111111111111111111111" },
+        ],
+      }],
+      [{ account: "0x1111111111111111111111111111111111111111", scopes: "CalledByEntry" }],
+    );
+  });
+
   it("blocks transaction calls when the wallet network differs from the DApp network", async () => {
     window.history.replaceState({}, "", "/?network=mainnet");
     const provider = createNep21Provider({ network: TESTNET_MAGIC });

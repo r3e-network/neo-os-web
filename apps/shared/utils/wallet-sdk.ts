@@ -439,6 +439,25 @@ function mapDapiSigners(
   }));
 }
 
+function mapDapiArgs(
+  args?: ContractArg[],
+  accountHash?: string | null,
+  currentAddress?: string | null,
+): ContractArg[] | undefined {
+  if (!args?.length) return args;
+  return args.map((arg) => {
+    if (
+      accountHash &&
+      currentAddress &&
+      String(arg.type).toLowerCase() === "hash160" &&
+      arg.value === currentAddress
+    ) {
+      return { ...arg, value: accountHash };
+    }
+    return arg;
+  });
+}
+
 function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
   if (!candidate || typeof candidate !== "object") return false;
   const provider = candidate as Partial<NeoDapiProvider>;
@@ -529,11 +548,15 @@ function chainTypeFromDapiNetwork(network?: number): string {
   return resolved ? `neo-n3-${resolved}` : "neo-n3";
 }
 
-function buildDapiInvocation(params: InvokeParams): NeoDapiInvocation {
+function buildDapiInvocation(
+  params: InvokeParams,
+  accountHash?: string | null,
+  currentAddress?: string | null,
+): NeoDapiInvocation {
   return {
     hash: params.scriptHash,
     operation: normalizeOperationName(params.operation),
-    args: params.args ?? [],
+    args: mapDapiArgs(params.args, accountHash, currentAddress) ?? [],
   };
 }
 
@@ -900,7 +923,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
         );
       }
       const result = await wallet.provider.invoke(
-        [buildDapiInvocation(params)],
+        [buildDapiInvocation(params, dapiAccountHash, address.value)],
         mapDapiSigners(params.signers, dapiAccountHash, address.value),
       );
       return normalizeTxResult(result);
@@ -934,7 +957,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
         );
       }
       const result = await wallet.provider.invoke(
-        (params.invokeArgs ?? []).map(buildDapiInvocation),
+        (params.invokeArgs ?? []).map((entry) =>
+          buildDapiInvocation(entry, dapiAccountHash, address.value),
+        ),
         mapDapiSigners(params.signers, dapiAccountHash, address.value),
       );
       return normalizeTxResult(result);
@@ -979,7 +1004,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
           ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
         );
       }
-      return wallet.provider.call(buildDapiInvocation(params));
+      return wallet.provider.call(
+        buildDapiInvocation(params, dapiAccountHash, address.value),
+      );
     }
 
     return wallet.provider.invokeRead({

@@ -169,11 +169,64 @@ describe("PlayAreaRegistry", () => {
     expect(screen.getByRole("heading", { name: "Confidential transfer desk" })).toBeVisible();
     expect(screen.getAllByText("Morpheus confidential compute").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /seal private transfer/i })).toBeVisible();
-    expect(screen.getByLabelText("Recipient")).toHaveValue("");
-    expect(screen.getByLabelText(/Amount/)).toHaveValue(null);
-    expect(screen.getByLabelText("Private memo")).toHaveValue("");
+    expect(screen.getByText("Recipient")).toBeVisible();
+    expect(screen.getByText("Amount")).toBeVisible();
+    expect(screen.getByText("Private memo")).toBeVisible();
     expect(screen.queryByText("N...recipient")).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue("private payment")).not.toBeInTheDocument();
+  });
+
+  it("renders OneGate Vault as a QR claim desk prefilled from OneGate launch params", () => {
+    expect(hasNativePlayArea("miniapp-gas-lucky-pool")).toBe(true);
+
+    render(
+      <PlayAreaRegistry
+        app={{
+          ...baseApp,
+          app_id: "miniapp-gas-lucky-pool",
+          name: "OneGate Vault",
+          category: "social",
+          description: "Create a bounded GAS reward pool and let OneGate users scan to claim once.",
+          permissions: { payments: true, randomness: true },
+        }}
+        stats={[
+          { label: "Status", value: "Active", accent: true },
+          { label: "Asset", value: "GAS" },
+          { label: "Claim Range", value: "1-50 GAS", accent: true },
+        ]}
+        statsMap={{
+          Status: "Active",
+          Asset: "GAS",
+          "Claim Range": "1-50 GAS",
+        }}
+        activity={null}
+        loading={false}
+        error={null}
+        contractHash="0x1234567890abcdef1234567890abcdef12345678"
+        network="testnet"
+        launchContext={{
+          appId: "miniapp-gas-lucky-pool",
+          source: "onegate",
+          operation: "claimPool",
+          tab: null,
+          network: "testnet",
+          params: {
+            claimKey: "ogv_campaign_a_user_42",
+            ref: "campaign-a",
+          },
+          keys: ["claimKey", "ref"],
+          hasParams: true,
+          signature: "claimKey=ogv_campaign_a_user_42&ref=campaign-a",
+        }}
+        onRefresh={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("native-playarea-miniapp-gas-lucky-pool")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "OneGate Vault" })).toBeVisible();
+    expect(screen.getByText("Prefilled from scan parameters")).toBeVisible();
+    expect(screen.getByText("OneGate QR key")).toBeVisible();
+    expect(screen.getByText("Single-use guard")).toBeVisible();
   });
 
   it("renders explorer as a real live search console instead of a static profiled preview", () => {
@@ -206,7 +259,7 @@ describe("PlayAreaRegistry", () => {
 
     expect(screen.getByTestId(`native-playarea-${appId}`)).toBeVisible();
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
-    expect(screen.getByText("Prepare wallet action")).toBeVisible();
+    expect(screen.getByText("Workflow")).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
@@ -262,8 +315,8 @@ describe("PlayAreaRegistry", () => {
     });
     expect(screen.getByRole("heading", { name: "Neo X bridge control console" })).toBeVisible();
     expect(screen.getByText("Message Bridge")).toBeVisible();
-    expect(screen.getByLabelText("Target contract")).toHaveValue("");
-    expect(screen.getByLabelText("Message")).toHaveValue("");
+    expect(screen.getByText("Target contract")).toBeVisible();
+    expect(screen.getByText("Message")).toBeVisible();
     expect(screen.queryByDisplayValue("0xAxLabs...")).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue("sync:miniapp-state")).not.toBeInTheDocument();
 
@@ -314,9 +367,12 @@ describe("PlayAreaRegistry", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Amount")).toHaveValue(3.5);
-    expect(screen.getByLabelText("Target contract")).toHaveValue("0xabcdef");
-    expect(screen.getByLabelText("Message")).toHaveValue("sync state");
+    expect(screen.getByText("Amount")).toBeVisible();
+    expect(screen.getByText("3.5")).toBeVisible();
+    expect(screen.getByText("Target contract")).toBeVisible();
+    expect(screen.getByText("0xabcdef")).toBeVisible();
+    expect(screen.getByText("Message")).toBeVisible();
+    expect(screen.getByText("sync state")).toBeVisible();
     expect(screen.getAllByText("Neo X -> Neo N3").length).toBeGreaterThan(0);
   });
 });

@@ -18,6 +18,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void EnvelopeClaimedHandler(string appId, BigInteger envelopeId, UInt160 claimer, BigInteger amount, BigInteger remaining);
     public delegate void EnvelopeCompletedHandler(string appId, BigInteger envelopeId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
     public delegate void EnvelopeRefundedHandler(string appId, BigInteger envelopeId, UInt160 creator, BigInteger refundAmount);
+    public delegate void RangeGasPoolCreatedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger totalAmount, BigInteger minClaimAmount, BigInteger maxClaimAmount, BigInteger maxClaims);
+    public delegate void RangeGasPoolClaimedHandler(string appId, BigInteger poolId, UInt160 claimer, BigInteger amount, BigInteger remainingAmount, BigInteger remainingClaims);
+    public delegate void RangeGasPoolCompletedHandler(string appId, BigInteger poolId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
+    public delegate void RangeGasPoolFundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger amount, BigInteger totalAmount, BigInteger remainingAmount);
+    public delegate void RangeGasPoolRefundedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger refundAmount);
+    public delegate void GasCreditWithdrawnHandler(UInt160 user, BigInteger amount);
     public delegate void TrustCreatedHandler(string appId, BigInteger trustId, UInt160 owner, UInt160 heir, BigInteger principal);
     public delegate void HeartbeatRecordedHandler(string appId, BigInteger trustId, BigInteger newDeadline);
     public delegate void TrustExecutedHandler(string appId, BigInteger trustId, UInt160 heir, BigInteger principal);
@@ -65,6 +71,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_ENVELOPES       = new byte[] { 0x11 };
         private static readonly byte[] PREFIX_GRABBER         = new byte[] { 0x12 };
         private static readonly byte[] PREFIX_AMOUNTS         = new byte[] { 0x14 };
+        private static readonly byte[] PREFIX_RANGE_POOL_ID   = new byte[] { 0x15 };
+        private static readonly byte[] PREFIX_RANGE_POOLS     = new byte[] { 0x16 };
+        private static readonly byte[] PREFIX_RANGE_CLAIMER   = new byte[] { 0x17 };
 
         // -----------------------------------------------------------------------
         // Trust storage prefixes (0x20-0x2F)
@@ -93,6 +102,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private const long MIN_ENVELOPE_AMOUNT = 10000000;   // 0.1 GAS
         private const long MIN_PER_PACKET      = 1000000;    // 0.01 GAS
         private const int  MAX_PACKETS         = 100;
+        private const long MIN_RANGE_POOL_AMOUNT = 10000000; // 0.1 GAS
 
         // Trust
         private const long MIN_PRINCIPAL          = 1;           // 1 NEO
@@ -131,6 +141,24 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("EnvelopeRefunded")]
         public static event EnvelopeRefundedHandler OnEnvelopeRefunded;
 
+        [DisplayName("RangeGasPoolCreated")]
+        public static event RangeGasPoolCreatedHandler OnRangeGasPoolCreated;
+
+        [DisplayName("RangeGasPoolClaimed")]
+        public static event RangeGasPoolClaimedHandler OnRangeGasPoolClaimed;
+
+        [DisplayName("RangeGasPoolCompleted")]
+        public static event RangeGasPoolCompletedHandler OnRangeGasPoolCompleted;
+
+        [DisplayName("RangeGasPoolFunded")]
+        public static event RangeGasPoolFundedHandler OnRangeGasPoolFunded;
+
+        [DisplayName("RangeGasPoolRefunded")]
+        public static event RangeGasPoolRefundedHandler OnRangeGasPoolRefunded;
+
+        [DisplayName("GasCreditWithdrawn")]
+        public static event GasCreditWithdrawnHandler OnGasCreditWithdrawn;
+
         [DisplayName("TrustCreated")]
         public static event TrustCreatedHandler OnTrustCreated;
 
@@ -168,6 +196,21 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             public UInt160 BestLuckAddress;
             public BigInteger BestLuckAmount;
             public BigInteger ExpiryTime;
+        }
+
+        public struct RangeGasPoolData
+        {
+            public UInt160 Creator;
+            public BigInteger TotalAmount;
+            public BigInteger MinClaimAmount;
+            public BigInteger MaxClaimAmount;
+            public BigInteger MaxClaims;
+            public BigInteger ClaimedCount;
+            public BigInteger RemainingAmount;
+            public UInt160 BestLuckAddress;
+            public BigInteger BestLuckAmount;
+            public BigInteger ExpiryTime;
+            public bool Active;
         }
 
         public struct TrustData
@@ -371,6 +414,36 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         // Direct credit management
         // -----------------------------------------------------------------------
 
+        [Safe]
+        public static BigInteger GetDirectGasCredit(UInt160 payer)
+        {
+            if (payer == UInt160.Zero || !payer.IsValid) return 0;
+            return GetGasCreditBalance(payer);
+        }
+
+        public static BigInteger WithdrawGasCredit(UInt160 user, BigInteger amount)
+        {
+            ExecutionEngine.Assert(user != UInt160.Zero && user.IsValid, "invalid user");
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be > 0");
+
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])user;
+            BigInteger balance = GetGasCreditBalance(user);
+            ExecutionEngine.Assert(balance >= amount, "insufficient GAS credit");
+
+            BigInteger next = balance - amount;
+            if (next == 0) credits.Delete(key);
+            else credits.Put(key, next);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                "GAS credit withdrawal failed");
+
+            OnGasCreditWithdrawn(user, amount);
+            return amount;
+        }
+
         private static void CreditGas(UInt160 from, BigInteger amount)
         {
             StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
@@ -391,6 +464,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger next = balance - amount;
             if (next == 0) credits.Delete(key);
             else credits.Put(key, next);
+        }
+
+        private static BigInteger GetGasCreditBalance(UInt160 payer)
+        {
+            StorageMap credits = new StorageMap(Storage.CurrentContext, PREFIX_DIRECT_GAS_CREDIT);
+            ByteString key = (ByteString)(byte[])payer;
+            ByteString existing = credits.Get(key);
+            return existing == null ? 0 : (BigInteger)existing;
         }
 
         private static void CreditNeo(UInt160 from, BigInteger amount)

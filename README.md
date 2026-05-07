@@ -124,13 +124,13 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 | Component | Domain | Hash |
 | --------- | ------ | ---- |
-| Morpheus Oracle | `oracle.morpheus.neo` | `0x017520f068fd602082fe5572596185e62a4ad991` |
+| Morpheus Oracle | `oracle.morpheus.neo` | `0x5b492098fc094c760402e01f7e0b631b939d2bea` |
 | Morpheus DataFeed | `pricefeed.morpheus.neo` | `0x03013f49c42a14546c8bbe58f9d434c3517fccab` |
 | NeoDID Registry | `neodid.morpheus.neo` | `0xb81f31ea81e279793b30411b82c2e82078b63105` |
-| AA canonical entrypoint | `smartwallet.neo` | `0x9742b4ed62a84a886f404d36149da6147528ee33` |
-| AA additional alias | `aa.morpheus.neo` | `0x9742b4ed62a84a886f404d36149da6147528ee33` |
-| AA Web3Auth verifier | `web3auth.smartwallet.neo` | `0xb4107cb2cb4bace0ebe15bc4842890734abe133a` |
-| AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0xe82b9d056c011819ff3652427682224daad0cd1f` |
+| AA canonical entrypoint | `smartwallet.neo` | `0x0268a387913b250166ddec032b03332690a1ef78` |
+| AA additional alias | `aa.morpheus.neo` | `0x0268a387913b250166ddec032b03332690a1ef78` |
+| AA Web3Auth verifier | `web3auth.smartwallet.neo` | `0x8e3a6388e02c0335912a77b7ff06d29a721c9112` |
+| AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0x74ca950d403143b2d40c15ce6d780225a728f5ec` |
 | AA SocialRecovery verifier | `recovery.smartwallet.neo` | `0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3` |
 
 Entry domains for MiniApps are not limited to `.neo`. The host runtime now
@@ -168,8 +168,8 @@ Current published Morpheus attestation anchors:
 
 Operational alignment now applied on mainnet:
 
-- all 7 flagship contracts point `abstractAccount` to mainnet AA Core `0x9742b4ed62a84a886f404d36149da6147528ee33`
-- `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x017520f068fd602082fe5572596185e62a4ad991`
+- all 7 flagship contracts point `abstractAccount` to mainnet AA Core `0x0268a387913b250166ddec032b03332690a1ef78`
+- `FogPlay` and `Red Envelope` point `oracle` to mainnet Morpheus Oracle `0x5b492098fc094c760402e01f7e0b631b939d2bea`
 - those callback consumers are allowlisted on the mainnet Oracle and funded with callback fee credit
 
 ## Platform Contracts

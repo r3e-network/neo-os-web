@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Asset Factory logo">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14D990"/>
+      <stop offset=".58" stop-color="#2AB8FF"/>
+      <stop offset="1" stop-color="#061927"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="112" y1="90" x2="392" y2="412" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1FFF8"/>
+      <stop offset="1" stop-color="#14D990"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="154" y1="140" x2="372" y2="386" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7C2"/>
+      <stop offset=".48" stop-color="#2AB8FF"/>
+      <stop offset="1" stop-color="#061927"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="#061927"/>
+  <rect x="34" y="34" width="444" height="444" rx="86" fill="url(#bg)"/>
+  <path d="M76 360c84 62 217 84 327 10 74-50 75-149 9-218C341 78 209 70 136 136 76 191 52 290 76 360Z" fill="#061927" opacity=".22"/>
+  <path d="M92 94h112M318 420h104" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="18" stroke-linecap="round"/>
+
+        <rect x="116" y="116" width="280" height="280" rx="52" fill="url(#panel)" stroke="#FFFFFF" stroke-opacity=".42" stroke-width="8"/>
+        <rect x="168" y="162" width="176" height="54" rx="16" fill="#FFFFFF"/>
+        <rect x="168" y="242" width="74" height="98" rx="18" fill="#FFFFFF" fill-opacity=".9"/>
+        <rect x="270" y="242" width="74" height="98" rx="18" fill="#FFFFFF" fill-opacity=".76"/>
+        <path d="M150 374h212" stroke="#FFFFFF" stroke-opacity=".75" stroke-width="20" stroke-linecap="round"/>
+        <circle cx="374" cy="138" r="40" fill="url(#coin)" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="6"/>
+        <path d="M374 114v48M350 138h48" stroke="#061927" stroke-width="12" stroke-linecap="round"/>
+</svg>

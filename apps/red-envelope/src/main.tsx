@@ -9,7 +9,7 @@ import { messages } from "./locale/messages";
 import { useRedEnvelope } from "./composables/useRedEnvelope";
 
 defineMiniApp({
-  appId: "miniapp-red-envelope",
+  appId: "miniapp-redenvelope",
   playArea: PlayArea,
   manifest,
   messages,
