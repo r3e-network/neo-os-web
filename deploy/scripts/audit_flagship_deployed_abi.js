@@ -25,6 +25,7 @@ const items = [
     manifest: "apps/last-survivor/neo-manifest.json",
     expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "totalPotDistributed", "totalPlayers", "getCurrentKeyPrice"],
     expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
       "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
     },
   },
@@ -32,6 +33,10 @@ const items = [
     brand: "GASBOX",
     manifest: "apps/gasbox/neo-manifest.json",
     expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay", "getMachine"],
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
+    },
   },
   {
     brand: "Red Envelope",
@@ -47,6 +52,10 @@ const items = [
     brand: "FogPlay",
     manifest: "apps/fogplay/neo-manifest.json",
     expectedMethods: ["isPaused", "placeBet", "getBet"],
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
+    },
   },
   {
     brand: "SelfLoan",

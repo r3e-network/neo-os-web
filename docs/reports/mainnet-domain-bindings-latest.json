@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-08T14:45:50Z",
+  "generated_at_utc": "2026-05-08T15:24:26Z",
   "network": "neo-n3-mainnet",
   "nns_contract": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
   "record_type": 16,
@@ -16,11 +16,19 @@
   },
   "records": [
     {
-      "domain": "lastsurvivor.miniapp.neo",
+      "domain": "dicegame.miniapp.neo",
       "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "desired_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_record": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
-      "status": "stale",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
+    },
+    {
+      "domain": "eventticketpass.miniapp.neo",
+      "desired_contract": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+      "desired_address": "NPuUuywgsc87DJ4YHErFKV2HMVacxn4epK",
+      "current_record": "",
+      "status": "missing",
       "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
     },
     {
@@ -40,25 +48,25 @@
       "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
     },
     {
-      "domain": "dicegame.miniapp.neo",
+      "domain": "lastsurvivor.miniapp.neo",
       "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "desired_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_record": "",
-      "status": "missing",
-      "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
-    },
-    {
-      "domain": "eventticketpass.miniapp.neo",
-      "desired_contract": "0x90bad472146aab97de71498e8d736c3124e7c82b",
-      "desired_address": "NPuUuywgsc87DJ4YHErFKV2HMVacxn4epK",
-      "current_record": "",
-      "status": "missing",
+      "current_record": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      "status": "stale",
       "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
     },
     {
       "domain": "milestoneescrow.miniapp.neo",
       "desired_contract": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
       "desired_address": "NejoTJX5h93tAt8SN9X6cM7u6n7Hsw2uYx",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
+    },
+    {
+      "domain": "profitanchor.miniapp.neo",
+      "desired_contract": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "desired_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
       "current_record": "",
       "status": "missing",
       "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
@@ -75,6 +83,14 @@
       "domain": "soulboundcertificate.miniapp.neo",
       "desired_contract": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
       "desired_address": "NVkc9yoxQdkxFcw88BNzD7SooRnqcHuZfk",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"
+    },
+    {
+      "domain": "trustanchor.miniapp.neo",
+      "desired_contract": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "desired_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
       "current_record": "",
       "status": "missing",
       "required_action": "setRecord(domain, 16, desired_address) with the domain-owner signer"

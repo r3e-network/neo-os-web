@@ -51,7 +51,7 @@ describe("/api/activity/events", () => {
             {
               notifications: [
                 {
-                  contract: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+                  contract: "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
                   eventname: "Claimed",
                   state: [],
                 },
@@ -126,7 +126,7 @@ describe("/api/activity/events", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        "https://api.n3index.dev/indexer/v1/networks/mainnet/contracts/0xa1ca7a610105686635f31de8e174ae3ce6b61a3e/events",
+        "https://api.n3index.dev/indexer/v1/networks/mainnet/contracts/0x02beeef6f65c6989a121c0a0e6b23190333edb98/events",
       ),
       expect.anything(),
     );

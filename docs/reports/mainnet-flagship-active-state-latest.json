@@ -1,0 +1,171 @@
+[
+  {
+    "brand": "LastSurvivor",
+    "manifestId": "miniapp-last-survivor",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "definitionHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "remoteContractName": "PlatformGame",
+    "readChecks": [
+      {
+        "method": "getCountdownStatus",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      },
+      {
+        "method": "getGameType",
+        "vmstate": "HALT",
+        "stackType": "Integer"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "GASBOX",
+    "manifestId": "miniapp-gasbox",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "definitionHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "remoteContractName": "PlatformGame",
+    "readChecks": [
+      {
+        "method": "getGachaMachine",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      },
+      {
+        "method": "getGameType",
+        "vmstate": "HALT",
+        "stackType": "Integer"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "Red Envelope",
+    "manifestId": "miniapp-redenvelope",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+    "definitionHash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+    "remoteContractName": "MiniAppRedEnvelope",
+    "readChecks": [
+      {
+        "method": "getEnvelope",
+        "vmstate": "HALT",
+        "stackType": "Struct"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "Daily Check-in",
+    "manifestId": "miniapp-dailycheckin",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+    "definitionHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+    "remoteContractName": "MiniAppDailyCheckIn",
+    "readChecks": [
+      {
+        "method": "getPlatformStats",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "FogPlay",
+    "manifestId": "miniapp-fogplay",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "definitionHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "remoteContractName": "PlatformGame",
+    "readChecks": [
+      {
+        "method": "getCoinFlipBetLimits",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      },
+      {
+        "method": "getGameType",
+        "vmstate": "HALT",
+        "stackType": "Integer"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "SelfLoan",
+    "manifestId": "miniapp-self-loan",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+    "definitionHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+    "remoteContractName": "MiniAppSelfLoan",
+    "readChecks": [
+      {
+        "method": "getPlatformStats",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      },
+      {
+        "method": "getLoanDetails",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "ProfitAnchor",
+    "manifestId": "miniapp-profitanchor",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "definitionHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "remoteContractName": "PlatformAnchor",
+    "readChecks": [
+      {
+        "method": "getAnchorStats",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "TrustAnchor",
+    "manifestId": "miniapp-trustanchor",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "definitionHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "remoteContractName": "PlatformAnchor",
+    "readChecks": [
+      {
+        "method": "getAnchorStats",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      }
+    ],
+    "problems": []
+  },
+  {
+    "brand": "NeoPay",
+    "manifestId": "miniapp-neo-pay",
+    "network": "neo-n3-mainnet",
+    "contractHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+    "definitionHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+    "remoteContractName": "MiniAppNeoPay",
+    "readChecks": [
+      {
+        "method": "totalStreams",
+        "vmstate": "HALT",
+        "stackType": "Integer"
+      },
+      {
+        "method": "getStreamDetails",
+        "vmstate": "HALT",
+        "stackType": "Map"
+      }
+    ],
+    "problems": []
+  }
+]
