@@ -41,7 +41,7 @@ namespace NeoMiniAppPlatform.Contracts
         [Safe]
         public static Iterator Tokens()
         {
-            return Storage.Find(Storage.CurrentContext, PREFIX_TOKENS, FindOptions.ValuesOnly | FindOptions.RemovePrefix);
+            return Storage.Find(Storage.CurrentContext, PREFIX_TOKENS, FindOptions.ValuesOnly);
         }
 
         [DisplayName("tokensOf")]
@@ -52,7 +52,7 @@ namespace NeoMiniAppPlatform.Contracts
             return Storage.Find(
                 Storage.CurrentContext,
                 Helper.Concat(PREFIX_OWNER_TOKEN_LIST, owner),
-                FindOptions.ValuesOnly | FindOptions.RemovePrefix);
+                FindOptions.ValuesOnly);
         }
 
         [DisplayName("properties")]
