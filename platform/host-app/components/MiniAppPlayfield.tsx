@@ -1,6 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { MiniAppInfo, MiniAppLaunchContext } from "./types";
-import { getMiniAppContractHash, getRpcNetwork, getRpcUrl } from "@/lib/rpc-helpers";
+import {
+  getMiniAppContractHash,
+  getRpcNetwork,
+  getRpcUrl,
+} from "@/lib/rpc-helpers";
 import { PlayAreaRegistry } from "./playarea/PlayAreaRegistry";
 
 export function MiniAppPlayfield({
@@ -124,7 +128,8 @@ function isZeroAddr(b64: string | undefined): boolean {
 const LAST_SURVIVOR_ROLLOVER_LABEL = "Rollover Ready";
 
 function fmtCountdown(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return LAST_SURVIVOR_ROLLOVER_LABEL;
+  if (!Number.isFinite(seconds) || seconds <= 0)
+    return LAST_SURVIVOR_ROLLOVER_LABEL;
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
@@ -174,7 +179,10 @@ function LiveContractView({
   const [error, setError] = useState<string | null>(null);
 
   const requestedNetwork = launchContext?.network ?? getRpcNetwork();
-  const contractHash = getMiniAppContractHash(app.app_id, requestedNetwork) || app.contract_hash || null;
+  const contractHash =
+    getMiniAppContractHash(app.app_id, requestedNetwork) ||
+    app.contract_hash ||
+    null;
   const rpcUrl = getRpcUrl(requestedNetwork);
 
   const loadContractData = useCallback(
@@ -191,8 +199,13 @@ function LiveContractView({
         // hero + stats grid don't flicker every 15 s.
         if (isInitial) setLoading(true);
         const [appStats, appActivity] = await Promise.all([
-          fetchAppStats(app.app_id, rpcUrl, contractHash),
-          fetchAppActivity(app.app_id, rpcUrl, contractHash).catch(() => null),
+          fetchAppStats(app.app_id, rpcUrl, contractHash, requestedNetwork),
+          fetchAppActivity(
+            app.app_id,
+            rpcUrl,
+            contractHash,
+            requestedNetwork,
+          ).catch(() => null),
         ]);
         setStats(appStats);
         setActivity(appActivity);
@@ -206,7 +219,7 @@ function LiveContractView({
         if (isInitial) setLoading(false);
       }
     },
-    [app.app_id, contractHash, rpcUrl],
+    [app.app_id, contractHash, requestedNetwork, rpcUrl],
   );
 
   useEffect(() => {
@@ -245,18 +258,27 @@ async function fetchAppStats(
   appId: string,
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Array<{ label: string; value: string; accent?: boolean }>> {
   try {
     switch (appId) {
       case "miniapp-last-survivor": {
-        if (getRpcNetwork() === "testnet") {
+        if (network === "testnet") {
           const [stateStack, pausedStack] = await Promise.all([
-            invokeRead(rpcUrl, contractHash, "getCountdownStatus", [
-              { type: "String", value: LAST_SURVIVOR_APP_ID },
-            ]),
-            invokeRead(rpcUrl, contractHash, "isPaused", [
-              { type: "String", value: LAST_SURVIVOR_APP_ID },
-            ]),
+            invokeRead(
+              rpcUrl,
+              contractHash,
+              "getCountdownStatus",
+              [{ type: "String", value: LAST_SURVIVOR_APP_ID }],
+              network,
+            ),
+            invokeRead(
+              rpcUrl,
+              contractHash,
+              "isPaused",
+              [{ type: "String", value: LAST_SURVIVOR_APP_ID }],
+              network,
+            ),
           ]);
           const state = decodeMap(stateStack);
           const round = parseInt(String(state.roundId ?? "0"), 10);
@@ -265,9 +287,15 @@ async function fetchAppStats(
           const pot = parseInt(String(state.pot ?? "0"), 10);
           const totalKeys = parseInt(String(state.totalKeys ?? "0"), 10);
           const endTime = parseInt(String(state.endTime ?? "0"), 10);
-          const currentKeyPrice = parseInt(String(state.currentKeyPrice ?? "0"), 10);
+          const currentKeyPrice = parseInt(
+            String(state.currentKeyPrice ?? "0"),
+            10,
+          );
           const totalPlayers = parseInt(String(state.totalPlayers ?? "0"), 10);
-          const totalDistributed = parseInt(String(state.totalPotDistributed ?? "0"), 10);
+          const totalDistributed = parseInt(
+            String(state.totalPotDistributed ?? "0"),
+            10,
+          );
           const expiredButOpen =
             active &&
             (String(state.status || "").toLowerCase() === "ending" ||
@@ -294,7 +322,11 @@ async function fetchAppStats(
                   : LAST_SURVIVOR_ROLLOVER_LABEL,
               accent: active && !expiredButOpen,
             },
-            { label: "Prize Pool", value: `${fmtGas(pot)} GAS`, accent: pot > 0 },
+            {
+              label: "Prize Pool",
+              value: `${fmtGas(pot)} GAS`,
+              accent: pot > 0,
+            },
             { label: "Round", value: `#${round}` },
             { label: "Keys This Round", value: String(totalKeys) },
             { label: "Total Players", value: String(totalPlayers) },
@@ -304,7 +336,11 @@ async function fetchAppStats(
               value: `${fmtGas(totalDistributed)} GAS`,
               accent: true,
             },
-            { label: "Status", value: status, accent: !paused && active && !expiredButOpen },
+            {
+              label: "Status",
+              value: status,
+              accent: !paused && active && !expiredButOpen,
+            },
           ];
         }
 
@@ -312,6 +348,8 @@ async function fetchAppStats(
           rpcUrl,
           contractHash,
           "getRoundStateForFrontend",
+          [],
+          network,
         );
         const state = decodeMap(stateStack);
         const round = parseInt(String(state.roundId ?? "0"), 10);
@@ -327,9 +365,15 @@ async function fetchAppStats(
 
         const [keyPriceStack, totalPlayersStack, totalDistStack] =
           await Promise.all([
-            invokeRead(rpcUrl, contractHash, "getCurrentKeyPrice"),
-            invokeRead(rpcUrl, contractHash, "totalPlayers"),
-            invokeRead(rpcUrl, contractHash, "totalPotDistributed"),
+            invokeRead(rpcUrl, contractHash, "getCurrentKeyPrice", [], network),
+            invokeRead(rpcUrl, contractHash, "totalPlayers", [], network),
+            invokeRead(
+              rpcUrl,
+              contractHash,
+              "totalPotDistributed",
+              [],
+              network,
+            ),
           ]);
 
         const status = !active
@@ -369,8 +413,8 @@ async function fetchAppStats(
 
       case "miniapp-gasbox": {
         const [machinesStack, pausedStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "totalMachines"),
-          invokeRead(rpcUrl, contractHash, "isPaused"),
+          invokeRead(rpcUrl, contractHash, "totalMachines", [], network),
+          invokeRead(rpcUrl, contractHash, "isPaused", [], network),
         ]);
         const machines = stackInt(machinesStack);
         const paused = stackBool(pausedStack);
@@ -391,7 +435,13 @@ async function fetchAppStats(
       }
 
       case "miniapp-redenvelope": {
-        const pausedStack = await invokeRead(rpcUrl, contractHash, "isPaused");
+        const pausedStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "isPaused",
+          [],
+          network,
+        );
         return [
           {
             label: "Status",
@@ -405,7 +455,13 @@ async function fetchAppStats(
       }
 
       case "miniapp-gas-lucky-pool": {
-        const pausedStack = await invokeRead(rpcUrl, contractHash, "isPaused");
+        const pausedStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "isPaused",
+          [],
+          network,
+        );
         return [
           {
             label: "Status",
@@ -420,8 +476,8 @@ async function fetchAppStats(
 
       case "miniapp-dailycheckin": {
         const [statsStack, pausedStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getPlatformStats"),
-          invokeRead(rpcUrl, contractHash, "isPaused"),
+          invokeRead(rpcUrl, contractHash, "getPlatformStats", [], network),
+          invokeRead(rpcUrl, contractHash, "isPaused", [], network),
         ]);
         const m = decodeMap(statsStack);
         const totalUsers = parseInt(String(m.totalUsers ?? "0"), 10);
@@ -452,8 +508,8 @@ async function fetchAppStats(
 
       case "miniapp-fogplay": {
         const [limitsStack, pausedStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getBetLimits"),
-          invokeRead(rpcUrl, contractHash, "isPaused"),
+          invokeRead(rpcUrl, contractHash, "getBetLimits", [], network),
+          invokeRead(rpcUrl, contractHash, "isPaused", [], network),
         ]);
         const limits = limitsStack as Array<{ type: string; value: unknown }>;
         // getBetLimits returns Struct of [minBet, maxBet]
@@ -484,15 +540,25 @@ async function fetchAppStats(
 
       case "miniapp-self-loan": {
         const [statsStack, pausedStack] = await Promise.all([
-          invokeRead(rpcUrl, contractHash, "getLendingStats", [
-            { type: "String", value: "miniapp-self-loan" },
-          ]).then((stack) => {
+          invokeRead(
+            rpcUrl,
+            contractHash,
+            "getLendingStats",
+            [{ type: "String", value: "miniapp-self-loan" }],
+            network,
+          ).then((stack) => {
             const stats = decodeMap(stack);
             return Object.keys(stats).length
               ? stack
-              : invokeRead(rpcUrl, contractHash, "getPlatformStats");
+              : invokeRead(
+                  rpcUrl,
+                  contractHash,
+                  "getPlatformStats",
+                  [],
+                  network,
+                );
           }),
-          invokeRead(rpcUrl, contractHash, "isPaused"),
+          invokeRead(rpcUrl, contractHash, "isPaused", [], network),
         ]);
         const m = decodeMap(statsStack);
         const totalLoans = parseInt(String(m.totalLoans ?? "0"), 10);
@@ -540,13 +606,14 @@ async function fetchAppStats(
           contractHash,
           "getAnchorStats",
           [{ type: "String", value: appId }],
+          network,
         );
         const m = decodeMap(statsStack);
         const totalStaked = parseInt(String(m.totalStaked ?? "0"), 10);
         const totalStakers = parseInt(String(m.totalStakers ?? "0"), 10);
         const rewardReserve = parseInt(String(m.rewardReserve ?? "0"), 10);
         const agentCount = parseInt(String(m.agentCount ?? "0"), 10);
-        const bestAgentId = parseInt(String(m.bestAgentId ?? "0"), 10);
+        const selectedAgentId = parseInt(String(m.selectedAgentId ?? "0"), 10);
         const mode = parseInt(String(m.mode ?? "0"), 10);
         const paused = Boolean(m.paused);
         return [
@@ -556,21 +623,25 @@ async function fetchAppStats(
             accent: totalStaked > 0,
           },
           { label: "Stakers", value: String(totalStakers) },
-          { label: "Agents", value: String(agentCount), accent: agentCount > 0 },
+          {
+            label: "Agents",
+            value: String(agentCount),
+            accent: agentCount > 0,
+          },
           {
             label: "Reward Reserve",
             value: `${fmtGas(rewardReserve)} GAS`,
             accent: rewardReserve > 0,
           },
           {
-            label: appId === "miniapp-profitanchor" ? "Best Agent" : "Mode",
+            label: "Selected Agent",
             value:
-              appId === "miniapp-profitanchor" && bestAgentId > 0
-                ? `#${bestAgentId}`
+              selectedAgentId > 0
+                ? `#${selectedAgentId}`
                 : mode === 1
-                  ? "Trust"
+                  ? "Trust mode"
                   : mode === 2
-                    ? "Profit"
+                    ? "Profit mode"
                     : "Unregistered",
           },
           {
@@ -586,6 +657,8 @@ async function fetchAppStats(
           rpcUrl,
           contractHash,
           "totalStreams",
+          [],
+          network,
         );
         const totalStreams = stackInt(totalStreamsStack);
         return [
@@ -596,12 +669,12 @@ async function fetchAppStats(
           },
           { label: "Assets", value: "GAS / NEO" },
           { label: "Schedule", value: "Per-second drip" },
-          { label: "Status", value: "Active", accent: true },
+          { label: "Live data", value: "Contract read", accent: true },
         ];
       }
 
       default:
-        return [{ label: "Live stats", value: "Not configured" }];
+        return [{ label: "Live data", value: "No binding" }];
     }
   } catch (err) {
     console.warn("[LiveContractView] fetchAppStats failed for", appId, err);
@@ -615,22 +688,23 @@ async function fetchAppActivity(
   appId: string,
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity | null> {
   try {
     switch (appId) {
       case "miniapp-last-survivor":
-        return await fetchLastSurvivorActivity(rpcUrl, contractHash);
+        return await fetchLastSurvivorActivity(rpcUrl, contractHash, network);
       case "miniapp-redenvelope":
-        return await fetchRedEnvelopeActivity(rpcUrl, contractHash);
+        return await fetchRedEnvelopeActivity(rpcUrl, contractHash, network);
       case "miniapp-gasbox":
-        return await fetchGasBoxActivity(rpcUrl, contractHash);
+        return await fetchGasBoxActivity(rpcUrl, contractHash, network);
       case "miniapp-self-loan":
-        return await fetchSelfLoanActivity(rpcUrl, contractHash);
+        return await fetchSelfLoanActivity(rpcUrl, contractHash, network);
       case "miniapp-neo-pay":
-        return await fetchNeoPayActivity(rpcUrl, contractHash);
+        return await fetchNeoPayActivity(rpcUrl, contractHash, network);
       case "miniapp-trustanchor":
       case "miniapp-profitanchor":
-        return await fetchAnchorActivity(appId, rpcUrl, contractHash);
+        return await fetchAnchorActivity(appId, rpcUrl, contractHash, network);
       default:
         return null;
     }
@@ -644,20 +718,25 @@ async function fetchAnchorActivity(
   appId: string,
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
-  const statsStack = await invokeRead(rpcUrl, contractHash, "getAnchorStats", [
-    { type: "String", value: appId },
-  ]);
+  const statsStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "getAnchorStats",
+    [{ type: "String", value: appId }],
+    network,
+  );
   const stats = decodeMap(statsStack);
   const agentCount = Math.min(5, parseInt(String(stats.agentCount ?? "0"), 10));
-  const bestAgentId = parseInt(String(stats.bestAgentId ?? "0"), 10);
+  const selectedAgentId = parseInt(String(stats.selectedAgentId ?? "0"), 10);
   const rows: Activity["rows"] = [];
 
-  if (appId === "miniapp-profitanchor" && bestAgentId > 0) {
+  if (selectedAgentId > 0) {
     rows.push({
-      icon: "↗",
-      primary: `Best profit route: agent #${bestAgentId}`,
-      secondary: "Pooled ProfitAnchor votes must follow this route",
+      icon: "V",
+      primary: `Selected manual route: #${selectedAgentId}`,
+      secondary: "Route is selected by operators and signed by the AA agent",
       accent: true,
     });
   }
@@ -665,10 +744,16 @@ async function fetchAnchorActivity(
   const checks = [];
   for (let id = 1; id <= agentCount; id++) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getAgent", [
-        { type: "String", value: appId },
-        { type: "Integer", value: String(id) },
-      ])
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getAgent",
+        [
+          { type: "String", value: appId },
+          { type: "Integer", value: String(id) },
+        ],
+        network,
+      )
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -679,13 +764,9 @@ async function fetchAnchorActivity(
     if (!agent.map.account) continue;
     rows.push({
       icon: "V",
-      primary: `Agent #${agent.id}: ${fmtAddr(String(agent.map.account || ""))}`,
+      primary: `Route #${agent.id}: ${fmtAddr(String(agent.map.account || ""))}`,
       secondary: `Candidate ${fmtAddr(String(agent.map.candidate || ""))}`,
-      amount:
-        appId === "miniapp-profitanchor" && agent.map.profitScore
-          ? `score ${agent.map.profitScore}`
-          : undefined,
-      accent: agent.id === bestAgentId,
+      accent: agent.id === selectedAgentId,
     });
   }
 
@@ -699,13 +780,15 @@ async function fetchAnchorActivity(
 async function fetchLastSurvivorActivity(
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
-  if (getRpcNetwork() === "testnet") {
+  if (network === "testnet") {
     const stateStack = await invokeRead(
       rpcUrl,
       contractHash,
       "getCountdownStatus",
       [{ type: "String", value: LAST_SURVIVOR_APP_ID }],
+      network,
     );
     const state = decodeMap(stateStack);
     const currentRound = parseInt(String(state.roundId ?? "0"), 10);
@@ -745,6 +828,8 @@ async function fetchLastSurvivorActivity(
     rpcUrl,
     contractHash,
     "getRoundStateForFrontend",
+    [],
+    network,
   );
   const state = decodeMap(stateStack);
   const currentRound = parseInt(String(state.roundId ?? "0"), 10);
@@ -767,9 +852,13 @@ async function fetchLastSurvivorActivity(
   const historyChecks = [];
   for (let id = currentRound - 1; id >= start; id--) {
     historyChecks.push(
-      invokeRead(rpcUrl, contractHash, "getRoundDetails", [
-        { type: "Integer", value: String(id) },
-      ])
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getRoundDetails",
+        [{ type: "Integer", value: String(id) }],
+        network,
+      )
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -797,6 +886,7 @@ async function fetchLastSurvivorActivity(
 async function fetchRedEnvelopeActivity(
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
   // RedEnvelope contract doesn't expose a totalEnvelopes counter, so we probe a
   // bounded range in parallel. Tuned to cover the active testnet/mainnet IDs
@@ -807,9 +897,13 @@ async function fetchRedEnvelopeActivity(
     [];
   for (let id = PROBE_MAX; id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getEnvelope", [
-        { type: "Integer", value: String(id) },
-      ])
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getEnvelope",
+        [{ type: "Integer", value: String(id) }],
+        network,
+      )
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -851,8 +945,15 @@ async function fetchRedEnvelopeActivity(
 async function fetchGasBoxActivity(
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
-  const totalStack = await invokeRead(rpcUrl, contractHash, "totalMachines");
+  const totalStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "totalMachines",
+    [],
+    network,
+  );
   const total = stackInt(totalStack);
   if (total === 0)
     return { title: "Gacha Machines", rows: [], emptyText: "No machines yet." };
@@ -862,9 +963,13 @@ async function fetchGasBoxActivity(
   const limit = Math.min(total, 8);
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getMachine", [
-        { type: "Integer", value: String(id) },
-      ])
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getMachine",
+        [{ type: "Integer", value: String(id) }],
+        network,
+      )
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
@@ -896,14 +1001,25 @@ async function fetchGasBoxActivity(
 async function fetchSelfLoanActivity(
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
   let platformDeFi = false;
-  let totalStack = await invokeRead(rpcUrl, contractHash, "totalLoans");
+  let totalStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "totalLoans",
+    [],
+    network,
+  );
   let total = stackInt(totalStack);
   if (total === 0) {
-    const statsStack = await invokeRead(rpcUrl, contractHash, "getLendingStats", [
-      { type: "String", value: "miniapp-self-loan" },
-    ]);
+    const statsStack = await invokeRead(
+      rpcUrl,
+      contractHash,
+      "getLendingStats",
+      [{ type: "String", value: "miniapp-self-loan" }],
+      network,
+    );
     const stats = decodeMap(statsStack);
     const platformTotal = parseInt(String(stats.totalLoans ?? "0"), 10);
     if (platformTotal > 0) {
@@ -924,10 +1040,16 @@ async function fetchSelfLoanActivity(
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
       (platformDeFi
-        ? invokeRead(rpcUrl, contractHash, "getLoan", [
-            { type: "String", value: "miniapp-self-loan" },
-            { type: "Integer", value: String(id) },
-          ]).then((s) => {
+        ? invokeRead(
+            rpcUrl,
+            contractHash,
+            "getLoan",
+            [
+              { type: "String", value: "miniapp-self-loan" },
+              { type: "Integer", value: String(id) },
+            ],
+            network,
+          ).then((s) => {
             const loan = stackArray(s);
             return {
               id,
@@ -939,10 +1061,14 @@ async function fetchSelfLoanActivity(
               },
             };
           })
-        : invokeRead(rpcUrl, contractHash, "getLoanDetails", [
-            { type: "Integer", value: String(id) },
-          ]).then((s) => ({ id, map: decodeMap(s) })))
-        .catch(() => ({ id, map: {} as Record<string, unknown> })),
+        : invokeRead(
+            rpcUrl,
+            contractHash,
+            "getLoanDetails",
+            [{ type: "Integer", value: String(id) }],
+            network,
+          ).then((s) => ({ id, map: decodeMap(s) }))
+      ).catch(() => ({ id, map: {} as Record<string, unknown> })),
     );
   }
   const results = await Promise.all(checks);
@@ -972,8 +1098,15 @@ async function fetchSelfLoanActivity(
 async function fetchNeoPayActivity(
   rpcUrl: string,
   contractHash: string,
+  network: "mainnet" | "testnet",
 ): Promise<Activity> {
-  const totalStack = await invokeRead(rpcUrl, contractHash, "totalStreams");
+  const totalStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "totalStreams",
+    [],
+    network,
+  );
   const total = stackInt(totalStack);
   if (total === 0)
     return {
@@ -987,9 +1120,13 @@ async function fetchNeoPayActivity(
   const limit = Math.min(total, 6);
   for (let id = total; id >= total - limit + 1 && id >= 1; id--) {
     checks.push(
-      invokeRead(rpcUrl, contractHash, "getStreamDetails", [
-        { type: "Integer", value: String(id) },
-      ])
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getStreamDetails",
+        [{ type: "Integer", value: String(id) }],
+        network,
+      )
         .then((s) => ({ id, map: decodeMap(s) }))
         .catch(() => ({ id, map: {} as Record<string, unknown> })),
     );

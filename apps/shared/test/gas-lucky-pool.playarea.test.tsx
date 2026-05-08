@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -25,8 +25,11 @@ function t(key: string, params?: Record<string, string | number>) {
     claimScannedKey: "Claim scanned reward",
     scanClaimReady: "OneGate scan detected",
     scanClaimPool: "Reward key is ready",
-    scanClaimReview: "Submit the key and wallet address; the server sends GAS from the reward wallet.",
+    scanClaimReview:
+      "Submit the key and wallet address; the server sends GAS from the reward wallet.",
+    rewardRange: "1-50",
     noPoolSelected: "Enter a reward key or scan a OneGate QR code.",
+    claimConsoleHint: "Primary action lives in the right action console.",
     shareQr: "OneGate QR claim",
     oneGateReady: "OneGate ready",
     shareLink: "Claim link",
@@ -68,7 +71,9 @@ function launch(claimKey = "ogv_test_key_1234567890") {
   );
 }
 
-function baseState(overrides: Partial<Record<string, unknown>> = {}): ObservableState {
+function baseState(
+  overrides: Partial<Record<string, unknown>> = {},
+): ObservableState {
   const values: Record<string, unknown> = {
     currentPoolId: "42",
     currentClaimKey: "ogv_test_key_1234567890",
@@ -100,7 +105,10 @@ function baseState(overrides: Partial<Record<string, unknown>> = {}): Observable
     ...overrides,
   };
   return Object.fromEntries(
-    Object.entries(values).map(([key, value]) => [key, createObservable(value)]),
+    Object.entries(values).map(([key, value]) => [
+      key,
+      createObservable(value),
+    ]),
   );
 }
 
@@ -119,11 +127,17 @@ describe("OneGate Vault PlayArea launch flow", () => {
 
     expect(screen.getByText("OneGate scan detected")).toBeTruthy();
     expect(screen.getByText("Reward key is ready")).toBeTruthy();
-    expect((screen.getByLabelText("Claim key") as HTMLInputElement).value).toBe("ogv_test_key_1234567890");
+    expect(screen.queryByLabelText("Claim key")).toBeNull();
+    expect(screen.queryByText("Create reward pool")).toBeNull();
+    expect(screen.queryByText("OneGate QR claim")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Claim scanned reward" }));
-
-    expect(dispatch).toHaveBeenCalledWith("claimPool", { claimKey: "ogv_test_key_1234567890" });
+    expect(
+      screen.queryByRole("button", { name: "Claim scanned reward" }),
+    ).toBeNull();
+    expect(
+      screen.getByText("Primary action lives in the right action console."),
+    ).toBeTruthy();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("shows a clear congratulations state after a successful claim", () => {
@@ -131,114 +145,41 @@ describe("OneGate Vault PlayArea launch flow", () => {
       <PlayArea
         t={t}
         state={baseState({
-          lastTxid: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+          lastTxid:
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
           lastClaimAmount: 350000000n,
           lastClaimKey: "ogv_test_key_1234567890",
           lastClaimLuckPercent: "7.00",
           lastSuccessType: "claim",
         })}
         dispatch={vi.fn()}
-        launchContext={launch("42")}
+        launchContext={launch("ogv_test_key_1234567890")}
       />,
     );
 
     expect(screen.getByText("Congratulations, your claim is in")).toBeTruthy();
-    expect(screen.getByText(/Reward key ogv_test_key_1234567890 awarded 3\.5[0-9]* GAS/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Reward key ogv_test_key_1234567890 awarded 3\.5[0-9]* GAS/,
+      ),
+    ).toBeTruthy();
     expect(screen.getByText("Luck beat 7.00% of users.")).toBeTruthy();
     expect(screen.getByText(/Claimed 3\.5[0-9]* GAS/)).toBeTruthy();
   });
 
-  it("lets the creator recover remaining GAS from an ended pool", () => {
-    const dispatch = vi.fn();
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentPool: {
-            id: "42",
-            creator: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-            totalAmount: 1000000000n,
-            minClaimAmount: 100000000n,
-            maxClaimAmount: 500000000n,
-            maxClaims: 5,
-            claimedCount: 3,
-            remainingAmount: 625000000n,
-            bestLuckAddress: "",
-            bestLuckAmount: 0n,
-            expiryTime: 1767225600,
-            active: false,
-            status: "expired",
-          },
-          lastTxid: "0xrefund1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-          lastRefundAmount: 625000000n,
-          lastRefundPoolId: "42",
-          lastSuccessType: "refund",
-        })}
-        dispatch={dispatch}
-        launchContext={launch("42")}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Recover remaining GAS" }));
-
-    expect(dispatch).toHaveBeenCalledWith("refundPool", { poolId: "42" });
-    expect(screen.getByText("Remaining GAS returned")).toBeTruthy();
-    expect(screen.getAllByText(/Pool #42 returned 6\.25[0-9]* GAS to the creator/).length).toBeGreaterThan(0);
-  });
-
-  it("lets the creator add more GAS to an active pool", () => {
-    const dispatch = vi.fn();
-
-    render(
-      <PlayArea
-        t={t}
-        state={baseState({
-          currentPool: {
-            id: "42",
-            creator: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
-            totalAmount: 1000000000n,
-            minClaimAmount: 100000000n,
-            maxClaimAmount: 500000000n,
-            maxClaims: 5,
-            claimedCount: 2,
-            remainingAmount: 425000000n,
-            bestLuckAddress: "",
-            bestLuckAmount: 0n,
-            expiryTime: 1767225600,
-            active: true,
-            status: "active",
-          },
-          lastTxid: "0xfund1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-          lastFundAmount: 250000000n,
-          lastFundPoolId: "42",
-          lastSuccessType: "fund",
-        })}
-        dispatch={dispatch}
-        launchContext={launch("42")}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("Top up amount"), { target: { value: "2.5" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add GAS" }));
-
-    expect(dispatch).toHaveBeenCalledWith("topUpPool", { poolId: "42", amount: "2.5" });
-    expect(screen.getByText("Pool topped up")).toBeTruthy();
-    expect(screen.getAllByText(/Pool #42 received 2\.5[0-9]* GAS/).length).toBeGreaterThan(0);
-  });
-
-  it("keeps the OneGate QR below the claim controls instead of a standalone column", () => {
+  it("does not expose legacy pool management controls in the recipient play area", () => {
     render(
       <PlayArea
         t={t}
         state={baseState()}
         dispatch={vi.fn()}
-        launchContext={launch("42")}
+        launchContext={launch("ogv_test_key_1234567890")}
       />,
     );
 
-    expect(screen.queryByRole("region", { name: "OneGate QR claim" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Claim link" })).toBeTruthy();
-    expect(screen.getByTestId("onegate-qr-logo")).toBeTruthy();
+    expect(screen.queryByText("Create reward pool")).toBeNull();
+    expect(screen.queryByText("Recover remaining GAS")).toBeNull();
+    expect(screen.queryByText("Add GAS")).toBeNull();
+    expect(screen.queryByText("Claim link")).toBeNull();
   });
 });

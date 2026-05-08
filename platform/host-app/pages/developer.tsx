@@ -852,7 +852,7 @@ export default function DeveloperPage() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-6 right-6 z-[130]"
           >
             <div
               role="alert"
@@ -880,7 +880,7 @@ export default function DeveloperPage() {
               role="button"
               tabIndex={0}
               aria-label="Close dialog"
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm"
             />
 
             <motion.div
@@ -891,7 +891,7 @@ export default function DeveloperPage() {
               role="dialog"
               aria-modal="true"
               aria-label="Template Builder"
-              className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-2xl bg-white backdrop-blur-xl border-l border-gray-200 shadow-2xl overflow-y-auto"
+              className="fixed bottom-0 right-0 top-0 z-[1000] w-full max-w-2xl overflow-y-auto border-l border-gray-200 bg-white shadow-2xl backdrop-blur-xl"
               tabIndex={-1}
             >
               <DeveloperDrawerHeader onClose={() => setShowForm(false)} />

@@ -290,7 +290,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
   return createPortal(
     <div
       className={cn(
-        "fixed z-50 flex flex-col gap-2 pointer-events-none",
+        "fixed z-[130] flex flex-col gap-2 pointer-events-none",
         positionStyles[position],
       )}
       role="region"

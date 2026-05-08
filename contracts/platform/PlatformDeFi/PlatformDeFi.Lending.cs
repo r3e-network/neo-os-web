@@ -222,7 +222,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         #region ProfitAnchor Integration
 
         /// <summary>
-        /// Configure the ProfitAnchor app that supplies the highest-profit
+        /// Configure the ProfitAnchor app that supplies the operator-selected
         /// candidate for SelfLoan collateral voting. This does not transfer
         /// collateral to ProfitAnchor.
         /// </summary>
@@ -241,7 +241,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         /// <summary>
         /// Vote the SelfLoan contract's own NEO balance according to the
-        /// ProfitAnchor best-candidate view. User collateral remains in
+        /// ProfitAnchor selected-candidate view. User collateral remains in
         /// SelfLoan custody and is still withdrawable only through loan close.
         /// </summary>
         public static void SyncProfitAnchorVote(string appId)
@@ -256,7 +256,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
             ByteString candidate = (ByteString)Contract.Call(
                 profitAnchorContract,
-                "getBestCandidate",
+                "getSelectedCandidate",
                 CallFlags.ReadStates,
                 new object[] { profitAnchorAppId! })!;
             ExecutionEngine.Assert(candidate != null && candidate.Length == 33, "profit candidate missing");

@@ -166,7 +166,7 @@ export function NotificationDropdown({
       {/* Dropdown Panel */}
       <div
         className={cn(
-          "absolute right-0 top-[calc(100%+12px)] w-80 sm:w-96 rounded-2xl border border-gray-200/50 bg-white/90 backdrop-blur-2xl shadow-2xl z-50 transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "absolute right-0 top-[calc(100%+12px)] z-[90] w-80 sm:w-96 rounded-2xl border border-gray-200/50 bg-white/90 backdrop-blur-2xl shadow-2xl transform origin-top-right transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           isOpen
             ? "scale-100 opacity-100 pointer-events-auto"
             : "scale-95 opacity-0 pointer-events-none",

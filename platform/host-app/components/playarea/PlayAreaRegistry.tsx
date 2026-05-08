@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarCheck,
   CheckCircle2,
+  ChevronDown,
   CircleDollarSign,
   ClipboardCheck,
   Coins,
@@ -48,7 +49,12 @@ import {
   Workflow,
 } from "lucide-react";
 
-import type { MiniAppInfo, MiniAppLaunchContext, OperationEntry, OperationParam } from "@/components/types";
+import type {
+  MiniAppInfo,
+  MiniAppLaunchContext,
+  OperationEntry,
+  OperationParam,
+} from "@/components/types";
 import { getLaunchParam } from "@/lib/miniapp-launch-params";
 import { buildOneGateDirectMiniAppUrl } from "../../../../apps/shared/utils/onegate-launch";
 import {
@@ -109,14 +115,26 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
 
 const ORACLE_APP_LABELS: Record<
   string,
-  { title: string; mode: "http" | "vrf" | "compute" | "seal" | "neodid" | "price" }
+  {
+    title: string;
+    mode: "http" | "vrf" | "compute" | "seal" | "neodid" | "price";
+  }
 > = {
   "miniapp-oracle-http-console": { title: "HTTP Oracle Console", mode: "http" },
   "miniapp-oracle-vrf-console": { title: "VRF Request Console", mode: "vrf" },
-  "miniapp-oracle-compute-lab": { title: "Private Compute Lab", mode: "compute" },
+  "miniapp-oracle-compute-lab": {
+    title: "Private Compute Lab",
+    mode: "compute",
+  },
   "miniapp-oracle-seal-console": { title: "Seal Console", mode: "seal" },
-  "miniapp-oracle-neodid-console": { title: "NeoDID Oracle Console", mode: "neodid" },
-  "miniapp-oracle-price-console": { title: "Price Oracle Console", mode: "price" },
+  "miniapp-oracle-neodid-console": {
+    title: "NeoDID Oracle Console",
+    mode: "neodid",
+  },
+  "miniapp-oracle-price-console": {
+    title: "Price Oracle Console",
+    mode: "price",
+  },
 };
 
 type ProfileField = {
@@ -155,7 +173,8 @@ type PlayAreaProfile = {
 const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-aa-account-lab": {
     title: "AA account registration lab",
-    subtitle: "Preview registration intent, predicted account id, and owner binding before submitting through the action console.",
+    subtitle:
+      "Preview registration intent, predicted account id, and owner binding before submitting through the action console.",
     tone: "sky",
     icon: <Fingerprint className="h-5 w-5" />,
     fields: [
@@ -167,7 +186,12 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Witness", value: "owner" },
       { label: "Mode", value: "testnet" },
     ],
-    steps: ["Resolve AA core", "Derive account id", "Bind owner witness", "Submit register"],
+    steps: [
+      "Resolve AA core",
+      "Derive account id",
+      "Bind owner witness",
+      "Submit register",
+    ],
     primaryAction: "Stage account registration",
     visual: {
       headline: "Registration flow",
@@ -177,19 +201,35 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-aa-market-hub": {
     title: "AA escrow market desk",
-    subtitle: "Create a listing, lock settlement terms, and track counterparty approval for AA-powered marketplace deals.",
+    subtitle:
+      "Create a listing, lock settlement terms, and track counterparty approval for AA-powered marketplace deals.",
     tone: "emerald",
     icon: <BriefcaseBusiness className="h-5 w-5" />,
     fields: [
-      { key: "price", label: "Listing price", defaultValue: "18", suffix: "GAS", type: "number" },
-      { key: "item", label: "Listing title", defaultValue: "AA service package" },
+      {
+        key: "price",
+        label: "Listing price",
+        defaultValue: "18",
+        suffix: "GAS",
+        type: "number",
+      },
+      {
+        key: "item",
+        label: "Listing title",
+        defaultValue: "AA service package",
+      },
     ],
     cards: [
       { label: "Escrow", value: "funded on accept" },
       { label: "Settlement", value: "dual approval" },
       { label: "Disputes", value: "timelock" },
     ],
-    steps: ["Draft listing", "Lock funds", "Accept counterparty", "Settle or dispute"],
+    steps: [
+      "Draft listing",
+      "Lock funds",
+      "Accept counterparty",
+      "Settle or dispute",
+    ],
     primaryAction: "Stage listing",
     visual: {
       headline: "Trustless listing board",
@@ -198,7 +238,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-aa-permissions-lab": {
     title: "AA permission binding console",
-    subtitle: "Inspect verifier and hook bindings, then stage permission updates with clear before and after state.",
+    subtitle:
+      "Inspect verifier and hook bindings, then stage permission updates with clear before and after state.",
     tone: "slate",
     icon: <ClipboardCheck className="h-5 w-5" />,
     fields: [
@@ -210,43 +251,73 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Hook", value: "review" },
       { label: "Scope", value: "account" },
     ],
-    steps: ["Read bindings", "Compare desired policy", "Stage update", "Verify event"],
+    steps: [
+      "Read bindings",
+      "Compare desired policy",
+      "Stage update",
+      "Verify event",
+    ],
     primaryAction: "Stage permission update",
     visual: {
       headline: "Binding matrix",
-      slots: ["Verifier active", "Hook enabled", "Witness required", "Event audit"],
+      slots: [
+        "Verifier active",
+        "Hook enabled",
+        "Witness required",
+        "Event audit",
+      ],
     },
   },
   "miniapp-aa-relay-console": {
     title: "Relay payload console",
-    subtitle: "Build relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.",
+    subtitle:
+      "Build relay-ready calldata, inspect sponsor metadata, and verify the envelope before relay submission.",
     tone: "sky",
     icon: <Send className="h-5 w-5" />,
     fields: [
       { key: "target", label: "Target method", defaultValue: "transfer" },
-      { key: "gas", label: "Sponsor budget", defaultValue: "0.08", suffix: "GAS", type: "number" },
+      {
+        key: "gas",
+        label: "Sponsor budget",
+        defaultValue: "0.08",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Sponsor", value: "policy match" },
       { label: "Nonce", value: "fresh" },
       { label: "Relay", value: "ready" },
     ],
-    steps: ["Encode payload", "Attach sponsor", "Check nonce", "Relay atomically"],
+    steps: [
+      "Encode payload",
+      "Attach sponsor",
+      "Check nonce",
+      "Relay atomically",
+    ],
     primaryAction: "Build relay package",
     visual: {
       headline: "Relay envelope",
       slots: ["method", "nonce", "sponsor", "signature"],
-      footnote: "A relay package must be complete before it leaves the console.",
+      footnote:
+        "A relay package must be complete before it leaves the console.",
     },
   },
   "miniapp-aa-session-key-lab": {
     title: "Session key policy lab",
-    subtitle: "Configure a scoped session key with limits, expiry, and sponsor readiness for AA flows.",
+    subtitle:
+      "Configure a scoped session key with limits, expiry, and sponsor readiness for AA flows.",
     tone: "violet",
     icon: <KeyRound className="h-5 w-5" />,
     fields: [
       { key: "scope", label: "Allowed method", defaultValue: "claimReward" },
-      { key: "limit", label: "Spend limit", defaultValue: "2", suffix: "GAS", type: "number" },
+      {
+        key: "limit",
+        label: "Spend limit",
+        defaultValue: "2",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Expiry", value: "24h" },
@@ -262,7 +333,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-automation-copilot": {
     title: "Automation runbook cockpit",
-    subtitle: "Compose price alerts, AA recipes, private oracle jobs, and datafeed runbooks from one operator surface.",
+    subtitle:
+      "Compose price alerts, AA recipes, private oracle jobs, and datafeed runbooks from one operator surface.",
     tone: "emerald",
     icon: <Workflow className="h-5 w-5" />,
     fields: [
@@ -274,7 +346,12 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Privacy", value: "sealed input" },
       { label: "Runbook", value: "armed" },
     ],
-    steps: ["Select trigger", "Attach oracle", "Review action", "Enable monitor"],
+    steps: [
+      "Select trigger",
+      "Attach oracle",
+      "Review action",
+      "Enable monitor",
+    ],
     primaryAction: "Stage automation",
     visual: {
       headline: "Runbook chain",
@@ -283,11 +360,18 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-breakupcontract": {
     title: "Agreement split workspace",
-    subtitle: "Draft a breakup agreement, split shared assets fairly, and keep the settlement path legible.",
+    subtitle:
+      "Draft a breakup agreement, split shared assets fairly, and keep the settlement path legible.",
     tone: "rose",
     icon: <Scale className="h-5 w-5" />,
     fields: [
-      { key: "partyA", label: "Party A share", defaultValue: "50", suffix: "%", type: "number" },
+      {
+        key: "partyA",
+        label: "Party A share",
+        defaultValue: "50",
+        suffix: "%",
+        type: "number",
+      },
       { key: "asset", label: "Shared asset", defaultValue: "GAS balance" },
     ],
     cards: [
@@ -295,7 +379,12 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Counterparty", value: "pending" },
       { label: "Settlement", value: "fair split" },
     ],
-    steps: ["Draft terms", "Invite counterparty", "Lock assets", "Release split"],
+    steps: [
+      "Draft terms",
+      "Invite counterparty",
+      "Lock assets",
+      "Release split",
+    ],
     primaryAction: "Stage agreement",
     visual: {
       headline: "Split ledger",
@@ -304,11 +393,18 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-burn-league": {
     title: "Burn league arena",
-    subtitle: "Enter a burn challenge, preview leaderboard impact, and stage the burn transaction intentionally.",
+    subtitle:
+      "Enter a burn challenge, preview leaderboard impact, and stage the burn transaction intentionally.",
     tone: "amber",
     icon: <Flame className="h-5 w-5" />,
     fields: [
-      { key: "amount", label: "Burn amount", defaultValue: "10", suffix: "points", type: "number" },
+      {
+        key: "amount",
+        label: "Burn amount",
+        defaultValue: "10",
+        suffix: "points",
+        type: "number",
+      },
       { key: "league", label: "League", defaultValue: "Weekly ladder" },
     ],
     cards: [
@@ -325,7 +421,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-council-governance": {
     title: "Council voting chamber",
-    subtitle: "Review proposals, stage a council vote, and verify voting power before signing.",
+    subtitle:
+      "Review proposals, stage a council vote, and verify voting power before signing.",
     tone: "emerald",
     icon: <Building2 className="h-5 w-5" />,
     fields: [
@@ -346,12 +443,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-dev-tipping": {
     title: "Developer tip jar",
-    subtitle: "Send an appreciation tip with a message and clear wallet preview before payment.",
+    subtitle:
+      "Send an appreciation tip with a message and clear wallet preview before payment.",
     tone: "rose",
     icon: <HeartHandshake className="h-5 w-5" />,
     fields: [
       { key: "recipient", label: "Developer", defaultValue: "" },
-      { key: "amount", label: "Tip amount", defaultValue: "1", suffix: "GAS", type: "number" },
+      {
+        key: "amount",
+        label: "Tip amount",
+        defaultValue: "1",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Message", value: "public thanks" },
@@ -367,12 +471,18 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-event-ticket-pass": {
     title: "Ticket issuer and check-in",
-    subtitle: "Issue NEP-11 event passes, preview QR check-in, and track used versus active tickets.",
+    subtitle:
+      "Issue NEP-11 event passes, preview QR check-in, and track used versus active tickets.",
     tone: "sky",
     icon: <Ticket className="h-5 w-5" />,
     fields: [
       { key: "event", label: "Event", defaultValue: "Neo meetup" },
-      { key: "supply", label: "Ticket supply", defaultValue: "120", type: "number" },
+      {
+        key: "supply",
+        label: "Ticket supply",
+        defaultValue: "120",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Token", value: "NEP-11" },
@@ -388,43 +498,67 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-asset-factory": {
     title: "NEP-17 asset factory",
-    subtitle: "Prepare a token launch from audited on-chain templates; only safe template parameters are customized at publish time.",
+    subtitle:
+      "Prepare a token launch from audited on-chain templates; only safe template parameters are customized at publish time.",
     tone: "emerald",
     icon: <Boxes className="h-5 w-5" />,
     fields: [
       { key: "symbol", label: "Symbol", defaultValue: "YIWU" },
       { key: "name", label: "Asset name", defaultValue: "Yiwu Credits" },
-      { key: "supply", label: "Initial supply", defaultValue: "1000000", type: "number" },
+      {
+        key: "supply",
+        label: "Initial supply",
+        defaultValue: "1000000",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Symbol", value: "YIWU" },
       { label: "Asset name", value: "Yiwu Credits" },
       { label: "Supply", value: "1000000" },
     ],
-    steps: ["Choose audited template", "Set token parameters", "Review owner controls", "Stage deployment"],
+    steps: [
+      "Choose audited template",
+      "Set token parameters",
+      "Review owner controls",
+      "Stage deployment",
+    ],
     primaryAction: "Stage NEP-17 launch",
     visual: {
       headline: "Token launch checklist",
       slots: ["Template", "Symbol", "Supply", "Owner"],
-      footnote: "The factory flow references pre-published templates instead of uploading arbitrary NEF/manifest files.",
+      footnote:
+        "The factory flow references pre-published templates instead of uploading arbitrary NEF/manifest files.",
     },
   },
   "miniapp-nft-factory": {
     title: "NEP-11 collection factory",
-    subtitle: "Configure collection metadata, mint rules, and royalty policy while keeping the audited template fixed.",
+    subtitle:
+      "Configure collection metadata, mint rules, and royalty policy while keeping the audited template fixed.",
     tone: "violet",
     icon: <ImageIcon className="h-5 w-5" />,
     fields: [
       { key: "symbol", label: "Collection symbol", defaultValue: "ART" },
       { key: "name", label: "Collection name", defaultValue: "Neo Editions" },
-      { key: "royalty", label: "Royalty", defaultValue: "5", suffix: "%", type: "number" },
+      {
+        key: "royalty",
+        label: "Royalty",
+        defaultValue: "5",
+        suffix: "%",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Symbol", value: "ART" },
       { label: "Collection", value: "Neo Editions" },
       { label: "Royalty", value: "5%" },
     ],
-    steps: ["Select collection template", "Attach metadata policy", "Review mint controls", "Stage collection"],
+    steps: [
+      "Select collection template",
+      "Attach metadata policy",
+      "Review mint controls",
+      "Stage collection",
+    ],
     primaryAction: "Stage NEP-11 collection",
     visual: {
       headline: "Collection launch board",
@@ -433,7 +567,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-miniapp-factory": {
     title: "MiniApp factory",
-    subtitle: "Assemble a platform MiniApp from approved modules, launch metadata, OneGate parameters, and template-bound contracts.",
+    subtitle:
+      "Assemble a platform MiniApp from approved modules, launch metadata, OneGate parameters, and template-bound contracts.",
     tone: "sky",
     icon: <WandSparkles className="h-5 w-5" />,
     fields: [
@@ -446,22 +581,39 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "OneGate", value: "URL params" },
       { label: "Catalog", value: "ready" },
     ],
-    steps: ["Pick app template", "Bind owner and modules", "Review OneGate launch URL", "Stage catalog entry"],
+    steps: [
+      "Pick app template",
+      "Bind owner and modules",
+      "Review OneGate launch URL",
+      "Stage catalog entry",
+    ],
     primaryAction: "Stage MiniApp launch",
     visual: {
       headline: "MiniApp publish path",
       slots: ["Template", "Owner", "Launch URL", "Catalog"],
-      footnote: "The factory keeps the generated app focused and avoids custom contract uploads in the user flow.",
+      footnote:
+        "The factory keeps the generated app focused and avoids custom contract uploads in the user flow.",
     },
   },
   "miniapp-flashloan": {
     title: "Flash loan route builder",
-    subtitle: "Build a single-transaction loan route with borrow, execute, repay, and profit checks visible.",
+    subtitle:
+      "Build a single-transaction loan route with borrow, execute, repay, and profit checks visible.",
     tone: "emerald",
     icon: <CircleDollarSign className="h-5 w-5" />,
     fields: [
-      { key: "borrow", label: "Borrow amount", defaultValue: "100", suffix: "GAS", type: "number" },
-      { key: "route", label: "Execution route", defaultValue: "borrow -> swap -> repay" },
+      {
+        key: "borrow",
+        label: "Borrow amount",
+        defaultValue: "100",
+        suffix: "GAS",
+        type: "number",
+      },
+      {
+        key: "route",
+        label: "Execution route",
+        defaultValue: "borrow -> swap -> repay",
+      },
     ],
     cards: [
       { label: "Atomicity", value: "required" },
@@ -477,7 +629,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-forever-album": {
     title: "Encrypted album desk",
-    subtitle: "Prepare photo metadata, choose encryption mode, and preview the per-wallet album surface.",
+    subtitle:
+      "Prepare photo metadata, choose encryption mode, and preview the per-wallet album surface.",
     tone: "violet",
     icon: <ImageIcon className="h-5 w-5" />,
     fields: [
@@ -498,12 +651,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-gas-sponsor": {
     title: "Gas sponsor policy desk",
-    subtitle: "Define who receives sponsored GAS, cap the budget, and make onboarding rules transparent.",
+    subtitle:
+      "Define who receives sponsored GAS, cap the budget, and make onboarding rules transparent.",
     tone: "emerald",
     icon: <Coins className="h-5 w-5" />,
     fields: [
       { key: "contract", label: "Allowed contract", defaultValue: "" },
-      { key: "budget", label: "Daily budget", defaultValue: "5", suffix: "GAS", type: "number" },
+      {
+        key: "budget",
+        label: "Daily budget",
+        defaultValue: "5",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Recipients", value: "low balance" },
@@ -519,19 +679,31 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-gov-merc": {
     title: "Governance delegation market",
-    subtitle: "List, compare, and delegate voting power through transparent governance offers.",
+    subtitle:
+      "List, compare, and delegate voting power through transparent governance offers.",
     tone: "sky",
     icon: <Users className="h-5 w-5" />,
     fields: [
       { key: "delegate", label: "Delegate", defaultValue: "Council desk" },
-      { key: "power", label: "Voting power", defaultValue: "40", suffix: "NEO", type: "number" },
+      {
+        key: "power",
+        label: "Voting power",
+        defaultValue: "40",
+        suffix: "NEO",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Offers", value: "market" },
       { label: "Duration", value: "epoch" },
       { label: "Reward", value: "negotiated" },
     ],
-    steps: ["Compare delegates", "Set duration", "Delegate power", "Track result"],
+    steps: [
+      "Compare delegates",
+      "Set duration",
+      "Delegate power",
+      "Track result",
+    ],
     primaryAction: "Stage delegation",
     visual: {
       headline: "Voting power offers",
@@ -540,12 +712,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-graveyard": {
     title: "Encrypted memory burial",
-    subtitle: "Seal a memory, set a forgetting price, and keep the privacy envelope explicit.",
+    subtitle:
+      "Seal a memory, set a forgetting price, and keep the privacy envelope explicit.",
     tone: "slate",
     icon: <History className="h-5 w-5" />,
     fields: [
       { key: "memory", label: "Memory label", defaultValue: "private note" },
-      { key: "price", label: "Forgetting price", defaultValue: "3", suffix: "GAS", type: "number" },
+      {
+        key: "price",
+        label: "Forgetting price",
+        defaultValue: "3",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Encryption", value: "sealed" },
@@ -561,12 +740,17 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-memorial-shrine": {
     title: "Memorial tribute wall",
-    subtitle: "Compose a permanent tribute with message, donation state, and on-chain memorial proof.",
+    subtitle:
+      "Compose a permanent tribute with message, donation state, and on-chain memorial proof.",
     tone: "rose",
     icon: <BookOpenCheck className="h-5 w-5" />,
     fields: [
       { key: "name", label: "Memorial name", defaultValue: "Loved one" },
-      { key: "message", label: "Tribute line", defaultValue: "Always remembered" },
+      {
+        key: "message",
+        label: "Tribute line",
+        defaultValue: "Always remembered",
+      },
     ],
     cards: [
       { label: "Tribute", value: "draft" },
@@ -582,12 +766,23 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-milestone-escrow": {
     title: "Milestone escrow board",
-    subtitle: "Lock project funds, approve completed milestones, and release payments step by step.",
+    subtitle:
+      "Lock project funds, approve completed milestones, and release payments step by step.",
     tone: "amber",
     icon: <Layers3 className="h-5 w-5" />,
     fields: [
-      { key: "total", label: "Escrow total", defaultValue: "50", suffix: "GAS", type: "number" },
-      { key: "milestone", label: "Next milestone", defaultValue: "M2 delivery" },
+      {
+        key: "total",
+        label: "Escrow total",
+        defaultValue: "50",
+        suffix: "GAS",
+        type: "number",
+      },
+      {
+        key: "milestone",
+        label: "Next milestone",
+        defaultValue: "M2 delivery",
+      },
     ],
     cards: [
       { label: "Locked", value: "escrow" },
@@ -603,7 +798,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-convert": {
     title: "Neo conversion workbench",
-    subtitle: "Convert addresses, script hashes, and key formats locally before using them in a wallet operation.",
+    subtitle:
+      "Convert addresses, script hashes, and key formats locally before using them in a wallet operation.",
     tone: "sky",
     icon: <ArrowRightLeft className="h-5 w-5" />,
     fields: [
@@ -624,12 +820,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-swap": {
     title: "Neo swap quote desk",
-    subtitle: "Build a token swap preview with route, slippage, and settlement state before submitting through the shared action console.",
+    subtitle:
+      "Build a token swap preview with route, slippage, and settlement state before submitting through the shared action console.",
     tone: "emerald",
     icon: <ArrowRightLeft className="h-5 w-5" />,
     fields: [
       { key: "from", label: "From asset", defaultValue: "NEO" },
-      { key: "amount", label: "Amount", defaultValue: "10", suffix: "NEO", type: "number" },
+      {
+        key: "amount",
+        label: "Amount",
+        defaultValue: "10",
+        suffix: "NEO",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Route", value: "best path" },
@@ -641,24 +844,37 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     visual: {
       headline: "Swap quote route",
       slots: ["NEO", "Route", "GAS", "Confirm"],
-      footnote: "The shared operation panel handles wallet submission after the quote is reviewed.",
+      footnote:
+        "The shared operation panel handles wallet submission after the quote is reviewed.",
     },
   },
   "miniapp-neo-multisig": {
     title: "Multisig signing room",
-    subtitle: "Create a multisig request, collect signatures, and keep threshold progress visible.",
+    subtitle:
+      "Create a multisig request, collect signatures, and keep threshold progress visible.",
     tone: "slate",
     icon: <Users className="h-5 w-5" />,
     fields: [
       { key: "threshold", label: "Threshold", defaultValue: "2 of 3" },
-      { key: "amount", label: "Transfer amount", defaultValue: "8", suffix: "GAS", type: "number" },
+      {
+        key: "amount",
+        label: "Transfer amount",
+        defaultValue: "8",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Signers", value: "3" },
       { label: "Threshold", value: "2" },
       { label: "State", value: "collecting" },
     ],
-    steps: ["Draft transfer", "Invite signers", "Collect threshold", "Broadcast"],
+    steps: [
+      "Draft transfer",
+      "Invite signers",
+      "Collect threshold",
+      "Broadcast",
+    ],
     primaryAction: "Stage multisig request",
     visual: {
       headline: "Signature progress",
@@ -667,12 +883,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-ns": {
     title: ".neo domain desk",
-    subtitle: "Search, register, and manage human-readable Neo names from a focused registration surface.",
+    subtitle:
+      "Search, register, and manage human-readable Neo names from a focused registration surface.",
     tone: "emerald",
     icon: <FileKey className="h-5 w-5" />,
     fields: [
       { key: "name", label: "Domain", defaultValue: "" },
-      { key: "years", label: "Registration", defaultValue: "1", suffix: "year", type: "number" },
+      {
+        key: "years",
+        label: "Registration",
+        defaultValue: "1",
+        suffix: "year",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Availability", value: "checking" },
@@ -688,12 +911,19 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-pay-shared-example": {
     title: "Shared payment stream builder",
-    subtitle: "Demonstrate the shared-mode NeoPay recipe with funding vault and stream vesting modules.",
+    subtitle:
+      "Demonstrate the shared-mode NeoPay recipe with funding vault and stream vesting modules.",
     tone: "emerald",
     icon: <CreditCard className="h-5 w-5" />,
     fields: [
       { key: "beneficiary", label: "Beneficiary", defaultValue: "" },
-      { key: "amount", label: "Total amount", defaultValue: "20", suffix: "GAS", type: "number" },
+      {
+        key: "amount",
+        label: "Total amount",
+        defaultValue: "20",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Recipe", value: "shared mode" },
@@ -709,11 +939,16 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-sign-anything": {
     title: "Message signing desk",
-    subtitle: "Prepare a message, preview the digest, and request a wallet signature with clear verification output.",
+    subtitle:
+      "Prepare a message, preview the digest, and request a wallet signature with clear verification output.",
     tone: "violet",
     icon: <FileSignature className="h-5 w-5" />,
     fields: [
-      { key: "message", label: "Message", defaultValue: "I control this Neo address" },
+      {
+        key: "message",
+        label: "Message",
+        defaultValue: "I control this Neo address",
+      },
       { key: "domain", label: "Domain", defaultValue: "neomini.app" },
     ],
     cards: [
@@ -730,7 +965,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neo-treasury": {
     title: "Treasury balance monitor",
-    subtitle: "Track foundation and ecosystem fund balances with asset rows and balance change context.",
+    subtitle:
+      "Track foundation and ecosystem fund balances with asset rows and balance change context.",
     tone: "slate",
     icon: <Landmark className="h-5 w-5" />,
     fields: [
@@ -751,7 +987,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-neodid-passport": {
     title: "NeoDID passport composer",
-    subtitle: "Compose portable credential previews and prepare verification payloads for identity flows.",
+    subtitle:
+      "Compose portable credential previews and prepare verification payloads for identity flows.",
     tone: "sky",
     icon: <UserCheck className="h-5 w-5" />,
     fields: [
@@ -772,19 +1009,31 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-quadratic-funding": {
     title: "Quadratic funding round",
-    subtitle: "Create grant allocations, preview matching pool impact, and keep donor count visible.",
+    subtitle:
+      "Create grant allocations, preview matching pool impact, and keep donor count visible.",
     tone: "emerald",
     icon: <Medal className="h-5 w-5" />,
     fields: [
       { key: "grant", label: "Grant", defaultValue: "Open-source SDK" },
-      { key: "amount", label: "Contribution", defaultValue: "5", suffix: "GAS", type: "number" },
+      {
+        key: "amount",
+        label: "Contribution",
+        defaultValue: "5",
+        suffix: "GAS",
+        type: "number",
+      },
     ],
     cards: [
       { label: "Matching", value: "quadratic" },
       { label: "Donors", value: "weighted" },
       { label: "Round", value: "open" },
     ],
-    steps: ["Choose grant", "Add contribution", "Preview match", "Submit donation"],
+    steps: [
+      "Choose grant",
+      "Add contribution",
+      "Preview match",
+      "Submit donation",
+    ],
     primaryAction: "Stage contribution",
     visual: {
       headline: "Matching pool impact",
@@ -793,7 +1042,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-recovery-guardian": {
     title: "Recovery guardian console",
-    subtitle: "Review AA guardian policy, recovery ticket state, timelock, and final execution readiness.",
+    subtitle:
+      "Review AA guardian policy, recovery ticket state, timelock, and final execution readiness.",
     tone: "rose",
     icon: <ShieldAlert className="h-5 w-5" />,
     fields: [
@@ -805,7 +1055,12 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Timelock", value: "48h" },
       { label: "Recovery", value: "guarded" },
     ],
-    steps: ["Open ticket", "Notify guardians", "Wait timelock", "Execute recovery"],
+    steps: [
+      "Open ticket",
+      "Notify guardians",
+      "Wait timelock",
+      "Execute recovery",
+    ],
     primaryAction: "Stage recovery ticket",
     visual: {
       headline: "Recovery path",
@@ -814,7 +1069,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-soulbound-certificate": {
     title: "Certificate issuer",
-    subtitle: "Issue non-transferable NEP-11 certificates with recipient, claim, and metadata preview.",
+    subtitle:
+      "Issue non-transferable NEP-11 certificates with recipient, claim, and metadata preview.",
     tone: "sky",
     icon: <BadgeCheck className="h-5 w-5" />,
     fields: [
@@ -826,7 +1082,12 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Transfer", value: "soulbound" },
       { label: "Issuer", value: "verified" },
     ],
-    steps: ["Enter recipient", "Attach claim", "Mint certificate", "Share proof"],
+    steps: [
+      "Enter recipient",
+      "Attach claim",
+      "Mint certificate",
+      "Share proof",
+    ],
     primaryAction: "Stage certificate",
     visual: {
       headline: "Soulbound credential",
@@ -835,7 +1096,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-time-capsule": {
     title: "Time capsule locker",
-    subtitle: "Seal a message hash until a future unlock date with clear public proof and retrieval state.",
+    subtitle:
+      "Seal a message hash until a future unlock date with clear public proof and retrieval state.",
     tone: "amber",
     icon: <Hourglass className="h-5 w-5" />,
     fields: [
@@ -856,11 +1118,16 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-timestamp-proof": {
     title: "Timestamp proof journal",
-    subtitle: "Hash local content, anchor the digest, and keep proof lookup straightforward.",
+    subtitle:
+      "Hash local content, anchor the digest, and keep proof lookup straightforward.",
     tone: "slate",
     icon: <Hash className="h-5 w-5" />,
     fields: [
-      { key: "content", label: "Content label", defaultValue: "release-notes.pdf" },
+      {
+        key: "content",
+        label: "Content label",
+        defaultValue: "release-notes.pdf",
+      },
       { key: "digest", label: "Digest", defaultValue: "" },
     ],
     cards: [
@@ -877,11 +1144,18 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-unbreakablevault": {
     title: "Hash bounty vault",
-    subtitle: "Create a bounty vault, lock secret hash conditions, and expose the claim path clearly.",
+    subtitle:
+      "Create a bounty vault, lock secret hash conditions, and expose the claim path clearly.",
     tone: "rose",
     icon: <Vault className="h-5 w-5" />,
     fields: [
-      { key: "bounty", label: "Bounty", defaultValue: "100", suffix: "GAS", type: "number" },
+      {
+        key: "bounty",
+        label: "Bounty",
+        defaultValue: "100",
+        suffix: "GAS",
+        type: "number",
+      },
       { key: "hash", label: "Secret hash", defaultValue: "" },
     ],
     cards: [
@@ -898,23 +1172,38 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   },
   "miniapp-wallet-health": {
     title: "Wallet safety checkup",
-    subtitle: "Run a wallet readiness checklist covering balance, permissions, suspicious approvals, and backup posture.",
+    subtitle:
+      "Run a wallet readiness checklist covering balance, permissions, suspicious approvals, and backup posture.",
     tone: "emerald",
     icon: <WalletCards className="h-5 w-5" />,
     fields: [
       { key: "wallet", label: "Wallet", defaultValue: "connected wallet" },
-      { key: "scope", label: "Audit scope", defaultValue: "balances + approvals" },
+      {
+        key: "scope",
+        label: "Audit scope",
+        defaultValue: "balances + approvals",
+      },
     ],
     cards: [
       { label: "Risk", value: "medium" },
       { label: "Approvals", value: "review" },
       { label: "Backup", value: "check" },
     ],
-    steps: ["Read balances", "Check approvals", "Review activity", "Export checklist"],
+    steps: [
+      "Read balances",
+      "Check approvals",
+      "Review activity",
+      "Export checklist",
+    ],
     primaryAction: "Run health check",
     visual: {
       headline: "Safety checklist",
-      slots: ["Balance ok", "No risky approvals", "Backup checked", "Recent tx clean"],
+      slots: [
+        "Balance ok",
+        "No risky approvals",
+        "Backup checked",
+        "Recent tx clean",
+      ],
     },
   },
 };
@@ -922,19 +1211,22 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
 export function hasNativePlayArea(appId: string) {
   return Boolean(
     PLAYAREA_REGISTRY[appId] ||
-      ORACLE_APP_LABELS[appId] ||
-      PROFILED_PLAYAREAS[appId] ||
-      appId.startsWith("miniapp-oracle-"),
+    ORACLE_APP_LABELS[appId] ||
+    PROFILED_PLAYAREAS[appId] ||
+    appId.startsWith("miniapp-oracle-"),
   );
 }
 
-export function getNativePlayAreaOperationFallback(appId: string): OperationEntry[] {
+export function getNativePlayAreaOperationFallback(
+  appId: string,
+): OperationEntry[] {
   if (appId === "miniapp-gasbox") {
     return [
       {
         name: "Draw Capsule",
         method: "prepareMiniAppOperation",
-        description: "Choose the machine and draw count in the action console, then use the prepared values for the wallet action.",
+        description:
+          "Choose the machine and draw count in the action console, then use the prepared values for the wallet action.",
         button_style: "success",
         params: [
           {
@@ -962,7 +1254,8 @@ export function getNativePlayAreaOperationFallback(appId: string): OperationEntr
     {
       name: profile.primaryAction,
       method: "prepareMiniAppOperation",
-      description: "Prepare app-specific parameters in the shared action console. The center playarea stays focused on state, preview, and workflow.",
+      description:
+        "Prepare app-specific parameters in the shared action console. The center playarea stays focused on state, preview, and workflow.",
       button_style: "primary",
       params: profile.fields.map(profileFieldToOperationParam),
     },
@@ -975,10 +1268,13 @@ function profileFieldToOperationParam(field: ProfileField): OperationParam {
   const lower = `${field.key} ${label}`.toLowerCase();
   const type: OperationParam["type"] =
     field.type === "number"
-      ? field.suffix?.toUpperCase().includes("GAS") || field.suffix?.toUpperCase().includes("NEO")
+      ? field.suffix?.toUpperCase().includes("GAS") ||
+        field.suffix?.toUpperCase().includes("NEO")
         ? "amount"
         : "integer"
-      : lower.includes("address") || lower.includes("recipient") || lower.includes("owner")
+      : lower.includes("address") ||
+          lower.includes("recipient") ||
+          lower.includes("owner")
         ? "address"
         : lower.includes("hash")
           ? "hash256"
@@ -1004,7 +1300,7 @@ export function PlayAreaRegistry(props: PlayAreaRegistryProps) {
 
   return (
     <div
-      className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 sm:rounded-[26px]"
       data-testid={`native-playarea-${props.app.app_id}`}
     >
       <Component {...props} />
@@ -1012,13 +1308,31 @@ export function PlayAreaRegistry(props: PlayAreaRegistryProps) {
   );
 }
 
-function getMetric(stats: Record<string, string>, label: string, fallback = "0") {
+function getMetric(
+  stats: Record<string, string>,
+  label: string,
+  fallback = "0",
+) {
   return stats[label] || fallback;
+}
+
+function statsMapFromStats(stats: PlayMetric[]): Record<string, string> {
+  return Object.fromEntries(stats.map((item) => [item.label, item.value]));
 }
 
 function parseGas(value: string): number {
   const match = String(value || "").match(/[\d.]+/);
   return match ? Number(match[0]) : 0;
+}
+
+function parseNumericMetric(value: string): number {
+  const match = String(value || "").match(/-?\d+(\.\d+)?/);
+  const parsed = match ? Number(match[0]) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function formatGas(value: number) {
@@ -1063,10 +1377,27 @@ function profileDefaultValue(field: ProfileField) {
   if (!value) return "";
   if (/(\.\.\.|builder|alice|bob|carol|cip-\d+)/i.test(value)) return "";
   if (field.type === "number" || field.suffix) return value;
-  if (["action", "asset", "format", "mode", "route", "scope", "threshold", "trigger", "vote"].includes(field.key)) {
+  if (
+    [
+      "action",
+      "asset",
+      "format",
+      "mode",
+      "route",
+      "scope",
+      "threshold",
+      "trigger",
+      "vote",
+    ].includes(field.key)
+  ) {
     return value;
   }
-  if (/^(approve|transfer|script hash|connected wallet|balances \+ approvals)$/i.test(value)) return value;
+  if (
+    /^(approve|transfer|script hash|connected wallet|balances \+ approvals)$/i.test(
+      value,
+    )
+  )
+    return value;
   return "";
 }
 
@@ -1155,7 +1486,7 @@ function PlayShell({
 
   return (
     <div className="bg-white">
-      <div className="border-b border-gray-200 px-4 py-3 sm:px-5">
+      <div className="hidden border-b border-gray-100 bg-white px-4 py-3 sm:block sm:px-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
@@ -1163,29 +1494,84 @@ function PlayShell({
               <span className="truncate text-xs font-black uppercase tracking-wide text-gray-500">
                 {app.name}
               </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase text-gray-500">
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-500">
                 Native dApp
               </span>
             </div>
-            <h2 className="m-0 text-lg font-black tracking-tight text-gray-950 sm:text-xl">
+            <h2 className="m-0 text-base font-black tracking-tight text-gray-950 sm:text-lg">
               {title}
             </h2>
-            <p className="mt-1.5 max-w-3xl text-sm leading-6 text-gray-600">
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-gray-600">
               {subtitle}
             </p>
           </div>
         </div>
       </div>
-      <div className="space-y-3 p-4 sm:p-5">
-        <div className="min-w-0">{children}</div>
+      <div className="p-3 sm:p-4">
+        <div className="min-w-0 space-y-3">{children}</div>
         {side && (
-          <div className="min-w-0 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
-            <div className="max-h-44 min-w-0 overflow-auto pr-1">{side}</div>
+          <div className="mt-3">
+            <SecondaryInfo
+              title="Activity and details"
+              description="Recent events, raw readings, and diagnostic context are available when needed."
+            >
+              <div className="min-w-0 space-y-3">{side}</div>
+            </SecondaryInfo>
           </div>
         )}
       </div>
-      {footer && <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 sm:px-5">{footer}</div>}
+      {footer && (
+        <div className="border-t border-gray-100 bg-gray-50/80 px-4 py-2.5 sm:px-5">
+          {footer}
+        </div>
+      )}
     </div>
+  );
+}
+
+function SecondaryInfo({
+  title,
+  description,
+  meta,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  description?: string;
+  meta?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      className="group rounded-[18px] border border-gray-200 bg-gray-50/70 shadow-sm shadow-gray-950/5"
+      open={defaultOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3.5 py-3 marker:content-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/30">
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black text-gray-900">
+            {title}
+          </span>
+          {description && (
+            <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+              {description}
+            </span>
+          )}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          {meta && (
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-500">
+              {meta}
+            </span>
+          )}
+          <ChevronDown
+            className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
+        </span>
+      </summary>
+      <div className="border-t border-gray-200 px-3.5 py-3">{children}</div>
+    </details>
   );
 }
 
@@ -1195,25 +1581,50 @@ function ChainStateStrip({
   contractHash,
   network,
   onRefresh,
-}: Pick<PlayAreaRegistryProps, "loading" | "error" | "contractHash" | "network" | "onRefresh">) {
+}: Pick<
+  PlayAreaRegistryProps,
+  "loading" | "error" | "contractHash" | "network" | "onRefresh"
+>) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-500">
-        <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold">
-          <Radio className="h-3.5 w-3.5 text-emerald-600" />
-          {loading ? "Syncing" : error ? "Local preview" : "Live state"}
-        </span>
-        <span className="truncate font-mono">{shortHash(contractHash)}</span>
-        <span className="font-semibold uppercase text-gray-400">{network}</span>
+    <div className="space-y-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-500">
+          <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold">
+            <Radio className="h-3.5 w-3.5 text-emerald-600" />
+            {loading ? "Syncing" : error ? "Local preview" : "Live state"}
+          </span>
+          <span className="font-semibold uppercase text-gray-400">
+            {network}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-600 transition hover:bg-gray-50"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Refresh
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onRefresh}
-        className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 font-semibold text-gray-600 transition hover:bg-gray-50"
+      <details
+        className="group rounded-xl border border-gray-200 bg-white/70"
+        data-testid="chain-technical-details"
       >
-        <RotateCcw className="h-3.5 w-3.5" />
-        Refresh
-      </button>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-gray-500 marker:content-none">
+          Technical chain details
+          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+        </summary>
+        <div className="border-t border-gray-200 px-2.5 py-2">
+          <span className="block truncate font-mono text-gray-600">
+            Contract: {shortHash(contractHash)}
+          </span>
+          {error && (
+            <span className="mt-1 block text-[11px] font-semibold text-amber-700">
+              {error}
+            </span>
+          )}
+        </div>
+      </details>
     </div>
   );
 }
@@ -1221,24 +1632,35 @@ function ChainStateStrip({
 function MetricGrid({ stats }: { stats: PlayMetric[] }) {
   if (!stats.length) return null;
   return (
-    <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
-      {stats.slice(0, 4).map((item) => (
-        <div key={item.label} className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
-          <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
-            {item.label}
-          </p>
-          <p className={`m-0 mt-1 truncate text-sm font-black sm:text-base ${item.accent ? "text-emerald-600" : "text-gray-950"}`}>
-            {item.value}
-          </p>
-        </div>
-      ))}
-    </div>
+    <SecondaryInfo
+      title="Additional metrics"
+      description="Raw app counters and diagnostic readings."
+      meta={`${stats.length} items`}
+    >
+      <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(120px,1fr))]">
+        {stats.slice(0, 8).map((item) => (
+          <div
+            key={item.label}
+            className="rounded-2xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm shadow-gray-950/5"
+          >
+            <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+              {item.label}
+            </p>
+            <p
+              className={`m-0 mt-1 truncate text-sm font-black sm:text-base ${item.accent ? "text-emerald-600" : "text-gray-950"}`}
+            >
+              {item.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </SecondaryInfo>
   );
 }
 
 function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3">
+    <div className="rounded-[18px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-gray-900">
           {activity?.title || "Recent activity"}
@@ -1250,20 +1672,34 @@ function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
       {activity?.rows.length ? (
         <div className="space-y-2">
           {activity.rows.slice(0, 4).map((row, index) => (
-            <div key={`${row.primary}:${index}`} className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+            <div
+              key={`${row.primary}:${index}`}
+              className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="m-0 truncate text-sm font-semibold text-gray-900">{row.primary}</p>
-                  {row.secondary && <p className="m-0 mt-0.5 truncate text-xs text-gray-500">{row.secondary}</p>}
+                  <p className="m-0 truncate text-sm font-semibold text-gray-900">
+                    {row.primary}
+                  </p>
+                  {row.secondary && (
+                    <p className="m-0 mt-0.5 truncate text-xs text-gray-500">
+                      {row.secondary}
+                    </p>
+                  )}
                 </div>
-                {row.amount && <span className="shrink-0 text-xs font-bold text-emerald-700">{row.amount}</span>}
+                {row.amount && (
+                  <span className="shrink-0 text-xs font-bold text-emerald-700">
+                    {row.amount}
+                  </span>
+                )}
               </div>
             </div>
           ))}
         </div>
       ) : (
         <p className="m-0 text-sm leading-6 text-gray-500">
-          {activity?.emptyText || "No live on-chain events are available for this miniapp yet."}
+          {activity?.emptyText ||
+            "No live on-chain events are available for this miniapp yet."}
         </p>
       )}
     </div>
@@ -1288,26 +1724,42 @@ function ActionRow({
   icon?: React.ReactNode;
 }) {
   const styles = toneStyle(tone);
-  const className = `group flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left transition ${
+  const className = `group flex w-full flex-col items-stretch justify-between gap-2 rounded-xl border px-3 py-2.5 text-left transition sm:flex-row sm:items-center sm:gap-3 sm:rounded-2xl sm:py-3 ${
     active ? styles.active : "border-gray-200 bg-white text-gray-950"
   }`;
   const content = (
     <>
       <div className="flex min-w-0 items-center gap-3">
         {icon && (
-          <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${active ? "bg-white/75" : styles.soft} ${styles.text}`}>
+          <span
+            className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg sm:h-9 sm:w-9 sm:rounded-xl ${active ? "bg-white/75" : styles.soft} ${styles.text}`}
+          >
             {icon}
           </span>
         )}
         <span className="min-w-0">
-          <span className="block truncate text-sm font-black">{label}</span>
-          {detail && <span className="mt-0.5 block truncate text-xs font-semibold text-gray-500">{detail}</span>}
+          <span className="block break-words text-[13px] font-black sm:text-sm">
+            {label}
+          </span>
+          {detail && (
+            <span className="mt-0.5 block break-words text-[11px] font-semibold leading-4 text-gray-500 sm:text-xs sm:leading-5">
+              {detail}
+            </span>
+          )}
         </span>
       </div>
       {(value || valueLabel) && (
-        <span className="shrink-0 text-right">
-          {value && <span className="block text-sm font-black tabular-nums text-gray-950">{value}</span>}
-          {valueLabel && <span className="block text-[10px] font-black uppercase tracking-wide text-gray-400">{valueLabel}</span>}
+        <span className="shrink-0 pl-12 text-left sm:pl-0 sm:text-right">
+          {value && (
+            <span className="block text-[13px] font-black tabular-nums text-gray-950 sm:text-sm">
+              {value}
+            </span>
+          )}
+          {valueLabel && (
+            <span className="block text-[10px] font-black uppercase tracking-wide text-gray-400">
+              {valueLabel}
+            </span>
+          )}
         </span>
       )}
     </>
@@ -1336,17 +1788,25 @@ function ActionBoard({
 }) {
   const styles = toneStyle(tone);
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-3.5">
+    <section className="rounded-[16px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:rounded-[20px] sm:p-3.5">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
-          {subtitle && <p className="m-0 mt-1 text-xs leading-5 text-gray-500">{subtitle}</p>}
+          {subtitle && (
+            <p className="m-0 mt-1 text-xs leading-5 text-gray-500">
+              {subtitle}
+            </p>
+          )}
         </div>
         <span className={`mt-1 h-2.5 w-2.5 rounded-full ${styles.accent}`} />
       </div>
       <div className="space-y-2">
         {rows.slice(0, 4).map((row) => (
-          <ActionRow key={`${row.label}:${row.detail || row.value || ""}`} {...row} tone={tone} />
+          <ActionRow
+            key={`${row.label}:${row.detail || row.value || ""}`}
+            {...row}
+            tone={tone}
+          />
         ))}
       </div>
     </section>
@@ -1354,14 +1814,29 @@ function ActionBoard({
 }
 
 function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
   const [keys] = useLaunchParamState(launchContext, ["keys", "keyCount"], "3");
-  const keyPrice = parseGas(getMetric(statsMap, "Key Price", "0.01 GAS")) || 0.01;
+  const keyPrice =
+    parseGas(getMetric(statsMap, "Key Price", "0.01 GAS")) || 0.01;
   const projected = Math.max(1, Number(keys) || 1) * keyPrice;
   const status = getMetric(statsMap, "Status", "Ready");
   const countdown = getMetric(statsMap, "Countdown", "--:--:--");
-  const needsRollover = /rollover|pending|settlement|restart/i.test(status) || /rollover/i.test(countdown);
-  const legacyMainnetDeployment = app.app_id === "miniapp-last-survivor" && network === "mainnet";
+  const needsRollover =
+    /rollover|pending|settlement|restart/i.test(status) ||
+    /rollover/i.test(countdown);
+  const legacyMainnetDeployment =
+    app.app_id === "miniapp-last-survivor" && network === "mainnet";
 
   return (
     <PlayShell
@@ -1370,19 +1845,29 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Buy keys, extend the timer, and become the current leader before the round settles on-chain."
       tone="rose"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
-          {needsRollover && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="m-0 text-sm font-bold text-amber-900">Next round is ready to start</p>
-              <p className="m-0 mt-1 text-xs leading-5 text-amber-800">
-                {legacyMainnetDeployment
-                  ? "This legacy mainnet deployment needs a one-time contract update or admin restart. The updated PlatformGame rolls future expirations into the next live countdown automatically."
-                  : "The lifecycle keeper settles expired rounds automatically. New key purchases also roll the game forward before applying the bid."}
-              </p>
-            </div>
-          )}
+        {needsRollover && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="m-0 text-sm font-bold text-amber-900">
+              Next round is ready to start
+            </p>
+            <p className="m-0 mt-1 text-xs leading-5 text-amber-800">
+              {legacyMainnetDeployment
+                ? "This legacy mainnet deployment needs a one-time contract update or admin restart. The updated PlatformGame rolls future expirations into the next live countdown automatically."
+                : "The lifecycle keeper settles expired rounds automatically. New key purchases also roll the game forward before applying the bid."}
+            </p>
+          </div>
+        )}
         <div className="grid gap-3">
           <ActionBoard
             title="Live round market"
@@ -1428,9 +1913,28 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function FogPlayPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [side] = useLaunchChoiceState(launchContext, ["side", "choice"], ["heads", "tails"] as const, "heads");
-  const [amount] = useLaunchParamState(launchContext, ["amount", "stake", "bet"], "0.10");
+  const {
+    app,
+    statsMap,
+    stats,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [side] = useLaunchChoiceState(
+    launchContext,
+    ["side", "choice"],
+    ["heads", "tails"] as const,
+    "heads",
+  );
+  const [amount] = useLaunchParamState(
+    launchContext,
+    ["amount", "stake", "bet"],
+    "0.10",
+  );
   const payout = (Number(amount) || 0) * 2;
 
   return (
@@ -1440,7 +1944,15 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Choose heads or tails, size the bet, then submit from the shared action console when the preview looks right."
       tone="violet"
       side={<MetricGrid stats={stats} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="grid gap-3">
         <ActionBoard
@@ -1449,7 +1961,10 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
           tone="violet"
           rows={(["heads", "tails"] as const).map((option) => ({
             label: option === "heads" ? "Heads" : "Tails",
-            detail: option === "heads" ? "Oracle result equals heads" : "Oracle result equals tails",
+            detail:
+              option === "heads"
+                ? "Oracle result equals heads"
+                : "Oracle result equals tails",
             value: "2.00x",
             valueLabel: "payout",
             active: side === option,
@@ -1459,7 +1974,10 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
         <div className="grid gap-2 sm:grid-cols-3">
           <PreviewStat label="Outcome" value={side} />
           <PreviewStat label="Potential payout" value={formatGas(payout)} />
-          <PreviewStat label="Limits" value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`} />
+          <PreviewStat
+            label="Limits"
+            value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`}
+          />
         </div>
         <PlayAreaConsoleHint label="Choose side, stake amount, and submit the flip from the right action console." />
       </div>
@@ -1468,10 +1986,28 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function GasBoxPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [selectedRaw] = useLaunchParamState(launchContext, ["machine", "machineId", "box"], "1");
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [selectedRaw] = useLaunchParamState(
+    launchContext,
+    ["machine", "machineId", "box"],
+    "1",
+  );
   const selected = Math.max(1, Number(selectedRaw) || 1);
-  const machines = Math.max(1, Number(getMetric(statsMap, "Total Machines", "3")) || 3);
+  const machines = Math.max(
+    1,
+    Number(getMetric(statsMap, "Total Machines", "3")) || 3,
+  );
 
   return (
     <PlayShell
@@ -1480,7 +2016,15 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Pick a machine, inspect its capsule pool, and stage a draw before sending the on-chain play operation."
       tone="amber"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3">
@@ -1492,7 +2036,10 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
               const machine = index + 1;
               return {
                 label: `Machine #${machine}`,
-                detail: machine === selected ? "Selected for next draw" : "Available draw pool",
+                detail:
+                  machine === selected
+                    ? "Selected for next draw"
+                    : "Available draw pool",
                 value: machine === selected ? "selected" : "ready",
                 valueLabel: "state",
                 active: selected === machine,
@@ -1516,171 +2063,214 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [amount] = useLaunchParamState(launchContext, ["amount", "total"], "5");
-  const [packets] = useLaunchParamState(launchContext, ["packets", "count"], "8");
-  const avg = (Number(amount) || 0) / Math.max(1, Number(packets) || 1);
+  const {
+    app,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [envelopeId] = useLaunchParamState(
+    launchContext,
+    ["envelopeId", "id", "packet"],
+    "",
+  );
+  const hasEnvelopeId = Boolean(envelopeId.trim());
+  const activeRows = activity?.rows ?? [];
 
   return (
     <PlayShell
       app={app}
-      title="Lucky packet desk"
-      subtitle="Create a GAS envelope, split it into packets, and share the envelope ID for friends to open."
+      title="Open red envelope"
+      subtitle="Recipients should see one clear job first: open the shared envelope and claim once. Sending and active lists stay secondary."
       tone="rose"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
-        <div className="grid gap-3">
-          <ActionBoard
-            title="Envelope split"
-            subtitle="Keep the funding amount, packet count, and claim mechanics visible before sharing."
-            tone="rose"
-            rows={[
-              {
-                label: "Total funding",
-                detail: "Deposited into the envelope",
-                value: formatGas(Number(amount) || 0),
-                valueLabel: "amount",
-                active: true,
-                icon: <Gift className="h-4 w-4" />,
-              },
-              {
-                label: "Packet count",
-                detail: "Number of claimable packets",
-                value: packets,
-                valueLabel: "claims",
-              },
-              {
-                label: "Average packet",
-                detail: "Actual claim can use random split",
-                value: formatGas(avg),
-                valueLabel: "avg",
-              },
-              {
-                label: "Share code",
-                detail: "Generated after the wallet action confirms",
-                value: "pending",
-                valueLabel: "state",
-              },
-            ]}
-          />
-          <PlayAreaConsoleHint label="Funding amount, packet count, and wallet submission stay in the right action console." />
-        </div>
-        <div className="space-y-3">
-          <MetricGrid stats={stats} />
-        </div>
+        <section
+          className={`rounded-[18px] border p-3.5 shadow-sm shadow-gray-950/5 sm:rounded-[22px] sm:p-4 ${hasEnvelopeId ? "border-rose-200 bg-rose-50" : "border-gray-200 bg-white"}`}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div
+                className={`mb-2 grid h-10 w-10 place-items-center rounded-xl sm:mb-3 sm:h-11 sm:w-11 sm:rounded-2xl ${hasEnvelopeId ? "bg-rose-600 text-white" : "bg-gray-100 text-gray-600"}`}
+              >
+                <Gift className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h3 className="m-0 text-lg font-black tracking-tight text-gray-950 sm:text-xl">
+                {hasEnvelopeId ? "Envelope ready" : "Open a shared envelope"}
+              </h3>
+              <p className="m-0 mt-1 max-w-2xl text-xs font-semibold leading-5 text-gray-600 sm:mt-1.5 sm:text-sm">
+                {hasEnvelopeId
+                  ? "The shared envelope ID is loaded. Claim from the action console; the wallet signs the on-chain claim."
+                  : "Use a shared link, QR code, or enter an envelope ID in the action console to claim."}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-left sm:min-w-36 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-right">
+              <p className="m-0 text-[11px] font-black uppercase tracking-wide text-gray-400">
+                Envelope ID
+              </p>
+              <p className="m-0 mt-0.5 text-lg font-black text-gray-950 sm:text-xl">
+                {hasEnvelopeId ? envelopeId : "not loaded"}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <SecondaryInfo
+          title="Active envelopes"
+          description="Optional list for browsing live envelopes. Claim stays the primary task."
+          meta={`${activeRows.length} items`}
+        >
+          {activeRows.length > 0 ? (
+            <div className="space-y-2">
+              {activeRows.slice(0, 6).map((row, index) => (
+                <div
+                  key={`${row.primary}:${index}`}
+                  className="rounded-2xl border border-gray-200 bg-white px-3 py-2"
+                >
+                  <p className="m-0 text-sm font-black text-gray-950">
+                    {row.primary}
+                  </p>
+                  {row.secondary && (
+                    <p className="m-0 mt-0.5 text-xs font-semibold text-gray-500">
+                      {row.secondary}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="m-0 text-sm leading-6 text-gray-500">
+              No active envelopes returned by the live data source.
+            </p>
+          )}
+        </SecondaryInfo>
+        <MetricGrid stats={stats} />
       </div>
     </PlayShell>
   );
 }
 
 function GasLuckyPoolPlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [claimKey] = useLaunchParamState(launchContext, ["claimKey", "key", "code", "k"], "");
-  const [campaignId] = useLaunchParamState(launchContext, ["campaignId", "campaign"], "spring-drop");
-  const [amount] = useLaunchParamState(launchContext, ["amount", "totalAmount", "total"], "100");
-  const [minClaim] = useLaunchParamState(launchContext, ["minClaim", "min"], "1");
-  const [maxClaim] = useLaunchParamState(launchContext, ["maxClaim", "max"], "50");
-  const [maxClaims] = useLaunchParamState(launchContext, ["maxClaims", "claims", "slots"], "20");
-  const minCapacity = (Number(minClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
-  const maxCapacity = (Number(maxClaim) || 0) * Math.max(1, Number(maxClaims) || 1);
+  const {
+    app,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [claimKey] = useLaunchParamState(
+    launchContext,
+    ["claimKey", "key", "code", "k"],
+    "",
+  );
+  const [minClaim] = useLaunchParamState(
+    launchContext,
+    ["minClaim", "min"],
+    "1",
+  );
+  const [maxClaim] = useLaunchParamState(
+    launchContext,
+    ["maxClaim", "max"],
+    "50",
+  );
+  const hasClaimKey = Boolean(claimKey.trim());
 
   return (
     <PlayShell
       app={app}
       title="OneGate Vault"
-      subtitle="Server-backed OneGate GAS rewards: each QR carries a unique claim key, and the backend sends a randomized 1-50 GAS payout to the scanned wallet."
+      subtitle="Scan with OneGate, claim once, and receive a random GAS reward directly in your wallet."
       tone="emerald"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
-        <div className="grid gap-3">
-          <ActionBoard
-            title="Claim flow"
-            subtitle="OneGate passes the claim key from the QR code. The server validates the key, binds it to the wallet, sends GAS, and the page tracks the payout."
-            tone="emerald"
-            rows={[
-              {
-                label: "OneGate QR key",
-                detail: claimKey ? "Prefilled from scan parameters" : "Waiting for QR claimKey",
-                value: claimKey ? "ready" : "pending",
-                valueLabel: "key",
-                active: Boolean(claimKey),
-                icon: <Gift className="h-4 w-4" />,
-              },
-              {
-                label: "Claim range",
-                detail: "The backend chooses the final payout inside the 1-50 GAS range",
-                value: `${minClaim || "1"}-${maxClaim || "5"} GAS`,
-                valueLabel: "bounds",
-                active: true,
-                icon: <Coins className="h-4 w-4" />,
-              },
-              {
-                label: "Campaign capacity",
-                detail: "Backend inventory should cover the full configured campaign",
-                value: `${formatGas(minCapacity)} - ${formatGas(maxCapacity)}`,
-                valueLabel: "capacity",
-                icon: <Scale className="h-4 w-4" />,
-              },
-              {
-                label: "Single-use guard",
-                detail: "A used key is locked to the first wallet address",
-                value: "1x",
-                valueLabel: "key",
-                icon: <ShieldCheck className="h-4 w-4" />,
-              },
-            ]}
-          />
-          <PlayAreaConsoleHint label="The QR claim key is prefilled into the right action console; claiming submits the key and OneGate wallet address to the backend payout service." />
-        </div>
-        <div className="grid gap-3">
-          <ActionBoard
-            title="Campaign setup"
-            subtitle="Server inventory and QR keys stay separated by network and campaign."
-            tone="emerald"
-            rows={[
-              {
-                label: "Campaign",
-                detail: "Backend campaign namespace",
-                value: campaignId,
-                valueLabel: "id",
-                active: true,
-                icon: <Vault className="h-4 w-4" />,
-              },
-              {
-                label: "Budget",
-                detail: "Configured reward balance",
-                value: `${amount || "0"} GAS`,
-                valueLabel: "server",
-                icon: <Coins className="h-4 w-4" />,
-              },
-              {
-                label: "Reward bounds",
-                detail: "Luck percentile is derived from the final amount",
-                value: `${minClaim || "1"}-${maxClaim || "50"} GAS`,
-                valueLabel: "range",
-              },
-              {
-                label: "Claim slots",
-                detail: "Each generated key can only be used once",
-                value: maxClaims,
-                valueLabel: "keys",
-              },
-            ]}
-          />
-          <MetricGrid stats={stats} />
-        </div>
+        <section
+          className={`rounded-[18px] border p-3.5 shadow-sm shadow-gray-950/5 sm:rounded-[20px] sm:p-4 ${
+            hasClaimKey
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-amber-200 bg-amber-50"
+          }`}
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div
+                className={`mb-2 grid h-10 w-10 place-items-center rounded-xl ${
+                  hasClaimKey
+                    ? "bg-emerald-600 text-white"
+                    : "bg-amber-500 text-white"
+                }`}
+              >
+                <Gift className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h3 className="m-0 text-lg font-black tracking-tight text-gray-950 sm:text-xl">
+                {hasClaimKey ? "Reward ready" : "Scan to claim"}
+              </h3>
+              <p className="m-0 mt-1 max-w-xl text-xs font-semibold leading-5 text-gray-600 sm:mt-1.5 sm:text-sm">
+                {hasClaimKey
+                  ? "Your OneGate scan is verified. Claim once to receive GAS in your wallet."
+                  : "Open this reward from a OneGate QR code to load your claim automatically."}
+              </p>
+            </div>
+            <div className="w-fit rounded-xl border border-white/80 bg-white/80 px-3 py-2 text-left sm:min-w-36 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-right">
+              <p className="m-0 text-[11px] font-black uppercase tracking-wide text-gray-400">
+                Reward range
+              </p>
+              <p className="m-0 mt-0.5 text-lg font-black text-gray-950 sm:text-xl">
+                {minClaim || "1"}-{maxClaim || "50"} GAS
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
     </PlayShell>
   );
 }
 
 function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, loading, error, contractHash, network, onRefresh } = props;
-  const [claimed] = useState(5);
+  const {
+    app,
+    statsMap,
+    stats,
+    loading,
+    error,
+    contractHash,
+    network,
+    onRefresh,
+  } = props;
+  const claimed = clampNumber(
+    parseNumericMetric(
+      getMetric(statsMap, "Current Streak", getMetric(statsMap, "Streak", "0")),
+    ),
+    0,
+    7,
+  );
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
@@ -1690,16 +2280,27 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
       subtitle="One daily check-in keeps the streak alive. The seventh day unlocks the bigger reward."
       tone="emerald"
       side={<MetricGrid stats={stats} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3">
           <section className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <h3 className="m-0 text-sm font-black text-gray-950">Weekly claim market</h3>
+                <h3 className="m-0 text-sm font-black text-gray-950">
+                  Weekly streak
+                </h3>
                 <p className="m-0 mt-1 text-xs leading-5 text-gray-500">
-                  The streak path stays visible so the next claim feels immediate and understandable.
+                  The streak path stays visible so the next claim feels
+                  immediate and understandable.
                 </p>
               </div>
               <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
@@ -1717,9 +2318,15 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
                         : "border-gray-200 bg-white text-gray-500"
                     }`}
                   >
-                    <CalendarCheck className={`mx-auto mb-2 h-5 w-5 ${active ? "text-emerald-600" : "text-gray-400"}`} />
+                    <CalendarCheck
+                      className={`mx-auto mb-2 h-5 w-5 ${active ? "text-emerald-600" : "text-gray-400"}`}
+                    />
                     <span className="block text-xs font-black">{day}</span>
-                    {today && <span className="mt-1 block text-[10px] font-black uppercase text-emerald-600">today</span>}
+                    {today && (
+                      <span className="mt-1 block text-[10px] font-black uppercase text-emerald-600">
+                        today
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -1727,8 +2334,14 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
           </section>
           <div className="grid gap-2 sm:grid-cols-3">
             <PreviewStat label="Current streak" value={`${claimed} days`} />
-            <PreviewStat label="7-day reward" value={getMetric(statsMap, "7-Day Reward", "--")} />
-            <PreviewStat label="Total rewarded" value={getMetric(statsMap, "Total Rewarded", "0 GAS")} />
+            <PreviewStat
+              label="7-day reward"
+              value={getMetric(statsMap, "7-Day Reward", "--")}
+            />
+            <PreviewStat
+              label="Total rewarded"
+              value={getMetric(statsMap, "Total Rewarded", "0 GAS")}
+            />
           </div>
           <PlayAreaConsoleHint label="Today's check-in and wallet confirmation are handled in the right action console." />
         </div>
@@ -1739,7 +2352,10 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
           rows={[
             {
               label: "Today",
-              detail: claimed >= 1 ? "Eligible for today's daily claim" : "Connect wallet to start",
+              detail:
+                claimed >= 1
+                  ? "Eligible for today's daily claim"
+                  : "Connect wallet to start",
               value: claimed >= 1 ? "eligible" : "not started",
               valueLabel: "state",
               active: true,
@@ -1765,8 +2381,23 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
 }
 
 function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [collateral] = useLaunchParamState(launchContext, ["collateral", "neo"], "20");
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [collateral] = useLaunchParamState(
+    launchContext,
+    ["collateral", "neo"],
+    "20",
+  );
   const ltv = 0.35;
   const borrowable = (Number(collateral) || 0) * ltv;
 
@@ -1777,7 +2408,15 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Lock NEO, draw GAS, and route future yield toward repayment without liquidation."
       tone="sky"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3">
@@ -1819,8 +2458,14 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
           <PreviewStat label="LTV preview" value="35%" />
-          <PreviewStat label="Locked collateral" value={getMetric(statsMap, "Collateral Locked", "0 NEO")} />
-          <PreviewStat label="Outstanding debt" value={getMetric(statsMap, "Outstanding Debt", "0 GAS")} />
+          <PreviewStat
+            label="Locked collateral"
+            value={getMetric(statsMap, "Collateral Locked", "0 NEO")}
+          />
+          <PreviewStat
+            label="Outstanding debt"
+            value={getMetric(statsMap, "Outstanding Debt", "0 GAS")}
+          />
         </div>
         <MetricGrid stats={stats} />
       </div>
@@ -1836,44 +2481,153 @@ function TrustAnchorPlayArea(props: PlayAreaRegistryProps) {
   return <AnchorPlayArea {...props} mode="trust" />;
 }
 
-function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust" }) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh, mode } = props;
-  const [candidate] = useLaunchParamState(launchContext, ["candidate", "agent", "route"], "Agent #1");
-  const [stake] = useLaunchParamState(launchContext, ["stake", "amount"], "25");
+function AnchorPlayArea(
+  props: PlayAreaRegistryProps & { mode: "profit" | "trust" },
+) {
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+    mode,
+  } = props;
+  const [agentId] = useLaunchParamState(
+    launchContext,
+    ["agentId", "agent"],
+    "1",
+  );
+  const [candidate] = useLaunchParamState(
+    launchContext,
+    ["candidate", "target", "voteTarget"],
+    "",
+  );
+  const [amount] = useLaunchParamState(launchContext, ["amount", "neo"], "1");
   const isProfit = mode === "profit";
+  const totalStaked = getMetric(statsMap, "Total Staked", "0 NEO");
+  const agentCount = getMetric(
+    statsMap,
+    "Agents",
+    getMetric(statsMap, "Agent Count", "0"),
+  );
+  const rewardReserve = getMetric(
+    statsMap,
+    "Reward Reserve",
+    getMetric(statsMap, "Rewards", "0 GAS"),
+  );
+  const selectedAgent = getMetric(statsMap, "Selected Agent", "not selected");
 
   return (
     <PlayShell
       app={app}
-      title={isProfit ? "Profit route voting" : "Trust route staking"}
-      subtitle={isProfit ? "Stake NEO and vote for the AA agent with the strongest yield route." : "Stake NEO and route governance voting through trusted AA agents."}
+      title={isProfit ? "ProfitAnchor stake desk" : "TrustAnchor stake desk"}
+      subtitle={
+        isProfit
+          ? "Stake NEO, withdraw NEO, and claim GAS rewards. Operators handle the 21-agent profit route in secondary controls."
+          : "Stake NEO, withdraw NEO, and claim GAS rewards. Operators handle the 21-agent trust route in secondary controls."
+      }
       tone={isProfit ? "emerald" : "slate"}
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3">
           <ActionBoard
-            title={isProfit ? "Yield route board" : "Trust route board"}
-            subtitle="Select a route with the same compact comparison pattern used by market-style interfaces."
+            title="User flow"
+            subtitle="The primary workflow is intentionally small: stake, withdraw, claim. Routing details stay folded below."
             tone={isProfit ? "emerald" : "slate"}
-            rows={["Agent #1", "Agent #2", "Agent #3"].map((route, index) => ({
-              label: route,
-              detail: isProfit ? "Yield strategy candidate" : "Governance trust candidate",
-              value: index === 0 ? getMetric(statsMap, "Rewards", getMetric(statsMap, "Reward Reserve", "0 GAS")) : "live read",
-              valueLabel: index === 0 ? "reward" : "state",
-              active: candidate === route,
-              icon: <Vote className="h-4 w-4" />,
-            }))}
+            rows={[
+              {
+                label: "Stake NEO",
+                detail: "Deposit a whole-number NEO amount into this anchor",
+                value: amount || "1",
+                valueLabel: "NEO",
+                active: true,
+                icon: <LockKeyhole className="h-4 w-4" />,
+              },
+              {
+                label: "Withdraw",
+                detail: "Exit your own stake without touching operator routing",
+                value: "available",
+                valueLabel: "user action",
+                icon: <RotateCcw className="h-4 w-4" />,
+              },
+              {
+                label: "Claim rewards",
+                detail: "Claim accumulated GAS rewards after distribution",
+                value: rewardReserve,
+                valueLabel: "reserve",
+                icon: <Coins className="h-4 w-4" />,
+              },
+            ]}
           />
-          <PlayAreaConsoleHint label="Route choice, stake amount, vote submission, and claim actions live in the right action console." />
+          <PlayAreaConsoleHint label="Use the right action console for Stake, Withdraw, and Claim. Operator routing actions are secondary." />
         </div>
-        <div className="grid gap-2 sm:grid-cols-4">
-          <PreviewStat label="Selected route" value={candidate} />
-          <PreviewStat label="Total staked" value={getMetric(statsMap, "Total Staked", "0 NEO")} />
-          <PreviewStat label="Agents" value={getMetric(statsMap, "Agents", "0")} />
-          <PreviewStat label="Rewards" value={getMetric(statsMap, "Reward Reserve", "0 GAS")} />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <PreviewStat label="Total NEO tracked" value={totalStaked} />
+          <PreviewStat label="Reward reserve" value={rewardReserve} />
+          <PreviewStat label="Routing mode" value="Manual" />
         </div>
+        <SecondaryInfo
+          title="Agent and accounting details"
+          description="Secondary diagnostics only. The main screen stays dedicated to the user stake lifecycle."
+          meta="advanced"
+        >
+          <div className="grid gap-3">
+            <ActionBoard
+              title="Live contract reads"
+              subtitle="Values come from the configured chain/server data source. Missing values are shown as unavailable, not fabricated."
+              tone={isProfit ? "emerald" : "slate"}
+              rows={[
+                {
+                  label: "Registered agents",
+                  detail: "Read from getAnchorStats.agentCount",
+                  value: agentCount,
+                  valueLabel: "count",
+                  active: true,
+                  icon: <Users className="h-4 w-4" />,
+                },
+                {
+                  label: "Reward reserve",
+                  detail: "Reward accounting read from the anchor contract",
+                  value: rewardReserve,
+                  valueLabel: "GAS",
+                  icon: <Coins className="h-4 w-4" />,
+                },
+                {
+                  label: "Selected manual route",
+                  detail: "Read from getAnchorStats.selectedAgentId",
+                  value: selectedAgent,
+                  valueLabel: "agent",
+                  icon: <ArrowRightLeft className="h-4 w-4" />,
+                },
+              ]}
+            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <PreviewStat
+                label="Operator candidate input"
+                value={candidate ? shortHash(candidate) : `agent ${agentId}`}
+              />
+              <PreviewStat
+                label="AA derivation"
+                value="anchor+appId+agentId+nonce"
+              />
+            </div>
+          </div>
+        </SecondaryInfo>
         <MetricGrid stats={stats} />
       </div>
     </PlayShell>
@@ -1881,10 +2635,31 @@ function AnchorPlayArea(props: PlayAreaRegistryProps & { mode: "profit" | "trust
 }
 
 function NeoPayPlayArea(props: PlayAreaRegistryProps) {
-  const { app, statsMap, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [amount] = useLaunchParamState(launchContext, ["amount", "total"], "12");
-  const [rate] = useLaunchParamState(launchContext, ["rate", "releaseRate"], "1");
-  const duration = Math.ceil((Number(amount) || 0) / Math.max(0.01, Number(rate) || 1));
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [amount] = useLaunchParamState(
+    launchContext,
+    ["amount", "total"],
+    "12",
+  );
+  const [rate] = useLaunchParamState(
+    launchContext,
+    ["rate", "releaseRate"],
+    "1",
+  );
+  const duration = Math.ceil(
+    (Number(amount) || 0) / Math.max(0.01, Number(rate) || 1),
+  );
 
   return (
     <PlayShell
@@ -1893,7 +2668,15 @@ function NeoPayPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Compose a payroll, grant, or escrow stream with release cadence and beneficiary before submitting."
       tone="emerald"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3">
@@ -1947,7 +2730,15 @@ type TarotCard = {
 };
 
 function TarotPlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const {
+    app,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
   const [deck, setDeck] = useState<TarotCard[]>([]);
   const [drawn, setDrawn] = useState<TarotCard[]>([]);
   const [flipped, setFlipped] = useState(false);
@@ -1971,7 +2762,9 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
   const drawCards = useCallback(() => {
     const source = deck.length ? deck : FALLBACK_TAROT;
     const seed = Date.now();
-    const picks = [0, 1, 2].map((offset) => source[(seed + offset * 17) % source.length]);
+    const picks = [0, 1, 2].map(
+      (offset) => source[(seed + offset * 17) % source.length],
+    );
     setDrawn(picks);
     setFlipped(false);
   }, [deck]);
@@ -1982,7 +2775,8 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
 
   useEffect(() => {
     const operation = launchContext?.operation;
-    if (operation !== "drawTarotReading" && operation !== "flipTarotReading") return;
+    if (operation !== "drawTarotReading" && operation !== "flipTarotReading")
+      return;
     const signature = `${operation}:${launchContext?.signature || ""}`;
     if (handledOperationRef.current === signature) return;
     handledOperationRef.current = signature;
@@ -1998,46 +2792,72 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
       tone="violet"
       side={
         <div className="rounded-lg border border-violet-100 bg-white/85 p-4">
-          <h3 className="m-0 text-sm font-bold text-gray-950">Reading spread</h3>
+          <h3 className="m-0 text-sm font-bold text-gray-950">
+            Reading spread
+          </h3>
           <div className="mt-3 space-y-2 text-sm text-gray-600">
-            <PreviewStat label="Deck" value={`${deck.length || FALLBACK_TAROT.length} cards`} />
+            <PreviewStat
+              label="Deck"
+              value={`${deck.length || FALLBACK_TAROT.length} cards`}
+            />
             <PreviewStat label="Spread" value="Past / Signal / Path" />
             <PreviewStat label="Randomness" value="Neo block seed" />
           </div>
         </div>
       }
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-3">
-          {(drawn.length ? drawn : FALLBACK_TAROT.slice(0, 3)).map((card, index) => {
-            const image = card.image?.replace("./cards/", "/miniapps/on-chain-tarot/cards/");
-            return (
-              <button
-                key={`${card.id}:${index}`}
-                type="button"
-                onClick={() => setFlipped(true)}
-                className="group min-h-[260px] cursor-pointer rounded-lg border border-violet-100 bg-slate-950 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                {flipped ? (
-                  <div className="h-full">
-                    <img src={image} alt={card.name} className="mx-auto aspect-[2/3] h-44 rounded-md object-cover" />
-                    <p className="m-0 mt-3 text-sm font-black text-white">{card.name}</p>
-                    <p className="m-0 mt-1 text-xs text-violet-200">{card.keyword} / {card.meaning}</p>
-                  </div>
-                ) : (
-                  <div className="grid h-full min-h-[232px] place-items-center rounded-md border border-violet-300/30 bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.3),transparent_45%),linear-gradient(135deg,#111827,#312e81)]">
-                    <div className="text-center text-white">
-                      <WandSparkles className="mx-auto mb-3 h-8 w-8 text-neo" />
-                      <p className="m-0 text-xs font-bold uppercase tracking-wide text-violet-200">
-                        {["Past", "Signal", "Path"][index]}
+          {(drawn.length ? drawn : FALLBACK_TAROT.slice(0, 3)).map(
+            (card, index) => {
+              const image = card.image?.replace(
+                "./cards/",
+                "/miniapps/on-chain-tarot/cards/",
+              );
+              return (
+                <button
+                  key={`${card.id}:${index}`}
+                  type="button"
+                  onClick={() => setFlipped(true)}
+                  className="group min-h-[260px] cursor-pointer rounded-lg border border-violet-100 bg-slate-950 p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  {flipped ? (
+                    <div className="h-full">
+                      <img
+                        src={image}
+                        alt={card.name}
+                        className="mx-auto aspect-[2/3] h-44 rounded-md object-cover"
+                      />
+                      <p className="m-0 mt-3 text-sm font-black text-white">
+                        {card.name}
+                      </p>
+                      <p className="m-0 mt-1 text-xs text-violet-200">
+                        {card.keyword} / {card.meaning}
                       </p>
                     </div>
-                  </div>
-                )}
-              </button>
-            );
-          })}
+                  ) : (
+                    <div className="grid h-full min-h-[232px] place-items-center rounded-md border border-violet-300/30 bg-[radial-gradient(circle_at_50%_20%,rgba(16,185,129,0.3),transparent_45%),linear-gradient(135deg,#111827,#312e81)]">
+                      <div className="text-center text-white">
+                        <WandSparkles className="mx-auto mb-3 h-8 w-8 text-neo" />
+                        <p className="m-0 text-xs font-bold uppercase tracking-wide text-violet-200">
+                          {["Past", "Signal", "Path"][index]}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            },
+          )}
         </div>
         <PlayAreaConsoleHint label="Use the action console to draw or flip a reading. Cards remain tappable for the reading table itself." />
       </div>
@@ -2080,10 +2900,24 @@ type ExplorerRecentTx = {
 };
 
 function ExplorerPlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const {
+    app,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
   const launchNetwork = launchContext?.network ?? network;
-  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet">(launchNetwork);
-  const [query] = useLaunchParamState(launchContext, ["query", "q", "hash", "address", "height"], "");
+  const [selectedNetwork, setSelectedNetwork] = useState<"mainnet" | "testnet">(
+    launchNetwork,
+  );
+  const [query] = useLaunchParamState(
+    launchContext,
+    ["query", "q", "hash", "address", "height"],
+    "",
+  );
   const [stats, setStats] = useState<ExplorerStatsPayload | null>(null);
   const [recent, setRecent] = useState<ExplorerRecentTx[]>([]);
   const [result, setResult] = useState<ExplorerSearchPayload | null>(null);
@@ -2105,14 +2939,24 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
       setStats(statsPayload);
 
       if (recentRes.ok) {
-        const recentPayload = (await recentRes.json()) as { transactions?: ExplorerRecentTx[] };
-        setRecent(Array.isArray(recentPayload.transactions) ? recentPayload.transactions : []);
+        const recentPayload = (await recentRes.json()) as {
+          transactions?: ExplorerRecentTx[];
+        };
+        setRecent(
+          Array.isArray(recentPayload.transactions)
+            ? recentPayload.transactions
+            : [],
+        );
       } else {
         setRecent([]);
       }
       setStatus("Live chain data loaded");
     } catch (err) {
-      setStatus(err instanceof Error ? `Explorer API unavailable: ${err.message}` : "Explorer API unavailable");
+      setStatus(
+        err instanceof Error
+          ? `Explorer API unavailable: ${err.message}`
+          : "Explorer API unavailable",
+      );
       setRecent([]);
     } finally {
       setIsFetching(false);
@@ -2140,14 +2984,24 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
       const res = await fetch(
         `/api/explorer/search?q=${encodeURIComponent(trimmed)}&network=${selectedNetwork}`,
       );
-      const payload = (await res.json()) as ExplorerSearchPayload & { error?: string };
+      const payload = (await res.json()) as ExplorerSearchPayload & {
+        error?: string;
+      };
       if (!res.ok || payload.error) {
         throw new Error(payload.error || `search ${res.status}`);
       }
       setResult(payload);
-      setStatus(payload.found ? "Resolved from live data" : "No matching live record found");
+      setStatus(
+        payload.found
+          ? "Resolved from live data"
+          : "No matching live record found",
+      );
     } catch (err) {
-      setStatus(err instanceof Error ? `Search failed: ${err.message}` : "Search failed");
+      setStatus(
+        err instanceof Error
+          ? `Search failed: ${err.message}`
+          : "Search failed",
+      );
     } finally {
       setIsFetching(false);
     }
@@ -2159,10 +3013,18 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
     if (!query.trim() || handledSearchRef.current === signature) return;
     handledSearchRef.current = signature;
     void runSearch();
-  }, [launchContext?.operation, launchContext?.signature, query, runSearch, selectedNetwork]);
+  }, [
+    launchContext?.operation,
+    launchContext?.signature,
+    query,
+    runSearch,
+    selectedNetwork,
+  ]);
 
   const selectedStats = stats?.[selectedNetwork];
-  const height = selectedStats?.height ? selectedStats.height.toLocaleString() : "Unavailable";
+  const height = selectedStats?.height
+    ? selectedStats.height.toLocaleString()
+    : "Unavailable";
   const txCount =
     typeof selectedStats?.txCount === "number"
       ? selectedStats.txCount.toLocaleString()
@@ -2171,7 +3033,10 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
     { label: "Network", value: selectedNetwork, accent: true },
     { label: "Block height", value: height, accent: true },
     { label: "Indexed tx", value: txCount },
-    { label: "Result", value: result?.found ? String(result.type || "found") : "none" },
+    {
+      label: "Result",
+      value: result?.found ? String(result.type || "found") : "none",
+    },
   ];
 
   return (
@@ -2208,7 +3073,8 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
                 })
               ) : (
                 <p className="m-0 text-sm leading-6 text-gray-500">
-                  Recent transaction indexer is not configured or has no rows for this network.
+                  Recent transaction indexer is not configured or has no rows
+                  for this network.
                 </p>
               )}
             </div>
@@ -2270,7 +3136,11 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
   );
 }
 
-function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null }) {
+function ExplorerResultPanel({
+  result,
+}: {
+  result: ExplorerSearchPayload | null;
+}) {
   if (!result) {
     return (
       <div className="rounded-lg border border-dashed border-gray-200 bg-white/70 p-4 text-sm font-semibold text-gray-500">
@@ -2282,8 +3152,11 @@ function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null 
   if (!result.found) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-        No live record found for this query on {result.network || "the selected network"}.
-        {result.source === "indexer_unavailable" ? " Address history requires the indexer service." : ""}
+        No live record found for this query on{" "}
+        {result.network || "the selected network"}.
+        {result.source === "indexer_unavailable"
+          ? " Address history requires the indexer service."
+          : ""}
       </div>
     );
   }
@@ -2326,7 +3199,11 @@ function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null 
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {rows.map(([label, value]) => (
-          <PreviewStat key={label} label={label} value={value || "Unavailable"} />
+          <PreviewStat
+            key={label}
+            label={label}
+            value={value || "Unavailable"}
+          />
         ))}
       </div>
     </div>
@@ -2334,7 +3211,15 @@ function ExplorerResultPanel({ result }: { result: ExplorerSearchPayload | null 
 }
 
 function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const {
+    app,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
   const [amount] = useLaunchParamState(launchContext, ["amount"], "");
   const [direction] = useLaunchChoiceState(
     launchContext,
@@ -2342,8 +3227,16 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
     ["Neo N3 -> Neo X", "Neo X -> Neo N3"] as const,
     "Neo N3 -> Neo X",
   );
-  const [targetContract] = useLaunchParamState(launchContext, ["targetContract", "contract", "to"], "");
-  const [bridgeMessage] = useLaunchParamState(launchContext, ["message", "payload"], "");
+  const [targetContract] = useLaunchParamState(
+    launchContext,
+    ["targetContract", "contract", "to"],
+    "",
+  );
+  const [bridgeMessage] = useLaunchParamState(
+    launchContext,
+    ["message", "payload"],
+    "",
+  );
 
   return (
     <PlayShell
@@ -2352,7 +3245,15 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
       subtitle="Operate asset bridge, Message Bridge, and operation status tracking without leaving the platform shell."
       tone="sky"
       side={<BridgeStatusPanel />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <ActionBoard
@@ -2393,8 +3294,14 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
         <MetricGrid
           stats={[
             { label: "Route", value: direction, accent: true },
-            { label: "Amount", value: amount ? `${amount} GAS` : "Set in action console" },
-            { label: "Target", value: targetContract ? shortHash(targetContract) : "No target" },
+            {
+              label: "Amount",
+              value: amount ? `${amount} GAS` : "Set in action console",
+            },
+            {
+              label: "Target",
+              value: targetContract ? shortHash(targetContract) : "No target",
+            },
             { label: "Payload", value: bridgeMessage ? "Ready" : "Empty" },
           ]}
         />
@@ -2413,10 +3320,27 @@ type PrivateTransferResult = {
 };
 
 function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const [recipient] = useLaunchParamState(launchContext, ["recipient", "to", "address"], "");
+  const {
+    app,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [recipient] = useLaunchParamState(
+    launchContext,
+    ["recipient", "to", "address"],
+    "",
+  );
   const [amount] = useLaunchParamState(launchContext, ["amount"], "");
-  const [asset] = useLaunchChoiceState(launchContext, ["asset", "token"], ["GAS", "NEO"] as const, "GAS");
+  const [asset] = useLaunchChoiceState(
+    launchContext,
+    ["asset", "token"],
+    ["GAS", "NEO"] as const,
+    "GAS",
+  );
   const [memo] = useLaunchParamState(launchContext, ["memo", "note"], "");
   const [result, setResult] = useState<PrivateTransferResult>({
     status: "idle",
@@ -2427,7 +3351,8 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
   const sealTransfer = useCallback(async () => {
     setResult({
       status: "sealing",
-      message: "Fetching Morpheus public key and building a local X25519 envelope.",
+      message:
+        "Fetching Morpheus public key and building a local X25519 envelope.",
     });
     try {
       const keyResponse = await fetch(
@@ -2435,13 +3360,17 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       );
       const keyMeta = await keyResponse.json().catch(() => ({}));
       if (!keyResponse.ok || !keyMeta?.public_key) {
-        throw new Error(keyMeta?.error || "Morpheus oracle public key is unavailable");
+        throw new Error(
+          keyMeta?.error || "Morpheus oracle public key is unavailable",
+        );
       }
       if (
         keyMeta.algorithm &&
         keyMeta.algorithm !== "X25519-HKDF-SHA256-AES-256-GCM"
       ) {
-        throw new Error(`Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`);
+        throw new Error(
+          `Unsupported Morpheus encryption algorithm: ${keyMeta.algorithm}`,
+        );
       }
 
       const transferPackage = await buildConfidentialTransferPackage({
@@ -2470,16 +3399,25 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       });
       const stored = await storeResponse.json().catch(() => ({}));
       if (!storeResponse.ok) {
-        throw new Error(stored?.error || stored?.message || "Morpheus confidential store is unavailable");
+        throw new Error(
+          stored?.error ||
+            stored?.message ||
+            "Morpheus confidential store is unavailable",
+        );
       }
-      const storedRef = String(stored.secret_ref || stored.id || stored.ref || "").trim();
+      const storedRef = String(
+        stored.secret_ref || stored.id || stored.ref || "",
+      ).trim();
       if (!storedRef) {
-        throw new Error("Morpheus confidential store did not return a secret reference");
+        throw new Error(
+          "Morpheus confidential store did not return a secret reference",
+        );
       }
 
       setResult({
         status: "stored",
-        message: "Encrypted transfer intent stored. Only the TEE can decrypt recipient, amount, memo, and note secret.",
+        message:
+          "Encrypted transfer intent stored. Only the TEE can decrypt recipient, amount, memo, and note secret.",
         noteCommitment: transferPackage.publicEnvelope.note_commitment,
         nullifier: transferPackage.publicEnvelope.nullifier_hash,
         secretRef: storedRef,
@@ -2488,7 +3426,8 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     } catch (sealError) {
       setResult({
         status: "error",
-        message: sealError instanceof Error ? sealError.message : String(sealError),
+        message:
+          sealError instanceof Error ? sealError.message : String(sealError),
       });
     }
   }, [amount, app.app_id, asset, memo, network, recipient]);
@@ -2499,7 +3438,15 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
     if (!recipient || !amount || handledSealRef.current === signature) return;
     handledSealRef.current = signature;
     void sealTransfer();
-  }, [amount, asset, launchContext?.operation, launchContext?.signature, memo, recipient, sealTransfer]);
+  }, [
+    amount,
+    asset,
+    launchContext?.operation,
+    launchContext?.signature,
+    memo,
+    recipient,
+    sealTransfer,
+  ]);
 
   return (
     <PlayShell
@@ -2508,7 +3455,15 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       subtitle="A zERC20-style private transfer workflow without on-chain zk curve assumptions: seal transfer details locally, let Morpheus confidential compute validate them inside the TEE, then return a signed settlement intent."
       tone="slate"
       side={<PrivateTransferStatusPanel result={result} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_240px]">
         <ActionBoard
@@ -2571,7 +3526,11 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
   );
 }
 
-function PrivateTransferStatusPanel({ result }: { result: PrivateTransferResult }) {
+function PrivateTransferStatusPanel({
+  result,
+}: {
+  result: PrivateTransferResult;
+}) {
   const tone =
     result.status === "stored"
       ? "border-emerald-200 bg-emerald-50 text-emerald-950"
@@ -2584,18 +3543,40 @@ function PrivateTransferStatusPanel({ result }: { result: PrivateTransferResult 
       <h3 className="m-0 text-sm font-black">Morpheus confidential compute</h3>
       <p className="mt-2 text-sm leading-6">{result.message}</p>
       <div className="mt-3 space-y-2">
-        {result.secretRef && <PreviewStat label="Secret ref" value={result.secretRef} />}
-        {result.noteCommitment && <PreviewStat label="Note commitment" value={result.noteCommitment} />}
-        {result.nullifier && <PreviewStat label="Nullifier hash" value={result.nullifier} />}
-        {result.contract && <PreviewStat label="Oracle contract" value={shortHash(result.contract)} />}
+        {result.secretRef && (
+          <PreviewStat label="Secret ref" value={result.secretRef} />
+        )}
+        {result.noteCommitment && (
+          <PreviewStat label="Note commitment" value={result.noteCommitment} />
+        )}
+        {result.nullifier && (
+          <PreviewStat label="Nullifier hash" value={result.nullifier} />
+        )}
+        {result.contract && (
+          <PreviewStat
+            label="Oracle contract"
+            value={shortHash(result.contract)}
+          />
+        )}
       </div>
     </div>
   );
 }
 
 function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
-  const { app, loading, error, contractHash, network, launchContext, onRefresh } = props;
-  const config = ORACLE_APP_LABELS[app.app_id] || { title: app.name, mode: "http" as const };
+  const {
+    app,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const config = ORACLE_APP_LABELS[app.app_id] || {
+    title: app.name,
+    mode: "http" as const,
+  };
   const defaultOracleEndpoint =
     config.mode === "price"
       ? "TWELVEDATA:NEO-USD"
@@ -2632,7 +3613,9 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       );
       const keyMeta = await keyResponse.json().catch(() => ({}));
       if (!keyResponse.ok || !keyMeta?.public_key) {
-        throw new Error(keyMeta?.error || "Morpheus oracle public key is unavailable");
+        throw new Error(
+          keyMeta?.error || "Morpheus oracle public key is unavailable",
+        );
       }
       const confidentialPayload = {
         kind: `oracle.${config.mode}.confidential.v1`,
@@ -2640,11 +3623,12 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
         mode: config.mode,
         target_chain: "neo_n3",
         network,
-        request: config.mode === "compute"
-          ? { workflow: "private-transfer-or-policy-check", input: endpoint }
-          : config.mode === "neodid"
-            ? { provider: "neodid", subject: endpoint }
-            : { payload: endpoint },
+        request:
+          config.mode === "compute"
+            ? { workflow: "private-transfer-or-policy-check", input: endpoint }
+            : config.mode === "neodid"
+              ? { provider: "neodid", subject: endpoint }
+              : { payload: endpoint },
       };
       const ciphertext = await encryptJsonWithOraclePublicKey(
         String(keyMeta.public_key),
@@ -2662,19 +3646,36 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
         }),
       });
       const stored = await storeResponse.json().catch(() => ({}));
-      setResult(JSON.stringify({
-        status: storeResponse.ok ? "sealed_ref" : "sealed_inline",
-        mode: config.mode,
-        encryption: keyMeta.algorithm || "X25519-HKDF-SHA256-AES-256-GCM",
-        encrypted_payload: storeResponse.ok ? undefined : ciphertext,
-        secret_ref: storeResponse.ok ? stored.secret_ref || stored.id || stored.ref || "stored" : undefined,
-        public_key_contract: keyMeta.contract,
-      }, null, 2));
+      setResult(
+        JSON.stringify(
+          {
+            status: storeResponse.ok ? "sealed_ref" : "sealed_inline",
+            mode: config.mode,
+            encryption: keyMeta.algorithm || "X25519-HKDF-SHA256-AES-256-GCM",
+            encrypted_payload: storeResponse.ok ? undefined : ciphertext,
+            secret_ref: storeResponse.ok
+              ? stored.secret_ref || stored.id || stored.ref || "stored"
+              : undefined,
+            public_key_contract: keyMeta.contract,
+          },
+          null,
+          2,
+        ),
+      );
     } catch (sealError) {
-      setResult(JSON.stringify({
-        status: "seal_failed",
-        error: sealError instanceof Error ? sealError.message : String(sealError),
-      }, null, 2));
+      setResult(
+        JSON.stringify(
+          {
+            status: "seal_failed",
+            error:
+              sealError instanceof Error
+                ? sealError.message
+                : String(sealError),
+          },
+          null,
+          2,
+        ),
+      );
     } finally {
       setSealing(false);
     }
@@ -2682,7 +3683,8 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
 
   useEffect(() => {
     const operation = launchContext?.operation;
-    if (operation !== "buildOraclePackage" && operation !== "sealOracleRequest") return;
+    if (operation !== "buildOraclePackage" && operation !== "sealOracleRequest")
+      return;
     const signature = `${operation}:${launchContext?.signature || ""}:${endpoint}`;
     if (handledOracleRef.current === signature) return;
     handledOracleRef.current = signature;
@@ -2691,7 +3693,14 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       return;
     }
     build();
-  }, [build, confidentialMode, endpoint, launchContext?.operation, launchContext?.signature, seal]);
+  }, [
+    build,
+    confidentialMode,
+    endpoint,
+    launchContext?.operation,
+    launchContext?.signature,
+    seal,
+  ]);
 
   return (
     <PlayShell
@@ -2700,7 +3709,15 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       subtitle="Build a Morpheus request, inspect the callback shape, and verify the result envelope in the same native console."
       tone="slate"
       side={<OracleStatusPanel mode={config.mode} result={result} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="space-y-3">
         <ActionBoard
@@ -2718,7 +3735,9 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
             },
             {
               label: "Privacy",
-              detail: confidentialMode ? "Morpheus public key required" : "Plain oracle request",
+              detail: confidentialMode
+                ? "Morpheus public key required"
+                : "Plain oracle request",
               value: confidentialMode ? "sealed" : "optional",
               valueLabel: "mode",
               icon: <LockKeyhole className="h-4 w-4" />,
@@ -2732,7 +3751,9 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
             },
             {
               label: "Builder",
-              detail: sealing ? "Sealing request with Morpheus" : "Ready for action-console submit",
+              detail: sealing
+                ? "Sealing request with Morpheus"
+                : "Ready for action-console submit",
               value: sealing ? "sealing" : "ready",
               valueLabel: "state",
             },
@@ -2745,15 +3766,25 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
 }
 
 function ProfiledPlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, launchContext, onRefresh } = props;
+  const {
+    app,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
   const profile = PROFILED_PLAYAREAS[app.app_id];
   const initialValues = useCallback(
     () =>
       Object.fromEntries(
         profile.fields.map((field) => [
-            field.key,
-            getLaunchParam(launchContext, field.key, profileDefaultValue(field)),
-          ]),
+          field.key,
+          getLaunchParam(launchContext, field.key, profileDefaultValue(field)),
+        ]),
       ) as Record<string, string>,
     [launchContext, profile],
   );
@@ -2767,8 +3798,11 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
     stats.length > 0
       ? stats
       : [
-          { label: "Runtime", value: "Wallet required" },
-          { label: "State", value: "Awaiting live read" },
+          {
+            label: "Live data",
+            value: contractHash ? "Awaiting read" : "No binding",
+          },
+          { label: "Inputs", value: "Action console" },
           { label: "Network", value: network, accent: true },
         ];
 
@@ -2780,7 +3814,9 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       tone={profile.tone}
       side={
         <div className="space-y-3">
-          <PlayAreaConsoleHint label={`${profile.primaryAction} inputs and wallet handoff are handled in the right action console.`} />
+          <PlayAreaConsoleHint
+            label={`${profile.primaryAction} inputs and wallet handoff are handled in the right action console.`}
+          />
           <ProfileWorkflowPanel profile={profile} />
           <ActivityPanel activity={activity} />
         </div>
@@ -2796,7 +3832,11 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       }
     >
       <div className="space-y-3">
-        <ProfileMarketPanel profile={profile} values={values} network={network} />
+        <ProfileMarketPanel
+          profile={profile}
+          values={values}
+          network={network}
+        />
         <MetricGrid stats={profileMetrics} />
       </div>
     </PlayShell>
@@ -2812,13 +3852,19 @@ function ProfileMarketPanel({
   values: Record<string, string>;
   network: "mainnet" | "testnet";
 }) {
-  const cards = profile.cards.length > 0 ? profile.cards : [{ label: "State", value: "Ready" }];
+  const cards =
+    profile.cards.length > 0
+      ? profile.cards
+      : [{ label: "Primary action", value: "Action console" }];
   const rows = cards.slice(0, 4).map((card, index) => ({
     label: card.label,
-    detail: profile.steps[index] || profile.visual.slots[index] || profile.visual.headline,
+    detail:
+      profile.steps[index] ||
+      profile.visual.slots[index] ||
+      profile.visual.headline,
     value: profile.fields[index]
-      ? values[profile.fields[index].key]?.trim() || card.value
-      : card.value,
+      ? values[profile.fields[index].key]?.trim() || "from console"
+      : "workflow",
     valueLabel: profile.fields[index]?.label || "state",
     active: index === 0,
     icon: index === 0 ? profile.icon : undefined,
@@ -2835,37 +3881,43 @@ function ProfileMarketPanel({
     {
       label: "Operation",
       detail: profile.primaryAction,
-      value: "ready",
+      value: "user input",
       valueLabel: "phase",
     },
     {
       label: "Review",
       detail: profile.steps[1] || profile.visual.headline,
-      value: "pending",
+      value: "wallet",
       valueLabel: "phase",
     },
     {
       label: "Submit",
       detail: "Wallet handoff is in the action console",
-      value: "pending",
+      value: "signature",
       valueLabel: "phase",
     },
   ];
 
   return (
-    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]">
+    <div className="space-y-3">
       <ActionBoard
         title={profile.visual.headline}
         subtitle={profile.visual.footnote || profile.subtitle}
         rows={rows}
         tone={profile.tone}
       />
-      <ActionBoard
-        title="Execution state"
-        subtitle="A compact state board for the app-specific flow."
-        rows={visualRows}
-        tone={profile.tone}
-      />
+      <SecondaryInfo
+        title="Execution details"
+        description="Network, review, and submit phases stay available without taking over the main playarea."
+        meta="flow"
+      >
+        <ActionBoard
+          title="Execution state"
+          subtitle="A compact state board for the app-specific flow."
+          rows={visualRows}
+          tone={profile.tone}
+        />
+      </SecondaryInfo>
     </div>
   );
 }
@@ -2894,7 +3946,16 @@ function ProfileWorkflowPanel({ profile }: { profile: PlayAreaProfile }) {
 }
 
 function GenericPlayArea(props: PlayAreaRegistryProps) {
-  const { app, stats, activity, loading, error, contractHash, network, onRefresh } = props;
+  const {
+    app,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    onRefresh,
+  } = props;
 
   return (
     <PlayShell
@@ -2903,12 +3964,22 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
       subtitle="Review live state, prepare the primary action, and hand off the final signature through the shared platform controls."
       tone="emerald"
       side={<ActivityPanel activity={activity} />}
-      footer={<ChainStateStrip loading={loading} error={error} contractHash={contractHash} network={network} onRefresh={onRefresh} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
     >
       <div className="grid gap-4">
         <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
           <h3 className="m-0 text-lg font-black text-gray-950">{app.name}</h3>
-          <p className="mt-2 text-sm leading-6 text-gray-600">{app.description}</p>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            {app.description}
+          </p>
           <PlayAreaConsoleHint label="Use the right action console for wallet signing, OneGate launch parameters, and any app-specific operation inputs." />
         </div>
         <MetricGrid stats={stats} />
@@ -2917,11 +3988,21 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
   );
 }
 
-function ToolCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function ToolCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="min-w-0 space-y-3 rounded-lg border border-gray-200 bg-white/85 p-4">
       <h3 className="m-0 flex items-center gap-2 text-sm font-black text-gray-950">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700">{icon}</span>
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
+          {icon}
+        </span>
         {title}
       </h3>
       {children}
@@ -2932,15 +4013,19 @@ function ToolCard({ icon, title, children }: { icon: React.ReactNode; title: str
 function PreviewStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2">
-      <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">{value}</p>
+      <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
+      <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">
+        {value}
+      </p>
     </div>
   );
 }
 
 function PlayAreaConsoleHint({ label }: { label: string }) {
   return (
-    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800">
+    <div className="mt-3 inline-flex max-w-full rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800">
       {label}
     </div>
   );
@@ -2954,7 +4039,9 @@ function BridgeStatusPanel() {
       <div className="mt-4 space-y-3">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center gap-3">
-            <span className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${index === 0 ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-500"}`}>
+            <span
+              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-black ${index === 0 ? "bg-sky-600 text-white" : "bg-gray-100 text-gray-500"}`}
+            >
               {index + 1}
             </span>
             <span className="text-sm font-semibold text-gray-700">{step}</span>
@@ -2983,7 +4070,25 @@ function OracleStatusPanel({ mode, result }: { mode: string; result: string }) {
 }
 
 const FALLBACK_TAROT: TarotCard[] = [
-  { id: 0, name: "The Fool", keyword: "Spark", meaning: "Leap", image: "/miniapps/on-chain-tarot/cards/00-the-fool.svg" },
-  { id: 1, name: "The Magician", keyword: "Protocol", meaning: "Intent", image: "/miniapps/on-chain-tarot/cards/01-the-magician.svg" },
-  { id: 2, name: "The High Priestess", keyword: "Oracle", meaning: "Signal", image: "/miniapps/on-chain-tarot/cards/02-the-high-priestess.svg" },
+  {
+    id: 0,
+    name: "The Fool",
+    keyword: "Spark",
+    meaning: "Leap",
+    image: "/miniapps/on-chain-tarot/cards/00-the-fool.svg",
+  },
+  {
+    id: 1,
+    name: "The Magician",
+    keyword: "Protocol",
+    meaning: "Intent",
+    image: "/miniapps/on-chain-tarot/cards/01-the-magician.svg",
+  },
+  {
+    id: 2,
+    name: "The High Priestess",
+    keyword: "Oracle",
+    meaning: "Signal",
+    image: "/miniapps/on-chain-tarot/cards/02-the-high-priestess.svg",
+  },
 ];

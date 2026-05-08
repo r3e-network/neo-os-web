@@ -1,21 +1,18 @@
 # ProfitAnchor MiniApp
 
-ProfitAnchor 是 TrustAnchor 的收益优化版本。它使用共享的 `PlatformAnchor`
-合约，模式为 `2`，专注于为质押 NEO 选择预期 GAS 收益最高的投票候选人。
+ProfitAnchor 是面向收益策略的手动 AA agent 路由台。它不是自动寻找最高收益的机器人；运营方明确决定路由，然后在 21 个候选人 agent 之间调仓并同步投票。
 
 | 字段 | 值 |
 | --- | --- |
 | App ID | `miniapp-profitanchor` |
 | 合约 | `PlatformAnchor` 共享合约，模式 `2` |
-| 用户资产 | NEO |
-| 奖励资产 | GAS |
+| 资产 | NEO |
+| Agent 集合 | 21 个 AA 账户 |
 
 ## 模型
 
-- 用户保留质押 NEO 的记账所有权。
-- NEO 转账 data 为 `miniapp-profitanchor` 时，合约会在同一回执中先记账再质押；
-  未质押余额可通过 `withdrawCredit` 由用户本人取回。
-- 管理员可以注册 AA 生成的 agent 账户并更新候选人收益分。
-- ProfitAnchor 只暴露最高收益候选人用于池化 NEO 投票。
-- 管理员方法不能转走用户质押的 NEO，也不能触碰用户奖励 GAS。
-- SelfLoan 可以读取 ProfitAnchor 的最佳候选人，并由 SelfLoan 合约自己使用抵押 NEO 投票，不转移抵押资产托管权。
+- 每个注册的 anchor 都有自己的 21 个 AA agent，对应 21 个 council candidate。
+- AA accountId 派生参数应包含 `anchor + appId + agentId + nonce`，避免被提前恶意注册。
+- 调仓就是从候选人 A 的 agent 向候选人 B 的 agent 转移 NEO。
+- 候选人列表变化时，先更新 agent 的 candidate 公钥，再同步该 agent 投票。
+- SelfLoan 可以读取 ProfitAnchor 当前人工选择的路由，但不转移抵押资产托管权。

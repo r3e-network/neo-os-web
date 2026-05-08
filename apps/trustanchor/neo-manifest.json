@@ -4,8 +4,8 @@
   "name": "TrustAnchor",
   "name_zh": "信任锚点",
   "version": "1.0.0",
-  "description": "AA-agent NEO staking and governance routing where admins can register agents and sync votes, but cannot transfer user stake or reward GAS.",
-  "description_zh": "信任锚 — 使用 AA agent 账户进行 NEO 质押和治理路由；管理员只能注册 agent 并同步投票，不能转移用户质押或奖励 GAS。",
+  "description": "Manual 21-agent AA routing desk for trust-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+  "description_zh": "信任锚 — 面向信任策略 NEO 投票的手动 21-agent AA 路由台。运营方在候选人 agent 之间调仓并显式同步投票。",
   "category": "governance",
   "category_name": "Governance",
   "category_name_zh": "治理",
@@ -41,9 +41,11 @@
           "type": 1
         },
         "operations": {
-          "stake": "stake",
-          "withdraw": "withdraw",
-          "claim": "claimRewards",
+          "move": "transferAgentNeo",
+          "updateCandidate": "setAgentCandidate",
+          "vote": "voteAgent",
+          "register": "registerAgent",
+          "batchRegister": "registerAgents",
           "stats": "getAnchorStats"
         },
         "networks": {

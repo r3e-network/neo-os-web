@@ -32,7 +32,14 @@
 export type ShellType = "launcher" | "console" | "market" | "game";
 
 /** MiniApp category for discovery and classification */
-export type MiniAppCategory = "game" | "defi" | "social" | "tool" | "governance" | "oracle" | "console";
+export type MiniAppCategory =
+  | "game"
+  | "defi"
+  | "social"
+  | "tool"
+  | "governance"
+  | "oracle"
+  | "console";
 
 // ============================================================================
 // Theme
@@ -88,10 +95,21 @@ export interface TabDefinition {
 // ============================================================================
 
 /** Display format for stat values */
-export type StatFormat = "number" | "currency" | "gas" | "percent" | "duration" | "text";
+export type StatFormat =
+  | "number"
+  | "currency"
+  | "gas"
+  | "percent"
+  | "duration"
+  | "text";
 
 /** Visual variant for stat cards */
-export type StatVariant = "default" | "accent" | "success" | "danger" | "warning";
+export type StatVariant =
+  | "default"
+  | "accent"
+  | "success"
+  | "danger"
+  | "warning";
 
 export interface StatDefinition {
   /** i18n key for the stat label */
@@ -111,7 +129,13 @@ export interface StatDefinition {
 // ============================================================================
 
 /** Field types available in operation forms */
-export type OperationFieldType = "amount" | "address" | "select" | "toggle" | "number" | "text";
+export type OperationFieldType =
+  | "amount"
+  | "address"
+  | "select"
+  | "toggle"
+  | "number"
+  | "text";
 
 export interface OperationFieldDefinition {
   /** Unique field identifier — used as key in form data */
@@ -124,6 +148,8 @@ export interface OperationFieldDefinition {
   placeholder?: string;
   /** Whether the field is required */
   required?: boolean;
+  /** Keep the field in submitted data but do not render an input for it */
+  hidden?: boolean;
   /** Default value */
   default?: string | number | boolean;
   /** Options for select fields — each entry has a value and an i18n label key */
@@ -147,6 +173,8 @@ export interface OperationDefinition {
   actionKey?: string;
   /** Method name for the action handler (matches registerAction key) */
   actionMethod?: string;
+  /** Keeps secondary/operator flows folded away from the primary user action */
+  priority?: "primary" | "secondary" | "operator";
   /** Form fields rendered before the action button */
   fields?: OperationFieldDefinition[];
 }
