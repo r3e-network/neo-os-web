@@ -9,11 +9,11 @@ import { resolveSharedModeRuntime } from "./shared-mode";
 import { logger } from "@/lib/logger";
 
 export const CONTRACTS = {
-  lastSurvivor: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
-  gasBox: "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+  lastSurvivor: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+  gasBox: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
   redEnvelope: "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
   dailyCheckin: "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
-  fogPlay: "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+  fogPlay: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
   selfLoan: "0x942da575b31f39cbb59e64b5813b128739b44c25",
   neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
   platformAnchor: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
@@ -31,6 +31,16 @@ export const TESTNET_CONTRACTS = {
 } as const;
 
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
+const FOGPLAY_APP_ID = "miniapp-fogplay";
+
+const PLATFORM_GAME_CONTRACT_HASHES = new Set([
+  CONTRACTS.lastSurvivor.toLowerCase(),
+  TESTNET_CONTRACTS.lastSurvivor.toLowerCase(),
+]);
+
+function isPlatformGameContract(contractHash: string): boolean {
+  return PLATFORM_GAME_CONTRACT_HASHES.has(contractHash.toLowerCase());
+}
 
 export function getFlagshipApps(network: Network = "mainnet"): Record<string, { contract: string; category: string }> {
   const contracts = network === "testnet" ? TESTNET_CONTRACTS : CONTRACTS;
@@ -180,9 +190,9 @@ export async function getSharedModeLiveStatus(
 
 export async function getDoomsdayState(
   contractHash: string = CONTRACTS.lastSurvivor,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
-  if (network === "testnet") {
+  if (isPlatformGameContract(contractHash) || network === "testnet") {
     const res = await invokeRead(contractHash, "getCountdownStatus", [
       { type: "String", value: LAST_SURVIVOR_APP_ID },
     ], network);
@@ -194,9 +204,9 @@ export async function getDoomsdayState(
 
 export async function getDoomsdayPlatformStats(
   contractHash: string = CONTRACTS.lastSurvivor,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
-  if (network === "testnet") {
+  if (isPlatformGameContract(contractHash) || network === "testnet") {
     const state = await getDoomsdayState(contractHash, network);
     return {
       currentRoundPot: parseUnknownInteger(state.pot),
@@ -210,7 +220,7 @@ export async function getDoomsdayPlatformStats(
 
 export async function getDailyCheckinState(
   contractHash: string = CONTRACTS.dailyCheckin,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
   return mapFromResult(res.stack[0]);
@@ -218,7 +228,7 @@ export async function getDailyCheckinState(
 
 export async function getSelfLoanState(
   contractHash: string = CONTRACTS.selfLoan,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
   return mapFromResult(res.stack[0]);
@@ -226,7 +236,7 @@ export async function getSelfLoanState(
 
 export async function getStreamVaultState(
   contractHash: string = CONTRACTS.neoPay,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalStreams", [], network);
   if (!res.stack || res.stack.length === 0) {
@@ -237,8 +247,21 @@ export async function getStreamVaultState(
 
 export async function getCoinFlipState(
   contractHash: string = CONTRACTS.fogPlay,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
+  if (isPlatformGameContract(contractHash)) {
+    const res = await invokeRead(contractHash, "getCoinFlipBetLimits", [
+      { type: "String", value: FOGPLAY_APP_ID },
+    ], network);
+    const values = mapFromResult(res.stack?.[0]);
+    return {
+      maxBet: parseUnknownInteger(values.maxBet),
+      dailyLimit: parseUnknownInteger(values.dailyLimit),
+      cooldownSeconds: parseUnknownInteger(values.cooldownMs),
+      maxConsecutive: parseUnknownInteger(values.maxConsecutive),
+    };
+  }
+
   const res = await invokeRead(contractHash, "getBetLimits", [], network);
   const values = Array.isArray(res.stack?.[0]?.value) ? (res.stack[0].value as StackItem[]) : [];
   return {
@@ -251,8 +274,12 @@ export async function getCoinFlipState(
 
 export async function getNeoGachaState(
   contractHash: string = CONTRACTS.gasBox,
-  network: Network = "testnet",
+  network: Network = "mainnet",
 ): Promise<Record<string, unknown>> {
+  if (isPlatformGameContract(contractHash)) {
+    return { totalMachines: 0n };
+  }
+
   const res = await invokeRead(contractHash, "totalMachines", [], network);
   if (!res.stack || res.stack.length === 0) {
     return { totalMachines: 0n };

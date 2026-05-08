@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-last-survivor",
-    "contract_hash": "0x180a3a35c088eab4feded508c2ccb1556e07a840"
+    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
   },
   "entry_url": "mf://manifest?app=miniapp-last-survivor",
   "media": {
@@ -107,11 +107,53 @@
   },
   "operations": [
     {
+      "name": "Fund Keys",
+      "method": "fundGameCredit",
+      "description": "Send GAS credit to the game contract before buying keys.",
+      "button_style": "primary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "GAS credit",
+          "required": true,
+          "placeholder": "0.10",
+          "scale": 8,
+          "presets": [
+            {
+              "label": "0.10",
+              "value": "0.10",
+              "helper": "GAS"
+            },
+            {
+              "label": "0.50",
+              "value": "0.50",
+              "helper": "GAS"
+            },
+            {
+              "label": "1.00",
+              "value": "1.00",
+              "helper": "GAS"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Buy Keys",
       "method": "buyCountdownKeys",
       "description": "Prepay GAS, buy keys for the active round, and extend the countdown.",
       "button_style": "primary",
       "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-last-survivor",
+          "hidden": true
+        },
         {
           "name": "player",
           "type": "hash160",
@@ -147,6 +189,47 @@
     "operation_panel": {
       "title": "LastSurvivor",
       "subtitle": "Buy keys while live; expired rounds are rolled forward automatically by the lifecycle keeper."
+    }
+  },
+  "manifest": {
+    "runtime": {
+      "mode": "platform",
+      "modules": [
+        {
+          "binding": "countdown-auction",
+          "platform": "PlatformGame",
+          "appId": "miniapp-last-survivor",
+          "moduleType": 1,
+          "registration": {
+            "method": "registerGame",
+            "type": 1
+          },
+          "operations": {
+            "start_round": "startCountdownRound",
+            "buy_keys": "buyCountdownKeys",
+            "rollover": "checkAndEndCountdownRound",
+            "status": "getCountdownStatus"
+          },
+          "networks": {
+            "neo-n3-mainnet": {
+              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "registered": true,
+              "domain": "lastsurvivor.miniapp.neo"
+            },
+            "neo-n3-testnet": {
+              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+              "registered": true
+            }
+          }
+        }
+      ]
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "lastsurvivor.miniapp.neo"
     }
   }
 }

@@ -5,16 +5,21 @@
   "description": "Morpheus VRF dice roll with app-scoped GAS credit and on-chain settlement.",
   "template_type": "gaming",
   "category": "Gaming",
-  "tags": ["dice", "vrf", "oracle", "gas"],
+  "tags": [
+    "dice",
+    "vrf",
+    "oracle",
+    "gas"
+  ],
   "version": "1.0.0",
-  "status": "beta",
+  "status": "active",
   "developer": {
     "name": "Yiwu",
     "url": "https://neomini.app"
   },
   "contract": {
     "template_id": "gaming-dice",
-    "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
   },
   "entry_url": "mf://manifest?app=miniapp-dice-game",
   "media": {
@@ -48,9 +53,21 @@
           "placeholder": "0.10",
           "scale": 8,
           "presets": [
-            { "label": "0.10", "value": "0.10", "helper": "GAS" },
-            { "label": "0.50", "value": "0.50", "helper": "GAS" },
-            { "label": "1.00", "value": "1.00", "helper": "GAS" }
+            {
+              "label": "0.10",
+              "value": "0.10",
+              "helper": "GAS"
+            },
+            {
+              "label": "0.50",
+              "value": "0.50",
+              "helper": "GAS"
+            },
+            {
+              "label": "1.00",
+              "value": "1.00",
+              "helper": "GAS"
+            }
           ]
         }
       ]
@@ -61,6 +78,14 @@
       "button_style": "success",
       "priority": "primary",
       "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-dice-game",
+          "hidden": true
+        },
         {
           "name": "player",
           "type": "hash160",
@@ -76,12 +101,30 @@
           "required": true,
           "default_value": "6",
           "options": [
-            { "label": "1", "value": "1" },
-            { "label": "2", "value": "2" },
-            { "label": "3", "value": "3" },
-            { "label": "4", "value": "4" },
-            { "label": "5", "value": "5" },
-            { "label": "6", "value": "6" }
+            {
+              "label": "1",
+              "value": "1"
+            },
+            {
+              "label": "2",
+              "value": "2"
+            },
+            {
+              "label": "3",
+              "value": "3"
+            },
+            {
+              "label": "4",
+              "value": "4"
+            },
+            {
+              "label": "5",
+              "value": "5"
+            },
+            {
+              "label": "6",
+              "value": "6"
+            }
           ]
         },
         {
@@ -100,7 +143,52 @@
     "reviews_enabled": true,
     "forum_enabled": false,
     "activity_feed": true,
-    "stats_display": ["total_transactions", "daily_active_users", "total_gas_used"]
+    "stats_display": [
+      "total_transactions",
+      "daily_active_users",
+      "total_gas_used"
+    ]
   },
-  "docs_url": "https://docs.r3e.network/dice-game"
+  "docs_url": "https://docs.r3e.network/dice-game",
+  "manifest": {
+    "runtime": {
+      "mode": "platform",
+      "modules": [
+        {
+          "binding": "platform-game",
+          "platform": "PlatformGame",
+          "appId": "miniapp-dice-game",
+          "moduleType": 4,
+          "networks": {
+            "neo-n3-mainnet": {
+              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "registered": true,
+              "domain": "dicegame.miniapp.neo"
+            },
+            "neo-n3-testnet": {
+              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+              "registered": true
+            }
+          }
+        }
+      ]
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "dicegame.miniapp.neo"
+    },
+    "deployment": {
+      "neo-n3-mainnet": {
+        "status": "deployed",
+        "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "registered": true,
+        "domain": "dicegame.miniapp.neo",
+        "deployed_at": "2026-05-08T13:07:29Z",
+        "report": "contracts/build/mainnet_game_deployment.json"
+      }
+    }
+  }
 }

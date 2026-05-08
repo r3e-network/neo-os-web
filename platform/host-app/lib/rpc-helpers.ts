@@ -24,10 +24,11 @@ type NeoNetwork = "mainnet" | "testnet";
 /** Apps with their own deployed smart contracts (atomic GAS handling) */
 const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
   mainnet: {
-    "miniapp-last-survivor": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
-    "miniapp-gasbox": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+    "miniapp-last-survivor": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "miniapp-gasbox": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "miniapp-dice-game": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "miniapp-redenvelope": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
-    "miniapp-fogplay": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+    "miniapp-fogplay": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "miniapp-self-loan": "0x942da575b31f39cbb59e64b5813b128739b44c25",
     "miniapp-neo-pay": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
     "miniapp-dailycheckin": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
@@ -39,7 +40,8 @@ const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
     "miniapp-trustanchor-admin": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
   },
   testnet: {
-    "miniapp-last-survivor": "0x1021e9e5c17285e706c293a39c525de13100ed92",
+    "miniapp-last-survivor": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+    "miniapp-dice-game": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
     "miniapp-self-loan": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
     "miniapp-profitanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
     "miniapp-trustanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",

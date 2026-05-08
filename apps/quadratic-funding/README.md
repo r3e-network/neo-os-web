@@ -197,19 +197,19 @@ Round creators have access to:
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x4c6cd496a8487ee4d4725751c1f2e7be2da23599` |
+| **Contract** | `0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x4c6cd496a8487ee4d4725751c1f2e7be2da23599) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43) |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending deployment` |
+| **Contract** | `0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43` |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | `https://www.neo3scan.com` |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43) |
 
-> Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
+> Testnet and mainnet are live and verified.
 
 ## Platform Contracts
 

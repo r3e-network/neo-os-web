@@ -50,16 +50,16 @@
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72` |
+| **合约** | `0x90bad472146aab97de71498e8d736c3124e7c82b` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72) |
+| **浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x90bad472146aab97de71498e8d736c3124e7c82b) |
 
 ### Mainnet
 
 | 属性 | 值 |
 |------|----|
-| **合约** | `待部署` |
+| **合约** | `0x90bad472146aab97de71498e8d736c3124e7c82b` |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **浏览器** | `https://www.neo3scan.com` |
+| **浏览器** | [在 Neo3Scan 查看](https://www.neo3scan.com/contract/0x90bad472146aab97de71498e8d736c3124e7c82b) |
 
-> 测试网现已部署并验证通过。主网地址仍保持为空，等待后续单独上线。
+> 测试网和主网均已部署并验证通过。

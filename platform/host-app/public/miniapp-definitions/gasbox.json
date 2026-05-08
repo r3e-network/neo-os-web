@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-gasbox",
-    "contract_hash": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c"
+    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
   },
   "entry_url": "mf://manifest?app=miniapp-gasbox",
   "media": {
@@ -124,6 +124,46 @@
       "subtitle": "Two-step VRF gacha. Use the full app to pick a machine and draw.",
       "cta_label": "Open GASBox",
       "operations": []
+    }
+  },
+  "manifest": {
+    "runtime": {
+      "mode": "platform",
+      "modules": [
+        {
+          "binding": "gacha",
+          "platform": "PlatformGame",
+          "appId": "miniapp-gasbox",
+          "moduleType": 3,
+          "registration": {
+            "method": "registerGame",
+            "type": 3
+          },
+          "operations": {
+            "create_machine": "createGachaMachine",
+            "pull": "pullGacha",
+            "machine": "getGachaMachine"
+          },
+          "networks": {
+            "neo-n3-mainnet": {
+              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "registered": true,
+              "domain": "gasbox.miniapp.neo"
+            },
+            "neo-n3-testnet": {
+              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+              "registered": false
+            }
+          }
+        }
+      ]
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "neo-n3-testnet": "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "gasbox.miniapp.neo"
     }
   }
 }
