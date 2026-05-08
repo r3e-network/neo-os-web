@@ -20,16 +20,16 @@ namespace NeoMiniAppPlatform.Contracts
     //  PlatformGameContract
     //
     //  Multi-tenant game engine that hosts Countdown (LastSurvivor),
-    //  CoinFlip (FogPlay), and Gacha (GASBox) under a single contract
-    //  deployment.  Every registered miniapp is namespaced by its appId
-    //  so storage never collides between tenants.
+    //  CoinFlip (FogPlay), Gacha (GASBox), and Dice under a single
+    //  contract deployment. Every registered miniapp is namespaced by its
+    //  appId so storage never collides between tenants.
     //
     //  SECURITY MODEL:
     //  - Platform admin:  ProposeAdmin / ExecuteAdminChange (timelock)
     //  - Per-app admin:   Controls game lifecycle for their own appId
     //  - Users:           Prepay GAS via OnNEP17Payment, then invoke
     //                     game methods with their appId
-    //  - Oracle:          Callback authority for CoinFlip / Gacha RNG
+    //  - Oracle:          Callback authority for CoinFlip / Gacha / Dice RNG
     //
     //  STORAGE LAYOUT:
     //  - 0x01-0x07: Platform infrastructure (admin, oracle, pause, AA)
@@ -38,12 +38,13 @@ namespace NeoMiniAppPlatform.Contracts
     //  - 0xA0-0xAF: Countdown (LastSurvivor) module
     //  - 0xB0-0xBF: CoinFlip (FogPlay) module
     //  - 0xC0-0xDF: Gacha (GASBox) module
+    //  - 0xE0-0xEF: Dice module
     // ===================================================================
     [DisplayName("PlatformGame")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Multi-tenant game engine consolidating Countdown, CoinFlip, and Gacha into one reusable contract.")]
+    [ManifestExtra("Description", "Multi-tenant game engine consolidating Countdown, CoinFlip, Gacha, and Dice into one reusable contract.")]
     [ContractPermission("*", "*")]
     public partial class PlatformGameContract : SmartContract
     {
@@ -53,6 +54,7 @@ namespace NeoMiniAppPlatform.Contracts
         public const int GameType_Countdown = 1;
         public const int GameType_CoinFlip  = 2;
         public const int GameType_Gacha     = 3;
+        public const int GameType_Dice      = 4;
 
         // ---------------------------------------------------------------
         //  Platform infrastructure storage prefixes (0x01-0x07)
@@ -366,6 +368,10 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (!success)
             {
+                if (context.GameType == GameType_Dice)
+                {
+                    RefundDiceBetFromOracle(context.AppId, context.OperationId, requestId);
+                }
                 Storage.Delete(Storage.CurrentContext, OracleRequestKey(requestId));
                 return;
             }
@@ -379,6 +385,10 @@ namespace NeoMiniAppPlatform.Contracts
             else if (context.GameType == GameType_Gacha)
             {
                 ResolveGachaPullFromOracle(context.AppId, context.OperationId, requestId, result);
+            }
+            else if (context.GameType == GameType_Dice)
+            {
+                ResolveDiceBetFromOracle(context.AppId, context.OperationId, requestId, result);
             }
             else
             {
@@ -447,7 +457,7 @@ namespace NeoMiniAppPlatform.Contracts
         ///
         /// Parameters:
         ///   appId    - unique string identifier for the tenant
-        ///   gameType - GameType_Countdown(1), GameType_CoinFlip(2), GameType_Gacha(3)
+        ///   gameType - GameType_Countdown(1), GameType_CoinFlip(2), GameType_Gacha(3), GameType_Dice(4)
         ///   appAdmin - address that controls this app's lifecycle
         ///   config   - serialized configuration blob (game-specific)
         /// </summary>
@@ -460,7 +470,8 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(
                 gameType == GameType_Countdown ||
                 gameType == GameType_CoinFlip ||
-                gameType == GameType_Gacha,
+                gameType == GameType_Gacha ||
+                gameType == GameType_Dice,
                 "invalid game type");
 
             // Ensure not already registered

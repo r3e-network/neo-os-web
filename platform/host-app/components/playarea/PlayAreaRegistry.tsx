@@ -98,6 +98,7 @@ type PlayAreaComponent = (props: PlayAreaRegistryProps) => JSX.Element;
 const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-last-survivor": LastSurvivorPlayArea,
   "miniapp-fogplay": FogPlayPlayArea,
+  "miniapp-dice-game": DiceGamePlayArea,
   "miniapp-gasbox": GasBoxPlayArea,
   "miniapp-redenvelope": RedEnvelopePlayArea,
   "miniapp-gas-lucky-pool": GasLuckyPoolPlayArea,
@@ -1803,7 +1804,7 @@ function ActionBoard({
         <span className={`mt-1 h-2.5 w-2.5 rounded-full ${styles.accent}`} />
       </div>
       <div className="space-y-2">
-        {rows.slice(0, 4).map((row) => (
+        {rows.slice(0, 6).map((row) => (
           <ActionRow
             key={`${row.label}:${row.detail || row.value || ""}`}
             {...row}
@@ -1980,6 +1981,90 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
             value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`}
           />
         </div>
+      </div>
+    </PlayShell>
+  );
+}
+
+function DiceGamePlayArea(props: PlayAreaRegistryProps) {
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const [chosenRaw] = useLaunchParamState(
+    launchContext,
+    ["chosenNumber", "face", "number"],
+    "6",
+  );
+  const [amountRaw] = useLaunchParamState(
+    launchContext,
+    ["amount", "stake", "bet"],
+    "0.10",
+  );
+  const chosen = clampNumber(Math.floor(Number(chosenRaw) || 6), 1, 6);
+  const amount = Number(amountRaw) || 0;
+  const payout = amount * 6 * 0.95;
+
+  return (
+    <PlayShell
+      app={app}
+      title="Dice roll table"
+      subtitle="Pick one face, fund the wager, and let Morpheus VRF resolve the roll on-chain."
+      tone="violet"
+      side={<ActivityPanel activity={activity} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
+    >
+      <div className="space-y-3">
+        <ActionBoard
+          title="Choose one face"
+          subtitle="A matching VRF roll pays 5.70x after the 5% platform fee. Losing stakes stay in the liquidity pool."
+          tone="violet"
+          rows={Array.from({ length: 6 }, (_, index) => {
+            const face = index + 1;
+            return {
+              label: `Face ${face}`,
+              detail:
+                face === chosen
+                  ? "Selected for the next roll"
+                  : "Available outcome",
+              value: face === chosen ? "selected" : "5.70x",
+              valueLabel: face === chosen ? "choice" : "net payout",
+              active: face === chosen,
+              icon: <Dice5 className="h-4 w-4" />,
+            };
+          })}
+        />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <PreviewStat label="Selected face" value={String(chosen)} />
+          <PreviewStat label="Stake" value={formatGas(amount)} />
+          <PreviewStat label="Win payout" value={formatGas(payout)} />
+        </div>
+        <SecondaryInfo
+          title="Risk and settlement"
+          description="Live limits and recent dice events stay secondary so the primary screen remains focused on the next roll."
+          meta="VRF"
+        >
+          <div className="space-y-3">
+            <MetricGrid stats={stats} />
+            <ActivityPanel activity={activity} />
+          </div>
+        </SecondaryInfo>
       </div>
     </PlayShell>
   );
