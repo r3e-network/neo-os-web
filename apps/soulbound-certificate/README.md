@@ -218,16 +218,16 @@ For technical issues, contact the Neo MiniApp team.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x14a4101b5098c38a18bebeb79dc809c80ff87f9e` |
+| **Contract** | `0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x14a4101b5098c38a18bebeb79dc809c80ff87f9e) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b) |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending deployment` |
+| **Contract** | `0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b` |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | `https://www.neo3scan.com` |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b) |
 
-> Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
+> Testnet and mainnet are live and verified.

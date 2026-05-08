@@ -1,0 +1,81 @@
+{
+  "generated_at_utc": "2026-05-08T13:50:10Z",
+  "network": "neo-n3-mainnet",
+  "nns_contract": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
+  "record_type": 16,
+  "desired_record_format": "contract hash string",
+  "signer_probe": {
+    "checked_env_keys": [
+      "MINIAPP_DEPLOY_WIF",
+      "MINIAPP_UPDATE_WIF",
+      "FLAGSHIP_LIVE_WIF"
+    ],
+    "signer_address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+    "authorized_for_lastsurvivor_miniapp_neo": false,
+    "vm_exception": "No authorization."
+  },
+  "records": [
+    {
+      "domain": "lastsurvivor.miniapp.neo",
+      "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "current_record": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      "status": "stale",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "fogplay.miniapp.neo",
+      "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "current_record": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+      "status": "stale",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "gasbox.miniapp.neo",
+      "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "current_record": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+      "status": "stale",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "dicegame.miniapp.neo",
+      "desired_contract": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "eventticketpass.miniapp.neo",
+      "desired_contract": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "milestoneescrow.miniapp.neo",
+      "desired_contract": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "quadraticfunding.miniapp.neo",
+      "desired_contract": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    },
+    {
+      "domain": "soulboundcertificate.miniapp.neo",
+      "desired_contract": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "current_record": "",
+      "status": "missing",
+      "required_action": "setRecord(domain, 16, desired_contract) with the domain-owner signer"
+    }
+  ],
+  "application_state": {
+    "manifests_updated": true,
+    "host_runtime_updated": true,
+    "readme_updated": true,
+    "on_chain_nns_updated": false
+  }
+}

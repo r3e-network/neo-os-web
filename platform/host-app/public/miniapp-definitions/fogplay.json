@@ -20,7 +20,7 @@
   },
   "contract": {
     "template_id": "gaming-fogplay",
-    "contract_hash": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81"
+    "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7"
   },
   "entry_url": "mf://manifest?app=miniapp-fogplay",
   "media": {
@@ -107,10 +107,52 @@
   },
   "operations": [
     {
+      "name": "Fund Wager",
+      "method": "fundGameCredit",
+      "description": "Send GAS credit to the game contract before flipping.",
+      "button_style": "primary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "GAS credit",
+          "required": true,
+          "placeholder": "1",
+          "scale": 8,
+          "presets": [
+            {
+              "label": "0.10",
+              "value": "0.10",
+              "helper": "GAS"
+            },
+            {
+              "label": "1.00",
+              "value": "1.00",
+              "helper": "GAS"
+            },
+            {
+              "label": "5.00",
+              "value": "5.00",
+              "helper": "GAS"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Flip",
-      "method": "placeBet",
+      "method": "placeCoinFlipBet",
       "button_style": "primary",
       "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-fogplay",
+          "hidden": true
+        },
         {
           "name": "player",
           "type": "hash160",
@@ -152,6 +194,46 @@
     "operation_panel": {
       "title": "Place Bet",
       "subtitle": "Pick a side, set your wager, flip — 2x payout."
+    }
+  },
+  "manifest": {
+    "runtime": {
+      "mode": "platform",
+      "modules": [
+        {
+          "binding": "coin-flip",
+          "platform": "PlatformGame",
+          "appId": "miniapp-fogplay",
+          "moduleType": 2,
+          "registration": {
+            "method": "registerGame",
+            "type": 2
+          },
+          "operations": {
+            "place_bet": "placeCoinFlipBet",
+            "limits": "getCoinFlipBetLimits",
+            "bet": "getCoinFlipBet"
+          },
+          "networks": {
+            "neo-n3-mainnet": {
+              "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+              "registered": true,
+              "domain": "fogplay.miniapp.neo"
+            },
+            "neo-n3-testnet": {
+              "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+              "registered": false
+            }
+          }
+        }
+      ]
+    },
+    "contracts": {
+      "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "neo-n3-testnet": "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07"
+    },
+    "contract_domains": {
+      "neo-n3-mainnet": "fogplay.miniapp.neo"
     }
   }
 }

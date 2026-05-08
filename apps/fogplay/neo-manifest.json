@@ -22,7 +22,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+    "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "neo-n3-testnet": "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07"
   },
   "contract_domains": {
@@ -61,7 +61,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-16T00:00:00Z",
+  "updatedAt": "2026-05-08T13:07:29Z",
   "featured": true,
   "featured_order": 3,
   "technologies": {
@@ -77,5 +77,36 @@
       "enabled": false,
       "description": "The live product is single-player user-versus-system coin flip; PvP TEE duel mode is not enabled"
     }
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "coin-flip",
+        "platform": "PlatformGame",
+        "appId": "miniapp-fogplay",
+        "moduleType": 2,
+        "registration": {
+          "method": "registerGame",
+          "type": 2
+        },
+        "operations": {
+          "place_bet": "placeCoinFlipBet",
+          "limits": "getCoinFlipBetLimits",
+          "bet": "getCoinFlipBet"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+            "registered": true,
+            "domain": "fogplay.miniapp.neo"
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+            "registered": false
+          }
+        }
+      }
+    ]
   }
 }
