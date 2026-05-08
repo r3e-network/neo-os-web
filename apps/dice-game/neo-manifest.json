@@ -9,21 +9,35 @@
   "category": "games",
   "category_name": "Games",
   "category_name_zh": "游戏",
-  "tags": ["dice", "vrf", "oracle", "gas", "game"],
+  "tags": [
+    "dice",
+    "vrf",
+    "oracle",
+    "gas",
+    "game"
+  ],
   "developer": {
     "name": "Yiwu",
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
   "contracts": {
+    "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
   },
-  "supported_networks": ["neo-n3-testnet"],
-  "default_network": "neo-n3-testnet",
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
-      "reason": "Blocked until the existing mainnet PlatformGame admin signer is safely injected and the PlatformGame contract is updated with the Dice module.",
-      "status": "deferred"
+      "status": "deployed",
+      "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "registered": true,
+      "domain": "dicegame.miniapp.neo",
+      "deployed_at": "2026-05-08T13:07:29Z",
+      "report": "contracts/build/mainnet_game_deployment.json"
     }
   },
   "runtime": {
@@ -35,6 +49,11 @@
         "appId": "miniapp-dice-game",
         "moduleType": 4,
         "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+            "registered": true,
+            "domain": "dicegame.miniapp.neo"
+          },
           "neo-n3-testnet": {
             "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
             "registered": true
@@ -48,7 +67,10 @@
     "icon": "/miniapps/dice-game/logo.svg",
     "banner": "/miniapps/dice-game/banner.svg"
   },
-  "permissions": ["invoke:primary", "read:blockchain"],
+  "permissions": [
+    "invoke:primary",
+    "read:blockchain"
+  ],
   "features": {
     "stateless": true,
     "offlineSupport": false,
@@ -73,9 +95,21 @@
             "placeholder": "0.10",
             "scale": 8,
             "presets": [
-              { "label": "0.10", "value": "0.10", "helper": "GAS" },
-              { "label": "0.50", "value": "0.50", "helper": "GAS" },
-              { "label": "1.00", "value": "1.00", "helper": "GAS" }
+              {
+                "label": "0.10",
+                "value": "0.10",
+                "helper": "GAS"
+              },
+              {
+                "label": "0.50",
+                "value": "0.50",
+                "helper": "GAS"
+              },
+              {
+                "label": "1.00",
+                "value": "1.00",
+                "helper": "GAS"
+              }
             ]
           }
         ]
@@ -87,6 +121,14 @@
         "button_style": "success",
         "priority": "primary",
         "params": [
+          {
+            "name": "appId",
+            "type": "string",
+            "label": "App ID",
+            "required": true,
+            "default_value": "miniapp-dice-game",
+            "hidden": true
+          },
           {
             "name": "player",
             "type": "hash160",
@@ -102,12 +144,30 @@
             "required": true,
             "default_value": "6",
             "options": [
-              { "label": "1", "value": "1" },
-              { "label": "2", "value": "2" },
-              { "label": "3", "value": "3" },
-              { "label": "4", "value": "4" },
-              { "label": "5", "value": "5" },
-              { "label": "6", "value": "6" }
+              {
+                "label": "1",
+                "value": "1"
+              },
+              {
+                "label": "2",
+                "value": "2"
+              },
+              {
+                "label": "3",
+                "value": "3"
+              },
+              {
+                "label": "4",
+                "value": "4"
+              },
+              {
+                "label": "5",
+                "value": "5"
+              },
+              {
+                "label": "6",
+                "value": "6"
+              }
             ]
           },
           {
@@ -129,7 +189,7 @@
     "transactions": true
   },
   "createdAt": "2026-05-08T00:00:00Z",
-  "updatedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T13:07:29Z",
   "featured": false,
   "technologies": {
     "oracle": {
@@ -140,5 +200,8 @@
       "enabled": false,
       "description": "Direct OneGate/NEP-21 wallet flow is used for the initial release."
     }
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "dicegame.miniapp.neo"
   }
 }

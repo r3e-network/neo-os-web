@@ -60,6 +60,7 @@ const MAINNET_CONTRACT_DOMAINS_BY_APP_ID: Record<string, string> = {
   "miniapp-last-survivor": "lastsurvivor.miniapp.neo",
   "miniapp-fogplay": "fogplay.miniapp.neo",
   "miniapp-gasbox": "gasbox.miniapp.neo",
+  "miniapp-dice-game": "dicegame.miniapp.neo",
   "miniapp-redenvelope": "redenvelope.miniapp.neo",
   "miniapp-gas-lucky-pool": "gasluckypool.miniapp.neo",
   "miniapp-dailycheckin": "dailycheckin.miniapp.neo",
@@ -240,12 +241,25 @@ export function resolveMiniAppRuntime(
   networkValue?: unknown,
 ): ResolvedMiniAppRuntime {
   const network = asNetwork(networkValue);
+  const manifest = asObject(app.manifest);
   const platformModules = getPlatformRuntimeModules(app);
   if (platformModules.length > 0) {
     const module = getFirstPlatformModuleForNetwork(platformModules, network);
     const binding = module?.networks[network];
     const contractHash = asString(binding?.contract_hash);
     const registered = binding?.registered === true;
+
+    const manifestHash = getContractHashForNetwork(asObject(manifest.contracts), network);
+    if ((!contractHash || !registered) && manifestHash && manifestHash !== contractHash) {
+      return {
+        mode: "dedicated",
+        network,
+        contractHash: manifestHash,
+        writesEnabled: true,
+        disabledReason: null,
+      };
+    }
+
     const writesEnabled = Boolean(contractHash) && registered;
     return {
       mode: "platform",
@@ -266,7 +280,6 @@ export function resolveMiniAppRuntime(
     };
   }
 
-  const manifest = asObject(app.manifest);
   const manifestHash = getContractHashForNetwork(asObject(manifest.contracts), network);
   const contractHash = manifestHash || asString(app.contract_hash);
   return {

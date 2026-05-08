@@ -22,7 +22,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+    "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
   },
   "contract_domains": {
@@ -48,7 +48,7 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+            "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
             "registered": true,
             "domain": "lastsurvivor.miniapp.neo"
           },
@@ -93,7 +93,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-05-02T00:00:00Z",
+  "updatedAt": "2026-05-08T13:07:29Z",
   "featured": true,
   "featured_order": 5,
   "technologies": {

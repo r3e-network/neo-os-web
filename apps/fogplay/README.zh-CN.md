@@ -77,12 +77,12 @@ npm run build
 | 网络   | 地址                                         |
 | ------ | -------------------------------------------- |
 | 测试网 | `0xb115dd775a7591bb0eedef6dbf50428d50e7bc07` |
-| 主网   | `0xa5a4b5b82066d86eae9312f6072d1c3604882c81` |
+| 主网   | `0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7` |
 
 ### 区块浏览器
 
 - **测试网**：[在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xb115dd775a7591bb0eedef6dbf50428d50e7bc07)
-- **主网**：[在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xa5a4b5b82066d86eae9312f6072d1c3604882c81)
+- **主网**：[在 Neo3Scan 查看](https://www.neo3scan.com/contract/0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7)
 
 ## 域名
 

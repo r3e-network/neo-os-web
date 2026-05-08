@@ -1,0 +1,96 @@
+{
+  "network": "neo-n3-mainnet",
+  "rpc_url": "https://mainnet2.neo.coz.io:443",
+  "network_magic": 860833102,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "platform_game": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+  "predicted_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+  "dry_run": false,
+  "transactions": [
+    {
+      "label": "Deploy PlatformGame",
+      "txid": "0x7b37bcc7f1f20cbd868be5ef9d17691c88e9140e0d05fca8204b71efddd3f2c5"
+    },
+    {
+      "label": "Configure PlatformGame oracle",
+      "txid": "0x67845f8c6cae28a8615fde2f23207c71a3663ea5eb3a2194c9b4b80ab63534d3"
+    },
+    {
+      "label": "Configure PlatformGame abstract account",
+      "txid": "0x4da655b68d3c9aa5fc55bc5325650feef011539cc28620f14fa5a7811b98c5c2"
+    },
+    {
+      "label": "Register miniapp-last-survivor",
+      "txid": "0xc079b924435dc39b65f567a000378ae9c665c35c4bb8d60206b5cf79f3182a2c"
+    },
+    {
+      "label": "Register miniapp-fogplay",
+      "txid": "0x3025f2369e193f599b7fd24a573800a02fdfc263b02e68a469326177e7044633"
+    },
+    {
+      "label": "Register miniapp-gasbox",
+      "txid": "0x54c38c995a2e273a613bef77145c0c5814e400164f24678652cf424ec23602de"
+    },
+    {
+      "label": "Register miniapp-dice-game",
+      "txid": "0x7139129c36147bd7541ff5692f26a6a9ba89c0a5449e6631a137ee2606577b94"
+    },
+    {
+      "label": "Start LastSurvivor countdown round",
+      "txid": "0x7322a2b9018e1e8b3e772cbcc84f26ceabb0b61e67028823722f56faf939e5da"
+    }
+  ],
+  "registrations": [
+    {
+      "app_id": "miniapp-last-survivor",
+      "game_type": 1,
+      "registered": true,
+      "skipped_reason": "already registered"
+    },
+    {
+      "app_id": "miniapp-fogplay",
+      "game_type": 2,
+      "registered": true,
+      "skipped_reason": "already registered"
+    },
+    {
+      "app_id": "miniapp-gasbox",
+      "game_type": 3,
+      "registered": true,
+      "skipped_reason": "already registered"
+    },
+    {
+      "app_id": "miniapp-dice-game",
+      "game_type": 4,
+      "registered": true,
+      "skipped_reason": "already registered"
+    }
+  ],
+  "validation": {
+    "abstractAccount": "0x0268a387913b250166ddec032b03332690a1ef78",
+    "abstractAccount_configured": true,
+    "abstractAccount_target": "0x0268a387913b250166ddec032b03332690a1ef78",
+    "admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+    "admin_matches_signer": true,
+    "dice_limits": {
+      "cooldownMs": "30000",
+      "dailyLimit": "50000000000",
+      "maxBet": "2000000000",
+      "maxConsecutive": "20",
+      "minBet": "5000000",
+      "platformFeePercent": "5",
+      "totalBets": "0"
+    },
+    "last_survivor_active": true,
+    "last_survivor_round_id": "1",
+    "miniapp-dice-game_game_type": "4",
+    "miniapp-fogplay_game_type": "2",
+    "miniapp-gasbox_game_type": "3",
+    "miniapp-last-survivor_game_type": "1",
+    "oracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+    "oracle_configured": true,
+    "oracle_target": "0x5b492098fc094c760402e01f7e0b631b939d2bea"
+  },
+  "generated_at_utc": "2026-05-08T13:07:29Z"
+}
