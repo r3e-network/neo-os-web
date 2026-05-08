@@ -21,11 +21,18 @@
     "email": "dev@r3e.network",
     "website": "https://neomini.app"
   },
-  "contracts": {},
+  "contracts": {
+    "neo-n3-mainnet": "0x011006627a683df8af98ee12e13161317d57df5e",
+    "neo-n3-testnet": "0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf"
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "market.smartwallet.neo"
+  },
   "supported_networks": [
+    "neo-n3-mainnet",
     "neo-n3-testnet"
   ],
-  "default_network": "neo-n3-testnet",
+  "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/aa-market-hub/index.html",
     "icon": "/miniapps/aa-market-hub/logo.jpg",
@@ -42,7 +49,7 @@
   },
   "stateSource": {
     "type": "n3index",
-    "chain": "neo-n3-testnet",
+    "chain": "neo-n3-mainnet",
     "endpoints": [
       "https://api.n3index.dev"
     ]
@@ -54,5 +61,5 @@
     "transactions": true
   },
   "createdAt": "2026-03-18T05:00:00Z",
-  "updatedAt": "2026-03-18T12:45:00Z"
+  "updatedAt": "2026-05-08T00:00:00Z"
 }

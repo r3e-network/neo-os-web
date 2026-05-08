@@ -7,6 +7,8 @@ const TEMPLATE_OVERRIDE_IDS = new Set([
   "miniapp-self-loan",
   "miniapp-profitanchor",
   "miniapp-trustanchor",
+  "miniapp-profitanchor-admin",
+  "miniapp-trustanchor-admin",
   "miniapp-redenvelope",
 ]);
 
@@ -14,9 +16,13 @@ const DESCRIPTION_OVERRIDES: Record<string, string> = {
   "miniapp-self-loan":
     "Lock NEO to borrow GAS against future staking rewards. Collateral can follow ProfitAnchor's selected manual route while staying in SelfLoan custody.",
   "miniapp-profitanchor":
-    "Manual 21-agent AA routing desk for profit-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+    "User-facing ProfitAnchor staking app: stake NEO, redeem NEO, and claim GAS rewards. Manual 21-agent AA routing is handled in ProfitAnchor Admin.",
+  "miniapp-profitanchor-admin":
+    "Operator-only console for ProfitAnchor manual AA-agent routing. User staking, redeem, and reward claims remain in the public ProfitAnchor app.",
   "miniapp-trustanchor":
-    "Manual 21-agent AA routing desk for trust-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+    "User-facing TrustAnchor staking app: stake NEO, redeem NEO, and claim GAS rewards. Manual 21-agent AA routing is handled in TrustAnchor Admin.",
+  "miniapp-trustanchor-admin":
+    "Operator-only console for TrustAnchor manual AA-agent routing. User staking, redeem, and reward claims remain in the public TrustAnchor app.",
   "miniapp-redenvelope":
     "Claim-first GAS red envelopes for OneGate QR links, with a secondary creator flow for sending lucky packets.",
 };

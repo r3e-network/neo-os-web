@@ -50,7 +50,7 @@
   },
   "operation_panel": {
     "title": "Seal Console",
-    "subtitle": "Seal sensitive oracle input from the action console and inspect the encrypted reference in the playarea.",
+    "subtitle": "Seal sensitive oracle input and inspect the encrypted reference.",
     "operations": [
       {
         "name": "Seal Payload",

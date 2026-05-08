@@ -61,27 +61,6 @@ const wallet = (name = "user", label = "User"): OperationParam => ({
   default_value: "$wallet",
   hidden: true,
 });
-const hash160 = (name: string, label: string): OperationParam => ({
-  name,
-  type: "hash160",
-  label,
-  required: true,
-  placeholder: "N... or 0x...",
-});
-const pub = (name: string, label: string): OperationParam => ({
-  name,
-  type: "publickey",
-  label,
-  required: true,
-  placeholder: "02...",
-});
-const bytes = (name: string, label: string): OperationParam => ({
-  name,
-  type: "bytearray",
-  label,
-  required: true,
-  placeholder: "hex",
-});
 
 const op = (
   name: string,
@@ -683,32 +662,31 @@ const T_TRUSTANCHOR: AppTemplate = {
             type: "notice",
             tone: "info",
             content:
-              "TrustAnchor is an admin-operated 21-agent AA routing desk. Admins move NEO between candidate agents and update vote targets; it is not an automatic yield optimizer.",
+              "TrustAnchor is the public staking surface. Users stake NEO, redeem NEO, and claim GAS rewards; manual 21-agent AA routing stays in TrustAnchor Admin.",
           },
           {
             type: "key_value",
             title: "Trust Anchor Model",
             items: [
-              { key: "Mode", value: "Manual governance routing" },
-              { key: "Agents", value: "21 AA accounts per anchor" },
-              { key: "Admin scope", value: "Move allocation and update votes" },
+              { key: "Asset", value: "NEO" },
+              { key: "User actions", value: "Stake / redeem / claim" },
+              { key: "Routing", value: "Separate admin console" },
             ],
           },
         ],
       },
       {
-        id: "governance",
-        label: "Governance",
+        id: "operator-model",
+        label: "Operator Model",
         type: "content",
         blocks: [
           {
             type: "bullet_list",
-            title: "Operator Flow",
+            title: "Behind The Scenes",
             items: [
-              "Register the 21 AA agents derived for this anchor.",
-              "Move NEO from candidate A's agent to candidate B's agent when rebalancing.",
-              "Update an agent's vote target when the council candidate list changes.",
-              "Sync the AA agent vote with the selected candidate.",
+              "Each registered anchor uses 21 AA agent accounts derived for that app.",
+              "Admins move allocation between candidate agents in TrustAnchor Admin.",
+              "Users do not need to inspect agent rows to stake, redeem, or claim.",
             ],
           },
         ],
@@ -716,40 +694,19 @@ const T_TRUSTANCHOR: AppTemplate = {
       { id: "reviews", label: "Reviews", type: "reviews" },
     ],
     operation_panel: {
-      title: "Stake / Withdraw / Claim",
+      title: "Stake / Redeem / Claim",
       subtitle:
-        "Users manage their NEO stake here. Operator routing tools stay secondary.",
+        "Public user actions only. Operator routing tools live in TrustAnchor Admin.",
       cta_label: "Open TrustAnchor",
       operations: [],
     },
   },
   operations: [
     op("Stake NEO", "stakeNeo", "primary", [int("amount", "NEO amount", "1")]),
-    op("Withdraw NEO", "withdrawNeo", "secondary", [
+    op("Redeem NEO", "withdrawNeo", "secondary", [
       int("amount", "NEO amount", "1"),
     ]),
     op("Claim Rewards", "claimRewards", "success"),
-    op("Move NEO", "transferAgentNeo", "secondary", [
-      str("appId", "App ID", "miniapp-trustanchor", true),
-      int("fromAgentId", "From agent", "1"),
-      int("toAgentId", "To agent", "2"),
-      int("amount", "NEO amount", "1"),
-    ]),
-    op("Update Vote", "setAgentCandidate", "secondary", [
-      str("appId", "App ID", "miniapp-trustanchor", true),
-      int("agentId", "Agent", "1"),
-      pub("candidate", "Candidate public key"),
-    ]),
-    op("Sync Vote", "voteAgent", "secondary", [
-      str("appId", "App ID", "miniapp-trustanchor", true),
-      int("agentId", "Agent", "1"),
-    ]),
-    op("Register Agent", "registerAgent", "secondary", [
-      str("appId", "App ID", "miniapp-trustanchor", true),
-      hash160("agentAccount", "Agent account"),
-      pub("candidate", "Candidate public key"),
-      bytes("verificationScriptHash", "AA script hash"),
-    ]),
   ],
 };
 
@@ -766,32 +723,31 @@ const T_PROFITANCHOR: AppTemplate = {
             type: "notice",
             tone: "success",
             content:
-              "ProfitAnchor is an admin-operated 21-agent AA routing desk. It supports manual rebalancing based on the operator's profit policy; the operator decides when and where to move funds.",
+              "ProfitAnchor is the public staking surface. Users stake NEO, redeem NEO, and claim GAS rewards; manual profit-policy routing stays in ProfitAnchor Admin.",
           },
           {
             type: "key_value",
             title: "Profit Anchor Model",
             items: [
-              { key: "Mode", value: "Manual profit-policy routing" },
-              { key: "Agents", value: "21 AA accounts per anchor" },
-              { key: "Action", value: "Move NEO and sync votes" },
+              { key: "Asset", value: "NEO" },
+              { key: "User actions", value: "Stake / redeem / claim" },
+              { key: "Routing", value: "Separate admin console" },
             ],
           },
         ],
       },
       {
-        id: "profit",
-        label: "Profit Routing",
+        id: "operator-model",
+        label: "Operator Model",
         type: "content",
         blocks: [
           {
             type: "bullet_list",
-            title: "Operator Flow",
+            title: "Behind The Scenes",
             items: [
-              "Review the 21 candidate agents.",
-              "Move NEO from one candidate agent to another when the manual policy changes.",
-              "Update candidate public keys when the council set changes.",
-              "Sync the selected AA agent vote after each rebalance.",
+              "Each registered anchor uses 21 AA agent accounts derived for that app.",
+              "Admins move allocation between candidate agents in ProfitAnchor Admin.",
+              "Users do not need to inspect agent rows to stake, redeem, or claim.",
             ],
           },
         ],
@@ -799,40 +755,19 @@ const T_PROFITANCHOR: AppTemplate = {
       { id: "reviews", label: "Reviews", type: "reviews" },
     ],
     operation_panel: {
-      title: "Stake / Withdraw / Claim",
+      title: "Stake / Redeem / Claim",
       subtitle:
-        "Users manage their NEO stake here. Operator routing tools stay secondary.",
+        "Public user actions only. Operator routing tools live in ProfitAnchor Admin.",
       cta_label: "Open ProfitAnchor",
       operations: [],
     },
   },
   operations: [
     op("Stake NEO", "stakeNeo", "primary", [int("amount", "NEO amount", "1")]),
-    op("Withdraw NEO", "withdrawNeo", "secondary", [
+    op("Redeem NEO", "withdrawNeo", "secondary", [
       int("amount", "NEO amount", "1"),
     ]),
     op("Claim Rewards", "claimRewards", "success"),
-    op("Move NEO", "transferAgentNeo", "secondary", [
-      str("appId", "App ID", "miniapp-profitanchor", true),
-      int("fromAgentId", "From agent", "1"),
-      int("toAgentId", "To agent", "2"),
-      int("amount", "NEO amount", "1"),
-    ]),
-    op("Update Vote", "setAgentCandidate", "secondary", [
-      str("appId", "App ID", "miniapp-profitanchor", true),
-      int("agentId", "Agent", "1"),
-      pub("candidate", "Candidate public key"),
-    ]),
-    op("Sync Vote", "voteAgent", "secondary", [
-      str("appId", "App ID", "miniapp-profitanchor", true),
-      int("agentId", "Agent", "1"),
-    ]),
-    op("Register Agent", "registerAgent", "secondary", [
-      str("appId", "App ID", "miniapp-profitanchor", true),
-      hash160("agentAccount", "Agent account"),
-      pub("candidate", "Candidate public key"),
-      bytes("verificationScriptHash", "AA script hash"),
-    ]),
   ],
 };
 

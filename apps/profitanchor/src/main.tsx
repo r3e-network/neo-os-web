@@ -1,7 +1,7 @@
 /**
  * ProfitAnchor -- React Entry Point (OS Services Pattern)
  *
- * Manual AA agent routing reads and contract mutations use chain services.
+ * User staking reads and contract mutations use chain services.
  */
 
 import {
@@ -73,44 +73,6 @@ defineMiniApp({
     });
     ctx.registerAction("claimRewards", async () => {
       await notify.guard(() => anchor.claimRewards(), "rewardsClaimSubmitted");
-    });
-    ctx.registerAction("transferAgentNeo", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
-        () =>
-          anchor.transferAgentNeo(
-            form.fromAgentId,
-            form.toAgentId,
-            form.amount,
-          ),
-        "anchorTransferSubmitted",
-      );
-    });
-    ctx.registerAction("setAgentCandidate", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
-        () => anchor.setAgentCandidate(form.agentId, form.candidate),
-        "candidateUpdateSubmitted",
-      );
-    });
-    ctx.registerAction("voteAgent", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
-        () => anchor.voteAgent(form.agentId),
-        "voteSyncSubmitted",
-      );
-    });
-    ctx.registerAction("registerAgent", async (...args: unknown[]) => {
-      const form = (args[0] ?? {}) as Record<string, unknown>;
-      await notify.guard(
-        () =>
-          anchor.registerAgent(
-            form.agentAccount,
-            form.candidate,
-            form.verificationScriptHash,
-          ),
-        "agentRegistered",
-      );
     });
 
     return {

@@ -111,6 +111,12 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put((ByteString)PREFIX_PAUSED, paused ? 1 : 0);
         }
 
+        public static void Update(ByteString nef, string manifest)
+        {
+            ValidateAdmin();
+            ContractManagement.Update(nef, manifest, new object[0]);
+        }
+
         public static void RegisterAnchorApp(string appId, BigInteger mode, UInt160 appAdmin)
         {
             ValidateAdmin();
@@ -203,19 +209,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger toAgentId,
             BigInteger amount)
         {
-            ValidateRegistered(appId);
-            ValidateAgent(appId, fromAgentId);
-            ValidateAgent(appId, toAgentId);
-            ExecutionEngine.Assert(fromAgentId != toAgentId, "same agent");
-            ExecutionEngine.Assert(amount > 0, "amount must be positive");
-
-            UInt160 fromAgent = GetAgentAccount(appId, fromAgentId);
-            UInt160 toAgent = GetAgentAccount(appId, toAgentId);
-            ExecutionEngine.Assert(Runtime.CheckWitness(fromAgent), "from agent AA witness required");
-            ExecutionEngine.Assert(
-                NEO.Transfer(fromAgent, toAgent, amount),
-                "agent NEO transfer failed");
-
+            TransferNeoBetweenSameAppAgents(appId, fromAgentId, toAgentId, amount);
             OnAnchorAgentTransfer(appId, fromAgentId, toAgentId, amount);
         }
 
@@ -246,7 +240,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             }
 
             ExecutionEngine.Assert(
-                NEO.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                TransferStakedNeoBackToUser(appId, user, amount),
                 "NEO transfer failed");
 
             OnAnchorStakeChanged(appId, user, nextStake, nextTotal);
@@ -300,7 +294,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_REWARD_RESERVE), GetRewardReserve(appId) - amount);
             PutTotalRewardReserve(GetTotalRewardReserve() - amount);
             ExecutionEngine.Assert(
-                GAS.Transfer(Runtime.ExecutingScriptHash, user, amount),
+                TransferRewardGasToUser(appId, user, amount),
                 "GAS transfer failed");
 
             OnAnchorRewardsClaimed(appId, user, amount);
@@ -585,6 +579,46 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ByteString candidate = GetAgentCandidate(appId, agentId);
             ExecutionEngine.Assert(candidate != null && candidate.Length == 33, "invalid candidate");
             return (ECPoint)candidate;
+        }
+
+        private static void TransferNeoBetweenSameAppAgents(
+            string appId,
+            BigInteger fromAgentId,
+            BigInteger toAgentId,
+            BigInteger amount)
+        {
+            ValidateRegistered(appId);
+            ValidateAgent(appId, fromAgentId);
+            ValidateAgent(appId, toAgentId);
+            ExecutionEngine.Assert(fromAgentId != toAgentId, "same agent");
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
+
+            UInt160 fromAgent = GetAgentAccount(appId, fromAgentId);
+            UInt160 toAgent = GetAgentAccount(appId, toAgentId);
+            ValidateAddress(fromAgent);
+            ValidateAddress(toAgent);
+            ExecutionEngine.Assert(Runtime.CheckWitness(fromAgent), "from agent AA witness required");
+            ExecutionEngine.Assert(
+                NEO.Transfer(fromAgent, toAgent, amount),
+                "agent NEO transfer failed");
+        }
+
+        private static bool TransferStakedNeoBackToUser(string appId, UInt160 user, BigInteger amount)
+        {
+            ValidateRegistered(appId);
+            ValidateAddress(user);
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            return NEO.Transfer(Runtime.ExecutingScriptHash, user, amount);
+        }
+
+        private static bool TransferRewardGasToUser(string appId, UInt160 user, BigInteger amount)
+        {
+            ValidateRegistered(appId);
+            ValidateAddress(user);
+            ExecutionEngine.Assert(Runtime.CheckWitness(user), "unauthorized");
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
+            return GAS.Transfer(Runtime.ExecutingScriptHash, user, amount);
         }
 
         private static ByteString CandidateBytes(ECPoint candidate) =>

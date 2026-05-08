@@ -47,7 +47,7 @@
   },
   "operation_panel": {
     "title": "Oracle Request",
-    "subtitle": "Build an HTTP oracle request from the action console and inspect the package in the playarea.",
+    "subtitle": "Build an HTTP oracle request and inspect the package.",
     "operations": [
       {
         "name": "Build Request",

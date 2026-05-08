@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Edit3, ShieldCheck } from "lucide-react";
+import { ChevronDown, Edit3 } from "lucide-react";
 import { MiniAppLaunchContext, OperationEntry, OperationParam } from "./types";
 import { cn } from "@/lib/utils";
 import { buildLaunchParamValues } from "@/lib/miniapp-launch-params";
@@ -49,8 +49,8 @@ export function OperationPanel({
     operations[Math.min(activeTabIdx, operations.length - 1)] ?? operations[0];
   const embedded = variant === "embedded";
   const shellClass = embedded
-    ? "overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
-    : "overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-xl shadow-gray-950/8";
+    ? "overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5"
+    : "overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-lg shadow-gray-950/6";
 
   return (
     <div
@@ -58,19 +58,19 @@ export function OperationPanel({
       data-testid="operation-panel-shell"
     >
       {showTitle && (
-        <div className={cn("border-b border-gray-100 px-5 py-4")}>
-          <h3 className="m-0 text-lg font-black tracking-tight text-gray-950">
+        <div className={cn("border-b border-gray-100 px-4 py-3")}>
+          <h3 className="m-0 text-base font-black tracking-tight text-gray-950">
             {title}
           </h3>
         </div>
       )}
 
       {operations.length > 1 && (
-        <div className="border-b border-gray-100 px-4 py-3">
+        <div className="border-b border-gray-100 px-3 py-2.5">
           {tabGroups.primary.length > 1 && (
             <div
               className={cn(
-                "grid gap-1 rounded-2xl border border-gray-200 bg-gray-100 p-1",
+                "grid gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1",
                 tabGroups.primary.length > 3
                   ? "grid-cols-2"
                   : "grid-cols-[repeat(auto-fit,minmax(6.5rem,1fr))]",
@@ -85,7 +85,7 @@ export function OperationPanel({
                     type="button"
                     onClick={() => setActiveTabIdx(idx)}
                     className={cn(
-                      "relative min-h-10 cursor-pointer rounded-xl border-0 bg-transparent px-2.5 py-2 text-center text-[13px] font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:text-sm",
+                      "relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:text-sm",
                       activeTabIdx === idx
                         ? getTabActiveColor(op.button_style)
                         : "text-gray-400 hover:bg-white/70 hover:text-gray-700",
@@ -100,7 +100,7 @@ export function OperationPanel({
           {tabGroups.secondary.length > 0 && (
             <details
               className={cn(
-                "rounded-2xl border border-gray-200 bg-white",
+                "rounded-xl border border-gray-200 bg-white",
                 tabGroups.primary.length > 1 && "mt-2",
               )}
             >
@@ -133,7 +133,7 @@ export function OperationPanel({
         </div>
       )}
 
-      <div className="p-4 sm:p-5">
+      <div className="p-3 sm:p-4">
         <OperationForm
           key={`${activeTabIdx}:${activeOp.method || activeOp.name}`}
           op={activeOp}
@@ -343,12 +343,12 @@ function OperationForm({
       : null);
 
   return (
-    <div className="flex max-h-[calc(100vh-12rem)] min-h-0 flex-col sm:max-h-[calc(100vh-13rem)]">
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+    <div className="flex max-h-[calc(100vh-10rem)] min-h-0 flex-col sm:max-h-[calc(100vh-11rem)]">
+      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
         {serverPayoutOperation ? (
           <div
             className={cn(
-              "rounded-2xl border px-3 py-3 text-sm leading-6",
+              "rounded-xl border px-3 py-2.5 text-sm leading-5",
               claimKeyValue
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                 : "border-amber-200 bg-amber-50 text-amber-900",
@@ -365,7 +365,7 @@ function OperationForm({
           </div>
         ) : (
           op.description && (
-            <p className="mb-0 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm leading-relaxed text-gray-600">
+            <p className="mb-0 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold leading-5 text-gray-600">
               {op.description}
             </p>
           )
@@ -414,7 +414,7 @@ function OperationForm({
         )}
       </div>
 
-      <div className="sticky bottom-0 z-10 mt-3 space-y-2 border-t border-gray-100 bg-white/95 pt-3 backdrop-blur">
+      <div className="sticky bottom-0 z-10 mt-2 space-y-2 border-t border-gray-100 bg-white/95 pt-2.5 backdrop-blur">
         {error && (
           <div
             aria-live="polite"
@@ -445,7 +445,7 @@ function OperationForm({
         <button
           type="button"
           className={cn(
-            "w-full cursor-pointer rounded-2xl border-none py-3 text-sm font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:py-3.5",
+            "w-full cursor-pointer rounded-xl border-none py-3 text-sm font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
             "disabled:cursor-not-allowed disabled:opacity-50",
             tone.submitClass,
           )}
@@ -457,20 +457,6 @@ function OperationForm({
         >
           {submitting ? "Processing..." : op.name}
         </button>
-
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs leading-5 text-emerald-800">
-          <div className="flex items-start gap-2">
-            <ShieldCheck
-              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
-              aria-hidden="true"
-            />
-            <span>
-              {serverPayoutOperation
-                ? "GAS is sent to your connected OneGate wallet."
-                : "Prepared here, then signed by OneGate / NEP-21 wallet."}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );

@@ -33,7 +33,7 @@ $panel-w: 360px;
 $mobile: 768px;
 $desktop: 1280px;
 
-$obsidian: #08090a;
+$obsidian: #f6f7f8;
 $surface-1: #f9fafb;
 $surface-2: #f3f4f6;
 $surface-3: #e5e7eb;
@@ -57,6 +57,7 @@ $radius-lg: 16px;
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  display: none;
 }
 
 .atmo-grain {
@@ -97,6 +98,9 @@ $radius-lg: 16px;
   max-width: 1680px;
   margin: 0 auto;
   min-height: 100vh;
+  background: #fff;
+  border-left: 1px solid $border;
+  border-right: 1px solid $border;
 
   @media (max-width: $desktop) {
     grid-template-columns: 220px 1fr 320px;
@@ -104,6 +108,8 @@ $radius-lg: 16px;
   @media (max-width: $mobile) {
     grid-template-columns: 1fr;
     grid-template-areas: "center" "right" "left";
+    border: 0;
+    background: $obsidian;
   }
 
   &.page-grid--no-operation {
@@ -193,7 +199,7 @@ $radius-lg: 16px;
 .brand-name {
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
@@ -346,7 +352,7 @@ $radius-lg: 16px;
     font-family: $font-mono;
     font-size: 11px;
     color: $text-2;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 }
 
@@ -383,9 +389,9 @@ $radius-lg: 16px;
 }
 
 .section-hero {
-  padding: 28px;
+  padding: 24px;
   border-bottom: 1px solid $border;
-  min-height: 280px;
+  min-height: 240px;
   display: flex;
   align-items: stretch;
 
@@ -395,8 +401,8 @@ $radius-lg: 16px;
   }
 
   @media (max-width: $mobile) {
-    padding: 20px 16px;
-    min-height: 200px;
+    padding: 14px 12px;
+    min-height: 160px;
   }
 }
 
@@ -406,12 +412,24 @@ $radius-lg: 16px;
 
 .info-tabs {
   display: flex;
+  min-height: 45px;
   border-bottom: 1px solid $border;
   padding: 0 28px;
   gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: $mobile) {
+    padding: 0 12px;
+  }
 }
 
 .info-tab {
+  min-height: 44px;
   padding: 13px 18px;
   border: none;
   background: transparent;
@@ -421,8 +439,12 @@ $radius-lg: 16px;
   font-weight: 500;
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  letter-spacing: -0.01em;
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+  letter-spacing: 0;
+  white-space: nowrap;
 
   &:hover {
     color: $text-2;
@@ -435,9 +457,11 @@ $radius-lg: 16px;
 }
 
 .info-content {
+  min-height: 160px;
   padding: 24px 28px;
   @media (max-width: $mobile) {
     padding: 16px;
+    min-height: 120px;
   }
 }
 
@@ -470,7 +494,7 @@ $radius-lg: 16px;
     font-size: 22px;
     font-weight: 700;
     font-family: $font-mono;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     background: linear-gradient(135deg, $text-1, $text-2);
     -webkit-background-clip: text;
     background-clip: text;
@@ -517,7 +541,7 @@ $radius-lg: 16px;
   font-size: 15px;
   font-weight: 700;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .comments-count {
@@ -574,7 +598,7 @@ $radius-lg: 16px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 
   &:disabled {
     opacity: 0.3;
@@ -701,7 +725,7 @@ $radius-lg: 16px;
   color: $text-2;
   list-style: none;
   transition: all 0.2s;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 
   &::-webkit-details-marker {
     display: none;
@@ -733,7 +757,7 @@ $radius-lg: 16px;
     font-weight: 700;
     margin: 20px 0 8px;
     color: $text-1;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
   ol {
     padding-left: 20px;
@@ -800,14 +824,18 @@ $radius-lg: 16px;
   @media (max-width: $mobile) {
     position: static;
     height: auto;
+    overflow: visible;
+    margin: 0 12px 12px;
+    border: 1px solid $border;
+    border-radius: $radius-md;
     backdrop-filter: none;
   }
 }
 
 .operation-panel {
-  padding: 24px 20px;
+  padding: 18px 16px;
   @media (max-width: $mobile) {
-    padding: 20px 16px;
+    padding: 12px;
   }
 }
 
@@ -826,7 +854,7 @@ $radius-lg: 16px;
   font-family: $font-display;
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   backdrop-filter: blur(16px);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.5),

@@ -51,7 +51,7 @@
   },
   "operation_panel": {
     "title": "NeoDID Oracle",
-    "subtitle": "Build or seal NeoDID verification requests from the action console.",
+    "subtitle": "Build, seal, and verify NeoDID requests.",
     "operations": [
       {
         "name": "Seal DID Request",

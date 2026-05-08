@@ -158,6 +158,8 @@ const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
 };
 
 const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
+const TAB_PANEL_CLASSNAME =
+  "min-h-[22rem] sm:min-h-[24rem] [overflow-anchor:none] [contain:layout]";
 
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
@@ -500,6 +502,75 @@ export default function MiniAppDetailPage({
           return;
         }
 
+        if (
+          operation.method === "withdrawNeo" &&
+          (app.app_id === "miniapp-profitanchor" ||
+            app.app_id === "miniapp-trustanchor")
+        ) {
+          if (!resolvedRuntime?.contractHash) {
+            throw new Error(
+              "PlatformAnchor contract is not configured for this network.",
+            );
+          }
+          const amount = String(values.amount || "").trim();
+          if (!/^[1-9]\d*$/.test(amount)) {
+            throw new Error("NEO amount must be a positive whole number.");
+          }
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
+          }
+          const result = await adapter.invoke({
+            scriptHash: resolvedRuntime.contractHash,
+            operation: "withdraw",
+            args: [
+              { type: "String", value: app.app_id },
+              { type: "Hash160", value: walletAddress },
+              { type: "Integer", value: amount },
+            ],
+            signers: [{ account: walletAddress, scopes: 1 }],
+          });
+          setInvokeFeedback({
+            type: "success",
+            message: `Redeem transaction submitted: ${result.txid}`,
+          });
+          return;
+        }
+
+        if (
+          operation.method === "claimRewards" &&
+          (app.app_id === "miniapp-profitanchor" ||
+            app.app_id === "miniapp-trustanchor")
+        ) {
+          if (!resolvedRuntime?.contractHash) {
+            throw new Error(
+              "PlatformAnchor contract is not configured for this network.",
+            );
+          }
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
+          }
+          const result = await adapter.invoke({
+            scriptHash: resolvedRuntime.contractHash,
+            operation: "claimRewards",
+            args: [
+              { type: "String", value: app.app_id },
+              { type: "Hash160", value: walletAddress },
+            ],
+            signers: [{ account: walletAddress, scopes: 1 }],
+          });
+          setInvokeFeedback({
+            type: "success",
+            message: `Claim transaction submitted: ${result.txid}`,
+          });
+          return;
+        }
+
         let txid: string;
         if (resolvedRuntime?.mode === "platform") {
           if (!resolvedRuntime.writesEnabled || !resolvedRuntime.contractHash) {
@@ -684,7 +755,7 @@ export default function MiniAppDetailPage({
 
         <main className="mx-auto max-w-[1600px] px-3 py-5 sm:px-5">
           <div
-            className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[248px_minmax(0,1fr)_360px]"
+            className="miniapp-stable-scroll grid grid-cols-1 items-start gap-5 xl:grid-cols-[248px_minmax(0,1fr)_360px]"
             data-testid="miniapp-detail-layout"
           >
             <MiniAppListRail currentAppId={app.app_id} miniapps={miniAppNav} />
@@ -717,7 +788,10 @@ export default function MiniAppDetailPage({
                 runtimeDisplayValue={runtimeDisplayValue}
               />
 
-              <section className="rounded-[24px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-4">
+              <section
+                className="rounded-[24px] border border-gray-200 bg-white p-3 shadow-sm shadow-gray-950/5 sm:p-4"
+                data-testid="miniapp-detail-tabs"
+              >
                 <div
                   role="tablist"
                   className="mb-5 flex flex-wrap gap-1 rounded-2xl border border-gray-200 bg-gray-100 p-1"
@@ -731,10 +805,10 @@ export default function MiniAppDetailPage({
                       aria-selected={activeTabConfig?.id === tab.id}
                       aria-controls={`tabpanel-${tab.id}`}
                       tabIndex={activeTabConfig?.id === tab.id ? 0 : -1}
-                      className={`cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-4 ${
+                      className={`cursor-pointer rounded-xl bg-transparent px-3 py-2 text-sm font-semibold ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 sm:px-4 ${
                         activeTabConfig?.id === tab.id
-                          ? "bg-white text-emerald-700 shadow-sm"
-                          : "text-gray-500 hover:bg-white/70 hover:text-gray-900"
+                          ? "bg-white text-emerald-700 ring-gray-200"
+                          : "text-gray-500 ring-transparent hover:bg-white/70 hover:text-gray-900"
                       }`}
                       onClick={() => setActiveTab(tab.id)}
                     >
@@ -748,6 +822,7 @@ export default function MiniAppDetailPage({
                     id={`tabpanel-${activeTabConfig.id}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
+                    className={TAB_PANEL_CLASSNAME}
                   >
                     <OverviewTab app={app} blocks={activeTabConfig.blocks} />
                   </div>
@@ -758,6 +833,7 @@ export default function MiniAppDetailPage({
                     id={`tabpanel-${activeTabConfig.id}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
+                    className={TAB_PANEL_CLASSNAME}
                   >
                     <ReviewsTab appId={app.app_id} network={targetNetwork} />
                   </div>
@@ -768,6 +844,7 @@ export default function MiniAppDetailPage({
                     id={`tabpanel-${activeTabConfig.id}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
+                    className={TAB_PANEL_CLASSNAME}
                   >
                     <ForumTab appId={app.app_id} network={targetNetwork} />
                   </div>
@@ -778,6 +855,7 @@ export default function MiniAppDetailPage({
                     id={`tabpanel-${activeTabConfig.id}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
+                    className={TAB_PANEL_CLASSNAME}
                   >
                     {showNews ? (
                       <AppNewsList
@@ -797,6 +875,7 @@ export default function MiniAppDetailPage({
                     id={`tabpanel-${activeTabConfig.id}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${activeTabConfig.id}`}
+                    className={TAB_PANEL_CLASSNAME}
                   >
                     {showSecrets ? (
                       <AppSecretsTab appId={app.app_id} appName={app.name} />
@@ -1250,15 +1329,15 @@ function OneGateLaunchCard({
 }) {
   return (
     <div
-      className="mt-3 rounded-[20px] border border-gray-200 bg-gray-50/80 px-3 py-3 text-xs leading-5 text-gray-600"
+      className="mt-3 rounded-[16px] border border-gray-200 bg-gray-50/80 px-3 py-3 text-xs leading-5 text-gray-600"
       data-testid="onegate-launch-card"
     >
       <div className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
         <QrCode className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-        OneGate scan link
+        OneGate QR
       </div>
-      <div className="mb-2 flex items-start gap-3">
-        <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border border-gray-200 bg-white p-1 shadow-sm shadow-gray-950/5">
+      <div className="flex items-start gap-3">
+        <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-sm shadow-gray-950/5">
           {oneGateQrDataUrl ? (
             <img
               src={oneGateQrDataUrl}
@@ -1285,17 +1364,22 @@ function OneGateLaunchCard({
             {targetNetworkLabel}
           </p>
           <p className="m-0 break-words font-mono text-[11px]">{app.app_id}</p>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-[11px] font-semibold text-emerald-700">
+              Open link
+            </summary>
+            <a
+              href={oneGateLaunchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block break-all font-mono text-[11px] text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+              data-testid="onegate-launch-url"
+            >
+              {oneGateLaunchUrl}
+            </a>
+          </details>
         </div>
       </div>
-      <a
-        href={oneGateLaunchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block break-all font-mono text-[11px] text-emerald-700 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
-        data-testid="onegate-launch-url"
-      >
-        {oneGateLaunchUrl}
-      </a>
     </div>
   );
 }
@@ -2241,12 +2325,17 @@ function withBundledAuthoritativeFields(
   if (!bundled) return remote;
   return {
     ...remote,
+    name: bundled.name || remote.name,
+    description: bundled.description || remote.description,
+    category: bundled.category || remote.category,
     contract_hash: bundled.contract_hash ?? remote.contract_hash,
     entry_url: bundled.entry_url || remote.entry_url,
     permissions: bundled.permissions ?? remote.permissions,
     operations: bundled.operations ?? remote.operations,
+    detail_template: bundled.detail_template ?? remote.detail_template,
     logo_url: bundled.logo_url ?? remote.logo_url,
     banner_url: bundled.banner_url ?? remote.banner_url,
+    docs_url: bundled.docs_url ?? remote.docs_url,
     manifest: bundled.manifest ?? remote.manifest,
   };
 }

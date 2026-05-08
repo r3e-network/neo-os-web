@@ -11,6 +11,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             Assert.Contains("public static void Withdraw(string appId, UInt160 user, BigInteger amount)", code);
             Assert.Contains("Runtime.CheckWitness(user)", code);
+            Assert.Contains("TransferStakedNeoBackToUser(appId, user, amount)", code);
             Assert.Contains("NEO.Transfer(Runtime.ExecutingScriptHash, user, amount)", code);
             Assert.DoesNotContain("NEO.Transfer(Runtime.ExecutingScriptHash, Admin()", code);
             Assert.DoesNotContain("NEO.Transfer(Runtime.ExecutingScriptHash, GetAppAdmin", code);
@@ -33,6 +34,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             Assert.Contains("public static void ClaimRewards(string appId, UInt160 user)", code);
             Assert.Contains("Runtime.CheckWitness(user)", code);
+            Assert.Contains("TransferRewardGasToUser(appId, user, amount)", code);
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, user, amount)", code);
             Assert.DoesNotContain("GAS.Transfer(Runtime.ExecutingScriptHash, Admin()", code);
             Assert.DoesNotContain("GAS.Transfer(Runtime.ExecutingScriptHash, GetAppAdmin", code);
@@ -70,6 +72,23 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("public static void VoteAgent(string appId, BigInteger agentId)", code);
             Assert.Contains("Runtime.CheckWitness(agentAccount)", code);
             Assert.Contains("NEO.Vote(agentAccount, candidate)", code);
+        }
+
+        [Fact]
+        public void PlatformAnchorOnlyMovesAgentNeoInsideSameAnchorApp()
+        {
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+
+            Assert.Contains("public static void TransferAgentNeo(\n            string appId,\n            BigInteger fromAgentId,\n            BigInteger toAgentId,\n            BigInteger amount)", code);
+            Assert.Contains("private static void TransferNeoBetweenSameAppAgents", code);
+            Assert.Contains("ValidateAgent(appId, fromAgentId)", code);
+            Assert.Contains("ValidateAgent(appId, toAgentId)", code);
+            Assert.Contains("UInt160 fromAgent = GetAgentAccount(appId, fromAgentId)", code);
+            Assert.Contains("UInt160 toAgent = GetAgentAccount(appId, toAgentId)", code);
+            Assert.Contains("Runtime.CheckWitness(fromAgent)", code);
+            Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", code);
+            Assert.DoesNotContain("TransferAgentNeo(\n            string appId,\n            BigInteger fromAgentId,\n            UInt160", code);
+            Assert.DoesNotContain("UInt160 recipient", code);
         }
 
         [Fact]

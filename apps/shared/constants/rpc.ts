@@ -105,6 +105,12 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
     'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
     'miniapp-trustanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
+    'miniapp-aa-account-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
+    'miniapp-aa-permissions-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
+    'miniapp-aa-relay-console': '0x0268a387913b250166ddec032b03332690a1ef78',
+    'miniapp-aa-market-hub': '0x011006627a683df8af98ee12e13161317d57df5e',
+    'miniapp-aa-session-key-lab': '0x74ca950d403143b2d40c15ce6d780225a728f5ec',
+    'miniapp-recovery-guardian': '0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3',
   },
   testnet: {
     'miniapp-last-survivor': '0x1021e9e5c17285e706c293a39c525de13100ed92',
@@ -126,6 +132,11 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-neo-ns': '0x50ac1c37690cc2cfc594472833cf57505d5f46de',
     'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
     'miniapp-trustanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
+    'miniapp-aa-account-lab': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
+    'miniapp-aa-permissions-lab': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
+    'miniapp-aa-relay-console': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
+    'miniapp-aa-market-hub': '0x8dbd4cf6fc47afc013e7fd7128d028db2985bddf',
+    'miniapp-aa-session-key-lab': '0xed44c88535650b4dd6b8d59776e6ed045462cab6',
   },
 };
 
