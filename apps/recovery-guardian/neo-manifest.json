@@ -24,7 +24,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3"
+    "neo-n3-mainnet": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d"
   },
   "contract_domains": {
     "neo-n3-mainnet": "recovery.smartwallet.neo"
