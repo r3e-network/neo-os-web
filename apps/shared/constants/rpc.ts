@@ -109,9 +109,9 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-aa-account-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
     'miniapp-aa-permissions-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
     'miniapp-aa-relay-console': '0x0268a387913b250166ddec032b03332690a1ef78',
-    'miniapp-aa-market-hub': '0x011006627a683df8af98ee12e13161317d57df5e',
-    'miniapp-aa-session-key-lab': '0x74ca950d403143b2d40c15ce6d780225a728f5ec',
-    'miniapp-recovery-guardian': '0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3',
+    'miniapp-aa-market-hub': '0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69',
+    'miniapp-aa-session-key-lab': '0x3ba8333406e59f9fd83cf378b33706a33d9f3755',
+    'miniapp-recovery-guardian': '0x198b3a9cec9bccc2110d19bd929b10374a9d034d',
   },
   testnet: {
     'miniapp-last-survivor': '0x740671b10330ef6669ab8b2724437eb8d5e7a34c',
