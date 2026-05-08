@@ -31,7 +31,7 @@ const lastSurvivorApp = {
               domain: "lastsurvivor.testnet.miniapp.neo",
             },
             "neo-n3-mainnet": {
-              contract_hash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+              contract_hash: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
               registered: true,
               domain: "lastsurvivor.miniapp.neo",
             },
@@ -57,7 +57,7 @@ describe("miniapp runtime resolver", () => {
   it("enables writes when the platform app is registered on mainnet", () => {
     expect(resolveMiniAppRuntime(lastSurvivorApp, "neo-n3-mainnet")).toMatchObject({
       mode: "platform",
-      contractHash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      contractHash: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       registered: true,
       writesEnabled: true,
     });
@@ -77,7 +77,7 @@ describe("miniapp runtime resolver", () => {
     });
     expect(resolveMiniAppContractDomain(lastSurvivorApp, "neo-n3-mainnet")).toMatchObject({
       network: "neo-n3-mainnet",
-      contractHash: "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      contractHash: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       domain: "lastsurvivor.miniapp.neo",
       source: "runtime",
     });

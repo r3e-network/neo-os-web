@@ -22,7 +22,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+    "neo-n3-mainnet": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
     "neo-n3-testnet": "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c"
   },
   "contract_domains": {
@@ -61,7 +61,7 @@
     "transactions": true
   },
   "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-16T00:00:00Z",
+  "updatedAt": "2026-05-08T13:07:29Z",
   "featured": true,
   "featured_order": 7,
   "technologies": {
@@ -80,5 +80,36 @@
         "big_win_event"
       ]
     }
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "gacha",
+        "platform": "PlatformGame",
+        "appId": "miniapp-gasbox",
+        "moduleType": 3,
+        "registration": {
+          "method": "registerGame",
+          "type": 3
+        },
+        "operations": {
+          "create_machine": "createGachaMachine",
+          "pull": "pullGacha",
+          "machine": "getGachaMachine"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+            "registered": true,
+            "domain": "gasbox.miniapp.neo"
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+            "registered": false
+          }
+        }
+      }
+    ]
   }
 }

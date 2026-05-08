@@ -50,19 +50,19 @@ NEP-11 event tickets with QR check-in.
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72` |
+| **Contract** | `0x90bad472146aab97de71498e8d736c3124e7c82b` |
 | **RPC** | `https://n3seed1.ngd.network:20332` |
-| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72) |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x90bad472146aab97de71498e8d736c3124e7c82b) |
 
 ### Mainnet
 
 | Property | Value |
 |----------|-------|
-| **Contract** | `Pending deployment` |
+| **Contract** | `0x90bad472146aab97de71498e8d736c3124e7c82b` |
 | **RPC** | `https://mainnet2.neo.coz.io:443` |
-| **Explorer** | `https://www.neo3scan.com` |
+| **Explorer** | [View on Neo3Scan](https://www.neo3scan.com/contract/0x90bad472146aab97de71498e8d736c3124e7c82b) |
 
-> Testnet is now live and verified. Mainnet stays intentionally blank until a separate rollout is completed.
+> Testnet and mainnet are live and verified.
 
 ## Usage
 

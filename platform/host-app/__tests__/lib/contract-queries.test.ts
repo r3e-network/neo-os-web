@@ -52,16 +52,20 @@ describe("host chain contract queries", () => {
     expect(apps["miniapp-self-loan"].contract).toBe("0xb43bd0ded09b5d79ed858484106affc1c858483c");
   });
 
-  it("parses struct return values for coin flip bet limits", async () => {
+  it("parses platform map return values for coin flip bet limits", async () => {
+    const entry = (key: string, value: string) => ({
+      key: { type: "ByteString", value: Buffer.from(key).toString("base64") },
+      value: { type: "Integer", value },
+    });
     const invokeRead = jest.fn().mockResolvedValue({
       stack: [
         {
-          type: "Struct",
+          type: "Map",
           value: [
-            { type: "Integer", value: "10000000000" },
-            { type: "Integer", value: "100000000000" },
-            { type: "Integer", value: "30000" },
-            { type: "Integer", value: "20" },
+            entry("maxBet", "10000000000"),
+            entry("dailyLimit", "100000000000"),
+            entry("cooldownMs", "30000"),
+            entry("maxConsecutive", "20"),
           ],
         },
       ],
@@ -74,6 +78,12 @@ describe("host chain contract queries", () => {
     const { getCoinFlipState } = require("../../lib/chain/contract-queries");
     const state = await getCoinFlipState();
 
+    expect(invokeRead).toHaveBeenCalledWith(
+      "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "getCoinFlipBetLimits",
+      [{ type: "String", value: "miniapp-fogplay" }],
+      "mainnet",
+    );
     expect(state).toEqual({
       maxBet: 10000000000n,
       dailyLimit: 100000000000n,

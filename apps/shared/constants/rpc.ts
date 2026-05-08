@@ -95,12 +95,13 @@ function listMorpheusWorkflows(network: NeoNetwork) {
 
 export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
   mainnet: {
-    'miniapp-last-survivor': '0x180a3a35c088eab4feded508c2ccb1556e07a840',
-    'miniapp-gasbox': '0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c',
+    'miniapp-last-survivor': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
+    'miniapp-gasbox': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
     'miniapp-redenvelope': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
     'miniapp-gas-lucky-pool': '0x5f371cc50116bb13d79554d96ccdd6e246cd5d59',
     'miniapp-dailycheckin': '0xbd4f3646e189350b9c11a659655854e6f03f9be4',
-    'miniapp-fogplay': '0xa5a4b5b82066d86eae9312f6072d1c3604882c81',
+    'miniapp-fogplay': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
+    'miniapp-dice-game': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
     'miniapp-self-loan': '0x942da575b31f39cbb59e64b5813b128739b44c25',
     'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
     'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
@@ -113,12 +114,13 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-recovery-guardian': '0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3',
   },
   testnet: {
-    'miniapp-last-survivor': '0x1021e9e5c17285e706c293a39c525de13100ed92',
+    'miniapp-last-survivor': '0x740671b10330ef6669ab8b2724437eb8d5e7a34c',
     'miniapp-gasbox': '0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c',
     'miniapp-redenvelope': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
     'miniapp-gas-lucky-pool': '0xfa1b7240fead2a63999c02defa3aec5eb274a919',
     'miniapp-dailycheckin': '0xaba84da240a55410d284a656fc8dae044e6ec1a5',
     'miniapp-fogplay': '0xb115dd775a7591bb0eedef6dbf50428d50e7bc07',
+    'miniapp-dice-game': '0x740671b10330ef6669ab8b2724437eb8d5e7a34c',
     'miniapp-self-loan': '0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada',
     'miniapp-neo-pay': '0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e',
     'miniapp-burn-league': '0x0946e3c3db8abdd2fa14bbae4978992015473c09',
