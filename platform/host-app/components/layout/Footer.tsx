@@ -36,11 +36,12 @@ export function Footer() {
               href="/"
               className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105 inline-block"
             >
-              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
-                <span className="text-[10px] font-black text-white leading-none">
-                  {BRAND.mark}
-                </span>
-              </div>
+              <img
+                src="/brand/yiwu-mark.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-10 w-10 rounded-xl shadow-md"
+              />
               <span className="text-2xl font-bold text-gray-900">
                 {BRAND.name} <span className="text-emerald-600">MiniApps</span>
               </span>

@@ -38,6 +38,19 @@ describe("OperationPanel", () => {
       method: "withdrawCredit",
     },
   ];
+  const oneGateVaultClaimOperation = {
+    name: "Claim Reward",
+    method: "claimOneGateVault",
+    button_style: "success" as const,
+    params: [
+      {
+        name: "claimKey",
+        label: "Claim key",
+        type: "string" as const,
+        required: true,
+      },
+    ],
+  };
 
   it("keeps long operation labels readable and resets form defaults between tabs", () => {
     render(
@@ -199,23 +212,10 @@ describe("OperationPanel", () => {
 
   it("treats OneGate Vault claim keys as QR context instead of editable amount controls", async () => {
     const onInvoke = jest.fn();
-    const claimOperation = {
-      name: "Claim Reward",
-      method: "claimOneGateVault",
-      button_style: "success" as const,
-      params: [
-        {
-          name: "claimKey",
-          label: "Claim key",
-          type: "string" as const,
-          required: true,
-        },
-      ],
-    };
 
     const { rerender } = render(
       <OperationPanel
-        operations={[claimOperation]}
+        operations={[oneGateVaultClaimOperation]}
         onInvoke={onInvoke}
         showTitle={false}
         launchContext={{
@@ -239,7 +239,7 @@ describe("OperationPanel", () => {
 
     rerender(
       <OperationPanel
-        operations={[claimOperation]}
+        operations={[oneGateVaultClaimOperation]}
         onInvoke={onInvoke}
         showTitle={false}
         launchContext={{
@@ -264,6 +264,38 @@ describe("OperationPanel", () => {
       expect(onInvoke).toHaveBeenCalledWith(
         expect.objectContaining({ method: "claimOneGateVault" }),
         expect.objectContaining({ claimKey: "ogv_campaign_a_user_42" }),
+      ),
+    );
+  });
+
+  it("accepts OneGate Vault QR aliases in the primary claim action", async () => {
+    const onInvoke = jest.fn().mockResolvedValue(undefined);
+    render(
+      <OperationPanel
+        operations={[oneGateVaultClaimOperation]}
+        onInvoke={onInvoke}
+        showTitle={false}
+        launchContext={{
+          appId: "miniapp-gas-lucky-pool",
+          source: "onegate",
+          operation: "claimOneGateVault",
+          tab: null,
+          network: "testnet",
+          params: { key: "ogv_alias_key", pool: "launch-pool" },
+          keys: ["key", "pool"],
+          hasParams: true,
+          signature: "key=ogv_alias_key&pool=launch-pool",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Reward ready")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
+
+    await waitFor(() =>
+      expect(onInvoke).toHaveBeenCalledWith(
+        expect.objectContaining({ method: "claimOneGateVault" }),
+        expect.objectContaining({ claimKey: "ogv_alias_key" }),
       ),
     );
   });

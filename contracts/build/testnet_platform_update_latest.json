@@ -1,0 +1,29 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "targets": [
+    {
+      "name": "PlatformDeFi",
+      "existing_hash": "0xb43bd0ded09b5d79ed858484106affc1c858483c",
+      "on_chain_update_counter": 1,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "updated": true
+    }
+  ],
+  "transactions": [
+    {
+      "label": "Update PlatformDeFi",
+      "txid": "0x78217f9f35109a47a4d51891367a2cae98c53bb5ca423b96ddf385596389ce52",
+      "valid_until_block": 15860759
+    }
+  ],
+  "validation": {
+    "PlatformDeFi_update_counter_after": 2,
+    "PlatformDeFi_update_counter_before": 1
+  },
+  "generated_at_utc": "2026-05-08T10:24:59Z"
+}

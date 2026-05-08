@@ -48,6 +48,13 @@ export default class MyDocument extends Document<Props> {
             name="description"
             content={BRAND.description}
           />
+          <meta name="theme-color" content="#00e599" />
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/brand/yiwu-mark.svg" type="image/svg+xml" />
+          <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+          <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+          <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+          <link rel="manifest" href="/site.webmanifest" />
           <meta property="og:type" content="website" />
           <meta
             property="og:title"
@@ -58,6 +65,9 @@ export default class MyDocument extends Document<Props> {
             content={BRAND.description}
           />
           <meta property="og:site_name" content={BRAND.productName} />
+          <meta property="og:image" content="/brand/yiwu-logo.png" />
+          <meta property="og:image:width" content="1520" />
+          <meta property="og:image:height" content="440" />
           <meta name="twitter:card" content="summary_large_image" />
           <meta
             name="twitter:title"
@@ -67,6 +77,7 @@ export default class MyDocument extends Document<Props> {
             name="twitter:description"
             content={BRAND.description}
           />
+          <meta name="twitter:image" content="/brand/yiwu-logo.png" />
         </Head>
         <body>
           <Main />

@@ -44,7 +44,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "Multi-tenant DeFi engine for Neo N3. Consolidates SelfLoan, FlashLoan, and CompoundCapsule products into a single reusable contract with per-app isolation.")]
-    [ContractPermission("*", "*")]
+    [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
+    [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
+    [ContractPermission("*", "getSelectedCandidate", "onFlashLoan")]
     public partial class PlatformDeFiContract : SmartContract
     {
         #region Product Type Enum

@@ -127,6 +127,18 @@
   gap: 0.75rem;
 }
 
+.flashloan-fixed-callback {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1fae5;
+  border-radius: 6px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 /* ── Active Loans ── */
 .flashloan-active-card,
 .flashloan-recent-card {

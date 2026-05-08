@@ -96,6 +96,34 @@ describe("Production data guardrails", () => {
     expect(source).not.toContain("sha256:...");
   });
 
+  it("does not ship fake profiled playarea status metrics", () => {
+    const repoRoot = path.resolve(__dirname, "../../../..");
+    const source = fs.readFileSync(
+      path.join(repoRoot, "platform/host-app/components/playarea/PlayAreaRegistry.tsx"),
+      "utf8",
+    );
+
+    expect(source).not.toContain('value: "#12"');
+    expect(source).not.toContain('value: "68%"');
+    expect(source).not.toContain('value: "1.4x"');
+    expect(source).not.toContain('value: "medium"');
+    expect(source).not.toContain('label: "Live data"');
+    expect(source).not.toContain('value: "Awaiting read"');
+  });
+
+  it("does not expose tutorial copy that points users to implementation chrome", () => {
+    const repoRoot = path.resolve(__dirname, "../../../..");
+    const sources = [
+      "platform/host-app/components/playarea/PlayAreaRegistry.tsx",
+      "platform/host-app/components/MiniAppPlayfield.tsx",
+      "apps/red-envelope/src/PlayArea.tsx",
+    ].map((relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8")).join("\n");
+
+    expect(sources).not.toMatch(/right action console/i);
+    expect(sources).not.toMatch(/shared action console/i);
+    expect(sources).not.toMatch(/from the action console/i);
+  });
+
   it("does not expose example-only production API routes", () => {
     const repoRoot = path.resolve(__dirname, "../../../..");
     expect(

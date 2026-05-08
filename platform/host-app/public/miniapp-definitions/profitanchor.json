@@ -2,7 +2,7 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-profitanchor",
   "name": "ProfitAnchor",
-  "description": "Manual 21-agent AA routing desk for profit-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+  "description": "Stake NEO, redeem your stake, and claim GAS rewards while ProfitAnchor operators manage the manual 21-agent AA voting route in a separate admin console.",
   "template_type": "defi",
   "category": "DeFi",
   "tags": ["staking", "voting", "gas-yield", "profit", "aa"],
@@ -43,7 +43,7 @@
           {
             "type": "notice",
             "tone": "success",
-            "content": "ProfitAnchor is an operator desk for explicit AA-agent routing. Admins move NEO between candidate agents and sync votes deliberately."
+            "content": "ProfitAnchor is the user-facing staking app. Users only need to stake NEO, redeem NEO, and claim GAS rewards; operator routing is handled in ProfitAnchor Admin."
           },
           {
             "type": "key_value",
@@ -55,15 +55,15 @@
               },
               {
                 "key": "Strategy",
-                "value": "Manual route"
+                "value": "Manual operator route"
               },
               {
-                "key": "Vote Identity",
-                "value": "AA agent accounts"
+                "key": "User Actions",
+                "value": "Stake / redeem / claim"
               },
               {
-                "key": "Agent Set",
-                "value": "21 AA accounts"
+                "key": "Admin Routing",
+                "value": "Separate console"
               }
             ]
           },
@@ -71,22 +71,22 @@
             "type": "bullet_list",
             "title": "How it works",
             "items": [
-              "Each anchor owns its own 21 AA agent accounts, one per council candidate.",
-              "Operators rebalance by transferring NEO from one agent account to another.",
-              "When the candidate list changes, operators update an agent's vote target and then sync that agent vote."
+              "Stake NEO to join the anchor and keep reward accounting tied to your wallet.",
+              "Redeem withdraws your own stake; it does not expose or require agent routing knowledge.",
+              "Claim rewards collects available GAS after operators distribute rewards."
             ]
           }
         ]
       },
       {
-        "id": "profit",
-        "label": "Profit Routing",
+        "id": "operator",
+        "label": "Operator model",
         "type": "content",
         "blocks": [
           {
             "type": "notice",
             "tone": "info",
-            "content": "Keep the main workflow simple: move NEO, update candidate, sync vote. Agent derivation and accounting details belong in secondary views."
+            "content": "ProfitAnchor uses 21 AA agent accounts behind the scenes. Admins move NEO between agent accounts and update vote targets in ProfitAnchor Admin, not in this user app."
           }
         ]
       },
@@ -97,8 +97,8 @@
       }
     ],
     "operation_panel": {
-      "title": "Stake / Withdraw / Claim",
-      "subtitle": "Users manage their NEO stake here. Operator routing tools stay secondary.",
+      "title": "Stake / Redeem / Claim",
+      "subtitle": "The public app is for normal users. Admin routing lives in ProfitAnchor Admin.",
       "cta_label": "Open ProfitAnchor",
       "operations": []
     }
@@ -120,7 +120,7 @@
       ]
     },
     {
-      "name": "Withdraw NEO",
+      "name": "Redeem NEO",
       "method": "withdrawNeo",
       "button_style": "secondary",
       "priority": "primary",
@@ -140,133 +140,6 @@
       "button_style": "success",
       "priority": "primary",
       "params": []
-    },
-    {
-      "name": "Move NEO",
-      "method": "transferAgentNeo",
-      "button_style": "secondary",
-      "priority": "operator",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-profitanchor",
-          "hidden": true
-        },
-        {
-          "name": "fromAgentId",
-          "type": "integer",
-          "label": "From agent",
-          "required": true,
-          "placeholder": "1"
-        },
-        {
-          "name": "toAgentId",
-          "type": "integer",
-          "label": "To agent",
-          "required": true,
-          "placeholder": "2"
-        },
-        {
-          "name": "amount",
-          "type": "integer",
-          "label": "NEO",
-          "required": true,
-          "placeholder": "1"
-        }
-      ]
-    },
-    {
-      "name": "Update Vote Target",
-      "method": "setAgentCandidate",
-      "button_style": "secondary",
-      "priority": "operator",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-profitanchor",
-          "hidden": true
-        },
-        {
-          "name": "agentId",
-          "type": "integer",
-          "label": "Agent",
-          "required": true,
-          "placeholder": "1"
-        },
-        {
-          "name": "candidate",
-          "type": "publickey",
-          "label": "Candidate public key",
-          "required": true,
-          "placeholder": "02..."
-        }
-      ]
-    },
-    {
-      "name": "Sync Vote",
-      "method": "voteAgent",
-      "button_style": "secondary",
-      "priority": "operator",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-profitanchor",
-          "hidden": true
-        },
-        {
-          "name": "agentId",
-          "type": "integer",
-          "label": "Agent",
-          "required": true,
-          "placeholder": "1"
-        }
-      ]
-    },
-    {
-      "name": "Register Agent",
-      "method": "registerAgent",
-      "button_style": "secondary",
-      "priority": "operator",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-profitanchor",
-          "hidden": true
-        },
-        {
-          "name": "agentAccount",
-          "type": "hash160",
-          "label": "Agent account",
-          "required": true,
-          "placeholder": "0x..."
-        },
-        {
-          "name": "candidate",
-          "type": "publickey",
-          "label": "Candidate public key",
-          "required": true,
-          "placeholder": "02..."
-        },
-        {
-          "name": "verificationScriptHash",
-          "type": "bytearray",
-          "label": "Verification script hash",
-          "required": true,
-          "placeholder": "hex"
-        }
-      ]
     }
   ],
   "integration": {

@@ -44,6 +44,8 @@ export function getFlagshipApps(network: Network = "mainnet"): Record<string, { 
     "miniapp-neo-pay": { contract: contracts.neoPay, category: "defi" },
     "miniapp-trustanchor": { contract: contracts.platformAnchor, category: "defi" },
     "miniapp-profitanchor": { contract: contracts.platformAnchor, category: "defi" },
+    "miniapp-trustanchor-admin": { contract: contracts.platformAnchor, category: "utility" },
+    "miniapp-profitanchor-admin": { contract: contracts.platformAnchor, category: "utility" },
   };
   return apps;
 }

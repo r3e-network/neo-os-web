@@ -111,6 +111,16 @@ function fmtAddr(b64OrHex: string | undefined): string {
   return `${b64OrHex.slice(0, 8)}…${b64OrHex.slice(-4)}`;
 }
 
+function resolveAnchorAppId(appId: string): string | null {
+  if (appId === "miniapp-profitanchor" || appId === "miniapp-profitanchor-admin") {
+    return "miniapp-profitanchor";
+  }
+  if (appId === "miniapp-trustanchor" || appId === "miniapp-trustanchor-admin") {
+    return "miniapp-trustanchor";
+  }
+  return null;
+}
+
 function isZeroAddr(b64: string | undefined): boolean {
   if (!b64) return true;
   if (b64 === "0x0000000000000000000000000000000000000000") return true;
@@ -600,12 +610,15 @@ async function fetchAppStats(
       }
 
       case "miniapp-trustanchor":
-      case "miniapp-profitanchor": {
+      case "miniapp-profitanchor":
+      case "miniapp-trustanchor-admin":
+      case "miniapp-profitanchor-admin": {
+        const anchorAppId = resolveAnchorAppId(appId) ?? appId;
         const statsStack = await invokeRead(
           rpcUrl,
           contractHash,
           "getAnchorStats",
-          [{ type: "String", value: appId }],
+          [{ type: "String", value: anchorAppId }],
           network,
         );
         const m = decodeMap(statsStack);
@@ -704,6 +717,8 @@ async function fetchAppActivity(
         return await fetchNeoPayActivity(rpcUrl, contractHash, network);
       case "miniapp-trustanchor":
       case "miniapp-profitanchor":
+      case "miniapp-trustanchor-admin":
+      case "miniapp-profitanchor-admin":
         return await fetchAnchorActivity(appId, rpcUrl, contractHash, network);
       default:
         return null;
@@ -720,14 +735,45 @@ async function fetchAnchorActivity(
   contractHash: string,
   network: "mainnet" | "testnet",
 ): Promise<Activity> {
+  const anchorAppId = resolveAnchorAppId(appId) ?? appId;
   const statsStack = await invokeRead(
     rpcUrl,
     contractHash,
     "getAnchorStats",
-    [{ type: "String", value: appId }],
+    [{ type: "String", value: anchorAppId }],
     network,
   );
   const stats = decodeMap(statsStack);
+  const isAdminConsole = appId.endsWith("-admin");
+  if (!isAdminConsole) {
+    const totalStaked = parseInt(String(stats.totalStaked ?? "0"), 10);
+    const rewardReserve = parseInt(String(stats.rewardReserve ?? "0"), 10);
+    const paused = Boolean(stats.paused);
+    return {
+      title: "Anchor Status",
+      rows: [
+        {
+          icon: "S",
+          primary: `${totalStaked} NEO staked`,
+          secondary: "Read from PlatformAnchor.getAnchorStats",
+          accent: totalStaked > 0,
+        },
+        {
+          icon: "G",
+          primary: `${fmtGas(rewardReserve)} GAS reward reserve`,
+          secondary: "Available reserve for reward accounting",
+          accent: rewardReserve > 0,
+        },
+        {
+          icon: paused ? "!" : "O",
+          primary: paused ? "Anchor paused" : "Anchor ready",
+          secondary: "Users can stake, redeem, and claim",
+          accent: !paused,
+        },
+      ],
+    };
+  }
+
   const agentCount = Math.min(5, parseInt(String(stats.agentCount ?? "0"), 10));
   const selectedAgentId = parseInt(String(stats.selectedAgentId ?? "0"), 10);
   const rows: Activity["rows"] = [];
@@ -749,7 +795,7 @@ async function fetchAnchorActivity(
         contractHash,
         "getAgent",
         [
-          { type: "String", value: appId },
+          { type: "String", value: anchorAppId },
           { type: "Integer", value: String(id) },
         ],
         network,
@@ -771,7 +817,7 @@ async function fetchAnchorActivity(
   }
 
   return {
-    title: appId === "miniapp-profitanchor" ? "Profit Routes" : "Trust Routes",
+    title: anchorAppId === "miniapp-profitanchor" ? "Profit Routes" : "Trust Routes",
     rows,
     emptyText: "No AA agent routes registered yet.",
   };

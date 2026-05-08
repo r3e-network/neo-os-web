@@ -106,8 +106,10 @@ describe("PlayAreaRegistry", () => {
     ["miniapp-redenvelope", "Open red envelope"],
     ["miniapp-dailycheckin", "Daily streak board"],
     ["miniapp-self-loan", "Self-repaying loan panel"],
-    ["miniapp-profitanchor", "ProfitAnchor stake desk"],
-    ["miniapp-trustanchor", "TrustAnchor stake desk"],
+    ["miniapp-profitanchor", "ProfitAnchor"],
+    ["miniapp-trustanchor", "TrustAnchor"],
+    ["miniapp-profitanchor-admin", "ProfitAnchor Admin"],
+    ["miniapp-trustanchor-admin", "TrustAnchor Admin"],
     ["miniapp-neo-pay", "Payment stream builder"],
   ])("renders a native flagship playarea for %s", (appId, heading) => {
     renderPlayarea({
@@ -129,15 +131,30 @@ describe("PlayAreaRegistry", () => {
     });
 
     expect(screen.getByText("Stake NEO")).toBeVisible();
-    expect(screen.getByText("Withdraw")).toBeVisible();
-    expect(screen.getByText("Claim rewards")).toBeVisible();
-    expect(screen.getByText("Agent and accounting details")).toBeVisible();
+    expect(screen.getByText("Redeem NEO")).toBeVisible();
+    expect(screen.getByText("Claim GAS")).toBeVisible();
+    expect(screen.getByText("Operator route details")).toBeVisible();
     expect(screen.queryByText("Agent #1")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Agent and accounting details"));
+    fireEvent.click(screen.getByText("Operator route details"));
 
-    expect(screen.getByText("AA derivation")).toBeVisible();
+    expect(screen.getByText("Registered agents")).toBeVisible();
     expect(screen.getByText("Selected manual route")).toBeVisible();
+  });
+
+  it("renders Anchor admin consoles as operator-only routing surfaces", () => {
+    renderPlayarea({
+      app_id: "miniapp-profitanchor-admin",
+      name: "ProfitAnchor Admin",
+      category: "utility",
+      description: "Operator manual routing",
+    });
+
+    expect(screen.getByText("Move NEO")).toBeVisible();
+    expect(screen.getByText("Update target")).toBeVisible();
+    expect(screen.getByText("Sync vote")).toBeVisible();
+    expect(screen.queryByText("Stake NEO")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim GAS")).not.toBeInTheDocument();
   });
 
   it("presents an ended LastSurvivor round as rollover-ready instead of final", () => {
@@ -202,7 +219,9 @@ describe("PlayAreaRegistry", () => {
       screen.getAllByText("Morpheus confidential compute").length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText(/submitted from the right action console/i),
+      screen.getByText(
+        /sealed locally for Morpheus confidential compute before submission/i,
+      ),
     ).toBeVisible();
     expect(screen.getByText("Recipient")).toBeVisible();
     expect(screen.getByText("Amount")).toBeVisible();
@@ -287,7 +306,9 @@ describe("PlayAreaRegistry", () => {
     ).toBeVisible();
     expect(screen.getByText("Search state")).toBeVisible();
     expect(
-      screen.getByText(/Enter the query and network in the action console/i),
+      screen.getByText(
+        /Enter the query and network, then inspect live chain results/i,
+      ),
     ).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });

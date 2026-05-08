@@ -47,8 +47,12 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             string transferAgentNeo = ExtractMethod(code, "TransferAgentNeo");
             Assert.DoesNotContain("ValidateAppAuthority(appId)", transferAgentNeo);
-            Assert.Contains("Runtime.CheckWitness(fromAgent)", transferAgentNeo);
-            Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", transferAgentNeo);
+            Assert.Contains("TransferNeoBetweenSameAppAgents(appId, fromAgentId, toAgentId, amount)", transferAgentNeo);
+
+            string transferNeoBetweenSameAppAgents = ExtractMethod(code, "TransferNeoBetweenSameAppAgents");
+            Assert.DoesNotContain("ValidateAppAuthority(appId)", transferNeoBetweenSameAppAgents);
+            Assert.Contains("Runtime.CheckWitness(fromAgent)", transferNeoBetweenSameAppAgents);
+            Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", transferNeoBetweenSameAppAgents);
 
             string voteAgent = ExtractMethod(code, "VoteAgent");
             Assert.DoesNotContain("ValidateAppAuthority(appId)", voteAgent);
@@ -162,6 +166,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         private static string ExtractMethod(string code, string methodName)
         {
             int signature = code.IndexOf($"public static void {methodName}(", StringComparison.Ordinal);
+            if (signature < 0)
+            {
+                signature = code.IndexOf($"private static void {methodName}(", StringComparison.Ordinal);
+            }
             Assert.True(signature >= 0, $"Method {methodName} was not found.");
             int brace = code.IndexOf('{', signature);
             Assert.True(brace >= 0, $"Method {methodName} has no body.");

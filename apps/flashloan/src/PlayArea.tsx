@@ -1,7 +1,7 @@
 /**
  * PlayArea.tsx -- Flash Loan
  *
- * Stats row, loan request form (amount + callback contract/method),
+ * Stats row, loan request form (amount + callback contract),
  * lookup, and recent loan history.
  */
 
@@ -51,21 +51,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   const [loanAmount, setLoanAmount] = useState("");
   const [callbackContract, setCallbackContract] = useState("");
-  const [callbackMethod, setCallbackMethod] = useState("execute");
   const [lookupId, setLookupId] = useState("");
 
   const canRequest =
     address.trim() !== "" &&
     loanAmount.trim() !== "" &&
-    callbackContract.trim() !== "" &&
-    callbackMethod.trim() !== "";
+    callbackContract.trim() !== "";
 
   const handleRequestLoan = async () => {
     if (!canRequest) return;
     await dispatch("requestLoan", {
       amount: loanAmount,
       callbackContract,
-      callbackMethod,
+      callbackMethod: "onFlashLoan",
     });
     setLoanAmount("");
   };
@@ -131,12 +129,9 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             label={t("callbackContract") || "Callback Contract"}
             onChange={setCallbackContract}
           />
-          <NeoInput
-            value={callbackMethod}
-            placeholder="execute"
-            label={t("callbackMethod") || "Callback Method"}
-            onChange={setCallbackMethod}
-          />
+          <p className="flashloan-fixed-callback">
+            {t("callbackMethodFixed") || "Callback method is fixed to onFlashLoan for safety."}
+          </p>
           {validationError && (
             <p className="flashloan-validation-error">{validationError}</p>
           )}
