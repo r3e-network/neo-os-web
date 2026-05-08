@@ -1,0 +1,160 @@
+[
+  {
+    "brand": "LastSurvivor",
+    "manifestId": "miniapp-last-survivor",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "contractName": "PlatformGame",
+    "methodCount": 46,
+    "checkedAbiMethods": [
+      "getGameType",
+      "getGameAdmin",
+      "isPaused",
+      "startCountdownRound",
+      "buyCountdownKeys",
+      "getCountdownStatus",
+      "calculateCountdownKeyCost"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "GASBOX",
+    "manifestId": "miniapp-gasbox",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "contractName": "PlatformGame",
+    "methodCount": 46,
+    "checkedAbiMethods": [
+      "getGameType",
+      "getGameAdmin",
+      "isPaused",
+      "createGachaMachine",
+      "pullGacha",
+      "resolveGachaPull",
+      "getGachaMachine"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "Red Envelope",
+    "manifestId": "miniapp-redenvelope",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+    "contractName": "MiniAppRedEnvelope",
+    "methodCount": 26,
+    "checkedAbiMethods": [
+      "isPaused",
+      "createEnvelope",
+      "claim",
+      "getEnvelope"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "Daily Check-in",
+    "manifestId": "miniapp-dailycheckin",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+    "contractName": "MiniAppDailyCheckIn",
+    "methodCount": 48,
+    "checkedAbiMethods": [
+      "isPaused",
+      "checkIn",
+      "getPlatformStats"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "FogPlay",
+    "manifestId": "miniapp-fogplay",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+    "contractName": "PlatformGame",
+    "methodCount": 46,
+    "checkedAbiMethods": [
+      "getGameType",
+      "getGameAdmin",
+      "isPaused",
+      "placeCoinFlipBet",
+      "resolveCoinFlipBet",
+      "getCoinFlipBet",
+      "getCoinFlipBetLimits"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "SelfLoan",
+    "manifestId": "miniapp-self-loan",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+    "contractName": "MiniAppSelfLoan",
+    "methodCount": 44,
+    "checkedAbiMethods": [
+      "isPaused",
+      "createLoan",
+      "repayDebt",
+      "getLoanDetails",
+      "getPlatformStats"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "ProfitAnchor",
+    "manifestId": "miniapp-profitanchor",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "contractName": "PlatformAnchor",
+    "methodCount": 42,
+    "checkedAbiMethods": [
+      "getAnchorStats",
+      "registerAgent",
+      "registerAgents",
+      "transferAgentNeo",
+      "setAgentCandidate",
+      "voteAgent"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "TrustAnchor",
+    "manifestId": "miniapp-trustanchor",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "contractName": "PlatformAnchor",
+    "methodCount": 42,
+    "checkedAbiMethods": [
+      "getAnchorStats",
+      "registerAgent",
+      "registerAgents",
+      "transferAgentNeo",
+      "setAgentCandidate",
+      "voteAgent"
+    ],
+    "missingMethods": [],
+    "problems": []
+  },
+  {
+    "brand": "NeoPay",
+    "manifestId": "miniapp-neo-pay",
+    "targetNetwork": "neo-n3-mainnet",
+    "deployedHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+    "contractName": "MiniAppNeoPay",
+    "methodCount": 32,
+    "checkedAbiMethods": [
+      "totalStreams",
+      "createStream",
+      "claimStream",
+      "cancelStream",
+      "getStreamDetails"
+    ],
+    "missingMethods": [],
+    "problems": []
+  }
+]

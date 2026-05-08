@@ -12,6 +12,7 @@ const FLAGSHIP_APPS = [
     slug: "last-survivor",
     contractName: "MiniAppLastSurvivor",
     contractNameByNetwork: {
+      "neo-n3-mainnet": "PlatformGame",
       "neo-n3-testnet": "PlatformGame",
     },
     readChecks: [
@@ -19,6 +20,10 @@ const FLAGSHIP_APPS = [
       { method: "getPlatformStats", args: [], expectedStackType: "Map" },
     ],
     readChecksByNetwork: {
+      "neo-n3-mainnet": [
+        { method: "getCountdownStatus", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Integer" },
+      ],
       "neo-n3-testnet": [
         { method: "getCountdownStatus", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Map" },
         { method: "getGameType", args: [{ type: "String", value: "miniapp-last-survivor" }], expectedStackType: "Integer" },
@@ -29,9 +34,23 @@ const FLAGSHIP_APPS = [
     brand: "GASBOX",
     slug: "gasbox",
     contractName: "MiniAppGASBox",
+    contractNameByNetwork: {
+      "neo-n3-mainnet": "PlatformGame",
+      "neo-n3-testnet": "PlatformGame",
+    },
     readChecks: [
       { method: "totalMachines", args: [], expectedStackType: "Integer" },
     ],
+    readChecksByNetwork: {
+      "neo-n3-mainnet": [
+        { method: "getGachaMachine", args: [{ type: "String", value: "miniapp-gasbox" }, { type: "Integer", value: "0" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-gasbox" }], expectedStackType: "Integer" },
+      ],
+      "neo-n3-testnet": [
+        { method: "getGachaMachine", args: [{ type: "String", value: "miniapp-gasbox" }, { type: "Integer", value: "0" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-gasbox" }], expectedStackType: "Integer" },
+      ],
+    },
   },
   {
     brand: "Red Envelope",
@@ -53,9 +72,23 @@ const FLAGSHIP_APPS = [
     brand: "FogPlay",
     slug: "fogplay",
     contractName: "MiniAppFogPlay",
+    contractNameByNetwork: {
+      "neo-n3-mainnet": "PlatformGame",
+      "neo-n3-testnet": "PlatformGame",
+    },
     readChecks: [
       { method: "getBetLimits", args: [], expectedStackType: "Struct" },
     ],
+    readChecksByNetwork: {
+      "neo-n3-mainnet": [
+        { method: "getCoinFlipBetLimits", args: [{ type: "String", value: "miniapp-fogplay" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-fogplay" }], expectedStackType: "Integer" },
+      ],
+      "neo-n3-testnet": [
+        { method: "getCoinFlipBetLimits", args: [{ type: "String", value: "miniapp-fogplay" }], expectedStackType: "Map" },
+        { method: "getGameType", args: [{ type: "String", value: "miniapp-fogplay" }], expectedStackType: "Integer" },
+      ],
+    },
   },
   {
     brand: "SelfLoan",

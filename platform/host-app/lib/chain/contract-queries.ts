@@ -16,7 +16,7 @@ export const CONTRACTS = {
   fogPlay: "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
   selfLoan: "0x942da575b31f39cbb59e64b5813b128739b44c25",
   neoPay: "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
-  platformAnchor: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+  platformAnchor: "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
 } as const;
 
 export const TESTNET_CONTRACTS = {
