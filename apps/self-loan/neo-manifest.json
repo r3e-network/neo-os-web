@@ -43,7 +43,7 @@
         },
         "operations": {
           "create_loan": "createLoan",
-          "repay": "repayLoan",
+          "repay": "repayDebt",
           "add_collateral": "addCollateral"
         },
         "networks": {

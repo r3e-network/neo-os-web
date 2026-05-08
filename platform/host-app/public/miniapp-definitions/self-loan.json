@@ -113,7 +113,7 @@
   "operations": [
     {
       "name": "Repay Loan",
-      "method": "repayLoan",
+      "method": "repayDebt",
       "button_style": "primary",
       "params": [
         {
