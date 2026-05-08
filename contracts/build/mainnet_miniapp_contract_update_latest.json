@@ -1,0 +1,26 @@
+{
+  "network": "mainnet",
+  "rpc_url": "https://mainnet2.neo.coz.io:443",
+  "network_magic": 860833102,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "targets": [
+    {
+      "name": "MiniAppSoulboundCertificate",
+      "app_id": "miniapp-soulbound-certificate",
+      "existing_hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+      "on_chain_update_counter": 0,
+      "on_chain_has_update": true,
+      "admin_matches_signer": true,
+      "updated": true
+    }
+  ],
+  "transactions": [
+    {
+      "label": "Update MiniAppSoulboundCertificate",
+      "txid": "0xa5d89b9dfcaa2236fe9d17f8001ad3ad62ae77106809cc7be8a5c5e2a6966578",
+      "valid_until_block": 9670978
+    }
+  ],
+  "generated_at_utc": "2026-05-08T16:00:31Z"
+}
