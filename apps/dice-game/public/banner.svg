@@ -1,0 +1,13 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="420" fill="#0B1110"/>
+  <rect x="70" y="68" width="1060" height="284" rx="36" fill="#111A17"/>
+  <rect x="102" y="100" width="220" height="220" rx="42" fill="#00E599"/>
+  <rect x="130" y="128" width="164" height="164" rx="32" fill="#F7FFF8"/>
+  <circle cx="176" cy="174" r="14" fill="#0B1110"/>
+  <circle cx="212" cy="210" r="14" fill="#0B1110"/>
+  <circle cx="248" cy="246" r="14" fill="#0B1110"/>
+  <text x="372" y="180" fill="#F7FFF8" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">Dice Game</text>
+  <text x="374" y="240" fill="#A4B2AB" font-family="Arial, Helvetica, sans-serif" font-size="28">Pick a face. Stake GAS. Let Morpheus VRF settle on Neo N3.</text>
+  <rect x="374" y="278" width="232" height="46" rx="23" fill="#00E599"/>
+  <text x="402" y="309" fill="#0B1110" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Oracle-settled roll</text>
+</svg>

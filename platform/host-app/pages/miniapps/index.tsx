@@ -330,7 +330,7 @@ export default function MiniAppsPage({
   return (
     <Layout>
       <Head>
-        <title>MiniApps - {BRAND.productName}</title>
+        <title>{`MiniApps - ${BRAND.productName}`}</title>
         <meta name="description" content={BRAND.description} />
       </Head>
 

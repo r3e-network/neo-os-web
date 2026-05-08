@@ -1,65 +1,67 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-event-ticket-pass",
-  "name": "Event Ticket",
-  "name_zh": "活动门票",
-  "version": "1.0.0",
-  "description": "Issue NEP-11 event tickets with QR check-in.",
-  "description_zh": "活动通行证 — NFT 门票发行和验证平台",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
-  "tags": [
-    "tickets",
-    "events",
-    "qr"
-  ],
-  "developer": {
-    "name": "Yiwu",
-    "email": "dev@r3e.network",
-    "website": "https://neomini.app"
-  },
   "contracts": {
-    "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72"
+    "neo-n3-mainnet": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+    "neo-n3-testnet": "0x90bad472146aab97de71498e8d736c3124e7c82b"
   },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-testnet",
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
-      "status": "deferred",
-      "reason": "Testnet-only until the dedicated contract is recovered or reimplemented, audited, and approved for mainnet user funds."
+      "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with create/issue/check-in.",
+      "status": "deployed",
+      "verified_at": "2026-05-08T12:10:43Z"
     }
   },
-  "urls": {
-    "entry": "/miniapps/event-ticket-pass/index.html",
-    "icon": "/miniapps/event-ticket-pass/logo.jpg",
-    "banner": "/miniapps/event-ticket-pass/banner.jpg"
+  "description": "Issue NEP-11 event tickets with QR check-in.",
+  "description_zh": "活动通行证 — NFT 门票发行和验证平台",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
+  "features": {
+    "deeplink": "neomainapp://event-ticket-pass",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-event-ticket-pass",
+  "name": "Event Ticket",
+  "name_zh": "活动门票",
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": false,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://event-ticket-pass"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T03:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "tickets",
+    "events",
+    "qr"
+  ],
+  "updatedAt": "2026-05-08T12:10:43Z",
+  "urls": {
+    "banner": "/miniapps/event-ticket-pass/banner.jpg",
+    "entry": "/miniapps/event-ticket-pass/index.html",
+    "icon": "/miniapps/event-ticket-pass/logo.jpg"
+  },
+  "version": "1.0.0"
 }

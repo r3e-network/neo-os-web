@@ -1,0 +1,144 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-dice-game",
+  "name": "Dice Game",
+  "name_zh": "骰子游戏",
+  "version": "1.0.0",
+  "description": "A simple Morpheus VRF dice roll on Neo N3. Pick one face, fund a GAS stake, and let the oracle settle the roll on-chain.",
+  "description_zh": "基于 Morpheus VRF 的 Neo N3 链上骰子游戏。选择一个点数，注入 GAS 筹码，由预言机链上结算。",
+  "category": "games",
+  "category_name": "Games",
+  "category_name_zh": "游戏",
+  "tags": ["dice", "vrf", "oracle", "gas", "game"],
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {
+    "neo-n3-testnet": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+  },
+  "supported_networks": ["neo-n3-testnet"],
+  "default_network": "neo-n3-testnet",
+  "deployment": {
+    "neo-n3-mainnet": {
+      "reason": "Blocked until the existing mainnet PlatformGame admin signer is safely injected and the PlatformGame contract is updated with the Dice module.",
+      "status": "deferred"
+    }
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "platform-game",
+        "platform": "PlatformGame",
+        "appId": "miniapp-dice-game",
+        "moduleType": 4,
+        "networks": {
+          "neo-n3-testnet": {
+            "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
+  "urls": {
+    "entry": "/miniapps/dice-game/index.html",
+    "icon": "/miniapps/dice-game/logo.svg",
+    "banner": "/miniapps/dice-game/banner.svg"
+  },
+  "permissions": ["invoke:primary", "read:blockchain"],
+  "features": {
+    "stateless": true,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://dice-game"
+  },
+  "operation_panel": {
+    "title": "Roll Dice",
+    "subtitle": "Fund GAS credit, pick one face, then roll with Morpheus VRF.",
+    "operations": [
+      {
+        "name": "Fund Stake",
+        "method": "fundGameCredit",
+        "description": "Send GAS to the game contract as app-scoped credit before rolling.",
+        "button_style": "primary",
+        "priority": "primary",
+        "params": [
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Stake credit",
+            "required": true,
+            "placeholder": "0.10",
+            "scale": 8,
+            "presets": [
+              { "label": "0.10", "value": "0.10", "helper": "GAS" },
+              { "label": "0.50", "value": "0.50", "helper": "GAS" },
+              { "label": "1.00", "value": "1.00", "helper": "GAS" }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Roll",
+        "method": "placeDiceBet",
+        "description": "Choose one face from 1 to 6. A matching VRF roll pays 5.70x after the platform fee.",
+        "button_style": "success",
+        "priority": "primary",
+        "params": [
+          {
+            "name": "player",
+            "type": "hash160",
+            "label": "Player",
+            "required": true,
+            "default_value": "$wallet",
+            "hidden": true
+          },
+          {
+            "name": "chosenNumber",
+            "type": "select",
+            "label": "Face",
+            "required": true,
+            "default_value": "6",
+            "options": [
+              { "label": "1", "value": "1" },
+              { "label": "2", "value": "2" },
+              { "label": "3", "value": "3" },
+              { "label": "4", "value": "4" },
+              { "label": "5", "value": "5" },
+              { "label": "6", "value": "6" }
+            ]
+          },
+          {
+            "name": "amount",
+            "type": "amount",
+            "label": "Stake",
+            "required": true,
+            "placeholder": "0.10",
+            "scale": 8
+          }
+        ]
+      }
+    ]
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T00:00:00Z",
+  "featured": false,
+  "technologies": {
+    "oracle": {
+      "enabled": true,
+      "description": "Morpheus VRF supplies the on-chain dice roll."
+    },
+    "aa": {
+      "enabled": false,
+      "description": "Direct OneGate/NEP-21 wallet flow is used for the initial release."
+    }
+  }
+}

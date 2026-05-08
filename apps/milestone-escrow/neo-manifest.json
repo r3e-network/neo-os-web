@@ -1,65 +1,67 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-milestone-escrow",
-  "name": "Milestone Escrow",
-  "name_zh": "里程碑托管",
-  "version": "1.0.0",
-  "description": "Lock funds and release per approved milestones.",
-  "description_zh": "里程碑托管 — 按项目里程碑自动释放资金的智能托管服务",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
-  "tags": [
-    "escrow",
-    "milestone",
-    "payments"
-  ],
-  "developer": {
-    "name": "Yiwu",
-    "email": "dev@r3e.network",
-    "website": "https://neomini.app"
-  },
   "contracts": {
-    "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0x2a3691aa2da68512e9bf1363f383f354b6a02aad"
+    "neo-n3-mainnet": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
+    "neo-n3-testnet": "0x442162de25008ac78d4cce62ed8d8a64401b7ece"
   },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-testnet",
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
-      "status": "deferred",
-      "reason": "Testnet-only until the dedicated contract is recovered or reimplemented, audited, and approved for mainnet user funds."
+      "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with fund/create/approve/claim.",
+      "status": "deployed",
+      "verified_at": "2026-05-08T12:10:43Z"
     }
   },
-  "urls": {
-    "entry": "/miniapps/milestone-escrow/index.html",
-    "icon": "/miniapps/milestone-escrow/logo.jpg",
-    "banner": "/miniapps/milestone-escrow/banner.jpg"
+  "description": "Lock funds and release per approved milestones.",
+  "description_zh": "里程碑托管 — 按项目里程碑自动释放资金的智能托管服务",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
+  "features": {
+    "deeplink": "neomainapp://milestone-escrow",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-milestone-escrow",
+  "name": "Milestone Escrow",
+  "name_zh": "里程碑托管",
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": false,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://milestone-escrow"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T03:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "escrow",
+    "milestone",
+    "payments"
+  ],
+  "updatedAt": "2026-05-08T12:10:43Z",
+  "urls": {
+    "banner": "/miniapps/milestone-escrow/banner.jpg",
+    "entry": "/miniapps/milestone-escrow/index.html",
+    "icon": "/miniapps/milestone-escrow/logo.jpg"
+  },
+  "version": "1.0.0"
 }

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "MiniAppEventTicketPass",
+    "network": "mainnet",
+    "hash": "0x90bad472146aab97de71498e8d736c3124e7c82b",
+    "app_manifest": "apps/event-ticket-pass/neo-manifest.json"
+  },
+  {
+    "name": "MiniAppMilestoneEscrow",
+    "network": "mainnet",
+    "hash": "0x442162de25008ac78d4cce62ed8d8a64401b7ece",
+    "app_manifest": "apps/milestone-escrow/neo-manifest.json"
+  },
+  {
+    "name": "MiniAppQuadraticFunding",
+    "network": "mainnet",
+    "hash": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
+    "app_manifest": "apps/quadratic-funding/neo-manifest.json"
+  },
+  {
+    "name": "MiniAppSoulboundCertificate",
+    "network": "mainnet",
+    "hash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+    "app_manifest": "apps/soulbound-certificate/neo-manifest.json"
+  }
+]

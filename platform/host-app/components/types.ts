@@ -74,6 +74,7 @@ export type OperationParam = {
   default_value?: string;
   placeholder?: string;
   options?: string | { label: string; value: string }[];
+  presets?: Array<{ label: string; value: string; helper?: string }>;
   hidden?: boolean;
   scale?: number;
 };

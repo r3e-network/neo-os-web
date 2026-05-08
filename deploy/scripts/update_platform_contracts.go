@@ -68,7 +68,8 @@ func main() {
 }
 
 func run() error {
-	if os.Getenv("CONFIRM_PLATFORM_CONTRACT_UPDATE") != confirmPhrase {
+	dryRun := truthy(os.Getenv("PLATFORM_UPDATE_DRY_RUN"))
+	if !dryRun && os.Getenv("CONFIRM_PLATFORM_CONTRACT_UPDATE") != confirmPhrase {
 		return fmt.Errorf("set CONFIRM_PLATFORM_CONTRACT_UPDATE=%s to write chain", confirmPhrase)
 	}
 	network := strings.ToLower(firstNonEmpty(os.Getenv("PLATFORM_UPDATE_NETWORK"), "testnet"))
@@ -133,7 +134,11 @@ func run() error {
 		Validation:     map[string]any{},
 		GeneratedAtUTC: time.Now().UTC().Format(time.RFC3339),
 	}
-	fmt.Printf("network=%s magic=%d signer=%s\n", network, actualMagic, acc.Address)
+	mode := "write"
+	if dryRun {
+		mode = "dry-run"
+	}
+	fmt.Printf("network=%s magic=%d signer=%s mode=%s\n", network, actualMagic, acc.Address, mode)
 
 	for _, target := range targets {
 		targetHash, err := parseHash(target.ExistingHash)
@@ -167,6 +172,11 @@ func run() error {
 		}
 		if !tr.OnChainHasUpdate {
 			tr.SkippedReason = "on-chain ABI does not expose update(nef,manifest)"
+			report.Targets = append(report.Targets, tr)
+			continue
+		}
+		if dryRun {
+			tr.SkippedReason = "dry run: eligible for update"
 			report.Targets = append(report.Targets, tr)
 			continue
 		}
@@ -236,11 +246,21 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 	type deployment struct {
 		PlatformAnchor string `json:"platform_anchor"`
 		PlatformDeFi   string `json:"platform_defi"`
+		PlatformGame   string `json:"platform_game"`
+		PlatformSocial string `json:"platform_social"`
 	}
 	var deployed deployment
 	if data, err := os.ReadFile(deploymentPath); err == nil {
 		_ = json.Unmarshal(data, &deployed)
 	}
+	var gameDeployment deployment
+	if data, err := os.ReadFile(fmt.Sprintf("contracts/build/%s_game_deployment.json", network)); err == nil {
+		_ = json.Unmarshal(data, &gameDeployment)
+	}
+	deployed.PlatformAnchor = firstNonEmpty(envByNetwork("PLATFORM_ANCHOR", network), envByNetwork("CONTRACT_PLATFORM_ANCHOR", network), deployed.PlatformAnchor)
+	deployed.PlatformDeFi = firstNonEmpty(envByNetwork("PLATFORM_DEFI", network), envByNetwork("CONTRACT_PLATFORM_DEFI", network), deployed.PlatformDeFi)
+	deployed.PlatformGame = firstNonEmpty(envByNetwork("PLATFORM_GAME", network), envByNetwork("CONTRACT_PLATFORM_GAME", network), deployed.PlatformGame, gameDeployment.PlatformGame)
+	deployed.PlatformSocial = firstNonEmpty(envByNetwork("PLATFORM_SOCIAL", network), envByNetwork("CONTRACT_PLATFORM_SOCIAL", network), deployed.PlatformSocial)
 	if network == "testnet" && deployed.PlatformDeFi == "" {
 		deployed.PlatformDeFi = "0xb43bd0ded09b5d79ed858484106affc1c858483c"
 	}
@@ -262,6 +282,22 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 			ExistingHash: deployed.PlatformDeFi,
 			NEFPath:      "contracts/build/PlatformDeFi.nef",
 			ManifestPath: "contracts/build/PlatformDeFi.manifest.json",
+		})
+	}
+	if deployed.PlatformGame != "" {
+		targets = append(targets, contractTarget{
+			Name:         "PlatformGame",
+			ExistingHash: deployed.PlatformGame,
+			NEFPath:      "contracts/build/PlatformGame.nef",
+			ManifestPath: "contracts/build/PlatformGame.manifest.json",
+		})
+	}
+	if deployed.PlatformSocial != "" {
+		targets = append(targets, contractTarget{
+			Name:         "PlatformSocial",
+			ExistingHash: deployed.PlatformSocial,
+			NEFPath:      "contracts/build/PlatformSocial.nef",
+			ManifestPath: "contracts/build/PlatformSocial.manifest.json",
 		})
 	}
 	return targets, nil
@@ -344,4 +380,23 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func envByNetwork(prefix string, network string) string {
+	normalized := strings.ToUpper(strings.ReplaceAll(prefix, "-", "_"))
+	networkName := strings.ToUpper(strings.ReplaceAll(network, "-", "_"))
+	return firstNonEmpty(
+		os.Getenv(normalized+"_"+networkName+"_HASH"),
+		os.Getenv(normalized+"_HASH_"+networkName),
+		os.Getenv(normalized+"_HASH"),
+	)
+}
+
+func truthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
