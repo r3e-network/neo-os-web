@@ -98,7 +98,7 @@ export function PerformanceReportPanel({
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle performance monitor"
-        className={`fixed ${positionClasses[position]} z-50 p-2 bg-white text-gray-900 border border-gray-200 rounded-full shadow-lg hover:bg-gray-50 transition-colors ${
+        className={`fixed ${positionClasses[position]} z-[90] hidden p-2 bg-white text-gray-900 border border-gray-200 rounded-full shadow-lg hover:bg-gray-50 transition-colors sm:block ${
           errorCount > 0 ? "animate-pulse" : ""
         }`}
         title="Performance Monitor"
@@ -126,7 +126,7 @@ export function PerformanceReportPanel({
       {/* Panel */}
       {isOpen && (
         <div
-          className={`fixed ${positionClasses[position]} mt-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50`}
+          className={`fixed ${positionClasses[position]} z-[90] mt-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden`}
         >
           {/* Header */}
           <div className="bg-gray-100 px-4 py-2 flex items-center justify-between">

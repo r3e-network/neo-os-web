@@ -45,6 +45,41 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).not.toBeVisible();
   });
 
+  test("should render login modal as a full viewport overlay above navigation", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/miniapps");
+
+    await page.getByRole("button", { name: /log in|sign up/i }).click();
+    await expect(page.getByRole("dialog", { name: /connect wallet/i })).toBeVisible();
+
+    const metrics = await page.getByTestId("login-modal-root").evaluate((root) => {
+      const rootRect = root.getBoundingClientRect();
+      const navRect = document.querySelector("nav")?.getBoundingClientRect();
+      const styles = getComputedStyle(root);
+
+      return {
+        parentIsBody: root.parentElement === document.body,
+        rootHeight: rootRect.height,
+        rootWidth: rootRect.width,
+        navHeight: navRect?.height ?? 0,
+        viewportHeight: window.innerHeight,
+        viewportWidth: window.innerWidth,
+        zIndex: styles.zIndex,
+        bodyOverflow: getComputedStyle(document.body).overflow,
+      };
+    });
+
+    expect(metrics.parentIsBody).toBe(true);
+    expect(metrics.rootHeight).toBeGreaterThan(metrics.viewportHeight - 2);
+    expect(metrics.rootWidth).toBeGreaterThan(metrics.viewportWidth - 2);
+    expect(metrics.rootHeight).toBeGreaterThan(metrics.navHeight * 5);
+    expect(Number(metrics.zIndex)).toBeGreaterThan(100);
+    expect(metrics.bodyOverflow).toBe("hidden");
+
+    await page.getByRole("button", { name: /close login modal/i }).click();
+    await expect(page.getByTestId("login-modal-root")).toHaveCount(0);
+  });
+
   test("should keep the direct WIF path local-only and show invalid input safely", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();

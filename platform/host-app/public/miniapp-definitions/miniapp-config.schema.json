@@ -292,7 +292,10 @@
         "properties": {
           "label": { "type": "string" },
           "url": { "type": "string", "format": "uri" },
-          "type": { "type": "string", "enum": ["docs", "github", "twitter", "discord", "website", "other"] }
+          "type": {
+            "type": "string",
+            "enum": ["docs", "github", "twitter", "discord", "website", "other"]
+          }
         },
         "required": ["label", "url"]
       }
@@ -303,7 +306,20 @@
       "oneOf": [
         {
           "type": "string",
-          "enum": ["prediction", "voting", "lottery", "auction", "defi", "nft", "gaming", "social", "tipping", "governance", "utility", "default"]
+          "enum": [
+            "prediction",
+            "voting",
+            "lottery",
+            "auction",
+            "defi",
+            "nft",
+            "gaming",
+            "social",
+            "tipping",
+            "governance",
+            "utility",
+            "default"
+          ]
         },
         {
           "type": "string",
@@ -496,10 +512,7 @@
           "description": "Registered app id passed as the hidden first argument for platform contract methods."
         },
         "moduleType": {
-          "oneOf": [
-            { "type": "integer" },
-            { "type": "string", "minLength": 1 }
-          ]
+          "oneOf": [{ "type": "integer" }, { "type": "string", "minLength": 1 }]
         },
         "registration": {
           "type": "object",
@@ -567,7 +580,10 @@
         "audited": { "type": "boolean" },
         "audit_provider": { "type": "string", "maxLength": 128 },
         "audit_hash": { "type": "string", "maxLength": 256 },
-        "audit_date": { "type": "string", "description": "Audit publish date in YYYY-MM-DD" }
+        "audit_date": {
+          "type": "string",
+          "description": "Audit publish date in YYYY-MM-DD"
+        }
       },
       "additionalProperties": true
     },
@@ -617,8 +633,14 @@
         "hero": {
           "type": "object",
           "properties": {
-            "eyebrow": { "type": "string", "description": "Small label above title" },
-            "disclaimer": { "type": "string", "description": "Legal/important notice" }
+            "eyebrow": {
+              "type": "string",
+              "description": "Small label above title"
+            },
+            "disclaimer": {
+              "type": "string",
+              "description": "Legal/important notice"
+            }
           }
         },
         "tabs": {
@@ -764,6 +786,11 @@
           "enum": ["primary", "secondary", "danger", "success"],
           "default": "primary"
         },
+        "priority": {
+          "type": "string",
+          "enum": ["primary", "secondary", "operator"],
+          "description": "Controls whether the operation is shown as a primary user action or folded into secondary/operator controls"
+        },
         "gas_cost": {
           "type": "string",
           "description": "Estimated GAS cost"
@@ -790,7 +817,16 @@
         },
         "type": {
           "type": "string",
-          "enum": ["string", "integer", "boolean", "address", "hash160", "hash256", "amount", "select"],
+          "enum": [
+            "string",
+            "integer",
+            "boolean",
+            "address",
+            "hash160",
+            "hash256",
+            "amount",
+            "select"
+          ],
           "description": "Parameter type"
         },
         "label": {

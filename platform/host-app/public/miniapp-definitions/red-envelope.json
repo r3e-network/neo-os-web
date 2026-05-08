@@ -5,13 +5,7 @@
   "description": "Create equal-split or lucky-draw GAS envelopes, protect them with share codes, and track claims on-chain.",
   "template_type": "social",
   "category": "Social",
-  "tags": [
-    "red-envelope",
-    "hongbao",
-    "viral",
-    "sharing",
-    "gift"
-  ],
+  "tags": ["red-envelope", "hongbao", "viral", "sharing", "gift"],
   "version": "2.0.0",
   "status": "active",
   "developer": {
@@ -99,7 +93,7 @@
     ],
     "operation_panel": {
       "title": "Claim Envelope",
-      "subtitle": "Enter an envelope ID to claim your random share.",
+      "subtitle": "Claim is the primary action. Sending a new envelope is available as a secondary operation.",
       "cta_label": "Open Red Envelope",
       "operations": []
     }
@@ -107,8 +101,9 @@
   "operations": [
     {
       "name": "Claim",
-      "method": "claim",
+      "method": "claimEnvelope",
       "button_style": "primary",
+      "priority": "primary",
       "params": [
         {
           "name": "envelopeId",
@@ -124,6 +119,51 @@
           "required": true,
           "default_value": "$wallet",
           "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Create",
+      "method": "createEnvelope",
+      "button_style": "secondary",
+      "priority": "secondary",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-redenvelope",
+          "hidden": true
+        },
+        {
+          "name": "creator",
+          "type": "hash160",
+          "label": "Creator",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Total GAS",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "packetCount",
+          "type": "integer",
+          "label": "Recipients",
+          "required": true,
+          "placeholder": "8"
+        },
+        {
+          "name": "expirySeconds",
+          "type": "integer",
+          "label": "Expires in seconds",
+          "required": true,
+          "placeholder": "86400"
         }
       ]
     }
@@ -143,7 +183,7 @@
   "detail_template": {
     "operation_panel": {
       "title": "Claim Envelope",
-      "subtitle": "Enter an envelope ID to claim your random share.",
+      "subtitle": "Claim is the primary action. Sending a new envelope is available as a secondary operation.",
       "cta_label": "Open Red Envelope",
       "operations": []
     }

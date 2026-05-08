@@ -7,14 +7,12 @@ Deployment sequence:
 
 1. Deploy or update `PlatformAnchor`.
 2. Call `registerAnchorApp("miniapp-profitanchor", 2, appAdmin)`.
-3. Register AA-generated agent accounts with `registerAgent`.
-4. Feed candidate profit observations with `setAgentProfitScore`.
-5. Trigger `voteBestProfitCandidate` for pooled stake, or let SelfLoan call
-   `syncProfitAnchorVote` after `setProfitAnchor` is configured.
+3. Register the 21 AA-generated agent accounts with `registerAgents` or
+   `registerAgent`.
+4. Rebalance by calling `transferAgentNeo(appId, fromAgentId, toAgentId, amount)`
+   with the source agent AA witness.
+5. When candidates change, call `setAgentCandidate` and then `voteAgent`.
 
-User staking can be a single NEO transfer when the transfer data is
-`miniapp-profitanchor`. The contract credits the sender and immediately stakes
-that credit after checking the sender witness.
-
-Do not add admin transfer methods. User NEO exits through `withdraw`; user GAS
-exits through `claimRewards`.
+AA account IDs should be derived from verifier params that include
+`anchor + appId + agentId + nonce`; the nonce is operator-provided to prevent
+pre-registration griefing.

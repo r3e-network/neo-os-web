@@ -38,7 +38,6 @@ const (
 	mainnetAnchorDefaultAAHash    = "0x0268a387913b250166ddec032b03332690a1ef78"
 	mainnetAnchorDefaultCand      = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d"
 	mainnetAnchorReportPath       = "contracts/build/mainnet_anchor_deployment.json"
-	mainnetAnchorProfitScore      = int64(1_000_000)
 	mainnetAnchorContractNEF      = "contracts/build/PlatformAnchor.nef"
 	mainnetAnchorContractManifest = "contracts/build/PlatformAnchor.manifest.json"
 )
@@ -115,6 +114,7 @@ func runMainnetAnchorDeploy() error {
 	if err != nil {
 		return fmt.Errorf("parse candidate public key: %w", err)
 	}
+	agentNonce := mainnetAnchorFirstNonEmpty(os.Getenv("ANCHOR_MAINNET_AGENT_NONCE"), os.Getenv("ANCHOR_AGENT_NONCE"), "v1")
 
 	report := mainnetAnchorReport{
 		Network:        "neo-n3-mainnet",
@@ -145,25 +145,17 @@ func runMainnetAnchorDeploy() error {
 		return err
 	}
 
-	trustAA, err := mainnetAnchorEnsureAA(ctx, act, client, aaHash, deployerHash, []byte("trustanchor-agent-1"), &report, "TrustAnchor agent AA")
+	trustAgents, err := mainnetAnchorEnsureAgentSet(ctx, act, client, aaHash, anchorHash, mainnetAnchorTrustApp, "trustanchor", agentNonce, deployerHash, candidate, &report)
 	if err != nil {
 		return err
 	}
-	profitAA, err := mainnetAnchorEnsureAA(ctx, act, client, aaHash, deployerHash, []byte("profitanchor-agent-1"), &report, "ProfitAnchor agent AA")
+	profitAgents, err := mainnetAnchorEnsureAgentSet(ctx, act, client, aaHash, anchorHash, mainnetAnchorProfitApp, "profitanchor", agentNonce, deployerHash, candidate, &report)
 	if err != nil {
 		return err
 	}
-	report.AAAccounts["trustanchor-agent-1"] = "0x" + trustAA.StringLE()
-	report.AAAccounts["profitanchor-agent-1"] = "0x" + profitAA.StringLE()
-
-	if err := mainnetAnchorEnsureAgent(ctx, act, client, anchorHash, mainnetAnchorTrustApp, trustAA, candidate, &report); err != nil {
-		return err
-	}
-	if err := mainnetAnchorEnsureAgent(ctx, act, client, anchorHash, mainnetAnchorProfitApp, profitAA, candidate, &report); err != nil {
-		return err
-	}
-	if err := mainnetAnchorSendAndWait(ctx, act, client, anchorHash, "setAgentProfitScore", &report, "Set ProfitAnchor agent score", mainnetAnchorProfitApp, int64(1), mainnetAnchorProfitScore); err != nil {
-		return err
+	report.Validation["anchor_agent_sets"] = map[string]any{
+		"trustanchor_agents":  len(trustAgents),
+		"profitanchor_agents": len(profitAgents),
 	}
 
 	if err := mainnetAnchorValidateRead(act, anchorHash, &report); err != nil {
@@ -272,6 +264,35 @@ func mainnetAnchorEnsureAgent(ctx context.Context, act *actor.Actor, client *rpc
 	return mainnetAnchorSendAndWait(ctx, act, client, contract, "registerAgent", report, "Register "+appID+" AA agent", appID, account, candidate, account.BytesBE())
 }
 
+func mainnetAnchorEnsureAgentSet(ctx context.Context, act *actor.Actor, client *rpcclient.Client, aaCore util.Uint160, anchorHash util.Uint160, appID string, seedPrefix string, nonce string, backupOwner util.Uint160, candidate *keys.PublicKey, report *mainnetAnchorReport) ([]util.Uint160, error) {
+	count, err := mainnetAnchorCallInteger(act, anchorHash, "getAgentCount", appID)
+	if err != nil {
+		return nil, err
+	}
+	current := int(count.Int64())
+	if current > 21 {
+		return nil, fmt.Errorf("%s has unexpected agent count %d", appID, current)
+	}
+
+	agents := make([]util.Uint160, 0, 21)
+	for i := 1; i <= 21; i++ {
+		label := fmt.Sprintf("%s-agent-%d", seedPrefix, i)
+		verifierParams := []byte(fmt.Sprintf("anchor:%s:app:%s:agent:%02d:nonce:%s", seedPrefix, appID, i, nonce))
+		accountID, err := mainnetAnchorEnsureAA(ctx, act, client, aaCore, backupOwner, verifierParams, report, label+" AA")
+		if err != nil {
+			return nil, err
+		}
+		report.AAAccounts[label] = "0x" + accountID.StringLE()
+		agents = append(agents, accountID)
+		if current < i {
+			if err := mainnetAnchorSendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, accountID, candidate, accountID.BytesBE()); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return agents, nil
+}
+
 func mainnetAnchorValidateRead(act *actor.Actor, contract util.Uint160, report *mainnetAnchorReport) error {
 	trustMode, err := mainnetAnchorCallInteger(act, contract, "getAppMode", mainnetAnchorTrustApp)
 	if err != nil {
@@ -289,18 +310,18 @@ func mainnetAnchorValidateRead(act *actor.Actor, contract util.Uint160, report *
 	if err != nil {
 		return err
 	}
-	bestCandidate, err := mainnetAnchorCallBytes(act, contract, "getBestCandidate", mainnetAnchorProfitApp)
+	selectedAgent, err := mainnetAnchorCallInteger(act, contract, "getSelectedAgentId", mainnetAnchorProfitApp)
 	if err != nil {
 		return err
 	}
 	if trustMode.Int64() != mainnetAnchorModeTrust || profitMode.Int64() != mainnetAnchorModeProfit {
 		return fmt.Errorf("unexpected anchor modes: trust=%s profit=%s", trustMode.String(), profitMode.String())
 	}
-	if trustAgents.Sign() == 0 || profitAgents.Sign() == 0 || len(bestCandidate) != 33 {
-		return fmt.Errorf("anchor agent validation failed: trustAgents=%s profitAgents=%s bestCandidateBytes=%d", trustAgents.String(), profitAgents.String(), len(bestCandidate))
+	if trustAgents.Int64() != 21 || profitAgents.Int64() != 21 {
+		return fmt.Errorf("anchor agent validation failed: trustAgents=%s profitAgents=%s", trustAgents.String(), profitAgents.String())
 	}
 	report.Validation["trustanchor"] = map[string]string{"mode": trustMode.String(), "agent_count": trustAgents.String()}
-	report.Validation["profitanchor"] = map[string]string{"mode": profitMode.String(), "agent_count": profitAgents.String(), "best_candidate_bytes": fmt.Sprintf("%x", bestCandidate)}
+	report.Validation["profitanchor"] = map[string]string{"mode": profitMode.String(), "agent_count": profitAgents.String(), "selected_agent_id": selectedAgent.String()}
 	report.Validation["mainnet_stake_smoke"] = "not_run_by_deploy_script; requires a funded user account with at least 1 NEO"
 	return nil
 }

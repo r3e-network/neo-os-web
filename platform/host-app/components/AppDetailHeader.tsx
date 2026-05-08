@@ -52,24 +52,24 @@ export function AppDetailHeader({ app, onBack }: Props) {
   const modernBannerSources = buildModernImageSources(bannerSource);
 
   return (
-    <header className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6">
+    <header className="border-b border-gray-200 bg-white/95 px-3 py-3 shadow-sm shadow-gray-950/5 backdrop-blur sm:px-6 sm:py-4">
       <div className="mx-auto max-w-[1600px]">
         <button
           type="button"
           onClick={onBack}
           aria-label="Go back"
-          className="group mb-3 flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="group mb-2 flex w-fit cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:mb-3 sm:gap-2 sm:rounded-2xl sm:px-3 sm:py-2 sm:text-sm"
         >
           <ArrowLeft
-            size={16}
+            size={15}
             className="transition-transform duration-200 group-hover:-translate-x-0.5"
           />
           Back to MiniApps
         </button>
 
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1.5 shadow-sm sm:h-[72px] sm:w-[72px]">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-sm shadow-gray-950/5 sm:h-[72px] sm:w-[72px] sm:rounded-2xl sm:p-1.5">
               <MiniAppLogo
                 appId={app.app_id}
                 category={app.category}
@@ -83,20 +83,20 @@ export function AppDetailHeader({ app, onBack }: Props) {
             </div>
 
             <div className="min-w-0">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5 sm:mb-2 sm:gap-2">
                 {isFlagship && (
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase text-emerald-700">
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
                     Flagship
                   </span>
                 )}
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase text-emerald-700">
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 sm:px-2.5 sm:py-1 sm:text-[11px]">
                   {app.category}
                 </span>
-                <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-gray-600">
+                <span className="hidden rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 sm:inline-flex sm:px-2.5 sm:py-1 sm:text-[11px]">
                   {appSurface}
                 </span>
                 <span
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase ${statusColor}`}
+                  className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-[11px] ${statusColor}`}
                 >
                   <span className="relative flex h-2 w-2">
                     <span
@@ -111,18 +111,18 @@ export function AppDetailHeader({ app, onBack }: Props) {
               </div>
 
               <h1
-                className="m-0 truncate text-2xl font-black text-gray-900 sm:text-3xl"
+                className="m-0 truncate text-xl font-black text-gray-900 sm:text-3xl"
                 title={app.name}
               >
                 {app.name}
               </h1>
-              <p className="mt-1 line-clamp-2 max-w-4xl text-sm leading-5 text-gray-500">
+              <p className="mt-0.5 line-clamp-1 max-w-4xl text-xs leading-5 text-gray-500 sm:mt-1 sm:line-clamp-2 sm:text-sm">
                 {app.description}
               </p>
             </div>
           </div>
 
-          <div className="relative hidden h-24 w-64 shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 lg:block">
+          <div className="relative hidden h-24 w-64 shrink-0 overflow-hidden rounded-[20px] border border-gray-200 bg-gradient-to-br from-emerald-50 via-white to-sky-50 shadow-sm shadow-gray-950/5 lg:block">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(16,185,129,0.16),transparent_36%),radial-gradient(circle_at_82%_70%,rgba(14,165,233,0.14),transparent_36%)]" />
             <div className="absolute inset-0 flex items-center gap-3 px-4 text-gray-900">
               <MiniAppLogo

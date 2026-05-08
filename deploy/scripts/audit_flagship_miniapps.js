@@ -42,8 +42,8 @@ const FLAGSHIP_APPS = [
       "neo-n3-testnet": ["isPaused", "createLoan", "repayLoan", "getLoan", "getLendingStats", "setProfitAnchor", "syncProfitAnchorVote"],
     },
   },
-  { brand: "ProfitAnchor", slug: "profitanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "setAgentProfitScore", "voteBestProfitCandidate", "withdrawCredit", "claimRewards"] },
-  { brand: "TrustAnchor", slug: "trustanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "votePooledStake", "withdrawCredit", "claimRewards"] },
+  { brand: "ProfitAnchor", slug: "profitanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"] },
+  { brand: "TrustAnchor", slug: "trustanchor", deploymentOptional: true, expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"] },
   { brand: "NeoPay", slug: "neo-pay", expectedMethods: ["totalStreams", "createStream", "claimStream", "cancelStream", "getStreamDetails"] },
 ];
 

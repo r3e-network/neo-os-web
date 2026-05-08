@@ -41,6 +41,24 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void PlatformAnchorManualAgentActionsUseAgentWitnessWithoutAdminCosign()
+        {
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+
+            string transferAgentNeo = ExtractMethod(code, "TransferAgentNeo");
+            Assert.DoesNotContain("ValidateAppAuthority(appId)", transferAgentNeo);
+            Assert.Contains("Runtime.CheckWitness(fromAgent)", transferAgentNeo);
+            Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", transferAgentNeo);
+
+            string voteAgent = ExtractMethod(code, "VoteAgent");
+            Assert.DoesNotContain("ValidateAppAuthority(appId)", voteAgent);
+            Assert.Contains("Runtime.CheckWitness(agentAccount)", voteAgent);
+
+            string setAgentCandidate = ExtractMethod(code, "SetAgentCandidate");
+            Assert.Contains("ValidateAppAuthority(appId)", setAgentCandidate);
+        }
+
+        [Fact]
         public void RewardModelPreservesTinyRewardsAcrossStakeChanges()
         {
             AnchorRewardModel model = new();

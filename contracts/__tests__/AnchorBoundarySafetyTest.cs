@@ -73,14 +73,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
-        public void ProfitAnchorPooledVotesMustUseBestProfitAgent()
+        public void PlatformAnchorTracksSelectedManualAgentWithoutBestProfitScoring()
         {
             string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
 
-            Assert.Contains("ValidateMode(appId, MODE_PROFIT)", code);
-            Assert.Contains("RecomputeBestProfitAgent(appId)", code);
-            Assert.Contains("agentId == GetBigInteger(AppKey(appId, PREFIX_BEST_AGENT))", code);
-            Assert.Contains("NEO.Vote(Runtime.ExecutingScriptHash, candidate)", code);
+            Assert.Contains("PREFIX_SELECTED_AGENT", code);
+            Assert.Contains("public static BigInteger GetSelectedAgentId(string appId)", code);
+            Assert.Contains("public static ByteString GetSelectedCandidate(string appId)", code);
+            Assert.Contains("Put(AppKey(appId, PREFIX_SELECTED_AGENT), agentId)", code);
+            Assert.DoesNotContain("RecomputeBestProfitAgent", code);
+            Assert.DoesNotContain("VoteBestProfitCandidate", code);
+            Assert.DoesNotContain("VotePooledStake", code);
+            Assert.DoesNotContain("SetAgentProfitScore", code);
         }
 
         [Fact]
@@ -89,7 +93,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");
 
             Assert.Contains("public static void SyncProfitAnchorVote(string appId)", code);
-            Assert.Contains("\"getBestCandidate\"", code);
+            Assert.Contains("\"getSelectedCandidate\"", code);
             Assert.Contains("NEO.Vote(Runtime.ExecutingScriptHash, (ECPoint)candidate", code);
             Assert.DoesNotContain("NEO.Transfer(Runtime.ExecutingScriptHash, profitAnchorContract", code);
         }

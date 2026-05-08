@@ -1,15 +1,34 @@
 import { createDerived, createObservable } from "@shared/react/context";
 import type { ChainService } from "@shared/services/ChainService";
-import { formatGas, formatHash, fromFixed8, toFixed8 } from "@shared/utils/format";
-import { getLaunchParam, type MiniAppLaunchContext } from "@shared/utils/launch-params";
+import {
+  formatGas,
+  formatHash,
+  fromFixed8,
+  toFixed8,
+} from "@shared/utils/format";
+import {
+  getLaunchParam,
+  type MiniAppLaunchContext,
+} from "@shared/utils/launch-params";
 import { buildOneGateDirectMiniAppUrl } from "@shared/utils/onegate-launch";
 
 const APP_ID = "miniapp-gas-lucky-pool";
 const ONE_GAS_FIXED8 = 100000000n;
 const MAX_VAULT_REWARD_FIXED8 = 50n * ONE_GAS_FIXED8;
 
-export type GasPoolStatus = "draft" | "active" | "empty" | "expired" | "unknown";
-export type GasPoolSuccessType = "" | "create" | "claim" | "refund" | "fund" | "withdraw";
+export type GasPoolStatus =
+  | "draft"
+  | "active"
+  | "empty"
+  | "expired"
+  | "unknown";
+export type GasPoolSuccessType =
+  | ""
+  | "create"
+  | "claim"
+  | "refund"
+  | "fund"
+  | "withdraw";
 
 export interface GasLuckyPool {
   id: string;
@@ -76,7 +95,13 @@ function parsePool(id: string, raw: unknown): GasLuckyPool | null {
   const active = Boolean(raw[10]);
   const expired = expiryTime > 0 && Math.floor(Date.now() / 1000) > expiryTime;
   const empty = remainingAmount <= 0n || claimedCount >= maxClaims;
-  const status: GasPoolStatus = empty ? "empty" : expired ? "expired" : active ? "active" : "unknown";
+  const status: GasPoolStatus = empty
+    ? "empty"
+    : expired
+      ? "expired"
+      : active
+        ? "active"
+        : "unknown";
 
   return {
     id,
@@ -110,7 +135,9 @@ function eventValue(entry: unknown, index: number): unknown {
 
 function isWalletUnavailableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  return /wallet (not detected|unavailable|not connected)|install a nep-21|neoline extension/i.test(message);
+  return /wallet (not detected|unavailable|not connected)|install a nep-21|neoline extension/i.test(
+    message,
+  );
 }
 
 export function normalizePoolId(value: unknown): string {
@@ -125,12 +152,20 @@ export function normalizeClaimKey(value: unknown): string {
 
 function luckPercentFromFixed8(value: unknown): string {
   const amount = asBigInt(value);
-  const clamped = amount < 0n ? 0n : amount > MAX_VAULT_REWARD_FIXED8 ? MAX_VAULT_REWARD_FIXED8 : amount;
+  const clamped =
+    amount < 0n
+      ? 0n
+      : amount > MAX_VAULT_REWARD_FIXED8
+        ? MAX_VAULT_REWARD_FIXED8
+        : amount;
   const basisPoints = (clamped * 10000n) / MAX_VAULT_REWARD_FIXED8;
   return `${basisPoints / 100n}.${String(basisPoints % 100n).padStart(2, "0")}`;
 }
 
-function buildClaimKeyUrl(claimKey: string, network?: MiniAppLaunchContext["network"]) {
+function buildClaimKeyUrl(
+  claimKey: string,
+  network?: MiniAppLaunchContext["network"],
+) {
   const key = normalizeClaimKey(claimKey);
   if (!key) return "";
   return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, {
@@ -140,7 +175,10 @@ function buildClaimKeyUrl(claimKey: string, network?: MiniAppLaunchContext["netw
   });
 }
 
-function buildLegacyPoolClaimUrl(poolId: string, network?: MiniAppLaunchContext["network"]) {
+function buildLegacyPoolClaimUrl(
+  poolId: string,
+  network?: MiniAppLaunchContext["network"],
+) {
   const id = normalizePoolId(poolId);
   if (!id) return "";
   return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, {
@@ -150,9 +188,21 @@ function buildLegacyPoolClaimUrl(poolId: string, network?: MiniAppLaunchContext[
   });
 }
 
-export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOptions) {
-  const currentPoolId = createObservable(normalizePoolId(getLaunchParam(launchContext, ["poolId", "pool", "id"], "")));
-  const currentClaimKey = createObservable(normalizeClaimKey(getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], "")));
+export function useGasLuckyPool({
+  chain,
+  launchContext,
+  t,
+}: UseGasLuckyPoolOptions) {
+  const currentPoolId = createObservable(
+    normalizePoolId(
+      getLaunchParam(launchContext, ["poolId", "pool", "id"], ""),
+    ),
+  );
+  const currentClaimKey = createObservable(
+    normalizeClaimKey(
+      getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""),
+    ),
+  );
   const currentPool = createObservable<GasLuckyPool | null>(null);
   const recentPools = createObservable<GasLuckyPool[]>([]);
   const recentClaims = createObservable<GasLuckyClaim[]>([]);
@@ -168,7 +218,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
   const lastClaimPoolId = createObservable("");
   const lastClaimKey = createObservable("");
   const lastClaimLuckPercent = createObservable("");
-  const claimStatus = createObservable<"" | "submitted" | "paid" | "failed">("");
+  const claimStatus = createObservable<"" | "submitted" | "paid" | "failed">(
+    "",
+  );
   const lastRefundAmount = createObservable<bigint>(0n);
   const lastRefundPoolId = createObservable("");
   const lastFundAmount = createObservable<bigint>(0n);
@@ -177,14 +229,21 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
   const lastError = createObservable("");
   const gasCredit = createObservable<bigint>(0n);
 
-  const poolCount = createDerived(() => recentPools.get().length, [recentPools]);
-  const claimCount = createDerived(() => recentClaims.get().length, [recentClaims]);
+  const poolCount = createDerived(
+    () => recentPools.get().length,
+    [recentPools],
+  );
+  const claimCount = createDerived(
+    () => recentClaims.get().length,
+    [recentClaims],
+  );
   const activePoolCount = createDerived(
     () => recentPools.get().filter((pool) => pool.status === "active").length,
     [recentPools],
   );
   const totalRemaining = createDerived(
-    () => recentPools.get().reduce((sum, pool) => sum + pool.remainingAmount, 0n),
+    () =>
+      recentPools.get().reduce((sum, pool) => sum + pool.remainingAmount, 0n),
     [recentPools],
   );
   const totalRemainingGas = createDerived(
@@ -227,7 +286,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
 
   async function loadRecentPools() {
     try {
-      const events = await chain.listEvents("RangeGasPoolCreated", { limit: 10 });
+      const events = await chain.listEvents("RangeGasPoolCreated", {
+        limit: 10,
+      });
       const items = events
         .map((event) => {
           const appId = String(eventValue(event, 0) ?? "");
@@ -260,7 +321,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
 
   async function loadRecentClaims() {
     try {
-      const events = await chain.listEvents("RangeGasPoolClaimed", { limit: 12 });
+      const events = await chain.listEvents("RangeGasPoolClaimed", {
+        limit: 12,
+      });
       const items = events
         .map((event) => {
           const appId = String(eventValue(event, 0) ?? "");
@@ -287,21 +350,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     isLoading.set(true);
     lastError.set("");
     try {
-      if (currentClaimKey.get()) {
-        currentPool.set(null);
-        recentPools.set([]);
-        recentClaims.set([]);
-        return;
-      }
-      await Promise.all([
-        loadPool().catch((error) => {
-          if (!isWalletUnavailableError(error)) throw error;
-          currentPool.set(null);
-          return null;
-        }),
-        loadRecentPools(),
-        loadRecentClaims(),
-      ]);
+      currentPool.set(null);
+      recentPools.set([]);
+      recentClaims.set([]);
     } catch (error) {
       lastError.set(error instanceof Error ? error.message : t("loadFailed"));
     } finally {
@@ -317,9 +368,12 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     const expiryHours = Number(form.expiryHours || 0);
 
     if (total < ONE_GAS_FIXED8) throw new Error(t("invalidTotal"));
-    if (min < ONE_GAS_FIXED8 || max > MAX_VAULT_REWARD_FIXED8 || min > max) throw new Error(t("invalidRange"));
-    if (!Number.isFinite(maxClaims) || maxClaims < 1 || maxClaims > 100) throw new Error(t("invalidClaimSlots"));
-    if (!Number.isFinite(expiryHours) || expiryHours <= 0 || expiryHours > 720) throw new Error(t("invalidExpiry"));
+    if (min < ONE_GAS_FIXED8 || max > MAX_VAULT_REWARD_FIXED8 || min > max)
+      throw new Error(t("invalidRange"));
+    if (!Number.isFinite(maxClaims) || maxClaims < 1 || maxClaims > 100)
+      throw new Error(t("invalidClaimSlots"));
+    if (!Number.isFinite(expiryHours) || expiryHours <= 0 || expiryHours > 720)
+      throw new Error(t("invalidExpiry"));
     if (total < min * BigInt(maxClaims)) throw new Error(t("poolBelowMinimum"));
     if (total > max * BigInt(maxClaims)) throw new Error(t("poolAboveMaximum"));
 
@@ -437,7 +491,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
       return result;
     } catch (error) {
       lastSuccessType.set("");
-      lastError.set(error instanceof Error ? error.message : t("withdrawGasCreditFailed"));
+      lastError.set(
+        error instanceof Error ? error.message : t("withdrawGasCreditFailed"),
+      );
       throw error;
     } finally {
       isWithdrawingCredit.set(false);
@@ -445,7 +501,8 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
   }
 
   function claimInputValue(input: unknown, key: "claimKey" | "poolId") {
-    if (input && typeof input === "object") return (input as Record<string, unknown>)[key];
+    if (input && typeof input === "object")
+      return (input as Record<string, unknown>)[key];
     return input;
   }
 
@@ -455,7 +512,9 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
       address,
       network: launchContext.network ?? "mainnet",
     });
-    const response = await fetch(`/api/onegate-vault/status?${search.toString()}`);
+    const response = await fetch(
+      `/api/onegate-vault/status?${search.toString()}`,
+    );
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
       const message =
@@ -521,7 +580,11 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
       claimStatus.set(result.status === "paid" ? "paid" : "submitted");
       const amount = asBigInt(result.amountFixed8);
       if (amount > 0n) lastClaimAmount.set(amount);
-      lastClaimLuckPercent.set(String(result.luckPercent || luckPercentFromFixed8(result.amountFixed8)));
+      lastClaimLuckPercent.set(
+        String(
+          result.luckPercent || luckPercentFromFixed8(result.amountFixed8),
+        ),
+      );
 
       if (result.status !== "paid") {
         await pollClaimStatus(claimKey, address).catch(() => undefined);
@@ -552,7 +615,11 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
       if (status.amountFixed8) {
         const amount = asBigInt(status.amountFixed8);
         if (amount > 0n) lastClaimAmount.set(amount);
-        lastClaimLuckPercent.set(String(status.luckPercent || luckPercentFromFixed8(status.amountFixed8)));
+        lastClaimLuckPercent.set(
+          String(
+            status.luckPercent || luckPercentFromFixed8(status.amountFixed8),
+          ),
+        );
       }
       if (status.txHash) lastTxid.set(String(status.txHash));
       if (status.status === "paid") {
@@ -574,14 +641,20 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     if (status.amountFixed8) {
       const amount = asBigInt(status.amountFixed8);
       if (amount > 0n) lastClaimAmount.set(amount);
-      lastClaimLuckPercent.set(String(status.luckPercent || luckPercentFromFixed8(status.amountFixed8)));
+      lastClaimLuckPercent.set(
+        String(
+          status.luckPercent || luckPercentFromFixed8(status.amountFixed8),
+        ),
+      );
     }
     claimStatus.set(status.status === "paid" ? "paid" : "submitted");
     if (status.status === "paid") lastSuccessType.set("claim");
     return status;
   }
 
-  async function claimPool(input: unknown = currentClaimKey.get() || currentPoolId.get()) {
+  async function claimPool(
+    input: unknown = currentClaimKey.get() || currentPoolId.get(),
+  ) {
     const explicitClaimKey =
       input && typeof input === "object"
         ? (input as Record<string, unknown>).claimKey
@@ -607,11 +680,15 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     lastFundPoolId.set("");
     try {
       const claimer = await chain.ensureWallet();
-      const result = await chain.invoke("claimRangeGasPool", [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: id },
-        { type: "Hash160", value: claimer },
-      ], { waitForEvent: "RangeGasPoolClaimed", waitTimeoutMs: 30_000 });
+      const result = await chain.invoke(
+        "claimRangeGasPool",
+        [
+          { type: "String", value: APP_ID },
+          { type: "Integer", value: id },
+          { type: "Hash160", value: claimer },
+        ],
+        { waitForEvent: "RangeGasPoolClaimed", waitTimeoutMs: 30_000 },
+      );
       currentPoolId.set(id);
       lastTxid.set(result.txid);
       lastSuccessType.set("claim");
@@ -649,10 +726,14 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const result = await chain.invoke("refundRangeGasPool", [
-        { type: "String", value: APP_ID },
-        { type: "Integer", value: id },
-      ], { waitForEvent: "RangeGasPoolRefunded", waitTimeoutMs: 30_000 });
+      const result = await chain.invoke(
+        "refundRangeGasPool",
+        [
+          { type: "String", value: APP_ID },
+          { type: "Integer", value: id },
+        ],
+        { waitForEvent: "RangeGasPoolRefunded", waitTimeoutMs: 30_000 },
+      );
       lastTxid.set(result.txid);
       lastSuccessType.set("refund");
       lastRefundPoolId.set(String(eventValue(result.event, 1) ?? id));
@@ -773,8 +854,10 @@ export function useGasLuckyPool({ chain, launchContext, t }: UseGasLuckyPoolOpti
     formatPoolGas: (value: bigint | number | string) => formatGas(value, 4),
     formatPoolAddress: (value: string) => formatHash(value, 8, 6),
     fromFixed8,
-    buildClaimUrl: (claimKey: string) => buildClaimKeyUrl(claimKey, launchContext.network),
-    buildLegacyPoolClaimUrl: (poolId: string) => buildLegacyPoolClaimUrl(poolId, launchContext.network),
+    buildClaimUrl: (claimKey: string) =>
+      buildClaimKeyUrl(claimKey, launchContext.network),
+    buildLegacyPoolClaimUrl: (poolId: string) =>
+      buildLegacyPoolClaimUrl(poolId, launchContext.network),
   };
 }
 

@@ -1,6 +1,14 @@
 // MiniApp Platform Types
 
-export type MiniAppCategory = "gaming" | "defi" | "governance" | "utility" | "social" | "nft" | "data" | "other";
+export type MiniAppCategory =
+  | "gaming"
+  | "defi"
+  | "governance"
+  | "utility"
+  | "social"
+  | "nft"
+  | "data"
+  | "other";
 
 export type MiniAppSource = "miniapp" | "community" | "verified";
 
@@ -50,7 +58,17 @@ export type MiniAppInfo = {
 
 export type OperationParam = {
   name: string;
-  type: "string" | "integer" | "boolean" | "address" | "hash160" | "hash256" | "amount" | "select";
+  type:
+    | "string"
+    | "integer"
+    | "boolean"
+    | "address"
+    | "hash160"
+    | "hash256"
+    | "amount"
+    | "select"
+    | "publickey"
+    | "bytearray";
   label?: string;
   required?: boolean;
   default_value?: string;
@@ -66,6 +84,7 @@ export type OperationEntry = {
   description?: string;
   gas_cost?: string;
   button_style?: "primary" | "secondary" | "danger" | "success";
+  priority?: "primary" | "secondary" | "operator";
   confirm_message?: string;
   params?: OperationParam[];
 };
@@ -98,7 +117,12 @@ export type MiniAppContentBlock =
       items: Array<{ label: string; href: string; external?: boolean }>;
     };
 
-export type MiniAppDetailTabType = "content" | "reviews" | "forum" | "news" | "secrets";
+export type MiniAppDetailTabType =
+  | "content"
+  | "reviews"
+  | "forum"
+  | "news"
+  | "secrets";
 
 export type MiniAppDetailTab = {
   id: string;

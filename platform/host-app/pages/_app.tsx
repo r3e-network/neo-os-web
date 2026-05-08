@@ -65,7 +65,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <div className="font-sans">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[140] focus:px-4 focus:py-2 focus:bg-white focus:text-black focus:rounded"
       >
         Skip to main content
       </a>

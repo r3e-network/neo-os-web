@@ -60,13 +60,13 @@ const items = [
     brand: "ProfitAnchor",
     manifest: "apps/profitanchor/neo-manifest.json",
     deploymentOptional: true,
-    expectedMethods: ["getAnchorStats", "registerAgent", "setAgentProfitScore", "voteBestProfitCandidate", "withdrawCredit", "claimRewards"],
+    expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"],
   },
   {
     brand: "TrustAnchor",
     manifest: "apps/trustanchor/neo-manifest.json",
     deploymentOptional: true,
-    expectedMethods: ["getAnchorStats", "registerAgent", "votePooledStake", "withdrawCredit", "claimRewards"],
+    expectedMethods: ["getAnchorStats", "registerAgent", "registerAgents", "transferAgentNeo", "setAgentCandidate", "voteAgent"],
   },
   {
     brand: "NeoPay",

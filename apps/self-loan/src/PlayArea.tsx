@@ -202,7 +202,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
       <NeoCard
         variant="erobo"
-        title={t("profitAnchorTitle") || "ProfitAnchor Yield Route"}
+        title={t("profitAnchorTitle") || "ProfitAnchor Vote Route"}
       >
         <div className="selfloan-profit-anchor">
           <div>
@@ -210,7 +210,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
               {t("profitAnchorStatus") || "Collateral vote signal"}
             </span>
             <span className="selfloan-profit-anchor-value">
-              {t("profitAnchorValue") || "Highest expected GAS per NEO"}
+              {t("profitAnchorValue") || "Operator-selected council candidate"}
             </span>
           </div>
           <div className="selfloan-profit-anchor-badge">

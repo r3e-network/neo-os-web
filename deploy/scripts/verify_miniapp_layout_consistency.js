@@ -27,9 +27,15 @@ function hasCurrentRuntimeLayout(appRoot) {
   for (const { main, play } of candidates) {
     const mainPath = path.join(appRoot, "src", main);
     const playPath = path.join(appRoot, "src", play);
-    if (!fs.existsSync(mainPath) || !fs.existsSync(playPath)) continue;
+    if (!fs.existsSync(mainPath)) continue;
     const mainSource = fs.readFileSync(mainPath, "utf8");
-    if (mainSource.includes("defineMiniApp(")) return true;
+    if (!mainSource.includes("defineMiniApp(")) continue;
+
+    if (fs.existsSync(playPath)) return true;
+
+    // Factory miniapps intentionally reuse the shared factory runtime instead
+    // of duplicating nearly-identical local PlayArea files per factory type.
+    if (mainSource.includes("createFactoryPlayArea(")) return true;
   }
   return false;
 }
