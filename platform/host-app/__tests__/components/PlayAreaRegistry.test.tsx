@@ -20,7 +20,10 @@ function loadActiveMiniAppIds() {
     .map((entry) => path.join(appsRoot, entry.name, "neo-manifest.json"))
     .filter((manifestPath) => fs.existsSync(manifestPath))
     .map((manifestPath) => {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as { app_id?: string; id?: string };
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+        app_id?: string;
+        id?: string;
+      };
       return manifest.app_id || manifest.id;
     })
     .filter((appId): appId is string => Boolean(appId))
@@ -100,17 +103,41 @@ describe("PlayAreaRegistry", () => {
     ["miniapp-last-survivor", "Countdown auction arena"],
     ["miniapp-fogplay", "Coin flip table"],
     ["miniapp-gasbox", "GASBox gacha machine"],
-    ["miniapp-redenvelope", "Lucky packet desk"],
+    ["miniapp-redenvelope", "Open red envelope"],
     ["miniapp-dailycheckin", "Daily streak board"],
     ["miniapp-self-loan", "Self-repaying loan panel"],
-    ["miniapp-profitanchor", "Profit route voting"],
-    ["miniapp-trustanchor", "Trust route staking"],
+    ["miniapp-profitanchor", "ProfitAnchor stake desk"],
+    ["miniapp-trustanchor", "TrustAnchor stake desk"],
     ["miniapp-neo-pay", "Payment stream builder"],
   ])("renders a native flagship playarea for %s", (appId, heading) => {
-    renderPlayarea({ app_id: appId, name: heading, category: appId.includes("profit") ? "defi" : "gaming" });
+    renderPlayarea({
+      app_id: appId,
+      name: heading,
+      category: appId.includes("profit") ? "defi" : "gaming",
+    });
 
     expect(screen.getByTestId(`native-playarea-${appId}`)).toBeVisible();
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
+  });
+
+  it("keeps TrustAnchor focused on user staking while folding routing diagnostics", () => {
+    renderPlayarea({
+      app_id: "miniapp-trustanchor",
+      name: "TrustAnchor",
+      category: "defi",
+      description: "Manual 21-agent AA routing",
+    });
+
+    expect(screen.getByText("Stake NEO")).toBeVisible();
+    expect(screen.getByText("Withdraw")).toBeVisible();
+    expect(screen.getByText("Claim rewards")).toBeVisible();
+    expect(screen.getByText("Agent and accounting details")).toBeVisible();
+    expect(screen.queryByText("Agent #1")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Agent and accounting details"));
+
+    expect(screen.getByText("AA derivation")).toBeVisible();
+    expect(screen.getByText("Selected manual route")).toBeVisible();
   });
 
   it("presents an ended LastSurvivor round as rollover-ready instead of final", () => {
@@ -145,7 +172,9 @@ describe("PlayAreaRegistry", () => {
   it("has a native playarea binding for every active MiniApp in the local catalog", () => {
     expect(ACTIVE_MINIAPP_IDS.length).toBeGreaterThanOrEqual(50);
     expect(new Set(ACTIVE_MINIAPP_IDS).size).toBe(ACTIVE_MINIAPP_IDS.length);
-    expect(ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId))).toEqual([]);
+    expect(
+      ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId)),
+    ).toEqual([]);
   });
 
   it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
@@ -166,14 +195,22 @@ describe("PlayAreaRegistry", () => {
       },
     });
 
-    expect(screen.getByRole("heading", { name: "Confidential transfer desk" })).toBeVisible();
-    expect(screen.getAllByText("Morpheus confidential compute").length).toBeGreaterThan(0);
-    expect(screen.getByText(/submitted from the right action console/i)).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Confidential transfer desk" }),
+    ).toBeVisible();
+    expect(
+      screen.getAllByText("Morpheus confidential compute").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/submitted from the right action console/i),
+    ).toBeVisible();
     expect(screen.getByText("Recipient")).toBeVisible();
     expect(screen.getByText("Amount")).toBeVisible();
     expect(screen.getByText("Private memo")).toBeVisible();
     expect(screen.queryByText("N...recipient")).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue("private payment")).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue("private payment"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders OneGate Vault as a QR claim desk prefilled from OneGate launch params", () => {
@@ -186,7 +223,8 @@ describe("PlayAreaRegistry", () => {
           app_id: "miniapp-gas-lucky-pool",
           name: "OneGate Vault",
           category: "social",
-          description: "Create a bounded GAS reward pool and let OneGate users scan to claim once.",
+          description:
+            "Create a bounded GAS reward pool and let OneGate users scan to claim once.",
           permissions: { payments: true, randomness: true },
         }}
         stats={[
@@ -222,11 +260,18 @@ describe("PlayAreaRegistry", () => {
       />,
     );
 
-    expect(screen.getByTestId("native-playarea-miniapp-gas-lucky-pool")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "OneGate Vault" })).toBeVisible();
-    expect(screen.getByText("Prefilled from scan parameters")).toBeVisible();
-    expect(screen.getByText("OneGate QR key")).toBeVisible();
-    expect(screen.getByText("Single-use guard")).toBeVisible();
+    expect(
+      screen.getByTestId("native-playarea-miniapp-gas-lucky-pool"),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "OneGate Vault" }),
+    ).toBeVisible();
+    expect(screen.getByText("Reward ready")).toBeVisible();
+    expect(screen.getByText(/Your OneGate scan is verified/i)).toBeVisible();
+    expect(screen.getByText("Reward range")).toBeVisible();
+    expect(screen.queryByText("OneGate QR key")).not.toBeInTheDocument();
+    expect(screen.queryByText("Single-use guard")).not.toBeInTheDocument();
+    expect(screen.queryByText("Campaign setup")).not.toBeInTheDocument();
   });
 
   it("renders explorer as a real live search console instead of a static profiled preview", () => {
@@ -237,9 +282,13 @@ describe("PlayAreaRegistry", () => {
       description: "Search Neo blocks, transactions, addresses, and contracts",
     });
 
-    expect(screen.getByRole("heading", { name: "Live explorer console" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Live explorer console" }),
+    ).toBeVisible();
     expect(screen.getByText("Search state")).toBeVisible();
-    expect(screen.getByText(/Enter the query and network in the action console/i)).toBeVisible();
+    expect(
+      screen.getByText(/Enter the query and network in the action console/i),
+    ).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
 
@@ -260,6 +309,9 @@ describe("PlayAreaRegistry", () => {
 
     expect(screen.getByTestId(`native-playarea-${appId}`)).toBeVisible();
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
+    expect(screen.getByText("Activity and details")).toBeVisible();
+    expect(screen.getByText("Workflow")).not.toBeVisible();
+    fireEvent.click(screen.getByText("Activity and details"));
     expect(screen.getByText("Workflow")).toBeVisible();
     expect(screen.queryByText("Ready to submit")).not.toBeInTheDocument();
   });
@@ -301,25 +353,36 @@ describe("PlayAreaRegistry", () => {
       description: "Tarot reading",
     });
 
-    expect(screen.getByRole("heading", { name: "Draw, flip, read" })).toBeVisible();
-    await waitFor(() => expect(screen.getByText("3 cards")).toBeInTheDocument());
+    expect(
+      screen.getByRole("heading", { name: "Draw, flip, read" }),
+    ).toBeVisible();
+    await waitFor(() =>
+      expect(screen.getByText("3 cards")).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole("button", { name: /Past/i }));
-    expect(screen.getAllByText(/The Fool|The Magician|The High Priestess/).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/The Fool|The Magician|The High Priestess/).length,
+    ).toBeGreaterThan(0);
   });
 
   it("renders tool miniapps as native consoles", () => {
-    renderPlayarea({
+    const bridgeView = renderPlayarea({
       app_id: "miniapp-neo-x-bridge",
       name: "Neo X Bridge",
       category: "defi",
       description: "Bridge console",
     });
-    expect(screen.getByRole("heading", { name: "Neo X bridge control console" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Neo X bridge control console" }),
+    ).toBeVisible();
     expect(screen.getAllByText(/Message Bridge/).length).toBeGreaterThan(0);
     expect(screen.getByText("Target contract")).toBeVisible();
     expect(screen.getByText("Message")).toBeVisible();
     expect(screen.queryByDisplayValue("0xAxLabs...")).not.toBeInTheDocument();
-    expect(screen.queryByDisplayValue("sync:miniapp-state")).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue("sync:miniapp-state"),
+    ).not.toBeInTheDocument();
+    bridgeView.unmount();
 
     renderPlayarea({
       app_id: "miniapp-oracle-http-console",
@@ -327,7 +390,11 @@ describe("PlayAreaRegistry", () => {
       category: "utility",
       description: "Oracle console",
     });
-    expect(screen.getByRole("heading", { name: "HTTP Oracle Console" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "HTTP Oracle Console" }),
+    ).toBeVisible();
+    expect(screen.getByText("Result verifier")).not.toBeVisible();
+    fireEvent.click(screen.getByText("Activity and details"));
     expect(screen.getByText("Result verifier")).toBeVisible();
   });
 
@@ -368,12 +435,15 @@ describe("PlayAreaRegistry", () => {
       />,
     );
 
-    expect(screen.getByText("Amount")).toBeVisible();
-    expect(screen.getAllByText("3.5 GAS").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3.5 GAS")[0]).toBeVisible();
     expect(screen.getByText("Target contract")).toBeVisible();
     expect(screen.getAllByText("0xabcdef").length).toBeGreaterThan(0);
     expect(screen.getByText("Message")).toBeVisible();
     expect(screen.getByText("sync state")).toBeVisible();
     expect(screen.getAllByText("Neo X -> Neo N3").length).toBeGreaterThan(0);
+    expect(screen.getByText("Additional metrics")).toBeVisible();
+    expect(screen.getByText("Amount")).not.toBeVisible();
+    fireEvent.click(screen.getByText("Additional metrics"));
+    expect(screen.getByText("Amount")).toBeVisible();
   });
 });

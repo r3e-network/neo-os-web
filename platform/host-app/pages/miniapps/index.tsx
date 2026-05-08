@@ -107,7 +107,7 @@ function MiniAppListingCard({
   return (
     <Link
       href={`/miniapps/${app.app_id}`}
-      className={`group relative overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:border-emerald-300 hover:shadow-md ${large ? "col-span-full" : ""}`}
+      className={`group relative overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/10 ${large ? "col-span-full" : ""}`}
     >
       <div
         className={`h-1.5 bg-gradient-to-r ${accent.gradient}`}
@@ -115,7 +115,7 @@ function MiniAppListingCard({
       />
 
       <div className={`flex gap-4 p-4 ${large ? "sm:p-5" : ""}`}>
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-1.5">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 p-1.5 shadow-sm shadow-gray-950/5">
           <MiniAppLogo
             appId={app.app_id}
             category={app.category}
@@ -334,9 +334,9 @@ export default function MiniAppsPage({
         <meta name="description" content={BRAND.description} />
       </Head>
 
-      <div className="min-h-screen bg-[#f6f8fb] pt-20">
+      <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#f4f8f6_46%,#f8fafc_100%)] pt-20">
         {/* ── Hero ──────────────────────────────────────────────────── */}
-        <section className="border-b border-gray-200 bg-white px-4 py-8 sm:px-6">
+        <section className="border-b border-gray-200 bg-white/95 px-4 py-8 shadow-sm shadow-gray-950/5 backdrop-blur sm:px-6">
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -358,7 +358,7 @@ export default function MiniAppsPage({
                 </p>
               </div>
 
-              <div className="grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm sm:min-w-[360px]">
+              <div className="grid gap-2 rounded-[24px] border border-gray-200 bg-gray-50/90 p-3 text-sm shadow-sm shadow-gray-950/5 sm:min-w-[360px]">
                 <label className="relative block">
                   <span className="sr-only">Search MiniApps</span>
                   <Search
@@ -370,7 +370,7 @@ export default function MiniAppsPage({
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search by name, category, app ID"
-                    className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
+                    className="w-full rounded-2xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
                   />
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
@@ -456,9 +456,9 @@ export default function MiniAppsPage({
                 {Array.from({ length: 9 }, (_, i) => (
                   <div
                     key={i}
-                    className={`rounded-lg border border-gray-200 bg-white ${i === 0 ? "col-span-full h-32" : "h-36"}`}
+                    className={`rounded-[22px] border border-gray-200 bg-white ${i === 0 ? "col-span-full h-32" : "h-36"}`}
                   >
-                    <div className="h-full animate-pulse rounded-lg bg-gray-50" />
+                    <div className="h-full animate-pulse rounded-[22px] bg-gray-50" />
                   </div>
                 ))}
               </div>
@@ -476,7 +476,7 @@ export default function MiniAppsPage({
                     ))}
                   </>
                 ) : (
-                  <div className="col-span-full rounded-lg border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-sm text-gray-500">
+                  <div className="col-span-full rounded-[22px] border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-sm text-gray-500">
                     No MiniApps match the current filters.
                   </div>
                 )}

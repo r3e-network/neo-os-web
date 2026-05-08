@@ -7,11 +7,18 @@ const TEMPLATE_OVERRIDE_IDS = new Set([
   "miniapp-self-loan",
   "miniapp-profitanchor",
   "miniapp-trustanchor",
+  "miniapp-redenvelope",
 ]);
 
 const DESCRIPTION_OVERRIDES: Record<string, string> = {
   "miniapp-self-loan":
-    "Lock NEO to borrow GAS against future staking rewards. Collateral can follow ProfitAnchor's best-profit vote signal while staying in SelfLoan custody.",
+    "Lock NEO to borrow GAS against future staking rewards. Collateral can follow ProfitAnchor's selected manual route while staying in SelfLoan custody.",
+  "miniapp-profitanchor":
+    "Manual 21-agent AA routing desk for profit-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+  "miniapp-trustanchor":
+    "Manual 21-agent AA routing desk for trust-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+  "miniapp-redenvelope":
+    "Claim-first GAS red envelopes for OneGate QR links, with a secondary creator flow for sending lucky packets.",
 };
 
 export const FLAGSHIP_MINIAPP_IDS: string[] = [

@@ -4,8 +4,8 @@
   "name": "ProfitAnchor",
   "name_zh": "收益锚",
   "version": "1.0.0",
-  "description": "Profit-optimized NEO voting anchor that uses AA-generated agent accounts and exposes the highest expected GAS candidate for staked NEO.",
-  "description_zh": "收益锚 — 使用 AA 生成的 agent 账户，为质押 NEO 暴露预期 GAS 收益最高的投票候选人。",
+  "description": "Manual 21-agent AA routing desk for profit-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
+  "description_zh": "收益锚 — 面向收益策略 NEO 投票的手动 21-agent AA 路由台。运营方在候选人 agent 之间调仓并显式同步投票。",
   "category": "defi",
   "category_name": "DeFi",
   "category_name_zh": "DeFi",
@@ -41,9 +41,11 @@
           "type": 2
         },
         "operations": {
-          "stake": "stake",
-          "withdraw": "withdraw",
-          "claim": "claimRewards",
+          "move": "transferAgentNeo",
+          "updateCandidate": "setAgentCandidate",
+          "vote": "voteAgent",
+          "register": "registerAgent",
+          "batchRegister": "registerAgents",
           "stats": "getAnchorStats"
         },
         "networks": {

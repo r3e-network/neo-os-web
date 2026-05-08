@@ -13,23 +13,69 @@ export const manifest: MiniAppManifest = {
   ],
 
   stats: [
-    { labelKey: "activePools", valueKey: "activePoolCount", format: "number", variant: "success", icon: "gift" },
-    { labelKey: "totalPools", valueKey: "poolCount", format: "number", icon: "archive" },
-    { labelKey: "claims", valueKey: "claimCount", format: "number", variant: "accent", icon: "check-circle" },
-    { labelKey: "gasCredit", valueKey: "gasCreditGas", format: "gas", variant: "warning", icon: "coin" },
+    {
+      labelKey: "activePools",
+      valueKey: "activePoolCount",
+      format: "number",
+      variant: "success",
+      icon: "gift",
+    },
+    {
+      labelKey: "totalPools",
+      valueKey: "poolCount",
+      format: "number",
+      icon: "archive",
+    },
+    {
+      labelKey: "claims",
+      valueKey: "claimCount",
+      format: "number",
+      variant: "accent",
+      icon: "check-circle",
+    },
+    {
+      labelKey: "gasCredit",
+      valueKey: "gasCreditGas",
+      format: "gas",
+      variant: "warning",
+      icon: "coin",
+    },
   ],
 
   sidebar: {
     titleKey: "poolOverview",
     items: [
-      { labelKey: "activePools", valueKey: "activePoolCount", format: "number" },
+      {
+        labelKey: "activePools",
+        valueKey: "activePoolCount",
+        format: "number",
+      },
       { labelKey: "totalPools", valueKey: "poolCount", format: "number" },
       { labelKey: "claims", valueKey: "claimCount", format: "number" },
       { labelKey: "gasCredit", valueKey: "gasCreditGas", format: "gas" },
     ],
   },
 
-  operations: [],
+  operations: [
+    {
+      key: "claimPool",
+      titleKey: "claimPoolTitle",
+      descriptionKey: "claimPoolDescription",
+      actionKey: "claimScannedKey",
+      actionMethod: "claimPool",
+      priority: "primary",
+      fields: [
+        {
+          key: "claimKey",
+          type: "text",
+          labelKey: "claimKey",
+          placeholder: "ogv_campaign_user_key",
+          required: true,
+          hidden: true,
+        },
+      ],
+    },
+  ],
 
   docs: [
     { titleKey: "howItWorks", contentKey: "docHowItWorks", type: "steps" },

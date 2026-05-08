@@ -205,7 +205,9 @@ describe("OneGate Vault off-chain claim engine", () => {
       eq: jest.fn(() => chain),
       in: jest.fn(() => chain),
       select: jest.fn(() => chain),
-      maybeSingle: jest.fn().mockResolvedValue({ data: { key_hash: "hash" }, error: null }),
+      maybeSingle: jest
+        .fn()
+        .mockResolvedValue({ data: { key_hash: "hash" }, error: null }),
     };
     const repository = createSupabaseOneGateVaultRepository({
       from: jest.fn(() => chain),
@@ -219,7 +221,11 @@ describe("OneGate Vault off-chain claim engine", () => {
 
     expect(chain.eq).toHaveBeenCalledWith("key_hash", "hash");
     expect(chain.eq).toHaveBeenCalledWith("request_id", "req-1");
-    expect(chain.in).toHaveBeenCalledWith("status", ["pending", "submitted"]);
+    expect(chain.in).toHaveBeenCalledWith("status", [
+      "pending",
+      "submitted",
+      "failed",
+    ]);
     expect(chain.select).toHaveBeenCalledWith("key_hash");
   });
 });

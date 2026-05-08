@@ -26,9 +26,17 @@ const OP_PARAM_TYPES = new Set<OperationParam["type"]>([
   "hash256",
   "amount",
   "select",
+  "publickey",
+  "bytearray",
 ]);
 
-const TAB_TYPES = new Set<MiniAppDetailTabType>(["content", "reviews", "forum", "news", "secrets"]);
+const TAB_TYPES = new Set<MiniAppDetailTabType>([
+  "content",
+  "reviews",
+  "forum",
+  "news",
+  "secrets",
+]);
 
 const FRONTEND_SPEC_KEYS = [
   "frontend_spec",
@@ -127,15 +135,27 @@ function slugify(value: string, fallback: string): string {
   return slug || fallback;
 }
 
-function normalizeTabType(value: unknown, id: string, label: string): MiniAppDetailTabType {
+function normalizeTabType(
+  value: unknown,
+  id: string,
+  label: string,
+): MiniAppDetailTabType {
   const raw = asTrimmedString(value).toLowerCase();
   if (raw === "overview") return "content";
-  if (TAB_TYPES.has(raw as MiniAppDetailTabType)) return raw as MiniAppDetailTabType;
+  if (TAB_TYPES.has(raw as MiniAppDetailTabType))
+    return raw as MiniAppDetailTabType;
 
   const fingerprint = `${id} ${label}`.toLowerCase();
-  if (fingerprint.includes("review") || fingerprint.includes("comment")) return "reviews";
-  if (fingerprint.includes("forum") || fingerprint.includes("discussion")) return "forum";
-  if (fingerprint.includes("news") || fingerprint.includes("update") || fingerprint.includes("activity")) return "news";
+  if (fingerprint.includes("review") || fingerprint.includes("comment"))
+    return "reviews";
+  if (fingerprint.includes("forum") || fingerprint.includes("discussion"))
+    return "forum";
+  if (
+    fingerprint.includes("news") ||
+    fingerprint.includes("update") ||
+    fingerprint.includes("activity")
+  )
+    return "news";
   if (fingerprint.includes("secret")) return "secrets";
   return "content";
 }
@@ -159,7 +179,9 @@ function coerceOperationParam(raw: unknown): OperationParam | null {
       const label = asTrimmedString(optionObj.label) || value;
       return { label, value };
     })
-    .filter((option): option is { label: string; value: string } => Boolean(option));
+    .filter((option): option is { label: string; value: string } =>
+      Boolean(option),
+    );
 
   return {
     name,
@@ -170,9 +192,10 @@ function coerceOperationParam(raw: unknown): OperationParam | null {
     placeholder: asOptionalString(obj.placeholder),
     options: options.length > 0 ? options : undefined,
     hidden: asOptionalBoolean(obj.hidden),
-    scale: typeof obj.scale === "number" && Number.isFinite(obj.scale)
-      ? obj.scale
-      : undefined,
+    scale:
+      typeof obj.scale === "number" && Number.isFinite(obj.scale)
+        ? obj.scale
+        : undefined,
   };
 }
 
@@ -199,6 +222,13 @@ export function coerceOperationEntries(raw: unknown): OperationEntry[] {
         buttonStyleRaw === "success"
           ? buttonStyleRaw
           : undefined;
+      const priorityRaw = asTrimmedString(obj.priority).toLowerCase();
+      const priority =
+        priorityRaw === "primary" ||
+        priorityRaw === "secondary" ||
+        priorityRaw === "operator"
+          ? priorityRaw
+          : undefined;
 
       return {
         name,
@@ -206,6 +236,7 @@ export function coerceOperationEntries(raw: unknown): OperationEntry[] {
         description: asOptionalString(obj.description),
         gas_cost: asOptionalString(obj.gas_cost),
         button_style: buttonStyle,
+        priority,
         confirm_message: asOptionalString(obj.confirm_message),
         params: params.length ? params : undefined,
       } as OperationEntry;
@@ -244,7 +275,9 @@ function coerceOperationPanel(raw: unknown): MiniAppOperationPanel | null {
   };
 }
 
-function coerceKeyValueItems(raw: unknown): Array<{ key: string; value: string }> {
+function coerceKeyValueItems(
+  raw: unknown,
+): Array<{ key: string; value: string }> {
   if (!Array.isArray(raw)) return [];
 
   return raw
@@ -258,7 +291,9 @@ function coerceKeyValueItems(raw: unknown): Array<{ key: string; value: string }
     .filter((entry): entry is { key: string; value: string } => Boolean(entry));
 }
 
-function coerceLinkItems(raw: unknown): Array<{ label: string; href: string; external?: boolean }> {
+function coerceLinkItems(
+  raw: unknown,
+): Array<{ label: string; href: string; external?: boolean }> {
   if (!Array.isArray(raw)) return [];
 
   return raw
@@ -273,7 +308,10 @@ function coerceLinkItems(raw: unknown): Array<{ label: string; href: string; ext
       }
       return { label, href, external };
     })
-    .filter((entry): entry is { label: string; href: string; external?: boolean } => Boolean(entry));
+    .filter(
+      (entry): entry is { label: string; href: string; external?: boolean } =>
+        Boolean(entry),
+    );
 }
 
 function coerceContentBlock(raw: unknown): MiniAppContentBlock | null {
@@ -307,9 +345,10 @@ function coerceContentBlock(raw: unknown): MiniAppContentBlock | null {
     const content = asTrimmedString(obj.content ?? obj.text);
     if (!content) return null;
     const toneRaw = asTrimmedString(obj.tone).toLowerCase();
-    const tone = toneRaw === "info" || toneRaw === "success" || toneRaw === "warning"
-      ? toneRaw
-      : undefined;
+    const tone =
+      toneRaw === "info" || toneRaw === "success" || toneRaw === "warning"
+        ? toneRaw
+        : undefined;
     return { type: "notice", title, tone, content };
   }
 
@@ -322,7 +361,9 @@ function coerceContentBlock(raw: unknown): MiniAppContentBlock | null {
   };
 }
 
-export function coerceMiniAppContentBlocks(raw: unknown): MiniAppContentBlock[] {
+export function coerceMiniAppContentBlocks(
+  raw: unknown,
+): MiniAppContentBlock[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .map(coerceContentBlock)
@@ -342,11 +383,17 @@ function coerceDetailTabs(raw: unknown): MiniAppDetailTab[] {
       if (seen.has(id)) return null;
 
       const type = normalizeTabType(obj.type, id, label);
-      const blocks = coerceMiniAppContentBlocks(obj.blocks ?? obj.content_blocks);
+      const blocks = coerceMiniAppContentBlocks(
+        obj.blocks ?? obj.content_blocks,
+      );
 
       const content = asTrimmedString(obj.content);
       const mergedBlocks =
-        blocks.length > 0 ? blocks : content && type === "content" ? [{ type: "markdown", content } as MiniAppContentBlock] : [];
+        blocks.length > 0
+          ? blocks
+          : content && type === "content"
+            ? [{ type: "markdown", content } as MiniAppContentBlock]
+            : [];
 
       seen.add(id);
 
@@ -360,17 +407,24 @@ function coerceDetailTabs(raw: unknown): MiniAppDetailTab[] {
     .filter((tab): tab is MiniAppDetailTab => Boolean(tab));
 }
 
-export function coerceMiniAppDetailTemplate(raw: unknown): MiniAppDetailTemplate | null {
+export function coerceMiniAppDetailTemplate(
+  raw: unknown,
+): MiniAppDetailTemplate | null {
   const obj = asObject(raw);
   if (!Object.keys(obj).length) return null;
 
   const layoutRaw = asTrimmedString(obj.layout).toLowerCase();
-  const layout = layoutRaw === "prediction" || layoutRaw === "prediction_market" || layoutRaw === "market"
-    ? "prediction"
-    : "default";
+  const layout =
+    layoutRaw === "prediction" ||
+    layoutRaw === "prediction_market" ||
+    layoutRaw === "market"
+      ? "prediction"
+      : "default";
 
   const tabs = coerceDetailTabs(obj.tabs);
-  const operationPanel = coerceOperationPanel(obj.operation_panel ?? obj.operationPanel);
+  const operationPanel = coerceOperationPanel(
+    obj.operation_panel ?? obj.operationPanel,
+  );
 
   const heroObj = asObject(obj.hero);
   const eyebrow = asOptionalString(heroObj.eyebrow);
@@ -390,7 +444,12 @@ export function coerceMiniAppDetailTemplate(raw: unknown): MiniAppDetailTemplate
 }
 
 function isRecordWithKeys(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.keys(value as Dict).length > 0);
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Dict).length > 0,
+  );
 }
 
 function buildMarkdownFrontendSpec(markdown: string): Dict {
@@ -432,8 +491,7 @@ function parseStructuredSpecString(raw: string): Dict {
   }
 
   const yamlLikely =
-    text.startsWith("---") ||
-    /^\s*[a-zA-Z0-9_-]+\s*:/m.test(text);
+    text.startsWith("---") || /^\s*[a-zA-Z0-9_-]+\s*:/m.test(text);
 
   if (yamlLikely) {
     try {
@@ -459,17 +517,15 @@ function normalizeFrontendSpec(raw: unknown): Dict {
   if (!Object.keys(obj).length) return {};
 
   const format = asTrimmedString(obj.format).toLowerCase();
-  const content =
-    obj.content ??
-    obj.value ??
-    obj.source ??
-    obj.spec ??
-    obj.raw;
+  const content = obj.content ?? obj.value ?? obj.source ?? obj.spec ?? obj.raw;
 
   if ((format === "json" || format === "yaml") && typeof content === "string") {
     return parseStructuredSpecString(content);
   }
-  if ((format === "md" || format === "markdown") && typeof content === "string") {
+  if (
+    (format === "md" || format === "markdown") &&
+    typeof content === "string"
+  ) {
     return buildMarkdownFrontendSpec(content);
   }
 
@@ -491,7 +547,8 @@ function mergeOperationPanel(
       tabs: [],
       operation_panel: {
         ...(panel || {}),
-        operations: operations.length > 0 ? operations : panel?.operations || [],
+        operations:
+          operations.length > 0 ? operations : panel?.operations || [],
       },
     };
   }
@@ -506,7 +563,8 @@ function mergeOperationPanel(
     ...template,
     operation_panel: {
       ...(basePanel || {}),
-      operations: operations.length > 0 ? operations : basePanel?.operations || [],
+      operations:
+        operations.length > 0 ? operations : basePanel?.operations || [],
     },
   };
 }
@@ -521,7 +579,9 @@ export function resolveMiniAppDetailConfig(
 } {
   const obj = asObject(raw);
 
-  const fallbackManifest = isRecordWithKeys(fallback.manifest) ? fallback.manifest : null;
+  const fallbackManifest = isRecordWithKeys(fallback.manifest)
+    ? fallback.manifest
+    : null;
   const manifestObjRaw = obj.manifest;
   const manifest = isRecordWithKeys(manifestObjRaw)
     ? (manifestObjRaw as Record<string, unknown>)
@@ -529,10 +589,13 @@ export function resolveMiniAppDetailConfig(
 
   const manifestTyped = asObject(manifest);
   const frontendSpec = normalizeFrontendSpec(
-    firstDefined(obj, FRONTEND_SPEC_KEYS) ?? firstDefined(manifestTyped, FRONTEND_SPEC_KEYS),
+    firstDefined(obj, FRONTEND_SPEC_KEYS) ??
+      firstDefined(manifestTyped, FRONTEND_SPEC_KEYS),
   );
 
-  const frontendTemplateCandidate = pickTemplateCandidate(frontendSpec) ?? (isRecordWithKeys(frontendSpec) ? frontendSpec : undefined);
+  const frontendTemplateCandidate =
+    pickTemplateCandidate(frontendSpec) ??
+    (isRecordWithKeys(frontendSpec) ? frontendSpec : undefined);
 
   const templateCandidate =
     pickTemplateCandidate(obj) ??
@@ -540,7 +603,10 @@ export function resolveMiniAppDetailConfig(
     pickTemplateCandidate(manifestTyped) ??
     fallback.detailTemplate;
 
-  let detailTemplate = coerceMiniAppDetailTemplate(templateCandidate) ?? fallback.detailTemplate ?? null;
+  let detailTemplate =
+    coerceMiniAppDetailTemplate(templateCandidate) ??
+    fallback.detailTemplate ??
+    null;
 
   const operationPanel =
     coerceOperationPanel(obj.operation_panel) ??
@@ -566,9 +632,16 @@ export function resolveMiniAppDetailConfig(
     }
   }
 
-  detailTemplate = mergeOperationPanel(detailTemplate, operationPanel, operations);
+  detailTemplate = mergeOperationPanel(
+    detailTemplate,
+    operationPanel,
+    operations,
+  );
 
-  if (!operations.length && detailTemplate?.operation_panel?.operations?.length) {
+  if (
+    !operations.length &&
+    detailTemplate?.operation_panel?.operations?.length
+  ) {
     operations = detailTemplate.operation_panel.operations;
   }
 

@@ -596,7 +596,7 @@ function AnchorHero({
               }`}
             >
               {isProfit
-                ? "Highest expected GAS route"
+                ? "Manual profit-policy route"
                 : "Governance routing with custody boundaries"}
             </div>
             <div className="text-3xl sm:text-4xl font-black text-gray-900 leading-tight">
@@ -610,7 +610,7 @@ function AnchorHero({
           </div>
           <p className="text-xs text-gray-600 max-w-md leading-relaxed">
             {isProfit
-              ? "ProfitAnchor keeps NEO voting focused on the best recorded GAS yield while preserving user-only withdrawal and reward claims."
+              ? "ProfitAnchor keeps NEO voting on an explicitly selected manual route while preserving user-only withdrawal and reward claims."
               : "TrustAnchor makes governance routing explicit: admins manage AA agent vote routes, not user stake or reward withdrawals."}
           </p>
         </div>

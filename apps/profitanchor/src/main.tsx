@@ -1,11 +1,14 @@
 /**
  * ProfitAnchor -- React Entry Point (OS Services Pattern)
  *
- * User stake/reward reads and contract mutations use OS services.
- * NEO native transfer for staking stays on ctx.services.chain.
+ * Manual AA agent routing reads and contract mutations use chain services.
  */
 
-import { defineMiniApp, createObservable } from "@shared/react/defineMiniApp";
+import {
+  defineMiniApp,
+  createObservable,
+  createDerived,
+} from "@shared/react/defineMiniApp";
 import type { Observable } from "@shared/react/context";
 import { formatNumber } from "@shared/utils/format";
 import PlayArea from "./PlayArea";
@@ -42,24 +45,72 @@ defineMiniApp({
       set: () => {},
       subscribe: (fn) => anchor.pendingRewards.subscribe(fn),
     };
-    const agentCount = createObservable(agentAccounts.length);
+    const totalNeoDisplay = createDerived(
+      () =>
+        `${formatNum(anchor.stats.get()?.totalStaked ?? 0)} ${ctx.t("tokenNeo")}`,
+      [anchor.stats],
+    );
+    const rewardReserveDisplay = createDerived(
+      () => `${formatNum(anchor.stats.get()?.rewardReserve ?? 0)} GAS`,
+      [anchor.stats],
+    );
+    const agentCount = createDerived(
+      () => anchor.stats.get()?.agentCount || agentAccounts.length,
+      [anchor.stats],
+    );
     const ingressCount = createObservable(21);
 
-    ctx.registerAction("stake", async (...args: unknown[]) => {
-      const amount = args[0] as number;
-      if (!amount || amount <= 0) return;
-      await notify.guard(() => anchor.stake(amount), "stakeSuccess");
+    ctx.registerAction("stakeNeo", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(() => anchor.stakeNeo(form.amount), "stakeSubmitted");
     });
-    ctx.registerAction("unstake", async (...args: unknown[]) => {
-      const amount = args[0] as number;
-      if (!amount || amount <= 0) return;
-      await notify.guard(() => anchor.unstake(amount), "unstakeSuccess");
+    ctx.registerAction("withdrawNeo", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(
+        () => anchor.withdrawNeo(form.amount),
+        "withdrawSubmitted",
+      );
     });
     ctx.registerAction("claimRewards", async () => {
-      await notify.guard(() => anchor.claimRewards(), "claimSuccess");
+      await notify.guard(() => anchor.claimRewards(), "rewardsClaimSubmitted");
     });
-    ctx.registerAction("claimPendingWithdraw", async () => {
-      await notify.guard(() => anchor.claimPendingWithdraw(), "withdrawSuccess");
+    ctx.registerAction("transferAgentNeo", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(
+        () =>
+          anchor.transferAgentNeo(
+            form.fromAgentId,
+            form.toAgentId,
+            form.amount,
+          ),
+        "anchorTransferSubmitted",
+      );
+    });
+    ctx.registerAction("setAgentCandidate", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(
+        () => anchor.setAgentCandidate(form.agentId, form.candidate),
+        "candidateUpdateSubmitted",
+      );
+    });
+    ctx.registerAction("voteAgent", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(
+        () => anchor.voteAgent(form.agentId),
+        "voteSyncSubmitted",
+      );
+    });
+    ctx.registerAction("registerAgent", async (...args: unknown[]) => {
+      const form = (args[0] ?? {}) as Record<string, unknown>;
+      await notify.guard(
+        () =>
+          anchor.registerAgent(
+            form.agentAccount,
+            form.candidate,
+            form.verificationScriptHash,
+          ),
+        "agentRegistered",
+      );
     });
 
     return {
@@ -71,6 +122,8 @@ defineMiniApp({
         agentAccounts: createObservable(agentAccounts),
         myStakeDisplay,
         pendingRewardsDisplay,
+        totalNeoDisplay,
+        rewardReserveDisplay,
         agentCount,
         ingressCount,
       },

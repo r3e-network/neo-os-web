@@ -57,12 +57,12 @@
   },
   "operation_panel": {
     "title": "OneGate Vault",
-    "subtitle": "Submit a QR claim key and let the reward server send 1-50 GAS to the connected OneGate wallet.",
+    "subtitle": "Claim the reward loaded from a OneGate QR scan.",
     "operations": [
       {
         "name": "Claim Reward",
         "method": "claimOneGateVault",
-        "description": "Claim once with the key embedded in the OneGate QR. The backend validates the key, chooses a 1-50 GAS random amount, sends GAS, and returns the luck percentile.",
+        "description": "The OneGate QR supplies the one-time reward key automatically. Claim sends GAS to the connected OneGate wallet.",
         "button_style": "success",
         "params": [
           {
@@ -70,7 +70,8 @@
             "type": "string",
             "label": "Claim key",
             "placeholder": "ogv_campaign_user_key",
-            "required": true
+            "required": true,
+            "hidden": true
           }
         ]
       }

@@ -137,7 +137,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex items-center justify-center",
+          "fixed bottom-6 right-6 z-[90] flex items-center justify-center",
           "w-12 h-12 rounded-full shadow-lg transition-all duration-300",
           "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50",
           isOpen && "rotate-90",
@@ -150,7 +150,7 @@ export function LiveChat({ appId, walletAddress, userName }: LiveChatProps) {
       {/* Chat Panel */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden"
+          className="fixed bottom-24 right-6 z-[90] w-80 sm:w-96 h-[480px] flex flex-col rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Live chat"

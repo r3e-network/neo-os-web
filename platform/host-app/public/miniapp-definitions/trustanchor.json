@@ -2,16 +2,10 @@
   "$schema": "./miniapp-config.schema.json",
   "app_id": "miniapp-trustanchor",
   "name": "TrustAnchor",
-  "description": "AA-agent NEO staking and governance routing where admins can register agents and sync votes, but cannot transfer user stake or reward GAS.",
+  "description": "Manual 21-agent AA routing desk for trust-policy NEO voting. Operators rebalance between candidate agents and sync votes explicitly.",
   "template_type": "governance",
   "category": "Governance",
-  "tags": [
-    "staking",
-    "voting",
-    "governance",
-    "aa",
-    "neo"
-  ],
+  "tags": ["staking", "voting", "governance", "aa", "neo"],
   "version": "1.0.0",
   "status": "active",
   "developer": {
@@ -49,7 +43,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "TrustAnchor uses a shared PlatformAnchor contract. User NEO remains withdrawable only by the user, reward GAS is claimable only by the user, and admin power is limited to registering AA agent routes and executing vote-only updates."
+            "content": "TrustAnchor is an operator desk for explicit AA-agent routing. It does not auto-route funds; operators move NEO between candidate agents and sync votes deliberately."
           },
           {
             "type": "key_value",
@@ -64,12 +58,12 @@
                 "value": "AA agent accounts"
               },
               {
-                "key": "Admin Boundary",
-                "value": "Vote routing only"
+                "key": "Routing",
+                "value": "Manual"
               },
               {
-                "key": "Reward Asset",
-                "value": "GAS"
+                "key": "Agent Set",
+                "value": "21 AA accounts"
               }
             ]
           },
@@ -77,9 +71,9 @@
             "type": "bullet_list",
             "title": "How it works",
             "items": [
-              "Users transfer NEO to PlatformAnchor and stake it under miniapp-trustanchor.",
-              "Admins register AA-generated agent accounts with candidate targets.",
-              "Voting can be synced to selected agents, but withdrawals and reward claims require the user's witness."
+              "Each TrustAnchor instance owns its own 21 AA agent accounts, one per council candidate.",
+              "Operators rebalance by transferring NEO from one agent account to another.",
+              "When the candidate list changes, operators update an agent's vote target and then sync that agent vote."
             ]
           }
         ]
@@ -92,7 +86,7 @@
           {
             "type": "notice",
             "tone": "info",
-            "content": "Each agent route has an AA account, candidate, verification-script hash, and optional voting weight for display. No admin method transfers user NEO or reward GAS."
+            "content": "Agent account, candidate public key, and verification hash are secondary diagnostics. The main operator flow stays move, update target, sync."
           }
         ]
       },
@@ -103,8 +97,8 @@
       }
     ],
     "operation_panel": {
-      "title": "Anchor Actions",
-      "subtitle": "Stake NEO, withdraw user-owned stake, or claim user-earned GAS.",
+      "title": "Stake / Withdraw / Claim",
+      "subtitle": "Users manage their NEO stake here. Operator routing tools stay secondary.",
       "cta_label": "Open TrustAnchor",
       "operations": []
     }
@@ -112,61 +106,46 @@
   "operations": [
     {
       "name": "Stake NEO",
-      "method": "stake",
+      "method": "stakeNeo",
       "button_style": "primary",
+      "priority": "primary",
       "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-trustanchor",
-          "hidden": true
-        },
-        {
-          "name": "user",
-          "type": "hash160",
-          "label": "User",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
         {
           "name": "amount",
           "type": "integer",
-          "label": "Stake (NEO)",
+          "label": "NEO",
           "required": true,
-          "placeholder": "10"
-        }
-      ]
-    },
-    {
-      "name": "Claim GAS",
-      "method": "claimRewards",
-      "button_style": "secondary",
-      "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-trustanchor",
-          "hidden": true
-        },
-        {
-          "name": "user",
-          "type": "hash160",
-          "label": "User",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
+          "placeholder": "1"
         }
       ]
     },
     {
       "name": "Withdraw NEO",
-      "method": "withdraw",
+      "method": "withdrawNeo",
       "button_style": "secondary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Claim Rewards",
+      "method": "claimRewards",
+      "button_style": "success",
+      "priority": "primary",
+      "params": []
+    },
+    {
+      "name": "Move NEO",
+      "method": "transferAgentNeo",
+      "button_style": "secondary",
+      "priority": "operator",
       "params": [
         {
           "name": "appId",
@@ -177,12 +156,18 @@
           "hidden": true
         },
         {
-          "name": "user",
-          "type": "hash160",
-          "label": "User",
+          "name": "fromAgentId",
+          "type": "integer",
+          "label": "From agent",
           "required": true,
-          "default_value": "$wallet",
-          "hidden": true
+          "placeholder": "1"
+        },
+        {
+          "name": "toAgentId",
+          "type": "integer",
+          "label": "To agent",
+          "required": true,
+          "placeholder": "2"
         },
         {
           "name": "amount",
@@ -194,32 +179,92 @@
       ]
     },
     {
-      "name": "Withdraw Credit",
-      "method": "withdrawCredit",
+      "name": "Update Vote Target",
+      "method": "setAgentCandidate",
       "button_style": "secondary",
+      "priority": "operator",
       "params": [
         {
-          "name": "user",
-          "type": "hash160",
-          "label": "User",
-          "required": true,
-          "default_value": "$wallet",
-          "hidden": true
-        },
-        {
-          "name": "asset",
+          "name": "appId",
           "type": "string",
-          "label": "Asset",
+          "label": "App ID",
           "required": true,
-          "default_value": "NEO",
+          "default_value": "miniapp-trustanchor",
           "hidden": true
         },
         {
-          "name": "amount",
+          "name": "agentId",
           "type": "integer",
-          "label": "Amount",
+          "label": "Agent",
           "required": true,
           "placeholder": "1"
+        },
+        {
+          "name": "candidate",
+          "type": "publickey",
+          "label": "Candidate public key",
+          "required": true,
+          "placeholder": "02..."
+        }
+      ]
+    },
+    {
+      "name": "Sync Vote",
+      "method": "voteAgent",
+      "button_style": "secondary",
+      "priority": "operator",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "agentId",
+          "type": "integer",
+          "label": "Agent",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Register Agent",
+      "method": "registerAgent",
+      "button_style": "secondary",
+      "priority": "operator",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "agentAccount",
+          "type": "hash160",
+          "label": "Agent account",
+          "required": true,
+          "placeholder": "0x..."
+        },
+        {
+          "name": "candidate",
+          "type": "publickey",
+          "label": "Candidate public key",
+          "required": true,
+          "placeholder": "02..."
+        },
+        {
+          "name": "verificationScriptHash",
+          "type": "bytearray",
+          "label": "Verification script hash",
+          "required": true,
+          "placeholder": "hex"
         }
       ]
     }

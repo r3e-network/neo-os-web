@@ -1,4 +1,11 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/modal";
@@ -61,11 +68,31 @@ export function ConnectButton() {
     };
   }, [showMenu]);
 
-  const closeConnectModal = () => {
+  const closeConnectModal = useCallback(() => {
     setShowConnectModal(false);
     setWifValue("");
     setWifVisible(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!showConnectModal) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeConnectModal();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showConnectModal, closeConnectModal]);
 
   if (user) {
     return (
@@ -124,7 +151,9 @@ export function ConnectButton() {
               </span>
               {wallet.balance && (
                 <span className="text-[10px] font-semibold text-gray-500 uppercase ">
-                  {wallet.provider === "wif" ? "WIF Test" : `${wallet.balance.gas} GAS`}
+                  {wallet.provider === "wif"
+                    ? "WIF Test"
+                    : `${wallet.balance.gas} GAS`}
                 </span>
               )}
             </div>
@@ -171,6 +200,209 @@ export function ConnectButton() {
 
   // Wallet actions remain Neo N3-first; social login stays on the Auth0 path above.
 
+  const connectModal =
+    showConnectModal && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[1000] flex min-h-[100dvh] items-center justify-center overflow-y-auto px-4 py-4 sm:p-6"
+            data-testid="login-modal-root"
+          >
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeConnectModal}
+              role="presentation"
+              aria-hidden="true"
+            />
+            <div
+              className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:p-8"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Connect wallet"
+            >
+              <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
+                <button
+                  onClick={closeConnectModal}
+                  aria-label="Close login modal"
+                  className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-black text-gray-900 mb-2">
+                  Welcome to {BRAND.name}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Connect a wallet or sign in with email to continue.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                    Email & Social
+                  </p>
+                  <button
+                    onClick={() => auth.loginSocial("google")}
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <img
+                      src="https://www.svgrepo.com/show/475656/google-color.svg"
+                      className="w-5 h-5"
+                      alt="Google"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    Continue with Google
+                  </button>
+                  <button
+                    onClick={() => auth.loginSocial("github")}
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <img
+                      src="https://www.svgrepo.com/show/512317/github-142.svg"
+                      className="w-5 h-5"
+                      alt="GitHub"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    Continue with GitHub
+                  </button>
+                </div>
+
+                <div className="relative flex items-center py-4">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">
+                    OR
+                  </span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                    Neo Ecosystem
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {walletOptions.map((w) => (
+                      <button
+                        key={w.id}
+                        onClick={() => handleConnect(w.id)}
+                        className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
+                      >
+                        <img
+                          src={w.icon}
+                          alt={w.name}
+                          className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.parentElement
+                              ?.querySelector(".fallback-icon")
+                              ?.classList.remove("hidden");
+                          }}
+                        />
+                        <Wallet className="fallback-icon hidden h-8 w-8 text-neo group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-gray-700">
+                          {w.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {directWifEnabled && (
+                    <form
+                      onSubmit={handleWifConnect}
+                      className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4"
+                    >
+                      <div className="mb-3 flex items-center gap-2">
+                        <KeyRound className="h-4 w-4 text-amber-700" />
+                        <p className="text-xs font-bold uppercase text-amber-800">
+                          Direct WIF Testing
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="relative min-w-0 flex-1">
+                          <input
+                            type={wifVisible ? "text" : "password"}
+                            value={wifValue}
+                            onChange={(event) =>
+                              setWifValue(event.target.value)
+                            }
+                            placeholder="Paste test wallet WIF"
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 pr-10 text-sm font-medium text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
+                            aria-label="Direct WIF"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setWifVisible((value) => !value)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-500 hover:bg-amber-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                            aria-label={wifVisible ? "Hide WIF" : "Show WIF"}
+                          >
+                            {wifVisible ? (
+                              <EyeOff size={16} />
+                            ) : (
+                              <Eye size={16} />
+                            )}
+                          </button>
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={
+                            !wifValue.trim() || wallet.loading || auth.loading
+                          }
+                          className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-60"
+                        >
+                          Connect
+                        </Button>
+                      </div>
+                      <p className="mt-2 text-[11px] font-medium leading-relaxed text-amber-800/80">
+                        Local validation only. The key stays in this browser
+                        session and is never saved.
+                      </p>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              <p className="mt-8 text-center text-xs text-gray-400">
+                By connecting, you agree to our Terms of Service and Privacy
+                Policy.
+              </p>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
+  const errorToast =
+    (wallet.error || auth.error) && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            role="alert"
+            className="fixed bottom-6 right-6 z-[1010] w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl animate-in slide-in-from-bottom-5"
+          >
+            <p className="text-sm font-semibold text-red-600 leading-tight mb-3">
+              {wallet.error || auth.error}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                wallet.clearError();
+                auth.clearError();
+              }}
+              className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
+            >
+              Dismiss
+            </button>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       <button
@@ -190,196 +422,9 @@ export function ConnectButton() {
         </span>
       </button>
 
-      {/* Polymarket-style Global Login Modal */}
-      {showConnectModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeConnectModal}
-            onKeyDown={(e) => e.key === "Escape" && closeConnectModal()}
-            role="button"
-            tabIndex={0}
-            aria-label="Close modal"
-          />
-          <div
-            className="relative max-h-[calc(100vh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:p-8"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Connect wallet"
-          >
-            <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
-              <button
-                onClick={closeConnectModal}
-                aria-label="Close login modal"
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {connectModal}
 
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-black text-gray-900 mb-2">
-                Welcome to {BRAND.name}
-              </h2>
-              <p className="text-sm text-gray-500">
-                Connect a wallet or sign in with email to continue.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Social / Email Login */}
-              <div className="space-y-3">
-                <p className="text-xs font-bold uppercase text-gray-400 px-1">
-                  Email & Social
-                </p>
-                <button
-                  onClick={() => auth.loginSocial("google")}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <img
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    className="w-5 h-5"
-                    alt="Google"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  Continue with Google
-                </button>
-                <button
-                  onClick={() => auth.loginSocial("github")}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <img
-                    src="https://www.svgrepo.com/show/512317/github-142.svg"
-                    className="w-5 h-5"
-                    alt="GitHub"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  Continue with GitHub
-                </button>
-              </div>
-
-              <div className="relative flex items-center py-4">
-                <div className="flex-grow border-t border-gray-200"></div>
-                <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">
-                  OR
-                </span>
-                <div className="flex-grow border-t border-gray-200"></div>
-              </div>
-
-              {/* Neo Wallets */}
-              <div className="space-y-3">
-                <p className="text-xs font-bold uppercase text-gray-400 px-1">
-                  Neo Ecosystem
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {walletOptions.map((w) => (
-                    <button
-                      key={w.id}
-                      onClick={() => handleConnect(w.id)}
-                      className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
-                    >
-                      <img
-                        src={w.icon}
-                        alt={w.name}
-                        className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                          e.currentTarget.parentElement
-                            ?.querySelector(".fallback-icon")
-                            ?.classList.remove("hidden");
-                        }}
-                      />
-                      <Wallet className="fallback-icon hidden h-8 w-8 text-neo group-hover:scale-110 transition-transform" />
-                      <span className="text-xs font-bold text-gray-700">
-                        {w.name}
-                      </span>
-                    </button>
-                  ))}
-
-                  {/* Neo N3 wallet extensions only */}
-                </div>
-
-                {directWifEnabled && (
-                  <form
-                    onSubmit={handleWifConnect}
-                    className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4"
-                  >
-                    <div className="mb-3 flex items-center gap-2">
-                      <KeyRound className="h-4 w-4 text-amber-700" />
-                      <p className="text-xs font-bold uppercase text-amber-800">
-                        Direct WIF Testing
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="relative min-w-0 flex-1">
-                        <input
-                          type={wifVisible ? "text" : "password"}
-                          value={wifValue}
-                          onChange={(event) => setWifValue(event.target.value)}
-                          placeholder="Paste test wallet WIF"
-                          autoComplete="off"
-                          spellCheck={false}
-                          className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 pr-10 text-sm font-medium text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                          aria-label="Direct WIF"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setWifVisible((value) => !value)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-500 hover:bg-amber-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                          aria-label={wifVisible ? "Hide WIF" : "Show WIF"}
-                        >
-                          {wifVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <Button
-                        type="submit"
-                        disabled={!wifValue.trim() || wallet.loading || auth.loading}
-                        className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-60"
-                      >
-                        Connect
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-[11px] font-medium leading-relaxed text-amber-800/80">
-                      Local validation only. The key stays in this browser session and is never saved.
-                    </p>
-                  </form>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-8 text-center text-xs text-gray-400">
-              By connecting, you agree to our Terms of Service and Privacy
-              Policy.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Toast */}
-      {(wallet.error || auth.error) && (
-        <div
-          role="alert"
-          className="fixed bottom-6 right-6 w-80 rounded-xl border border-red-200 bg-red-50/90 backdrop-blur-xl p-4 shadow-xl z-50 animate-in slide-in-from-bottom-5"
-        >
-          <p className="text-sm font-semibold text-red-600 leading-tight mb-3">
-            {wallet.error || auth.error}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              wallet.clearError();
-              auth.clearError();
-            }}
-            className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      {errorToast}
     </>
   );
 }
