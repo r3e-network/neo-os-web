@@ -16,7 +16,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "neo-n3-mainnet": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
     "neo-n3-testnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e"
   },
   "contract_domains": {
@@ -38,7 +38,7 @@
         },
         "networks": {
           "neo-n3-mainnet": {
-            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "contract_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
             "registered": true
           },
           "neo-n3-testnet": {
