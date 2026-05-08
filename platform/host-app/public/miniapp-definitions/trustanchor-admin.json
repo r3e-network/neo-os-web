@@ -1,0 +1,179 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-trustanchor-admin",
+  "name": "TrustAnchor Admin",
+  "description": "Operator-only console for TrustAnchor manual AA-agent routing. Public user staking remains in TrustAnchor.",
+  "template_type": "utility",
+  "category": "Utility",
+  "tags": ["admin", "anchor", "trustanchor", "aa", "operator"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Yiwu",
+    "url": "https://neomini.app"
+  },
+  "contract": {
+    "template_id": "platform-anchor",
+    "init_params": {
+      "anchor_app_id": "miniapp-trustanchor",
+      "mode": 1
+    }
+  },
+  "entry_url": "mf://manifest?app=miniapp-trustanchor-admin",
+  "media": {
+    "icon": "/miniapp-assets/trustanchor/logo.jpg",
+    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "governance": true,
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "TrustAnchor Admin"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "warning",
+            "content": "Admin-only: move NEO between the 21 AA agent accounts, update an agent vote target, then sync that agent vote. User stake, redeem, and claim happen in TrustAnchor."
+          },
+          {
+            "type": "bullet_list",
+            "title": "Operator flow",
+            "items": [
+              "Move NEO from one candidate agent account to another candidate agent account.",
+              "Update a specific agent's candidate public key when the council candidate list changes.",
+              "Sync the selected agent vote after the target is updated."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Admin Route",
+      "subtitle": "Only the anchor admin wallet should submit these actions.",
+      "cta_label": "Open Admin",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Move NEO",
+      "method": "transferAgentNeo",
+      "button_style": "primary",
+      "priority": "primary",
+      "confirm_message": "Move NEO between TrustAnchor AA agent accounts?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "fromAgentId",
+          "type": "integer",
+          "label": "From agent",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "toAgentId",
+          "type": "integer",
+          "label": "To agent",
+          "required": true,
+          "placeholder": "2"
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Update Vote Target",
+      "method": "setAgentCandidate",
+      "button_style": "secondary",
+      "priority": "primary",
+      "confirm_message": "Update this TrustAnchor agent vote target?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "agentId",
+          "type": "integer",
+          "label": "Agent",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "candidate",
+          "type": "publickey",
+          "label": "Candidate public key",
+          "required": true,
+          "placeholder": "02..."
+        }
+      ]
+    },
+    {
+      "name": "Sync Vote",
+      "method": "voteAgent",
+      "button_style": "secondary",
+      "priority": "primary",
+      "confirm_message": "Sync this TrustAnchor agent vote on-chain?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "App ID",
+          "required": true,
+          "default_value": "miniapp-trustanchor",
+          "hidden": true
+        },
+        {
+          "name": "agentId",
+          "type": "integer",
+          "label": "Agent",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": false,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "total_gas_used"]
+  },
+  "logic": {
+    "provides": ["trustanchor.adminManualAgentRouting"],
+    "consumers": ["miniapp-trustanchor"]
+  },
+  "docs_url": "https://docs.r3e.network/trustanchor"
+}

@@ -25,14 +25,19 @@ import { compactMiniAppManifestForCatalog } from "@/lib/miniapp-catalog-view";
 // definition wins for authoritative on-chain fields. This stops the
 // frontend from invoking a stale/wrong contract.
 const BUNDLE_AUTHORITATIVE_FIELDS = [
+  "name",
+  "description",
+  "category",
   "contract_hash",
   "manifest",
   "entry_url",
   "dapp_url",
   "permissions",
   "operations",
+  "detail_template",
   "logo_url",
   "banner_url",
+  "docs_url",
 ] as const;
 
 type CatalogApp = Record<string, unknown> & { app_id?: string };

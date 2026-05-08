@@ -53,7 +53,7 @@
   },
   "operation_panel": {
     "title": "Private Transfer",
-    "subtitle": "Enter transfer details in the action console, then seal them locally for Morpheus confidential compute.",
+    "subtitle": "Enter transfer details and seal them locally for Morpheus confidential compute.",
     "operations": [
       {
         "name": "Seal Transfer",

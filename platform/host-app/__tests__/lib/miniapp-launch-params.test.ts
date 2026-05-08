@@ -42,6 +42,26 @@ describe("miniapp-launch-params", () => {
     });
   });
 
+  it("maps concise OneGate QR aliases onto operation param names", () => {
+    const context = parseMiniAppLaunchContext(
+      "https://neomini.app/miniapps/miniapp-gas-lucky-pool?pool=campaign-a&key=ogv_user_42&source=onegate",
+      "miniapp-gas-lucky-pool",
+    );
+
+    expect(
+      buildLaunchParamValues(
+        [
+          { name: "poolId", type: "string", required: true },
+          { name: "claimKey", type: "string", required: true },
+        ],
+        context.params,
+      ),
+    ).toEqual({
+      poolId: "campaign-a",
+      claimKey: "ogv_user_42",
+    });
+  });
+
   it("reads launch param aliases without treating shell metadata as params", () => {
     const context = parseMiniAppLaunchContext(
       "https://neomini.app/miniapps/miniapp-explorer?appId=miniapp-explorer&op=search&q=12345&source=onegate",

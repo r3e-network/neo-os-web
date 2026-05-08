@@ -99,7 +99,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(amount >= FLASH_MIN_LOAN, "min loan 1 GAS");
             ExecutionEngine.Assert(amount <= FLASH_MAX_LOAN, "max loan 100000 GAS");
             ExecutionEngine.Assert(callbackContract != null && callbackContract.IsValid, "callback contract required");
-            ExecutionEngine.Assert(callbackMethod != null && callbackMethod.Length > 0, "callback method required");
+            ExecutionEngine.Assert(callbackMethod == "onFlashLoan", "callback method must be onFlashLoan");
 
             // Anti-abuse: Check cooldown
             ValidateFlashCooldown(appId, borrower);

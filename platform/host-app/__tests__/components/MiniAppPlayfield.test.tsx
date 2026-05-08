@@ -62,4 +62,74 @@ describe("MiniAppPlayfield", () => {
       expect(body.network).toBe("mainnet");
     }
   });
+
+  it("reads Anchor admin consoles through the underlying public anchor appId", async () => {
+    const fetchMock = jest.fn().mockImplementation(async (_url, init) => {
+      const body = JSON.parse(String(init?.body || "{}")) as {
+        method?: string;
+      };
+      return {
+        json: async () => ({
+          result: {
+            state: "HALT",
+            stack:
+              body.method === "getAnchorStats"
+                ? [
+                    {
+                      type: "Map",
+                      value: [
+                        {
+                          key: {
+                            type: "ByteString",
+                            value: Buffer.from("agentCount").toString("base64"),
+                          },
+                          value: { type: "Integer", value: "0" },
+                        },
+                      ],
+                    },
+                  ]
+                : [],
+          },
+        }),
+      };
+    });
+    global.fetch = fetchMock as unknown as typeof global.fetch;
+
+    render(
+      <MiniAppPlayfield
+        app={{
+          ...app,
+          app_id: "miniapp-profitanchor-admin",
+          name: "ProfitAnchor Admin",
+          category: "utility",
+        }}
+        launchContext={{
+          appId: "miniapp-profitanchor-admin",
+          source: "url",
+          operation: null,
+          tab: null,
+          network: "testnet",
+          params: { network: "testnet" },
+          keys: ["network"],
+          hasParams: true,
+          signature: "network=testnet",
+        }}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([, init]) => {
+          const body = JSON.parse(String(init?.body || "{}")) as {
+            method?: string;
+            params?: Array<{ value: string }>;
+          };
+          return (
+            body.method === "getAnchorStats" &&
+            body.params?.[0]?.value === "miniapp-profitanchor"
+          );
+        }),
+      ).toBe(true),
+    );
+  });
 });

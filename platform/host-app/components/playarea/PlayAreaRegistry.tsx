@@ -105,6 +105,8 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-self-loan": SelfLoanPlayArea,
   "miniapp-profitanchor": ProfitAnchorPlayArea,
   "miniapp-trustanchor": TrustAnchorPlayArea,
+  "miniapp-profitanchor-admin": ProfitAnchorAdminPlayArea,
+  "miniapp-trustanchor-admin": TrustAnchorAdminPlayArea,
   "miniapp-neo-pay": NeoPayPlayArea,
   "miniapp-onchaintarot": TarotPlayArea,
   "miniapp-on-chain-tarot": TarotPlayArea,
@@ -174,7 +176,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-aa-account-lab": {
     title: "AA account registration lab",
     subtitle:
-      "Preview registration intent, predicted account id, and owner binding before submitting through the action console.",
+      "Preview registration intent, predicted account id, and owner binding before wallet submission.",
     tone: "sky",
     icon: <Fingerprint className="h-5 w-5" />,
     fields: [
@@ -247,8 +249,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "hook", label: "Hook binding", defaultValue: "spend-limit" },
     ],
     cards: [
-      { label: "Verifier", value: "active" },
-      { label: "Hook", value: "review" },
+      { label: "Verifier", value: "policy" },
+      { label: "Hook", value: "binding" },
       { label: "Scope", value: "account" },
     ],
     steps: [
@@ -286,8 +288,8 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     ],
     cards: [
       { label: "Sponsor", value: "policy match" },
-      { label: "Nonce", value: "fresh" },
-      { label: "Relay", value: "ready" },
+      { label: "Nonce", value: "replay guard" },
+      { label: "Relay", value: "payload" },
     ],
     steps: [
       "Encode payload",
@@ -321,7 +323,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     ],
     cards: [
       { label: "Expiry", value: "24h" },
-      { label: "Sponsor", value: "enabled" },
+      { label: "Sponsor", value: "policy" },
       { label: "Verifier", value: "session key" },
     ],
     steps: ["Define scope", "Set limit", "Bind verifier", "Activate key"],
@@ -344,7 +346,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Oracle", value: "price feed" },
       { label: "Privacy", value: "sealed input" },
-      { label: "Runbook", value: "armed" },
+      { label: "Runbook", value: "recipe" },
     ],
     steps: [
       "Select trigger",
@@ -375,9 +377,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "asset", label: "Shared asset", defaultValue: "GAS balance" },
     ],
     cards: [
-      { label: "Agreement", value: "draft" },
-      { label: "Counterparty", value: "pending" },
-      { label: "Settlement", value: "fair split" },
+      { label: "Agreement", value: "terms" },
+      { label: "Counterparty", value: "approval" },
+      { label: "Settlement", value: "split release" },
     ],
     steps: [
       "Draft terms",
@@ -408,9 +410,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "league", label: "League", defaultValue: "Weekly ladder" },
     ],
     cards: [
-      { label: "Rank", value: "#12" },
-      { label: "Multiplier", value: "1.4x" },
-      { label: "Season", value: "open" },
+      { label: "Burn", value: "entry" },
+      { label: "Leaderboard", value: "ranking" },
+      { label: "Season", value: "round" },
     ],
     steps: ["Choose league", "Preview burn", "Submit burn", "Update rank"],
     primaryAction: "Stage burn entry",
@@ -430,9 +432,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "vote", label: "Vote", defaultValue: "Approve" },
     ],
     cards: [
-      { label: "Quorum", value: "68%" },
-      { label: "Power", value: "verified" },
-      { label: "Status", value: "voting" },
+      { label: "Proposal", value: "review" },
+      { label: "Voting power", value: "wallet" },
+      { label: "Ballot", value: "cast vote" },
     ],
     steps: ["Read proposal", "Check quorum", "Stage vote", "Confirm receipt"],
     primaryAction: "Stage council vote",
@@ -487,7 +489,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Token", value: "NEP-11" },
       { label: "Check-in", value: "QR" },
-      { label: "Status", value: "draft" },
+      { label: "Gate", value: "attendance" },
     ],
     steps: ["Create event", "Mint passes", "Scan QR", "Mark used"],
     primaryAction: "Stage ticket batch",
@@ -551,7 +553,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Symbol", value: "ART" },
       { label: "Collection", value: "Neo Editions" },
-      { label: "Royalty", value: "5%" },
+      { label: "Royalty", value: "policy" },
     ],
     steps: [
       "Select collection template",
@@ -579,7 +581,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Modules", value: "approved" },
       { label: "OneGate", value: "URL params" },
-      { label: "Catalog", value: "ready" },
+      { label: "Catalog", value: "publish entry" },
     ],
     steps: [
       "Pick app template",
@@ -753,9 +755,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       },
     ],
     cards: [
-      { label: "Tribute", value: "draft" },
+      { label: "Tribute", value: "message" },
       { label: "Proof", value: "on-chain" },
-      { label: "Visitors", value: "open" },
+      { label: "Visitors", value: "shared page" },
     ],
     steps: ["Write tribute", "Preview wall", "Anchor proof", "Share memorial"],
     primaryAction: "Stage tribute",
@@ -821,7 +823,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-neo-swap": {
     title: "Neo swap quote desk",
     subtitle:
-      "Build a token swap preview with route, slippage, and settlement state before submitting through the shared action console.",
+      "Build a token swap preview with route, slippage, and settlement state before wallet submission.",
     tone: "emerald",
     icon: <ArrowRightLeft className="h-5 w-5" />,
     fields: [
@@ -898,9 +900,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       },
     ],
     cards: [
-      { label: "Availability", value: "checking" },
+      { label: "Availability", value: "domain search" },
       { label: "Resolver", value: "wallet" },
-      { label: "Renewal", value: "enabled" },
+      { label: "Renewal", value: "extension" },
     ],
     steps: ["Search name", "Resolve price", "Register", "Set resolver"],
     primaryAction: "Stage domain registration",
@@ -974,7 +976,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "asset", label: "Asset", defaultValue: "NEO / GAS" },
     ],
     cards: [
-      { label: "Balances", value: "indexed" },
+      { label: "Balances", value: "chain reads" },
       { label: "Outflow", value: "tracked" },
       { label: "Proof", value: "explorer" },
     ],
@@ -1026,7 +1028,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Matching", value: "quadratic" },
       { label: "Donors", value: "weighted" },
-      { label: "Round", value: "open" },
+      { label: "Round", value: "funding" },
     ],
     steps: [
       "Choose grant",
@@ -1051,7 +1053,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "guardian", label: "Guardian", defaultValue: "did:neo:guardian" },
     ],
     cards: [
-      { label: "Ticket", value: "draft" },
+      { label: "Ticket", value: "recovery request" },
       { label: "Timelock", value: "48h" },
       { label: "Recovery", value: "guarded" },
     ],
@@ -1080,7 +1082,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     cards: [
       { label: "Token", value: "NEP-11" },
       { label: "Transfer", value: "soulbound" },
-      { label: "Issuer", value: "verified" },
+      { label: "Issuer", value: "proof" },
     ],
     steps: [
       "Enter recipient",
@@ -1105,7 +1107,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { key: "message", label: "Message hash", defaultValue: "" },
     ],
     cards: [
-      { label: "Seal", value: "active" },
+      { label: "Seal", value: "time lock" },
       { label: "Unlock", value: "scheduled" },
       { label: "Proof", value: "public hash" },
     ],
@@ -1185,9 +1187,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       },
     ],
     cards: [
-      { label: "Risk", value: "medium" },
-      { label: "Approvals", value: "review" },
-      { label: "Backup", value: "check" },
+      { label: "Risk", value: "checklist" },
+      { label: "Approvals", value: "permissions" },
+      { label: "Backup", value: "self-check" },
     ],
     steps: [
       "Read balances",
@@ -1226,7 +1228,7 @@ export function getNativePlayAreaOperationFallback(
         name: "Draw Capsule",
         method: "prepareMiniAppOperation",
         description:
-          "Choose the machine and draw count in the action console, then use the prepared values for the wallet action.",
+          "Choose the machine and draw count, then submit the prepared wallet action.",
         button_style: "success",
         params: [
           {
@@ -1255,7 +1257,7 @@ export function getNativePlayAreaOperationFallback(
       name: profile.primaryAction,
       method: "prepareMiniAppOperation",
       description:
-        "Prepare app-specific parameters in the shared action console. The center playarea stays focused on state, preview, and workflow.",
+        "Prepare the focused app parameters, then submit the wallet action.",
       button_style: "primary",
       params: profile.fields.map(profileFieldToOperationParam),
     },
@@ -1896,13 +1898,12 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
               },
               {
                 label: "Staged buy",
-                detail: `${keys || "1"} keys from the right action console`,
+                detail: `${keys || "1"} keys staged for the next buy`,
                 value: formatGas(projected),
                 valueLabel: "preview",
               },
             ]}
           />
-          <PlayAreaConsoleHint label="Buy-key inputs and wallet signing stay in the right action console; the playarea only shows live round state and the current preview." />
         </div>
         <div className="space-y-3">
           <MetricGrid stats={stats} />
@@ -1941,7 +1942,7 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
     <PlayShell
       app={app}
       title="Coin flip table"
-      subtitle="Choose heads or tails, size the bet, then submit from the shared action console when the preview looks right."
+      subtitle="Choose heads or tails, size the bet, and submit when the payout preview looks right."
       tone="violet"
       side={<MetricGrid stats={stats} />}
       footer={
@@ -1979,7 +1980,6 @@ function FogPlayPlayArea(props: PlayAreaRegistryProps) {
             value={`${getMetric(statsMap, "Min Bet", "--")} - ${getMetric(statsMap, "Max Bet", "--")}`}
           />
         </div>
-        <PlayAreaConsoleHint label="Choose side, stake amount, and submit the flip from the right action console." />
       </div>
     </PlayShell>
   );
@@ -2052,7 +2052,6 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
             <PreviewStat label="Machines online" value={String(machines)} />
             <PreviewStat label="Draw asset" value="GAS" />
           </div>
-          <PlayAreaConsoleHint label="Machine selection and capsule draw submission are handled in the right action console." />
         </div>
         <div className="space-y-3">
           <MetricGrid stats={stats} />
@@ -2115,8 +2114,8 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
               </h3>
               <p className="m-0 mt-1 max-w-2xl text-xs font-semibold leading-5 text-gray-600 sm:mt-1.5 sm:text-sm">
                 {hasEnvelopeId
-                  ? "The shared envelope ID is loaded. Claim from the action console; the wallet signs the on-chain claim."
-                  : "Use a shared link, QR code, or enter an envelope ID in the action console to claim."}
+                  ? "The shared envelope ID is loaded. Confirm once and the wallet signs the claim."
+                  : "Use a shared link, QR code, or enter an envelope ID to claim."}
               </p>
             </div>
             <div className="rounded-xl border border-white/70 bg-white/90 px-3 py-2 text-left sm:min-w-36 sm:rounded-2xl sm:px-4 sm:py-2.5 sm:text-right">
@@ -2159,7 +2158,6 @@ function RedEnvelopePlayArea(props: PlayAreaRegistryProps) {
             </p>
           )}
         </SecondaryInfo>
-        <MetricGrid stats={stats} />
       </div>
     </PlayShell>
   );
@@ -2343,7 +2341,6 @@ function DailyCheckinPlayArea(props: PlayAreaRegistryProps) {
               value={getMetric(statsMap, "Total Rewarded", "0 GAS")}
             />
           </div>
-          <PlayAreaConsoleHint label="Today's check-in and wallet confirmation are handled in the right action console." />
         </div>
         <ActionBoard
           title="Streak state"
@@ -2453,7 +2450,6 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <PlayAreaConsoleHint label="Collateral amount and loan submission are controlled from the right action console." />
         </div>
         <div className="grid gap-2 sm:grid-cols-4">
           <PreviewStat label="Borrowable GAS" value={formatGas(borrowable)} />
@@ -2467,7 +2463,6 @@ function SelfLoanPlayArea(props: PlayAreaRegistryProps) {
             value={getMetric(statsMap, "Outstanding Debt", "0 GAS")}
           />
         </div>
-        <MetricGrid stats={stats} />
       </div>
     </PlayShell>
   );
@@ -2481,13 +2476,20 @@ function TrustAnchorPlayArea(props: PlayAreaRegistryProps) {
   return <AnchorPlayArea {...props} mode="trust" />;
 }
 
+function ProfitAnchorAdminPlayArea(props: PlayAreaRegistryProps) {
+  return <AnchorAdminPlayArea {...props} mode="profit" />;
+}
+
+function TrustAnchorAdminPlayArea(props: PlayAreaRegistryProps) {
+  return <AnchorAdminPlayArea {...props} mode="trust" />;
+}
+
 function AnchorPlayArea(
   props: PlayAreaRegistryProps & { mode: "profit" | "trust" },
 ) {
   const {
     app,
     statsMap,
-    stats,
     activity,
     loading,
     error,
@@ -2497,16 +2499,6 @@ function AnchorPlayArea(
     onRefresh,
     mode,
   } = props;
-  const [agentId] = useLaunchParamState(
-    launchContext,
-    ["agentId", "agent"],
-    "1",
-  );
-  const [candidate] = useLaunchParamState(
-    launchContext,
-    ["candidate", "target", "voteTarget"],
-    "",
-  );
   const [amount] = useLaunchParamState(launchContext, ["amount", "neo"], "1");
   const isProfit = mode === "profit";
   const totalStaked = getMetric(statsMap, "Total Staked", "0 NEO");
@@ -2525,11 +2517,11 @@ function AnchorPlayArea(
   return (
     <PlayShell
       app={app}
-      title={isProfit ? "ProfitAnchor stake desk" : "TrustAnchor stake desk"}
+      title={isProfit ? "ProfitAnchor" : "TrustAnchor"}
       subtitle={
         isProfit
-          ? "Stake NEO, withdraw NEO, and claim GAS rewards. Operators handle the 21-agent profit route in secondary controls."
-          : "Stake NEO, withdraw NEO, and claim GAS rewards. Operators handle the 21-agent trust route in secondary controls."
+          ? "Stake NEO, redeem your stake, and claim GAS rewards. Operator routing is handled separately in ProfitAnchor Admin."
+          : "Stake NEO, redeem your stake, and claim GAS rewards. Operator routing is handled separately in TrustAnchor Admin."
       }
       tone={isProfit ? "emerald" : "slate"}
       side={<ActivityPanel activity={activity} />}
@@ -2546,44 +2538,43 @@ function AnchorPlayArea(
       <div className="space-y-3">
         <div className="grid gap-3">
           <ActionBoard
-            title="User flow"
-            subtitle="The primary workflow is intentionally small: stake, withdraw, claim. Routing details stay folded below."
+            title="Your anchor position"
+            subtitle="Three actions matter for users: stake, redeem, claim. Everything else is admin-only."
             tone={isProfit ? "emerald" : "slate"}
             rows={[
               {
                 label: "Stake NEO",
-                detail: "Deposit a whole-number NEO amount into this anchor",
+                detail: "Add NEO to your anchor position",
                 value: amount || "1",
                 valueLabel: "NEO",
                 active: true,
                 icon: <LockKeyhole className="h-4 w-4" />,
               },
               {
-                label: "Withdraw",
-                detail: "Exit your own stake without touching operator routing",
-                value: "available",
-                valueLabel: "user action",
+                label: "Redeem NEO",
+                detail: "Withdraw your own stake from the anchor",
+                value: "wallet",
+                valueLabel: "action",
                 icon: <RotateCcw className="h-4 w-4" />,
               },
               {
-                label: "Claim rewards",
-                detail: "Claim accumulated GAS rewards after distribution",
+                label: "Claim GAS",
+                detail: "Collect rewards available for your wallet",
                 value: rewardReserve,
                 valueLabel: "reserve",
                 icon: <Coins className="h-4 w-4" />,
               },
             ]}
           />
-          <PlayAreaConsoleHint label="Use the right action console for Stake, Withdraw, and Claim. Operator routing actions are secondary." />
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
-          <PreviewStat label="Total NEO tracked" value={totalStaked} />
+          <PreviewStat label="Total staked" value={totalStaked} />
           <PreviewStat label="Reward reserve" value={rewardReserve} />
-          <PreviewStat label="Routing mode" value="Manual" />
+          <PreviewStat label="Routing" value="Manual admin" />
         </div>
         <SecondaryInfo
-          title="Agent and accounting details"
-          description="Secondary diagnostics only. The main screen stays dedicated to the user stake lifecycle."
+          title="Operator route details"
+          description="Secondary diagnostics. Normal users do not need these values to stake, redeem, or claim."
           meta="advanced"
         >
           <div className="grid gap-3">
@@ -2594,7 +2585,7 @@ function AnchorPlayArea(
               rows={[
                 {
                   label: "Registered agents",
-                  detail: "Read from getAnchorStats.agentCount",
+                  detail: "One AA agent per council candidate",
                   value: agentCount,
                   valueLabel: "count",
                   active: true,
@@ -2609,26 +2600,113 @@ function AnchorPlayArea(
                 },
                 {
                   label: "Selected manual route",
-                  detail: "Read from getAnchorStats.selectedAgentId",
+                  detail: "Updated by admin routing",
                   value: selectedAgent,
                   valueLabel: "agent",
                   icon: <ArrowRightLeft className="h-4 w-4" />,
                 },
               ]}
             />
-            <div className="grid gap-2 sm:grid-cols-2">
-              <PreviewStat
-                label="Operator candidate input"
-                value={candidate ? shortHash(candidate) : `agent ${agentId}`}
-              />
-              <PreviewStat
-                label="AA derivation"
-                value="anchor+appId+agentId+nonce"
-              />
-            </div>
           </div>
         </SecondaryInfo>
-        <MetricGrid stats={stats} />
+      </div>
+    </PlayShell>
+  );
+}
+
+function AnchorAdminPlayArea(
+  props: PlayAreaRegistryProps & { mode: "profit" | "trust" },
+) {
+  const {
+    app,
+    statsMap,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+    mode,
+  } = props;
+  const [agentId] = useLaunchParamState(launchContext, ["agentId", "agent"], "1");
+  const [candidate] = useLaunchParamState(
+    launchContext,
+    ["candidate", "target", "voteTarget"],
+    "",
+  );
+  const [amount] = useLaunchParamState(launchContext, ["amount", "neo"], "1");
+  const isProfit = mode === "profit";
+  const totalStaked = getMetric(statsMap, "Total Staked", "0 NEO");
+  const agentCount = getMetric(
+    statsMap,
+    "Agents",
+    getMetric(statsMap, "Agent Count", "0"),
+  );
+  const selectedAgent = getMetric(statsMap, "Selected Agent", "not selected");
+
+  return (
+    <PlayShell
+      app={app}
+      title={isProfit ? "ProfitAnchor Admin" : "TrustAnchor Admin"}
+      subtitle="Admin-only manual routing: move NEO between the 21 AA agents, update vote target, then sync vote."
+      tone={isProfit ? "emerald" : "slate"}
+      side={<ActivityPanel activity={activity} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
+    >
+      <div className="space-y-3">
+        <ActionBoard
+          title="Manual route workflow"
+          subtitle="This page is for the admin wallet only. User stake, redeem, and claim stay in the public Anchor app."
+          tone={isProfit ? "emerald" : "slate"}
+          rows={[
+            {
+              label: "Move NEO",
+              detail: "Transfer NEO from one candidate agent to another",
+              value: amount || "1",
+              valueLabel: "NEO",
+              active: true,
+              icon: <ArrowRightLeft className="h-4 w-4" />,
+            },
+            {
+              label: "Update target",
+              detail: "Change the candidate public key for one agent",
+              value: candidate ? shortHash(candidate) : `agent ${agentId}`,
+              valueLabel: "vote",
+              icon: <Vote className="h-4 w-4" />,
+            },
+            {
+              label: "Sync vote",
+              detail: "Submit the selected agent vote on-chain",
+              value: selectedAgent,
+              valueLabel: "selected",
+              icon: <ShieldCheck className="h-4 w-4" />,
+            },
+          ]}
+        />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <PreviewStat label="Anchor stake" value={totalStaked} />
+          <PreviewStat label="AA agents" value={agentCount} />
+          <PreviewStat label="Selected route" value={selectedAgent} />
+        </div>
+        <SecondaryInfo
+          title="Agent derivation"
+          description="Setup should derive each AA account from anchor + appId + agentId + nonce, then batch-register the 21 accounts through the AA contract."
+          meta="setup"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            <PreviewStat label="Derivation" value="anchor+appId+agentId+nonce" />
+            <PreviewStat label="Agent set" value="21 candidate agents" />
+          </div>
+        </SecondaryInfo>
       </div>
     </PlayShell>
   );
@@ -2713,7 +2791,6 @@ function NeoPayPlayArea(props: PlayAreaRegistryProps) {
               },
             ]}
           />
-          <PlayAreaConsoleHint label="Stream terms, beneficiary, and wallet signing stay in the right action console." />
         </div>
         <MetricGrid stats={stats} />
       </div>
@@ -2788,7 +2865,7 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
     <PlayShell
       app={app}
       title="Draw, flip, read"
-      subtitle="The first screen is the reading table: draw three cards, flip them, and use the action console for the on-chain request."
+      subtitle="The first screen is the reading table: draw three cards, flip them, and request the on-chain reading."
       tone="violet"
       side={
         <div className="rounded-lg border border-violet-100 bg-white/85 p-4">
@@ -2859,7 +2936,6 @@ function TarotPlayArea(props: PlayAreaRegistryProps) {
             },
           )}
         </div>
-        <PlayAreaConsoleHint label="Use the action console to draw or flip a reading. Cards remain tappable for the reading table itself." />
       </div>
     </PlayShell>
   );
@@ -3099,7 +3175,7 @@ function ExplorerPlayArea(props: PlayAreaRegistryProps) {
         <MetricGrid stats={resultStats} />
         <ActionBoard
           title="Search state"
-          subtitle="Enter the query and network in the action console. This playarea stays focused on live chain results."
+          subtitle="Enter the query and network, then inspect live chain results."
           tone="slate"
           rows={[
             {
@@ -3258,12 +3334,12 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
       <div className="space-y-3">
         <ActionBoard
           title="Bridge route"
-          subtitle="Bridge inputs live in the right action console. The playarea summarizes the chosen route and current tracking state."
+          subtitle="Bridge inputs define the route; the playarea summarizes current status and tracking."
           tone="sky"
           rows={[
             {
               label: "Asset bridge",
-              detail: "Direction selected from OneGate / action console",
+              detail: "Direction selected for this operation",
               value: direction,
               valueLabel: amount ? `${amount} GAS` : "route",
               active: true,
@@ -3278,7 +3354,7 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
             },
             {
               label: "Message",
-              detail: bridgeMessage || "Payload set in action console",
+              detail: bridgeMessage || "Payload pending",
               value: bridgeMessage ? "ready" : "waiting",
               valueLabel: "payload",
               icon: <ReceiptText className="h-4 w-4" />,
@@ -3296,7 +3372,7 @@ function NeoXBridgePlayArea(props: PlayAreaRegistryProps) {
             { label: "Route", value: direction, accent: true },
             {
               label: "Amount",
-              value: amount ? `${amount} GAS` : "Set in action console",
+              value: amount ? `${amount} GAS` : "Not set",
             },
             {
               label: "Target",
@@ -3468,12 +3544,12 @@ function PrivateTransferPlayArea(props: PlayAreaRegistryProps) {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_240px]">
         <ActionBoard
           title="Private transfer intent"
-          subtitle="Recipient, asset, amount, and memo are submitted from the right action console, then sealed locally for Morpheus confidential compute."
+          subtitle="Recipient, asset, amount, and memo are sealed locally for Morpheus confidential compute before submission."
           tone="slate"
           rows={[
             {
               label: "Recipient",
-              detail: recipient || "Set in action console",
+              detail: recipient || "Recipient pending",
               value: recipient ? shortHash(recipient) : "waiting",
               valueLabel: "address",
               active: Boolean(recipient),
@@ -3722,12 +3798,12 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
       <div className="space-y-3">
         <ActionBoard
           title="Oracle request state"
-          subtitle="Request inputs are owned by the right action console. This playarea verifies the package, privacy mode, and result envelope."
+          subtitle="This playarea verifies the request package, privacy mode, and result envelope."
           tone="slate"
           rows={[
             {
               label: config.mode === "price" ? "Feed symbol" : "Endpoint",
-              detail: endpoint || "Set in action console",
+              detail: endpoint || "Endpoint pending",
               value: endpoint ? shortHash(endpoint) : "waiting",
               valueLabel: "input",
               active: Boolean(endpoint),
@@ -3753,13 +3829,12 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
               label: "Builder",
               detail: sealing
                 ? "Sealing request with Morpheus"
-                : "Ready for action-console submit",
+                : "Ready to submit",
               value: sealing ? "sealing" : "ready",
               valueLabel: "state",
             },
           ]}
         />
-        <PlayAreaConsoleHint label="Use the action console to build or seal the request. Mainnet and testnet oracle records remain separated by the selected network." />
       </div>
     </PlayShell>
   );
@@ -3783,7 +3858,7 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       Object.fromEntries(
         profile.fields.map((field) => [
           field.key,
-          getLaunchParam(launchContext, field.key, profileDefaultValue(field)),
+          getLaunchParam(launchContext, field.key, ""),
         ]),
       ) as Record<string, string>,
     [launchContext, profile],
@@ -3794,33 +3869,12 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
     setValues(initialValues());
   }, [initialValues]);
 
-  const profileMetrics =
-    stats.length > 0
-      ? stats
-      : [
-          {
-            label: "Live data",
-            value: contractHash ? "Awaiting read" : "No binding",
-          },
-          { label: "Inputs", value: "Action console" },
-          { label: "Network", value: network, accent: true },
-        ];
-
   return (
     <PlayShell
       app={app}
       title={profile.title}
       subtitle={profile.subtitle}
       tone={profile.tone}
-      side={
-        <div className="space-y-3">
-          <PlayAreaConsoleHint
-            label={`${profile.primaryAction} inputs and wallet handoff are handled in the right action console.`}
-          />
-          <ProfileWorkflowPanel profile={profile} />
-          <ActivityPanel activity={activity} />
-        </div>
-      }
       footer={
         <ChainStateStrip
           loading={loading}
@@ -3837,7 +3891,19 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
           values={values}
           network={network}
         />
-        <MetricGrid stats={profileMetrics} />
+        <SecondaryInfo
+          title="Activity and details"
+          description="Optional workflow, activity, metrics, and launch parameters. The main playarea stays focused on the primary user task."
+          meta="secondary"
+        >
+          <div className="space-y-3">
+            <ProfileWorkflowPanel profile={profile} />
+            <ProfileModelPanel profile={profile} />
+            <ProfileLaunchParamsPanel profile={profile} values={values} />
+            <ActivityPanel activity={activity} />
+            <MetricGrid stats={stats} />
+          </div>
+        </SecondaryInfo>
       </div>
     </PlayShell>
   );
@@ -3852,73 +3918,38 @@ function ProfileMarketPanel({
   values: Record<string, string>;
   network: "mainnet" | "testnet";
 }) {
-  const cards =
-    profile.cards.length > 0
-      ? profile.cards
-      : [{ label: "Primary action", value: "Action console" }];
-  const rows = cards.slice(0, 4).map((card, index) => ({
-    label: card.label,
-    detail:
-      profile.steps[index] ||
-      profile.visual.slots[index] ||
-      profile.visual.headline,
-    value: profile.fields[index]
-      ? values[profile.fields[index].key]?.trim() || "from console"
-      : "workflow",
-    valueLabel: profile.fields[index]?.label || "state",
-    active: index === 0,
-    icon: index === 0 ? profile.icon : undefined,
-  }));
-
-  const visualRows = [
+  const launchValues = profile.fields
+    .map((field) => values[field.key]?.trim())
+    .filter(Boolean);
+  const primaryInput = launchValues[0];
+  const rows = [
     {
-      label: "Network",
-      detail: "Mainnet/testnet state is isolated",
-      value: network,
-      valueLabel: "scope",
+      label: profile.primaryAction,
+      detail:
+        profile.steps[0] ||
+        "Use the right operation panel to prepare and submit this action.",
+      value: primaryInput || "Operation panel",
+      valueLabel: primaryInput ? "from URL" : "primary",
       active: true,
+      icon: profile.icon,
     },
-    {
-      label: "Operation",
-      detail: profile.primaryAction,
-      value: "user input",
-      valueLabel: "phase",
-    },
-    {
-      label: "Review",
-      detail: profile.steps[1] || profile.visual.headline,
-      value: "wallet",
-      valueLabel: "phase",
-    },
-    {
-      label: "Submit",
-      detail: "Wallet handoff is in the action console",
-      value: "signature",
-      valueLabel: "phase",
-    },
+    ...profile.steps.slice(1, 4).map((step, index) => ({
+      label: step,
+      detail: launchValues[index + 1]
+        ? profile.fields[index + 1]?.label
+        : undefined,
+      value: launchValues[index + 1] || undefined,
+      valueLabel: launchValues[index + 1] ? "from URL" : undefined,
+    })),
   ];
 
   return (
-    <div className="space-y-3">
-      <ActionBoard
-        title={profile.visual.headline}
-        subtitle={profile.visual.footnote || profile.subtitle}
-        rows={rows}
-        tone={profile.tone}
-      />
-      <SecondaryInfo
-        title="Execution details"
-        description="Network, review, and submit phases stay available without taking over the main playarea."
-        meta="flow"
-      >
-        <ActionBoard
-          title="Execution state"
-          subtitle="A compact state board for the app-specific flow."
-          rows={visualRows}
-          tone={profile.tone}
-        />
-      </SecondaryInfo>
-    </div>
+    <ActionBoard
+      title={profile.visual.headline}
+      subtitle={profile.visual.footnote || profile.subtitle}
+      rows={rows}
+      tone={profile.tone}
+    />
   );
 }
 
@@ -3945,6 +3976,64 @@ function ProfileWorkflowPanel({ profile }: { profile: PlayAreaProfile }) {
   );
 }
 
+function ProfileModelPanel({ profile }: { profile: PlayAreaProfile }) {
+  if (profile.cards.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+      <h3 className="m-0 text-sm font-black text-gray-950">
+        What this MiniApp controls
+      </h3>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        {profile.cards.slice(0, 6).map((card) => (
+          <div
+            key={`${card.label}:${card.value}`}
+            className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2"
+          >
+            <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+              {card.label}
+            </p>
+            <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileLaunchParamsPanel({
+  profile,
+  values,
+}: {
+  profile: PlayAreaProfile;
+  values: Record<string, string>;
+}) {
+  const rows = profile.fields
+    .map((field) => ({
+      label: field.label,
+      value: values[field.key]?.trim(),
+    }))
+    .filter((row): row is { label: string; value: string } =>
+      Boolean(row.value),
+    );
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
+      <h3 className="m-0 text-sm font-black text-gray-950">
+        URL launch parameters
+      </h3>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {rows.map((row) => (
+          <PreviewStat key={row.label} label={row.label} value={row.value} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GenericPlayArea(props: PlayAreaRegistryProps) {
   const {
     app,
@@ -3960,10 +4049,9 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
   return (
     <PlayShell
       app={app}
-      title={`${app.name} action console`}
-      subtitle="Review live state, prepare the primary action, and hand off the final signature through the shared platform controls."
+      title={app.name}
+      subtitle={app.description}
       tone="emerald"
-      side={<ActivityPanel activity={activity} />}
       footer={
         <ChainStateStrip
           loading={loading}
@@ -3974,18 +4062,58 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
         />
       }
     >
-      <div className="grid gap-4">
-        <div className="rounded-lg border border-gray-200 bg-white/85 p-4">
-          <h3 className="m-0 text-lg font-black text-gray-950">{app.name}</h3>
-          <p className="mt-2 text-sm leading-6 text-gray-600">
-            {app.description}
-          </p>
-          <PlayAreaConsoleHint label="Use the right action console for wallet signing, OneGate launch parameters, and any app-specific operation inputs." />
-        </div>
-        <MetricGrid stats={stats} />
+      <div className="space-y-3">
+        <ActionBoard
+          title="Primary task"
+          subtitle="This MiniApp has no custom playarea profile yet, so the host keeps the center focused and sends input/signing to the operation panel."
+          rows={buildGenericActionRows(app)}
+          tone="emerald"
+        />
+        <SecondaryInfo
+          title="Activity and details"
+          description="Optional activity, raw metrics, and diagnostic context."
+          meta="secondary"
+        >
+          <div className="space-y-3">
+            <ActivityPanel activity={activity} />
+            <MetricGrid stats={stats} />
+          </div>
+        </SecondaryInfo>
       </div>
     </PlayShell>
   );
+}
+
+function buildGenericActionRows(app: MiniAppInfo) {
+  const primaryOperation = app.operations?.find(
+    (operation) => operation.priority === "primary",
+  ) || app.operations?.[0];
+  const permissionEntries = Object.entries(app.permissions || {})
+    .filter(([, enabled]) => Boolean(enabled))
+    .map(([permission]) => permission.replace(/_/g, " "));
+
+  return [
+    {
+      label: primaryOperation?.name || "Open MiniApp operation",
+      detail:
+        primaryOperation?.description ||
+        "Prepare the primary user action in the right operation panel.",
+      active: true,
+      icon: <Workflow className="h-4 w-4" />,
+    },
+    {
+      label: "Main capability",
+      detail: permissionEntries[0] || app.category,
+      value: app.category,
+      valueLabel: "category",
+    },
+    {
+      label: "Network scope",
+      detail: "Mainnet and testnet state are read separately.",
+      value: app.status || "listed",
+      valueLabel: "catalog",
+    },
+  ];
 }
 
 function ToolCard({
@@ -4019,14 +4147,6 @@ function PreviewStat({ label, value }: { label: string; value: string }) {
       <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">
         {value}
       </p>
-    </div>
-  );
-}
-
-function PlayAreaConsoleHint({ label }: { label: string }) {
-  return (
-    <div className="mt-3 inline-flex max-w-full rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs font-semibold leading-5 text-emerald-800">
-      {label}
     </div>
   );
 }

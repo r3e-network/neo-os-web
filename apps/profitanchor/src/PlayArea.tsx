@@ -35,10 +35,10 @@ export default function PlayArea({ state }: PlayAreaProps) {
       <section className="anchor-primary-card anchor-primary-card--profit">
         <div>
           <span className="anchor-kicker">ProfitAnchor</span>
-          <h2>Stake, withdraw, claim.</h2>
+          <h2>Stake. Redeem. Claim.</h2>
           <p>
-            Your main job is simple: stake NEO, withdraw NEO, and claim GAS
-            rewards. The 21-agent route is operated manually behind the scenes.
+            NEO-backed rewards with manual AA agent routing handled in the
+            admin console.
           </p>
         </div>
         <div className="anchor-score">
@@ -64,26 +64,10 @@ export default function PlayArea({ state }: PlayAreaProps) {
         </div>
       </div>
 
-      <div className="neo-card anchor-user-flow">
-        <div className="section-header">
-          <span className="section-title">Use the action box</span>
-        </div>
-        <div className="anchor-flow-list">
-          <span>Stake NEO with one whole-number amount.</span>
-          <span>
-            Withdraw whenever you want to exit or rebalance your own position.
-          </span>
-          <span>
-            Claim GAS rewards after the contract accrues a distributable
-            balance.
-          </span>
-        </div>
-      </div>
-
       <details className="neo-card">
-        <summary className="section-title">Operator routing details</summary>
+        <summary className="section-title">Routing details</summary>
         <div className="anchor-flow-list">
-          <span>Selected manual route: {selectedAgent}.</span>
+          <span>Current route: {selectedAgent}.</span>
           <span>
             {agentCount || agentAccounts.length}/21 AA agents registered for
             ProfitAnchor.

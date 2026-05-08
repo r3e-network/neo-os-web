@@ -117,7 +117,7 @@ export function useFlashloanCore({
     if (!data.callbackContract || data.callbackContract.trim().length < 34) {
       return t("invalidCallbackContract");
     }
-    if (!data.callbackMethod || data.callbackMethod.trim().length === 0) {
+    if (data.callbackMethod !== "onFlashLoan") {
       return t("invalidCallbackMethod");
     }
     return null;
@@ -263,7 +263,7 @@ export function useFlashloanCore({
         borrower: address.get(),
         amount: toFixed8(data.amount),
         callbackContract: data.callbackContract,
-        callbackMethod: data.callbackMethod,
+        callbackMethod: "onFlashLoan",
       });
 
       // Award first-loan badge (fire-and-forget)

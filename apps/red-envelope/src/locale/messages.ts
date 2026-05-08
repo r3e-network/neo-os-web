@@ -8,16 +8,12 @@ const appMessages = {
   claimTab: { en: "Claim Pools", zh: "领取奖池" },
   claimRedEnvelope: { en: "Claim red envelope", zh: "领取红包" },
   claimReadyDesc: {
-    en: "This QR code already selected the envelope. Confirm the claim in the action console.",
-    zh: "二维码已经带入红包 ID，请在操作栏确认领取。",
+    en: "This envelope is ready. Confirm once to receive GAS.",
+    zh: "红包已就绪，确认一次即可领取 GAS。",
   },
   claimNeedIdDesc: {
-    en: "Scan a OneGate QR or enter an envelope ID in the action console to receive GAS.",
-    zh: "扫描 OneGate 二维码或在操作栏输入红包 ID 即可领取 GAS。",
-  },
-  claimConsoleHint: {
-    en: "Primary action lives in the right action console.",
-    zh: "主要操作在右侧操作栏完成。",
+    en: "Scan a OneGate QR or enter an envelope ID to receive GAS.",
+    zh: "扫描 OneGate 二维码或输入红包 ID 即可领取 GAS。",
   },
   claimOperationDesc: {
     en: "Claim the selected GAS envelope. OneGate QR links prefill this ID.",

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-trustanchor-admin",
+  "name": "TrustAnchor Admin",
+  "name_zh": "信任锚管理台",
+  "version": "1.0.0",
+  "description": "Operator-only console for TrustAnchor manual AA-agent routing. User staking, redeem, and reward claims remain in the public TrustAnchor app.",
+  "description_zh": "信任锚管理员控制台，用于手动管理 AA agent 路由。用户质押、赎回、领取奖励仍在公开 TrustAnchor 小程序中完成。",
+  "category": "utility",
+  "category_name": "Operations",
+  "category_name_zh": "运营",
+  "tags": ["admin", "anchor", "aa", "governance", "operator"],
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "neo-n3-testnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e"
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "trustanchor.miniapp.neo"
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "anchor-admin",
+        "platform": "PlatformAnchor",
+        "appId": "miniapp-trustanchor",
+        "moduleType": 1,
+        "operations": {
+          "move": "transferAgentNeo",
+          "updateCandidate": "setAgentCandidate",
+          "vote": "voteAgent",
+          "stats": "getAnchorStats"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/trustanchor-admin/index.html",
+    "icon": "/miniapp-assets/trustanchor/logo.jpg",
+    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+  },
+  "permissions": [
+    "invoke:admin",
+    "read:blockchain",
+    "aa:agent",
+    "governance:vote"
+  ],
+  "features": {
+    "stateless": false,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://trustanchor-admin"
+  },
+  "platform": {
+    "analytics": true,
+    "comments": false,
+    "ratings": false,
+    "transactions": true
+  },
+  "createdAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T00:00:00Z",
+  "featured": false
+}

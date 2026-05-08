@@ -42,13 +42,33 @@ function initialParamValue(param: OperationParam): string {
   return "";
 }
 
+const launchParamAliases: Record<string, string[]> = {
+  claimKey: ["key", "code", "k"],
+  poolId: ["pool", "id"],
+  envelopeId: ["envelope", "id"],
+  query: ["q", "search"],
+  q: ["query", "search"],
+};
+
+function launchValueForParam(
+  name: string,
+  launchParams: Record<string, string> | null | undefined,
+): string {
+  const keys = [name, ...(launchParamAliases[name] ?? [])];
+  for (const key of keys) {
+    const value = String(launchParams?.[key] ?? "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
 export function buildLaunchParamValues(
   params: OperationParam[],
   launchParams: Record<string, string> | null | undefined,
 ): Record<string, string> {
   const values: Record<string, string> = {};
   for (const param of params) {
-    const launched = String(launchParams?.[param.name] ?? "").trim();
+    const launched = launchValueForParam(param.name, launchParams);
     values[param.name] = launched || initialParamValue(param);
   }
   return values;

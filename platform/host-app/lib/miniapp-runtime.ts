@@ -67,6 +67,8 @@ const MAINNET_CONTRACT_DOMAINS_BY_APP_ID: Record<string, string> = {
   "miniapp-neo-pay": "neopay.miniapp.neo",
   "miniapp-profitanchor": "profitanchor.miniapp.neo",
   "miniapp-trustanchor": "trustanchor.miniapp.neo",
+  "miniapp-profitanchor-admin": "profitanchor.miniapp.neo",
+  "miniapp-trustanchor-admin": "trustanchor.miniapp.neo",
 };
 
 function asObject(value: unknown): Dict {

@@ -38,7 +38,7 @@ defineMiniApp({
           flash.requestLoan({
             amount: String(data.amount ?? ""),
             callbackContract: String(data.callbackContract ?? ""),
-            callbackMethod: String(data.callbackMethod ?? ""),
+            callbackMethod: "onFlashLoan",
           }),
         "loanRequested",
       );
