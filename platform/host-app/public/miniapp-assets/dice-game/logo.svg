@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><image href="logo.jpg" width="1024" height="1024" preserveAspectRatio="xMidYMid slice"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Dice Game logo">
+  <rect width="256" height="256" rx="56" fill="#0f172a"/>
+  <path d="M76 48h104c15.5 0 28 12.5 28 28v104c0 15.5-12.5 28-28 28H76c-15.5 0-28-12.5-28-28V76c0-15.5 12.5-28 28-28z" fill="#f8fafc"/>
+  <path d="M76 48h104c15.5 0 28 12.5 28 28v104c0 15.5-12.5 28-28 28H76c-15.5 0-28-12.5-28-28V76c0-15.5 12.5-28 28-28z" fill="none" stroke="#22c55e" stroke-width="10"/>
+  <circle cx="88" cy="88" r="14" fill="#0f172a"/>
+  <circle cx="128" cy="128" r="14" fill="#22c55e"/>
+  <circle cx="168" cy="168" r="14" fill="#0f172a"/>
+  <path d="M79 177 177 79" stroke="#16a34a" stroke-width="10" stroke-linecap="round"/>
+</svg>

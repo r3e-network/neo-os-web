@@ -1,0 +1,165 @@
+.dice-playarea {
+  display: grid;
+  gap: 16px;
+  min-height: 100%;
+  color: #f7fff8;
+}
+
+.dice-playarea__main {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.dice-card {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 220px;
+  border: 1px solid rgba(0, 229, 153, 0.28);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(0, 229, 153, 0.18), rgba(17, 26, 23, 0.94)),
+    #111a17;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dice-card__face {
+  display: grid;
+  place-items: center;
+  width: min(132px, 40vw);
+  aspect-ratio: 1;
+  border-radius: 28px;
+  background: #f7fff8;
+  color: #0b1110;
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.dice-card__label {
+  color: #c8d5ce;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dice-summary {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(247, 255, 248, 0.1);
+  border-radius: 22px;
+  background: #101714;
+}
+
+.dice-summary p {
+  max-width: 560px;
+  margin: 0;
+  color: #c8d5ce;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.dice-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dice-summary__grid span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(247, 255, 248, 0.08);
+  border-radius: 14px;
+  color: #8fa097;
+  font-size: 12px;
+}
+
+.dice-summary__grid strong {
+  color: #f7fff8;
+  font-size: 15px;
+}
+
+.dice-face-strip {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dice-face-strip__item {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border: 1px solid rgba(247, 255, 248, 0.1);
+  border-radius: 14px;
+  background: #111a17;
+  color: #8fa097;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.dice-face-strip__item--active {
+  border-color: rgba(0, 229, 153, 0.75);
+  background: #00e599;
+  color: #0b1110;
+}
+
+.dice-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid rgba(247, 255, 248, 0.1);
+  border-radius: 16px;
+  background: #101714;
+  color: #c8d5ce;
+}
+
+.dice-status strong {
+  color: #f7fff8;
+}
+
+.dice-status code {
+  color: #00e599;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (max-width: 720px) {
+  .dice-playarea__main {
+    grid-template-columns: 1fr;
+  }
+
+  .dice-card {
+    min-height: 170px;
+  }
+
+  .dice-card__face {
+    width: 112px;
+    font-size: 46px;
+  }
+
+  .dice-summary {
+    padding: 16px;
+  }
+
+  .dice-summary p {
+    font-size: 14px;
+  }
+
+  .dice-summary__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dice-face-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

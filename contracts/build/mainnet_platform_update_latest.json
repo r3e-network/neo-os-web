@@ -1,0 +1,21 @@
+{
+  "network": "mainnet",
+  "rpc_url": "https://mainnet2.neo.coz.io:443",
+  "network_magic": 860833102,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "targets": [
+    {
+      "name": "PlatformGame",
+      "existing_hash": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      "on_chain_update_counter": 2,
+      "on_chain_has_update": false,
+      "admin_matches_signer": false,
+      "updated": false,
+      "skipped_reason": "signer is not contract admin"
+    }
+  ],
+  "transactions": [],
+  "validation": {},
+  "generated_at_utc": "2026-05-08T12:06:44Z"
+}

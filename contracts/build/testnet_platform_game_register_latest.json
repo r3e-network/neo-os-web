@@ -1,0 +1,18 @@
+{
+  "network": "testnet",
+  "rpc_url": "https://testnet1.neo.coz.io:443",
+  "network_magic": 894710606,
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "platform_game": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+  "app_id": "miniapp-dice-game",
+  "game_type": 4,
+  "app_admin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "registered": true,
+  "skipped_reason": "already registered",
+  "validation": {
+    "admin_matches_signer": true,
+    "current_game_type": "4"
+  },
+  "generated_at_utc": "2026-05-08T11:34:21Z"
+}

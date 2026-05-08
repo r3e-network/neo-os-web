@@ -20,6 +20,8 @@ const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const ROOT = path.resolve(__dirname, "../..");
+const MANIFEST_NETWORK_KEY = process.env.MINIAPP_LIVE_NETWORK
+  || (NETWORK_MAGIC === 860833102 ? "neo-n3-mainnet" : "neo-n3-testnet");
 const OUTPUT_PATH = String(
   process.env.REMAINING_MINIAPP_SMOKE_PART3_REPORT_PATH
     || path.join(ROOT, "docs", "reports", "live-smoke", "remaining-contracts-part3.json"),
@@ -31,6 +33,16 @@ const TARGET_FILTER = new Set(
     .filter(Boolean),
 );
 
+function contractFromManifest(appDir, fallback) {
+  try {
+    const manifestPath = path.join(ROOT, "apps", appDir, "neo-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    return manifest?.contracts?.[MANIFEST_NETWORK_KEY] || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 if (!ADMIN_WIF || !USER_WIF) {
   console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF are required");
   process.exit(1);
@@ -38,7 +50,7 @@ if (!ADMIN_WIF || !USER_WIF) {
 
 const ADDRESSES = {
   govmerc: "0x93ff49acf2a4a5c0b23e8da0c209dd0a5ccf5c62",
-  quadratic: "0x4c6cd496a8487ee4d4725751c1f2e7be2da23599",
+  quadratic: contractFromManifest("quadratic-funding", "0x4c6cd496a8487ee4d4725751c1f2e7be2da23599"),
   timecapsule: "0x0c6abb9ddeaceb55bb17f6d3c5a26d0814773489",
 };
 
