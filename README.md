@@ -131,9 +131,9 @@ For detailed architecture, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 | NeoDID Registry | `neodid.morpheus.neo` | `0xb81f31ea81e279793b30411b82c2e82078b63105` |
 | AA canonical entrypoint | `smartwallet.neo` | `0x0268a387913b250166ddec032b03332690a1ef78` |
 | AA additional alias | `aa.morpheus.neo` | `0x0268a387913b250166ddec032b03332690a1ef78` |
-| AA Web3Auth verifier | `web3auth.smartwallet.neo` | `0x8e3a6388e02c0335912a77b7ff06d29a721c9112` |
-| AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0x74ca950d403143b2d40c15ce6d780225a728f5ec` |
-| AA SocialRecovery verifier | `recovery.smartwallet.neo` | `0x51ef9639deb29284cc8577a7fa3fdfbc92ada7c3` |
+| AA Web3Auth verifier | `web3auth.smartwallet.neo` | `0xf5c452cd4ba29dcdc47026383568c0d8b38d9272` |
+| AA SessionKey verifier | `sessionkey.smartwallet.neo` | `0x3ba8333406e59f9fd83cf378b33706a33d9f3755` |
+| AA SocialRecovery verifier | `recovery.smartwallet.neo` | `0x198b3a9cec9bccc2110d19bd929b10374a9d034d` |
 
 Entry domains for MiniApps are not limited to `.neo`. The host runtime now
 accepts canonical `https://...`, `mf://...`, and bare `*.matrix` / `*.neo`

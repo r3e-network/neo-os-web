@@ -21,7 +21,7 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x74ca950d403143b2d40c15ce6d780225a728f5ec",
+    "neo-n3-mainnet": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
     "neo-n3-testnet": "0xed44c88535650b4dd6b8d59776e6ed045462cab6"
   },
   "contract_domains": {
