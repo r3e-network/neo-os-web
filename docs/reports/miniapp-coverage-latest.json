@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-08T13:07:29.000Z",
+  "generated_at": "2026-05-08T15:21:21.681Z",
   "testnet_rpc": "https://api.n3index.dev/testnet",
   "mainnet_rpc": "https://api.n3index.dev/mainnet",
   "testnet_network_magic": 894710606,
@@ -228,7 +228,7 @@
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
       "mainnet_release_status": "deployed",
-      "mainnet_release_reason": "Dice Game was restored as a PlatformGame module, deployed to mainnet, registered as miniapp-dice-game, and validated through contracts/build/mainnet_game_deployment.json.",
+      "mainnet_release_reason": null,
       "action_required": null,
       "stale_readme_flags": []
     },
@@ -247,10 +247,7 @@
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with create/issue/check-in.",
       "action_required": null,
-      "stale_readme_flags": [
-        "testnet-contract-hash-mismatch",
-        "mainnet-contract-hash-mismatch"
-      ]
+      "stale_readme_flags": []
     },
     {
       "app": "explorer",
@@ -290,7 +287,7 @@
       "app": "fogplay",
       "app_id": "miniapp-fogplay",
       "classification": "testnet+mainnet",
-      "source_present": false,
+      "source_present": true,
       "stateless": true,
       "testnet_hash": "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
       "testnet_exists": true,
@@ -298,8 +295,8 @@
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
-      "mainnet_release_status": "deployed",
-      "mainnet_release_reason": "PlatformGame was redeployed on mainnet with update/admin access, Oracle and AA configured, and this miniapp registered in contracts/build/mainnet_game_deployment.json.",
+      "mainnet_release_status": null,
+      "mainnet_release_reason": null,
       "action_required": null,
       "stale_readme_flags": []
     },
@@ -358,7 +355,7 @@
       "app": "gasbox",
       "app_id": "miniapp-gasbox",
       "classification": "testnet+mainnet",
-      "source_present": false,
+      "source_present": true,
       "stateless": true,
       "testnet_hash": "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c",
       "testnet_exists": true,
@@ -366,8 +363,8 @@
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
-      "mainnet_release_status": "deployed",
-      "mainnet_release_reason": "PlatformGame was redeployed on mainnet with update/admin access, Oracle and AA configured, and this miniapp registered in contracts/build/mainnet_game_deployment.json.",
+      "mainnet_release_status": null,
+      "mainnet_release_reason": null,
       "action_required": null,
       "stale_readme_flags": []
     },
@@ -417,8 +414,8 @@
       "mainnet_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
       "mainnet_exists": true,
       "mainnet_name": "PlatformGame",
-      "mainnet_release_status": "deployed",
-      "mainnet_release_reason": "PlatformGame was redeployed on mainnet with update/admin access, Oracle and AA configured, and this miniapp registered in contracts/build/mainnet_game_deployment.json.",
+      "mainnet_release_status": null,
+      "mainnet_release_reason": null,
       "action_required": null,
       "stale_readme_flags": []
     },
@@ -454,10 +451,7 @@
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with fund/create/approve/claim.",
       "action_required": null,
-      "stale_readme_flags": [
-        "testnet-contract-hash-mismatch",
-        "mainnet-contract-hash-mismatch"
-      ]
+      "stale_readme_flags": []
     },
     {
       "app": "miniapp-factory",
@@ -808,7 +802,7 @@
       "testnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
-      "mainnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
       "mainnet_release_status": null,
@@ -825,7 +819,7 @@
       "testnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
-      "mainnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
       "mainnet_release_status": null,
@@ -848,10 +842,7 @@
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with round/project/contribute/finalize/claim.",
       "action_required": null,
-      "stale_readme_flags": [
-        "testnet-contract-hash-mismatch",
-        "mainnet-contract-hash-mismatch"
-      ]
+      "stale_readme_flags": []
     },
     {
       "app": "recovery-guardian",
@@ -919,10 +910,7 @@
       "mainnet_release_status": "deployed",
       "mainnet_release_reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with template/issue/revoke.",
       "action_required": null,
-      "stale_readme_flags": [
-        "testnet-contract-hash-mismatch",
-        "mainnet-contract-hash-mismatch"
-      ]
+      "stale_readme_flags": []
     },
     {
       "app": "time-capsule",
@@ -967,7 +955,7 @@
       "testnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
-      "mainnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
       "mainnet_release_status": null,
@@ -984,7 +972,7 @@
       "testnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
       "testnet_exists": true,
       "testnet_name": "PlatformAnchor",
-      "mainnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "mainnet_exists": true,
       "mainnet_name": "PlatformAnchor",
       "mainnet_release_status": null,

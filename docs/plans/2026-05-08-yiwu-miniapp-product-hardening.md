@@ -68,7 +68,7 @@ Global rules:
 ## Contract Work
 
 - PlatformDeFi: testnet update completed for borrower-only payout/collateral return guard. Mainnet uses a separate SelfLoan contract and needs its own source recovery or reimplementation before upgrade.
-- PlatformAnchor: add `Update` to new artifact. Existing chain contract lacks update ABI, so it cannot be upgraded in place. Required next step is deploy a new upgradable PlatformAnchor, register both anchor apps and 21 agents each, then migrate UI/domain bindings after state/fund migration is proven.
+- PlatformAnchor: mainnet has been redeployed to the updateable contract `0x02beeef6f65c6989a121c0a0e6b23190333edb98`, with ProfitAnchor and TrustAnchor registered and 21 AA agents each. UI/runtime bindings now point at the updateable mainnet contract; miniapp NNS records still require a domain-owner signer because the local deploy signer is not authorized for `*.miniapp.neo`.
 - AA: add a batch registration helper for deterministic anchor agents using `anchor + appId + agentId + nonce`, while preserving user-provided nonce to prevent pre-registration griefing.
 
 ## Verification Gates
