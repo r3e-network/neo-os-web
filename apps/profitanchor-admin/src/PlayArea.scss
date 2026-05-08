@@ -1,0 +1,147 @@
+.anchor-admin-playarea {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  color: #111827;
+}
+
+.anchor-admin-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+}
+
+.anchor-admin-kicker {
+  color: #059669;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.anchor-admin-hero h2 {
+  margin: 4px 0 6px;
+  font-size: 30px;
+  line-height: 1.05;
+  letter-spacing: 0;
+}
+
+.anchor-admin-hero p {
+  max-width: 560px;
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.anchor-admin-meter {
+  display: grid;
+  place-items: center;
+  min-width: 112px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.anchor-admin-meter strong {
+  font-size: 20px;
+}
+
+.anchor-admin-meter span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.anchor-admin-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.anchor-admin-stat-row span {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.anchor-admin-stat-row strong {
+  color: #111827;
+  font-size: 14px;
+  text-transform: none;
+}
+
+.anchor-admin-details {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.anchor-admin-details summary {
+  cursor: pointer;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.anchor-admin-agent-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.anchor-admin-agent-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.anchor-admin-agent-row span {
+  color: #059669;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.anchor-admin-agent-row code {
+  overflow: hidden;
+  color: #4b5563;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .anchor-admin-playarea {
+    padding: 10px;
+  }
+
+  .anchor-admin-hero {
+    display: grid;
+    padding: 14px;
+  }
+
+  .anchor-admin-hero h2 {
+    font-size: 23px;
+  }
+
+  .anchor-admin-stat-row {
+    grid-template-columns: 1fr;
+  }
+}

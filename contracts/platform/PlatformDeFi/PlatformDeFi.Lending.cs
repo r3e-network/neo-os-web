@@ -57,6 +57,35 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(key, total + amount);
         }
 
+        private static void TransferLoanGasToBorrower(
+            string appId,
+            BigInteger loanId,
+            UInt160 borrower,
+            BigInteger amount)
+        {
+            ValidateApp(appId, ProductType_Lending);
+            ExecutionEngine.Assert(loanId > 0, "invalid loan");
+            ValidateAddress(borrower);
+            ExecutionEngine.Assert(amount > 0, "loan payout required");
+
+            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, borrower, amount);
+            ExecutionEngine.Assert(transferred, "GAS transfer failed");
+        }
+
+        private static void ReturnLoanCollateralToBorrower(string appId, BigInteger loanId, Loan loan)
+        {
+            ValidateApp(appId, ProductType_Lending);
+            ExecutionEngine.Assert(loanId > 0, "invalid loan");
+            ValidateAddress(loan.Borrower);
+            ExecutionEngine.Assert(!loan.Active, "loan still active");
+            ExecutionEngine.Assert(loan.Debt == 0, "debt not fully repaid");
+            ExecutionEngine.Assert(loan.Collateral > 0, "no collateral");
+
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, loan.Collateral),
+                "collateral return failed");
+        }
+
         #endregion
 
         #region Lending Methods
@@ -119,9 +148,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 Put(totalBorrowersKey, GetBigInteger(totalBorrowersKey) + 1);
             }
 
-            // Transfer GAS loan to borrower
-            bool transferred = GAS.Transfer(Runtime.ExecutingScriptHash, borrower, netLoan);
-            ExecutionEngine.Assert(transferred, "GAS transfer failed");
+            TransferLoanGasToBorrower(appId, loanId, borrower, netLoan);
 
             OnLoanCreated(appId, loanId, borrower, neoAmount, netLoan);
             return loanId;
@@ -210,9 +237,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             StoreLoan(appId, loanId, loan);
             UpdateTotalCollateral(appId, loan.Collateral, false);
 
-            ExecutionEngine.Assert(
-                NEO.Transfer(Runtime.ExecutingScriptHash, loan.Borrower, loan.Collateral),
-                "collateral return failed");
+            ReturnLoanCollateralToBorrower(appId, loanId, loan);
 
             OnLoanClosed(appId, loanId, loan.Borrower);
         }

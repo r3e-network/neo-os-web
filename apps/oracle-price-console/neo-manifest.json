@@ -47,7 +47,7 @@
   },
   "operation_panel": {
     "title": "Price Feed",
-    "subtitle": "Select a feed symbol from the action console and verify the request package in the playarea.",
+    "subtitle": "Select a feed symbol and verify the request package.",
     "operations": [
       {
         "name": "Build Feed Request",

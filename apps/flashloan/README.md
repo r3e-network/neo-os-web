@@ -22,15 +22,15 @@ Self-contained atomic GAS flash loans on Neo N3.
 ## How It Works
 
 1. Liquidity providers prepay GAS directly into the flash-loan contract and call `deposit`.
-2. Borrowers call `requestLoan(borrower, amount, callbackContract, callbackMethod)`.
+2. Borrowers call `requestLoan(borrower, amount, callbackContract, "onFlashLoan")`.
 3. The flash-loan contract transfers the principal to the callback contract.
-4. In the same transaction, the flash-loan contract calls the callback method.
+4. In the same transaction, the flash-loan contract calls `onFlashLoan`.
 5. The callback contract must repay `amount + fee` before control returns.
 6. If repayment is not exact, the entire transaction reverts.
 
 ## Callback Contract Requirements
 
-- It must implement the callback method you pass to `requestLoan`.
+- It must implement `onFlashLoan`.
 - It should expect to receive the principal first.
 - It must transfer back the principal plus `0.09%` fee inside the same transaction.
 - It should treat the flash-loan contract as the lender and `Runtime.CallingScriptHash`.

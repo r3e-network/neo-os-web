@@ -18,6 +18,7 @@
 
   html {
     @apply scroll-smooth;
+    scrollbar-gutter: stable;
     font-family: var(--font-outfit), var(--font-inter), system-ui, sans-serif;
   }
 
@@ -41,6 +42,11 @@
 
   .neo-glow {
     @apply relative after:absolute after:inset-0 after:rounded-[inherit] after:shadow-[0_0_20px_rgba(0,229,153,0.3)] after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-500 after:z-[-1];
+  }
+
+  .miniapp-stable-scroll,
+  .miniapp-stable-scroll * {
+    overflow-anchor: none;
   }
 
   .animated-gradient-bg {

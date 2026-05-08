@@ -47,7 +47,7 @@
   },
   "operation_panel": {
     "title": "VRF Request",
-    "subtitle": "Prepare randomness request metadata in the action console and inspect the verifiable envelope in the playarea.",
+    "subtitle": "Prepare randomness request metadata and inspect the verifiable envelope.",
     "operations": [
       {
         "name": "Build VRF Request",

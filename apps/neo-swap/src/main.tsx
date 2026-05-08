@@ -2,7 +2,7 @@
  * Neo Swap -- React Entry Point (OS Services Pattern)
  *
  * Host-native NEO/GAS swap console. Quotes are previewed in the MiniApp
- * playarea, while wallet submission stays in the shared action console.
+ * playarea before wallet submission.
  */
 
 import { defineMiniApp } from "@shared/react/defineMiniApp";

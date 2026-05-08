@@ -83,8 +83,8 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <h2>{t("claimRedEnvelope") || "Claim red envelope"}</h2>
           <p>
             {selectedEnvelopeId
-              ? (t("claimReadyDesc") || "This QR code already selected the envelope. Confirm the claim in the action console.")
-              : (t("claimNeedIdDesc") || "Scan a OneGate QR or enter an envelope ID in the action console to receive GAS.")}
+              ? (t("claimReadyDesc") || "This envelope is ready. Confirm once to receive GAS.")
+              : (t("claimNeedIdDesc") || "Scan a OneGate QR or enter an envelope ID to receive GAS.")}
           </p>
         </div>
         <div className="redenv-target-pill">
@@ -102,10 +102,6 @@ export default function PlayArea({ t, state, dispatch, launchContext }: PlayArea
           <span>{targetEnvelope.totalAmount ?? targetEnvelope.amount ?? "?"} GAS pool</span>
         </div>
       )}
-
-      <div className="redenv-console-hint">
-        <span>{t("claimConsoleHint") || "Primary action lives in the right action console."}</span>
-      </div>
 
       <details className="redenv-secondary" open={!selectedEnvelopeId}>
         <summary>{t("availableEnvelopes") || "Active envelopes"}</summary>

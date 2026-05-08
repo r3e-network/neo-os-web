@@ -85,11 +85,12 @@ export function Navbar() {
             prefetch={false}
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
           >
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-blue-500 shadow-md">
-              <span className="text-[13px] font-black leading-none text-white">
-                {BRAND.mark}
-              </span>
-            </div>
+            <img
+              src="/brand/yiwu-mark.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-9 w-9 rounded-xl shadow-md"
+            />
             <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
               {BRAND.name}{" "}
               <span className="hidden text-emerald-600 sm:inline">
