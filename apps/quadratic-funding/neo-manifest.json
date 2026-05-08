@@ -1,65 +1,67 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-quadratic-funding",
-  "name": "Quadratic Funding",
-  "name_zh": "二次方资助",
-  "version": "1.0.0",
-  "description": "Run quadratic funding rounds with public matching pools.",
-  "description_zh": "二次方资助 — 民主化公共品资助，小额捐款也能产生大影响",
   "category": "finance",
   "category_name": "Finance",
   "category_name_zh": "金融",
-  "tags": [
-    "grants",
-    "matching",
-    "funding"
-  ],
-  "developer": {
-    "name": "Yiwu",
-    "email": "dev@r3e.network",
-    "website": "https://neomini.app"
-  },
   "contracts": {
-    "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0x4c6cd496a8487ee4d4725751c1f2e7be2da23599"
+    "neo-n3-mainnet": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
+    "neo-n3-testnet": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43"
   },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-testnet",
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
-      "status": "deferred",
-      "reason": "Testnet-only until the matching and settlement contract is recovered or reimplemented, audited, and approved for mainnet user funds."
+      "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with round/project/contribute/finalize/claim.",
+      "status": "deployed",
+      "verified_at": "2026-05-08T12:13:25Z"
     }
   },
-  "urls": {
-    "entry": "/miniapps/quadratic-funding/index.html",
-    "icon": "/miniapps/quadratic-funding/logo.jpg",
-    "banner": "/miniapps/quadratic-funding/banner.jpg"
+  "description": "Run quadratic funding rounds with public matching pools.",
+  "description_zh": "二次方资助 — 民主化公共品资助，小额捐款也能产生大影响",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
+  "features": {
+    "deeplink": "neomainapp://quadratic-funding",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-quadratic-funding",
+  "name": "Quadratic Funding",
+  "name_zh": "二次方资助",
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": false,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://quadratic-funding"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T03:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "grants",
+    "matching",
+    "funding"
+  ],
+  "updatedAt": "2026-05-08T12:13:25Z",
+  "urls": {
+    "banner": "/miniapps/quadratic-funding/banner.jpg",
+    "entry": "/miniapps/quadratic-funding/index.html",
+    "icon": "/miniapps/quadratic-funding/logo.jpg"
+  },
+  "version": "1.0.0"
 }

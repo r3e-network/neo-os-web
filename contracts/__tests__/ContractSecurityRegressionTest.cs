@@ -71,5 +71,35 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("CD_NEXT_ROUND_SHARE_BPS", code);
             Assert.Contains("return LoadCountdownRound(appId, AppGetInt(appId, CD_PREFIX_ROUND_ID));", code);
         }
+
+        [Fact]
+        public void PlatformGameDiceUsesMorpheusVrfAndRequestBinding()
+        {
+            string platform = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.cs");
+            string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
+
+            Assert.Contains("GameType_Dice", platform);
+            Assert.Contains("ResolveDiceBetFromOracle", platform);
+            Assert.Contains("RefundDiceBetFromOracle", platform);
+            Assert.Contains("\"vrf_random\"", dice);
+            Assert.Contains("StoreOracleRequestContext(requestId, appId, GameType_Dice, betId)", dice);
+            Assert.Contains("ValidateDiceRequestMapping(appId, betId, requestId)", dice);
+            Assert.Contains("requestId > 0", dice);
+            Assert.Contains("oracle request mismatch", dice);
+            Assert.Contains("RequireGameType(appId, GameType_Dice)", dice);
+            Assert.DoesNotContain("ProcessAutomatedSettlement", dice);
+        }
+
+        [Fact]
+        public void RestoredMiniAppBaseAllowsUpdatesButNoDestroy()
+        {
+            string code = ContractSourceAssertions.ReadSource("contracts", "MiniApp.DevPack", "MiniAppCompactBase.cs");
+
+            ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "Update");
+            Assert.Contains("ValidateAdmin();", code);
+            Assert.Contains("ContractManagement.Update", code);
+            Assert.DoesNotContain("ContractManagement.Destroy", code);
+            Assert.DoesNotContain("public static void Destroy", code);
+        }
     }
 }

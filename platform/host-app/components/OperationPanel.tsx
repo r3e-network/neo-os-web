@@ -630,34 +630,7 @@ function PrimaryValueParam({
 function quickPresetsFor(
   param: OperationParam,
 ): Array<{ label: string; value: string; helper?: string }> {
-  const text = `${param.name} ${param.label || ""}`.toLowerCase();
-  if (
-    /key|hash|address|recipient|contract|url|endpoint|message|memo/.test(text)
-  ) {
-    return [];
-  }
-  if (param.type === "integer" && /count|slot|packet/.test(text)) {
-    return [
-      { label: "1", value: "1" },
-      { label: "5", value: "5" },
-      { label: "10", value: "10" },
-    ];
-  }
-  if (/neo|stake/.test(text)) {
-    return [
-      { label: "5", value: "5", helper: "NEO" },
-      { label: "25", value: "25", helper: "NEO" },
-      { label: "100", value: "100", helper: "NEO" },
-    ];
-  }
-  if (param.type === "amount" || /amount|stake|bet|total|min|max/.test(text)) {
-    return [
-      { label: "1", value: "1", helper: "GAS" },
-      { label: "5", value: "5", helper: "GAS" },
-      { label: "25", value: "25", helper: "GAS" },
-    ];
-  }
-  return [];
+  return Array.isArray(param.presets) ? param.presets : [];
 }
 
 function ParamInput({

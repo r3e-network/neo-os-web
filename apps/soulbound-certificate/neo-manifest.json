@@ -1,65 +1,67 @@
 {
   "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
-  "id": "miniapp-soulbound-certificate",
-  "name": "Soulbound Certificate",
-  "name_zh": "灵魂绑定证书",
-  "version": "1.0.0",
-  "description": "Issue non-transferable NEP-11 certificates.",
-  "description_zh": "灵魂绑定证书 — 不可转让的链上证书和凭证，用于身份认证",
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
-  "tags": [
-    "soulbound",
-    "certificate",
-    "nft"
-  ],
-  "developer": {
-    "name": "Yiwu",
-    "email": "dev@r3e.network",
-    "website": "https://neomini.app"
-  },
   "contracts": {
-    "neo-n3-mainnet": "",
-    "neo-n3-testnet": "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e"
+    "neo-n3-mainnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
+    "neo-n3-testnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b"
   },
-  "supported_networks": [
-    "neo-n3-testnet"
-  ],
-  "default_network": "neo-n3-testnet",
+  "createdAt": "2026-01-01T00:00:00Z",
+  "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
-      "status": "deferred",
-      "reason": "Testnet-only until the dedicated NEP-11 certificate contract is recovered or reimplemented, audited, and approved for mainnet issuance."
+      "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with template/issue/revoke.",
+      "status": "deployed",
+      "verified_at": "2026-05-08T12:10:43Z"
     }
   },
-  "urls": {
-    "entry": "/miniapps/soulbound-certificate/index.html",
-    "icon": "/miniapps/soulbound-certificate/logo.jpg",
-    "banner": "/miniapps/soulbound-certificate/banner.jpg"
+  "description": "Issue non-transferable NEP-11 certificates.",
+  "description_zh": "灵魂绑定证书 — 不可转让的链上证书和凭证，用于身份认证",
+  "developer": {
+    "email": "dev@r3e.network",
+    "name": "Yiwu",
+    "website": "https://neomini.app"
   },
+  "features": {
+    "deeplink": "neomainapp://soulbound-certificate",
+    "offlineSupport": false,
+    "stateless": false
+  },
+  "id": "miniapp-soulbound-certificate",
+  "name": "Soulbound Certificate",
+  "name_zh": "灵魂绑定证书",
   "permissions": [
     "invoke:primary",
     "read:blockchain"
   ],
-  "features": {
-    "stateless": false,
-    "offlineSupport": false,
-    "deeplink": "neomainapp://soulbound-certificate"
-  },
-  "stateSource": {
-    "type": "n3index",
-    "chain": "neo-n3-testnet",
-    "endpoints": [
-      "https://api.n3index.dev"
-    ]
-  },
   "platform": {
     "analytics": true,
     "comments": true,
     "ratings": true,
     "transactions": true
   },
-  "createdAt": "2026-01-01T00:00:00Z",
-  "updatedAt": "2026-03-18T03:00:00Z"
+  "stateSource": {
+    "chain": "neo-n3-mainnet",
+    "endpoints": [
+      "https://api.n3index.dev"
+    ],
+    "type": "n3index"
+  },
+  "supported_networks": [
+    "neo-n3-mainnet",
+    "neo-n3-testnet"
+  ],
+  "tags": [
+    "soulbound",
+    "certificate",
+    "nft"
+  ],
+  "updatedAt": "2026-05-08T12:10:43Z",
+  "urls": {
+    "banner": "/miniapps/soulbound-certificate/banner.jpg",
+    "entry": "/miniapps/soulbound-certificate/index.html",
+    "icon": "/miniapps/soulbound-certificate/logo.jpg"
+  },
+  "version": "1.0.0"
 }

@@ -111,6 +111,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             string countdown = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
             string coinFlip = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.CoinFlip.cs");
             string gacha = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Gacha.cs");
+            string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
 
             Assert.Contains("UInt160 winner = round.LastBuyer", countdown);
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, winner, winnerPrize)", countdown);
@@ -124,6 +125,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("Runtime.ExecutingScriptHash, play.Player, selectedItem.Amount", gacha);
             Assert.Contains("Runtime.ExecutingScriptHash, play.Player, tokenId", gacha);
             Assert.DoesNotContain("UInt160 recipient", gacha);
+
+            Assert.Contains("bet.Player", dice);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player, payout)", dice);
+            Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, bet.Player, bet.Amount)", dice);
+            Assert.DoesNotContain("UInt160 recipient", dice);
         }
     }
 }

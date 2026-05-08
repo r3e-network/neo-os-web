@@ -170,7 +170,7 @@ describe("OperationPanel", () => {
     expect(screen.getByLabelText("Stake amount")).toHaveValue(42);
   });
 
-  it("renders market-style controls inside the action box", () => {
+  it("renders market-style controls inside the action box without invented amount shortcuts", () => {
     render(
       <OperationPanel
         operations={[
@@ -205,9 +205,46 @@ describe("OperationPanel", () => {
     expect(screen.getByRole("button", { name: "Up" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Down" })).toBeVisible();
     expect(screen.getByLabelText("Amount")).toHaveValue(5);
-    expect(screen.getByRole("button", { name: "25 GAS" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "25 GAS" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Wallet signed")).not.toBeInTheDocument();
     expect(screen.getByTestId("operation-submit-button")).toBeVisible();
+  });
+
+  it("renders amount shortcuts only when the miniapp definition explicitly provides them", () => {
+    render(
+      <OperationPanel
+        operations={[
+          {
+            name: "Roll",
+            method: "placeDiceBet",
+            params: [
+              {
+                name: "amount",
+                label: "Stake",
+                type: "amount" as const,
+                default_value: "0.10",
+                presets: [
+                  { label: "0.10", value: "0.10", helper: "GAS" },
+                  { label: "0.50", value: "0.50", helper: "GAS" },
+                  { label: "1.00", value: "1.00", helper: "GAS" },
+                ],
+              },
+            ],
+          },
+        ]}
+        onInvoke={jest.fn()}
+        showTitle={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "0.10 GAS" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "0.50 GAS" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "1.00 GAS" })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: "25 GAS" }),
+    ).not.toBeInTheDocument();
   });
 
   it("treats OneGate Vault claim keys as QR context instead of editable amount controls", async () => {

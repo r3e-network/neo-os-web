@@ -464,6 +464,45 @@ export default function MiniAppDetailPage({
           return;
         }
 
+        if (operation.method === "fundGameCredit") {
+          const targetHash =
+            resolvedRuntime?.mode === "platform"
+              ? resolvedRuntime.contractHash
+              : directContractHash;
+          if (!targetHash) {
+            throw new Error(
+              "Game contract is not configured for this network.",
+            );
+          }
+          const amountText = String(values.amount || "").trim();
+          if (!/^\d+(?:\.\d+)?$/.test(amountText) || Number(amountText) <= 0) {
+            throw new Error("Funding amount must be a positive GAS value.");
+          }
+          const amount = parseScaledDecimal(amountText, 8, "Funding amount");
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
+          }
+          const result = await adapter.invoke({
+            scriptHash: BLOCKCHAIN_CONSTANTS.GAS_HASH,
+            operation: "transfer",
+            args: [
+              { type: "Hash160", value: walletAddress },
+              { type: "Hash160", value: targetHash },
+              { type: "Integer", value: amount },
+              { type: "String", value: `${app.app_id}:credit` },
+            ],
+            signers: [{ account: walletAddress, scopes: 1 }],
+          });
+          setInvokeFeedback({
+            type: "success",
+            message: `Game credit funded: ${result.txid}`,
+          });
+          return;
+        }
+
         if (
           operation.method === "stakeNeo" &&
           (app.app_id === "miniapp-profitanchor" ||
@@ -1756,7 +1795,7 @@ function MiniAppListRail({
 
   return (
     <aside
-      className="order-3 self-start rounded-lg border border-gray-200 bg-white p-3 shadow-sm xl:order-none xl:sticky xl:top-24"
+      className="hidden self-start rounded-lg border border-gray-200 bg-white p-3 shadow-sm xl:order-none xl:sticky xl:top-24 xl:block"
       aria-label="MiniApp list"
       data-testid="miniapp-list-rail"
     >

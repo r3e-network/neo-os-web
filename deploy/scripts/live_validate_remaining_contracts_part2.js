@@ -19,6 +19,8 @@ const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF 
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const ROOT = path.resolve(__dirname, "../..");
+const MANIFEST_NETWORK_KEY = process.env.MINIAPP_LIVE_NETWORK
+  || (NETWORK_MAGIC === 860833102 ? "neo-n3-mainnet" : "neo-n3-testnet");
 const OUTPUT_PATH = String(
   process.env.REMAINING_MINIAPP_SMOKE_PART2_REPORT_PATH
     || path.join(ROOT, "docs", "reports", "live-smoke", "remaining-contracts-part2.json"),
@@ -30,17 +32,27 @@ const TARGET_FILTER = new Set(
     .filter(Boolean),
 );
 
+function contractFromManifest(appDir, fallback) {
+  try {
+    const manifestPath = path.join(ROOT, "apps", appDir, "neo-manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    return manifest?.contracts?.[MANIFEST_NETWORK_KEY] || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 if (!ADMIN_WIF || !USER_WIF) {
   console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF are required");
   process.exit(1);
 }
 
 const ADDRESSES = {
-  eventticket: "0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72",
+  eventticket: contractFromManifest("event-ticket-pass", "0x7792dbe7cd09c3d65971d010e36e6f03bbf4df72"),
   gassponsor: "0x31888679572bf2de61462ff9934b6265d60284f2",
   memorial: "0x87f0fe2ba69cd973a3274471234d3cc13ef943c5",
-  milestone: "0x2a3691aa2da68512e9bf1363f383f354b6a02aad",
-  soulbound: "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e",
+  milestone: contractFromManifest("milestone-escrow", "0x2a3691aa2da68512e9bf1363f383f354b6a02aad"),
+  soulbound: contractFromManifest("soulbound-certificate", "0x14a4101b5098c38a18bebeb79dc809c80ff87f9e"),
   trustanchor: process.env.TRUSTANCHOR_CONTRACT || process.env.PLATFORM_ANCHOR_CONTRACT || "",
 };
 

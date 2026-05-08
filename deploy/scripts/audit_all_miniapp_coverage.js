@@ -24,14 +24,24 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function hasContractSource(appName) {
+function hasPlatformRuntimeSource(manifest) {
+  const modules = Array.isArray(manifest?.runtime?.modules) ? manifest.runtime.modules : [];
+  return modules.some((module) => {
+    const platform = String(module?.platform || "").trim();
+    if (!platform) return false;
+    return fs.existsSync(path.join(CONTRACTS_DIR, "platform", platform, `${platform}.csproj`));
+  });
+}
+
+function hasContractSource(appName, manifest) {
   const slug = appName.replace(/-/g, "").toLowerCase();
-  return fs.readdirSync(CONTRACTS_DIR).some((entry) => {
+  const dedicatedSource = fs.readdirSync(CONTRACTS_DIR).some((entry) => {
     const csproj = path.join(CONTRACTS_DIR, entry, `${entry}.csproj`);
     if (!fs.existsSync(csproj)) return false;
     const norm = entry.toLowerCase().replace(/miniapp/g, "");
     return norm.includes(slug) || slug.includes(norm);
   });
+  return dedicatedSource || hasPlatformRuntimeSource(manifest);
 }
 
 function readReadme(appName, fileName = "README.md") {
@@ -151,7 +161,7 @@ async function main() {
 
   for (const app of apps) {
     const manifest = readJson(path.join(APPS_DIR, app, "neo-manifest.json"));
-    const sourcePresent = hasContractSource(app);
+    const sourcePresent = hasContractSource(app, manifest);
     const testnetHash = String(manifest.contracts?.["neo-n3-testnet"] || "").trim();
     const mainnetHash = String(manifest.contracts?.["neo-n3-mainnet"] || "").trim();
     const [testnetState, mainnetState] = await Promise.all([

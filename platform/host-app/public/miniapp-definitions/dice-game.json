@@ -1,0 +1,106 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-dice-game",
+  "name": "Dice Game",
+  "description": "Morpheus VRF dice roll with app-scoped GAS credit and on-chain settlement.",
+  "template_type": "gaming",
+  "category": "Gaming",
+  "tags": ["dice", "vrf", "oracle", "gas"],
+  "version": "1.0.0",
+  "status": "beta",
+  "developer": {
+    "name": "Yiwu",
+    "url": "https://neomini.app"
+  },
+  "contract": {
+    "template_id": "gaming-dice",
+    "contract_hash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c"
+  },
+  "entry_url": "mf://manifest?app=miniapp-dice-game",
+  "media": {
+    "icon": "/miniapp-assets/dice-game/logo.svg",
+    "banner": "/miniapp-assets/dice-game/banner.svg"
+  },
+  "permissions": {
+    "payments": true,
+    "randomness": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "operation_panel": {
+      "title": "Roll Dice",
+      "subtitle": "Fund GAS credit, choose one face, then roll with Morpheus VRF.",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Fund Stake",
+      "method": "fundGameCredit",
+      "button_style": "primary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Stake credit",
+          "required": true,
+          "placeholder": "0.10",
+          "scale": 8,
+          "presets": [
+            { "label": "0.10", "value": "0.10", "helper": "GAS" },
+            { "label": "0.50", "value": "0.50", "helper": "GAS" },
+            { "label": "1.00", "value": "1.00", "helper": "GAS" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Roll",
+      "method": "placeDiceBet",
+      "button_style": "success",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "player",
+          "type": "hash160",
+          "label": "Player",
+          "required": true,
+          "default_value": "$wallet",
+          "hidden": true
+        },
+        {
+          "name": "chosenNumber",
+          "type": "select",
+          "label": "Face",
+          "required": true,
+          "default_value": "6",
+          "options": [
+            { "label": "1", "value": "1" },
+            { "label": "2", "value": "2" },
+            { "label": "3", "value": "3" },
+            { "label": "4", "value": "4" },
+            { "label": "5", "value": "5" },
+            { "label": "6", "value": "6" }
+          ]
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Stake",
+          "required": true,
+          "placeholder": "0.10",
+          "scale": 8
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": true,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "daily_active_users", "total_gas_used"]
+  },
+  "docs_url": "https://docs.r3e.network/dice-game"
+}
