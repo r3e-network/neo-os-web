@@ -16,20 +16,19 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void AnchorRewardsHarvestedHandler(string appId, BigInteger amount, BigInteger rewardPerNeo);
     public delegate void AnchorRewardsClaimedHandler(string appId, UInt160 user, BigInteger amount);
     public delegate void AnchorVoteChangedHandler(string appId, BigInteger agentId, UInt160 votingAccount, ECPoint candidate);
-    public delegate void AnchorProfitScoreChangedHandler(string appId, BigInteger agentId, BigInteger profitScore, BigInteger bestAgentId);
+    public delegate void AnchorAgentTransferHandler(string appId, BigInteger fromAgentId, BigInteger toAgentId, BigInteger amount);
 
     /// <summary>
-    /// Shared staking and voting anchor for TrustAnchor and ProfitAnchor.
+    /// Shared manual AA-agent routing anchor for TrustAnchor and ProfitAnchor.
     ///
-    /// User NEO is held by this contract and can only leave through user-owned
-    /// withdrawals. Admin authority is limited to app configuration, AA agent
-    /// registration, candidate selection, and NEO.vote calls. Admin methods do
-    /// not transfer staked NEO or reward GAS to arbitrary accounts.
+    /// Each anchor registers AA agent accounts for council candidates. Candidate
+    /// changes are app-admin controlled, while NEO movement and NEO.vote calls
+    /// require the relevant AA agent witness.
     /// </summary>
     [DisplayName("PlatformAnchor")]
     [ManifestExtra("Author", "R3E Network")]
     [ManifestExtra("Version", "1.0.0")]
-    [ManifestExtra("Description", "Shared TrustAnchor and ProfitAnchor staking/voting engine with AA agent boundaries.")]
+    [ManifestExtra("Description", "Shared TrustAnchor and ProfitAnchor manual AA-agent routing engine.")]
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
     public class PlatformAnchorContract : SmartContract
@@ -50,8 +49,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_REWARD_PER_NEO = new byte[] { 0x15 };
         private static readonly byte[] PREFIX_REWARD_RESERVE = new byte[] { 0x16 };
         private static readonly byte[] PREFIX_AGENT_COUNT = new byte[] { 0x17 };
-        private static readonly byte[] PREFIX_BEST_AGENT = new byte[] { 0x18 };
-        private static readonly byte[] PREFIX_BEST_SCORE = new byte[] { 0x19 };
+        private static readonly byte[] PREFIX_SELECTED_AGENT = new byte[] { 0x18 };
 
         private static readonly byte[] PREFIX_USER_STAKE = new byte[] { 0x20 };
         private static readonly byte[] PREFIX_USER_REWARD_DEBT = new byte[] { 0x21 };
@@ -65,7 +63,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_AGENT_CANDIDATE = new byte[] { 0x31 };
         private static readonly byte[] PREFIX_AGENT_SCRIPT_HASH = new byte[] { 0x32 };
         private static readonly byte[] PREFIX_AGENT_WEIGHT = new byte[] { 0x33 };
-        private static readonly byte[] PREFIX_AGENT_PROFIT_SCORE = new byte[] { 0x34 };
         private static readonly byte[] PREFIX_AGENT_ACTIVE = new byte[] { 0x35 };
 
         [DisplayName("AnchorAppRegistered")]
@@ -86,8 +83,8 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("AnchorVoteChanged")]
         public static event AnchorVoteChangedHandler OnAnchorVoteChanged;
 
-        [DisplayName("AnchorProfitScoreChanged")]
-        public static event AnchorProfitScoreChangedHandler OnAnchorProfitScoreChanged;
+        [DisplayName("AnchorAgentTransfer")]
+        public static event AnchorAgentTransferHandler OnAnchorAgentTransfer;
 
         public static void _deploy(object data, bool update)
         {
@@ -130,8 +127,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_REWARD_RESERVE), 0);
             Put(AppKey(appId, PREFIX_REWARD_REMAINDER), 0);
             Put(AppKey(appId, PREFIX_AGENT_COUNT), 0);
-            Put(AppKey(appId, PREFIX_BEST_AGENT), 0);
-            Put(AppKey(appId, PREFIX_BEST_SCORE), 0);
+            Put(AppKey(appId, PREFIX_SELECTED_AGENT), 0);
 
             OnAnchorAppRegistered(appId, mode, appAdmin);
         }
@@ -159,11 +155,30 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_AGENT_CANDIDATE, agentId), CandidateBytes(candidate));
             Put(AppKey(appId, PREFIX_AGENT_SCRIPT_HASH, agentId), verificationScriptHash);
             Put(AppKey(appId, PREFIX_AGENT_WEIGHT, agentId), 0);
-            Put(AppKey(appId, PREFIX_AGENT_PROFIT_SCORE, agentId), 0);
             Put(AppKey(appId, PREFIX_AGENT_ACTIVE, agentId), 1);
 
             OnAnchorAgentRegistered(appId, agentId, agentAccount, candidate);
             return agentId;
+        }
+
+        public static BigInteger RegisterAgents(
+            string appId,
+            UInt160[] agentAccounts,
+            ECPoint[] candidates,
+            ByteString[] verificationScriptHashes)
+        {
+            ValidateAppAuthority(appId);
+            ExecutionEngine.Assert(agentAccounts != null && candidates != null && verificationScriptHashes != null, "agent arrays required");
+            ExecutionEngine.Assert(agentAccounts.Length > 0 && agentAccounts.Length <= 21, "invalid agent batch");
+            ExecutionEngine.Assert(agentAccounts.Length == candidates.Length, "candidate length mismatch");
+            ExecutionEngine.Assert(agentAccounts.Length == verificationScriptHashes.Length, "script length mismatch");
+
+            BigInteger lastAgentId = 0;
+            for (int i = 0; i < agentAccounts.Length; i++)
+            {
+                lastAgentId = RegisterAgent(appId, agentAccounts[i], candidates[i], verificationScriptHashes[i]);
+            }
+            return lastAgentId;
         }
 
         public static void SetAgentCandidate(string appId, BigInteger agentId, ECPoint candidate)
@@ -182,18 +197,26 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Put(AppKey(appId, PREFIX_AGENT_WEIGHT, agentId), weight);
         }
 
-        public static void SetAgentProfitScore(string appId, BigInteger agentId, BigInteger profitScore)
+        public static void TransferAgentNeo(
+            string appId,
+            BigInteger fromAgentId,
+            BigInteger toAgentId,
+            BigInteger amount)
         {
-            ValidateAppAuthority(appId);
-            ValidateMode(appId, MODE_PROFIT);
-            ValidateAgent(appId, agentId);
-            ExecutionEngine.Assert(profitScore >= 0, "invalid profit score");
+            ValidateRegistered(appId);
+            ValidateAgent(appId, fromAgentId);
+            ValidateAgent(appId, toAgentId);
+            ExecutionEngine.Assert(fromAgentId != toAgentId, "same agent");
+            ExecutionEngine.Assert(amount > 0, "amount must be positive");
 
-            Put(AppKey(appId, PREFIX_AGENT_PROFIT_SCORE, agentId), profitScore);
+            UInt160 fromAgent = GetAgentAccount(appId, fromAgentId);
+            UInt160 toAgent = GetAgentAccount(appId, toAgentId);
+            ExecutionEngine.Assert(Runtime.CheckWitness(fromAgent), "from agent AA witness required");
+            ExecutionEngine.Assert(
+                NEO.Transfer(fromAgent, toAgent, amount),
+                "agent NEO transfer failed");
 
-            BigInteger bestAgentId = RecomputeBestProfitAgent(appId);
-
-            OnAnchorProfitScoreChanged(appId, agentId, profitScore, bestAgentId);
+            OnAnchorAgentTransfer(appId, fromAgentId, toAgentId, amount);
         }
 
         public static void Stake(string appId, UInt160 user, BigInteger amount)
@@ -312,38 +335,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         public static void VoteAgent(string appId, BigInteger agentId)
         {
-            ValidateAppAuthority(appId);
+            ValidateRegistered(appId);
             ValidateAgent(appId, agentId);
             UInt160 agentAccount = GetAgentAccount(appId, agentId);
             ExecutionEngine.Assert(Runtime.CheckWitness(agentAccount), "agent AA witness required");
             ECPoint candidate = GetAgentCandidateAsPoint(appId, agentId);
             ExecutionEngine.Assert(NEO.Vote(agentAccount, candidate), "agent vote failed");
+            Put(AppKey(appId, PREFIX_SELECTED_AGENT), agentId);
             OnAnchorVoteChanged(appId, agentId, agentAccount, candidate);
-        }
-
-        public static void VotePooledStake(string appId, BigInteger agentId)
-        {
-            ValidateAppAuthority(appId);
-            ValidateAgent(appId, agentId);
-            if (GetAppMode(appId) == MODE_PROFIT)
-            {
-                ExecutionEngine.Assert(agentId == GetBigInteger(AppKey(appId, PREFIX_BEST_AGENT)), "not best profit agent");
-            }
-            ECPoint candidate = GetAgentCandidateAsPoint(appId, agentId);
-            ExecutionEngine.Assert(NEO.Vote(Runtime.ExecutingScriptHash, candidate), "pooled vote failed");
-            OnAnchorVoteChanged(appId, agentId, Runtime.ExecutingScriptHash, candidate);
-        }
-
-        public static void VoteBestProfitCandidate(string appId)
-        {
-            ValidateAppAuthority(appId);
-            ValidateMode(appId, MODE_PROFIT);
-            BigInteger bestAgentId = GetBigInteger(AppKey(appId, PREFIX_BEST_AGENT));
-            ExecutionEngine.Assert(bestAgentId > 0, "no best candidate");
-            ValidateAgent(appId, bestAgentId);
-            ECPoint candidate = GetAgentCandidateAsPoint(appId, bestAgentId);
-            ExecutionEngine.Assert(NEO.Vote(Runtime.ExecutingScriptHash, candidate), "profit vote failed");
-            OnAnchorVoteChanged(appId, bestAgentId, Runtime.ExecutingScriptHash, candidate);
         }
 
         public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
@@ -444,7 +443,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             result["candidate"] = GetAgentCandidate(appId, agentId);
             result["verificationScriptHash"] = GetRaw(AppKey(appId, PREFIX_AGENT_SCRIPT_HASH, agentId));
             result["weight"] = GetBigInteger(AppKey(appId, PREFIX_AGENT_WEIGHT, agentId));
-            result["profitScore"] = GetBigInteger(AppKey(appId, PREFIX_AGENT_PROFIT_SCORE, agentId));
             result["active"] = GetBigInteger(AppKey(appId, PREFIX_AGENT_ACTIVE, agentId)) == 1;
             return result;
         }
@@ -458,14 +456,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ReadAddress(AppKey(appId, PREFIX_AGENT_ACCOUNT, agentId));
 
         [Safe]
-        public static BigInteger GetBestAgentId(string appId) => GetBigInteger(AppKey(appId, PREFIX_BEST_AGENT));
+        public static BigInteger GetSelectedAgentId(string appId) => GetBigInteger(AppKey(appId, PREFIX_SELECTED_AGENT));
 
         [Safe]
-        public static ByteString GetBestCandidate(string appId)
+        public static ByteString GetSelectedCandidate(string appId)
         {
-            BigInteger bestAgentId = GetBigInteger(AppKey(appId, PREFIX_BEST_AGENT));
-            if (bestAgentId == 0) return (ByteString)"";
-            return GetAgentCandidate(appId, bestAgentId);
+            BigInteger selectedAgentId = GetBigInteger(AppKey(appId, PREFIX_SELECTED_AGENT));
+            if (selectedAgentId == 0) return (ByteString)"";
+            return GetAgentCandidate(appId, selectedAgentId);
         }
 
         [Safe]
@@ -480,8 +478,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             result["totalRewardReserve"] = GetTotalRewardReserve();
             result["rewardRemainder"] = GetRewardRemainder(appId);
             result["agentCount"] = GetAgentCount(appId);
-            result["bestAgentId"] = GetBestAgentId(appId);
-            result["bestScore"] = GetBigInteger(AppKey(appId, PREFIX_BEST_SCORE));
+            result["selectedAgentId"] = GetSelectedAgentId(appId);
             result["paused"] = IsPaused() || IsAppPaused(appId);
             return result;
         }
@@ -622,28 +619,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger next = total - amount;
             if (next == 0) Delete((ByteString)PREFIX_TOTAL_GAS_CREDIT);
             else Put((ByteString)PREFIX_TOTAL_GAS_CREDIT, next);
-        }
-
-        private static BigInteger RecomputeBestProfitAgent(string appId)
-        {
-            BigInteger count = GetAgentCount(appId);
-            BigInteger bestAgentId = 0;
-            BigInteger bestScore = -1;
-
-            for (BigInteger agentId = 1; agentId <= count; agentId++)
-            {
-                if (GetBigInteger(AppKey(appId, PREFIX_AGENT_ACTIVE, agentId)) != 1) continue;
-                BigInteger score = GetBigInteger(AppKey(appId, PREFIX_AGENT_PROFIT_SCORE, agentId));
-                if (score >= bestScore)
-                {
-                    bestAgentId = agentId;
-                    bestScore = score;
-                }
-            }
-
-            Put(AppKey(appId, PREFIX_BEST_AGENT), bestAgentId);
-            Put(AppKey(appId, PREFIX_BEST_SCORE), bestScore < 0 ? 0 : bestScore);
-            return bestAgentId;
         }
 
         private static BigInteger GetCredit(byte[] prefix, UInt160 user) => GetBigInteger(CreditKey(prefix, user));

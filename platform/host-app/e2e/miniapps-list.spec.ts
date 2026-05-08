@@ -14,8 +14,12 @@ test.describe("MiniApps List", () => {
         ? "Neo N3 Testnet"
         : "Neo N3 Mainnet";
     await expect(page.getByText(networkLabel)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "MiniApps" })).toBeVisible();
-    await expect(page.getByText("Browse supported miniapps. Pick one and start using it.")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Yiwu MiniApps" })).toBeVisible();
+    await expect(
+      page.getByText(
+        "Browse small, focused MiniApps for Neo N3. Pick one, open the play area, and operate from the shared action console.",
+      ),
+    ).toBeVisible();
   });
 
   test("should render every supported catalog card", async ({ page }) => {

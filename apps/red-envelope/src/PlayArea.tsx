@@ -1,369 +1,163 @@
 /**
  * PlayArea.tsx -- Red Envelope
  *
- * Red envelope gift management with stats overview, creation form,
- * envelope grid with open/claim actions, lucky overlay modal,
- * and activity feed of recent claims.
+ * Claim-first surface. Creating and diagnostics are secondary so a recipient
+ * who arrives from OneGate QR sees the one job they came to do.
  */
 
-import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { useEffect, useMemo, useState } from "react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
 interface Envelope {
   id: string;
+  totalAmount?: number;
   amount?: number;
+  packetCount?: number;
   count?: number;
+  remainingPackets?: number;
   remaining?: number;
+  active?: boolean;
+  canOpen?: boolean;
   status?: string;
   creator?: string;
+  from?: string;
   memo?: string;
+  message?: string;
 }
 
 interface Claim {
   id: string;
+  poolId?: string;
   envelopeId?: string;
+  holder?: string;
   claimer?: string;
   amount?: number;
-  timestamp?: number;
 }
 
-interface Pool {
-  id: string;
-  total?: number;
-  remaining?: number;
-  status?: string;
+function shortId(value: string): string {
+  return value.length > 18 ? `${value.slice(0, 10)}...${value.slice(-6)}` : value;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
-  const { str, bool, num, val } = useStateBindings(state);
+function getLaunchEnvelopeId(context: MiniAppLaunchContext): string {
+  const params = context.params ?? {};
+  return String(params.envelopeId || params.poolId || params.id || params.packet || "").trim();
+}
 
-  /* ---------- Bound state ---------- */
+export default function PlayArea({ t, state, dispatch, launchContext }: PlayAreaProps) {
+  const { bool, val } = useStateBindings(state);
   const isLoading = bool("isLoading");
-  const isCreating = bool("isCreating");
-  const showOpeningModal = bool("showOpeningModal");
-  const luckyMessage = str("luckyMessage");
-  const createAmount = str("createAmount");
-  const createCount = str("createCount");
-  const createMemo = str("createMemo");
-
-  const envelopeCount = num("envelopeCount");
-  const claimCount = num("claimCount");
-  const poolCount = num("poolCount");
-  const totalCreated = num("totalCreated");
-  const totalClaimed = num("totalClaimed");
-
+  const luckyMessage = val<{ amount?: number; from?: string } | null>("luckyMessage", null);
   const envelopes = (val("envelopes") ?? []) as Envelope[];
   const claims = (val("claims") ?? []) as Claim[];
-  const pools = (val("pools") ?? []) as Pool[];
-  const openingEnvelope = val<Envelope>("openingEnvelope");
+  const launchedEnvelopeId = useMemo(() => getLaunchEnvelopeId(launchContext), [launchContext.signature]);
+  const [selectedEnvelopeId, setSelectedEnvelopeId] = useState(launchedEnvelopeId);
 
-  /* ---------- Local form state ---------- */
-  const [formAmount, setFormAmount] = useState("");
-  const [formCount, setFormCount] = useState("");
-  const [formMemo, setFormMemo] = useState("");
-  const [formExpiryHours, setFormExpiryHours] = useState("24");
+  useEffect(() => {
+    if (launchedEnvelopeId) setSelectedEnvelopeId(launchedEnvelopeId);
+  }, [launchedEnvelopeId]);
 
-  /* ---------- Handlers ---------- */
-  const handleCreate = async () => {
-    if (!formAmount || !formCount) return;
-    await dispatch("createEnvelope", {
-      amount: formAmount,
-      count: formCount,
-      memo: formMemo,
-      expiryHours: formExpiryHours,
-    });
-    setFormAmount("");
-    setFormCount("");
-    setFormMemo("");
-    setFormExpiryHours("24");
-  };
-
-  const handleClaim = async (id: string) => {
-    await dispatch("claimEnvelope", id);
-  };
-
-  const handleDismissModal = async () => {
-    await dispatch("dismissOpeningModal");
-  };
-
-  const handleDismissOverlay = async () => {
-    await dispatch("dismissOverlay");
-  };
-
-  /* ---------- Derived ---------- */
-  const activeEnvelopes = envelopes.filter(
-    (e) => e.status === "active" || !e.status
-  );
-  const recentClaims = [...claims]
-    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
-    .slice(0, 10);
-
-  const formatAddress = (addr: string) =>
-    addr.length > 14 ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : addr;
-
-  const formatTime = (ts?: number) => {
-    if (!ts) return "";
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
+  const activeEnvelopes = envelopes.filter((env) => {
+    if (env.active === false) return false;
+    if (env.canOpen === false) return false;
+    return env.status === "active" || env.status === undefined || env.active === true;
+  });
+  const targetEnvelope = activeEnvelopes.find((env) => String(env.id) === selectedEnvelopeId);
+  const recentClaims = claims.slice(0, 6);
 
   return (
     <div className="redenv-play-area">
-      {/* ==================== Stats ==================== */}
-      <div className="redenv-hero-stats">
-        <div className="redenv-hero-stat">
-          <span className="redenv-hero-stat-value">{envelopeCount}</span>
-          <span className="redenv-hero-stat-label">
-            {t("envelopesCreated") || "Envelopes Created"}
-          </span>
+      <section className="redenv-claim-card">
+        <div className="redenv-claim-icon" aria-hidden="true" />
+        <div className="redenv-claim-copy">
+          <span className="redenv-kicker">Red Envelope</span>
+          <h2>{t("claimRedEnvelope") || "Claim red envelope"}</h2>
+          <p>
+            {selectedEnvelopeId
+              ? (t("claimReadyDesc") || "This QR code already selected the envelope. Confirm the claim in the action console.")
+              : (t("claimNeedIdDesc") || "Scan a OneGate QR or enter an envelope ID in the action console to receive GAS.")}
+          </p>
         </div>
-        <div className="redenv-hero-stat">
-          <span className="redenv-hero-stat-value">{claimCount}</span>
-          <span className="redenv-hero-stat-label">
-            {t("claims") || "Claims"}
-          </span>
+        <div className="redenv-target-pill">
+          <span>{selectedEnvelopeId ? `#${shortId(selectedEnvelopeId)}` : "No ID"}</span>
+          <small>{selectedEnvelopeId ? "selected" : "scan QR"}</small>
         </div>
-        <div className="redenv-hero-stat">
-          <span className="redenv-hero-stat-value">
-            {totalCreated > 0 ? totalCreated.toLocaleString() : "0"}
-          </span>
-          <span className="redenv-hero-stat-label">
-            {t("totalGasCreated") || "Total GAS Created"}
-          </span>
-        </div>
-        <div className="redenv-hero-stat">
-          <span className="redenv-hero-stat-value">
-            {totalClaimed > 0 ? totalClaimed.toLocaleString() : "0"}
-          </span>
-          <span className="redenv-hero-stat-label">
-            {t("totalGasClaimed") || "Total GAS Claimed"}
-          </span>
-        </div>
-      </div>
+      </section>
 
-      {/* ==================== Create Envelope Form ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={t("createEnvelope") || "Create Envelope"}
-      >
-        <div className="redenv-form">
-          <NeoInput
-            label={t("amount") || "Amount"}
-            placeholder="0.00"
-            type="number"
-            value={formAmount || createAmount}
-            suffix="GAS"
-            onChange={setFormAmount}
-          />
-          <NeoInput
-            label={t("count") || "How Many Can Claim"}
-            placeholder={t("countPlaceholder") || "Number of recipients"}
-            type="number"
-            value={formCount || createCount}
-            min={1}
-            onChange={setFormCount}
-          />
-          <NeoInput
-            label={t("memo") || "Memo"}
-            placeholder={t("memoPlaceholder") || "Add a lucky message..."}
-            value={formMemo || createMemo}
-            onChange={setFormMemo}
-          />
-          <NeoInput
-            label={t("expiryHours") || "Expires in (hours)"}
-            type="number"
-            min={1}
-            max={720}
-            value={formExpiryHours}
-            onChange={setFormExpiryHours}
-          />
-          <NeoButton
-            variant="primary"
-            block
-            loading={isCreating}
-            disabled={!formAmount || !formCount || isCreating}
-            onClick={handleCreate}
-          >
-            {t("createEnvelope") || "Create Envelope"}
-          </NeoButton>
+      {targetEnvelope && (
+        <div className="redenv-selected">
+          <div>
+            <span className="redenv-selected-label">Ready to claim</span>
+            <strong>{targetEnvelope.remainingPackets ?? targetEnvelope.remaining ?? "?"} left</strong>
+          </div>
+          <span>{targetEnvelope.totalAmount ?? targetEnvelope.amount ?? "?"} GAS pool</span>
         </div>
-      </NeoCard>
-
-      {/* ==================== Available Envelopes Grid ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={`${t("availableEnvelopes") || "Available Envelopes"} (${activeEnvelopes.length})`}
-      >
-        {isLoading ? (
-          <div className="redenv-loading">
-            <div className="redenv-loading-spinner" />
-            <span>{t("loading") || "Loading..."}</span>
-          </div>
-        ) : activeEnvelopes.length === 0 ? (
-          <div className="redenv-empty">
-            {t("noEnvelopes") || "No envelopes available"}
-          </div>
-        ) : (
-          <div className="redenv-grid">
-            {activeEnvelopes.map((env) => (
-              <div
-                key={env.id}
-                className={`redenv-envelope redenv-envelope--${env.status ?? "active"}`}
-              >
-                <div className="redenv-envelope-icon" aria-hidden="true" />
-                <div className="redenv-envelope-body">
-                  <span className="redenv-envelope-amount">
-                    {env.amount ?? "?"} GAS
-                  </span>
-                  {env.remaining !== undefined && env.count !== undefined && (
-                    <span className="redenv-envelope-remaining">
-                      {env.remaining}/{env.count}{" "}
-                      {t("remaining") || "remaining"}
-                    </span>
-                  )}
-                  {env.memo && (
-                    <span className="redenv-envelope-memo">{env.memo}</span>
-                  )}
-                  <span
-                    className={`redenv-envelope-status redenv-envelope-status--${env.status ?? "active"}`}
-                  >
-                    {env.status ?? (t("active") || "Active")}
-                  </span>
-                </div>
-                <div className="redenv-envelope-actions">
-                  <NeoButton
-                    variant="success"
-                    size="sm"
-                    onClick={() => handleClaim(env.id)}
-                  >
-                    {t("claim") || "Claim"}
-                  </NeoButton>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </NeoCard>
-
-      {/* ==================== Pool Summary ==================== */}
-      {pools.length > 0 && (
-        <NeoCard
-          variant="erobo"
-          title={`${t("pools") || "Pools"} (${poolCount})`}
-        >
-          <div className="redenv-pool-list">
-            {pools.map((pool) => {
-              const pct =
-                pool.total && pool.total > 0
-                  ? ((pool.remaining ?? 0) / pool.total) * 100
-                  : 0;
-              return (
-                <div key={pool.id} className="redenv-pool-item">
-                  <div className="redenv-pool-header">
-                    <span className="redenv-pool-id">
-                      {t("pool") || "Pool"} #{pool.id}
-                    </span>
-                    <span
-                      className={`redenv-pool-status redenv-pool-status--${pool.status ?? "active"}`}
-                    >
-                      {pool.status ?? (t("active") || "Active")}
-                    </span>
-                  </div>
-                  <div className="redenv-pool-bar-track">
-                    <div
-                      className="redenv-pool-bar-fill"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                  <div className="redenv-pool-amounts">
-                    <span>
-                      {pool.remaining ?? 0} / {pool.total ?? 0} GAS
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </NeoCard>
       )}
 
-      {/* ==================== Activity Feed ==================== */}
-      <NeoCard
-        variant="erobo"
-        title={t("recentActivity") || "Recent Activity"}
-      >
-        {recentClaims.length === 0 ? (
-          <div className="redenv-empty">
-            {t("noActivity") || "No recent activity"}
-          </div>
+      <div className="redenv-console-hint">
+        <span>{t("claimConsoleHint") || "Primary action lives in the right action console."}</span>
+      </div>
+
+      <details className="redenv-secondary" open={!selectedEnvelopeId}>
+        <summary>{t("availableEnvelopes") || "Active envelopes"}</summary>
+        {isLoading ? (
+          <div className="redenv-empty">{t("loadingEnvelopes") || "Loading envelopes..."}</div>
+        ) : activeEnvelopes.length === 0 ? (
+          <div className="redenv-empty">{t("noEnvelopes") || "No envelopes available yet"}</div>
         ) : (
-          <div className="redenv-activity-feed">
+          <div className="redenv-list">
+            {activeEnvelopes.slice(0, 8).map((env) => (
+              <button
+                key={env.id}
+                type="button"
+                className={`redenv-row${selectedEnvelopeId === String(env.id) ? " redenv-row--selected" : ""}`}
+                onClick={() => setSelectedEnvelopeId(String(env.id))}
+              >
+                <span>#{shortId(String(env.id))}</span>
+                <strong>{env.remainingPackets ?? env.remaining ?? "?"}/{env.packetCount ?? env.count ?? "?"}</strong>
+              </button>
+            ))}
+          </div>
+        )}
+      </details>
+
+      <details className="redenv-secondary">
+        <summary>{t("recentActivity") || "Recent claims"}</summary>
+        {recentClaims.length === 0 ? (
+          <div className="redenv-empty">{t("noActivity") || "No recent activity"}</div>
+        ) : (
+          <div className="redenv-list">
             {recentClaims.map((claim) => (
-              <div key={claim.id} className="redenv-activity-item">
-                <div className="redenv-activity-dot" />
-                <div className="redenv-activity-body">
-                  <span className="redenv-activity-text">
-                    {claim.claimer
-                      ? formatAddress(claim.claimer)
-                      : t("someone") || "Someone"}{" "}
-                    {t("claimedAmount") || "claimed"}{" "}
-                    <strong>{claim.amount ?? "?"} GAS</strong>
-                  </span>
-                  {claim.envelopeId && (
-                    <span className="redenv-activity-envelope">
-                      {t("fromEnvelope") || "from envelope"} #{claim.envelopeId}
-                    </span>
-                  )}
-                </div>
-                <span className="redenv-activity-time">
-                  {formatTime(claim.timestamp)}
-                </span>
+              <div key={claim.id} className="redenv-row redenv-row--static">
+                <span>{claim.holder || claim.claimer ? shortId(String(claim.holder || claim.claimer)) : "Wallet"}</span>
+                <strong>{claim.amount ?? "?"} GAS</strong>
               </div>
             ))}
           </div>
         )}
-      </NeoCard>
+      </details>
 
-      {/* ==================== Lucky Overlay Modal ==================== */}
-      {showOpeningModal && (
-        <div className="redenv-modal-backdrop" onClick={handleDismissOverlay}>
-          <div
-            className="redenv-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="redenv-modal-glow" />
+      {luckyMessage && (
+        <div className="redenv-modal-backdrop">
+          <div className="redenv-modal">
             <div className="redenv-modal-content">
               <div className="redenv-modal-icon" aria-hidden="true" />
-              <h3 className="redenv-modal-title">
-                {t("lucky") || "Lucky!"}
-              </h3>
-              {luckyMessage && (
-                <p className="redenv-modal-message">{luckyMessage}</p>
-              )}
-              {openingEnvelope && (
-                <div className="redenv-modal-details">
-                  <div className="redenv-modal-amount">
-                    {(openingEnvelope as Envelope).amount ?? "?"} GAS
-                  </div>
-                  {(openingEnvelope as Envelope).memo && (
-                    <p className="redenv-modal-memo">
-                      &ldquo;{(openingEnvelope as Envelope).memo}&rdquo;
-                    </p>
-                  )}
-                </div>
-              )}
-              <NeoButton variant="primary" onClick={handleDismissModal}>
-                {t("dismiss") || "Dismiss"}
-              </NeoButton>
+              <h3 className="redenv-modal-title">{t("congratulations") || "Congratulations"}</h3>
+              <p className="redenv-modal-message">
+                {(t("claimReceivedMessage") || "You received {amount} GAS").replace("{amount}", String(luckyMessage.amount ?? "?"))}
+              </p>
+              <button className="redenv-modal-button" type="button" onClick={() => dispatch("dismissOverlay")}>
+                {t("confirm") || "OK"}
+              </button>
             </div>
           </div>
         </div>

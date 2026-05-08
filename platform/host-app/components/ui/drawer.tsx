@@ -169,7 +169,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   // Render to portal
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex"
+      className="fixed inset-0 z-[1000] flex"
       role="dialog"
       aria-modal={asDialog}
       aria-labelledby={title ? titleId : undefined}

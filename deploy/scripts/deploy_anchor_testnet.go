@@ -130,6 +130,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("parse candidate public key: %w", err)
 	}
+	agentNonce := firstNonEmpty(os.Getenv("ANCHOR_TESTNET_AGENT_NONCE"), os.Getenv("ANCHOR_AGENT_NONCE"), "v1")
 
 	report := deploymentReport{
 		Network:        "neo-n3-testnet",
@@ -177,24 +178,12 @@ func run() error {
 		return err
 	}
 
-	trustAA, err := ensureAAAccount(ctx, act, client, aaHash, deployerHash, []byte("trustanchor-agent-1"), &report, "TrustAnchor agent AA")
+	trustAgents, err := ensureAgentSet(ctx, act, client, aaHash, anchorHash, appTrustAnchor, "trustanchor", agentNonce, deployerHash, candidate, &report)
 	if err != nil {
 		return err
 	}
-	profitAA, err := ensureAAAccount(ctx, act, client, aaHash, deployerHash, []byte("profitanchor-agent-1"), &report, "ProfitAnchor agent AA")
+	profitAgents, err := ensureAgentSet(ctx, act, client, aaHash, anchorHash, appProfitAnchor, "profitanchor", agentNonce, deployerHash, candidate, &report)
 	if err != nil {
-		return err
-	}
-	report.AAAccounts["trustanchor-agent-1"] = "0x" + trustAA.StringLE()
-	report.AAAccounts["profitanchor-agent-1"] = "0x" + profitAA.StringLE()
-
-	if err := ensureAgent(ctx, act, client, anchorHash, appTrustAnchor, trustAA, candidate, &report); err != nil {
-		return err
-	}
-	if err := ensureAgent(ctx, act, client, anchorHash, appProfitAnchor, profitAA, candidate, &report); err != nil {
-		return err
-	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "setAgentProfitScore", &report, "Set ProfitAnchor agent score", appProfitAnchor, int64(1), int64(1_000_000)); err != nil {
 		return err
 	}
 	if err := sendAndWait(ctx, act, client, defiHash, "setProfitAnchor", &report, "Configure SelfLoan ProfitAnchor", appSelfLoan, anchorHash, appProfitAnchor); err != nil {
@@ -211,6 +200,10 @@ func run() error {
 		return err
 	}
 
+	report.Validation["anchor_agent_sets"] = map[string]any{
+		"trustanchor_agents":  len(trustAgents),
+		"profitanchor_agents": len(profitAgents),
+	}
 	if err := writeReport(report); err != nil {
 		return err
 	}
@@ -328,73 +321,70 @@ func ensureAgent(ctx context.Context, act *actor.Actor, client *rpcclient.Client
 	return sendAndWait(ctx, act, client, contract, "registerAgent", report, "Register "+appID+" AA agent", appID, account, candidate, account.BytesBE())
 }
 
+func ensureAgentSet(ctx context.Context, act *actor.Actor, client *rpcclient.Client, aaCore util.Uint160, anchorHash util.Uint160, appID string, seedPrefix string, nonce string, backupOwner util.Uint160, candidate *keys.PublicKey, report *deploymentReport) ([]util.Uint160, error) {
+	count, err := callInteger(act, anchorHash, "getAgentCount", appID)
+	if err != nil {
+		return nil, err
+	}
+	current := int(count.Int64())
+	if current > 21 {
+		return nil, fmt.Errorf("%s has unexpected agent count %d", appID, current)
+	}
+
+	agents := make([]util.Uint160, 0, 21)
+	for i := 1; i <= 21; i++ {
+		label := fmt.Sprintf("%s-agent-%d", seedPrefix, i)
+		verifierParams := []byte(fmt.Sprintf("anchor:%s:app:%s:agent:%02d:nonce:%s", seedPrefix, appID, i, nonce))
+		accountID, err := ensureAAAccount(ctx, act, client, aaCore, backupOwner, verifierParams, report, label+" AA")
+		if err != nil {
+			return nil, err
+		}
+		report.AAAccounts[label] = "0x" + accountID.StringLE()
+		agents = append(agents, accountID)
+		if current < i {
+			if err := sendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, accountID, candidate, accountID.BytesBE()); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return agents, nil
+}
+
 func validateTrustAnchor(ctx context.Context, act *actor.Actor, client *rpcclient.Client, neoHash util.Uint160, anchorHash util.Uint160, deployer util.Uint160, report *deploymentReport) error {
-	if err := sendAndWait(ctx, act, client, neoHash, "transfer", report, "TrustAnchor stake 1 NEO", deployer, anchorHash, oneNeo, appTrustAnchor); err != nil {
-		return err
-	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "votePooledStake", report, "TrustAnchor pooled vote", appTrustAnchor, int64(1)); err != nil {
-		return err
-	}
-	stake, err := callInteger(act, anchorHash, "getUserStake", appTrustAnchor, deployer)
+	count, err := callInteger(act, anchorHash, "getAgentCount", appTrustAnchor)
 	if err != nil {
 		return err
 	}
-	if stake.Int64() < oneNeo {
-		return fmt.Errorf("TrustAnchor live stake validation failed: got %s", stake.String())
+	if count.Int64() != 21 {
+		return fmt.Errorf("TrustAnchor expected 21 AA agents, got %s", count.String())
 	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "withdraw", report, "TrustAnchor withdraw 1 NEO", appTrustAnchor, deployer, oneNeo); err != nil {
-		return err
-	}
-	stakeAfter, err := callInteger(act, anchorHash, "getUserStake", appTrustAnchor, deployer)
+	mode, err := callInteger(act, anchorHash, "getAppMode", appTrustAnchor)
 	if err != nil {
 		return err
 	}
-	report.Validation["trustanchor"] = map[string]string{"stake_after_deposit": stake.String(), "stake_after_withdraw": stakeAfter.String()}
+	if mode.Int64() != modeTrust {
+		return fmt.Errorf("TrustAnchor mode mismatch: got %s", mode.String())
+	}
+	report.Validation["trustanchor"] = map[string]string{"mode": mode.String(), "agent_count": count.String()}
 	return nil
 }
 
 func validateProfitAnchor(ctx context.Context, act *actor.Actor, client *rpcclient.Client, neoHash util.Uint160, gasHash util.Uint160, anchorHash util.Uint160, deployer util.Uint160, report *deploymentReport) error {
-	if err := sendAndWait(ctx, act, client, neoHash, "transfer", report, "ProfitAnchor stake 1 NEO", deployer, anchorHash, oneNeo, appProfitAnchor); err != nil {
-		return err
-	}
-	if err := sendAndWait(ctx, act, client, gasHash, "transfer", report, "ProfitAnchor fund 0.01 GAS credit", deployer, anchorHash, centGasFixed8, nil); err != nil {
-		return err
-	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "fundRewards", report, "ProfitAnchor fund rewards", appProfitAnchor, deployer, centGasFixed8); err != nil {
-		return err
-	}
-	pending, err := callInteger(act, anchorHash, "getPendingRewards", appProfitAnchor, deployer)
+	count, err := callInteger(act, anchorHash, "getAgentCount", appProfitAnchor)
 	if err != nil {
 		return err
 	}
-	if pending.Int64() < centGasFixed8 {
-		return fmt.Errorf("ProfitAnchor pending rewards too low: got %s", pending.String())
+	if count.Int64() != 21 {
+		return fmt.Errorf("ProfitAnchor expected 21 AA agents, got %s", count.String())
 	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "claimRewards", report, "ProfitAnchor claim rewards", appProfitAnchor, deployer); err != nil {
-		return err
-	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "voteBestProfitCandidate", report, "ProfitAnchor vote best candidate", appProfitAnchor); err != nil {
-		return err
-	}
-	best, err := callBytes(act, anchorHash, "getBestCandidate", appProfitAnchor)
+	mode, err := callInteger(act, anchorHash, "getAppMode", appProfitAnchor)
 	if err != nil {
 		return err
 	}
-	if len(best) != 33 {
-		return fmt.Errorf("ProfitAnchor best candidate missing after score set")
+	if mode.Int64() != modeProfit {
+		return fmt.Errorf("ProfitAnchor mode mismatch: got %s", mode.String())
 	}
-	if err := sendAndWait(ctx, act, client, anchorHash, "withdraw", report, "ProfitAnchor withdraw 1 NEO", appProfitAnchor, deployer, oneNeo); err != nil {
-		return err
-	}
-	stakeAfter, err := callInteger(act, anchorHash, "getUserStake", appProfitAnchor, deployer)
-	if err != nil {
-		return err
-	}
-	report.Validation["profitanchor"] = map[string]string{
-		"pending_reward_before_claim": pending.String(),
-		"best_candidate_bytes":        fmt.Sprintf("%x", best),
-		"stake_after_withdraw":        stakeAfter.String(),
-	}
+	report.Validation["profitanchor"] = map[string]string{"mode": mode.String(), "agent_count": count.String()}
 	return nil
 }
 

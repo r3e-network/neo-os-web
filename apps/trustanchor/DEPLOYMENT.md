@@ -6,22 +6,24 @@ TrustAnchor deploys through the shared `PlatformAnchor` contract.
 
 1. Deploy `PlatformAnchor`.
 2. Call `registerAnchorApp("miniapp-trustanchor", 1, appAdmin)`.
-3. Register AA-generated agent accounts with `registerAgent`.
-4. Sync governance votes with `voteAgent` or `votePooledStake`.
-5. Write the deployed `PlatformAnchor` hash into the app manifest and host
+3. Register the 21 AA-generated agent accounts with `registerAgents` or
+   `registerAgent`.
+4. Rebalance by calling `transferAgentNeo(appId, fromAgentId, toAgentId, amount)`
+   with the source agent AA witness.
+5. When candidates change, call `setAgentCandidate` and then `voteAgent`.
+6. Write the deployed `PlatformAnchor` hash into the app manifest and host
    definition for the target network.
 
-User staking can be a single NEO transfer when the transfer data is
-`miniapp-trustanchor`. The contract credits the sender and immediately stakes
-that credit after checking the sender witness.
+AA account IDs should be derived from verifier params that include
+`anchor + appId + agentId + nonce`; the nonce is operator-provided to prevent
+pre-registration griefing.
 
 ## Custody Boundary
 
 - Admins can register agents, update candidates, set display weights, pause the
-  app, and sync votes.
-- Admins cannot withdraw user-staked NEO.
-- Admins cannot claim or redirect user reward GAS.
-- User withdrawals and reward claims require the user witness.
+  app, and request agent vote sync.
+- Moving NEO requires the source AA agent witness.
+- Agent vote sync requires the AA agent witness.
 
 ## Status
 

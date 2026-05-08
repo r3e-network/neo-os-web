@@ -42,9 +42,12 @@ defineMiniApp({
     });
 
     ctx.registerAction("claimEnvelope", async (...args: unknown[]) => {
-      const id = String(args[0] ?? "");
+      const first = args[0];
+      const form = (first && typeof first === "object") ? (first as Record<string, unknown>) : null;
+      const id = String(form?.envelopeId ?? form?.poolId ?? first ?? "");
+      if (!id.trim()) throw new Error(ctx.t("envelopeIdRequired") || "Envelope ID is required");
       await ctx.services.notify.guard(
-        () => envelope.claimEnvelope(id),
+        () => envelope.handleClaimFromPool(id),
         "envelopeClaimed",
       );
     });

@@ -1555,7 +1555,6 @@ async function runSelfLoan() {
 
 async function readAnchorState(contractHash, appId) {
   const appArg = Neon.sc.ContractParam.string(appId);
-  const userArg = Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`);
   const [
     stats,
     mode,
@@ -1563,12 +1562,6 @@ async function readAnchorState(contractHash, appId) {
     appAdmin,
     appPaused,
     agentCount,
-    bestAgentId,
-    bestCandidateStack,
-    userStake,
-    pendingRewards,
-    neoCredit,
-    gasCredit,
   ] = await Promise.all([
     invokeRead(contractHash, "getAnchorStats", [appArg]),
     invokeRead(contractHash, "getAppMode", [appArg]),
@@ -1576,19 +1569,15 @@ async function readAnchorState(contractHash, appId) {
     invokeRead(contractHash, "getAppAdmin", [appArg]),
     invokeRead(contractHash, "isAppPaused", [appArg]),
     invokeRead(contractHash, "getAgentCount", [appArg]),
-    invokeRead(contractHash, "getBestAgentId", [appArg]),
-    invokeReadStack(contractHash, "getBestCandidate", [appArg]),
-    invokeRead(contractHash, "getUserStake", [appArg, userArg]),
-    invokeRead(contractHash, "getPendingRewards", [appArg, userArg]),
-    invokeRead(contractHash, "getCredit", [userArg, Neon.sc.ContractParam.string("NEO")]),
-    invokeRead(contractHash, "getCredit", [userArg, Neon.sc.ContractParam.string("GAS")]),
   ]);
 
   const normalizedAgentCount = toBigIntValue(agentCount);
   const firstAgent = normalizedAgentCount > 0n
     ? await invokeRead(contractHash, "getAgent", [appArg, Neon.sc.ContractParam.integer("1")])
     : null;
-  const bestCandidateBytes = bestCandidateStack ? stackBytes(bestCandidateStack) : Buffer.alloc(0);
+  const secondAgent = normalizedAgentCount > 1n
+    ? await invokeRead(contractHash, "getAgent", [appArg, Neon.sc.ContractParam.integer("2")])
+    : null;
 
   return {
     appId,
@@ -1599,17 +1588,11 @@ async function readAnchorState(contractHash, appId) {
     stats,
     agentCount: String(agentCount || "0"),
     firstAgent,
-    bestAgentId: String(bestAgentId || "0"),
-    bestCandidateBytes: String(bestCandidateBytes.length),
-    user: normalizeHash160(`0x${account.scriptHash}`),
-    userStake: String(userStake || "0"),
-    pendingRewards: String(pendingRewards || "0"),
-    neoCredit: String(neoCredit || "0"),
-    gasCredit: String(gasCredit || "0"),
+    secondAgent,
   };
 }
 
-function assertAnchorConfigured({ label, appId, expectedMode, requiresBestCandidate }, state) {
+function assertAnchorConfigured({ label, appId, expectedMode }, state) {
   const stats = requireObjectKeys(state.stats, [
     "mode",
     "totalStaked",
@@ -1617,7 +1600,7 @@ function assertAnchorConfigured({ label, appId, expectedMode, requiresBestCandid
     "rewardPerNeo",
     "rewardReserve",
     "agentCount",
-    "bestAgentId",
+    "selectedAgentId",
     "paused",
   ], `getAnchorStats(${appId})`);
 
@@ -1630,8 +1613,8 @@ function assertAnchorConfigured({ label, appId, expectedMode, requiresBestCandid
   if (state.appPaused || boolish(stats.paused)) {
     throw new Error(`${label} is paused`);
   }
-  if (toBigIntValue(state.agentCount) <= 0n || toBigIntValue(stats.agentCount) <= 0n) {
-    throw new Error(`${label} has no registered AA agent`);
+  if (toBigIntValue(state.agentCount) < 21n || toBigIntValue(stats.agentCount) < 21n) {
+    throw new Error(`${label} must have 21 registered AA agents, got ${state.agentCount}/${stats.agentCount || "0"}`);
   }
   if (!state.firstAgent || boolish(state.firstAgent.active) !== true) {
     throw new Error(`${label} first AA agent is inactive or missing`);
@@ -1639,121 +1622,88 @@ function assertAnchorConfigured({ label, appId, expectedMode, requiresBestCandid
   if (!normalizeHash160(state.firstAgent.account)) {
     throw new Error(`${label} first AA agent account is invalid`);
   }
-  if (requiresBestCandidate) {
-    if (toBigIntValue(state.bestAgentId) <= 0n || toBigIntValue(stats.bestAgentId) <= 0n) {
-      throw new Error(`${label} best profit agent is not selected`);
-    }
-    if (Number(state.bestCandidateBytes || "0") !== 33) {
-      throw new Error(`${label} best profit candidate is missing`);
-    }
+  if (!state.secondAgent || boolish(state.secondAgent.active) !== true) {
+    throw new Error(`${label} second AA agent is inactive or missing`);
+  }
+  if (!normalizeHash160(state.secondAgent.account)) {
+    throw new Error(`${label} second AA agent account is invalid`);
   }
 }
 
-function resolveAnchorAdminSigner(label, state) {
-  const authorized = new Set([state.platformAdmin, state.appAdmin].filter(Boolean));
-  const candidates = [
-    { role: "configuredAdmin", signer: adminAccount },
-    { role: "primary", signer: account },
-  ];
-  const seen = new Set();
-  for (const candidate of candidates) {
-    const scriptHash = normalizeHash160(`0x${candidate.signer.scriptHash}`);
-    if (seen.has(scriptHash)) continue;
-    seen.add(scriptHash);
-    if (authorized.has(scriptHash)) {
-      return {
-        signer: candidate.signer,
-        info: {
-          role: candidate.role,
-          scriptHash,
-          platformAdmin: state.platformAdmin,
-          appAdmin: state.appAdmin,
-        },
-      };
-    }
-  }
-
-  const configuredAdmin = normalizeHash160(`0x${adminAccount.scriptHash}`);
-  const primary = normalizeHash160(`0x${account.scriptHash}`);
-  if (!authorized.has(configuredAdmin) && !authorized.has(primary)) {
+async function runAnchorManualWriteSmoke(contractHash, config, state) {
+  const agentWif = String(
+    process.env.ANCHOR_LIVE_AGENT_WIF
+      || process.env.ANCHOR_AGENT_WIF
+      || process.env[`${config.envPrefix}_AGENT_WIF`]
+      || ""
+  ).trim();
+  if (!agentWif) {
     return {
       deferred: true,
-      reason: "needs-anchor-admin-wif",
-      message: `${label} admin action deferred: neither configured admin ${configuredAdmin} nor primary signer ${primary} is PlatformAnchor admin/appAdmin`,
-      configuredAdmin,
-      primary,
-      platformAdmin: state.platformAdmin,
-      appAdmin: state.appAdmin,
-    };
-  }
-}
-
-async function runAnchorRewardFlow(contractHash, appId, authorityAccount) {
-  const rewardTopup = BigInt(String(ANCHOR_LIVE_REWARD_TOPUP));
-  const gasFloor = rewardTopup + 20_000_000n;
-  const adminGas = await getGasBalance(`0x${authorityAccount.scriptHash}`);
-  if (adminGas < gasFloor) {
-    return {
-      deferred: true,
-      reason: "needs-anchor-admin-gas",
-      requiredGas: gasFloor.toString(),
-      availableGas: adminGas.toString(),
+      reason: "needs-anchor-agent-aa-wif",
+      message: `${config.label} manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test`,
     };
   }
 
-  const adminContract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account: authorityAccount,
-  });
-  const userContract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account,
-  });
-  const pendingBefore = await invokeRead(contractHash, "getPendingRewards", [
-    Neon.sc.ContractParam.string(appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-  ]);
-
-  const creditTx = await transferGASFrom(authorityAccount, contractHash, rewardTopup.toString(), null);
-  await sleep(4000);
-  const fundTx = await adminContract.invoke("fundRewards", [
-    Neon.sc.ContractParam.string(appId),
-    Neon.sc.ContractParam.hash160(`0x${authorityAccount.scriptHash}`),
-    Neon.sc.ContractParam.integer(rewardTopup.toString()),
-  ]);
-  const fundLog = await waitForLog(fundTx);
-  if (fundLog.execution.vmstate !== "HALT") {
-    throw new Error(fundLog.execution.exception || `${appId} fundRewards failed`);
-  }
-  const pendingAfterFund = await invokeRead(contractHash, "getPendingRewards", [
-    Neon.sc.ContractParam.string(appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-  ]);
-  if (toBigIntValue(pendingAfterFund) <= toBigIntValue(pendingBefore)) {
-    throw new Error(`${appId} pending rewards did not increase after fundRewards`);
+  const agentAccount = new Neon.wallet.Account(agentWif);
+  const fromAgentHash = normalizeHash160(state.firstAgent.account);
+  const signerHash = normalizeHash160(`0x${agentAccount.scriptHash}`);
+  if (signerHash !== fromAgentHash) {
+    return {
+      deferred: true,
+      reason: "anchor-agent-wif-mismatch",
+      message: `${config.label} manual write smoke deferred: configured ANCHOR_LIVE_AGENT_WIF does not match agent #1`,
+      expected: fromAgentHash,
+      actual: signerHash,
+    };
   }
 
-  const claimTx = await userContract.invoke("claimRewards", [
-    Neon.sc.ContractParam.string(appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-  ]);
-  const claimLog = await waitForLog(claimTx);
-  if (claimLog.execution.vmstate !== "HALT") {
-    throw new Error(claimLog.execution.exception || `${appId} claimRewards failed`);
+  const amount = BigInt(String(process.env.ANCHOR_LIVE_AGENT_TRANSFER_NEO || "1"));
+  const sourceBalance = await getNeoBalance(fromAgentHash);
+  if (sourceBalance < amount) {
+    return {
+      deferred: true,
+      reason: "needs-anchor-agent-neo",
+      requiredNeo: amount.toString(),
+      availableNeo: sourceBalance.toString(),
+    };
   }
-  const claimed = findNotification(claimLog.execution, contractHash, "AnchorRewardsClaimed");
-  if (!claimed) {
-    throw new Error(`${appId} AnchorRewardsClaimed notification missing`);
+
+  const agentContract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account: agentAccount,
+  });
+  const transferTx = await agentContract.invoke("transferAgentNeo", [
+    Neon.sc.ContractParam.string(config.appId),
+    Neon.sc.ContractParam.integer("1"),
+    Neon.sc.ContractParam.integer("2"),
+    Neon.sc.ContractParam.integer(amount.toString()),
+  ]);
+  const transferLog = await waitForLog(transferTx);
+  if (transferLog.execution.vmstate !== "HALT") {
+    throw new Error(transferLog.execution.exception || `${config.label} transferAgentNeo failed`);
+  }
+  if (!findNotification(transferLog.execution, contractHash, "AnchorAgentTransfer")) {
+    throw new Error(`${config.label} AnchorAgentTransfer notification missing`);
+  }
+  const voteTx = await agentContract.invoke("voteAgent", [
+    Neon.sc.ContractParam.string(config.appId),
+    Neon.sc.ContractParam.integer("1"),
+  ]);
+  const voteLog = await waitForLog(voteTx);
+  if (voteLog.execution.vmstate !== "HALT") {
+    throw new Error(voteLog.execution.exception || `${config.label} voteAgent failed`);
+  }
+  if (!findNotification(voteLog.execution, contractHash, "AnchorVoteChanged")) {
+    throw new Error(`${config.label} AnchorVoteChanged notification missing`);
   }
 
   return {
-    creditTx,
-    fundTx: asTxid(fundTx),
-    claimTx: asTxid(claimTx),
-    pendingBefore: String(pendingBefore || "0"),
-    pendingAfterFund: String(pendingAfterFund || "0"),
+    sourceAgent: fromAgentHash,
+    amount: amount.toString(),
+    transferTx: asTxid(transferTx),
+    voteTx: asTxid(voteTx),
   };
 }
 
@@ -1761,132 +1711,12 @@ async function runAnchorFlow(config) {
   const contractHash = appHash(config.manifestRel);
   const before = await readAnchorState(contractHash, config.appId);
   assertAnchorConfigured(config, before);
-
-  const stakeAmount = BigInt(String(ANCHOR_LIVE_STAKE_NEO));
-  const creditBefore = toBigIntValue(before.neoCredit);
-  const availableNeo = await getNeoBalance(`0x${account.scriptHash}`);
-  if (creditBefore < stakeAmount && availableNeo < stakeAmount) {
-    return {
-      contractHash,
-      readChecks: before,
-      deferred: true,
-      reason: "needs-neo-funding",
-      message: `${config.label} write flow deferred for ${account.address}: requires ${stakeAmount.toString()} NEO credit or wallet balance; credit has ${creditBefore.toString()}, wallet has ${availableNeo.toString()}`,
-    };
-  }
-
-  const adminSigner = resolveAnchorAdminSigner(config.label, before);
-  if (adminSigner?.deferred) {
-    return {
-      contractHash,
-      readChecks: before,
-      ...adminSigner,
-    };
-  }
-  const authorityAccount = adminSigner.signer;
-
-  const userContract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account,
-  });
-  const adminContract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account: authorityAccount,
-  });
-
-  const stakeBefore = toBigIntValue(before.userStake);
-  let creditSource = "existing-credit";
-  let creditTx = null;
-  let afterCredit = before;
-  if (creditBefore < stakeAmount) {
-    creditSource = "wallet-transfer";
-    creditTx = await transferNEO(contractHash, stakeAmount.toString(), null);
-    await sleep(4000);
-    afterCredit = await readAnchorState(contractHash, config.appId);
-    if (toBigIntValue(afterCredit.neoCredit) < creditBefore + stakeAmount) {
-      throw new Error(`${config.label} NEO credit did not increase by ${stakeAmount.toString()} NEO`);
-    }
-  }
-
-  const stakeTx = await userContract.invoke("stake", [
-    Neon.sc.ContractParam.string(config.appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-    Neon.sc.ContractParam.integer(stakeAmount.toString()),
-  ]);
-  const stakeLog = await waitForLog(stakeTx);
-  if (stakeLog.execution.vmstate !== "HALT") {
-    throw new Error(stakeLog.execution.exception || `${config.label} stake failed`);
-  }
-  if (!findNotification(stakeLog.execution, contractHash, "AnchorStakeChanged")) {
-    throw new Error(`${config.label} AnchorStakeChanged notification missing after stake`);
-  }
-  const afterStake = await readAnchorState(contractHash, config.appId);
-  if (toBigIntValue(afterStake.userStake) < stakeBefore + stakeAmount) {
-    throw new Error(`${config.label} stake did not increase by ${stakeAmount.toString()} NEO`);
-  }
-
-  let voteTx = "";
-  if (config.voteMethod === "votePooledStake") {
-    const tx = await adminContract.invoke("votePooledStake", [
-      Neon.sc.ContractParam.string(config.appId),
-      Neon.sc.ContractParam.integer("1"),
-    ]);
-    const voteLog = await waitForLog(tx);
-    if (voteLog.execution.vmstate !== "HALT") {
-      throw new Error(voteLog.execution.exception || `${config.label} votePooledStake failed`);
-    }
-    if (!findNotification(voteLog.execution, contractHash, "AnchorVoteChanged")) {
-      throw new Error(`${config.label} AnchorVoteChanged notification missing`);
-    }
-    voteTx = asTxid(tx);
-  }
-  if (config.voteMethod === "voteBestProfitCandidate") {
-    const tx = await adminContract.invoke("voteBestProfitCandidate", [
-      Neon.sc.ContractParam.string(config.appId),
-    ]);
-    const voteLog = await waitForLog(tx);
-    if (voteLog.execution.vmstate !== "HALT") {
-      throw new Error(voteLog.execution.exception || `${config.label} voteBestProfitCandidate failed`);
-    }
-    if (!findNotification(voteLog.execution, contractHash, "AnchorVoteChanged")) {
-      throw new Error(`${config.label} AnchorVoteChanged notification missing`);
-    }
-    voteTx = asTxid(tx);
-  }
-
-  const rewards = config.rewardFlow
-    ? await runAnchorRewardFlow(contractHash, config.appId, authorityAccount)
-    : null;
-
-  const withdrawTx = await userContract.invoke("withdraw", [
-    Neon.sc.ContractParam.string(config.appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-    Neon.sc.ContractParam.integer(stakeAmount.toString()),
-  ]);
-  const withdrawLog = await waitForLog(withdrawTx);
-  if (withdrawLog.execution.vmstate !== "HALT") {
-    throw new Error(withdrawLog.execution.exception || `${config.label} withdraw failed`);
-  }
-  const afterWithdraw = await readAnchorState(contractHash, config.appId);
-  if (toBigIntValue(afterWithdraw.userStake) !== stakeBefore) {
-    throw new Error(`${config.label} stake did not return to the pre-run balance`);
-  }
+  const manualWrite = await runAnchorManualWriteSmoke(contractHash, config, before);
 
   return {
     contractHash,
-    stakeAmount: stakeAmount.toString(),
-    adminSigner: adminSigner.info,
     readChecks: before,
-    creditSource,
-    creditTx,
-    stakeTx,
-    voteTx,
-    rewards,
-    withdrawTx: asTxid(withdrawTx),
-    afterStake,
-    afterWithdraw,
+    manualWrite,
   };
 }
 
@@ -1896,9 +1726,7 @@ async function runProfitAnchor() {
     appId: "miniapp-profitanchor",
     manifestRel: "apps/profitanchor/neo-manifest.json",
     expectedMode: "2",
-    requiresBestCandidate: true,
-    voteMethod: "voteBestProfitCandidate",
-    rewardFlow: true,
+    envPrefix: "PROFIT_ANCHOR",
   });
 }
 
@@ -1908,9 +1736,7 @@ async function runTrustAnchor() {
     appId: "miniapp-trustanchor",
     manifestRel: "apps/trustanchor/neo-manifest.json",
     expectedMode: "1",
-    requiresBestCandidate: false,
-    voteMethod: "votePooledStake",
-    rewardFlow: false,
+    envPrefix: "TRUST_ANCHOR",
   });
 }
 

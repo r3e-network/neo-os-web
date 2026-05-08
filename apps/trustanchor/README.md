@@ -1,8 +1,8 @@
 # TrustAnchor MiniApp
 
-TrustAnchor is the governance-focused anchor app for NEO staking. It uses the
-shared `PlatformAnchor` contract and AA-generated agent accounts for vote
-identity.
+TrustAnchor is the governance-focused anchor app for manual NEO vote routing.
+It uses the shared `PlatformAnchor` contract and AA-generated agent accounts for
+vote identity.
 
 | Property | Value |
 | --- | --- |
@@ -13,13 +13,13 @@ identity.
 
 ## Safety Model
 
-- User NEO is accounted inside `PlatformAnchor` and can only be withdrawn by the
-  same user witness.
-- NEO transfers that include `miniapp-trustanchor` as transfer data are credited
-  and staked in the same receipt; un-staked credits can be recovered with
-  `withdrawCredit`.
-- User reward GAS is claimable only by the same user witness.
-- Admins cannot transfer staked NEO or reward GAS to arbitrary recipients.
+- Each registered anchor owns 21 AA agent accounts, one per council candidate.
+- Agent account derivation should include anchor/app/agent/nonce material so the
+  account IDs cannot be maliciously pre-registered.
+- Rebalancing is a simple transfer from candidate A's agent to candidate B's
+  agent.
+- Candidate-list changes are handled by updating an agent's vote target and then
+  syncing that agent vote.
 - AA agent accounts provide vote identities. `voteAgent` also requires the agent
   account witness, so admin authority alone is not enough to move an AA agent.
 
@@ -29,13 +29,12 @@ identity.
   accounts.
 - Each agent has an account hash, candidate public key, verification-script hash,
   and display weight.
-- Admin operations are limited to route configuration and vote-only sync.
-- GAS reward accounting uses the shared reward-per-NEO accumulator.
+- Admin operations are limited to route configuration and agent vote sync.
 
 ## Voting-yield Routing Boundary
 
-TrustAnchor supports pooled NEO voting and candidate routing for GAS rewards
-without exposing an admin custody path over user stake or accrued GAS.
+TrustAnchor is intentionally manual. It is an operator-controlled route book,
+not an automatic yield optimizer.
 
 ## Deployment
 
