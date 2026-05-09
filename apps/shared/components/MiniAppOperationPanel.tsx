@@ -53,7 +53,7 @@ function initFieldValue(
   field: OperationFieldDefinition,
   launchParams: Record<string, string>,
 ): unknown {
-  const launched = launchParams[field.key];
+  const launched = readLaunchFieldValue(field.key, launchParams);
   if (launched !== undefined && launched !== "") {
     if (field.type === "toggle") {
       return /^(true|1|yes|on)$/i.test(launched);
@@ -62,6 +62,32 @@ function initFieldValue(
   }
   if (field.default !== undefined) return field.default;
   return field.type === "toggle" ? false : "";
+}
+
+function readLaunchFieldValue(
+  fieldKey: string,
+  launchParams: Record<string, string>,
+): string | undefined {
+  const aliases = fieldAliases(fieldKey);
+  for (const alias of aliases) {
+    const value = launchParams[alias];
+    if (value !== undefined && value !== "") return value;
+  }
+  return undefined;
+}
+
+function fieldAliases(fieldKey: string): string[] {
+  const normalized = fieldKey.replace(/[-_.:]/g, "").toLowerCase();
+  const aliases = [fieldKey];
+  if (normalized === "claimkey") aliases.push("key", "code", "k");
+  if (normalized === "poolid") aliases.push("pool", "campaignId", "campaign");
+  if (normalized === "onegateappid") {
+    aliases.push("oneGateId", "onegateAppId", "onegateId");
+  }
+  if (normalized === "appid" || normalized === "miniappid") {
+    aliases.push("app", "miniAppId", "miniappId");
+  }
+  return Array.from(new Set(aliases));
 }
 
 function initFormData(

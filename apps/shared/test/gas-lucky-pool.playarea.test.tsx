@@ -65,8 +65,15 @@ function t(key: string, params?: Record<string, string | number>) {
 }
 
 function launch(claimKey = "ogv_test_key_1234567890") {
+  return launchWithOperation("claimPool", claimKey);
+}
+
+function launchWithOperation(
+  operation: string,
+  claimKey = "ogv_test_key_1234567890",
+) {
   return parseMiniAppLaunchContext(
-    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&claimKey=${claimKey}`,
+    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=${operation}&network=testnet&claimKey=${claimKey}`,
     "miniapp-gas-lucky-pool",
   );
 }
@@ -93,6 +100,7 @@ function baseState(
     lastClaimPoolId: "",
     lastClaimKey: "",
     lastClaimLuckPercent: "",
+    claimStatus: "",
     lastRefundAmount: 0n,
     lastRefundPoolId: "",
     lastFundAmount: 0n,
@@ -140,6 +148,20 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it("treats the legacy OneGate Vault operation name as a claim launch", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState()}
+        dispatch={vi.fn()}
+        launchContext={launchWithOperation("claimOneGateVault")}
+      />,
+    );
+
+    expect(screen.getByText("OneGate scan detected")).toBeTruthy();
+    expect(screen.queryByText("Create reward pool")).toBeNull();
+  });
+
   it("shows a clear congratulations state after a successful claim", () => {
     render(
       <PlayArea
@@ -150,6 +172,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
           lastClaimAmount: 350000000n,
           lastClaimKey: "ogv_test_key_1234567890",
           lastClaimLuckPercent: "7.00",
+          claimStatus: "paid",
           lastSuccessType: "claim",
         })}
         dispatch={vi.fn()}
@@ -160,7 +183,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(screen.getByText("Congratulations, your claim is in")).toBeTruthy();
     expect(
       screen.getByText(
-        /Reward key ogv_test_key_1234567890 awarded 3\.5[0-9]* GAS/,
+        /Reward key ogv_tes\.\.\.7890 awarded 3\.5[0-9]* GAS/,
       ),
     ).toBeTruthy();
     expect(screen.getByText("Luck beat 7.00% of users.")).toBeTruthy();
