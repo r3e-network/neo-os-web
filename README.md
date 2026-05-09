@@ -170,9 +170,11 @@ Current published Morpheus attestation anchors:
 | NeoPay | `0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34` | `neopay.miniapp.neo` |
 
 Domain values above are the canonical app manifests/runtime bindings. The latest on-chain NNS type-16 audit is in
-`docs/reports/mainnet-domain-bindings-latest.json`; updating NNS records requires a domain-owner signer, not the app
-contract deployer. Use `npm run -s audit:contract-domains` to regenerate the read-only audit. To bind missing or
-mismatched records, inject the owner WIF through one of `NEONS_DOMAIN_OWNER_WIF`, `NEO_NNS_DOMAIN_OWNER_WIF`,
+`docs/reports/mainnet-domain-bindings-latest.json`; a record is only current when it resolves to the expected base58
+contract address. Legacy records that resolve to a raw `0x...` script hash are treated as mismatches so they can be
+normalized instead of silently passing. Updating NNS records requires a domain-owner signer, not the app contract
+deployer. Use `npm run -s audit:contract-domains` to regenerate the read-only audit. To bind missing or mismatched
+records, inject the owner WIF through one of `NEONS_DOMAIN_OWNER_WIF`, `NEO_NNS_DOMAIN_OWNER_WIF`,
 `DOMAIN_OWNER_WIF`, `NEO_MAINNET_DOMAIN_OWNER_WIF`, or `MINIAPP_DOMAIN_OWNER_WIF`, run
 `npm run -s bind:contract-domains` for a dry-run authorization check, then run
 `npm run -s bind:contract-domains:execute` only after the dry-run reports the records as ready.
