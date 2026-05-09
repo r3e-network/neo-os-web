@@ -41,8 +41,18 @@ const FLAGSHIP_REPORT_PATH = String(
     || path.join(root, "docs", "reports", "flagship-live-user-flows.json")
 ).trim();
 const NETWORK_CONFIG = getNetworkConfig(TARGET_NETWORK);
-const RPC_URL = process.env.NEO_RPC_URL || NETWORK_CONFIG.rpcUrl;
-const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || NETWORK_CONFIG.networkMagic);
+function firstConfigured(...values) {
+  return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+}
+
+const RPC_URL = firstConfigured(
+  TARGET_NETWORK === "mainnet"
+    ? firstConfigured(process.env.NEO_MAINNET_RPC_URL, process.env.MAINNET_RPC_URL, process.env.NEO_RPC_MAINNET)
+    : firstConfigured(process.env.NEO_TESTNET_RPC_URL, process.env.TESTNET_RPC_URL, process.env.NEO_RPC_TESTNET),
+  NETWORK_CONFIG.rpcUrl,
+  process.env.ALLOW_GENERIC_NEO_RPC_URL === "1" ? process.env.NEO_RPC_URL : ""
+);
+const NETWORK_MAGIC = Number(NETWORK_CONFIG.networkMagic);
 const WIF =
   process.env.FLAGSHIP_LIVE_WIF ||
   process.env.DEPLOYER_WIF ||
@@ -240,6 +250,16 @@ async function initNeon() {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+}
+
+async function assertRpcNetworkMagic() {
+  const version = await rpcClient.send("getversion", []);
+  const actualMagic = Number(version?.protocol?.network);
+  if (actualMagic !== NETWORK_MAGIC) {
+    throw new Error(
+      `RPC network magic mismatch for ${TARGET_NETWORK}: expected ${NETWORK_MAGIC}, got ${actualMagic} (${RPC_URL})`
+    );
+  }
 }
 
 function sha256Buffer(value) {
@@ -460,7 +480,7 @@ async function buildPreflightSummary(targets) {
     },
     targets,
     runtime: {
-      phalaApiUrl: PHALA_API_URL || "",
+      phalaApiUrlConfigured: Boolean(PHALA_API_URL),
       phalaApiTokenConfigured: Boolean(PHALA_API_TOKEN),
       rngFallbackEnabled: RNG_FALLBACK_ENABLED,
       rngFallbackLeadMs: RNG_FALLBACK_LEAD_MS,
@@ -1810,6 +1830,7 @@ async function runNeoPay() {
 
 async function main() {
   await initNeon();
+  await assertRpcNetworkMagic();
   const targets = resolveTargetSelection(FLAGSHIP_TASKS, LIVE_TARGET_FILTER);
   if (targets.unknown.length > 0) {
     throw new Error(
@@ -1836,7 +1857,7 @@ async function main() {
     `[preflight] primaryGas=${preflight.wallets.primary.gas} primaryNEO=${preflight.wallets.primary.neo} adminGas=${preflight.wallets.admin.gas} updaterGas=${preflight.wallets.oracleUpdater.gas}`
   );
   console.error(
-    `[preflight] phalaUrl=${preflight.runtime.phalaApiUrl || "unset"} phalaToken=${preflight.runtime.phalaApiTokenConfigured ? "set" : "unset"} rngFallback=${preflight.runtime.rngFallbackEnabled ? "on" : "off"}`
+    `[preflight] phalaUrl=${preflight.runtime.phalaApiUrlConfigured ? "set" : "unset"} phalaToken=${preflight.runtime.phalaApiTokenConfigured ? "set" : "unset"} rngFallback=${preflight.runtime.rngFallbackEnabled ? "on" : "off"}`
   );
 
   let failed = false;
