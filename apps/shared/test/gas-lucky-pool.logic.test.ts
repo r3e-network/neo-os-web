@@ -171,6 +171,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastClaimAmount.get()).toBe(350000000n);
     expect(pool.lastClaimLuckPercent.get()).toBe("7.00");
     expect(pool.lastTxid.get()).toBe("0xreward");
+    expect(pool.claimProgress.get()).toBe("paid");
   });
 
   it("polls scanned key status with pool and OneGate identity when payout is submitted asynchronously", async () => {
@@ -226,6 +227,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastClaimAmount.get()).toBe(4900000000n);
     expect(pool.lastClaimLuckPercent.get()).toBe("98.00");
     expect(pool.lastTxid.get()).toBe("0xpaid");
+    expect(pool.claimProgress.get()).toBe("paid");
   });
 
   it("claims the pool id supplied by a OneGate scan and records the congratulations state", async () => {

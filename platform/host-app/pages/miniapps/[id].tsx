@@ -489,7 +489,7 @@ export default function MiniAppDetailPage({
           );
         }
 
-        if (operation.method === "claimOneGateVault") {
+        if (isOneGateVaultPayoutOperation(operation)) {
           const claimKey = String(values.claimKey || values.key || "").trim();
           if (!claimKey) throw new Error("Claim key is required.");
           const poolId = String(
@@ -872,7 +872,7 @@ export default function MiniAppDetailPage({
     ? "Claim"
     : "Open";
   const hasClaimOnlyServerPayout = operations.some(
-    (operation) => operation.method === "claimOneGateVault",
+    isOneGateVaultPayoutOperation,
   );
   const operationPanelDisabledReason = operations.every((operation) =>
     isFrontendLocalOperation(operation.method),
@@ -2408,6 +2408,15 @@ const FRONTEND_LOCAL_OPERATION_METHODS = new Set([
 
 function isFrontendLocalOperation(method?: string | null): boolean {
   return FRONTEND_LOCAL_OPERATION_METHODS.has(String(method || ""));
+}
+
+function isOneGateVaultPayoutOperation(operation: OperationEntry): boolean {
+  if (operation.method === "claimOneGateVault") return true;
+  if (operation.method !== "claimPool") return false;
+  return (operation.params ?? []).some((param) => {
+    const text = `${param.name} ${param.label || ""}`.toLowerCase();
+    return /claim\s*key|claimkey|(^|\W)key($|\W)/.test(text);
+  });
 }
 
 function buildFrontendOperationQuery(

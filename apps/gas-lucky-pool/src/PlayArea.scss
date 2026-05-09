@@ -404,6 +404,139 @@
   color: #b91c1c;
 }
 
+.gas-pool-claim-progress {
+  display: grid;
+  gap: 0.72rem;
+  padding: 0.82rem 0.9rem;
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  border-radius: 12px;
+  background: rgba(240, 249, 255, 0.88);
+  color: #075985;
+}
+
+.gas-pool-claim-progress--paid {
+  border-color: rgba(16, 185, 129, 0.24);
+  background: rgba(236, 253, 245, 0.92);
+  color: #047857;
+}
+
+.gas-pool-claim-progress--failed {
+  border-color: rgba(239, 68, 68, 0.22);
+  background: rgba(254, 242, 242, 0.92);
+  color: #b91c1c;
+}
+
+.gas-pool-claim-progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  span {
+    color: currentColor;
+    font-size: 0.68rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  strong {
+    color: currentColor;
+    font-size: 0.86rem;
+    font-weight: 950;
+    text-align: right;
+  }
+}
+
+.gas-pool-claim-progress__steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gas-pool-claim-progress__step {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+  color: rgba(7, 89, 133, 0.55);
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1.25;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0.27rem;
+    left: 0.62rem;
+    right: -0.35rem;
+    height: 2px;
+    background: rgba(7, 89, 133, 0.16);
+  }
+
+  &:last-child::before {
+    display: none;
+  }
+
+  span:last-child {
+    overflow-wrap: anywhere;
+  }
+}
+
+.gas-pool-claim-progress__dot {
+  position: relative;
+  z-index: 1;
+  width: 0.56rem;
+  height: 0.56rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+  box-shadow: 0 0 0 4px rgba(240, 249, 255, 0.95);
+}
+
+.gas-pool-claim-progress__step--done,
+.gas-pool-claim-progress__step--active {
+  color: #0369a1;
+
+  &::before {
+    background: rgba(14, 165, 233, 0.42);
+  }
+
+  .gas-pool-claim-progress__dot {
+    background: #0ea5e9;
+  }
+}
+
+.gas-pool-claim-progress__step--active {
+  .gas-pool-claim-progress__dot {
+    animation: gas-pool-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+.gas-pool-claim-progress__step--failed {
+  color: #b91c1c;
+
+  .gas-pool-claim-progress__dot {
+    background: #ef4444;
+    box-shadow: 0 0 0 4px rgba(254, 242, 242, 0.95);
+  }
+}
+
+@keyframes gas-pool-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 0.72;
+  }
+}
+
 .gas-pool-card {
   display: flex;
   flex-direction: column;
