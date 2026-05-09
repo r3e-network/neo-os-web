@@ -1,6 +1,6 @@
 .dice-playarea {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-height: 100%;
   color: #111827;
 }
@@ -8,7 +8,7 @@
 .dice-playarea__main {
   display: grid;
   grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
-  gap: 14px;
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -16,13 +16,11 @@
   display: grid;
   place-items: center;
   gap: 10px;
-  min-height: 190px;
-  border: 1px solid rgba(0, 229, 153, 0.26);
-  border-radius: 14px;
-  background:
-    linear-gradient(145deg, rgba(236, 253, 245, 0.96), rgba(255, 255, 255, 0.98)),
-    #fff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  min-height: 184px;
+  border: 1px solid #e1e7df;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(20, 32, 21, 0.06);
 }
 
 .dice-card__face {
@@ -30,13 +28,13 @@
   place-items: center;
   width: min(116px, 34vw);
   aspect-ratio: 1;
-  border-radius: 20px;
+  border-radius: 18px;
   background: #111827;
   color: #fff;
   font-size: 50px;
   font-weight: 800;
   line-height: 1;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 16px 34px rgba(17, 24, 39, 0.2);
 }
 
 .dice-card__label {
@@ -50,10 +48,11 @@
   display: grid;
   align-content: center;
   gap: 14px;
-  padding: 18px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid #e1e7df;
+  border-radius: 16px;
   background: #fff;
+  box-shadow: 0 10px 26px rgba(20, 32, 21, 0.04);
 }
 
 .dice-summary p {
@@ -75,9 +74,9 @@
   gap: 5px;
   min-width: 0;
   padding: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e7ece5;
   border-radius: 10px;
-  background: #f9fafb;
+  background: #fafbf8;
   color: #6b7280;
   font-size: 12px;
 }
@@ -97,7 +96,7 @@
   display: grid;
   place-items: center;
   min-height: 42px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e7ece5;
   border-radius: 10px;
   background: #fff;
   color: #6b7280;
@@ -106,8 +105,8 @@
 }
 
 .dice-face-strip__item--active {
-  border-color: rgba(0, 229, 153, 0.75);
-  background: #00e599;
+  border-color: rgba(0, 199, 129, 0.72);
+  background: #00c781;
   color: #0b1110;
 }
 
@@ -119,8 +118,8 @@
   justify-content: space-between;
   min-height: 48px;
   padding: 11px 13px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid #e1e7df;
+  border-radius: 14px;
   background: #fff;
   color: #4b5563;
 }
@@ -130,7 +129,7 @@
 }
 
 .dice-status code {
-  color: #00e599;
+  color: #008f5f;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -145,13 +144,13 @@
   }
 
   .dice-card {
-    min-height: 118px;
+    min-height: 112px;
     gap: 6px;
     border-radius: 12px;
   }
 
   .dice-card__face {
-    width: 70px;
+    width: 68px;
     border-radius: 14px;
     font-size: 34px;
   }
@@ -162,7 +161,7 @@
 
   .dice-summary {
     gap: 8px;
-    padding: 10px;
+    padding: 9px;
     border-radius: 12px;
   }
 
@@ -198,7 +197,7 @@
   }
 
   .dice-face-strip__item {
-    min-height: 32px;
+    min-height: 30px;
     border-radius: 8px;
     font-size: 13px;
   }
