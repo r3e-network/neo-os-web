@@ -342,14 +342,26 @@ namespace NeoMiniAppPlatform.Contracts
                 GameType = gameType,
                 OperationId = operationId
             };
-            Storage.Put(Storage.CurrentContext, OracleRequestKey(requestId), StdLib.Serialize(context));
+            Storage.Put(Storage.CurrentContext, OracleRequestKey(requestId), StdLib.Serialize(new object[]
+            {
+                context.AppId,
+                context.GameType,
+                context.OperationId
+            }));
         }
 
         private static OracleRequestContext LoadOracleRequestContext(BigInteger requestId)
         {
             ByteString data = Storage.Get(Storage.CurrentContext, OracleRequestKey(requestId));
             ExecutionEngine.Assert(data != null, "oracle request context not found");
-            return (OracleRequestContext)StdLib.Deserialize(data);
+            object[] values = (object[])StdLib.Deserialize(data);
+            ExecutionEngine.Assert(values != null && values.Length >= 3, "oracle request context malformed");
+            return new OracleRequestContext
+            {
+                AppId = (string)values[0],
+                GameType = (BigInteger)values[1],
+                OperationId = (BigInteger)values[2]
+            };
         }
 
         /// <summary>
@@ -531,6 +543,11 @@ namespace NeoMiniAppPlatform.Contracts
             // Extract appId (everything before the first ':')
             string appId = ExtractAppId(memo);
             RequireRegistered(appId);
+
+            if (ConsumePendingGachaInventoryPayment(appId, from, amount, data))
+            {
+                return;
+            }
 
             // Credit the payer's balance under this appId
             CreditDirectGasPayment(appId, from, amount, data);
