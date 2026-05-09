@@ -135,32 +135,78 @@
 }
 
 @media (max-width: 720px) {
+  .dice-playarea {
+    gap: 8px;
+  }
+
   .dice-playarea__main {
-    grid-template-columns: 1fr;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 8px;
   }
 
   .dice-card {
-    min-height: 170px;
+    min-height: 118px;
+    gap: 6px;
+    border-radius: 12px;
   }
 
   .dice-card__face {
-    width: 112px;
-    font-size: 46px;
+    width: 70px;
+    border-radius: 14px;
+    font-size: 34px;
+  }
+
+  .dice-card__label {
+    font-size: 11px;
   }
 
   .dice-summary {
-    padding: 16px;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 12px;
   }
 
   .dice-summary p {
-    font-size: 14px;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .dice-summary__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .dice-summary__grid span {
+    gap: 3px;
+    padding: 7px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+
+  .dice-summary__grid strong {
+    font-size: 11px;
+    line-height: 1.2;
   }
 
   .dice-face-strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .dice-face-strip__item {
+    min-height: 32px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .dice-status {
+    min-height: 40px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
   }
 }
