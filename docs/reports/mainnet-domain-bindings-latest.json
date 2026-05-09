@@ -1,24 +1,24 @@
 {
   "summary": {
-    "generated_at": "2026-05-09T01:00:40.076Z",
-    "started_at": "2026-05-09T01:00:21.992Z",
+    "generated_at": "2026-05-09T03:36:21.278Z",
+    "started_at": "2026-05-09T03:36:03.774Z",
     "network": "neo-n3-mainnet",
     "rpc_url": "https://api.n3index.dev/mainnet",
     "network_magic": 860833102,
     "total_contract_bindings": 46,
     "configured": 46,
     "config_missing": 0,
-    "chain_ok": 19,
+    "chain_ok": 14,
     "chain_missing": 23,
-    "chain_mismatch": 4,
+    "chain_mismatch": 9,
     "chain_error": 0,
     "unique_domain_bindings": 38,
     "unique_configured_domains": 38,
-    "unique_chain_ok": 13,
+    "unique_chain_ok": 8,
     "unique_chain_missing": 21,
-    "unique_chain_mismatch": 4,
+    "unique_chain_mismatch": 9,
     "unique_chain_error": 0,
-    "unique_actionable": 25,
+    "unique_actionable": 30,
     "skipped_rpc": false
   },
   "records": [
@@ -249,8 +249,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -571,8 +571,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -709,8 +709,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -732,8 +732,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -1031,8 +1031,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "morpheus",
@@ -1263,8 +1263,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -1585,8 +1585,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -1700,8 +1700,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -1723,8 +1723,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -1907,8 +1907,8 @@
       "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
       "parent_owner_status": "registered",
       "parent_owner_error": null,
-      "resolved_match": "contract_hash",
-      "status": "ok"
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "morpheus",
@@ -2049,6 +2049,29 @@
       "parent_owner_error": null,
       "resolved_match": "",
       "status": "chain_missing"
+    },
+    {
+      "source": "miniapp",
+      "id": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "slug": "daily-checkin",
+      "manifest_path": "apps/daily-checkin/neo-manifest.json",
+      "contract_key": "primary",
+      "contract_hash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+      "expected_address": "NgkjESGFZYk5EUvWTtdKmcZk9ZNMfemxaL",
+      "domain": "dailycheckin.miniapp.neo",
+      "parent_domain": "miniapp.neo",
+      "resolved_address": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+      "nns_status": "resolved",
+      "nns_error": null,
+      "owner_address": "",
+      "owner_status": "unregistered",
+      "owner_error": "The argument `data` can't be null.",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -2351,6 +2374,29 @@
     },
     {
       "source": "miniapp",
+      "id": "miniapp-neo-pay",
+      "name": "NeoPay",
+      "slug": "neo-pay",
+      "manifest_path": "apps/neo-pay/neo-manifest.json",
+      "contract_key": "primary",
+      "contract_hash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+      "expected_address": "NQgs4RrCJhvgpUt27FyeGsFTW7H2gAonx1",
+      "domain": "neopay.miniapp.neo",
+      "parent_domain": "miniapp.neo",
+      "resolved_address": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+      "nns_status": "resolved",
+      "nns_error": null,
+      "owner_address": "",
+      "owner_status": "unregistered",
+      "owner_error": "The argument `data` can't be null.",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "",
+      "status": "chain_mismatch"
+    },
+    {
+      "source": "miniapp",
       "id": "miniapp-onchaintarot",
       "name": "On-chain Tarot",
       "slug": "on-chain-tarot",
@@ -2417,6 +2463,52 @@
       "parent_owner_error": null,
       "resolved_match": "",
       "status": "chain_missing"
+    },
+    {
+      "source": "miniapp",
+      "id": "miniapp-redenvelope",
+      "name": "Red Envelope",
+      "slug": "red-envelope",
+      "manifest_path": "apps/red-envelope/neo-manifest.json",
+      "contract_key": "primary",
+      "contract_hash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+      "expected_address": "NU4VhJ9r68jeNptDVBdDsRSZj54McD9cLj",
+      "domain": "redenvelope.miniapp.neo",
+      "parent_domain": "miniapp.neo",
+      "resolved_address": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+      "nns_status": "resolved",
+      "nns_error": null,
+      "owner_address": "",
+      "owner_status": "unregistered",
+      "owner_error": "The argument `data` can't be null.",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "",
+      "status": "chain_mismatch"
+    },
+    {
+      "source": "miniapp",
+      "id": "miniapp-self-loan",
+      "name": "SelfLoan",
+      "slug": "self-loan",
+      "manifest_path": "apps/self-loan/neo-manifest.json",
+      "contract_key": "primary",
+      "contract_hash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "expected_address": "NPKC5Lk8JF5oipAMPdRgTpdL4N1cTCZ3Mc",
+      "domain": "selfloan.miniapp.neo",
+      "parent_domain": "miniapp.neo",
+      "resolved_address": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "nns_status": "resolved",
+      "nns_error": null,
+      "owner_address": "",
+      "owner_status": "unregistered",
+      "owner_error": "The argument `data` can't be null.",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "",
+      "status": "chain_mismatch"
     },
     {
       "source": "miniapp",
@@ -2522,6 +2614,29 @@
       "domain": "oracle.morpheus.neo",
       "parent_domain": "morpheus.neo",
       "resolved_address": "NZD9U8EiZdTKf7mK7zAX9jEHRSNz6yvLWX",
+      "nns_status": "resolved",
+      "nns_error": null,
+      "owner_address": "",
+      "owner_status": "unregistered",
+      "owner_error": "The argument `data` can't be null.",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "",
+      "status": "chain_mismatch"
+    },
+    {
+      "source": "morpheus",
+      "id": "morpheus:callback-consumer",
+      "name": "Morpheus Callback Consumer",
+      "slug": "morpheus:callback-consumer",
+      "manifest_path": "apps/shared/constants/generated-morpheus-registry.ts",
+      "contract_key": "oracleCallbackConsumer",
+      "contract_hash": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
+      "expected_address": "NSAftcmNDncyNa4xHrtiV8VmkWmE2uvjPY",
+      "domain": "callback.morpheus.neo",
+      "parent_domain": "morpheus.neo",
+      "resolved_address": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
       "nns_status": "resolved",
       "nns_error": null,
       "owner_address": "",
