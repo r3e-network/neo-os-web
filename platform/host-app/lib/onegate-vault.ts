@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { addressToScriptHash } from "@/lib/chain";
 import { isValidWalletAddress } from "@/lib/wallet-user";
 
 export const ONEGATE_VAULT_MIN_REWARD_FIXED8 = 100000000n;
@@ -25,6 +26,7 @@ export type OneGateVaultCampaign = {
   remainingAmountFixed8: string;
   maxClaims: number;
   claimedCount: number;
+  rewardSource?: string | null;
   expiresAt?: string | null;
 };
 
@@ -51,6 +53,7 @@ export type ReservedOneGateVaultClaim = {
   amountFixed8: string;
   txHash?: string | null;
   requestId: string;
+  rewardSource?: string | null;
 };
 
 export type OneGateVaultClaimResult = {
@@ -110,8 +113,14 @@ export interface OneGateVaultPaymentService {
     network: OneGateVaultNetwork;
     toAddress: string;
     amountFixed8: string;
+    rewardSource?: string | null;
   }): Promise<{ txHash: string; status: "submitted" | "paid" }>;
 }
+
+type OneGateVaultPayoutCheck = {
+  ok: boolean;
+  reason?: string;
+};
 
 export class OneGateVaultError extends Error {
   readonly code: string;
@@ -241,6 +250,109 @@ function secureRandomUint64String(): string {
   return BigInt(`0x${crypto.randomBytes(8).toString("hex")}`).toString();
 }
 
+export function normalizeOneGateVaultHash160(value: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^N[A-Za-z0-9]{33}$/.test(raw)) {
+    return addressToScriptHash(raw);
+  }
+  const hex = String(value || "").trim().replace(/^0x/i, "").toLowerCase();
+  return /^[0-9a-f]{40}$/.test(hex) ? `0x${hex}` : "";
+}
+
+function hash160NotificationBytes(hash160: string): string {
+  const normalized = normalizeOneGateVaultHash160(hash160);
+  if (!normalized) return "";
+  return Buffer.from(normalized.replace(/^0x/i, ""), "hex")
+    .reverse()
+    .toString("base64");
+}
+
+function normalizeOneGateVaultTransferAccount(value: string): string {
+  return normalizeOneGateVaultHash160(value);
+}
+
+function getAppLogExecutions(appLog: unknown): Array<Record<string, unknown>> {
+  if (!appLog || typeof appLog !== "object") return [];
+  const source = appLog as Record<string, unknown>;
+  const result =
+    source.result && typeof source.result === "object"
+      ? (source.result as Record<string, unknown>)
+      : source;
+  return Array.isArray(result.executions)
+    ? (result.executions as Array<Record<string, unknown>>)
+    : [];
+}
+
+function stackTopIsTrue(execution: Record<string, unknown>): boolean {
+  const stack = Array.isArray(execution.stack)
+    ? (execution.stack as Array<Record<string, unknown>>)
+    : [];
+  const top = stack[0];
+  return (
+    top &&
+    String(top.type || "").toLowerCase() === "boolean" &&
+    (top.value === true || String(top.value).toLowerCase() === "true")
+  );
+}
+
+function notificationMatchesPayout(
+  notification: Record<string, unknown>,
+  toHash160: string,
+  amountFixed8: string,
+): boolean {
+  if (
+    String(notification.contract || "").toLowerCase() !==
+      "0xd2a4cff31913016155e38e474a2c06d08be276cf" ||
+    String(notification.eventname || notification.eventName || "").toLowerCase() !==
+      "transfer"
+  ) {
+    return false;
+  }
+  const state = notification.state as Record<string, unknown> | undefined;
+  const values = Array.isArray(state?.value)
+    ? (state?.value as Array<Record<string, unknown>>)
+    : [];
+  const expectedTo = hash160NotificationBytes(toHash160);
+  return (
+    String(values[1]?.value || "") === expectedTo &&
+    String(values[2]?.value || "") === String(amountFixed8)
+  );
+}
+
+export function validateOneGateVaultPayoutAppLog(input: {
+  appLog: unknown;
+  toAddressOrHash: string;
+  amountFixed8: string;
+}): OneGateVaultPayoutCheck {
+  const executions = getAppLogExecutions(input.appLog);
+  const execution = executions.find(
+    (item) => String(item.trigger || "").toLowerCase() === "application",
+  ) ?? executions[0];
+  if (!execution) return { ok: false, reason: "application log is unavailable" };
+  if (String(execution.vmstate || "").toUpperCase() !== "HALT") {
+    return {
+      ok: false,
+      reason: String(execution.exception || "transaction did not HALT"),
+    };
+  }
+  if (!stackTopIsTrue(execution)) {
+    return { ok: false, reason: "GAS transfer returned false" };
+  }
+  const toHash160 = normalizeOneGateVaultHash160(input.toAddressOrHash);
+  const notifications = Array.isArray(execution.notifications)
+    ? (execution.notifications as Array<Record<string, unknown>>)
+    : [];
+  if (
+    !notifications.some((notification) =>
+      notificationMatchesPayout(notification, toHash160, input.amountFixed8),
+    )
+  ) {
+    return { ok: false, reason: "GAS Transfer event was not emitted" };
+  }
+  return { ok: true };
+}
+
 export async function claimOneGateVaultReward(
   input: {
     claimKey: unknown;
@@ -292,6 +404,7 @@ export async function claimOneGateVaultReward(
       network,
       toAddress: address,
       amountFixed8: reserved.amountFixed8,
+      rewardSource: reserved.rewardSource,
     });
     if (payment.status === "paid") {
       await deps.repository.markPaid({
@@ -423,6 +536,12 @@ export function createInMemoryOneGateVaultRepository(seed: {
         claimKey.amountFixed8 &&
         claimKey.requestId
       ) {
+        if (claimKey.status === "failed") {
+          claimKey.status = "pending";
+          claimKey.requestId = input.requestId;
+          claimKey.txHash = null;
+          claimKey.errorMessage = null;
+        }
         return {
           keyHash: claimKey.keyHash,
           campaignId: claimKey.campaignId,
@@ -432,6 +551,7 @@ export function createInMemoryOneGateVaultRepository(seed: {
           amountFixed8: claimKey.amountFixed8,
           txHash: claimKey.txHash ?? null,
           requestId: claimKey.requestId,
+          rewardSource: campaign.rewardSource ?? null,
         };
       }
 
@@ -472,6 +592,7 @@ export function createInMemoryOneGateVaultRepository(seed: {
         amountFixed8: claimKey.amountFixed8,
         txHash: claimKey.txHash ?? null,
         requestId: input.requestId,
+        rewardSource: campaign.rewardSource ?? null,
       };
     },
 
@@ -592,6 +713,10 @@ function mapReservedClaim(
     txHash:
       row.tx_hash || row.txHash ? String(row.tx_hash ?? row.txHash) : null,
     requestId: String(row.request_id ?? row.requestId ?? ""),
+    rewardSource:
+      row.reward_source || row.rewardSource
+        ? String(row.reward_source ?? row.rewardSource)
+        : null,
   };
 }
 
@@ -620,7 +745,24 @@ export function createSupabaseOneGateVaultRepository(
           "CLAIM_KEY_NOT_FOUND",
           "claim key was not found",
         );
-      return mapReservedClaim(row as Record<string, unknown>);
+      const reserved = mapReservedClaim(row as Record<string, unknown>);
+      if (typeof (supabase as { from?: unknown }).from !== "function") {
+        return reserved;
+      }
+      const { data: campaign, error: campaignError } = await supabase
+        .from("onegate_vault_campaigns")
+        .select("reward_source")
+        .eq("id", reserved.campaignId)
+        .eq("network", reserved.network)
+        .maybeSingle();
+      if (campaignError) throw mapSupabaseVaultError(campaignError);
+      return {
+        ...reserved,
+        rewardSource:
+          campaign && typeof campaign.reward_source === "string"
+            ? campaign.reward_source
+            : null,
+      };
     },
 
     async markSubmitted(input) {
@@ -671,7 +813,7 @@ export function createSupabaseOneGateVaultRepository(
           failed_at: new Date().toISOString(),
         },
         input.requestId,
-        ["pending", "failed"],
+        ["pending", "submitted", "failed"],
       );
     },
 
@@ -806,12 +948,21 @@ export function createTxProxyOneGateVaultPaymentService(
         );
       }
       const rewardSource = await resolveOneGateVaultRewardSource(
-        options.rewardSource,
+        input.network,
+        input.rewardSource || options.rewardSource,
       );
       if (!rewardSource) {
         throw new OneGateVaultError(
           "PAYMENT_NOT_CONFIGURED",
           "OneGate Vault reward source is not configured",
+        );
+      }
+      const rewardSourceHash = normalizeOneGateVaultTransferAccount(rewardSource);
+      const recipientHash = normalizeOneGateVaultHash160(input.toAddress);
+      if (!rewardSourceHash || !recipientHash) {
+        throw new OneGateVaultError(
+          "PAYMENT_NOT_CONFIGURED",
+          "OneGate Vault reward source or recipient is not a valid Neo Hash160",
         );
       }
       const response = await fetch(`${txProxyUrl.replace(/\/+$/, "")}/invoke`, {
@@ -824,8 +975,8 @@ export function createTxProxyOneGateVaultPaymentService(
           contract_hash: gasContractHash,
           method: "transfer",
           params: [
-            { type: "Hash160", value: rewardSource },
-            { type: "Hash160", value: input.toAddress },
+            { type: "Hash160", value: rewardSourceHash },
+            { type: "Hash160", value: recipientHash },
             { type: "Integer", value: input.amountFixed8 },
             { type: "Any", value: null },
           ],
@@ -851,10 +1002,21 @@ export function createTxProxyOneGateVaultPaymentService(
           "PAYMENT_FAILED",
           "tx-proxy did not return a transaction hash",
         );
-      const status =
-        body.status === "paid" || body.confirmed === true
-          ? "paid"
-          : "submitted";
+      if (body.app_log || body.appLog) {
+        const payout = validateOneGateVaultPayoutAppLog({
+          appLog: body.app_log || body.appLog,
+          toAddressOrHash: recipientHash,
+          amountFixed8: input.amountFixed8,
+        });
+        if (!payout.ok) {
+          throw new OneGateVaultError(
+            "PAYMENT_FAILED",
+            payout.reason || "GAS transfer was not confirmed",
+          );
+        }
+        return { txHash, status: "paid" };
+      }
+      const status = body.status === "paid" ? "paid" : "submitted";
       return { txHash, status };
     },
   };
@@ -935,24 +1097,31 @@ function getTxProxyErrorMessage(
 }
 
 async function resolveOneGateVaultRewardSource(
+  network: OneGateVaultNetwork,
   optionRewardSource?: string,
 ): Promise<string> {
+  const networkSuffix = network === "mainnet" ? "MAINNET" : "TESTNET";
   const explicit = String(
     optionRewardSource ||
+      process.env[`ONEGATE_VAULT_REWARD_SOURCE_${networkSuffix}`] ||
+      process.env[`ONEGATE_VAULT_REWARD_SOURCE_HASH_${networkSuffix}`] ||
       process.env.ONEGATE_VAULT_REWARD_SOURCE ||
       process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH ||
       "",
   ).trim();
-  if (explicit) return explicit;
+  if (explicit && explicit !== "PLATFORM_SPONSOR") return explicit;
 
   const rewardWif = String(
-    process.env.ONEGATE_VAULT_REWARD_WIF || process.env.SPONSORED_WIF || "",
+    process.env[`ONEGATE_VAULT_REWARD_WIF_${networkSuffix}`] ||
+      process.env.ONEGATE_VAULT_REWARD_WIF ||
+      "",
   ).trim();
   if (!rewardWif) return "";
 
   try {
-    const { wallet } = await import("@r3e/neo-js-sdk/browser");
-    return new wallet.Account(rewardWif).scriptHash;
+    const sdk = await import("@r3e/neo-js-sdk/browser");
+    const account = sdk.Account.fromWIF(rewardWif);
+    return normalizeOneGateVaultHash160(account.address || account.scriptHash);
   } catch {
     return "";
   }

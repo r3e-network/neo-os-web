@@ -7,12 +7,53 @@ import {
   formatFixed8Gas,
   hashClaimKey,
   normalizeClaimKey,
+  normalizeOneGateVaultHash160,
   type OneGateVaultPaymentService,
 } from "@/lib/onegate-vault";
 
 const CLAIM_KEY = "ogv_test_key_1234567890";
 const WALLET = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
 const OTHER_WALLET = "NRmZ6Ysfy4UmpgBqLJ41q6wPjFUu6wTVrL";
+
+function hash160NotificationValue(value: string): string {
+  return Buffer.from(
+    normalizeOneGateVaultHash160(value).replace(/^0x/i, ""),
+    "hex",
+  )
+    .reverse()
+    .toString("base64");
+}
+
+function successfulGasTransferAppLog(toAddress: string, amountFixed8: string) {
+  return {
+    executions: [
+      {
+        trigger: "Application",
+        vmstate: "HALT",
+        stack: [{ type: "Boolean", value: true }],
+        notifications: [
+          {
+            contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+            eventname: "Transfer",
+            state: {
+              type: "Array",
+              value: [
+                {
+                  type: "ByteString",
+                  value: hash160NotificationValue(
+                    "0x***REMOVED***01234567",
+                  ),
+                },
+                { type: "ByteString", value: hash160NotificationValue(toAddress) },
+                { type: "Integer", value: amountFixed8 },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
 
 describe("OneGate Vault off-chain claim engine", () => {
   it("normalizes QR claim keys without accepting unsafe payloads", () => {
@@ -70,6 +111,71 @@ describe("OneGate Vault off-chain claim engine", () => {
       txHash: "0xreward",
     });
     expect(second).toEqual(first);
+  });
+
+  it("rotates the txproxy request id when the same wallet retries a failed payout", async () => {
+    const nowSpy = jest
+      .spyOn(Date, "now")
+      .mockReturnValueOnce(1000)
+      .mockReturnValueOnce(2000);
+    const randomInt = jest.fn().mockReturnValue(300000000n);
+    const repository = createInMemoryOneGateVaultRepository({
+      campaigns: [
+        {
+          id: "campaign-1",
+          network: "testnet",
+          status: "active",
+          minAmountFixed8: "100000000",
+          maxAmountFixed8: "500000000",
+          remainingAmountFixed8: "1000000000",
+          maxClaims: 5,
+          claimedCount: 0,
+        },
+      ],
+      claimKeys: [
+        {
+          keyHash: hashClaimKey(CLAIM_KEY, "pepper"),
+          campaignId: "campaign-1",
+          network: "testnet",
+          status: "unused",
+        },
+      ],
+    });
+    const payment: OneGateVaultPaymentService = {
+      sendGas: jest
+        .fn()
+        .mockRejectedValueOnce(new Error("GAS transfer returned false"))
+        .mockResolvedValueOnce({
+          txHash: "0xretry",
+          status: "paid",
+        }),
+    };
+
+    await expect(
+      claimOneGateVaultReward(
+        { claimKey: CLAIM_KEY, address: WALLET, network: "testnet" },
+        { repository, payment, keyPepper: "pepper", randomInt },
+      ),
+    ).rejects.toMatchObject({ code: "PAYMENT_FAILED" });
+
+    const retry = await claimOneGateVaultReward(
+      { claimKey: CLAIM_KEY, address: WALLET, network: "testnet" },
+      { repository, payment, keyPepper: "pepper", randomInt },
+    );
+
+    expect(randomInt).toHaveBeenCalledTimes(1);
+    expect(payment.sendGas).toHaveBeenCalledTimes(2);
+    const firstRequest = (payment.sendGas as jest.Mock).mock.calls[0][0].requestId;
+    const retryRequest = (payment.sendGas as jest.Mock).mock.calls[1][0].requestId;
+    expect(retryRequest).not.toBe(firstRequest);
+    expect(retry).toMatchObject({
+      status: "paid",
+      amountFixed8: "300000000",
+      txHash: "0xretry",
+      requestId: retryRequest,
+    });
+
+    nowSpy.mockRestore();
   });
 
   it("keeps the same QR claim key isolated between testnet and mainnet", async () => {
@@ -353,7 +459,12 @@ describe("OneGate Vault off-chain claim engine", () => {
     const originalVaultTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
-      json: jest.fn().mockResolvedValue({ tx_hash: "0xedge", confirmed: true }),
+      text: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          tx_hash: "0xedge",
+          app_log: successfulGasTransferAppLog(WALLET, "100000000"),
+        }),
+      ),
     });
     global.fetch = fetchMock as never;
     delete process.env.TX_PROXY_URL;
@@ -387,9 +498,11 @@ describe("OneGate Vault off-chain claim engine", () => {
         params: [
           {
             type: "Hash160",
-            value: "0x***REMOVED***01234567",
+            value: normalizeOneGateVaultHash160(
+              "0x***REMOVED***01234567",
+            ),
           },
-          { type: "Hash160", value: WALLET },
+          { type: "Hash160", value: normalizeOneGateVaultHash160(WALLET) },
           { type: "Integer", value: "100000000" },
           { type: "Any", value: null },
         ],
@@ -408,6 +521,112 @@ describe("OneGate Vault off-chain claim engine", () => {
       } else {
         process.env.ONEGATE_VAULT_TX_PROXY_URL = originalVaultTxProxyUrl;
       }
+    }
+  });
+
+  it("uses the campaign reward source for the GAS transfer sender", async () => {
+    const originalFetch = global.fetch;
+    const originalTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
+    const originalRewardSource = process.env.ONEGATE_VAULT_REWARD_SOURCE;
+    const originalRewardSourceHash =
+      process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+    const originalRewardWif = process.env.ONEGATE_VAULT_REWARD_WIF;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          tx_hash: "0xedge",
+          app_log: successfulGasTransferAppLog(WALLET, "100000000"),
+        }),
+      ),
+    });
+    global.fetch = fetchMock as never;
+    process.env.ONEGATE_VAULT_TX_PROXY_URL = "https://edge.example/txproxy";
+    delete process.env.ONEGATE_VAULT_REWARD_SOURCE;
+    delete process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+    delete process.env.ONEGATE_VAULT_REWARD_WIF;
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService();
+      await payment.sendGas({
+        requestId: "req-1",
+        network: "testnet",
+        toAddress: WALLET,
+        amountFixed8: "100000000",
+        rewardSource: "0x***REMOVED***01234567",
+      });
+
+      const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(JSON.parse(String(request.body))).toMatchObject({
+        params: [
+          {
+            type: "Hash160",
+            value: normalizeOneGateVaultHash160(
+              "0x***REMOVED***01234567",
+            ),
+          },
+          { type: "Hash160", value: normalizeOneGateVaultHash160(WALLET) },
+          { type: "Integer", value: "100000000" },
+          { type: "Any", value: null },
+        ],
+      });
+    } finally {
+      global.fetch = originalFetch;
+      if (originalTxProxyUrl === undefined)
+        delete process.env.ONEGATE_VAULT_TX_PROXY_URL;
+      else process.env.ONEGATE_VAULT_TX_PROXY_URL = originalTxProxyUrl;
+      if (originalRewardSource === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_SOURCE;
+      else process.env.ONEGATE_VAULT_REWARD_SOURCE = originalRewardSource;
+      if (originalRewardSourceHash === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+      else
+        process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH =
+          originalRewardSourceHash;
+      if (originalRewardWif === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_WIF;
+      else process.env.ONEGATE_VAULT_REWARD_WIF = originalRewardWif;
+    }
+  });
+
+  it("fails closed when no Vault reward source is configured", async () => {
+    const originalTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
+    const originalRewardSource = process.env.ONEGATE_VAULT_REWARD_SOURCE;
+    const originalRewardSourceHash =
+      process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+    const originalRewardWif = process.env.ONEGATE_VAULT_REWARD_WIF;
+    process.env.ONEGATE_VAULT_TX_PROXY_URL = "https://edge.example/txproxy";
+    delete process.env.ONEGATE_VAULT_REWARD_SOURCE;
+    delete process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+    delete process.env.ONEGATE_VAULT_REWARD_WIF;
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService();
+      await expect(
+        payment.sendGas({
+          requestId: "req-1",
+          network: "testnet",
+          toAddress: WALLET,
+          amountFixed8: "100000000",
+        }),
+      ).rejects.toMatchObject({
+        code: "PAYMENT_NOT_CONFIGURED",
+      });
+    } finally {
+      if (originalTxProxyUrl === undefined)
+        delete process.env.ONEGATE_VAULT_TX_PROXY_URL;
+      else process.env.ONEGATE_VAULT_TX_PROXY_URL = originalTxProxyUrl;
+      if (originalRewardSource === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_SOURCE;
+      else process.env.ONEGATE_VAULT_REWARD_SOURCE = originalRewardSource;
+      if (originalRewardSourceHash === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH;
+      else
+        process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH =
+          originalRewardSourceHash;
+      if (originalRewardWif === undefined)
+        delete process.env.ONEGATE_VAULT_REWARD_WIF;
+      else process.env.ONEGATE_VAULT_REWARD_WIF = originalRewardWif;
     }
   });
 
@@ -437,6 +656,51 @@ describe("OneGate Vault off-chain claim engine", () => {
         code: "PAYMENT_FAILED",
         message:
           "tx-proxy rejected OneGate Vault payout (404): Not Found",
+      });
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("rejects txproxy transactions whose GAS transfer returned false", async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          tx_hash:
+            "0x03ccf25f24885badb04486b00b7ba21f557e44f81f9404a9514d86eae5a87c03",
+          app_log: {
+            executions: [
+              {
+                trigger: "Application",
+                vmstate: "HALT",
+                stack: [{ type: "Boolean", value: false }],
+                notifications: [],
+              },
+            ],
+          },
+        }),
+      ),
+    });
+    global.fetch = fetchMock as never;
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService({
+        txProxyUrl: "https://edge.example/txproxy",
+        rewardSource: "0x***REMOVED***01234567",
+      });
+
+      await expect(
+        payment.sendGas({
+          requestId: "req-1",
+          network: "testnet",
+          toAddress: WALLET,
+          amountFixed8: "100000000",
+        }),
+      ).rejects.toMatchObject({
+        code: "PAYMENT_FAILED",
+        message: "GAS transfer returned false",
       });
     } finally {
       global.fetch = originalFetch;
@@ -517,5 +781,18 @@ describe("OneGate Vault off-chain claim engine", () => {
       "failed",
     ]);
     expect(chain.select).toHaveBeenCalledWith("key_hash,network");
+
+    await repository.markFailed({
+      keyHash: "hash",
+      network: "testnet",
+      requestId: "req-1",
+      errorMessage: "GAS transfer returned false",
+    });
+
+    expect(chain.in).toHaveBeenCalledWith("status", [
+      "pending",
+      "submitted",
+      "failed",
+    ]);
   });
 });

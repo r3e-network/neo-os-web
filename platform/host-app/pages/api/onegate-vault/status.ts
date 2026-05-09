@@ -4,6 +4,7 @@ import {
   calculateOneGateVaultLuckPercent,
   formatFixed8Gas,
   hashClaimKey,
+  validateOneGateVaultPayoutAppLog,
   normalizeClaimKey,
   createSupabaseOneGateVaultRepository,
   OneGateVaultError,
@@ -48,11 +49,11 @@ function getNeoRpcUrl(network: OneGateVaultNetwork): string {
   ).trim();
 }
 
-async function isTxConfirmed(
+async function fetchNeoRpc(
   network: OneGateVaultNetwork,
-  txHash: string,
-): Promise<boolean> {
-  if (!/^0x[0-9a-f]{64}$/i.test(txHash)) return false;
+  method: string,
+  params: unknown[],
+): Promise<Record<string, unknown> | null> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3500);
   try {
@@ -63,26 +64,50 @@ async function isTxConfirmed(
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: 1,
-        method: "getrawtransaction",
-        params: [txHash, 1],
+        method,
+        params,
       }),
     });
     const body = (await response.json().catch(() => null)) as {
-      result?: {
-        blockhash?: unknown;
-        confirmations?: unknown;
-        vmstate?: unknown;
-      };
+      result?: Record<string, unknown>;
     } | null;
-    const tx = body?.result;
-    const confirmations = Number(tx?.confirmations ?? 0);
-    const vmstate = String(tx?.vmstate ?? "HALT").toUpperCase();
-    return Boolean(tx?.blockhash) && confirmations > 0 && vmstate === "HALT";
+    return body?.result ?? null;
   } catch {
-    return false;
+    return null;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function resolveTxPayoutStatus(input: {
+  network: OneGateVaultNetwork;
+  txHash: string;
+  toAddress: string;
+  amountFixed8: string;
+}): Promise<{ status: "submitted" | "paid" | "failed"; reason?: string }> {
+  if (!/^0x[0-9a-f]{64}$/i.test(input.txHash)) {
+    return { status: "submitted" };
+  }
+  const tx = await fetchNeoRpc(input.network, "getrawtransaction", [
+    input.txHash,
+    1,
+  ]);
+  const confirmations = Number(tx?.confirmations ?? 0);
+  if (!tx?.blockhash || confirmations <= 0) return { status: "submitted" };
+
+  const appLog = await fetchNeoRpc(input.network, "getapplicationlog", [
+    input.txHash,
+  ]);
+  const payout = validateOneGateVaultPayoutAppLog({
+    appLog,
+    toAddressOrHash: input.toAddress,
+    amountFixed8: input.amountFixed8,
+  });
+  if (payout.ok) return { status: "paid" };
+  if (payout.reason === "application log is unavailable") {
+    return { status: "submitted" };
+  }
+  return { status: "failed", reason: payout.reason };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -123,16 +148,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!status) return apiError.notFound(res, "claim key has not been claimed yet");
     if (
       status.status === "submitted" &&
-      status.txHash &&
-      (await isTxConfirmed(network, status.txHash))
+      status.txHash
     ) {
-      await repository.markPaid({
-        keyHash,
+      const payoutStatus = await resolveTxPayoutStatus({
         network,
         txHash: status.txHash,
-        requestId: status.requestId,
+        toAddress: status.walletAddress,
+        amountFixed8: status.amountFixed8,
       });
-      status = { ...status, status: "paid" };
+      if (payoutStatus.status === "paid") {
+        await repository.markPaid({
+          keyHash,
+          network,
+          txHash: status.txHash,
+          requestId: status.requestId,
+        });
+        status = { ...status, status: "paid" };
+      } else if (payoutStatus.status === "failed") {
+        await repository.markFailed({
+          keyHash,
+          network,
+          requestId: status.requestId,
+          errorMessage:
+            payoutStatus.reason || "GAS transfer was not confirmed",
+        });
+        status = { ...status, status: "failed" };
+      }
     }
     return res.status(200).json({
       status: status.status,
