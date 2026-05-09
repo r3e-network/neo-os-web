@@ -14,6 +14,8 @@ import fs from "fs";
 import path from "path";
 
 export interface ReactAppConfigOptions {
+  /** Vite base path for emitted asset URLs */
+  base?: UserConfig["base"];
   /** Custom plugins to add (in addition to react()) */
   plugins?: UserConfig["plugins"];
   /** Override or extend resolve.alias */
@@ -65,7 +67,7 @@ export function createReactAppConfig(appDir: string, options: ReactAppConfigOpti
 
   return defineConfig({
     plugins: [react(), ...(options.plugins ?? [])],
-    base: "./",
+    base: options.base ?? "./",
     resolve: {
       alias: [
         ...optionAliases,

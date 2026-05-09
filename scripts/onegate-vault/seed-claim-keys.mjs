@@ -137,16 +137,13 @@ function normalizeLink(link, identity) {
   url.protocol = "https:";
   url.hostname = "onegate.space";
   url.pathname = `/app/${encodeURIComponent(identity.oneGateAppId)}`;
-  url.searchParams.set("source", url.searchParams.get("source") || "onegate");
-  url.searchParams.set("appId", identity.appId);
-  url.searchParams.set(
-    "operation",
-    url.searchParams.get("operation") || "claimOneGateVault",
-  );
+  for (const key of [...url.searchParams.keys()]) {
+    if (!["key", "pool", "network"].includes(key)) {
+      url.searchParams.delete(key);
+    }
+  }
   url.searchParams.set("network", identity.network);
   url.searchParams.set("pool", identity.poolId);
-  url.searchParams.set("oneGateId", identity.oneGateAppId);
-  url.searchParams.set("oneGateAppId", identity.oneGateAppId);
   url.searchParams.set("key", identity.claimKey);
   return url.toString();
 }
