@@ -42,4 +42,12 @@ describe("OneGate Vault copy", () => {
     expect(gasPoolMessages.subtitle.en).toMatch(/1-50 GAS/);
     expect(gasPoolMessages.luckPercentLabel.zh).toContain("运气超过");
   });
+
+  it("does not expose legacy on-chain pool counters in the Vault shell", () => {
+    expect(manifest.stats ?? []).toEqual([]);
+    expect(manifest.sidebar).toBeUndefined();
+    expect(JSON.stringify(manifest)).not.toMatch(
+      /activePools|totalPools|poolCount|activePoolCount/,
+    );
+  });
 });

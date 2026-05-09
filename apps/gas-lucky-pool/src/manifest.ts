@@ -12,50 +12,6 @@ export const manifest: MiniAppManifest = {
     { key: "activity", labelKey: "activityTab", icon: "history" },
   ],
 
-  stats: [
-    {
-      labelKey: "activePools",
-      valueKey: "activePoolCount",
-      format: "number",
-      variant: "success",
-      icon: "gift",
-    },
-    {
-      labelKey: "totalPools",
-      valueKey: "poolCount",
-      format: "number",
-      icon: "archive",
-    },
-    {
-      labelKey: "claims",
-      valueKey: "claimCount",
-      format: "number",
-      variant: "accent",
-      icon: "check-circle",
-    },
-    {
-      labelKey: "gasCredit",
-      valueKey: "gasCreditGas",
-      format: "gas",
-      variant: "warning",
-      icon: "coin",
-    },
-  ],
-
-  sidebar: {
-    titleKey: "poolOverview",
-    items: [
-      {
-        labelKey: "activePools",
-        valueKey: "activePoolCount",
-        format: "number",
-      },
-      { labelKey: "totalPools", valueKey: "poolCount", format: "number" },
-      { labelKey: "claims", valueKey: "claimCount", format: "number" },
-      { labelKey: "gasCredit", valueKey: "gasCreditGas", format: "gas" },
-    ],
-  },
-
   operations: [
     {
       key: "claimPool",
