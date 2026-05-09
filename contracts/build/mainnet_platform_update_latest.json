@@ -6,9 +6,9 @@
   "signer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
   "targets": [
     {
-      "name": "PlatformAnchor",
-      "existing_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
-      "on_chain_update_counter": 0,
+      "name": "PlatformGame",
+      "existing_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "on_chain_update_counter": 1,
       "on_chain_has_update": true,
       "admin_matches_signer": true,
       "updated": true
@@ -16,14 +16,14 @@
   ],
   "transactions": [
     {
-      "label": "Update PlatformAnchor",
-      "txid": "0x832b770fe9e7b258ccb6a77a736a5fb485224724469c1b169efee5f9d66014d6",
-      "valid_until_block": 9674053
+      "label": "Update PlatformGame",
+      "txid": "0x14e3122024453590ca20be244248a29259a10f80c45fa6ec6e8d971473de97bc",
+      "valid_until_block": 9706866
     }
   ],
   "validation": {
-    "PlatformAnchor_update_counter_after": 1,
-    "PlatformAnchor_update_counter_before": 0
+    "PlatformGame_update_counter_after": 2,
+    "PlatformGame_update_counter_before": 1
   },
-  "generated_at_utc": "2026-05-08T18:41:24Z"
+  "generated_at_utc": "2026-05-09T23:16:02Z"
 }
