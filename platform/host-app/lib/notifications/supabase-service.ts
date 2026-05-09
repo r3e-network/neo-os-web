@@ -1,10 +1,14 @@
-import { supabase, isSupabaseConfigured } from "../supabase";
+import { getServerSupabaseClient } from "../server-supabase";
 import type { NotificationPreferencesRow, NotificationEventRow } from "./db-types";
 import type { NotificationPreferences, NotificationEvent, NotificationType } from "./types";
 import { logger } from "@/lib/logger";
 
 const PREFS_TABLE = "notification_preferences";
 const EVENTS_TABLE = "notification_events";
+
+function getNotificationsSupabase() {
+  return getServerSupabaseClient({ requireServiceRole: true });
+}
 
 /** Convert DB row to app type */
 function toAppType(row: NotificationPreferencesRow): NotificationPreferences {
@@ -35,7 +39,8 @@ function toEventType(row: NotificationEventRow): NotificationEvent {
 
 /** Get preferences by wallet */
 export async function getPreferences(wallet: string): Promise<NotificationPreferences | null> {
-  if (!isSupabaseConfigured) return null;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return null;
 
   const { data, error } = await supabase.from(PREFS_TABLE).select("wallet_address,email,email_verified,notify_miniapp_results,notify_balance_changes,notify_chain_alerts,digest_frequency").eq("wallet_address", wallet).maybeSingle();
 
@@ -48,7 +53,8 @@ export async function getPreferences(wallet: string): Promise<NotificationPrefer
 
 /** Upsert preferences */
 export async function upsertPreferences(prefs: NotificationPreferences): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return false;
 
   const { error } = await supabase.from(PREFS_TABLE).upsert({
     wallet_address: prefs.walletAddress,
@@ -66,7 +72,8 @@ export async function upsertPreferences(prefs: NotificationPreferences): Promise
 
 /** Bind email to wallet */
 export async function bindEmail(wallet: string, email: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return false;
 
   const { error } = await supabase.from(PREFS_TABLE).upsert({
     wallet_address: wallet,
@@ -80,7 +87,8 @@ export async function bindEmail(wallet: string, email: string): Promise<boolean>
 
 /** Verify email */
 export async function verifyEmail(wallet: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return false;
 
   const { error } = await supabase
     .from(PREFS_TABLE)
@@ -94,7 +102,8 @@ export async function verifyEmail(wallet: string): Promise<boolean> {
 
 /** Get notification events for wallet */
 export async function getEvents(wallet: string, limit = 50, unreadOnly = false): Promise<NotificationEvent[]> {
-  if (!isSupabaseConfigured) return [];
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return [];
 
   let query = supabase
     .from(EVENTS_TABLE)
@@ -115,7 +124,8 @@ export async function getEvents(wallet: string, limit = 50, unreadOnly = false):
 
 /** Mark event as read */
 export async function markAsRead(eventId: string, wallet: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return false;
 
   const { error } = await supabase.from(EVENTS_TABLE).update({ read: true }).eq("id", eventId).eq("wallet_address", wallet);
 
@@ -124,7 +134,8 @@ export async function markAsRead(eventId: string, wallet: string): Promise<boole
 
 /** Mark all events as read for wallet */
 export async function markAllAsRead(wallet: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return false;
 
   const { error } = await supabase
     .from(EVENTS_TABLE)
@@ -137,7 +148,8 @@ export async function markAllAsRead(wallet: string): Promise<boolean> {
 
 /** Get unread count for wallet */
 export async function getUnreadCount(wallet: string): Promise<number> {
-  if (!isSupabaseConfigured) return 0;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return 0;
 
   const { count, error } = await supabase
     .from(EVENTS_TABLE)
@@ -157,7 +169,8 @@ export async function createEvent(
   content: string,
   metadata: Record<string, unknown> = {},
 ): Promise<string | null> {
-  if (!isSupabaseConfigured) return null;
+  const supabase = getNotificationsSupabase();
+  if (!supabase) return null;
 
   const { data, error } = await supabase
     .from(EVENTS_TABLE)
