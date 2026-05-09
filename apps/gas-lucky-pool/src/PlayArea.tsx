@@ -135,13 +135,22 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
           </div>
         ) : (
           <>
-            <div className="gas-pool-claim-only__badge">
-              {claimKey ? t("scanClaimReady") : t("oneGateReady")}
+            <div className="gas-pool-claim-only__top">
+              <div className="gas-pool-congrats__badge">GAS</div>
+              <div>
+                <div className="gas-pool-claim-only__badge">
+                  {claimKey ? t("scanClaimReady") : t("oneGateReady")}
+                </div>
+                <h2>
+                  {claimKey
+                    ? t("scanClaimPool", { claimKey })
+                    : "OneGate Vault"}
+                </h2>
+              </div>
             </div>
-            <h2>
-              {claimKey ? t("scanClaimPool", { claimKey }) : "OneGate Vault"}
-            </h2>
-            <p>{claimKey ? t("scanClaimReview") : t("docOneGateFlow")}</p>
+            <p className="gas-pool-claim-only__copy">
+              {claimKey ? t("scanClaimReview") : t("docOneGateFlow")}
+            </p>
             <div className="gas-pool-claim-only__range">
               <span>{t("rewardRange")}</span>
               <strong>1-50 GAS</strong>

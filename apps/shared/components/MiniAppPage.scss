@@ -74,8 +74,16 @@ $radius-lg: 16px;
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 50% at 15% 20%, $accent-glow 0%, transparent 70%),
-    radial-gradient(ellipse 40% 60% at 85% 80%, rgba(99, 102, 241, 0.04) 0%, transparent 70%);
+    radial-gradient(
+      ellipse 60% 50% at 15% 20%,
+      $accent-glow 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 40% 60% at 85% 80%,
+      rgba(99, 102, 241, 0.04) 0%,
+      transparent 70%
+    );
 }
 
 // -- Page --
@@ -124,6 +132,26 @@ $radius-lg: 16px;
     @media (max-width: $mobile) {
       grid-template-columns: 1fr;
       grid-template-areas: "center" "left";
+    }
+  }
+
+  &.page-grid--focus {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    grid-template-areas: "center right";
+    max-width: 1040px;
+    min-height: 100vh;
+    background: #f6f7f8;
+    border-left: 0;
+    border-right: 0;
+
+    .content-main {
+      border-left: 0;
+    }
+
+    @media (max-width: $mobile) {
+      grid-template-columns: 1fr;
+      grid-template-areas: "center";
+      background: #f6f7f8;
     }
   }
 }
@@ -589,7 +617,11 @@ $radius-lg: 16px;
 
 .comment-submit {
   padding: 11px 22px;
-  background: linear-gradient(135deg, $accent, var(--comment-submit-end, #00c07f));
+  background: linear-gradient(
+    135deg,
+    $accent,
+    var(--comment-submit-end, #00c07f)
+  );
   color: $obsidian;
   border: none;
   border-radius: 24px;
