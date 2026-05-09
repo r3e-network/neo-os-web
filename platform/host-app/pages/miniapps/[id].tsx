@@ -37,6 +37,7 @@ import {
 import { MiniAppPlayfield } from "../../components/MiniAppPlayfield";
 import { getNativePlayAreaOperationFallback } from "../../components/playarea/PlayAreaRegistry";
 import type {
+  MiniAppLaunchContext,
   OnChainActivity,
   OperationEntry,
   OperationParam,
@@ -119,10 +120,17 @@ import {
 } from "../../lib/miniapp-runtime";
 import { parseMiniAppLaunchContext } from "../../lib/miniapp-launch-params";
 import {
+  buildCustomAnchorRegistrationPlan,
+  parseAnchorCandidateKeys,
+} from "../../lib/custom-anchor";
+import {
   buildOneGateDirectMiniAppUrl,
   buildOneGateLaunchUrl,
 } from "../../../../apps/shared/utils/onegate-launch";
-import { BLOCKCHAIN_CONSTANTS } from "../../../../apps/shared/constants";
+import {
+  BLOCKCHAIN_CONSTANTS,
+  EXTERNAL_INTEGRATIONS,
+} from "../../../../apps/shared/constants";
 
 // Sanitize object for JSON serialization (convert undefined to null)
 function sanitizeForJson<T>(obj: T): T {
@@ -159,7 +167,7 @@ const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
 
 const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
 const TAB_PANEL_CLASSNAME =
-  "min-h-[22rem] sm:min-h-[24rem] [overflow-anchor:none] [contain:layout]";
+  "min-h-[38rem] [overflow-anchor:none] [contain:layout]";
 
 export type AppDetailPageProps = {
   app: MiniAppInfo | null;
@@ -345,7 +353,12 @@ export default function MiniAppDetailPage({
         : app?.app_id
           ? getNativePlayAreaOperationFallback(app.app_id)
           : [];
-    if (resolvedRuntime?.mode !== "platform") return resolvedOps;
+    if (app?.app_id === "miniapp-custom-anchor") {
+      return resolveCustomAnchorOperations(resolvedOps, launchContext);
+    }
+    if (resolvedRuntime?.mode !== "platform") {
+      return resolvedOps;
+    }
     return resolvedOps.map((operation) =>
       injectRuntimeAppIdParam(operation, resolvedRuntime),
     );
@@ -353,6 +366,7 @@ export default function MiniAppDetailPage({
     app?.app_id,
     app?.detail_template?.operation_panel?.operations,
     app?.operations,
+    launchContext,
     resolvedRuntime,
   ]);
 
@@ -366,6 +380,28 @@ export default function MiniAppDetailPage({
       setActiveTab(tabs[0].id);
     }
   }, [activeTab, launchContext.tab, tabs]);
+
+  const handleDetailTabClick = useCallback((tabId: string) => {
+    const tabsEl =
+      typeof document === "undefined"
+        ? null
+        : document.querySelector('[data-testid="miniapp-detail-tabs"]');
+    const beforeTop = tabsEl?.getBoundingClientRect().top;
+
+    setActiveTab(tabId);
+
+    if (typeof beforeTop !== "number") return;
+    const restoreTabPosition = () => {
+      const afterTop = tabsEl?.getBoundingClientRect().top;
+      if (typeof afterTop !== "number") return;
+      const delta = afterTop - beforeTop;
+      if (Math.abs(delta) > 1) {
+        window.scrollBy({ top: delta, left: 0, behavior: "auto" });
+      }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(restoreTabPosition));
+    window.setTimeout(restoreTabPosition, 120);
+  }, []);
 
   if (error || !app) {
     return (
@@ -503,10 +539,53 @@ export default function MiniAppDetailPage({
           return;
         }
 
+        if (operation.method === "registerCustomAnchor") {
+          if (!resolvedRuntime?.contractHash) {
+            throw new Error(
+              "PlatformAnchor contract is not configured for this network.",
+            );
+          }
+          const adapter = getWalletAdapter();
+          if (!adapter) {
+            throw new Error(
+              "Wallet adapter unavailable. Reconnect wallet and try again.",
+            );
+          }
+          if (typeof adapter.invokeMultiple !== "function") {
+            throw new Error(
+              "This wallet cannot submit the required NEP-21 batch transaction. Open in OneGate or another NEP-21 wallet.",
+            );
+          }
+          const aaCoreHash = EXTERNAL_INTEGRATIONS[targetNetwork].contracts.aaCore;
+          const candidateKeys = parseAnchorCandidateKeys(values.candidates || "");
+          const plan = buildCustomAnchorRegistrationPlan({
+            anchorContractHash: resolvedRuntime.contractHash,
+            aaCoreHash,
+            ownerAddress: walletAddress,
+            slug: values.slug || "",
+            nonce: values.nonce || "",
+            mode: values.mode || "trust",
+            candidateKeys,
+          });
+          const result = await adapter.invokeMultiple(plan.invocations, [
+            { account: walletAddress, scopes: 1 },
+          ]);
+          setInvokeFeedback({
+            type: "success",
+            message: `Custom Anchor registered: ${plan.appId} (${result.txid})`,
+          });
+          return;
+        }
+
+        const anchorOperationAppId = resolveAnchorOperationAppId(
+          app.app_id,
+          values,
+          launchContext,
+        );
+
         if (
           operation.method === "stakeNeo" &&
-          (app.app_id === "miniapp-profitanchor" ||
-            app.app_id === "miniapp-trustanchor")
+          anchorOperationAppId
         ) {
           if (!resolvedRuntime?.contractHash) {
             throw new Error(
@@ -530,7 +609,7 @@ export default function MiniAppDetailPage({
               { type: "Hash160", value: walletAddress },
               { type: "Hash160", value: resolvedRuntime.contractHash },
               { type: "Integer", value: amount },
-              { type: "String", value: app.app_id },
+              { type: "String", value: anchorOperationAppId },
             ],
             signers: [{ account: walletAddress, scopes: 1 }],
           });
@@ -543,8 +622,7 @@ export default function MiniAppDetailPage({
 
         if (
           operation.method === "withdrawNeo" &&
-          (app.app_id === "miniapp-profitanchor" ||
-            app.app_id === "miniapp-trustanchor")
+          anchorOperationAppId
         ) {
           if (!resolvedRuntime?.contractHash) {
             throw new Error(
@@ -565,7 +643,7 @@ export default function MiniAppDetailPage({
             scriptHash: resolvedRuntime.contractHash,
             operation: "withdraw",
             args: [
-              { type: "String", value: app.app_id },
+              { type: "String", value: anchorOperationAppId },
               { type: "Hash160", value: walletAddress },
               { type: "Integer", value: amount },
             ],
@@ -580,8 +658,7 @@ export default function MiniAppDetailPage({
 
         if (
           operation.method === "claimRewards" &&
-          (app.app_id === "miniapp-profitanchor" ||
-            app.app_id === "miniapp-trustanchor")
+          anchorOperationAppId
         ) {
           if (!resolvedRuntime?.contractHash) {
             throw new Error(
@@ -598,7 +675,7 @@ export default function MiniAppDetailPage({
             scriptHash: resolvedRuntime.contractHash,
             operation: "claimRewards",
             args: [
-              { type: "String", value: app.app_id },
+              { type: "String", value: anchorOperationAppId },
               { type: "Hash160", value: walletAddress },
             ],
             signers: [{ account: walletAddress, scopes: 1 }],
@@ -849,7 +926,7 @@ export default function MiniAppDetailPage({
                           ? "bg-white text-emerald-700 ring-gray-200"
                           : "text-gray-500 ring-transparent hover:bg-white/70 hover:text-gray-900"
                       }`}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleDetailTabClick(tab.id)}
                     >
                       {tab.label}
                     </button>
@@ -2143,6 +2220,78 @@ function buildInvokeArgs(
       value,
     };
   });
+}
+
+function resolveAnchorOperationAppId(
+  appId: string,
+  values: Record<string, string>,
+  launchContext: MiniAppLaunchContext | null,
+): string {
+  if (appId === "miniapp-profitanchor" || appId === "miniapp-profitanchor-admin") {
+    return "miniapp-profitanchor";
+  }
+  if (appId === "miniapp-trustanchor" || appId === "miniapp-trustanchor-admin") {
+    return "miniapp-trustanchor";
+  }
+  if (appId !== "miniapp-custom-anchor") return "";
+  return String(
+    values.anchorAppId ||
+      values.appId ||
+      launchContext?.params.anchorAppId ||
+      launchContext?.params.appId ||
+      launchContext?.params.anchor ||
+      "",
+  ).trim();
+}
+
+function resolveCustomAnchorOperations(
+  operations: OperationEntry[],
+  launchContext: MiniAppLaunchContext | null,
+): OperationEntry[] {
+  const anchorAppId = String(
+    launchContext?.params.anchorAppId ||
+      launchContext?.params.anchor ||
+      launchContext?.params.appId ||
+      "",
+  ).trim();
+  const userScoped = Boolean(anchorAppId);
+  const userOrder = new Map([
+    ["stakeNeo", 0],
+    ["withdrawNeo", 1],
+    ["claimRewards", 2],
+  ]);
+  const registrationOrder = new Map([["registerCustomAnchor", 0]]);
+
+  return operations
+    .map((operation) => {
+      if (userScoped) {
+        if (userOrder.has(operation.method)) {
+          return { ...operation, priority: "primary" as const };
+        }
+        if (operation.method === "registerCustomAnchor") {
+          return { ...operation, priority: "secondary" as const };
+        }
+        return { ...operation, priority: "operator" as const };
+      }
+
+      if (operation.method === "registerCustomAnchor") {
+        return { ...operation, priority: "primary" as const };
+      }
+      if (userOrder.has(operation.method)) {
+        return { ...operation, priority: "secondary" as const };
+      }
+      return operation;
+    })
+    .sort((left, right) => {
+      if (userScoped) {
+        const leftRank = userOrder.get(left.method) ?? (left.method === "registerCustomAnchor" ? 10 : 20);
+        const rightRank = userOrder.get(right.method) ?? (right.method === "registerCustomAnchor" ? 10 : 20);
+        return leftRank - rightRank;
+      }
+      const leftRank = registrationOrder.get(left.method) ?? (userOrder.has(left.method) ? 10 : 20);
+      const rightRank = registrationOrder.get(right.method) ?? (userOrder.has(right.method) ? 10 : 20);
+      return leftRank - rightRank;
+    });
 }
 
 function parseScaledDecimal(

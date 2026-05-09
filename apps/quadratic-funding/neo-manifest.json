@@ -7,10 +7,14 @@
     "neo-n3-mainnet": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43",
     "neo-n3-testnet": "0xe2fba2a73cf92874ecc41b7fff8d3d5da0354c43"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "quadraticfunding.miniapp.neo"
+  },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
+      "domain": "quadraticfunding.miniapp.neo",
       "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with round/project/contribute/finalize/claim.",
       "status": "deployed",
       "verified_at": "2026-05-08T12:13:25Z"

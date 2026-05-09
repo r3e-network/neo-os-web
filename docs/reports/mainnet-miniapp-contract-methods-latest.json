@@ -1,16 +1,17 @@
 {
-  "generatedAt": "2026-05-08T16:05:22.145Z",
+  "generatedAt": "2026-05-09T00:38:03.190Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
-  "totalMiniapps": 59,
-  "mainnetContractApps": 35,
+  "totalMiniapps": 60,
+  "mainnetContractApps": 36,
   "frontendOrServerOnlyApps": 24,
   "uniqueMainnetContracts": 27,
   "contractStateErrors": 0,
-  "safeMethodsDiscovered": 821,
-  "safeInvocationsAttempted": 821,
-  "haltCount": 789,
+  "safeMethodsDiscovered": 843,
+  "safeInvocationsAttempted": 843,
+  "safeInvocationsSkipped": 0,
+  "haltCount": 811,
   "expectedFaultCount": 28,
   "sampleFaultCount": 4,
   "blockerCount": 0,
@@ -29,6 +30,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 37,
+        "discovered": 37,
+        "skippedByLimit": 0,
         "halt": 29,
         "expectedFault": 8,
         "sampleFault": 0,
@@ -640,6 +643,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 4,
+        "discovered": 4,
+        "skippedByLimit": 0,
         "halt": 4,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -725,6 +730,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 37,
+        "discovered": 37,
+        "skippedByLimit": 0,
         "halt": 29,
         "expectedFault": 8,
         "sampleFault": 0,
@@ -1336,6 +1343,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 37,
+        "discovered": 37,
+        "skippedByLimit": 0,
         "halt": 29,
         "expectedFault": 8,
         "sampleFault": 0,
@@ -1947,6 +1956,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 5,
+        "discovered": 5,
+        "skippedByLimit": 0,
         "halt": 5,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -2090,6 +2101,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -2403,6 +2416,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 25,
+        "discovered": 25,
+        "skippedByLimit": 0,
         "halt": 25,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -2761,6 +2776,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 39,
+        "discovered": 39,
+        "skippedByLimit": 0,
         "halt": 38,
         "expectedFault": 1,
         "sampleFault": 0,
@@ -3322,6 +3339,507 @@
       ]
     },
     {
+      "appId": "miniapp-custom-anchor",
+      "slug": "custom-anchor",
+      "name": "Custom Anchor",
+      "manifestPath": "apps/custom-anchor/neo-manifest.json",
+      "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "contractBacked": true,
+      "contractName": "PlatformAnchor",
+      "status": "passed",
+      "runtimeOperations": [
+        {
+          "source": "runtime.modules[0].operations.register",
+          "alias": "register",
+          "method": "registerCustomAnchorApp",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.registerAgents",
+          "alias": "registerAgents",
+          "method": "registerAgents",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.stake",
+          "alias": "stake",
+          "method": "stake",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.withdraw",
+          "alias": "withdraw",
+          "method": "withdraw",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.claimRewards",
+          "alias": "claimRewards",
+          "method": "claimRewards",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.moveAgentNeo",
+          "alias": "moveAgentNeo",
+          "method": "transferAgentNeo",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.setAgentCandidate",
+          "alias": "setAgentCandidate",
+          "method": "setAgentCandidate",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.syncVote",
+          "alias": "syncVote",
+          "method": "voteAgent",
+          "required": true,
+          "existsInAbi": true
+        },
+        {
+          "source": "runtime.modules[0].operations.stats",
+          "alias": "stats",
+          "method": "getAnchorStats",
+          "required": true,
+          "existsInAbi": true
+        }
+      ],
+      "uiOperations": [
+        {
+          "source": "definition.operations[0]",
+          "name": "Register Anchor",
+          "method": "registerCustomAnchor",
+          "params": 4,
+          "existsInAbi": false,
+          "classification": "client-or-server-action"
+        },
+        {
+          "source": "definition.operations[1]",
+          "name": "Stake NEO",
+          "method": "stakeNeo",
+          "params": 2,
+          "existsInAbi": false,
+          "classification": "client-or-server-action"
+        },
+        {
+          "source": "definition.operations[2]",
+          "name": "Redeem NEO",
+          "method": "withdrawNeo",
+          "params": 2,
+          "existsInAbi": false,
+          "classification": "client-or-server-action"
+        },
+        {
+          "source": "definition.operations[3]",
+          "name": "Claim Rewards",
+          "method": "claimRewards",
+          "params": 1,
+          "existsInAbi": true,
+          "classification": "contract"
+        },
+        {
+          "source": "definition.operations[4]",
+          "name": "Move NEO",
+          "method": "transferAgentNeo",
+          "params": 4,
+          "existsInAbi": true,
+          "classification": "contract"
+        },
+        {
+          "source": "definition.operations[5]",
+          "name": "Update Vote Target",
+          "method": "setAgentCandidate",
+          "params": 3,
+          "existsInAbi": true,
+          "classification": "contract"
+        },
+        {
+          "source": "definition.operations[6]",
+          "name": "Sync Vote",
+          "method": "voteAgent",
+          "params": 2,
+          "existsInAbi": true,
+          "classification": "contract"
+        }
+      ],
+      "safeMethodSummary": {
+        "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
+        "halt": 22,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "admin/0",
+          "isPaused/0",
+          "getAppMode/1",
+          "getAppAdmin/1",
+          "isAppPaused/1",
+          "getTotalStaked/1",
+          "getTotalStakers/1",
+          "getRewardPerNeo/1",
+          "getRewardReserve/1",
+          "getTotalRewardReserve/0",
+          "getRewardRemainder/1",
+          "getUserStake/2",
+          "getPendingRewards/2",
+          "getCredit/2",
+          "getTotalGasCredit/0",
+          "getSelectedAgentId/1",
+          "getSelectedCandidate/1",
+          "getAnchorStats/1"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 43,
+      "safeMethodCount": 22,
+      "safeMethodResults": [
+        {
+          "method": "admin",
+          "signature": "admin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "isPaused",
+          "signature": "isPaused/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getAppMode",
+          "signature": "getAppMode/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getAppAdmin",
+          "signature": "getAppAdmin/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "isAppPaused",
+          "signature": "isAppPaused/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getTotalStaked",
+          "signature": "getTotalStaked/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getTotalStakers",
+          "signature": "getTotalStakers/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRewardPerNeo",
+          "signature": "getRewardPerNeo/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRewardReserve",
+          "signature": "getRewardReserve/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getTotalRewardReserve",
+          "signature": "getTotalRewardReserve/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRewardRemainder",
+          "signature": "getRewardRemainder/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getAgentCount",
+          "signature": "getAgentCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getUserStake",
+          "signature": "getUserStake/2",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingRewards",
+          "signature": "getPendingRewards/2",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getCredit",
+          "signature": "getCredit/2",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getTotalGasCredit",
+          "signature": "getTotalGasCredit/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getAgent",
+          "signature": "getAgent/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getAgentCandidate",
+          "signature": "getAgentCandidate/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getAgentAccount",
+          "signature": "getAgentAccount/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getSelectedAgentId",
+          "signature": "getSelectedAgentId/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getSelectedCandidate",
+          "signature": "getSelectedCandidate/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getAnchorStats",
+          "signature": "getAnchorStats/1",
+          "safe": true,
+          "hard": true,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "Map",
+          "stackItems": 1
+        }
+      ]
+    },
+    {
       "appId": "miniapp-dailycheckin",
       "slug": "daily-checkin",
       "name": "Daily Check-in",
@@ -3351,6 +3869,8 @@
       ],
       "safeMethodSummary": {
         "total": 30,
+        "discovered": 30,
+        "skippedByLimit": 0,
         "halt": 30,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -3787,6 +4307,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 11,
+        "discovered": 11,
+        "skippedByLimit": 0,
         "halt": 11,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -4004,6 +4526,8 @@
       ],
       "safeMethodSummary": {
         "total": 20,
+        "discovered": 20,
+        "skippedByLimit": 0,
         "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -4357,6 +4881,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -4706,6 +5232,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 30,
+        "discovered": 30,
+        "skippedByLimit": 0,
         "halt": 30,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -5172,6 +5700,8 @@
       ],
       "safeMethodSummary": {
         "total": 20,
+        "discovered": 20,
+        "skippedByLimit": 0,
         "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -5585,6 +6115,8 @@
       ],
       "safeMethodSummary": {
         "total": 31,
+        "discovered": 31,
+        "skippedByLimit": 0,
         "halt": 31,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -6055,6 +6587,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 20,
+        "discovered": 20,
+        "skippedByLimit": 0,
         "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -6408,6 +6942,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 31,
+        "discovered": 31,
+        "skippedByLimit": 0,
         "halt": 31,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -6854,6 +7390,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 27,
+        "discovered": 27,
+        "skippedByLimit": 0,
         "halt": 27,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -7291,6 +7829,8 @@
       ],
       "safeMethodSummary": {
         "total": 20,
+        "discovered": 20,
+        "skippedByLimit": 0,
         "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -7644,6 +8184,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 34,
+        "discovered": 34,
+        "skippedByLimit": 0,
         "halt": 34,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -8158,6 +8700,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 15,
+        "discovered": 15,
+        "skippedByLimit": 0,
         "halt": 15,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -8444,6 +8988,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 14,
+        "discovered": 14,
+        "skippedByLimit": 0,
         "halt": 7,
         "expectedFault": 3,
         "sampleFault": 4,
@@ -8683,6 +9229,8 @@
       ],
       "safeMethodSummary": {
         "total": 15,
+        "discovered": 15,
+        "skippedByLimit": 0,
         "halt": 15,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -9053,6 +9601,8 @@
       ],
       "safeMethodSummary": {
         "total": 38,
+        "discovered": 38,
+        "skippedByLimit": 0,
         "halt": 38,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -9837,6 +10387,8 @@
       ],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -9865,7 +10417,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 42,
+      "methodCount": 43,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -10269,6 +10821,8 @@
       ],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -10297,7 +10851,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 42,
+      "methodCount": 43,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -10647,6 +11201,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 17,
+        "discovered": 17,
+        "skippedByLimit": 0,
         "halt": 17,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -10933,6 +11489,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 18,
+        "discovered": 18,
+        "skippedByLimit": 0,
         "halt": 18,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -11248,6 +11806,8 @@
       ],
       "safeMethodSummary": {
         "total": 3,
+        "discovered": 3,
+        "skippedByLimit": 0,
         "halt": 3,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -11357,6 +11917,8 @@
       ],
       "safeMethodSummary": {
         "total": 24,
+        "discovered": 24,
+        "skippedByLimit": 0,
         "halt": 24,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -11706,6 +12268,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -12034,6 +12598,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 33,
+        "discovered": 33,
+        "skippedByLimit": 0,
         "halt": 33,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -12574,6 +13140,8 @@
       ],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -12602,7 +13170,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 42,
+      "methodCount": 43,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -13006,6 +13574,8 @@
       ],
       "safeMethodSummary": {
         "total": 22,
+        "discovered": 22,
+        "skippedByLimit": 0,
         "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -13034,7 +13604,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 42,
+      "methodCount": 43,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -13384,6 +13954,8 @@
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 32,
+        "discovered": 32,
+        "skippedByLimit": 0,
         "halt": 32,
         "expectedFault": 0,
         "sampleFault": 0,
@@ -13842,5 +14414,11 @@
       "safeMethodSummary": null,
       "failures": []
     }
-  ]
+  ],
+  "verifier": {
+    "timeoutMs": 8000,
+    "concurrency": 8,
+    "progressEvery": 50,
+    "maxSafeReads": 0
+  }
 }

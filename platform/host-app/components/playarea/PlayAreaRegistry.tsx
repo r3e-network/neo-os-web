@@ -108,6 +108,7 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-trustanchor": TrustAnchorPlayArea,
   "miniapp-profitanchor-admin": ProfitAnchorAdminPlayArea,
   "miniapp-trustanchor-admin": TrustAnchorAdminPlayArea,
+  "miniapp-custom-anchor": CustomAnchorPlayArea,
   "miniapp-neo-pay": NeoPayPlayArea,
   "miniapp-onchaintarot": TarotPlayArea,
   "miniapp-on-chain-tarot": TarotPlayArea,
@@ -2567,6 +2568,97 @@ function ProfitAnchorAdminPlayArea(props: PlayAreaRegistryProps) {
 
 function TrustAnchorAdminPlayArea(props: PlayAreaRegistryProps) {
   return <AnchorAdminPlayArea {...props} mode="trust" />;
+}
+
+function CustomAnchorPlayArea(props: PlayAreaRegistryProps) {
+  const {
+    app,
+    statsMap,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const anchorAppId =
+    getLaunchParam(launchContext, ["anchorAppId", "appId", "anchor"]) || "";
+  const slug = getLaunchParam(launchContext, ["slug"], "my-anchor");
+  const nonce = getLaunchParam(launchContext, ["nonce"], "user-nonce");
+  const totalStaked = getMetric(statsMap, "Total Staked", anchorAppId ? "0 NEO" : "after registration");
+  const rewardReserve = getMetric(statsMap, "Reward Reserve", anchorAppId ? "0 GAS" : "after funding");
+  const agentCount = getMetric(statsMap, "Agents", anchorAppId ? "0" : "21 on register");
+
+  return (
+    <PlayShell
+      app={app}
+      title="Custom Anchor"
+      subtitle="Create your own 21-agent NEO voting anchor. Users only need the Anchor App ID to stake, redeem, and claim."
+      tone="emerald"
+      side={<ActivityPanel activity={activity} />}
+      footer={
+        <ChainStateStrip
+          loading={loading}
+          error={error}
+          contractHash={contractHash}
+          network={network}
+          onRefresh={onRefresh}
+        />
+      }
+    >
+      <div className="space-y-3">
+        <ActionBoard
+          title={anchorAppId ? "Anchor user flow" : "Register your Anchor"}
+          subtitle={
+            anchorAppId
+              ? "This link is scoped to one registered Custom Anchor. Stake, redeem, and claim stay simple for users."
+              : "Pick a slug and private nonce, paste 21 council candidate public keys in the action console, then register once."
+          }
+          tone="emerald"
+          rows={[
+            {
+              label: anchorAppId ? "Anchor App ID" : "Registration ID",
+              detail: anchorAppId ? "Loaded from URL or OneGate QR" : "Derived from slug + nonce",
+              value: anchorAppId || `custom-anchor:${slug}:${nonce}`,
+              valueLabel: "scope",
+              active: true,
+              icon: <Fingerprint className="h-4 w-4" />,
+            },
+            {
+              label: "21 AA agents",
+              detail: "One account per council candidate",
+              value: agentCount,
+              valueLabel: "agents",
+              icon: <Users className="h-4 w-4" />,
+            },
+            {
+              label: "User actions",
+              detail: "Stake NEO, redeem NEO, claim GAS",
+              value: anchorAppId ? rewardReserve : "after share",
+              valueLabel: "rewards",
+              icon: <Coins className="h-4 w-4" />,
+            },
+          ]}
+        />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <PreviewStat label="Total staked" value={totalStaked} />
+          <PreviewStat label="Reward reserve" value={rewardReserve} />
+          <PreviewStat label="Routing" value="Manual admin" />
+        </div>
+        <SecondaryInfo
+          title="Operator setup"
+          description="Advanced setup only. Normal users should receive a link or QR with anchorAppId and use Stake, Redeem, or Claim."
+          meta="advanced"
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            <PreviewStat label="AA seed" value="anchor+appId+agentId+nonce" />
+            <PreviewStat label="Batch size" value="21 agents" />
+          </div>
+        </SecondaryInfo>
+      </div>
+    </PlayShell>
+  );
 }
 
 function AnchorPlayArea(

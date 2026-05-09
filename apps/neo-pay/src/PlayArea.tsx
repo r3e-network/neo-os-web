@@ -6,16 +6,18 @@
  * with progress bars, and cancel/claim actions.
  */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
+import type { MiniAppLaunchContext } from "@shared/utils/launch-params";
 import "./PlayArea.scss";
 
 interface PlayAreaProps {
   t: (key: string, params?: Record<string, string | number>) => string;
   state: Record<string, Observable>;
   dispatch: (name: string, ...args: unknown[]) => Promise<void>;
+  launchContext: MiniAppLaunchContext;
 }
 
 interface Stream {
@@ -31,7 +33,23 @@ interface Stream {
   token?: string;
 }
 
-export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
+function getLaunchValue(
+  launchContext: MiniAppLaunchContext,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = String(launchContext.params?.[key] ?? "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, bool, num, val } = useStateBindings(state);
 
   /* ---------- Bound state ---------- */
@@ -47,10 +65,32 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   const allStreams = (val("allStreams") ?? []) as Stream[];
 
   /* ---------- Local form state ---------- */
-  const [recipient, setRecipient] = useState("");
-  const [amount, setAmount] = useState("");
-  const [duration, setDuration] = useState("");
-  const [token, setToken] = useState("GAS");
+  const launchDefaults = useMemo(() => {
+    const recipient = getLaunchValue(launchContext, [
+      "recipient",
+      "to",
+      "beneficiary",
+    ]);
+    const amount = getLaunchValue(launchContext, ["amount", "total"]);
+    const duration =
+      getLaunchValue(launchContext, ["duration", "durationDays", "days"]) ||
+      (recipient && amount ? "1" : "");
+    const token =
+      getLaunchValue(launchContext, ["token", "asset"]).toUpperCase() || "GAS";
+    return { recipient, amount, duration, token };
+  }, [launchContext.signature]);
+
+  const [recipient, setRecipient] = useState(launchDefaults.recipient);
+  const [amount, setAmount] = useState(launchDefaults.amount);
+  const [duration, setDuration] = useState(launchDefaults.duration);
+  const [token, setToken] = useState(launchDefaults.token);
+
+  useEffect(() => {
+    if (launchDefaults.recipient) setRecipient(launchDefaults.recipient);
+    if (launchDefaults.amount) setAmount(launchDefaults.amount);
+    if (launchDefaults.duration) setDuration(launchDefaults.duration);
+    if (launchDefaults.token) setToken(launchDefaults.token);
+  }, [launchDefaults]);
 
   /* ---------- Handlers ---------- */
   const handleCreateStream = async () => {

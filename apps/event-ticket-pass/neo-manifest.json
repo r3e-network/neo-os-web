@@ -7,10 +7,14 @@
     "neo-n3-mainnet": "0x90bad472146aab97de71498e8d736c3124e7c82b",
     "neo-n3-testnet": "0x90bad472146aab97de71498e8d736c3124e7c82b"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "eventticketpass.miniapp.neo"
+  },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
+      "domain": "eventticketpass.miniapp.neo",
       "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with create/issue/check-in.",
       "status": "deployed",
       "verified_at": "2026-05-08T12:10:43Z"

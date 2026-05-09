@@ -69,6 +69,7 @@ export type ExternalIntegrationConfig = {
     aaAddressMarket?: string;
     aaPaymaster?: string;
     morpheusOracle: string;
+    oracleCallbackConsumer?: string;
     morpheusDatafeed: string;
     morpheusNeoDid?: string;
   };
@@ -82,6 +83,7 @@ export type ExternalIntegrationConfig = {
     aaAddressMarket?: string;
     aaPaymaster?: string;
     oracle?: string;
+    callbackConsumer?: string;
     datafeed?: string;
     neodid?: string;
   };
@@ -106,6 +108,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
     'miniapp-profitanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
     'miniapp-trustanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
+    'miniapp-custom-anchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
     'miniapp-aa-account-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
     'miniapp-aa-permissions-lab': '0x0268a387913b250166ddec032b03332690a1ef78',
     'miniapp-aa-relay-console': '0x0268a387913b250166ddec032b03332690a1ef78',
@@ -134,6 +137,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-neo-ns': '0x50ac1c37690cc2cfc594472833cf57505d5f46de',
     'miniapp-profitanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
     'miniapp-trustanchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
+    'miniapp-custom-anchor': '0xa1ca7a610105686635f31de8e174ae3ce6b61a3e',
     'miniapp-aa-account-lab': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
     'miniapp-aa-permissions-lab': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
     'miniapp-aa-relay-console': '0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38',
@@ -179,6 +183,7 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaAddressMarket: registry.contracts.aaAddressMarket,
       aaPaymaster: registry.contracts.aaPaymaster,
       morpheusOracle: registry.contracts.morpheusOracle,
+      oracleCallbackConsumer: registry.contracts.oracleCallbackConsumer,
       morpheusDatafeed: registry.contracts.morpheusDatafeed,
       morpheusNeoDid: registry.contracts.morpheusNeoDid,
     },
@@ -192,6 +197,7 @@ function buildExternalIntegrationConfig(network: NeoNetwork): ExternalIntegratio
       aaAddressMarket: registry.domains.aaAddressMarket,
       aaPaymaster: registry.domains.aaPaymaster,
       oracle: registry.domains.oracle,
+      callbackConsumer: registry.domains.callbackConsumer,
       datafeed: registry.domains.datafeed,
       neodid: registry.domains.neodid,
     },
