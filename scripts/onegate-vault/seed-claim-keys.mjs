@@ -134,6 +134,9 @@ function normalizeLink(link, identity) {
   const url = link
     ? new URL(link)
     : new URL(`https://onegate.space/app/${encodeURIComponent(identity.oneGateAppId)}`);
+  url.protocol = "https:";
+  url.hostname = "onegate.space";
+  url.pathname = `/app/${encodeURIComponent(identity.oneGateAppId)}`;
   url.searchParams.set("source", url.searchParams.get("source") || "onegate");
   url.searchParams.set("appId", identity.appId);
   url.searchParams.set(
