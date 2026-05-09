@@ -44,12 +44,10 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
     ),
   );
   const isClaimOperation =
+    !launchContext.operation ||
     launchContext.operation === "claimPool" ||
     launchContext.operation === "claimOneGateVault";
-  const isOneGateClaimLaunch =
-    launchContext.source === "onegate" &&
-    isClaimOperation &&
-    Boolean(launchClaimKey);
+  const isOneGateClaimLaunch = isClaimOperation && Boolean(launchClaimKey);
   const claimSucceeded =
     lastSuccessType === "claim" &&
     claimStatus === "paid" &&

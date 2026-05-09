@@ -19,7 +19,7 @@ function launch(poolId = "42") {
 
 function keyLaunch(claimKey = CLAIM_KEY) {
   return parseMiniAppLaunchContext(
-    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&pool=pool-001&oneGateAppId=23&appId=miniapp-gas-lucky-pool&claimKey=${claimKey}`,
+    `https://onegate.space/app/23?key=${claimKey}&pool=pool-001&network=testnet`,
     "miniapp-gas-lucky-pool",
   );
 }
@@ -85,30 +85,43 @@ describe("OneGate Vault runtime logic", () => {
     const chain = {};
     const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch("42"), t });
 
-    expect(pool.currentShareUrl.get()).toContain("operation=claimPool");
-    expect(pool.currentShareUrl.get()).toContain("network=testnet");
-    expect(pool.currentShareUrl.get()).toContain("poolId=42");
+    const initialUrl = new URL(pool.currentShareUrl.get());
+    expect(initialUrl.origin + initialUrl.pathname).toBe(
+      "https://onegate.space/app/23",
+    );
+    expect(initialUrl.searchParams.get("network")).toBe("testnet");
+    expect(initialUrl.searchParams.get("pool")).toBe("42");
+    expect(initialUrl.searchParams.has("operation")).toBe(false);
+    expect(initialUrl.searchParams.has("appId")).toBe(false);
 
     pool.setPoolId("88");
 
-    expect(pool.currentShareUrl.get()).toContain("poolId=88");
+    expect(new URL(pool.currentShareUrl.get()).searchParams.get("pool")).toBe(
+      "88",
+    );
   });
 
-  it("keeps scanned key, reward pool, and mocked OneGate id in claim URLs", () => {
+  it("keeps scanned key and reward pool in compact OneGate claim URLs", () => {
     const chain = {};
     const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
 
-    expect(pool.currentShareUrl.get()).toContain("operation=claimPool");
-    expect(pool.currentShareUrl.get()).toContain("network=testnet");
-    expect(pool.currentShareUrl.get()).toContain(`claimKey=${CLAIM_KEY}`);
-    expect(pool.currentShareUrl.get()).toContain("pool=pool-001");
-    expect(pool.currentShareUrl.get()).toContain("oneGateAppId=23");
-    expect(pool.currentShareUrl.get()).toContain("appId=miniapp-gas-lucky-pool");
-    expect(pool.currentShareUrl.get()).not.toContain("poolId=");
+    const initialUrl = new URL(pool.currentShareUrl.get());
+    expect(initialUrl.origin + initialUrl.pathname).toBe(
+      "https://onegate.space/app/23",
+    );
+    expect(initialUrl.searchParams.get("key")).toBe(CLAIM_KEY);
+    expect(initialUrl.searchParams.get("pool")).toBe("pool-001");
+    expect(initialUrl.searchParams.get("network")).toBe("testnet");
+    expect(initialUrl.searchParams.has("operation")).toBe(false);
+    expect(initialUrl.searchParams.has("claimKey")).toBe(false);
+    expect(initialUrl.searchParams.has("appId")).toBe(false);
+    expect(initialUrl.searchParams.has("oneGateAppId")).toBe(false);
 
     pool.setClaimKey("ogv_next_key_abcdef");
 
-    expect(pool.currentShareUrl.get()).toContain("claimKey=ogv_next_key_abcdef");
+    expect(new URL(pool.currentShareUrl.get()).searchParams.get("key")).toBe(
+      "ogv_next_key_abcdef",
+    );
   });
 
   it("claims a scanned key through the backend and does not invoke the old pool contract", async () => {
@@ -149,7 +162,6 @@ describe("OneGate Vault runtime logic", () => {
           address: OWNER,
           network: "testnet",
           poolId: "pool-001",
-          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -208,7 +220,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(statusUrl.searchParams.get("address")).toBe(OWNER);
     expect(statusUrl.searchParams.get("network")).toBe("testnet");
     expect(statusUrl.searchParams.get("poolId")).toBe("pool-001");
-    expect(statusUrl.searchParams.get("oneGateAppId")).toBe("23");
+    expect(statusUrl.searchParams.get("oneGateAppId")).toBeNull();
     expect(statusUrl.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastClaimAmount.get()).toBe(4900000000n);

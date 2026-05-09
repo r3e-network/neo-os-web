@@ -9,6 +9,8 @@ import {
 import { standardLimit } from "@/lib/rate-limit";
 import { getServerSupabaseClient } from "@/lib/server-supabase";
 
+const DEFAULT_ONEGATE_VAULT_APP_ID = "23";
+
 function parseBody(body: unknown): Record<string, unknown> {
   if (typeof body === "string") {
     try {
@@ -19,6 +21,14 @@ function parseBody(body: unknown): Record<string, unknown> {
     }
   }
   return body && typeof body === "object" ? body as Record<string, unknown> : {};
+}
+
+function resolveOneGateVaultAppId(value: unknown): string {
+  const explicit = String(value ?? "").trim();
+  if (explicit) return explicit;
+  return String(
+    process.env.ONEGATE_VAULT_ONEGATE_APP_ID || DEFAULT_ONEGATE_VAULT_APP_ID,
+  ).trim();
 }
 
 function sendVaultError(res: NextApiResponse, error: OneGateVaultError) {
@@ -77,8 +87,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       address: body.address,
       network: body.network,
       poolId: body.poolId ?? body.pool ?? body.campaignId,
-      oneGateAppId:
+      oneGateAppId: resolveOneGateVaultAppId(
         body.oneGateAppId ?? body.oneGateId ?? body.onegateAppId,
+      ),
       appId: body.appId ?? body.miniappId,
     }, {
       repository: createSupabaseOneGateVaultRepository(supabase),
