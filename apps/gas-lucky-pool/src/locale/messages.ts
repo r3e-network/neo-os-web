@@ -52,7 +52,7 @@ const appMessages = {
   inspectClaim: { en: "Check reward", zh: "检查奖励" },
   claimedAmount: { en: "Claimed {amount} GAS", zh: "已领取 {amount} GAS" },
   rewardRange: { en: "Reward range", zh: "奖励范围" },
-  claimScannedKey: { en: "Claim scanned reward", zh: "领取扫码奖励" },
+  claimReward: { en: "Claim Reward", zh: "领取奖励" },
   claimCongratsTitle: {
     en: "Congratulations, reward received",
     zh: "恭喜，奖励已到账",
