@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const keyPepper = String(process.env.ONEGATE_VAULT_KEY_PEPPER || "").trim();
   if (!keyPepper) return apiError.configError(res, "OneGate Vault key pepper is not configured");
 
-  const claimKey = normalizeClaimKey(req.query.claimKey);
+  const claimKey = normalizeClaimKey(req.query.claimKey ?? req.query.key);
   if (!claimKey) return apiError.badRequest(res, "claim key is invalid");
 
   const network = normalizeNetwork(req.query.network);
@@ -46,6 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       keyHash: hashClaimKey(claimKey, keyPepper),
       address: address || undefined,
       network,
+      poolId: String(req.query.poolId ?? req.query.pool ?? req.query.campaignId ?? "").trim() || undefined,
+      oneGateAppId: String(req.query.oneGateAppId ?? req.query.oneGateId ?? req.query.onegateAppId ?? "").trim() || undefined,
+      appId: String(req.query.appId ?? req.query.miniappId ?? "").trim() || undefined,
     });
     if (!status) return apiError.notFound(res, "claim key has not been claimed yet");
     return res.status(200).json({
@@ -60,7 +63,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       requestId: status.requestId,
     });
   } catch (error) {
-    if (error instanceof OneGateVaultError && error.code === "CLAIM_KEY_USED") {
+    if (
+      error instanceof OneGateVaultError &&
+      [
+        "CLAIM_KEY_USED",
+        "POOL_MISMATCH",
+        "ONEGATE_APP_ID_REQUIRED",
+        "ONEGATE_APP_ID_MISMATCH",
+        "APP_ID_MISMATCH",
+      ].includes(error.code)
+    ) {
       return apiError.forbidden(res, error.message);
     }
     return apiError.internal(res, error instanceof Error ? error.message : "status lookup failed");

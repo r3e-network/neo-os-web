@@ -3,6 +3,7 @@ import {
   claimOneGateVaultReward,
   createInMemoryOneGateVaultRepository,
   createSupabaseOneGateVaultRepository,
+  createTxProxyOneGateVaultPaymentService,
   formatFixed8Gas,
   hashClaimKey,
   normalizeClaimKey,
@@ -69,6 +70,189 @@ describe("OneGate Vault off-chain claim engine", () => {
       txHash: "0xreward",
     });
     expect(second).toEqual(first);
+  });
+
+  it("keeps the same QR claim key isolated between testnet and mainnet", async () => {
+    const keyHash = hashClaimKey(CLAIM_KEY, "pepper");
+    const repository = createInMemoryOneGateVaultRepository({
+      campaigns: [
+        {
+          id: "pool-testnet",
+          network: "testnet",
+          status: "active",
+          minAmountFixed8: "100000000",
+          maxAmountFixed8: "100000000",
+          remainingAmountFixed8: "100000000",
+          maxClaims: 1,
+          claimedCount: 0,
+        },
+        {
+          id: "pool-mainnet",
+          network: "mainnet",
+          status: "active",
+          minAmountFixed8: "200000000",
+          maxAmountFixed8: "200000000",
+          remainingAmountFixed8: "200000000",
+          maxClaims: 1,
+          claimedCount: 0,
+        },
+      ],
+      claimKeys: [
+        {
+          keyHash,
+          campaignId: "pool-testnet",
+          network: "testnet",
+          status: "unused",
+        },
+        {
+          keyHash,
+          campaignId: "pool-mainnet",
+          network: "mainnet",
+          status: "unused",
+        },
+      ],
+    });
+    const payment: OneGateVaultPaymentService = {
+      sendGas: jest
+        .fn()
+        .mockResolvedValueOnce({ txHash: "0xtestnet", status: "paid" })
+        .mockResolvedValueOnce({ txHash: "0xmainnet", status: "paid" }),
+    };
+
+    const testnet = await claimOneGateVaultReward(
+      { claimKey: CLAIM_KEY, address: WALLET, network: "testnet" },
+      { repository, payment, keyPepper: "pepper" },
+    );
+    const mainnet = await claimOneGateVaultReward(
+      { claimKey: CLAIM_KEY, address: WALLET, network: "mainnet" },
+      { repository, payment, keyPepper: "pepper" },
+    );
+
+    expect(payment.sendGas).toHaveBeenCalledTimes(2);
+    expect(testnet).toMatchObject({
+      network: "testnet",
+      amount: "1",
+      txHash: "0xtestnet",
+    });
+    expect(mainnet).toMatchObject({
+      network: "mainnet",
+      amount: "2",
+      txHash: "0xmainnet",
+    });
+  });
+
+  it("requires the scanned pool and OneGate app id to match the server-side claim key", async () => {
+    const repository = createInMemoryOneGateVaultRepository({
+      campaigns: [
+        {
+          id: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+          oneGateAppId: "xx",
+          network: "mainnet",
+          status: "active",
+          minAmountFixed8: "100000000",
+          maxAmountFixed8: "100000000",
+          remainingAmountFixed8: "300000000",
+          maxClaims: 3,
+          claimedCount: 0,
+        },
+      ],
+      claimKeys: [
+        {
+          keyHash: hashClaimKey(CLAIM_KEY, "pepper"),
+          campaignId: "pool-001",
+          claimKeyId: "ogv_001",
+          network: "mainnet",
+          status: "unused",
+        },
+      ],
+    });
+    const payment: OneGateVaultPaymentService = {
+      sendGas: jest.fn().mockResolvedValue({
+        txHash: "0xreward",
+        status: "paid",
+      }),
+    };
+
+    await expect(
+      claimOneGateVaultReward(
+        {
+          claimKey: CLAIM_KEY,
+          address: WALLET,
+          network: "mainnet",
+          poolId: "pool-999",
+          oneGateAppId: "xx",
+          appId: "miniapp-gas-lucky-pool",
+        },
+        {
+          repository,
+          payment,
+          keyPepper: "pepper",
+          randomInt: () => 100000000n,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "POOL_MISMATCH" });
+
+    await expect(
+      claimOneGateVaultReward(
+        {
+          claimKey: CLAIM_KEY,
+          address: WALLET,
+          network: "mainnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        },
+        {
+          repository,
+          payment,
+          keyPepper: "pepper",
+          randomInt: () => 100000000n,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "ONEGATE_APP_ID_REQUIRED" });
+
+    await expect(
+      claimOneGateVaultReward(
+        {
+          claimKey: CLAIM_KEY,
+          address: WALLET,
+          network: "mainnet",
+          poolId: "pool-001",
+          oneGateAppId: "wrong",
+          appId: "miniapp-gas-lucky-pool",
+        },
+        {
+          repository,
+          payment,
+          keyPepper: "pepper",
+          randomInt: () => 100000000n,
+        },
+      ),
+    ).rejects.toMatchObject({ code: "ONEGATE_APP_ID_MISMATCH" });
+
+    const result = await claimOneGateVaultReward(
+      {
+        claimKey: CLAIM_KEY,
+        address: WALLET,
+        network: "mainnet",
+        poolId: "pool-001",
+        oneGateAppId: "xx",
+        appId: "miniapp-gas-lucky-pool",
+      },
+      {
+        repository,
+        payment,
+        keyPepper: "pepper",
+        randomInt: () => 100000000n,
+      },
+    );
+
+    expect(payment.sendGas).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      status: "paid",
+      amount: "1",
+      txHash: "0xreward",
+    });
   });
 
   it("calculates luck percentile against the 1-50 GAS reward range", () => {
@@ -161,7 +345,49 @@ describe("OneGate Vault off-chain claim engine", () => {
     expect(formatFixed8Gas("123456789")).toBe("1.23456789");
   });
 
-  it("reserves Supabase claims through the hardened v2 RPC with server entropy", async () => {
+  it("uses the Morpheus edge txproxy path when a dedicated Vault tx proxy URL is not configured", async () => {
+    const originalFetch = global.fetch;
+    const originalEdgeApiBase = process.env.EDGE_API_BASE;
+    const originalTxProxyUrl = process.env.TX_PROXY_URL;
+    const originalVaultTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ tx_hash: "0xedge", confirmed: true }),
+    });
+    global.fetch = fetchMock as never;
+    delete process.env.TX_PROXY_URL;
+    delete process.env.ONEGATE_VAULT_TX_PROXY_URL;
+    process.env.EDGE_API_BASE = "https://edge.example";
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService();
+      const result = await payment.sendGas({
+        requestId: "req-1",
+        network: "mainnet",
+        toAddress: WALLET,
+        amountFixed8: "100000000",
+      });
+
+      expect(result).toEqual({ txHash: "0xedge", status: "paid" });
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://edge.example/txproxy/invoke",
+        expect.objectContaining({ method: "POST" }),
+      );
+    } finally {
+      global.fetch = originalFetch;
+      if (originalEdgeApiBase === undefined) delete process.env.EDGE_API_BASE;
+      else process.env.EDGE_API_BASE = originalEdgeApiBase;
+      if (originalTxProxyUrl === undefined) delete process.env.TX_PROXY_URL;
+      else process.env.TX_PROXY_URL = originalTxProxyUrl;
+      if (originalVaultTxProxyUrl === undefined) {
+        delete process.env.ONEGATE_VAULT_TX_PROXY_URL;
+      } else {
+        process.env.ONEGATE_VAULT_TX_PROXY_URL = originalVaultTxProxyUrl;
+      }
+    }
+  });
+
+  it("reserves Supabase claims through the hardened v3 RPC with server entropy and launch identity", async () => {
     const rpc = jest.fn().mockResolvedValue({
       data: [
         {
@@ -184,17 +410,23 @@ describe("OneGate Vault off-chain claim engine", () => {
       address: WALLET,
       network: "testnet",
       requestId: "req-1",
+      poolId: "pool-001",
+      oneGateAppId: "xx",
+      appId: "miniapp-gas-lucky-pool",
       randomInt: () => 100000000n,
     });
 
     expect(rpc).toHaveBeenCalledWith(
-      "onegate_vault_reserve_claim_v2",
+      "onegate_vault_reserve_claim_v3",
       expect.objectContaining({
         p_key_hash: "hash",
         p_wallet_address: WALLET,
         p_network: "testnet",
         p_request_id: "req-1",
         p_random_u64: expect.stringMatching(/^\d+$/),
+        p_pool_id: "pool-001",
+        p_onegate_app_id: "xx",
+        p_app_id: "miniapp-gas-lucky-pool",
       }),
     );
   });
@@ -215,17 +447,19 @@ describe("OneGate Vault off-chain claim engine", () => {
 
     await repository.markSubmitted({
       keyHash: "hash",
+      network: "testnet",
       requestId: "req-1",
       txHash: "0xreward",
     });
 
     expect(chain.eq).toHaveBeenCalledWith("key_hash", "hash");
+    expect(chain.eq).toHaveBeenCalledWith("network", "testnet");
     expect(chain.eq).toHaveBeenCalledWith("request_id", "req-1");
     expect(chain.in).toHaveBeenCalledWith("status", [
       "pending",
       "submitted",
       "failed",
     ]);
-    expect(chain.select).toHaveBeenCalledWith("key_hash");
+    expect(chain.select).toHaveBeenCalledWith("key_hash,network");
   });
 });

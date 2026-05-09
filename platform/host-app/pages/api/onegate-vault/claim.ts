@@ -22,13 +22,30 @@ function parseBody(body: unknown): Record<string, unknown> {
 }
 
 function sendVaultError(res: NextApiResponse, error: OneGateVaultError) {
-  if (["INVALID_CLAIM_KEY", "INVALID_ADDRESS", "INVALID_NETWORK", "INVALID_REWARD_RANGE"].includes(error.code)) {
+  if ([
+    "INVALID_CLAIM_KEY",
+    "INVALID_ADDRESS",
+    "INVALID_NETWORK",
+    "INVALID_REWARD_RANGE",
+    "INVALID_POOL_ID",
+    "INVALID_ONEGATE_APP_ID",
+    "INVALID_APP_ID",
+  ].includes(error.code)) {
     return apiError.badRequest(res, error.message);
   }
   if (error.code === "CLAIM_KEY_NOT_FOUND" || error.code === "VAULT_NOT_FOUND") {
     return apiError.notFound(res, error.message);
   }
-  if (["CLAIM_KEY_USED", "VAULT_INACTIVE", "VAULT_EXPIRED", "VAULT_EMPTY"].includes(error.code)) {
+  if ([
+    "CLAIM_KEY_USED",
+    "VAULT_INACTIVE",
+    "VAULT_EXPIRED",
+    "VAULT_EMPTY",
+    "POOL_MISMATCH",
+    "ONEGATE_APP_ID_REQUIRED",
+    "ONEGATE_APP_ID_MISMATCH",
+    "APP_ID_MISMATCH",
+  ].includes(error.code)) {
     return apiError.forbidden(res, error.message);
   }
   if (error.code === "PAYMENT_NOT_CONFIGURED") {
@@ -56,9 +73,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const body = parseBody(req.body);
     const result = await claimOneGateVaultReward({
-      claimKey: body.claimKey,
+      claimKey: body.claimKey ?? body.key,
       address: body.address,
       network: body.network,
+      poolId: body.poolId ?? body.pool ?? body.campaignId,
+      oneGateAppId:
+        body.oneGateAppId ?? body.oneGateId ?? body.onegateAppId,
+      appId: body.appId ?? body.miniappId,
     }, {
       repository: createSupabaseOneGateVaultRepository(supabase),
       payment: createTxProxyOneGateVaultPaymentService(),
