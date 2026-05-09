@@ -6,19 +6,19 @@
 body { background: var(--anchor-bg, #ffffff); }
 
 .trustanchor-play-area {
-  display: flex; flex-direction: column; gap: 12px; padding: 16px 12px;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px;
   min-height: 300px; font-family: var(--anchor-font, 'Instrument Sans', sans-serif); position: relative;
   > * { position: relative; z-index: 1; }
 }
 
 .anchor-primary-card {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 18px; border: 1px solid #e5e7eb; border-radius: 14px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07);
+  padding: 16px; border: 1px solid #e1e7df; border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(20, 32, 21, 0.06);
 
-  h2 { margin: 4px 0 6px; color: #111827; font-size: clamp(22px, 4vw, 34px); line-height: 1.05; letter-spacing: 0; }
-  p { margin: 0; max-width: 560px; color: #4b5563; font-size: 14px; line-height: 1.55; }
+  h2 { margin: 4px 0 6px; color: #111827; font-size: clamp(22px, 4vw, 32px); line-height: 1.05; letter-spacing: 0; }
+  p { margin: 0; max-width: 560px; color: #5f6b61; font-size: 14px; line-height: 1.5; }
 }
 
 .anchor-kicker {
@@ -26,22 +26,22 @@ body { background: var(--anchor-bg, #ffffff); }
 }
 
 .anchor-score {
-  display: grid; place-items: center; min-width: 92px; padding: 12px 10px;
-  border-radius: 12px; background: #f1f5f9; color: #334155;
+  display: grid; place-items: center; min-width: 88px; padding: 11px 10px;
+  border-radius: 14px; background: #f4f6f2; color: #334155;
 
-  span { font-size: 22px; font-weight: 800; }
+  span { font-size: 21px; font-weight: 850; }
   small { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 }
 
 .anchor-stat-grid {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px;
 }
 
 .stat-chip {
   display: flex; flex-direction: column; align-items: center;
-  padding: 10px 12px; min-width: 0;
-  background: #f9fafb;
-  border: 1px solid #f3f4f6;
+  padding: 9px 10px; min-width: 0;
+  background: #fafbf8;
+  border: 1px solid #e7ece5;
   border-radius: 12px;
 }
 
@@ -61,7 +61,7 @@ body { background: var(--anchor-bg, #ffffff); }
 .section-title { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #10b981; }
 .section-desc { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); font-size: 14px; line-height: 1.7; display: block; color: #6b7280; }
 
-.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: #ffffff; border: 1px solid #e5e7eb; border-radius: 14px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035); padding: 14px; }
+.neo-card { font-family: var(--anchor-font, 'Instrument Sans', sans-serif); background: #ffffff; border: 1px solid #e7ece5; border-radius: 14px; box-shadow: 0 8px 22px rgba(20, 32, 21, 0.04); padding: 14px; }
 .mb-4 { margin-bottom: 16px; }
 .mb-6 { margin-bottom: 24px; }
 .px-1 { padding-left: 8px; padding-right: 8px; }
@@ -102,18 +102,21 @@ body { background: var(--anchor-bg, #ffffff); }
   display: grid; gap: 8px; margin-top: 10px;
 
   span {
-    padding: 9px 10px; border-radius: 10px; background: #f9fafb;
+    padding: 9px 10px; border-radius: 10px; background: #fafbf8;
     color: #374151; font-size: 13px; line-height: 1.35;
   }
 }
 
 @media (max-width: 560px) {
-  .trustanchor-play-area { padding: 10px; gap: 10px; }
-  .anchor-primary-card { align-items: flex-start; padding: 14px; }
-  .anchor-score { min-width: 76px; }
+  .trustanchor-play-area { min-height: auto; padding: 0; gap: 8px; }
+  .anchor-primary-card { align-items: flex-start; padding: 13px; }
+  .anchor-score { min-width: 72px; padding: 9px 8px; }
   .anchor-primary-card h2 { font-size: 22px; }
   .anchor-primary-card p { font-size: 13px; }
-  .anchor-stat-grid { grid-template-columns: 1fr; }
+  .anchor-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .stat-chip { padding: 8px 6px; }
+  .stat-value { font-size: 12px; }
+  .stat-label { font-size: 8px; }
   .agent-row { align-items: flex-start; gap: 8px; }
   .agent-address { max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }

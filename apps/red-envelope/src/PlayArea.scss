@@ -4,37 +4,35 @@
 .redenv-play-area {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 12px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .redenv-claim-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 14px;
+  gap: 13px;
   align-items: center;
-  padding: 18px;
-  border: 1px solid #fee2e2;
+  padding: 16px;
+  border: 1px solid #eadfdd;
   border-radius: 16px;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(255, 241, 242, 0.95), transparent 36%),
-    linear-gradient(135deg, #ffffff 0%, #fff7f7 100%);
-  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.08);
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(69, 24, 19, 0.07);
 }
 
 .redenv-claim-icon {
-  width: 54px;
-  height: 54px;
-  border-radius: 15px;
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 10px 24px rgba(239, 68, 68, 0.2);
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: #b91c1c;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 10px 22px rgba(185, 28, 28, 0.16);
 }
 
 .redenv-kicker {
   color: #b91c1c;
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .12em;
+  font-weight: 850;
+  letter-spacing: .09em;
   text-transform: uppercase;
 }
 
@@ -44,7 +42,7 @@
   h2 {
     margin: 3px 0 5px;
     color: #111827;
-    font-size: clamp(22px, 4vw, 34px);
+    font-size: clamp(22px, 4vw, 32px);
     line-height: 1.05;
     letter-spacing: 0;
   }
@@ -62,11 +60,11 @@
   display: grid;
   gap: 2px;
   justify-items: end;
-  padding: 10px 12px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: #fbf7f6;
+  border: 1px solid #eadfdd;
+  color: #7f1d1d;
 
   span {
     font-size: 13px;
@@ -85,10 +83,10 @@
 .redenv-selected,
 .redenv-console-hint,
 .redenv-secondary {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e7ece5;
   border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035);
+  box-shadow: 0 8px 24px rgba(20, 32, 21, 0.04);
 }
 
 .redenv-selected {
@@ -109,7 +107,7 @@
   }
 
   span:last-child {
-    color: #b91c1c;
+    color: #7f1d1d;
     font-size: 13px;
     font-weight: 700;
   }
@@ -156,9 +154,9 @@
   gap: 10px;
   align-items: center;
   padding: 9px 10px;
-  border: 1px solid #f3f4f6;
+  border: 1px solid #edf1eb;
   border-radius: 10px;
-  background: #f9fafb;
+  background: #fafbf8;
   color: #374151;
   font: inherit;
   text-align: left;
@@ -169,8 +167,8 @@
   }
 
   &--selected {
-    border-color: #fecaca;
-    background: #fff7f7;
+    border-color: #e8b4b4;
+    background: #fff8f8;
   }
 
   &--static {
@@ -216,7 +214,7 @@
   width: 58px;
   height: 58px;
   border-radius: 17px;
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  background: #b91c1c;
   box-shadow: 0 14px 30px rgba(239, 68, 68, 0.24);
 }
 
@@ -244,11 +242,11 @@
 }
 
 @media (max-width: 560px) {
-  .redenv-play-area { padding: 10px; gap: 10px; }
+  .redenv-play-area { padding: 0; gap: 8px; }
   .redenv-claim-card {
     grid-template-columns: auto 1fr;
     align-items: start;
-    padding: 14px;
+    padding: 13px;
   }
   .redenv-target-pill {
     grid-column: 1 / -1;
