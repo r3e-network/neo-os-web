@@ -404,25 +404,7 @@ export default function MiniAppDetailPage({
   }, [activeTab, launchContext.tab, tabs]);
 
   const handleDetailTabClick = useCallback((tabId: string) => {
-    const tabsEl =
-      typeof document === "undefined"
-        ? null
-        : document.querySelector('[data-testid="miniapp-detail-tabs"]');
-    const beforeTop = tabsEl?.getBoundingClientRect().top;
-
     setActiveTab(tabId);
-
-    if (typeof beforeTop !== "number") return;
-    const restoreTabPosition = () => {
-      const afterTop = tabsEl?.getBoundingClientRect().top;
-      if (typeof afterTop !== "number") return;
-      const delta = afterTop - beforeTop;
-      if (Math.abs(delta) > 1) {
-        window.scrollBy({ top: delta, left: 0, behavior: "auto" });
-      }
-    };
-    requestAnimationFrame(() => requestAnimationFrame(restoreTabPosition));
-    window.setTimeout(restoreTabPosition, 120);
   }, []);
 
   if (error || !app) {
