@@ -19,7 +19,7 @@ function launch(poolId = "42") {
 
 function keyLaunch(claimKey = CLAIM_KEY) {
   return parseMiniAppLaunchContext(
-    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&pool=pool-001&oneGateAppId=xx&appId=miniapp-gas-lucky-pool&claimKey=${claimKey}`,
+    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&pool=pool-001&oneGateAppId=23&appId=miniapp-gas-lucky-pool&claimKey=${claimKey}`,
     "miniapp-gas-lucky-pool",
   );
 }
@@ -102,7 +102,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.currentShareUrl.get()).toContain("network=testnet");
     expect(pool.currentShareUrl.get()).toContain(`claimKey=${CLAIM_KEY}`);
     expect(pool.currentShareUrl.get()).toContain("pool=pool-001");
-    expect(pool.currentShareUrl.get()).toContain("oneGateAppId=xx");
+    expect(pool.currentShareUrl.get()).toContain("oneGateAppId=23");
     expect(pool.currentShareUrl.get()).toContain("appId=miniapp-gas-lucky-pool");
     expect(pool.currentShareUrl.get()).not.toContain("poolId=");
 
@@ -149,7 +149,7 @@ describe("OneGate Vault runtime logic", () => {
           address: OWNER,
           network: "testnet",
           poolId: "pool-001",
-          oneGateAppId: "xx",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -208,7 +208,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(statusUrl.searchParams.get("address")).toBe(OWNER);
     expect(statusUrl.searchParams.get("network")).toBe("testnet");
     expect(statusUrl.searchParams.get("poolId")).toBe("pool-001");
-    expect(statusUrl.searchParams.get("oneGateAppId")).toBe("xx");
+    expect(statusUrl.searchParams.get("oneGateAppId")).toBe("23");
     expect(statusUrl.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastClaimAmount.get()).toBe(4900000000n);
