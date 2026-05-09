@@ -524,6 +524,37 @@ describe("OneGate Vault off-chain claim engine", () => {
     }
   });
 
+  it("keeps txproxy payouts submitted until a GAS app log confirms payment", async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          tx_hash: "0xedge",
+          status: "paid",
+        }),
+      ),
+    });
+    global.fetch = fetchMock as never;
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService({
+        txProxyUrl: "https://edge.example/txproxy",
+        rewardSource: "0x0123456789abcdef0123456789abcdef01234567",
+      });
+      const result = await payment.sendGas({
+        requestId: "req-1",
+        network: "testnet",
+        toAddress: WALLET,
+        amountFixed8: "100000000",
+      });
+
+      expect(result).toEqual({ txHash: "0xedge", status: "submitted" });
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("uses the campaign reward source for the GAS transfer sender", async () => {
     const originalFetch = global.fetch;
     const originalTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
