@@ -1,0 +1,86 @@
+{
+  "$schema": "https://schemas.r3e.network/miniapp-manifest/v1.json",
+  "id": "miniapp-custom-anchor",
+  "name": "Custom Anchor",
+  "name_zh": "自定义锚",
+  "version": "1.0.0",
+  "description": "Self-serve NEO voting anchor. Register one anchor, create 21 AA agent accounts, then let users stake NEO, redeem NEO, and claim GAS rewards.",
+  "description_zh": "自助创建 NEO 投票锚：注册一个 Anchor，生成 21 个 AA agent 地址，然后让用户质押 NEO、赎回 NEO、领取 GAS 收益。",
+  "category": "governance",
+  "category_name": "Governance",
+  "category_name_zh": "治理",
+  "tags": ["staking", "voting", "anchor", "aa", "governance"],
+  "developer": {
+    "name": "Yiwu",
+    "email": "dev@r3e.network",
+    "website": "https://neomini.app"
+  },
+  "contracts": {
+    "neo-n3-mainnet": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "neo-n3-testnet": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e"
+  },
+  "contract_domains": {
+    "neo-n3-mainnet": "customanchor.miniapp.neo"
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "anchor-staking",
+        "platform": "PlatformAnchor",
+        "appId": "miniapp-custom-anchor",
+        "moduleType": 2,
+        "registration": {
+          "method": "registerCustomAnchorApp",
+          "type": "custom"
+        },
+        "operations": {
+          "register": "registerCustomAnchorApp",
+          "registerAgents": "registerAgents",
+          "stake": "stake",
+          "withdraw": "withdraw",
+          "claimRewards": "claimRewards",
+          "moveAgentNeo": "transferAgentNeo",
+          "setAgentCandidate": "setAgentCandidate",
+          "syncVote": "voteAgent",
+          "stats": "getAnchorStats"
+        },
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+            "registered": true
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
+  "supported_networks": ["neo-n3-mainnet", "neo-n3-testnet"],
+  "default_network": "neo-n3-mainnet",
+  "urls": {
+    "entry": "/miniapps/custom-anchor/index.html",
+    "icon": "/miniapp-assets/trustanchor/logo.jpg",
+    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+  },
+  "permissions": ["invoke:primary", "read:blockchain", "aa:register"],
+  "features": {
+    "stateless": false,
+    "offlineSupport": false,
+    "deeplink": "neomainapp://custom-anchor"
+  },
+  "stateSource": {
+    "type": "chain",
+    "chain": "neo-n3-mainnet"
+  },
+  "platform": {
+    "analytics": true,
+    "comments": true,
+    "ratings": true,
+    "transactions": true
+  },
+  "createdAt": "2026-05-09T00:00:00Z",
+  "updatedAt": "2026-05-09T00:00:00Z"
+}

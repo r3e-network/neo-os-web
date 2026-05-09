@@ -29,6 +29,26 @@
   "contract_domains": {
     "neo-n3-mainnet": "recovery.smartwallet.neo"
   },
+  "contract_source": {
+    "type": "external-repo",
+    "repository": "neo-abstract-account",
+    "path": "contracts/recovery/MorpheusSocialRecoveryVerifier.Fixed.cs",
+    "project": "contracts/recovery/MorpheusSocialRecoveryVerifier.csproj",
+    "artifact_manifest": "contracts/bin/v3/SocialRecoveryVerifier.manifest.json",
+    "artifact_nef": "contracts/bin/v3/SocialRecoveryVerifier.nef",
+    "mainnet_report": "sdk/docs/reports/mainnet-aa-auxiliary-update-2026-05-08.json"
+  },
+  "deployment": {
+    "neo-n3-mainnet": {
+      "status": "deployed",
+      "domain": "recovery.smartwallet.neo",
+      "report": "../neo-abstract-account/sdk/docs/reports/mainnet-aa-auxiliary-update-2026-05-08.json"
+    },
+    "neo-n3-testnet": {
+      "status": "deferred",
+      "reason": "AA shared testnet registry does not currently publish a SocialRecoveryVerifier hash; source and artifacts are maintained in neo-abstract-account."
+    }
+  },
   "supported_networks": [
     "neo-n3-mainnet",
     "neo-n3-testnet"

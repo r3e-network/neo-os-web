@@ -111,12 +111,20 @@ function fmtAddr(b64OrHex: string | undefined): string {
   return `${b64OrHex.slice(0, 8)}…${b64OrHex.slice(-4)}`;
 }
 
-function resolveAnchorAppId(appId: string): string | null {
+function resolveAnchorAppId(appId: string, launchContext?: MiniAppLaunchContext | null): string | null {
   if (appId === "miniapp-profitanchor" || appId === "miniapp-profitanchor-admin") {
     return "miniapp-profitanchor";
   }
   if (appId === "miniapp-trustanchor" || appId === "miniapp-trustanchor-admin") {
     return "miniapp-trustanchor";
+  }
+  if (appId === "miniapp-custom-anchor") {
+    return (
+      launchContext?.params.anchorAppId ||
+      launchContext?.params.anchor ||
+      launchContext?.params.appId ||
+      null
+    );
   }
   return null;
 }
@@ -209,12 +217,13 @@ function LiveContractView({
         // hero + stats grid don't flicker every 15 s.
         if (isInitial) setLoading(true);
         const [appStats, appActivity] = await Promise.all([
-          fetchAppStats(app.app_id, rpcUrl, contractHash, requestedNetwork),
+          fetchAppStats(app.app_id, rpcUrl, contractHash, requestedNetwork, launchContext),
           fetchAppActivity(
             app.app_id,
             rpcUrl,
             contractHash,
             requestedNetwork,
+            launchContext,
           ).catch(() => null),
         ]);
         setStats(appStats);
@@ -269,6 +278,7 @@ async function fetchAppStats(
   rpcUrl: string,
   contractHash: string,
   network: "mainnet" | "testnet",
+  launchContext?: MiniAppLaunchContext | null,
 ): Promise<Array<{ label: string; value: string; accent?: boolean }>> {
   try {
     switch (appId) {
@@ -612,8 +622,16 @@ async function fetchAppStats(
       case "miniapp-trustanchor":
       case "miniapp-profitanchor":
       case "miniapp-trustanchor-admin":
-      case "miniapp-profitanchor-admin": {
-        const anchorAppId = resolveAnchorAppId(appId) ?? appId;
+      case "miniapp-profitanchor-admin":
+      case "miniapp-custom-anchor": {
+        const anchorAppId = resolveAnchorAppId(appId, launchContext);
+        if (!anchorAppId) {
+          return [
+            { label: "Agents", value: "21 on register", accent: true },
+            { label: "Status", value: "Ready to register", accent: true },
+            { label: "Runtime", value: "PlatformAnchor" },
+          ];
+        }
         const statsStack = await invokeRead(
           rpcUrl,
           contractHash,
@@ -702,6 +720,7 @@ async function fetchAppActivity(
   rpcUrl: string,
   contractHash: string,
   network: "mainnet" | "testnet",
+  launchContext?: MiniAppLaunchContext | null,
 ): Promise<Activity | null> {
   try {
     switch (appId) {
@@ -719,7 +738,8 @@ async function fetchAppActivity(
       case "miniapp-profitanchor":
       case "miniapp-trustanchor-admin":
       case "miniapp-profitanchor-admin":
-        return await fetchAnchorActivity(appId, rpcUrl, contractHash, network);
+      case "miniapp-custom-anchor":
+        return await fetchAnchorActivity(appId, rpcUrl, contractHash, network, launchContext);
       default:
         return null;
     }
@@ -734,8 +754,27 @@ async function fetchAnchorActivity(
   rpcUrl: string,
   contractHash: string,
   network: "mainnet" | "testnet",
+  launchContext?: MiniAppLaunchContext | null,
 ): Promise<Activity> {
-  const anchorAppId = resolveAnchorAppId(appId) ?? appId;
+  const anchorAppId = resolveAnchorAppId(appId, launchContext);
+  if (!anchorAppId) {
+    return {
+      title: "Custom Anchor Setup",
+      rows: [
+        {
+          icon: "A",
+          primary: "Register a new Anchor",
+          secondary: "Creates the Anchor app plus 21 AA agents in one NEP-21 batch",
+          accent: true,
+        },
+        {
+          icon: "Q",
+          primary: "Share anchorAppId after registration",
+          secondary: "OneGate QR can pass anchorAppId directly to the user staking flow",
+        },
+      ],
+    };
+  }
   const statsStack = await invokeRead(
     rpcUrl,
     contractHash,
@@ -817,7 +856,12 @@ async function fetchAnchorActivity(
   }
 
   return {
-    title: anchorAppId === "miniapp-profitanchor" ? "Profit Routes" : "Trust Routes",
+    title:
+      anchorAppId === "miniapp-profitanchor"
+        ? "Profit Routes"
+        : anchorAppId === "miniapp-trustanchor"
+          ? "Trust Routes"
+          : "Custom Routes",
     rows,
     emptyText: "No AA agent routes registered yet.",
   };

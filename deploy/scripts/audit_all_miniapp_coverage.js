@@ -33,6 +33,23 @@ function hasPlatformRuntimeSource(manifest) {
   });
 }
 
+function hasExternalContractSource(manifest) {
+  const source = manifest?.contract_source || manifest?.external_contract_source;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return false;
+
+  const repository = String(source.repository || "").trim();
+  const sourcePath = String(source.path || source.project || "").trim();
+  if (!repository || !sourcePath) return false;
+
+  const repoCandidates = [
+    path.resolve(ROOT, "..", repository),
+    path.resolve(ROOT, "..", "..", repository),
+    path.resolve("/Users/jinghuiliao/git", repository),
+  ];
+
+  return repoCandidates.some((repoRoot) => fs.existsSync(path.join(repoRoot, sourcePath)));
+}
+
 function hasContractSource(appName, manifest) {
   const slug = appName.replace(/-/g, "").toLowerCase();
   const dedicatedSource = fs.readdirSync(CONTRACTS_DIR).some((entry) => {
@@ -41,7 +58,7 @@ function hasContractSource(appName, manifest) {
     const norm = entry.toLowerCase().replace(/miniapp/g, "");
     return norm.includes(slug) || slug.includes(norm);
   });
-  return dedicatedSource || hasPlatformRuntimeSource(manifest);
+  return dedicatedSource || hasPlatformRuntimeSource(manifest) || hasExternalContractSource(manifest);
 }
 
 function readReadme(appName, fileName = "README.md") {
@@ -127,6 +144,9 @@ function classify(manifest, testnetState, mainnetState, sourcePresent) {
     return "testnet-only";
   }
   if ((!testnetHash || !testnetState.exists) && mainnetHash && mainnetState.exists) {
+    if (deploymentStatus(manifest, "neo-n3-testnet") === "deferred") {
+      return sourcePresent ? "mainnet-only-testnet-deferred" : "mainnet-only-no-source-testnet-deferred";
+    }
     return sourcePresent ? "mainnet-only-needs-testnet" : "mainnet-only-no-source";
   }
   return "stale-or-missing";

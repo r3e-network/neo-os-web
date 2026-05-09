@@ -171,7 +171,11 @@ Current published Morpheus attestation anchors:
 
 Domain values above are the canonical app manifests/runtime bindings. The latest on-chain NNS type-16 audit is in
 `docs/reports/mainnet-domain-bindings-latest.json`; updating NNS records requires a domain-owner signer, not the app
-contract deployer.
+contract deployer. Use `npm run -s audit:contract-domains` to regenerate the read-only audit. To bind missing or
+mismatched records, inject the owner WIF through one of `NEONS_DOMAIN_OWNER_WIF`, `NEO_NNS_DOMAIN_OWNER_WIF`,
+`DOMAIN_OWNER_WIF`, `NEO_MAINNET_DOMAIN_OWNER_WIF`, or `MINIAPP_DOMAIN_OWNER_WIF`, run
+`npm run -s bind:contract-domains` for a dry-run authorization check, then run
+`npm run -s bind:contract-domains:execute` only after the dry-run reports the records as ready.
 
 Operational alignment now applied on mainnet:
 

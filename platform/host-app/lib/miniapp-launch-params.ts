@@ -46,6 +46,7 @@ const launchParamAliases: Record<string, string[]> = {
   claimKey: ["key", "code", "k"],
   poolId: ["pool", "id"],
   envelopeId: ["envelope", "id"],
+  anchorAppId: ["anchor", "anchorId", "anchor_id", "appId", "app_id"],
   query: ["q", "search"],
   q: ["query", "search"],
 };

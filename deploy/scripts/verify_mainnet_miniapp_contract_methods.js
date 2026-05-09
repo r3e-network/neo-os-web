@@ -32,6 +32,11 @@ const ZERO_HASH160 = "0x0000000000000000000000000000000000000000";
 const ZERO_HASH256 = `0x${"0".repeat(64)}`;
 const SAMPLE_BYTES = Buffer.from("yiwu-mainnet-read-smoke", "utf8").toString("base64");
 const SAMPLE_PUBLIC_KEY = Buffer.from(`02${"1".repeat(64)}`, "hex").toString("base64");
+const RPC_TIMEOUT_MS = parsePositiveInt(process.env.MAINNET_MINIAPP_METHOD_RPC_TIMEOUT_MS, 8_000, 1_000, 60_000);
+const METHOD_CONCURRENCY = parsePositiveInt(process.env.MAINNET_MINIAPP_METHOD_CONCURRENCY, 6, 1, 24);
+const PROGRESS_EVERY = parsePositiveInt(process.env.MAINNET_MINIAPP_METHOD_PROGRESS_EVERY, 10, 1, 500);
+const MAX_SAFE_READS = parsePositiveInt(process.env.MAINNET_MINIAPP_METHOD_MAX_SAFE_READS, 0, 0, 10_000);
+const PROGRESS_ENABLED = process.env.MAINNET_MINIAPP_METHOD_PROGRESS !== "0";
 
 const RPC_CANDIDATES = [
   process.env.NEO_RPC_MAINNET,
@@ -82,6 +87,17 @@ const CORE_APP_SCOPED_READS = new Set([
 
 const EXPECTED_EMPTY_STATE = /not found|does not exist|missing|invalid|not registered|unknown|no .+ found|index out of range|out of range|empty|uninitialized/i;
 
+function parsePositiveInt(value, fallback, min, max) {
+  const parsed = Number.parseInt(String(value || ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function logProgress(message) {
+  if (!PROGRESS_ENABLED) return;
+  console.error(`[mainnet-methods ${new Date().toISOString()}] ${message}`);
+}
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
@@ -96,7 +112,7 @@ function safeString(value) {
   return String(value == null ? "" : value);
 }
 
-async function fetchJsonRpc(rpcUrl, method, params = [], { timeoutMs = 25000 } = {}) {
+async function fetchJsonRpc(rpcUrl, method, params = [], { timeoutMs = RPC_TIMEOUT_MS } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -128,6 +144,11 @@ async function fetchJsonRpc(rpcUrl, method, params = [], { timeoutMs = 25000 } =
       throw new Error(`${rpcUrl}: ${json.error.message || json.error.code || "rpc error"}`);
     }
     return json.result;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`${rpcUrl}: ${method} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -159,6 +180,7 @@ function getVersionMagic(version) {
 
 async function selectMainnetRpc() {
   const errors = [];
+  logProgress(`selecting mainnet RPC from ${RPC_CANDIDATES.length} candidate(s), timeout=${RPC_TIMEOUT_MS}ms`);
   for (const rpcUrl of RPC_CANDIDATES) {
     try {
       const version = await fetchJsonRpc(rpcUrl, "getversion", []);
@@ -166,16 +188,20 @@ async function selectMainnetRpc() {
       if (magic !== MAINNET_MAGIC) {
         throw new Error(`network magic mismatch: expected ${MAINNET_MAGIC}, got ${magic || "unknown"}`);
       }
+      logProgress(`selected RPC ${rpcUrl} magic=${magic}`);
       return { rpcUrl, version, magic };
     } catch (error) {
       errors.push(`${rpcUrl}: ${error instanceof Error ? error.message : String(error)}`);
+      logProgress(`RPC candidate rejected: ${rpcUrl} (${error instanceof Error ? error.message : String(error)})`);
     }
   }
   throw new Error(`No usable Neo N3 mainnet RPC. ${errors.join("; ")}`);
 }
 
-async function rpcOn(rpcUrl, method, params = []) {
-  return fetchJsonRpc(rpcUrl, method, params);
+async function rpcOn(rpcUrl, method, params = [], options = {}) {
+  return fetchJsonRpc(rpcUrl, method, params, {
+    timeoutMs: options.timeoutMs || RPC_TIMEOUT_MS,
+  });
 }
 
 function loadApps() {
@@ -400,7 +426,22 @@ async function verifySafeMethod(rpcUrl, app, hash, method) {
   }
 }
 
+async function withConcurrency(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: workerCount }, async () => {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index], index);
+    }
+  }));
+  return results;
+}
+
 async function main() {
+  logProgress(`starting mainnet method verifier concurrency=${METHOD_CONCURRENCY} timeout=${RPC_TIMEOUT_MS}ms`);
   const selectedRpc = await selectMainnetRpc();
   const apps = loadApps();
   const contractApps = apps.filter((app) => app.mainnetHash);
@@ -408,23 +449,27 @@ async function main() {
   const contractStates = new Map();
   const contractErrors = new Map();
 
-  for (const hash of uniqueHashes) {
+  logProgress(`loaded ${apps.length} miniapp(s), ${contractApps.length} contract-backed, ${uniqueHashes.length} unique contract(s)`);
+  await withConcurrency(uniqueHashes, METHOD_CONCURRENCY, async (hash, index) => {
+    logProgress(`contract state ${index + 1}/${uniqueHashes.length}: ${hash}`);
     try {
       contractStates.set(hash, await rpcOn(selectedRpc.rpcUrl, "getcontractstate", [hash]));
     } catch (error) {
       contractErrors.set(hash, error instanceof Error ? error.message : String(error));
     }
-  }
+  });
 
   const rows = [];
   const blockers = [];
   let safeMethodsDiscovered = 0;
   let safeInvocationsAttempted = 0;
+  let safeInvocationsSkipped = 0;
   let haltCount = 0;
   let expectedFaultCount = 0;
   let sampleFaultCount = 0;
 
-  for (const app of apps) {
+  for (const [appIndex, app] of apps.entries()) {
+    logProgress(`app ${appIndex + 1}/${apps.length}: ${app.appId}`);
     const definition = loadDefinition(app.slug);
     const row = {
       appId: app.appId,
@@ -459,6 +504,7 @@ async function main() {
     const methods = Array.isArray(state?.manifest?.abi?.methods) ? state.manifest.abi.methods : [];
     const methodNames = new Set(methods.map((method) => method.name));
     const safeMethods = methods.filter((method) => method.safe === true);
+    safeMethodsDiscovered += safeMethods.length;
     row.contractName = String(state?.manifest?.name || "");
     row.contractUpdateMethod = methodNames.has("update");
     row.methodCount = methods.length;
@@ -483,22 +529,29 @@ async function main() {
     }));
     row.uiOperations = uiOperationRows;
 
-    const safeResults = [];
-    for (const method of safeMethods) {
-      safeMethodsDiscovered += 1;
-      safeInvocationsAttempted += 1;
+    const remainingSafeReadBudget = MAX_SAFE_READS > 0 ? Math.max(0, MAX_SAFE_READS - safeInvocationsAttempted) : safeMethods.length;
+    const safeMethodsToInvoke = safeMethods.slice(0, remainingSafeReadBudget);
+    safeInvocationsSkipped += safeMethods.length - safeMethodsToInvoke.length;
+
+    const safeResults = await withConcurrency(safeMethodsToInvoke, METHOD_CONCURRENCY, async (method) => {
       const result = await verifySafeMethod(selectedRpc.rpcUrl, app, app.mainnetHash, method);
-      safeResults.push(result);
+      safeInvocationsAttempted += 1;
+      if (safeInvocationsAttempted === 1 || safeInvocationsAttempted % PROGRESS_EVERY === 0) {
+        logProgress(`safe reads ${safeInvocationsAttempted}/${MAX_SAFE_READS > 0 ? MAX_SAFE_READS : "all"} latest=${app.appId}.${abiMethodKey(method)} status=${result.status}`);
+      }
       if (result.status === "halt") haltCount += 1;
       if (result.status === "expected_fault") expectedFaultCount += 1;
       if (result.status === "sample_fault" || result.status === "rpc_or_sample_error") sampleFaultCount += 1;
       if (result.status === "failure") {
         row.failures.push(`safe read ${result.signature} failed: ${result.exception || result.vmstate || "unknown"}`);
       }
-    }
+      return result;
+    });
 
     row.safeMethodSummary = {
       total: safeResults.length,
+      discovered: safeMethods.length,
+      skippedByLimit: safeMethods.length - safeResults.length,
       halt: safeResults.filter((result) => result.status === "halt").length,
       expectedFault: safeResults.filter((result) => result.status === "expected_fault").length,
       sampleFault: safeResults.filter((result) => result.status === "sample_fault").length,
@@ -530,12 +583,19 @@ async function main() {
     contractStateErrors: contractErrors.size,
     safeMethodsDiscovered,
     safeInvocationsAttempted,
+    safeInvocationsSkipped,
     haltCount,
     expectedFaultCount,
     sampleFaultCount,
     blockerCount: blockers.length,
     blockers,
     rows,
+    verifier: {
+      timeoutMs: RPC_TIMEOUT_MS,
+      concurrency: METHOD_CONCURRENCY,
+      progressEvery: PROGRESS_EVERY,
+      maxSafeReads: MAX_SAFE_READS,
+    },
   };
 
   fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
@@ -550,12 +610,18 @@ async function main() {
     frontendOrServerOnlyApps: summary.frontendOrServerOnlyApps,
     uniqueMainnetContracts: summary.uniqueMainnetContracts,
     safeMethodsDiscovered: summary.safeMethodsDiscovered,
+    safeInvocationsAttempted: summary.safeInvocationsAttempted,
+    safeInvocationsSkipped: summary.safeInvocationsSkipped,
+    timeoutMs: summary.verifier.timeoutMs,
+    concurrency: summary.verifier.concurrency,
     haltCount: summary.haltCount,
     expectedFaultCount: summary.expectedFaultCount,
     sampleFaultCount: summary.sampleFaultCount,
     blockerCount: summary.blockerCount,
     blockers: summary.blockers,
   }, null, 2));
+
+  logProgress(`finished with blockerCount=${summary.blockerCount}, contractStateErrors=${summary.contractStateErrors}, report=${path.relative(ROOT, OUTPUT_PATH)}`);
 
   if (summary.blockerCount > 0 || summary.contractStateErrors > 0) {
     process.exitCode = 1;
