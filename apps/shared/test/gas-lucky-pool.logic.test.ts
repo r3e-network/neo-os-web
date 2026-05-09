@@ -19,7 +19,7 @@ function launch(poolId = "42") {
 
 function keyLaunch(claimKey = CLAIM_KEY) {
   return parseMiniAppLaunchContext(
-    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&claimKey=${claimKey}`,
+    `https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&pool=pool-001&oneGateAppId=xx&appId=miniapp-gas-lucky-pool&claimKey=${claimKey}`,
     "miniapp-gas-lucky-pool",
   );
 }
@@ -94,13 +94,16 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.currentShareUrl.get()).toContain("poolId=88");
   });
 
-  it("uses the scanned claim key in OneGate URLs instead of exposing an on-chain pool id", () => {
+  it("keeps scanned key, reward pool, and mocked OneGate id in claim URLs", () => {
     const chain = {};
     const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
 
     expect(pool.currentShareUrl.get()).toContain("operation=claimPool");
     expect(pool.currentShareUrl.get()).toContain("network=testnet");
     expect(pool.currentShareUrl.get()).toContain(`claimKey=${CLAIM_KEY}`);
+    expect(pool.currentShareUrl.get()).toContain("pool=pool-001");
+    expect(pool.currentShareUrl.get()).toContain("oneGateAppId=xx");
+    expect(pool.currentShareUrl.get()).toContain("appId=miniapp-gas-lucky-pool");
     expect(pool.currentShareUrl.get()).not.toContain("poolId=");
 
     pool.setClaimKey("ogv_next_key_abcdef");
@@ -145,6 +148,9 @@ describe("OneGate Vault runtime logic", () => {
           claimKey: CLAIM_KEY,
           address: OWNER,
           network: "testnet",
+          poolId: "pool-001",
+          oneGateAppId: "xx",
+          appId: "miniapp-gas-lucky-pool",
         }),
       }),
     );
@@ -153,6 +159,61 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastClaimAmount.get()).toBe(350000000n);
     expect(pool.lastClaimLuckPercent.get()).toBe("7.00");
     expect(pool.lastTxid.get()).toBe("0xreward");
+  });
+
+  it("polls scanned key status with pool and OneGate identity when payout is submitted asynchronously", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "submitted",
+          claimKey: CLAIM_KEY,
+          address: OWNER,
+          requestId: "ogv_req",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "paid",
+          claimKey: CLAIM_KEY,
+          address: OWNER,
+          amountFixed8: "4900000000",
+          luckPercent: "98.00",
+          txHash: "0xpaid",
+          requestId: "ogv_req",
+        }),
+      });
+    globalThis.fetch = fetchMock as any;
+    const chain = {
+      ensureWallet: vi.fn().mockResolvedValue(OWNER),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    const statusUrl = new URL(
+      fetchMock.mock.calls[1][0] as string,
+      "https://neomini.app",
+    );
+    expect(statusUrl.pathname).toBe("/api/onegate-vault/status");
+    expect(statusUrl.searchParams.get("claimKey")).toBe(CLAIM_KEY);
+    expect(statusUrl.searchParams.get("address")).toBe(OWNER);
+    expect(statusUrl.searchParams.get("network")).toBe("testnet");
+    expect(statusUrl.searchParams.get("poolId")).toBe("pool-001");
+    expect(statusUrl.searchParams.get("oneGateAppId")).toBe("xx");
+    expect(statusUrl.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastClaimAmount.get()).toBe(4900000000n);
+    expect(pool.lastClaimLuckPercent.get()).toBe("98.00");
+    expect(pool.lastTxid.get()).toBe("0xpaid");
   });
 
   it("claims the pool id supplied by a OneGate scan and records the congratulations state", async () => {

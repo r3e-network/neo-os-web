@@ -67,6 +67,12 @@ export interface TopUpPoolForm {
   amount?: string;
 }
 
+interface ClaimLaunchIdentity {
+  poolId?: string;
+  oneGateAppId?: string;
+  appId?: string;
+}
+
 export interface UseGasLuckyPoolOptions {
   chain: ChainService;
   launchContext: MiniAppLaunchContext;
@@ -150,6 +156,11 @@ export function normalizeClaimKey(value: unknown): string {
   return /^[A-Za-z0-9_:-]{6,128}$/.test(raw) ? raw : "";
 }
 
+function normalizeClaimIdentity(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  return /^[A-Za-z0-9_.:-]{1,128}$/.test(raw) ? raw : "";
+}
+
 function luckPercentFromFixed8(value: unknown): string {
   const amount = asBigInt(value);
   const clamped =
@@ -165,14 +176,18 @@ function luckPercentFromFixed8(value: unknown): string {
 function buildClaimKeyUrl(
   claimKey: string,
   network?: MiniAppLaunchContext["network"],
+  identity: ClaimLaunchIdentity = {},
 ) {
   const key = normalizeClaimKey(claimKey);
   if (!key) return "";
-  return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, {
+  const params: Record<string, string | undefined> = {
     operation: "claimPool",
     network: network ?? undefined,
     claimKey: key,
-  });
+  };
+  if (identity.poolId) params.pool = identity.poolId;
+  if (identity.oneGateAppId) params.oneGateAppId = identity.oneGateAppId;
+  return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, params);
 }
 
 function buildLegacyPoolClaimUrl(
@@ -193,6 +208,21 @@ export function useGasLuckyPool({
   launchContext,
   t,
 }: UseGasLuckyPoolOptions) {
+  const launchIdentity: ClaimLaunchIdentity = {
+    poolId:
+      normalizeClaimIdentity(
+        getLaunchParam(launchContext, ["poolId", "pool", "campaignId"], ""),
+      ) || undefined,
+    oneGateAppId:
+      normalizeClaimIdentity(
+        getLaunchParam(
+          launchContext,
+          ["oneGateAppId", "oneGateId", "onegateAppId"],
+          "",
+        ),
+      ) || undefined,
+    appId: normalizeClaimIdentity(launchContext.appId) || APP_ID,
+  };
   const currentPoolId = createObservable(
     normalizePoolId(
       getLaunchParam(launchContext, ["poolId", "pool", "id"], ""),
@@ -257,7 +287,11 @@ export function useGasLuckyPool({
   const currentShareUrl = createDerived(
     () =>
       currentClaimKey.get()
-        ? buildClaimKeyUrl(currentClaimKey.get(), launchContext.network)
+        ? buildClaimKeyUrl(
+            currentClaimKey.get(),
+            launchContext.network,
+            launchIdentity,
+          )
         : currentPoolId.get()
           ? buildLegacyPoolClaimUrl(currentPoolId.get(), launchContext.network)
           : "",
@@ -509,12 +543,58 @@ export function useGasLuckyPool({
     return input;
   }
 
-  async function fetchClaimStatus(claimKey: string, address: string) {
+  function claimIdentityFromInput(input: unknown): ClaimLaunchIdentity {
+    const record =
+      input && typeof input === "object"
+        ? (input as Record<string, unknown>)
+        : {};
+    return {
+      poolId:
+        normalizeClaimIdentity(
+          record.poolId ?? record.pool ?? record.campaignId,
+        ) ||
+        launchIdentity.poolId ||
+        undefined,
+      oneGateAppId:
+        normalizeClaimIdentity(
+          record.oneGateAppId ?? record.oneGateId ?? record.onegateAppId,
+        ) ||
+        launchIdentity.oneGateAppId ||
+        undefined,
+      appId:
+        normalizeClaimIdentity(record.appId ?? record.miniappId) ||
+        launchIdentity.appId ||
+        APP_ID,
+    };
+  }
+
+  function addClaimIdentity(
+    target: URLSearchParams | Record<string, string>,
+    identity: ClaimLaunchIdentity,
+  ) {
+    const entries = {
+      poolId: identity.poolId,
+      oneGateAppId: identity.oneGateAppId,
+      appId: identity.appId || APP_ID,
+    };
+    for (const [key, value] of Object.entries(entries)) {
+      if (!value) continue;
+      if (target instanceof URLSearchParams) target.set(key, value);
+      else target[key] = value;
+    }
+  }
+
+  async function fetchClaimStatus(
+    claimKey: string,
+    address: string,
+    identity: ClaimLaunchIdentity = launchIdentity,
+  ) {
     const search = new URLSearchParams({
       claimKey,
       address,
       network: launchContext.network ?? "mainnet",
     });
+    addClaimIdentity(search, identity);
     const response = await fetch(
       `/api/onegate-vault/status?${search.toString()}`,
     );
@@ -535,7 +615,10 @@ export function useGasLuckyPool({
     };
   }
 
-  async function claimKeyThroughBackend(claimKey: string) {
+  async function claimKeyThroughBackend(
+    claimKey: string,
+    identity: ClaimLaunchIdentity = launchIdentity,
+  ) {
     if (isClaiming.get()) return null;
     isClaiming.set(true);
     lastError.set("");
@@ -551,11 +634,12 @@ export function useGasLuckyPool({
     lastFundPoolId.set("");
     try {
       const address = await chain.ensureWallet();
-      const request = {
+      const request: Record<string, string> = {
         claimKey,
         address,
         network: launchContext.network ?? "mainnet",
       };
+      addClaimIdentity(request, identity);
       const response = await fetch("/api/onegate-vault/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -590,7 +674,9 @@ export function useGasLuckyPool({
       );
 
       if (result.status !== "paid") {
-        await pollClaimStatus(claimKey, address).catch(() => undefined);
+        await pollClaimStatus(claimKey, address, identity).catch(
+          () => undefined,
+        );
       }
 
       return {
@@ -609,12 +695,16 @@ export function useGasLuckyPool({
     }
   }
 
-  async function pollClaimStatus(claimKey: string, address: string) {
+  async function pollClaimStatus(
+    claimKey: string,
+    address: string,
+    identity: ClaimLaunchIdentity = launchIdentity,
+  ) {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       if (attempt > 0) {
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
-      const status = await fetchClaimStatus(claimKey, address);
+      const status = await fetchClaimStatus(claimKey, address, identity);
       if (status.amountFixed8) {
         const amount = asBigInt(status.amountFixed8);
         if (amount > 0n) lastClaimAmount.set(amount);
@@ -634,11 +724,16 @@ export function useGasLuckyPool({
     return null;
   }
 
-  async function checkClaimStatus(claimKey = currentClaimKey.get()) {
-    const key = normalizeClaimKey(claimKey);
+  async function checkClaimStatus(input: unknown = currentClaimKey.get()) {
+    const explicitClaimKey =
+      input && typeof input === "object"
+        ? (input as Record<string, unknown>).claimKey
+        : input;
+    const key = normalizeClaimKey(explicitClaimKey);
     if (!key) throw new Error(t("claimKeyRequired"));
     const address = await chain.ensureWallet();
-    const status = await fetchClaimStatus(key, address);
+    const identity = claimIdentityFromInput(input);
+    const status = await fetchClaimStatus(key, address, identity);
     lastClaimKey.set(key);
     if (status.txHash) lastTxid.set(String(status.txHash));
     if (status.amountFixed8) {
@@ -663,7 +758,9 @@ export function useGasLuckyPool({
         ? (input as Record<string, unknown>).claimKey
         : currentClaimKey.get() || (!normalizePoolId(input) ? input : "");
     const claimKey = normalizeClaimKey(explicitClaimKey);
-    if (claimKey) return claimKeyThroughBackend(claimKey);
+    if (claimKey) {
+      return claimKeyThroughBackend(claimKey, claimIdentityFromInput(input));
+    }
 
     const poolId = claimInputValue(input, "poolId") ?? currentPoolId.get();
     const id = normalizePoolId(poolId);
@@ -858,7 +955,7 @@ export function useGasLuckyPool({
     formatPoolAddress: (value: string) => formatHash(value, 8, 6),
     fromFixed8,
     buildClaimUrl: (claimKey: string) =>
-      buildClaimKeyUrl(claimKey, launchContext.network),
+      buildClaimKeyUrl(claimKey, launchContext.network, launchIdentity),
     buildLegacyPoolClaimUrl: (poolId: string) =>
       buildLegacyPoolClaimUrl(poolId, launchContext.network),
   };
