@@ -142,9 +142,7 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
                   {claimKey ? t("scanClaimReady") : t("oneGateReady")}
                 </div>
                 <h2>
-                  {claimKey
-                    ? t("scanClaimPool", { claimKey })
-                    : "OneGate Vault"}
+                  {claimKey ? t("claimReward") : "OneGate Vault"}
                 </h2>
               </div>
             </div>
@@ -155,9 +153,11 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
               <span>{t("rewardRange")}</span>
               <strong>1-50 GAS</strong>
             </div>
-            <div className="gas-pool-claim-only__action-hint">
-              {claimKey ? t("claimConsoleHint") : t("noPoolSelected")}
-            </div>
+            {!claimKey && (
+              <div className="gas-pool-claim-only__action-hint">
+                {t("noPoolSelected")}
+              </div>
+            )}
             {showClaimProgress ? (
               <div
                 className={`gas-pool-claim-progress gas-pool-claim-progress--${activeClaimProgress}`}
