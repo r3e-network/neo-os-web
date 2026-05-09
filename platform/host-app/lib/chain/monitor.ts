@@ -1,5 +1,5 @@
 import { sendEmail, chainAlertEmail } from "../email";
-import { supabase, isSupabaseConfigured } from "../supabase";
+import { getServerSupabaseClient } from "../server-supabase";
 
 // Alert thresholds (in seconds)
 export const THRESHOLDS = {
@@ -67,7 +67,9 @@ export async function checkChainStatus(network: "testnet" | "mainnet"): Promise<
 
 /** Send chain alerts to subscribed users */
 export async function sendChainAlerts(status: ChainStatus): Promise<number> {
-  if (status.status === "healthy" || !isSupabaseConfigured) return 0;
+  if (status.status === "healthy") return 0;
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) return 0;
 
   // Get users with chain alerts enabled
   const { data: users } = await supabase

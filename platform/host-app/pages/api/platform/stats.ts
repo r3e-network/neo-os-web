@@ -4,7 +4,6 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { relaxedLimit } from "@/lib/rate-limit";
@@ -12,6 +11,7 @@ import { warnOnce } from "@/lib/log-once";
 import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
 import { isMissingSupabaseSchemaObject } from "@/lib/supabase-errors";
 import { loadMiniAppDefinitions } from "@/lib/miniapp-definitions";
+import { getServerSupabaseClient } from "@/lib/server-supabase";
 
 const colors = ["#00d4aa", "#3498db", "#9b59b6", "#f1c40f", "#e67e22"];
 
@@ -56,7 +56,8 @@ export default async function handler(
     },
   };
 
-  if (!isSupabaseConfigured) {
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
     res.status(200).json(base);
     return;
   }

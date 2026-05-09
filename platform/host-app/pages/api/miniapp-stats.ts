@@ -4,13 +4,13 @@
  */
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
 import { warnOnce } from "@/lib/log-once";
 import { standardLimit } from "@/lib/rate-limit";
 import { canonicalizeMiniAppId } from "@/lib/miniapp-id";
 import { isMissingSupabaseSchemaObject } from "@/lib/supabase-errors";
+import { getServerSupabaseClient } from "@/lib/server-supabase";
 
 interface AppStats {
   app_id: string;
@@ -32,7 +32,8 @@ export default async function handler(
     canonicalizeMiniAppId((req.query.app_id as string | undefined) || "") ||
     null;
 
-  if (!isSupabaseConfigured) {
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
     res.status(200).json({ stats: [] });
     return;
   }
