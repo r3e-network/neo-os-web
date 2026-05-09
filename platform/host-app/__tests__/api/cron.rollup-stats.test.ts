@@ -34,13 +34,12 @@ describe("/api/cron/rollup-stats", () => {
       getContractStats,
     }));
 
-    jest.doMock("../../lib/supabase", () => ({
-      isSupabaseConfigured: true,
-      supabase: {
+    jest.doMock("@/lib/server-supabase", () => ({
+      getServerSupabaseClient: jest.fn(() => ({
         from: () => ({
           upsert,
         }),
-      },
+      })),
     }));
 
     const handler = require("@/pages/api/cron/rollup-stats").default as (
