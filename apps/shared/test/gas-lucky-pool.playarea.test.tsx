@@ -30,6 +30,12 @@ function t(key: string, params?: Record<string, string | number>) {
     rewardRange: "1-50",
     noPoolSelected: "Enter a reward key or scan a OneGate QR code.",
     claimConsoleHint: "Primary action lives in the right action console.",
+    claimProgressTitle: "Claim progress",
+    claimProgressWallet: "Wallet ready",
+    claimProgressSubmitting: "Submitting claim",
+    claimProgressConfirming: "Waiting for GAS transfer",
+    claimProgressPaid: "GAS received",
+    claimProgressFailed: "Claim needs retry",
     shareQr: "OneGate QR claim",
     oneGateReady: "OneGate ready",
     shareLink: "Claim link",
@@ -104,6 +110,7 @@ function baseState(
     lastClaimKey: "",
     lastClaimLuckPercent: "",
     claimStatus: "",
+    claimProgress: "",
     lastRefundAmount: 0n,
     lastRefundPoolId: "",
     lastFundAmount: 0n,
@@ -161,6 +168,29 @@ describe("OneGate Vault PlayArea launch flow", () => {
 
     expect(screen.getByText("OneGate scan detected")).toBeTruthy();
     expect(screen.queryByText("Create reward pool")).toBeNull();
+  });
+
+  it("shows an explicit waiting state while the backend payout is pending", () => {
+    render(
+      <PlayArea
+        t={t}
+        state={baseState({
+          isClaiming: true,
+          claimStatus: "submitted",
+          claimProgress: "confirming",
+        })}
+        dispatch={vi.fn()}
+        launchContext={launch("ogv_test_key_1234567890")}
+      />,
+    );
+
+    expect(screen.getByText("Claim progress")).toBeTruthy();
+    expect(
+      screen.getAllByText("Waiting for GAS transfer").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Wallet ready")).toBeTruthy();
+    expect(screen.getByText("Submitting claim")).toBeTruthy();
+    expect(screen.queryByText("Congratulations, your claim is in")).toBeNull();
   });
 
   it("shows a clear congratulations state after a successful claim", () => {
