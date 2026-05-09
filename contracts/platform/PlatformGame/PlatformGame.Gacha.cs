@@ -53,6 +53,7 @@ namespace NeoMiniAppPlatform.Contracts
         private static readonly byte[] GA_PREFIX_REQ_TO_PLAY    = new byte[] { 0xC5 };
         private static readonly byte[] GA_PREFIX_ITEM_TOKENS    = new byte[] { 0xC6 };
         private static readonly byte[] GA_PREFIX_PENDING_ASSET  = new byte[] { 0xC7 };
+        private const string GA_INVENTORY_MEMO_SUFFIX           = ":gacha-inventory";
 
         // ---------------------------------------------------------------
         //  Gacha data structures
@@ -315,13 +316,36 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(item.Amount > 0, "item amount missing");
             ExecutionEngine.Assert(amount % item.Amount == 0, "amount must align with prize unit");
 
-            // Transfer tokens from owner to contract
+            byte[] pendingKey = AppKey(appId, GA_PREFIX_PENDING_ASSET, owner);
+            Storage.Put(Storage.CurrentContext, pendingKey, amount);
+
+            string inventoryMemo = appId + GA_INVENTORY_MEMO_SUFFIX + ":" + machineId + ":" + itemIndex;
             bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
-                owner, Runtime.ExecutingScriptHash, amount, null);
+                owner, Runtime.ExecutingScriptHash, amount, inventoryMemo);
+            Storage.Delete(Storage.CurrentContext, pendingKey);
             ExecutionEngine.Assert(ok, "transfer failed");
 
             item.Stock += amount;
             StoreGachaItem(appId, machineId, itemIndex, item);
+        }
+
+        private static bool ConsumePendingGachaInventoryPayment(
+            string appId,
+            UInt160 from,
+            BigInteger amount,
+            object data)
+        {
+            string memo = ReadPaymentMemo(data);
+            if (!memo.StartsWith(appId + GA_INVENTORY_MEMO_SUFFIX))
+            {
+                return false;
+            }
+
+            byte[] pendingKey = AppKey(appId, GA_PREFIX_PENDING_ASSET, from);
+            ByteString pending = Storage.Get(Storage.CurrentContext, pendingKey);
+            ExecutionEngine.Assert(pending != null && (BigInteger)pending == amount, "invalid gacha inventory deposit");
+            Storage.Delete(Storage.CurrentContext, pendingKey);
+            return true;
         }
 
         // ===================================================================

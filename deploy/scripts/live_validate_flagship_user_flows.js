@@ -102,6 +102,8 @@ const ANCHOR_LIVE_STAKE_NEO = process.env.ANCHOR_LIVE_STAKE_NEO || "1";
 const ANCHOR_LIVE_REWARD_TOPUP = process.env.ANCHOR_LIVE_REWARD_TOPUP || "1000000";
 const ORACLE_UPDATER_MIN_GAS = 10000000n;
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
+const GASBOX_APP_ID = "miniapp-gasbox";
+const GASBOX_SCAN_MAX_MACHINE_ID = Math.max(1, Number(process.env.GASBOX_SCAN_MAX_MACHINE_ID || "250"));
 const FLAGSHIP_TASKS = [
   ["dailyCheckin", runDailyCheckin],
   ["lastSurvivor", runLastSurvivor],
@@ -467,6 +469,9 @@ async function buildPreflightSummary(targets) {
   const adminGas = await getGasBalance(`0x${adminAccount.scriptHash}`);
   const updaterGas = await getGasBalance(`0x${oracleUpdaterAccount.scriptHash}`);
   const oracleUpdater = normalizeHash160(await invokeRead(ORACLE_HASH, "updater").catch(() => ""));
+  const localOracleUpdater = normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`);
+  const rngFallbackSignerMatches =
+    Boolean(ORACLE_UPDATER_WIF) && Boolean(oracleUpdater) && oracleUpdater === localOracleUpdater;
   return {
     files: {
       siblingOracleEnvPath,
@@ -486,8 +491,9 @@ async function buildPreflightSummary(targets) {
       rngFallbackLeadMs: RNG_FALLBACK_LEAD_MS,
       oracleUpdaterWifConfigured: Boolean(ORACLE_UPDATER_WIF),
       oracleUpdaterOnChain: oracleUpdater || null,
-      oracleUpdaterLocal: normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`),
-      rngFallbackReady: Boolean(PHALA_API_URL && PHALA_API_TOKEN && ORACLE_UPDATER_WIF),
+      oracleUpdaterLocal: localOracleUpdater,
+      rngFallbackSignerMatches,
+      rngFallbackReady: Boolean(PHALA_API_URL && PHALA_API_TOKEN && rngFallbackSignerMatches),
       oracleUpdaterMinGas: ORACLE_UPDATER_MIN_GAS.toString(),
     },
     wallets: {
@@ -614,16 +620,10 @@ async function waitForRequestStatus(requestId, timeoutMs = 120000) {
   let fallbackError = null;
   while (Date.now() < deadline) {
     const request = await invokeRead(ORACLE_HASH, "getRequest", [{ type: "Integer", value: String(requestId) }]);
-    const completed = Array.isArray(request) && (
-      String(request[6] || "0") !== "0"
-      || String(request[8] || "0") !== "0"
-      || String(request[10] || "") !== ""
-      || String(request[11] || "") !== ""
-    );
-    if (completed) {
+    if (oracleRequestCompleted(request)) {
       return request;
     }
-    const requestType = String(request[1] || "").toLowerCase();
+    const requestType = oracleRequestOperation(request);
     if (
       RNG_FALLBACK_ENABLED
       && !forced
@@ -642,6 +642,68 @@ async function waitForRequestStatus(requestId, timeoutMs = 120000) {
     await sleep(2000);
   }
   throw new Error(`timed out waiting for oracle request ${requestId}${fallbackError ? ` (${fallbackError})` : ""}`);
+}
+
+function isMiniAppRuntimeRequest(request) {
+  return Array.isArray(request) && request.length >= 14;
+}
+
+function oracleRequestCompleted(request) {
+  if (!Array.isArray(request)) return false;
+  if (isMiniAppRuntimeRequest(request)) {
+    return (
+      String(request[8] || "0") !== "0"
+      || String(request[10] || "0") !== "0"
+      || String(request[12] || "") !== ""
+      || String(request[13] || "") !== ""
+    );
+  }
+  return (
+    String(request[6] || "0") !== "0"
+    || String(request[8] || "0") !== "0"
+    || request[9] === true
+    || String(request[10] || "") !== ""
+    || String(request[11] || "") !== ""
+  );
+}
+
+function oracleRequestOperation(request) {
+  if (!Array.isArray(request)) return "";
+  return String(isMiniAppRuntimeRequest(request) ? request[3] : request[1] || "").toLowerCase();
+}
+
+function oracleRequestSucceeded(request) {
+  if (!Array.isArray(request)) return false;
+  return isMiniAppRuntimeRequest(request)
+    ? request[11] === true || String(request[11]).toLowerCase() === "true"
+    : request[9] === true || String(request[9]).toLowerCase() === "true";
+}
+
+function oracleRequestError(request) {
+  if (!Array.isArray(request)) return "";
+  return String(isMiniAppRuntimeRequest(request) ? request[13] || "" : request[11] || "");
+}
+
+function findOracleRequestNotification(execution, label) {
+  const legacy = findNotification(execution, ORACLE_HASH, "OracleRequested");
+  if (legacy) {
+    return {
+      eventName: "OracleRequested",
+      requestId: stackValue(legacy.state?.value?.[0]),
+      notification: legacy,
+    };
+  }
+
+  const queued = findNotification(execution, ORACLE_HASH, "MiniAppRequestQueued");
+  if (queued) {
+    return {
+      eventName: "MiniAppRequestQueued",
+      requestId: stackValue(queued.state?.value?.[0]),
+      notification: queued,
+    };
+  }
+
+  throw new Error(`${label}: oracle request notification missing`);
 }
 
 async function waitForEnvelopeReady(contractHash, envelopeId, timeoutMs = 120000) {
@@ -716,10 +778,20 @@ async function assertOracleCallbackReady(contractHash, { autoTopUp = true } = {}
     );
   }
 
-  const callbackAllowed = boolish(
-    await invokeRead(ORACLE_HASH, "isAllowedCallback", [{ type: "Hash160", value: contractHash }])
-  );
-  if (!callbackAllowed) {
+  let callbackAllowed = null;
+  let legacyCallbackAllowlist = true;
+  try {
+    callbackAllowed = boolish(
+      await invokeRead(ORACLE_HASH, "isAllowedCallback", [{ type: "Hash160", value: contractHash }])
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/method not found: isAllowedCallback|isAllowedCallback\/1/i.test(message)) {
+      throw error;
+    }
+    legacyCallbackAllowlist = false;
+  }
+  if (legacyCallbackAllowlist && !callbackAllowed) {
     throw new Error(`callback contract ${contractHash} is not allowlisted in oracle`);
   }
 
@@ -773,41 +845,29 @@ async function assertOracleCallbackReady(contractHash, { autoTopUp = true } = {}
   return {
     configuredOracle,
     callbackAllowed,
+    legacyCallbackAllowlist,
     requestFee: requestFee.toString(),
     feeCredit: feeCredit.toString(),
     topUpTx,
   };
 }
 
-async function assertGasBoxHybridScriptReady(contractHash) {
-  let lastError = null;
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    try {
-      const scriptInfo = await invokeRead(contractHash, "getScriptInfo", [
-        { type: "String", value: "select-item" },
-      ]);
-      if (!scriptInfo || scriptInfo.exists !== true) {
-        throw new Error("gasBox select-item hybrid script is not registered");
-      }
-      if (scriptInfo.enabled !== true) {
-        throw new Error("gasBox select-item hybrid script is disabled");
-      }
-      const scriptHash = String(scriptInfo.hash || scriptInfo.scriptHash || scriptInfo.codeHash || "").trim();
-      if (!scriptHash) {
-        throw new Error("gasBox select-item hybrid script hash missing");
-      }
-      return scriptInfo;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      lastError = message;
-      if (!/aborted/i.test(message) || attempt === 4) {
-        break;
-      }
-      console.warn(`[gasBox scriptInfo] transient read failure, retrying (${attempt}/4): ${message}`);
-      await sleep(1500 * attempt);
-    }
+async function assertGasBoxPlatformReady(contractHash) {
+  const gameType = Number(await invokeRead(contractHash, "getGameType", [
+    { type: "String", value: GASBOX_APP_ID },
+  ]));
+  if (gameType !== 3) {
+    throw new Error(`gasBox ${GASBOX_APP_ID} is not registered as gacha game; got gameType=${gameType}`);
   }
-  throw new Error(lastError || "failed to read gasBox script info");
+
+  const paused = boolish(await invokeRead(contractHash, "isPaused", [
+    { type: "String", value: GASBOX_APP_ID },
+  ]));
+  if (paused) {
+    throw new Error(`gasBox ${GASBOX_APP_ID} is paused`);
+  }
+
+  return { appId: GASBOX_APP_ID, gameType, paused };
 }
 
 function assertPlayableGasBoxMachine(machineId, machine, item, itemIndex) {
@@ -832,14 +892,17 @@ function assertPlayableGasBoxMachine(machineId, machine, item, itemIndex) {
 }
 
 async function findPlayableGasBoxMachine(contractHash) {
-  const total = Number(await invokeRead(contractHash, "totalMachines"));
-  for (let machineId = 1; machineId <= total; machineId += 1) {
-    const machine = await invokeRead(contractHash, "getMachine", [{ type: "Integer", value: String(machineId) }]);
+  for (let machineId = 1; machineId <= GASBOX_SCAN_MAX_MACHINE_ID; machineId += 1) {
+    const machine = await invokeRead(contractHash, "getGachaMachine", [
+      { type: "String", value: GASBOX_APP_ID },
+      { type: "Integer", value: String(machineId) },
+    ]);
     if (!machine || boolish(machine.active) !== true) continue;
     const itemCount = Number(machine.itemCount || 0);
     if (itemCount <= 0) continue;
     for (let itemIndex = 1; itemIndex <= itemCount; itemIndex += 1) {
-      const item = await invokeRead(contractHash, "getMachineItem", [
+      const item = await invokeRead(contractHash, "getGachaItem", [
+        { type: "String", value: GASBOX_APP_ID },
         { type: "Integer", value: String(machineId) },
         { type: "Integer", value: String(itemIndex) },
       ]);
@@ -857,6 +920,7 @@ async function provisionGasBoxMachine(contractHash) {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+  const ownerGlobalSigner = [{ account: normalizeHash160(account.scriptHash), scopes: "Global" }];
   const minimumRequiredBalance = 15000000n;
   const availableGas = await getGasBalance(`0x${account.scriptHash}`);
   if (availableGas < minimumRequiredBalance) {
@@ -865,24 +929,23 @@ async function provisionGasBoxMachine(contractHash) {
     );
   }
   const machineName = `Codex Live Box ${Date.now()}`;
-  const createTx = await contract.invoke("createMachine", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+  const createTx = await contract.invoke("createGachaMachine", [
+    Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.string(machineName),
-    Neon.sc.ContractParam.string("Live validation machine"),
-    Neon.sc.ContractParam.string("games"),
-    Neon.sc.ContractParam.string("gasbox,validation"),
     Neon.sc.ContractParam.integer("10000000"),
+    Neon.sc.ContractParam.integer("250"),
+    Neon.sc.ContractParam.byteArray(""),
   ]);
   const createLog = await waitForLog(createTx);
   if (createLog.execution.vmstate !== "HALT") {
-    throw new Error(createLog.execution.exception || "createMachine failed");
+    throw new Error(createLog.execution.exception || "createGachaMachine failed");
   }
-  const created = findNotification(createLog.execution, contractHash, "MachineCreated");
-  if (!created) throw new Error("MachineCreated notification missing");
-  const machineId = Number(stackValue(created.state?.value?.[1]));
+  const created = findNotification(createLog.execution, contractHash, "GachaMachineCreated");
+  if (!created) throw new Error("GachaMachineCreated notification missing");
+  const machineId = Number(stackValue(created.state?.value?.[2]));
 
-  const addItemTx = await contract.invoke("addMachineItem", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+  const addItemTx = await contract.invoke("addGachaItem", [
+    Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.integer(String(machineId)),
     Neon.sc.ContractParam.string("Small GAS Prize"),
     Neon.sc.ContractParam.integer("100"),
@@ -894,47 +957,51 @@ async function provisionGasBoxMachine(contractHash) {
   ]);
   const addItemLog = await waitForLog(addItemTx);
   if (addItemLog.execution.vmstate !== "HALT") {
-    throw new Error(addItemLog.execution.exception || "addMachineItem failed");
+    throw new Error(addItemLog.execution.exception || "addGachaItem failed");
   }
 
-  const fundTx = await transferGAS(contractHash, "5000000", null);
-  await sleep(4000);
-  const depositTx = await contract.invoke("depositItem", [
+  const depositTx = await contract.invoke("depositGachaItem", [
+    Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
     Neon.sc.ContractParam.integer(String(machineId)),
     Neon.sc.ContractParam.integer("1"),
     Neon.sc.ContractParam.integer("5000000"),
-  ]);
+  ], ownerGlobalSigner);
   const depositLog = await waitForLog(depositTx);
   if (depositLog.execution.vmstate !== "HALT") {
-    throw new Error(depositLog.execution.exception || "depositItem failed");
+    throw new Error(depositLog.execution.exception || "depositGachaItem failed");
   }
 
-  const activateTx = await contract.invoke("setMachineActiveWithValidation", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+  const activateTx = await contract.invoke("setGachaMachineActive", [
+    Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.integer(String(machineId)),
     Neon.sc.ContractParam.boolean(true),
     Neon.sc.ContractParam.integer("1"),
   ]);
   const activateLog = await waitForLog(activateTx);
   if (activateLog.execution.vmstate !== "HALT") {
-    throw new Error(activateLog.execution.exception || "setMachineActiveWithValidation failed");
+    throw new Error(activateLog.execution.exception || "setGachaMachineActive failed");
   }
 
-  const machine = await invokeRead(contractHash, "getMachine", [{ type: "Integer", value: String(machineId) }]);
-  const item = await invokeRead(contractHash, "getMachineItem", [
+  const machine = await invokeRead(contractHash, "getGachaMachine", [
+    { type: "String", value: GASBOX_APP_ID },
+    { type: "Integer", value: String(machineId) },
+  ]);
+  const item = await invokeRead(contractHash, "getGachaItem", [
+    { type: "String", value: GASBOX_APP_ID },
     { type: "Integer", value: String(machineId) },
     { type: "Integer", value: "1" },
   ]);
   if (!assertPlayableGasBoxMachine(machineId, machine, item, 1)) {
     throw new Error(`provisioned GASBOX machine ${machineId} is not playable`);
   }
-  return { machineId, machine, item, itemIndex: 1, createTx: asTxid(createTx), fundTx, depositTx: asTxid(depositTx), activateTx: asTxid(activateTx) };
+  return { machineId, machine, item, itemIndex: 1, createTx: asTxid(createTx), depositTx: asTxid(depositTx), activateTx: asTxid(activateTx) };
 }
 
 async function runGasBox() {
   const contractHash = appHash("apps/gasbox/neo-manifest.json");
-  const scriptInfo = await assertGasBoxHybridScriptReady(contractHash);
+  const platformReady = await assertGasBoxPlatformReady(contractHash);
+  const oracleReady = await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
@@ -960,46 +1027,50 @@ async function runGasBox() {
     throw new Error(`invalid GASBOX machine price for machine ${machineId}`);
   }
 
-  const transferTx = await transferGAS(contractHash, playPrice, `miniapp-gasbox:play:${machineId}`);
+  const transferTx = await transferGAS(contractHash, playPrice, `${GASBOX_APP_ID}:pull:${machineId}`);
   await sleep(4000);
 
-  const initiateTx = await contract.invoke("initiatePlay", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+  const initiateTx = await contract.invoke("pullGacha", [
+    Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.integer(String(machineId)),
+    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
   ]);
   const initiateLog = await waitForLog(initiateTx);
   if (initiateLog.execution.vmstate !== "HALT") {
-    throw new Error(initiateLog.execution.exception || "initiatePlay failed");
+    throw new Error(initiateLog.execution.exception || "pullGacha failed");
   }
 
-  const initiated = findNotification(initiateLog.execution, contractHash, "PlayInitiated");
+  const initiated = findNotification(initiateLog.execution, contractHash, "GachaPlayInitiated");
   if (!initiated) {
-    throw new Error("PlayInitiated notification missing");
+    throw new Error("GachaPlayInitiated notification missing");
   }
-  const playId = stackValue(initiated.state?.value?.[2]);
-  const selectedIndex = await invokeRead(contractHash, "debugExpectedSelection", [
-    { type: "Integer", value: String(playId) },
-  ]);
+  const playId = stackValue(initiated.state?.value?.[3]);
 
-  const settleTx = await contract.invoke("settlePlay", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-    Neon.sc.ContractParam.integer(String(playId)),
-    Neon.sc.ContractParam.integer(String(selectedIndex)),
-  ]);
-  const settleLog = await waitForLog(settleTx);
-  if (settleLog.execution.vmstate !== "HALT") {
-    throw new Error(settleLog.execution.exception || "settlePlay failed");
+  const oracleRequested = findOracleRequestNotification(initiateLog.execution, "GASBOX pull");
+  const requestId = oracleRequested.requestId;
+  const request = await waitForRequestStatus(requestId);
+  if (!oracleRequestSucceeded(request)) {
+    throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
   }
 
-  const resolved = findNotification(settleLog.execution, contractHash, "PlayResolved");
-  if (!resolved) {
-    throw new Error("PlayResolved notification missing");
+  let play = null;
+  const deadline = Date.now() + 45000;
+  while (Date.now() < deadline) {
+    play = await invokeRead(contractHash, "getGachaPlay", [
+      { type: "String", value: GASBOX_APP_ID },
+      { type: "Integer", value: String(playId) },
+    ]);
+    if (play && boolish(play.resolved)) break;
+    await sleep(2000);
+  }
+  if (!play || !boolish(play.resolved)) {
+    throw new Error(`GASBOX play ${playId} did not resolve after oracle request ${requestId}`);
   }
 
-  const play = await invokeRead(contractHash, "getPlay", [{ type: "Integer", value: String(playId) }]);
   return {
     contractHash,
-    scriptInfo,
+    platformReady,
+    oracleReady,
     machineId,
     itemIndex,
     prizeItem: item,
@@ -1007,8 +1078,8 @@ async function runGasBox() {
     transferTx,
     initiateTx: asTxid(initiateTx),
     playId,
-    selectedIndex,
-    settleTx: asTxid(settleTx),
+    requestId,
+    request,
     play,
   };
 }
@@ -1070,7 +1141,10 @@ async function runLastSurvivor() {
     account: adminAccount || account,
   });
 
-  if (TARGET_NETWORK === "testnet") {
+  const platformGameType = await invokeRead(contractHash, "getGameType", [
+    { type: "String", value: LAST_SURVIVOR_APP_ID },
+  ]).catch(() => null);
+  if (platformGameType !== null && platformGameType !== undefined && String(platformGameType) !== "") {
     return runPlatformGameLastSurvivor(contractHash, contract, adminContract);
   }
 
@@ -1379,16 +1453,16 @@ async function runFogPlay() {
   ]);
 
   const betPlaced = findNotification(execution, contractHash, "BetPlaced");
-  const oracleRequested = findNotification(execution, ORACLE_HASH, "OracleRequested");
+  const oracleRequested = findOracleRequestNotification(execution, "FogPlay bet");
   if (!betPlaced || !oracleRequested) {
-    throw new Error("BetPlaced or OracleRequested notification missing");
+    throw new Error("BetPlaced or oracle request notification missing");
   }
 
-  const betId = stackValue(oracleRequested.state?.value?.[0]) ? stackValue(betPlaced.state?.value?.[3]) : null;
-  const requestId = stackValue(oracleRequested.state?.value?.[0]);
+  const betId = oracleRequested.requestId ? stackValue(betPlaced.state?.value?.[3]) : null;
+  const requestId = oracleRequested.requestId;
   const request = await waitForRequestStatus(requestId);
-  if (String(request?.[9] || false) !== "true" && request?.[9] !== true) {
-    throw new Error(`oracle rng request ${requestId} failed: ${String(request?.[11] || "unknown error")}`);
+  if (!oracleRequestSucceeded(request)) {
+    throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
   }
   const bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: String(betId) }]);
   return { contractHash, oracleReady, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
@@ -1413,16 +1487,16 @@ async function runRedEnvelope() {
   ]);
 
   const created = findNotification(execution, contractHash, "EnvelopeCreated");
-  const oracleRequested = findNotification(execution, ORACLE_HASH, "OracleRequested");
+  const oracleRequested = findOracleRequestNotification(execution, "RedEnvelope create");
   if (!created || !oracleRequested) {
-    throw new Error("EnvelopeCreated or OracleRequested notification missing");
+    throw new Error("EnvelopeCreated or oracle request notification missing");
   }
 
   const envelopeId = stackValue(created.state?.value?.[0]);
-  const requestId = stackValue(oracleRequested.state?.value?.[0]);
+  const requestId = oracleRequested.requestId;
   const request = await waitForRequestStatus(requestId);
-  if (String(request?.[9] || false) !== "true" && request?.[9] !== true) {
-    throw new Error(`oracle rng request ${requestId} failed: ${String(request?.[11] || "unknown error")}`);
+  if (!oracleRequestSucceeded(request)) {
+    throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
   }
   const envelope = await waitForEnvelopeReady(contractHash, envelopeId);
 

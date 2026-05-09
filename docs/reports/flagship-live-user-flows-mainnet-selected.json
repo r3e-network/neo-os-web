@@ -1,0 +1,198 @@
+{
+  "generatedAt": "2026-05-09T22:17:18.580Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "dailyCheckin",
+      "redEnvelope",
+      "gasBox",
+      "neoPay"
+    ],
+    "selected": [
+      "dailyCheckin",
+      "gasBox",
+      "redEnvelope",
+      "neoPay"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "dailyCheckin",
+        "redEnvelope",
+        "gasBox",
+        "neoPay"
+      ],
+      "selected": [
+        "dailyCheckin",
+        "gasBox",
+        "redEnvelope",
+        "neoPay"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "19023524906",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "19023524906"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "19023524906"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+      "txid": "0x6a7dd116752b11252b2c781d15e3525e35ea2bbe3dd20365e3066c53a95dbe65",
+      "notificationObserved": true,
+      "statusBefore": {
+        "currentUtcDay": "20582928",
+        "lastCheckinDay": "20582918",
+        "canCheckin": true,
+        "timeUntilEligible": "0",
+        "streakWillReset": true,
+        "currentStreak": "1",
+        "nextRewardDay": "7"
+      },
+      "statusAfter": null
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": false,
+      "error": "getScriptInfo faulted: at instruction 53 (SYSCALL): System.Contract.Call failed: method not found: getScriptInfo/1",
+      "attempts": 1
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "ok": false,
+      "error": "oracle mismatch for 0x5f371cc50116bb13d79554d96ccdd6e246cd5d59: expected 0x5b492098fc094c760402e01f7e0b631b939d2bea, got 0x017520f068fd602082fe5572596185e62a4ad991",
+      "attempts": 1
+    },
+    "profitAnchor": {
+      "skipped": true
+    },
+    "trustAnchor": {
+      "skipped": true
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+      "fundTx": "0x22647ba10550916bb93884e5bc75bf3e92084f694e9eebb3c7a3bae058514741",
+      "createTx": "0xbe9f2f244fa45538b6d6a5f188a0a09a78de127f29a29e309994a16f09d75274",
+      "streamId": "7",
+      "cancelTx": "0x338bf1e824d5444d0e50f4cc80a58a6f43faab28225a8dc268d2ba98eba24501",
+      "claimSimulationState": "FAULT",
+      "claimSimulationError": "at instruction 2919 (ABORTMSG): ABORTMSG is executed. Reason: nothing claimable",
+      "detailsBefore": {
+        "id": "7",
+        "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "beneficiary": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "100000000",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "active",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778365057155",
+        "cancelledAt": "0"
+      },
+      "detailsAfter": {
+        "id": "7",
+        "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "beneficiary": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "0",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "cancelled",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778365057155",
+        "cancelledAt": "1778365063292"
+      }
+    }
+  }
+}
