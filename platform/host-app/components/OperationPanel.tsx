@@ -276,7 +276,8 @@ function OperationForm({
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const serverPayoutOperation = op.method === "claimOneGateVault";
+  const serverPayoutOperation = isServerPayoutOperation(op);
+  const submitLabel = submitting ? operationSubmittingLabel(op) : op.name;
   const visibleParams = useMemo(
     () =>
       (op.params ?? []).filter(
@@ -455,7 +456,8 @@ function OperationForm({
         <button
           type="button"
           className={cn(
-            "w-full cursor-pointer rounded-xl border-none py-3 text-sm font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "inline-flex min-h-12 w-full min-w-0 cursor-pointer items-center justify-center gap-2 rounded-xl border-none px-4 py-3 text-sm font-black leading-none transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "whitespace-nowrap",
             "disabled:cursor-not-allowed disabled:opacity-50",
             tone.submitClass,
           )}
@@ -465,11 +467,27 @@ function OperationForm({
           disabled={submitting || Boolean(submitDisabledReason)}
           data-testid="operation-submit-button"
         >
-          {submitting ? "Processing..." : op.name}
+          {submitting && (
+            <span
+              className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/45 border-t-white"
+              aria-hidden="true"
+            />
+          )}
+          <span className="min-w-0 truncate">{submitLabel}</span>
         </button>
       </div>
     </div>
   );
+}
+
+function isServerPayoutOperation(op: OperationEntry) {
+  if (op.method === "claimOneGateVault") return true;
+  if (op.method !== "claimPool") return false;
+  return (op.params ?? []).some(isOneGateClaimKeyParam);
+}
+
+function operationSubmittingLabel(op: OperationEntry) {
+  return isServerPayoutOperation(op) ? "Claiming..." : "Processing...";
 }
 
 function isOneGateClaimKeyParam(param: OperationParam) {

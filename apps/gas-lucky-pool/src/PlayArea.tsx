@@ -23,6 +23,24 @@ function maskClaimKey(value: string): string {
   return `${key.slice(0, 7)}...${key.slice(-4)}`;
 }
 
+const CLAIM_PROGRESS_STEPS = [
+  { key: "wallet", label: "claimProgressWallet" },
+  { key: "submitting", label: "claimProgressSubmitting" },
+  { key: "confirming", label: "claimProgressConfirming" },
+  { key: "paid", label: "claimProgressPaid" },
+] as const;
+
+function resolveClaimProgress(
+  progress: string,
+  status: string,
+  claiming: boolean,
+): string {
+  if (progress) return progress;
+  if (status === "paid" || status === "failed") return status;
+  if (status === "submitted") return "confirming";
+  return claiming ? "wallet" : "";
+}
+
 export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
   const { str, val } = useStateBindings(state as ObservableState);
   const currentClaimKey = str(
@@ -34,6 +52,8 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
   const lastClaimKey = str("lastClaimKey", currentClaimKey);
   const lastClaimLuckPercent = str("lastClaimLuckPercent");
   const claimStatus = str("claimStatus");
+  const claimProgress = str("claimProgress");
+  const isClaiming = Boolean(val<boolean>("isClaiming", false));
   const lastSuccessType = str("lastSuccessType");
   const lastError = str("lastError");
   const launchClaimKey = normalizeClaimKey(
@@ -56,6 +76,16 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
   const preloadedLaunchKeyRef = useRef("");
   const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
   const displayClaimKey = maskClaimKey(lastClaimKey || claimKey);
+  const activeClaimProgress = resolveClaimProgress(
+    claimProgress,
+    claimStatus,
+    isClaiming,
+  );
+  const activeClaimProgressIndex = CLAIM_PROGRESS_STEPS.findIndex(
+    (step) => step.key === activeClaimProgress,
+  );
+  const showClaimProgress =
+    !claimSucceeded && Boolean(claimKey) && Boolean(activeClaimProgress);
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -119,7 +149,60 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
             <div className="gas-pool-claim-only__action-hint">
               {claimKey ? t("claimConsoleHint") : t("noPoolSelected")}
             </div>
-            {claimStatus && (
+            {showClaimProgress ? (
+              <div
+                className={`gas-pool-claim-progress gas-pool-claim-progress--${activeClaimProgress}`}
+                role="status"
+                aria-live="polite"
+              >
+                <div className="gas-pool-claim-progress__header">
+                  <span>{t("claimProgressTitle")}</span>
+                  <strong>
+                    {activeClaimProgress === "failed"
+                      ? t("claimProgressFailed")
+                      : activeClaimProgress === "paid"
+                        ? t("claimProgressPaid")
+                        : activeClaimProgress === "confirming"
+                          ? t("claimProgressConfirming")
+                          : activeClaimProgress === "submitting"
+                            ? t("claimProgressSubmitting")
+                            : t("claimProgressWallet")}
+                  </strong>
+                </div>
+                <ol className="gas-pool-claim-progress__steps">
+                  {CLAIM_PROGRESS_STEPS.map((step, index) => {
+                    const isFailed = activeClaimProgress === "failed";
+                    const isDone =
+                      !isFailed &&
+                      activeClaimProgressIndex >= 0 &&
+                      index < activeClaimProgressIndex;
+                    const isActive =
+                      !isFailed &&
+                      (index === activeClaimProgressIndex ||
+                        (activeClaimProgressIndex < 0 && index === 0));
+                    return (
+                      <li
+                        key={step.key}
+                        className={`gas-pool-claim-progress__step${
+                          isDone ? " gas-pool-claim-progress__step--done" : ""
+                        }${
+                          isActive
+                            ? " gas-pool-claim-progress__step--active"
+                            : ""
+                        }${
+                          isFailed && index === 2
+                            ? " gas-pool-claim-progress__step--failed"
+                            : ""
+                        }`}
+                      >
+                        <span className="gas-pool-claim-progress__dot" />
+                        <span>{t(step.label)}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ) : claimStatus ? (
               <div
                 className={`gas-pool-claim-status gas-pool-claim-status--${claimStatus}`}
               >
@@ -129,7 +212,7 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
                     ? t("claimFailed")
                     : t("claimSubmitted")}
               </div>
-            )}
+            ) : null}
           </>
         )}
       </section>
