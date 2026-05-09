@@ -632,7 +632,9 @@ export function createSupabaseOneGateVaultRepository(
           status: "submitted",
           tx_hash: input.txHash,
           request_id: input.requestId,
+          error_message: null,
           submitted_at: new Date().toISOString(),
+          failed_at: null,
         },
         input.requestId,
         ["pending", "submitted", "failed"],
@@ -648,7 +650,9 @@ export function createSupabaseOneGateVaultRepository(
           status: "paid",
           tx_hash: input.txHash,
           request_id: input.requestId,
+          error_message: null,
           paid_at: new Date().toISOString(),
+          failed_at: null,
         },
         input.requestId,
         ["pending", "submitted", "paid", "failed"],
@@ -787,28 +791,27 @@ export function createTxProxyOneGateVaultPaymentService(
     rewardSource?: string;
   } = {},
 ): OneGateVaultPaymentService {
-  const edgeTxProxyUrl = process.env.EDGE_API_BASE
-    ? `${process.env.EDGE_API_BASE.replace(/\/+$/, "")}/txproxy`
-    : "";
-  const txProxyUrl =
-    options.txProxyUrl ||
-    process.env.ONEGATE_VAULT_TX_PROXY_URL ||
-    process.env.TX_PROXY_URL ||
-    process.env.TXPROXY_URL ||
-    edgeTxProxyUrl ||
-    "";
-  const rewardSource =
-    options.rewardSource ||
-    process.env.ONEGATE_VAULT_REWARD_SOURCE ||
-    "PLATFORM_SPONSOR";
   const gasContractHash = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
   return {
     async sendGas(input) {
+      const txProxyUrl = resolveOneGateVaultTxProxyUrl(
+        input.network,
+        options.txProxyUrl,
+      );
       if (!txProxyUrl) {
         throw new OneGateVaultError(
           "PAYMENT_NOT_CONFIGURED",
           "OneGate Vault tx-proxy is not configured",
+        );
+      }
+      const rewardSource = await resolveOneGateVaultRewardSource(
+        options.rewardSource,
+      );
+      if (!rewardSource) {
+        throw new OneGateVaultError(
+          "PAYMENT_NOT_CONFIGURED",
+          "OneGate Vault reward source is not configured",
         );
       }
       const response = await fetch(`${txProxyUrl.replace(/\/+$/, "")}/invoke`, {
@@ -817,9 +820,9 @@ export function createTxProxyOneGateVaultPaymentService(
         body: JSON.stringify({
           request_id: input.requestId,
           network: input.network,
-          intent: "onegate-vault-reward",
+          intent: "gas-sponsor",
           contract_hash: gasContractHash,
-          operation: "transfer",
+          method: "transfer",
           params: [
             { type: "Hash160", value: rewardSource },
             { type: "Hash160", value: input.toAddress },
@@ -829,14 +832,17 @@ export function createTxProxyOneGateVaultPaymentService(
           wait: true,
         }),
       });
-      const body = await response.json().catch(() => ({}));
+      const responseText =
+        typeof response.text === "function"
+          ? await response.text().catch(() => "")
+          : JSON.stringify(await response.json().catch(() => ({})));
+      const body = parseTxProxyJson(responseText);
       if (!response.ok) {
-        const errorMessage =
-          typeof body?.error === "string"
-            ? body.error
-            : typeof body?.error?.message === "string"
-              ? body.error.message
-              : "tx-proxy rejected OneGate Vault payout";
+        const errorMessage = getTxProxyErrorMessage(
+          body,
+          response.status,
+          responseText,
+        );
         throw new OneGateVaultError("PAYMENT_FAILED", errorMessage);
       }
       const txHash = String(body.tx_hash || body.txid || body.txHash || "");
@@ -852,4 +858,102 @@ export function createTxProxyOneGateVaultPaymentService(
       return { txHash, status };
     },
   };
+}
+
+function resolveOneGateVaultTxProxyUrl(
+  network: OneGateVaultNetwork,
+  optionTxProxyUrl?: string,
+): string {
+  const networkSuffix = network === "mainnet" ? "MAINNET" : "TESTNET";
+  const explicit = String(
+    optionTxProxyUrl ||
+      process.env[`ONEGATE_VAULT_TX_PROXY_URL_${networkSuffix}`] ||
+      process.env.ONEGATE_VAULT_TX_PROXY_URL ||
+      process.env[`TX_PROXY_URL_${networkSuffix}`] ||
+      process.env.TX_PROXY_URL ||
+      process.env.TXPROXY_URL ||
+      "",
+  ).trim();
+  if (explicit) return explicit;
+
+  const configuredEdgeBase = String(
+    process.env.ONEGATE_VAULT_EDGE_BASE ||
+      process.env.MORPHEUS_EDGE_BASE ||
+      process.env.NEXT_PUBLIC_MORPHEUS_EDGE_BASE ||
+      "",
+  ).trim();
+  if (configuredEdgeBase) {
+    return `${configuredEdgeBase.replace(/\/+$/, "")}/${network}/txproxy`;
+  }
+
+  const legacyEdgeBase = String(process.env.EDGE_API_BASE || "").trim();
+  if (/meshmini\.app/i.test(legacyEdgeBase)) {
+    const normalized = legacyEdgeBase.replace(/\/+$/, "");
+    return /\/(mainnet|testnet)$/i.test(normalized)
+      ? `${normalized}/txproxy`
+      : `${normalized}/${network}/txproxy`;
+  }
+
+  return `https://edge.meshmini.app/${network}/txproxy`;
+}
+
+function parseTxProxyJson(responseText: string): Record<string, unknown> {
+  if (!responseText.trim()) return {};
+  try {
+    const parsed = JSON.parse(responseText);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function formatTxProxyHttpError(status: number, responseText: string): string {
+  const compact = responseText
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+  return compact
+    ? `tx-proxy rejected OneGate Vault payout (${status}): ${compact}`
+    : `tx-proxy rejected OneGate Vault payout (${status})`;
+}
+
+function getTxProxyErrorMessage(
+  body: Record<string, unknown>,
+  status: number,
+  responseText: string,
+): string {
+  const error = body.error;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return formatTxProxyHttpError(status, responseText);
+}
+
+async function resolveOneGateVaultRewardSource(
+  optionRewardSource?: string,
+): Promise<string> {
+  const explicit = String(
+    optionRewardSource ||
+      process.env.ONEGATE_VAULT_REWARD_SOURCE ||
+      process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH ||
+      "",
+  ).trim();
+  if (explicit) return explicit;
+
+  const rewardWif = String(
+    process.env.ONEGATE_VAULT_REWARD_WIF || process.env.SPONSORED_WIF || "",
+  ).trim();
+  if (!rewardWif) return "";
+
+  try {
+    const { wallet } = await import("@r3e/neo-js-sdk/browser");
+    return new wallet.Account(rewardWif).scriptHash;
+  } catch {
+    return "";
+  }
 }

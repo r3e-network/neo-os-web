@@ -12,6 +12,14 @@ export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
 export NEXT_DISABLE_SWC_CACHE="${NEXT_DISABLE_SWC_CACHE:-1}"
 export NEXT_TELEMETRY_DISABLED="${NEXT_TELEMETRY_DISABLED:-1}"
 
+# Vercel's platform build injects VERCEL=1 and manages its own serverless
+# output, so Next does not reliably emit the local standalone tree there. Keep
+# the standalone guard for local/E2E builds, where the Playwright server uses it.
+REQUIRE_STANDALONE="${NEXT_BUILD_REQUIRE_STANDALONE:-1}"
+if [[ "${VERCEL:-}" == "1" ]]; then
+  REQUIRE_STANDALONE="0"
+fi
+
 tmp_log="$(mktemp "${TMPDIR:-/tmp}/next-build.stderr.XXXXXX")"
 terminate() {
   # If the runner aborts (SIGTERM/SIGINT), ensure we don't leave `next build`
@@ -145,7 +153,7 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
       fi
     done
 
-    if [[ ! -s ".next/standalone/platform/host-app/server.js" ]]; then
+    if [[ "$REQUIRE_STANDALONE" == "1" && ! -s ".next/standalone/platform/host-app/server.js" ]]; then
       echo "[next-build-with-retry] missing standalone server.js for BUILD_ID=${build_id}; retrying..."
       kill_stray_next_builds
       clean_next_output
@@ -157,9 +165,11 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
     # Playwright production server runs from these copied artifacts; if another
     # validation build cleans `.next` in the small gap between `next build` and
     # post-build copying, E2E sees missing pages or a vanished server.
-    node scripts/prepare-standalone.mjs
-    if [[ "${PREPARE_E2E_STANDALONE:-0}" == "1" ]]; then
-      node scripts/prepare-e2e-standalone.mjs
+    if [[ "$REQUIRE_STANDALONE" == "1" ]]; then
+      node scripts/prepare-standalone.mjs
+      if [[ "${PREPARE_E2E_STANDALONE:-0}" == "1" ]]; then
+        node scripts/prepare-e2e-standalone.mjs
+      fi
     fi
 
     cat "$tmp_log"
