@@ -83,14 +83,14 @@ describe("MiniAppDetailPage shared runtime", () => {
       params: { id: "miniapp-gas-lucky-pool" },
       req: {
         headers: { host: "127.0.0.1:3000" },
-        url: "/miniapps/miniapp-gas-lucky-pool?source=onegate&operation=claimOneGateVault&network=testnet&pool=pool-001&key=ogv_user_42&oneGateAppId=23",
+        url: "/miniapps/miniapp-gas-lucky-pool?key=ogv_user_42&pool=pool-001&network=testnet",
       },
     } as any);
 
     expect(result).toEqual({
       redirect: {
         destination:
-          "/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimOneGateVault&network=testnet&pool=pool-001&key=ogv_user_42&oneGateAppId=23&appId=miniapp-gas-lucky-pool",
+          "/miniapps/gas-lucky-pool/index.html?key=ogv_user_42&pool=pool-001&network=testnet",
         permanent: false,
       },
     });
@@ -269,7 +269,7 @@ describe("MiniAppDetailPage shared runtime", () => {
 
   it("uses the registered OneGate id while keeping the dApp entry standalone", () => {
     mockAsPath =
-      "/miniapps/miniapp-gas-lucky-pool?source=onegate&operation=claimOneGateVault&pool=pool-001&key=ogv_user_42";
+      "/miniapps/miniapp-gas-lucky-pool?key=ogv_user_42&pool=pool-001";
 
     render(
       <MiniAppDetailPage
@@ -311,7 +311,19 @@ describe("MiniAppDetailPage shared runtime", () => {
       "https://onegate.space/app/23",
     );
     expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "key=ogv_user_42",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "pool=pool-001",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
       "oneGateAppId=23",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
+      "operation=",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
+      "appId=",
     );
     expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
       "/miniapps/miniapp-gas-lucky-pool",
