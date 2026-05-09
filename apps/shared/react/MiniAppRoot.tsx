@@ -77,7 +77,9 @@ interface MiniAppRootProps {
   /** i18n messages keyed by locale */
   messages: TranslationMap;
   /** Optional setup function from the miniapp definition */
-  setupFn?: (ctx: MiniAppSetupContext) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
+  setupFn?: (
+    ctx: MiniAppSetupContext,
+  ) => MiniAppSetupResult | Promise<MiniAppSetupResult>;
 }
 
 /** Context passed to the miniapp's setup function (React version) */
@@ -184,10 +186,7 @@ export function MiniAppRoot({
     servicesRef.current = PlatformServices.create(appId, { t: tFn });
   }
   const services = servicesRef.current;
-  const launchContext = useMemo(
-    () => readMiniAppLaunchContext(appId),
-    [appId],
-  );
+  const launchContext = useMemo(() => readMiniAppLaunchContext(appId), [appId]);
 
   // --------------------------------------------------------------------------
   // Status & Fireworks
@@ -349,9 +348,15 @@ export function MiniAppRoot({
             for (const [key, value] of Object.entries(result.state)) {
               appStateRef.current[key] = value;
             }
-            stateSubscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
-            stateSubscriptionsRef.current = Object.values(appStateRef.current).map((observable) =>
-              observable.subscribe(() => setStateVersion((version) => version + 1)),
+            stateSubscriptionsRef.current.forEach((unsubscribe) =>
+              unsubscribe(),
+            );
+            stateSubscriptionsRef.current = Object.values(
+              appStateRef.current,
+            ).map((observable) =>
+              observable.subscribe(() =>
+                setStateVersion((version) => version + 1),
+              ),
             );
             setStateVersion((version) => version + 1);
           }
@@ -423,19 +428,19 @@ export function MiniAppRoot({
   // Dispatch
   // --------------------------------------------------------------------------
 
-  const dispatch = useCallback(
-    async (name: string, ...args: unknown[]) => {
-      const handler = actionHandlersRef.current.get(name);
-      if (handler) await handler(...args);
-    },
-    [],
-  );
+  const dispatch = useCallback(async (name: string, ...args: unknown[]) => {
+    const handler = actionHandlersRef.current.get(name);
+    if (handler) await handler(...args);
+  }, []);
 
   // --------------------------------------------------------------------------
   // Template Config & Sidebar (derived from manifest)
   // --------------------------------------------------------------------------
 
-  const templateConfig = useMemo(() => manifestToTemplateConfig(manifest), [manifest]);
+  const templateConfig = useMemo(
+    () => manifestToTemplateConfig(manifest),
+    [manifest],
+  );
 
   const sidebarDefs = manifest.sidebar?.items ?? [];
   const sidebarItems = useMemo(() => {
@@ -454,6 +459,7 @@ export function MiniAppRoot({
 
   const sidebarTitle = tFn(manifest.sidebar?.titleKey ?? "overview");
   const hasOperations = (manifest.operations?.length ?? 0) > 0;
+  const focusMode = isFocusedOneGateLaunch(appId, launchContext);
 
   const handleBoundaryError = useCallback(
     (error: Error) => {
@@ -477,7 +483,9 @@ export function MiniAppRoot({
               <MiniAppPage
                 name={appId}
                 config={templateConfig}
-                state={appStateRef.current as unknown as Record<string, unknown>}
+                state={
+                  appStateRef.current as unknown as Record<string, unknown>
+                }
                 t={tFn as (key: string) => string}
                 statusMessage={status}
                 fireworksActive={fireworksActive}
@@ -486,6 +494,7 @@ export function MiniAppRoot({
                 fallbackMessage={fallbackMessage}
                 onBoundaryError={handleBoundaryError}
                 onBoundaryRetry={reloadData}
+                focusMode={focusMode}
                 renderOperation={
                   hasOperations
                     ? () => (
@@ -518,5 +527,16 @@ export function MiniAppRoot({
         </MiniAppActionsContext.Provider>
       </MiniAppManifestContext.Provider>
     </MiniAppContext.Provider>
+  );
+}
+
+function isFocusedOneGateLaunch(
+  appId: string,
+  launchContext: MiniAppLaunchContext,
+): boolean {
+  if (launchContext.source === "onegate") return true;
+  if (appId !== "miniapp-gas-lucky-pool") return false;
+  return ["claimKey", "key", "code", "k"].some((key) =>
+    Boolean(launchContext.params[key]),
   );
 }

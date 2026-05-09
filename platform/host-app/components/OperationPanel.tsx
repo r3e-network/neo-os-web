@@ -277,7 +277,9 @@ function OperationForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const serverPayoutOperation = isServerPayoutOperation(op);
-  const submitLabel = submitting ? operationSubmittingLabel(op) : op.name;
+  const submitLabel = submitting
+    ? operationSubmittingLabel(op)
+    : operationSubmitLabel(op);
   const visibleParams = useMemo(
     () =>
       (op.params ?? []).filter(
@@ -350,29 +352,40 @@ function OperationForm({
     <div
       className={cn(
         "flex min-h-0 flex-col",
-        compact
-          ? "max-h-[28rem] sm:max-h-[30rem]"
-          : "max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]",
+        serverPayoutOperation
+          ? "max-h-none"
+          : compact
+            ? "max-h-[28rem] sm:max-h-[30rem]"
+            : "max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]",
       )}
     >
-      <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
+      <div
+        className={cn(
+          "min-h-0 flex-1 space-y-2.5",
+          serverPayoutOperation
+            ? "overflow-visible pr-0"
+            : "overflow-y-auto pr-1",
+        )}
+      >
         {serverPayoutOperation ? (
           <div
             className={cn(
-              "rounded-xl border px-3 py-2.5 text-sm leading-5",
+              "flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-black leading-5",
               claimKeyValue
-                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                : "border-amber-200 bg-amber-50 text-amber-900",
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-800",
             )}
           >
-            <p className="m-0 text-sm font-black">
+            <span
+              className={cn(
+                "h-2.5 w-2.5 shrink-0 rounded-full",
+                claimKeyValue ? "bg-emerald-500" : "bg-amber-500",
+              )}
+              aria-hidden="true"
+            />
+            <span>
               {claimKeyValue ? "Reward ready" : "OneGate QR required"}
-            </p>
-            <p className="m-0 mt-1 text-xs font-semibold leading-5">
-              {claimKeyValue
-                ? "Your scan loaded a one-time reward key."
-                : "Scan the campaign QR in OneGate to load your reward."}
-            </p>
+            </span>
           </div>
         ) : (
           op.description && (
@@ -473,7 +486,7 @@ function OperationForm({
               aria-hidden="true"
             />
           )}
-          <span className="min-w-0 truncate">{submitLabel}</span>
+          <span className="min-w-0 text-center">{submitLabel}</span>
         </button>
       </div>
     </div>
@@ -487,7 +500,11 @@ function isServerPayoutOperation(op: OperationEntry) {
 }
 
 function operationSubmittingLabel(op: OperationEntry) {
-  return isServerPayoutOperation(op) ? "Claiming..." : "Processing...";
+  return isServerPayoutOperation(op) ? "Claiming reward..." : "Processing...";
+}
+
+function operationSubmitLabel(op: OperationEntry) {
+  return isServerPayoutOperation(op) ? "Claim Reward" : op.name;
 }
 
 function isOneGateClaimKeyParam(param: OperationParam) {
