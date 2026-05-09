@@ -470,6 +470,13 @@ export default function MiniAppDetailPage({
         if (operation.method === "claimOneGateVault") {
           const claimKey = String(values.claimKey || values.key || "").trim();
           if (!claimKey) throw new Error("Claim key is required.");
+          const poolId = String(
+            values.poolId || values.pool || values.campaignId || "",
+          ).trim();
+          const oneGateAppId = String(
+            values.oneGateAppId || values.oneGateId || values.onegateAppId || "",
+          ).trim();
+          const miniappId = String(values.appId || app.app_id).trim();
           const response = await fetch("/api/onegate-vault/claim", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -477,6 +484,9 @@ export default function MiniAppDetailPage({
               claimKey,
               address: walletAddress,
               network: targetNetwork,
+              poolId: poolId || undefined,
+              oneGateAppId: oneGateAppId || undefined,
+              appId: miniappId || undefined,
             }),
           });
           const body = await response.json().catch(() => ({}));

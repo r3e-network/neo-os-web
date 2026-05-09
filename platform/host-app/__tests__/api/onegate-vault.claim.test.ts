@@ -52,6 +52,9 @@ describe("/api/onegate-vault/claim", () => {
         claimKey: "ogv_test_key_1234567890",
         address: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
         network: "testnet",
+        pool: "pool-001",
+        oneGateAppId: "xx",
+        appId: "miniapp-gas-lucky-pool",
       },
       headers: {},
       socket: { remoteAddress: "127.0.0.1" },
@@ -62,7 +65,14 @@ describe("/api/onegate-vault/claim", () => {
     await handler(req, res);
 
     expect(claimOneGateVaultReward).toHaveBeenCalledWith(
-      req.body,
+      expect.objectContaining({
+        claimKey: "ogv_test_key_1234567890",
+        address: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+        network: "testnet",
+        poolId: "pool-001",
+        oneGateAppId: "xx",
+        appId: "miniapp-gas-lucky-pool",
+      }),
       expect.objectContaining({ keyPepper: "test-pepper" }),
     );
     expect(res.status).toHaveBeenCalledWith(200);
