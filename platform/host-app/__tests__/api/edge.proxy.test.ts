@@ -39,7 +39,10 @@ describe("/api/edge/[endpoint]", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
       query: { endpoint: "os-storage-get" },
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer wallet-session",
+      },
     });
     const requestBody = Buffer.from(
       JSON.stringify({ appId: "miniapp-demo", key: "profile" }),
@@ -85,7 +88,10 @@ describe("/api/edge/[endpoint]", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
       query: { endpoint: "os-storage-list" },
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer wallet-session",
+      },
     });
     const requestBody = Buffer.from(JSON.stringify({ appId: "miniapp-demo" }));
     process.nextTick(() => {
@@ -128,6 +134,86 @@ describe("/api/edge/[endpoint]", () => {
     expect(res._getStatusCode()).toBe(500);
     expect(JSON.parse(res._getData()).error.message).toMatch(
       /EDGE_BASE_URL/,
+    );
+  });
+
+  it("returns neutral read state for unauthenticated read-only OS calls", async () => {
+    process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const fetchMock = jest.fn();
+    global.fetch = fetchMock as typeof fetch;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "os-storage-list" },
+      headers: { "content-type": "application/json" },
+    });
+    const requestBody = Buffer.from(
+      JSON.stringify({ appId: "miniapp-demo", prefix: "items:" }),
+    );
+    process.nextTick(() => {
+      req.emit("data", requestBody);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("X-MiniApp-Edge-State")).toBe("wallet-required");
+    expect(JSON.parse(res._getData())).toEqual({
+      ok: true,
+      data: {},
+      meta: { state: "wallet_required" },
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still proxies authenticated read-only OS calls to the edge service", async () => {
+    process.env.EDGE_BASE_URL = "https://edge.example/functions/v1";
+    delete process.env.MINIAPP_EDGE_ALLOWLIST;
+    const upstreamBody = Buffer.from(JSON.stringify({ ok: true, data: {} }));
+    const fetchMock = jest.fn().mockResolvedValue(
+      {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) =>
+            cb("application/json", "content-type"),
+        },
+        arrayBuffer: async () =>
+          upstreamBody.buffer.slice(
+            upstreamBody.byteOffset,
+            upstreamBody.byteOffset + upstreamBody.byteLength,
+          ),
+      },
+    );
+    global.fetch = fetchMock as typeof fetch;
+    const handler = require("@/pages/api/edge/[endpoint]").default;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "POST",
+      query: { endpoint: "os-storage-list" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer wallet-session",
+      },
+    });
+    const requestBody = Buffer.from(
+      JSON.stringify({ appId: "miniapp-demo", prefix: "items:" }),
+    );
+    process.nextTick(() => {
+      req.emit("data", requestBody);
+      req.emit("end");
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://edge.example/functions/v1/os-storage-list",
+      expect.objectContaining({
+        method: "POST",
+      }),
     );
   });
 
@@ -185,7 +271,10 @@ describe("/api/edge/[endpoint]", () => {
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "POST",
       query: { endpoint: "os-storage-list" },
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer wallet-session",
+      },
     });
     const requestBody = Buffer.from(JSON.stringify({ appId: "miniapp-demo" }));
     process.nextTick(() => {
