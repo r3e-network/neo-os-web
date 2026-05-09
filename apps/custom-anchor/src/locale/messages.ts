@@ -42,6 +42,7 @@ const appMessages = {
     zh: "扫码打开带 anchorAppId 的 OneGate 链接，或在右侧操作栏输入 Anchor appId。",
   },
   agentModel: { en: "21-agent AA model", zh: "21 个 AA agent 模型" },
+  routingDetails: { en: "Routing details", zh: "调仓细节" },
   agentModelBody: {
     en: "Every custom anchor owns its own 21 deterministic AA agent accounts. User actions stay simple; agent transfers and candidate changes are admin-only.",
     zh: "每个自定义 Anchor 都有自己的 21 个确定性 AA agent。用户只做质押、赎回、领取；agent 调仓和候选人变更只在管理员侧处理。",
