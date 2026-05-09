@@ -1,8 +1,12 @@
-import { supabase, isSupabaseConfigured } from "../supabase";
+import { getServerSupabaseClient } from "../server-supabase";
 import crypto from "crypto";
 
 const TABLE_NAME = "email_verifications";
 const CODE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+function getVerificationSupabase() {
+  return getServerSupabaseClient({ requireServiceRole: true });
+}
 
 /** Generate 6-digit verification code */
 export function generateCode(): string {
@@ -11,7 +15,8 @@ export function generateCode(): string {
 
 /** Store verification code */
 export async function storeCode(wallet: string, code: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getVerificationSupabase();
+  if (!supabase) return false;
 
   const expiresAt = new Date(Date.now() + CODE_EXPIRY_MS).toISOString();
 
@@ -27,7 +32,8 @@ export async function storeCode(wallet: string, code: string): Promise<boolean> 
 
 /** Verify code */
 export async function verifyCode(wallet: string, code: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  const supabase = getVerificationSupabase();
+  if (!supabase) return false;
 
   const { data, error } = await supabase
     .from(TABLE_NAME)

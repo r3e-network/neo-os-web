@@ -6,10 +6,10 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { getContractStats, getFlagshipApps } from "../../../lib/chain";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { getServerSupabaseClient } from "@/lib/server-supabase";
 
 const DEPLOYED_APPS = Object.entries(getFlagshipApps("testnet")).map(([appId, meta]) => ({
   appId,
@@ -36,7 +36,8 @@ export default async function handler(
     return apiError.unauthorized(res, "Unauthorized");
   }
 
-  if (!isSupabaseConfigured) {
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
     return apiError.internal(res, "Supabase not configured");
   }
 
