@@ -31,7 +31,7 @@ const MiniAppCSP = `
   font-src 'self' data: https:;
   connect-src 'self' https://*.r3e.network https://*.seed.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
   frame-src 'none';
-  frame-ancestors 'self' https://neomini.app https://*.miniapp.r3e.network;
+  frame-ancestors 'self' https://neomini.app https://onegate.space https://*.onegate.space https://*.miniapp.r3e.network;
   form-action 'self';
   base-uri 'self';
   object-src 'none';
@@ -180,12 +180,24 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/miniapps/on-chain-tarot/cards/:file",
-        destination: "/api/miniapps/on-chain-tarot/cards/:file",
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: "/miniapps/miniapp-gas-lucky-pool",
+          destination: "/miniapps/gas-lucky-pool/index.html",
+        },
+        {
+          source: "/miniapps/miniapp-gas-lucky-pool/",
+          destination: "/miniapps/gas-lucky-pool/index.html",
+        },
+      ],
+      afterFiles: [
+        {
+          source: "/miniapps/on-chain-tarot/cards/:file",
+          destination: "/api/miniapps/on-chain-tarot/cards/:file",
+        },
+      ],
+    };
   },
 };
 
