@@ -44,7 +44,7 @@ describe("miniapp-launch-params", () => {
 
   it("maps concise OneGate QR aliases onto operation param names", () => {
     const context = parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/miniapp-gas-lucky-pool?pool=campaign-a&key=ogv_user_42&source=onegate",
+      "https://neomini.app/miniapps/gas-lucky-pool/index.html?pool=campaign-a&key=ogv_user_42&source=onegate",
       "miniapp-gas-lucky-pool",
     );
 

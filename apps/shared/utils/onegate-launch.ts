@@ -31,6 +31,11 @@ function normalizeOneGateBaseUrl(value?: string): string {
   }
 }
 
+function normalizeOneGateDappId(value: LaunchParamValue): string {
+  const raw = safeString(value).slice(0, 32);
+  return /^[A-Za-z0-9_.:-]+$/.test(raw) ? raw : "";
+}
+
 function normalizeMiniAppOrigin(value?: string): string {
   const raw = safeString(value).replace(/\/+$/, "");
   if (!raw) return DEFAULT_MINIAPP_ORIGIN;
@@ -54,11 +59,14 @@ export function stableOneGateDappId(appId: string): number {
 export function buildOneGateLaunchUrl(
   appId: string,
   params: OneGateLaunchParams = {},
-  options: { baseUrl?: string } = {},
+  options: { baseUrl?: string; dappId?: string | number } = {},
 ): string {
   const normalizedAppId = safeString(appId);
   const baseUrl = normalizeOneGateBaseUrl(options.baseUrl);
-  const url = new URL(`${baseUrl}/${stableOneGateDappId(normalizedAppId)}`);
+  const oneGateDappId =
+    normalizeOneGateDappId(options.dappId) ||
+    String(stableOneGateDappId(normalizedAppId));
+  const url = new URL(`${baseUrl}/${oneGateDappId}`);
   url.searchParams.set("source", "onegate");
   if (normalizedAppId) url.searchParams.set("appId", normalizedAppId);
 

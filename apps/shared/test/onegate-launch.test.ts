@@ -43,6 +43,27 @@ describe("OneGate launch urls", () => {
     expect(url.searchParams.has("bad key")).toBe(false);
   });
 
+  it("uses a registered OneGate dApp id when one is configured", () => {
+    const url = new URL(
+      buildOneGateLaunchUrl(
+        "miniapp-gas-lucky-pool",
+        {
+          operation: "claimOneGateVault",
+          network: "mainnet",
+          pool: "pool-001",
+        },
+        { dappId: 23 },
+      ),
+    );
+
+    expect(url.origin).toBe("https://onegate.space");
+    expect(url.pathname).toBe("/app/23");
+    expect(url.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
+    expect(url.searchParams.get("operation")).toBe("claimOneGateVault");
+    expect(url.searchParams.get("network")).toBe("mainnet");
+    expect(url.searchParams.get("pool")).toBe("pool-001");
+  });
+
   it("builds a direct NeoMini dApp URL that OneGate can scan without backend catalog lookup", () => {
     const url = new URL(
       buildOneGateDirectMiniAppUrl("gas-lucky-pool", "miniapp-gas-lucky-pool", {

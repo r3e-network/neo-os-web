@@ -33,6 +33,11 @@
     "icon": "/miniapps/gas-lucky-pool/logo.png",
     "banner": "/miniapps/gas-lucky-pool/banner.svg"
   },
+  "onegate": {
+    "id": 23,
+    "standalone": true,
+    "url": "/miniapps/gas-lucky-pool/index.html"
+  },
   "media": {
     "logo_variants": [
       {

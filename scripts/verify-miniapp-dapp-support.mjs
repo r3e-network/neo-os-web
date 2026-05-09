@@ -82,6 +82,19 @@ async function main() {
       failures.push({ slug, reason: `urls.entry must be ${expectedEntry} for standalone dApp export` });
     }
 
+    const onegate = asObject(manifest.onegate);
+    const onegateId = asString(onegate.id || onegate.app_id || onegate.dapp_id);
+    const onegateUrl = asString(onegate.url);
+    if (onegateId && !/^[1-9][0-9]{0,9}$/.test(onegateId)) {
+      failures.push({ slug, reason: "onegate.id must be a positive OneGate dApp id" });
+    }
+    if (onegateUrl && onegateUrl !== expectedEntry) {
+      failures.push({
+        slug,
+        reason: `onegate.url must be the standalone dApp entry ${expectedEntry}`,
+      });
+    }
+
     const requiredFiles = [
       "package.json",
       "index.html",
