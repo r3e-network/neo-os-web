@@ -1,7 +1,7 @@
 /**
  * PlayArea.tsx -- ProfitAnchor
  *
- * Manual AA agent routing console for ProfitAnchor.
+ * User-facing ProfitAnchor staking surface.
  */
 
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -65,7 +65,7 @@ export default function PlayArea({ state }: PlayAreaProps) {
       </div>
 
       <details className="neo-card">
-        <summary className="section-title">Routing details</summary>
+        <summary className="section-title">How routing is protected</summary>
         <div className="anchor-flow-list">
           <span>Current route: {selectedAgent}.</span>
           <span>
