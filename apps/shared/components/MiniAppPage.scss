@@ -1,7 +1,7 @@
 /* ===================================================================
-   OBSIDIAN TERMINAL -- Premium Crypto-Fintech Design System
-   Typography: Satoshi (display) + JetBrains Mono (data)
-   Aesthetic: Deep obsidian, glass morphism, ambient glow
+   Yiwu MiniApp shell
+   Light, focused workspace with a primary play area and a compact
+   operation panel. Shared styles should stay calm and layout-stable.
    =================================================================== */
 
 // Screen reader only utility
@@ -266,7 +266,10 @@ $radius-lg: 16px;
   font-weight: 500;
   border-radius: $radius-sm;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
   text-align: left;
   width: 100%;
   animation: nav-stagger 0.3s ease-out both;
@@ -275,7 +278,6 @@ $radius-lg: 16px;
   &:hover {
     background: $surface-2;
     color: $text-1;
-    transform: translateX(2px);
   }
 
   &.active {
@@ -429,8 +431,8 @@ $radius-lg: 16px;
   }
 
   @media (max-width: $mobile) {
-    padding: 14px 12px;
-    min-height: 160px;
+    padding: 12px 10px;
+    min-height: 136px;
   }
 }
 
@@ -507,15 +509,17 @@ $radius-lg: 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
   animation: card-in 0.4s ease both;
   animation-delay: calc(var(--i) * 50ms);
 
   &:hover {
     background: $surface-2;
     border-color: $border-hover;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
   }
 
   .auto-stat-value {

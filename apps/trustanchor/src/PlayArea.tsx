@@ -1,7 +1,7 @@
 /**
  * PlayArea.tsx -- TrustAnchor
  *
- * Manual AA agent routing console for TrustAnchor.
+ * User-facing TrustAnchor staking surface.
  */
 
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
@@ -65,7 +65,7 @@ export default function PlayArea({ state }: PlayAreaProps) {
       </div>
 
       <details className="neo-card">
-        <summary className="section-title">Routing details</summary>
+        <summary className="section-title">How routing is protected</summary>
         <div className="anchor-flow-list">
           <span>Current route: {selectedAgent}.</span>
           <span>
