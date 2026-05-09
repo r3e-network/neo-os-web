@@ -53,7 +53,6 @@ describe("/api/onegate-vault/claim", () => {
         address: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
         network: "testnet",
         pool: "pool-001",
-        oneGateAppId: "23",
         appId: "miniapp-gas-lucky-pool",
       },
       headers: {},

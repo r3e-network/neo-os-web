@@ -23,7 +23,7 @@ describe("MiniAppOperationPanel launch params", () => {
   it("maps OneGate QR key aliases into the hidden claimKey field", async () => {
     const onAction = vi.fn().mockResolvedValue(undefined);
     const launchContext = parseMiniAppLaunchContext(
-      "https://neomini.app/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimPool&network=testnet&pool=pool-001&key=ogv_test_alias_key&oneGateAppId=23",
+      "https://onegate.space/app/23?key=ogv_test_alias_key&pool=pool-001&network=testnet",
       "miniapp-gas-lucky-pool",
     );
 

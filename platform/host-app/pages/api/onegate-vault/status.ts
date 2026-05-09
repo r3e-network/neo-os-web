@@ -22,6 +22,15 @@ const DEFAULT_RPC: Record<OneGateVaultNetwork, string> = {
   mainnet: "https://api.n3index.dev/mainnet",
   testnet: "https://testnet1.neo.coz.io:443",
 };
+const DEFAULT_ONEGATE_VAULT_APP_ID = "23";
+
+function resolveOneGateVaultAppId(value: unknown): string {
+  const explicit = String(value ?? "").trim();
+  if (explicit) return explicit;
+  return String(
+    process.env.ONEGATE_VAULT_ONEGATE_APP_ID || DEFAULT_ONEGATE_VAULT_APP_ID,
+  ).trim();
+}
 
 function getNeoRpcUrl(network: OneGateVaultNetwork): string {
   if (network === "mainnet") {
@@ -106,7 +115,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       address: address || undefined,
       network,
       poolId: String(req.query.poolId ?? req.query.pool ?? req.query.campaignId ?? "").trim() || undefined,
-      oneGateAppId: String(req.query.oneGateAppId ?? req.query.oneGateId ?? req.query.onegateAppId ?? "").trim() || undefined,
+      oneGateAppId: resolveOneGateVaultAppId(
+        req.query.oneGateAppId ?? req.query.oneGateId ?? req.query.onegateAppId,
+      ),
       appId: String(req.query.appId ?? req.query.miniappId ?? "").trim() || undefined,
     });
     if (!status) return apiError.notFound(res, "claim key has not been claimed yet");
