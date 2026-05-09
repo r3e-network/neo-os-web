@@ -15,6 +15,13 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
+    const launchParams = ctx.launchContext.params ?? {};
+    const hasLaunchEnvelopeId = Boolean(
+      launchParams.envelopeId ||
+        launchParams.poolId ||
+        launchParams.id ||
+        launchParams.packet,
+    );
     const envelope = useRedEnvelope({
       gameService: ctx.os.game,
       paymentService: ctx.os.payment,
@@ -93,7 +100,7 @@ defineMiniApp({
         createCount,
         createMemo,
       },
-      loadData: envelope.loadAll,
+      loadData: hasLaunchEnvelopeId ? async () => {} : envelope.loadAll,
     };
   },
 });
