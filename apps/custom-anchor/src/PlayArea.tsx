@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import type { PlayAreaProps } from "@shared/react/defineMiniApp";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import "./PlayArea.scss";
@@ -8,15 +7,11 @@ function truncate(value: string): string {
   return `${value.slice(0, 18)}...${value.slice(-10)}`;
 }
 
-export default function PlayArea({ t, state, launchContext, status }: PlayAreaProps) {
+export default function PlayArea({ t, state, status }: PlayAreaProps) {
   const { str, num, bool } = useStateBindings(state);
   const anchorAppId = str("anchorAppId");
   const isLoading = bool("isLoading");
   const agentCount = num("agentCount");
-  const launchKeys = useMemo(
-    () => launchContext.keys.filter((key) => key !== "anchorAppId").slice(0, 3),
-    [launchContext.signature],
-  );
 
   return (
     <div className="custom-anchor-playarea">
@@ -47,9 +42,9 @@ export default function PlayArea({ t, state, launchContext, status }: PlayAreaPr
         </div>
       </div>
 
-      <section className="custom-anchor-model">
-        <div>
-          <h3>{t("agentModel")}</h3>
+      <details className="custom-anchor-model">
+        <summary>{t("routingDetails")}</summary>
+        <div className="custom-anchor-model__body">
           <p>{t("agentModelBody")}</p>
         </div>
         <dl>
@@ -62,13 +57,12 @@ export default function PlayArea({ t, state, launchContext, status }: PlayAreaPr
             <dd>{agentCount || 21}</dd>
           </div>
         </dl>
-      </section>
+      </details>
 
-      {(isLoading || status?.msg || launchKeys.length > 0) && (
+      {(isLoading || status?.msg) && (
         <div className="custom-anchor-footnote">
           {isLoading && <span>Loading on-chain anchor state...</span>}
           {status?.msg && <span>{status.msg}</span>}
-          {launchKeys.length > 0 && <span>Launch params: {launchKeys.join(", ")}</span>}
         </div>
       )}
     </div>

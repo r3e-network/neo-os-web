@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "buildCommand": "cd ../.. && npm run -s export:miniapp-dapps && npm --prefix platform/host-app run build",
   "crons": [
     {
       "path": "/api/cron/miniapp-publish-reminders",

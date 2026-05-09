@@ -24,9 +24,9 @@ export const manifest: MiniAppManifest = {
   sidebar: {
     titleKey: "anchorStatus",
     items: [
-      { labelKey: "anchorAppId", valueKey: "anchorAppId", format: "text" },
+      { labelKey: "userStake", valueKey: "userStake", format: "text" },
+      { labelKey: "pendingRewards", valueKey: "pendingRewards", format: "text" },
       { labelKey: "rewardReserve", valueKey: "rewardReserve", format: "text" },
-      { labelKey: "lastTxid", valueKey: "lastTxid", format: "text" },
     ],
   },
   operations: [
@@ -59,7 +59,7 @@ export const manifest: MiniAppManifest = {
       descriptionKey: "withdrawDescription",
       actionKey: "withdrawAction",
       actionMethod: "withdraw",
-      priority: "secondary",
+      priority: "primary",
       fields: [
         { key: "anchorAppId", type: "text", labelKey: "anchorAppId", placeholder: "custom-anchor:team:nonce", required: true },
         { key: "amount", type: "amount", labelKey: "neoAmount", placeholder: "10", required: true, validation: { min: 0.00000001 } },

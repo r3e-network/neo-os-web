@@ -177,12 +177,47 @@ export function MiniAppOperationPanel({
     [],
   );
 
+  const publishFieldPreview = useCallback(
+    (opKey: string, fieldKey: string, value: unknown) => {
+      const operation = operations.find((item) => item.key === opKey);
+      const normalizedField = normalizeKey(fieldKey);
+      const operationText = normalizeKey(
+        `${opKey} ${operation?.actionMethod ?? ""} ${operation?.titleKey ?? ""}`,
+      );
+
+      if (
+        (normalizedField === "chosennumber" ||
+          normalizedField === "face" ||
+          normalizedField === "selectedface") &&
+        isObservable<string>(_state.selectedFace)
+      ) {
+        _state.selectedFace.set(String(value || ""));
+      }
+
+      if (
+        (normalizedField === "amount" || normalizedField === "stakeamount") &&
+        /dice|roll|bet/.test(operationText) &&
+        isObservable<string>(_state.stakeAmount)
+      ) {
+        const amount = formatPreviewAmount(value);
+        _state.stakeAmount.set(`${amount} GAS`);
+        if (isObservable<string>(_state.payoutPreview)) {
+          _state.payoutPreview.set(
+            `${(Number(amount) * 5.7).toFixed(2)} GAS`,
+          );
+        }
+      }
+    },
+    [_state, operations],
+  );
+
   const setFieldValue = useCallback(
     (opKey: string, fieldKey: string, value: unknown) => {
       setFormData((prev) => ({
         ...prev,
         [opKey]: { ...(prev[opKey] ?? {}), [fieldKey]: value },
       }));
+      publishFieldPreview(opKey, fieldKey, value);
       // Clear error on edit
       setFormErrors((prev) => {
         if (prev[opKey]?.[fieldKey]) {
@@ -194,7 +229,7 @@ export function MiniAppOperationPanel({
         return prev;
       });
     },
-    [],
+    [publishFieldPreview],
   );
 
   const getFieldError = useCallback(
@@ -250,7 +285,7 @@ export function MiniAppOperationPanel({
   );
 
   // --------------------------------------------------------------------------
-  // State Summary (placeholder -- extendable by manifest)
+  // State Summary
   // --------------------------------------------------------------------------
 
   const hasStateSummary = useCallback((_op: OperationDefinition): boolean => {
@@ -751,6 +786,24 @@ function submittingActionLabel(
     : actionLabel
       ? `${actionLabel}...`
       : "Processing...";
+}
+
+function normalizeKey(value: string): string {
+  return value.replace(/[-_.:\s]/g, "").toLowerCase();
+}
+
+function isObservable<T = unknown>(value: unknown): value is Observable<T> {
+  return Boolean(
+    value &&
+      typeof (value as Observable<T>).get === "function" &&
+      typeof (value as Observable<T>).set === "function",
+  );
+}
+
+function formatPreviewAmount(value: unknown): string {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "0";
+  return amount.toFixed(2).replace(/\.00$/, "");
 }
 
 function splitOperations(operations: OperationDefinition[]) {

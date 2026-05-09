@@ -26,6 +26,8 @@
   }
 
   .neo-card__body {
+    display: grid;
+    gap: 10px;
     padding: 12px 14px 14px;
   }
 }
@@ -178,11 +180,91 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .operation-field {
   width: 100%;
+}
+
+.neo-input {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+
+.neo-input__label {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.neo-input__wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  background: #f9fafb;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.neo-input__wrapper:focus-within {
+  border-color: var(--accent, #00e599);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0, 229, 153, 0.13);
+}
+
+.neo-input__field {
+  min-width: 0;
+  flex: 1 1 auto;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.2;
+  outline: 0;
+  padding: 9px 11px;
+}
+
+.neo-input__field[type="number"] {
+  appearance: textfield;
+}
+
+.neo-input__field[type="number"]::-webkit-outer-spin-button,
+.neo-input__field[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.neo-input__field::placeholder {
+  color: #9ca3af;
+}
+
+.neo-input__suffix {
+  flex: 0 0 auto;
+  padding: 0 11px 0 6px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.neo-input__error {
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.neo-input--error .neo-input__wrapper {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
 }
 
 /* -- Select Field -- */
@@ -356,11 +438,12 @@
 .operation-action-btn {
   display: inline-flex;
   width: 100%;
+  min-width: 100%;
   min-height: 44px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 0;
   padding: 11px 14px;
   border-radius: 11px;
   font-size: 14px;
@@ -382,6 +465,7 @@
   span:last-child {
     min-width: 0;
     text-align: center;
+    overflow-wrap: anywhere;
   }
 
   &:not(:disabled) {
