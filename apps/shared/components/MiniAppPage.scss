@@ -803,6 +803,18 @@ $radius-lg: 16px;
   }
 }
 
+.section-mobile-operation {
+  display: none;
+
+  @media (max-width: $mobile) {
+    display: block;
+    margin: 0 12px 12px;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    background: $glass;
+  }
+}
+
 // -- RIGHT SIDEBAR --
 .sidebar-right {
   grid-area: right;
@@ -822,13 +834,7 @@ $radius-lg: 16px;
   }
 
   @media (max-width: $mobile) {
-    position: static;
-    height: auto;
-    overflow: visible;
-    margin: 0 12px 12px;
-    border: 1px solid $border;
-    border-radius: $radius-md;
-    backdrop-filter: none;
+    display: none;
   }
 }
 

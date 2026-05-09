@@ -294,6 +294,15 @@ export function MiniAppPage({
             {renderContent()}
           </section>
 
+          {hasOperationPanel && (
+            <section
+              className="section-mobile-operation"
+              aria-label={t("operationsPanel")}
+            >
+              <div className="operation-panel">{renderOperation()}</div>
+            </section>
+          )}
+
           {hasInfoContent && (
             <section className="section-info">
               {infoTabs.length > 1 && (
