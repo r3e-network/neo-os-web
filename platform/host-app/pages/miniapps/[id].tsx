@@ -237,13 +237,22 @@ export default function MiniAppDetailPage({
   );
   const oneGateLaunchUrl = useMemo(() => {
     if (!app) return "";
+    const oneGateDappId = resolveOneGateDappId(app);
     const launchParams = {
       ...launchContext.params,
       ...(launchContext.operation
         ? { operation: launchContext.operation }
         : {}),
       network: oneGateNetworkParam(targetCatalogNetwork),
+      ...(oneGateDappId
+        ? { oneGateId: oneGateDappId, oneGateAppId: oneGateDappId }
+        : {}),
     };
+    if (oneGateDappId) {
+      return buildOneGateLaunchUrl(app.app_id, launchParams, {
+        dappId: oneGateDappId,
+      });
+    }
     const directSlug = resolveDirectMiniAppSlug(app);
     return directSlug
       ? buildOneGateDirectMiniAppUrl(directSlug, app.app_id, launchParams)
@@ -2460,6 +2469,13 @@ function resolveDirectMiniAppSlug(app: MiniAppInfo): string {
   }
 
   return "";
+}
+
+function resolveOneGateDappId(app: MiniAppInfo): string {
+  const manifest = getRecord(app.manifest);
+  const onegate = getRecord(manifest.onegate);
+  const raw = getString(onegate.id || onegate.app_id || onegate.dapp_id);
+  return /^[A-Za-z0-9_.:-]{1,128}$/.test(raw) ? raw : "";
 }
 
 function supportsPageCatalogNetwork(

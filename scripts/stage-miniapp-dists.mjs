@@ -70,6 +70,13 @@ function stableOneGateId(appId) {
   return (hash >>> 1) || 1;
 }
 
+function resolveOneGateId(manifest, appId) {
+  const onegate = asObject(manifest.onegate);
+  const raw = asString(onegate.id || onegate.app_id || onegate.dapp_id);
+  if (/^[1-9][0-9]{0,9}$/.test(raw)) return Number(raw);
+  return stableOneGateId(appId);
+}
+
 function localizedJson(en, zh) {
   const name = asString(en);
   const zhName = asString(zh);
@@ -110,9 +117,10 @@ function buildCatalogItem(slug, manifest) {
   const website = asString(developer.website || developer.url);
   const tags = Array.from(new Set(asArray(manifest.tags)));
   const languages = nameZh || descriptionZh ? ["en", "zh"] : ["en"];
+  const onegateId = resolveOneGateId(manifest, appId);
 
   const onegate = {
-    id: stableOneGateId(appId),
+    id: onegateId,
     isActive: true,
     name: localizedJson(name, nameZh),
     url: absoluteUrl(standalonePath),

@@ -248,4 +248,55 @@ describe("MiniAppDetailPage shared runtime", () => {
       "appId=miniapp-neo-pay-shared-example",
     );
   });
+
+  it("uses the registered OneGate id while keeping the dApp entry standalone", () => {
+    mockAsPath =
+      "/miniapps/miniapp-gas-lucky-pool?source=onegate&operation=claimOneGateVault&pool=pool-001&key=ogv_user_42";
+
+    render(
+      <MiniAppDetailPage
+        app={{
+          app_id: "miniapp-gas-lucky-pool",
+          name: "OneGate Vault",
+          description: "Claim rewards",
+          icon: "G",
+          category: "social",
+          entry_url: "/miniapps/gas-lucky-pool/index.html",
+          dapp_url: "/miniapps/gas-lucky-pool/index.html",
+          permissions: { payments: true },
+          detail_template: {
+            layout: "default",
+            tabs: [{ id: "overview", label: "Overview", type: "content", blocks: [] }],
+            operation_panel: {
+              title: "Claim Reward",
+              operations: [{ name: "Claim Reward", method: "claimOneGateVault", params: [] }],
+            },
+          },
+          manifest: {
+            onegate: {
+              id: 23,
+              standalone: true,
+              url: "/miniapps/gas-lucky-pool/index.html",
+            },
+            urls: {
+              entry: "/miniapps/gas-lucky-pool/index.html",
+            },
+          },
+        }}
+        miniAppNav={[]}
+        notifications={[]}
+        sharedRuntime={null}
+      />,
+    );
+
+    expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "https://onegate.space/app/23",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).toHaveTextContent(
+      "oneGateAppId=23",
+    );
+    expect(screen.getByTestId("onegate-launch-url")).not.toHaveTextContent(
+      "/miniapps/miniapp-gas-lucky-pool",
+    );
+  });
 });
