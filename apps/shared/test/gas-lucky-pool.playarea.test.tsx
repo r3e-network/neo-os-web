@@ -22,7 +22,7 @@ function t(key: string, params?: Record<string, string | number>) {
     claimKey: "Claim key",
     inspectClaim: "Check reward",
     claimOnce: "Claim once",
-    claimScannedKey: "Claim scanned reward",
+    claimReward: "Claim Reward",
     scanClaimReady: "OneGate scan detected",
     scanClaimPool: "Reward key is ready",
     scanClaimReview:
@@ -142,9 +142,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
     expect(screen.queryByText("Create reward pool")).toBeNull();
     expect(screen.queryByText("OneGate QR claim")).toBeNull();
 
-    expect(
-      screen.queryByRole("button", { name: "Claim scanned reward" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Claim Reward" })).toBeNull();
     expect(
       screen.getByText("Primary action lives in the right action console."),
     ).toBeTruthy();
