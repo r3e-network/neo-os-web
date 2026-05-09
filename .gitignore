@@ -58,6 +58,10 @@ platform/edge/cov_profile/
 docs/reports/frontend-ux/
 docs/reports/miniapp-logic/
 docs/reports/morpheus-runtime/
+docs/reports/full-validation-*/
+docs/reports/live-smoke/
+docs/reports/[0-9][0-9][0-9][0-9]-*-*.json
+docs/reports/mainnet-frontend-ui-audit-*.json
 postgres.test
 test.neo-express
 deploy/wallets/*
