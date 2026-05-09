@@ -329,7 +329,6 @@ function classifyRecord(record) {
 function annotateResolvedMatch(record) {
   if (!record.resolved_address) return "";
   if (record.resolved_address === record.expected_address) return "address";
-  if (normalizeHash(record.resolved_address) === normalizeHash(record.contract_hash)) return "contract_hash";
   return "";
 }
 
