@@ -18,6 +18,64 @@ function normalizeNetwork(value: unknown): OneGateVaultNetwork | "" {
   return network === "mainnet" || network === "testnet" ? network : "";
 }
 
+const DEFAULT_RPC: Record<OneGateVaultNetwork, string> = {
+  mainnet: "https://api.n3index.dev/mainnet",
+  testnet: "https://testnet1.neo.coz.io:443",
+};
+
+function getNeoRpcUrl(network: OneGateVaultNetwork): string {
+  if (network === "mainnet") {
+    return String(
+      process.env.NEO_MAINNET_RPC_URL ||
+        process.env.NEO_RPC_MAINNET ||
+        DEFAULT_RPC.mainnet,
+    ).trim();
+  }
+  return String(
+    process.env.NEO_TESTNET_RPC_URL ||
+      process.env.NEO_RPC_TESTNET ||
+      process.env.NEO_RPC_URL ||
+      DEFAULT_RPC.testnet,
+  ).trim();
+}
+
+async function isTxConfirmed(
+  network: OneGateVaultNetwork,
+  txHash: string,
+): Promise<boolean> {
+  if (!/^0x[0-9a-f]{64}$/i.test(txHash)) return false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3500);
+  try {
+    const response = await fetch(getNeoRpcUrl(network), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "getrawtransaction",
+        params: [txHash, 1],
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      result?: {
+        blockhash?: unknown;
+        confirmations?: unknown;
+        vmstate?: unknown;
+      };
+    } | null;
+    const tx = body?.result;
+    const confirmations = Number(tx?.confirmations ?? 0);
+    const vmstate = String(tx?.vmstate ?? "HALT").toUpperCase();
+    return Boolean(tx?.blockhash) && confirmations > 0 && vmstate === "HALT";
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const requestId = getRequestId(req);
   setRequestIdHeader(res, requestId);
@@ -42,8 +100,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const repository = createSupabaseOneGateVaultRepository(supabase);
-    const status = await repository.getClaimStatus({
-      keyHash: hashClaimKey(claimKey, keyPepper),
+    const keyHash = hashClaimKey(claimKey, keyPepper);
+    let status = await repository.getClaimStatus({
+      keyHash,
       address: address || undefined,
       network,
       poolId: String(req.query.poolId ?? req.query.pool ?? req.query.campaignId ?? "").trim() || undefined,
@@ -51,6 +110,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       appId: String(req.query.appId ?? req.query.miniappId ?? "").trim() || undefined,
     });
     if (!status) return apiError.notFound(res, "claim key has not been claimed yet");
+    if (
+      status.status === "submitted" &&
+      status.txHash &&
+      (await isTxConfirmed(network, status.txHash))
+    ) {
+      await repository.markPaid({
+        keyHash,
+        network,
+        txHash: status.txHash,
+        requestId: status.requestId,
+      });
+      status = { ...status, status: "paid" };
+    }
     return res.status(200).json({
       status: status.status,
       claimKey,
