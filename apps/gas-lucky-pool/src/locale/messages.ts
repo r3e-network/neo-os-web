@@ -45,6 +45,15 @@ const appMessages = {
   poolCreated: { en: "Pool creation submitted", zh: "奖池创建交易已提交" },
   claimSubmitted: { en: "Reward payout submitted", zh: "奖励发放已提交" },
   claimPaid: { en: "Reward paid", zh: "奖励已到账" },
+  claimProgressTitle: { en: "Claim progress", zh: "领取进度" },
+  claimProgressWallet: { en: "Wallet ready", zh: "钱包已就绪" },
+  claimProgressSubmitting: { en: "Submitting claim", zh: "提交领取请求" },
+  claimProgressConfirming: {
+    en: "Waiting for GAS transfer",
+    zh: "等待 GAS 转账确认",
+  },
+  claimProgressPaid: { en: "GAS received", zh: "GAS 已到账" },
+  claimProgressFailed: { en: "Claim needs retry", zh: "领取需要重试" },
   claimStatusFailed: {
     en: "Reward status lookup failed.",
     zh: "奖励状态查询失败。",

@@ -204,6 +204,7 @@ defineMiniApp({
         lastClaimKey: pool.lastClaimKey,
         lastClaimLuckPercent: pool.lastClaimLuckPercent,
         claimStatus: pool.claimStatus,
+        claimProgress: pool.claimProgress,
         lastRefundAmount: pool.lastRefundAmount,
         lastRefundPoolId: pool.lastRefundPoolId,
         lastFundAmount: pool.lastFundAmount,

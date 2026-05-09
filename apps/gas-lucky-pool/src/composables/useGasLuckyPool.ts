@@ -30,6 +30,13 @@ export type GasPoolSuccessType =
   | "refund"
   | "fund"
   | "withdraw";
+export type GasPoolClaimProgress =
+  | ""
+  | "wallet"
+  | "submitting"
+  | "confirming"
+  | "paid"
+  | "failed";
 
 export interface GasLuckyPool {
   id: string;
@@ -249,6 +256,7 @@ export function useGasLuckyPool({
   const claimStatus = createObservable<"" | "submitted" | "paid" | "failed">(
     "",
   );
+  const claimProgress = createObservable<GasPoolClaimProgress>("");
   const lastRefundAmount = createObservable<bigint>(0n);
   const lastRefundPoolId = createObservable("");
   const lastFundAmount = createObservable<bigint>(0n);
@@ -432,6 +440,7 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("");
+    claimProgress.set("");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
@@ -505,6 +514,7 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("");
+    claimProgress.set("");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
@@ -626,12 +636,14 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("submitted");
+    claimProgress.set("wallet");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
       const address = await chain.ensureWallet();
+      claimProgress.set("submitting");
       const request: Record<string, string> = {
         claimKey,
         address,
@@ -662,6 +674,7 @@ export function useGasLuckyPool({
       lastClaimKey.set(claimKey);
       lastTxid.set(String(result.txHash || ""));
       claimStatus.set(result.status === "paid" ? "paid" : "submitted");
+      claimProgress.set(result.status === "paid" ? "paid" : "confirming");
       if (result.status === "paid") {
         lastSuccessType.set("claim");
         const amount = asBigInt(result.amountFixed8);
@@ -691,6 +704,7 @@ export function useGasLuckyPool({
     } catch (error) {
       lastSuccessType.set("");
       claimStatus.set("failed");
+      claimProgress.set("failed");
       lastError.set(error instanceof Error ? error.message : t("claimFailed"));
       throw error;
     } finally {
@@ -720,12 +734,17 @@ export function useGasLuckyPool({
       if (status.txHash) lastTxid.set(String(status.txHash));
       if (status.status === "paid") {
         claimStatus.set("paid");
+        claimProgress.set("paid");
         lastSuccessType.set("claim");
         return status;
       }
-      if (status.status === "submitted") claimStatus.set("submitted");
+      if (status.status === "submitted") {
+        claimStatus.set("submitted");
+        claimProgress.set("confirming");
+      }
       if (status.status === "failed") {
         claimStatus.set("failed");
+        claimProgress.set("failed");
         lastSuccessType.set("");
         lastError.set(t("claimFailed"));
         return status;
@@ -762,6 +781,13 @@ export function useGasLuckyPool({
           ? "failed"
           : "submitted",
     );
+    claimProgress.set(
+      status.status === "paid"
+        ? "paid"
+        : status.status === "failed"
+          ? "failed"
+          : "confirming",
+    );
     if (status.status === "paid") lastSuccessType.set("claim");
     if (status.status === "failed") {
       lastSuccessType.set("");
@@ -794,12 +820,14 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("");
+    claimProgress.set("wallet");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
       const claimer = await chain.ensureWallet();
+      claimProgress.set("submitting");
       const result = await chain.invoke(
         "claimRangeGasPool",
         [
@@ -812,6 +840,8 @@ export function useGasLuckyPool({
       currentPoolId.set(id);
       lastTxid.set(result.txid);
       lastSuccessType.set("claim");
+      claimStatus.set("paid");
+      claimProgress.set("paid");
       lastClaimPoolId.set(id);
       const claimedAmount = asBigInt(eventValue(result.event, 3));
       if (claimedAmount > 0n) {
@@ -822,6 +852,8 @@ export function useGasLuckyPool({
       return result;
     } catch (error) {
       lastSuccessType.set("");
+      claimStatus.set("failed");
+      claimProgress.set("failed");
       lastError.set(error instanceof Error ? error.message : t("claimFailed"));
       throw error;
     } finally {
@@ -841,6 +873,7 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("");
+    claimProgress.set("");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
@@ -883,6 +916,7 @@ export function useGasLuckyPool({
     lastClaimKey.set("");
     lastClaimLuckPercent.set("");
     claimStatus.set("");
+    claimProgress.set("");
     lastRefundAmount.set(0n);
     lastRefundPoolId.set("");
     lastFundAmount.set(0n);
@@ -945,6 +979,7 @@ export function useGasLuckyPool({
     lastClaimKey,
     lastClaimLuckPercent,
     claimStatus,
+    claimProgress,
     lastRefundAmount,
     lastRefundPoolId,
     lastFundAmount,
