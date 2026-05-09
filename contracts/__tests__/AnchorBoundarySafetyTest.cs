@@ -107,6 +107,18 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void PlatformAnchorLetsUsersSelfRegisterCustomAnchorsWithAppAdminWitness()
+        {
+            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+
+            Assert.Contains("public static void RegisterCustomAnchorApp(string appId, BigInteger mode, UInt160 appAdmin)", code);
+            Assert.Contains("Runtime.CheckWitness(appAdmin)", code);
+            Assert.Contains("RegisterAnchorAppCore(appId, mode, appAdmin)", code);
+            Assert.Contains("private static void RegisterAnchorAppCore(string appId, BigInteger mode, UInt160 appAdmin)", code);
+            Assert.Contains("ExecutionEngine.Assert(GetRaw(AppKey(appId, PREFIX_APP_MODE)) == null, \"app already registered\")", code);
+        }
+
+        [Fact]
         public void SelfLoanVotesCollateralThroughProfitAnchorWithoutTransferringCustody()
         {
             string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");

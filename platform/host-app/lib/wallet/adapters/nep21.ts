@@ -214,6 +214,18 @@ function mapDapiArgs(
   });
 }
 
+function mapDapiSigners(
+  signers: InvokeParams["signers"],
+  accountHash?: string | null,
+  currentAddress?: string | null,
+) {
+  return signers?.map((signer) => ({
+    ...signer,
+    account: signer.account === currentAddress && accountHash ? accountHash : signer.account,
+    scopes: scopeToDapi(signer.scopes),
+  }));
+}
+
 export class Nep21Adapter implements WalletAdapter {
   readonly name = "NEP-21 dAPI";
   readonly icon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2300e599'/%3E%3Ctext x='32' y='38' text-anchor='middle' font-size='17' font-weight='800' font-family='Arial,sans-serif' fill='%2307111a'%3EN21%3C/text%3E%3C/svg%3E";
@@ -347,11 +359,23 @@ export class Nep21Adapter implements WalletAdapter {
       operation: normalizeOperationName(params.operation),
       args: mapDapiArgs(params.args, this.accountHash, this.address),
     };
-    const signers = params.signers?.map((signer) => ({
-      ...signer,
-      account: signer.account === this.address && this.accountHash ? this.accountHash : signer.account,
-      scopes: scopeToDapi(signer.scopes),
-    }));
+    const signers = mapDapiSigners(params.signers, this.accountHash, this.address);
     return normalizeTxResult(await provider.invoke([invocation], signers));
+  }
+
+  async invokeMultiple(
+    params: InvokeParams[],
+    signers?: InvokeParams["signers"],
+  ): Promise<TransactionResult> {
+    const provider = await this.getProvider();
+    if (!provider.invoke) throw new WalletTransactionError("NEP-21 wallet does not support invoke");
+    if (!params.length) throw new WalletTransactionError("No NEP-21 invocations to submit");
+    const invocations: DapiInvocation[] = params.map((param) => ({
+      hash: param.scriptHash,
+      operation: normalizeOperationName(param.operation),
+      args: mapDapiArgs(param.args, this.accountHash, this.address),
+    }));
+    const signerList = mapDapiSigners(signers ?? params[0]?.signers, this.accountHash, this.address);
+    return normalizeTxResult(await provider.invoke(invocations, signerList));
   }
 }

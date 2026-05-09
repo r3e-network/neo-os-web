@@ -27,13 +27,38 @@ const FLAGSHIP_APPS = [
     slug: "last-survivor",
     expectedMethods: ["currentRoundId", "timeRemaining", "totalKeysSold", "getCurrentKeyPrice"],
     expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
       "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "startCountdownRound", "buyCountdownKeys", "getCountdownStatus", "calculateCountdownKeyCost"],
     },
   },
-  { brand: "GASBOX", slug: "gasbox", expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay"] },
+  {
+    brand: "GASBOX",
+    slug: "gasbox",
+    expectedMethods: ["totalMachines", "isPaused", "initiatePlay", "settlePlay"],
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "createGachaMachine", "pullGacha", "resolveGachaPull", "getGachaMachine"],
+    },
+  },
   { brand: "Red Envelope", slug: "red-envelope", expectedMethods: ["isPaused", "createEnvelope", "claim", "getEnvelope"] },
   { brand: "Daily Check-in", slug: "daily-checkin", expectedMethods: ["isPaused", "checkIn", "getPlatformStats"] },
-  { brand: "FogPlay", slug: "fogplay", expectedMethods: ["isPaused", "placeBet", "getBet"] },
+  {
+    brand: "FogPlay",
+    slug: "fogplay",
+    expectedMethods: ["isPaused", "placeBet", "getBet"],
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeCoinFlipBet", "resolveCoinFlipBet", "getCoinFlipBet", "getCoinFlipBetLimits"],
+    },
+  },
+  {
+    brand: "Dice Game",
+    slug: "dice-game",
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
+    },
+  },
   {
     brand: "SelfLoan",
     slug: "self-loan",
@@ -109,14 +134,14 @@ async function main() {
     // against the manifest's canonical hash, not the per-run active network.
     const canonicalNetwork = manifest.default_network || "neo-n3-mainnet";
     const canonicalHash = manifest.contracts?.[canonicalNetwork] || "";
+    const definitionExists = Boolean(definition);
+    const appIndexExists = exists(appIndexPath);
 
-    const registryLinked = builtinsSource.includes(manifest.id);
+    const registryLinked = definitionExists || builtinsSource.includes(manifest.id);
     const homeLinked =
       registryLinked ||
       showcaseSource.includes(manifest.id) ||
       homeSource.includes(manifest.id);
-    const appIndexExists = exists(appIndexPath);
-    const definitionExists = Boolean(definition);
     const definitionIdMatches = definitionExists && definition.app_id === manifest.id;
     const definitionHashMatches =
       definitionExists &&

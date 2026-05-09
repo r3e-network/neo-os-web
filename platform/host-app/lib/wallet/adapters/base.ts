@@ -68,6 +68,12 @@ export interface WalletAdapter {
   /** Invoke a smart contract */
   invoke(params: InvokeParams): Promise<TransactionResult>;
 
+  /** Invoke multiple contracts in one wallet transaction when the provider supports NEP-21 batching */
+  invokeMultiple?(
+    params: InvokeParams[],
+    signers?: InvokeParams["signers"],
+  ): Promise<TransactionResult>;
+
   /** Subscribe to wallet account changes when supported by the provider */
   onAccountChanged?(listener: () => void | Promise<void>): () => void;
 

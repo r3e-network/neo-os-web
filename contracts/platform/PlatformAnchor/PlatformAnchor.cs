@@ -120,22 +120,14 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         public static void RegisterAnchorApp(string appId, BigInteger mode, UInt160 appAdmin)
         {
             ValidateAdmin();
+            RegisterAnchorAppCore(appId, mode, appAdmin);
+        }
+
+        public static void RegisterCustomAnchorApp(string appId, BigInteger mode, UInt160 appAdmin)
+        {
             ValidateAddress(appAdmin);
-            ValidateAppId(appId);
-            ExecutionEngine.Assert(mode == MODE_TRUST || mode == MODE_PROFIT, "invalid anchor mode");
-            ExecutionEngine.Assert(GetRaw(AppKey(appId, PREFIX_APP_MODE)) == null, "app already registered");
-
-            Put(AppKey(appId, PREFIX_APP_MODE), mode);
-            PutAddress(AppKey(appId, PREFIX_APP_ADMIN), appAdmin);
-            Put(AppKey(appId, PREFIX_TOTAL_STAKED), 0);
-            Put(AppKey(appId, PREFIX_TOTAL_STAKERS), 0);
-            Put(AppKey(appId, PREFIX_REWARD_PER_NEO), 0);
-            Put(AppKey(appId, PREFIX_REWARD_RESERVE), 0);
-            Put(AppKey(appId, PREFIX_REWARD_REMAINDER), 0);
-            Put(AppKey(appId, PREFIX_AGENT_COUNT), 0);
-            Put(AppKey(appId, PREFIX_SELECTED_AGENT), 0);
-
-            OnAnchorAppRegistered(appId, mode, appAdmin);
+            ExecutionEngine.Assert(Runtime.CheckWitness(appAdmin), "app admin witness required");
+            RegisterAnchorAppCore(appId, mode, appAdmin);
         }
 
         public static void SetAppPaused(string appId, bool paused)
@@ -482,6 +474,26 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             UInt160 admin = Admin();
             ExecutionEngine.Assert(admin != UInt160.Zero && admin.IsValid, "admin not set");
             ExecutionEngine.Assert(Runtime.CheckWitness(admin), "unauthorized");
+        }
+
+        private static void RegisterAnchorAppCore(string appId, BigInteger mode, UInt160 appAdmin)
+        {
+            ValidateAddress(appAdmin);
+            ValidateAppId(appId);
+            ExecutionEngine.Assert(mode == MODE_TRUST || mode == MODE_PROFIT, "invalid anchor mode");
+            ExecutionEngine.Assert(GetRaw(AppKey(appId, PREFIX_APP_MODE)) == null, "app already registered");
+
+            Put(AppKey(appId, PREFIX_APP_MODE), mode);
+            PutAddress(AppKey(appId, PREFIX_APP_ADMIN), appAdmin);
+            Put(AppKey(appId, PREFIX_TOTAL_STAKED), 0);
+            Put(AppKey(appId, PREFIX_TOTAL_STAKERS), 0);
+            Put(AppKey(appId, PREFIX_REWARD_PER_NEO), 0);
+            Put(AppKey(appId, PREFIX_REWARD_RESERVE), 0);
+            Put(AppKey(appId, PREFIX_REWARD_REMAINDER), 0);
+            Put(AppKey(appId, PREFIX_AGENT_COUNT), 0);
+            Put(AppKey(appId, PREFIX_SELECTED_AGENT), 0);
+
+            OnAnchorAppRegistered(appId, mode, appAdmin);
         }
 
         private static void ValidateAppAuthority(string appId)

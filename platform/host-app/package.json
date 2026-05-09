@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@noble/hashes": "^1.8.0",
     "@r3e/neo-js-sdk": "https://codeload.github.com/r3e-network/neo-js-sdk/tar.gz/refs/tags/v0.3.7-r3e.1",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.48.0",

@@ -72,6 +72,41 @@ describe("Nep21Adapter", () => {
     );
   });
 
+  it("submits multiple invocations atomically through the NEP-21 provider", async () => {
+    const provider = {
+      network: 894710606,
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xuserhash", address: "NUserAddress", label: "Main", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xbatch" }),
+    };
+    installProvider(provider);
+
+    const adapter = new Nep21Adapter();
+    await adapter.connect();
+
+    await expect(adapter.invokeMultiple([
+      {
+        scriptHash: "0xaa",
+        operation: "registerAccounts",
+        args: [{ type: "Hash160", value: "NUserAddress" }],
+      },
+      {
+        scriptHash: "0xbb",
+        operation: "registerCustomAnchorApp",
+        args: [{ type: "String", value: "custom-anchor:demo" }],
+      },
+    ], [{ account: "NUserAddress", scopes: 1 }])).resolves.toEqual({ txid: "0xbatch" });
+
+    expect(provider.invoke).toHaveBeenCalledWith(
+      [
+        { hash: "0xaa", operation: "registerAccounts", args: [{ type: "Hash160", value: "0xuserhash" }] },
+        { hash: "0xbb", operation: "registerCustomAnchorApp", args: [{ type: "String", value: "custom-anchor:demo" }] },
+      ],
+      [{ account: "0xuserhash", scopes: "CalledByEntry" }],
+    );
+  });
+
   it("falls back to authenticate when accounts are unavailable", async () => {
     const provider = {
       supportedNetworks: [894710606],

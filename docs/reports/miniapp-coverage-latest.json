@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-05-08T15:21:21.681Z",
+  "generated_at": "2026-05-08T18:46:21.294Z",
   "testnet_rpc": "https://api.n3index.dev/testnet",
   "mainnet_rpc": "https://api.n3index.dev/mainnet",
   "testnet_network_magic": 894710606,
   "mainnet_network_magic": 860833102,
   "summary": {
-    "testnet+mainnet": 34,
+    "testnet+mainnet": 35,
     "frontend-only": 24,
-    "mainnet-only-no-source": 1
+    "mainnet-only-testnet-deferred": 1
   },
   "action_required": [],
   "rows": [
@@ -176,6 +176,23 @@
       "mainnet_hash": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
       "mainnet_exists": true,
       "mainnet_name": "MiniAppCouncilGovernance",
+      "mainnet_release_status": null,
+      "mainnet_release_reason": null,
+      "action_required": null,
+      "stale_readme_flags": []
+    },
+    {
+      "app": "custom-anchor",
+      "app_id": "miniapp-custom-anchor",
+      "classification": "testnet+mainnet",
+      "source_present": true,
+      "stateless": false,
+      "testnet_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+      "testnet_exists": true,
+      "testnet_name": "PlatformAnchor",
+      "mainnet_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "mainnet_exists": true,
+      "mainnet_name": "PlatformAnchor",
       "mainnet_release_status": null,
       "mainnet_release_reason": null,
       "action_required": null,
@@ -847,8 +864,8 @@
     {
       "app": "recovery-guardian",
       "app_id": "miniapp-recovery-guardian",
-      "classification": "mainnet-only-no-source",
-      "source_present": false,
+      "classification": "mainnet-only-testnet-deferred",
+      "source_present": true,
       "stateless": true,
       "testnet_hash": null,
       "testnet_exists": false,
@@ -856,7 +873,7 @@
       "mainnet_hash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
       "mainnet_exists": true,
       "mainnet_name": "SocialRecoveryVerifier",
-      "mainnet_release_status": null,
+      "mainnet_release_status": "deployed",
       "mainnet_release_reason": null,
       "action_required": null,
       "stale_readme_flags": []

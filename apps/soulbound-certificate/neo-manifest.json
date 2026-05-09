@@ -7,10 +7,14 @@
     "neo-n3-mainnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
     "neo-n3-testnet": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b"
   },
+  "contract_domains": {
+    "neo-n3-mainnet": "soulboundcertificate.miniapp.neo"
+  },
   "createdAt": "2026-01-01T00:00:00Z",
   "default_network": "neo-n3-mainnet",
   "deployment": {
     "neo-n3-mainnet": {
+      "domain": "soulboundcertificate.miniapp.neo",
       "reason": "Dedicated contract restored, audited for update coverage, deployed to mainnet, and smoke-tested with template/issue/revoke.",
       "status": "deployed",
       "verified_at": "2026-05-08T12:10:43Z"

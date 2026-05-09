@@ -50,6 +50,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaAddressMarket": "market.smartwallet.neo",
       "aaPaymaster": "paymaster.smartwallet.neo",
       "oracle": "oracle.morpheus.neo",
+      "callbackConsumer": "callback.morpheus.neo",
       "datafeed": "pricefeed.morpheus.neo",
       "neodid": "neodid.morpheus.neo"
     }
@@ -101,6 +102,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
       "aaAddressMarket": "",
       "aaPaymaster": "",
       "oracle": "",
+      "callbackConsumer": "",
       "datafeed": "",
       "neodid": ""
     }

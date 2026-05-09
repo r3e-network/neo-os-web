@@ -350,11 +350,14 @@ export function useGasLuckyPool({
     isLoading.set(true);
     lastError.set("");
     try {
-      currentPool.set(null);
-      recentPools.set([]);
-      recentClaims.set([]);
+      const tasks: Promise<unknown>[] = [loadRecentPools(), loadRecentClaims()];
+      if (currentPoolId.get()) tasks.unshift(loadPool(currentPoolId.get()));
+      else currentPool.set(null);
+      await Promise.all(tasks);
     } catch (error) {
-      lastError.set(error instanceof Error ? error.message : t("loadFailed"));
+      if (!isWalletUnavailableError(error)) {
+        lastError.set(error instanceof Error ? error.message : t("loadFailed"));
+      }
     } finally {
       isLoading.set(false);
     }
