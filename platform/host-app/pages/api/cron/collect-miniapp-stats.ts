@@ -1,8 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { getServerSupabaseClient } from "@/lib/server-supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Vercel cron or manual trigger
 export default async function handler(
@@ -27,7 +28,8 @@ export default async function handler(
     return apiError.unauthorized(res, "Unauthorized");
   }
 
-  if (!isSupabaseConfigured) {
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
     return apiError.internal(res, "Database not configured");
   }
 
@@ -53,7 +55,7 @@ export default async function handler(
 
     for (const app of apps) {
       try {
-        await collectAppStats(app.app_id, app.contract_hash, network);
+        await collectAppStats(supabase, app.app_id, app.contract_hash, network);
         results.push({ appId: app.app_id, success: true });
       } catch (error) {
         logger.warn(
@@ -85,6 +87,7 @@ export default async function handler(
 }
 
 async function collectAppStats(
+  supabase: SupabaseClient,
   appId: string,
   contractHash: string,
   network: "testnet" | "mainnet",

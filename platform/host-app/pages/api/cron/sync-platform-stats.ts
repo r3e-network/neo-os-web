@@ -8,9 +8,10 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
-import { supabase, isSupabaseConfigured } from "../../../lib/supabase";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { getServerSupabaseClient } from "@/lib/server-supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 function getPlatformAddress(): string {
   return (
@@ -50,12 +51,13 @@ export default async function handler(
     return apiError.unauthorized(res, "Unauthorized");
   }
 
-  if (!isSupabaseConfigured) {
+  const supabase = getServerSupabaseClient({ requireServiceRole: true });
+  if (!supabase) {
     return apiError.internal(res, "Database not configured");
   }
 
   try {
-    const result = await syncPlatformStats();
+    const result = await syncPlatformStats(supabase);
     res.status(200).json(result);
     return;
   } catch (error) {
@@ -67,7 +69,7 @@ export default async function handler(
   }
 }
 
-async function syncPlatformStats(): Promise<SyncResult> {
+async function syncPlatformStats(supabase: SupabaseClient): Promise<SyncResult> {
   const [simTxRes, serviceRes, eventsRes] = await Promise.all([
     supabase.from("simulation_txs").select("*", { count: "exact", head: true }),
     supabase

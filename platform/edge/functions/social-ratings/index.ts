@@ -1,7 +1,7 @@
 import { handleCorsPreflight } from "../_shared/cors.ts";
 import { error, json } from "../_shared/response.ts";
 import { requireRateLimit } from "../_shared/ratelimit.ts";
-import { supabaseClient, tryGetUser } from "../_shared/supabase.ts";
+import { supabaseClient, supabaseServiceClient, tryGetUser } from "../_shared/supabase.ts";
 
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
@@ -25,7 +25,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "app_id is required", "MISSING_APP_ID", req);
   }
 
-  const supabase = supabaseClient();
+  const supabase = supabaseServiceClient();
 
   // Get weighted rating via RPC
   const { data: ratingData, error: rpcErr } = await supabase.rpc("calculate_app_rating_weighted", { p_app_id: appId });
