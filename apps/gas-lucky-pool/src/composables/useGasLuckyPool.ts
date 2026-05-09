@@ -605,7 +605,7 @@ export function useGasLuckyPool({
       throw new Error(message);
     }
     return body as {
-      status?: "submitted" | "paid";
+      status?: "submitted" | "paid" | "failed";
       amountFixed8?: string;
       luckPercent?: string;
       txHash?: string;
@@ -661,20 +661,25 @@ export function useGasLuckyPool({
       currentClaimKey.set(claimKey);
       lastClaimKey.set(claimKey);
       lastTxid.set(String(result.txHash || ""));
-      lastSuccessType.set("claim");
       claimStatus.set(result.status === "paid" ? "paid" : "submitted");
-      const amount = asBigInt(result.amountFixed8);
-      if (amount > 0n) lastClaimAmount.set(amount);
-      lastClaimLuckPercent.set(
-        String(
-          result.luckPercent || luckPercentFromFixed8(result.amountFixed8),
-        ),
-      );
+      if (result.status === "paid") {
+        lastSuccessType.set("claim");
+        const amount = asBigInt(result.amountFixed8);
+        if (amount > 0n) lastClaimAmount.set(amount);
+        lastClaimLuckPercent.set(
+          String(
+            result.luckPercent || luckPercentFromFixed8(result.amountFixed8),
+          ),
+        );
+      }
 
       if (result.status !== "paid") {
-        await pollClaimStatus(claimKey, address, identity).catch(
+        const finalStatus = await pollClaimStatus(claimKey, address, identity).catch(
           () => undefined,
         );
+        if (finalStatus?.status === "failed") {
+          throw new Error(t("claimFailed"));
+        }
       }
 
       return {
@@ -703,7 +708,7 @@ export function useGasLuckyPool({
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
       const status = await fetchClaimStatus(claimKey, address, identity);
-      if (status.amountFixed8) {
+      if (status.status === "paid" && status.amountFixed8) {
         const amount = asBigInt(status.amountFixed8);
         if (amount > 0n) lastClaimAmount.set(amount);
         lastClaimLuckPercent.set(
@@ -715,9 +720,16 @@ export function useGasLuckyPool({
       if (status.txHash) lastTxid.set(String(status.txHash));
       if (status.status === "paid") {
         claimStatus.set("paid");
+        lastSuccessType.set("claim");
         return status;
       }
       if (status.status === "submitted") claimStatus.set("submitted");
+      if (status.status === "failed") {
+        claimStatus.set("failed");
+        lastSuccessType.set("");
+        lastError.set(t("claimFailed"));
+        return status;
+      }
     }
     return null;
   }
@@ -734,7 +746,7 @@ export function useGasLuckyPool({
     const status = await fetchClaimStatus(key, address, identity);
     lastClaimKey.set(key);
     if (status.txHash) lastTxid.set(String(status.txHash));
-    if (status.amountFixed8) {
+    if (status.status === "paid" && status.amountFixed8) {
       const amount = asBigInt(status.amountFixed8);
       if (amount > 0n) lastClaimAmount.set(amount);
       lastClaimLuckPercent.set(
@@ -743,8 +755,18 @@ export function useGasLuckyPool({
         ),
       );
     }
-    claimStatus.set(status.status === "paid" ? "paid" : "submitted");
+    claimStatus.set(
+      status.status === "paid"
+        ? "paid"
+        : status.status === "failed"
+          ? "failed"
+          : "submitted",
+    );
     if (status.status === "paid") lastSuccessType.set("claim");
+    if (status.status === "failed") {
+      lastSuccessType.set("");
+      lastError.set(t("claimFailed"));
+    }
     return status;
   }
 
