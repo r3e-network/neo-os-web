@@ -165,8 +165,10 @@ const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
   "onegate-vault": "miniapp-gas-lucky-pool",
 };
 
+const ONEGATE_VAULT_APP_ID = "miniapp-gas-lucky-pool";
+const ONEGATE_VAULT_DAPP_ID = "23";
 const ONEGATE_STANDALONE_REDIRECTS: Record<string, string> = {
-  "miniapp-gas-lucky-pool": "/miniapps/gas-lucky-pool/index.html",
+  [ONEGATE_VAULT_APP_ID]: "/miniapps/gas-lucky-pool/index.html",
 };
 
 const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
@@ -242,6 +244,13 @@ export default function MiniAppDetailPage({
   const oneGateLaunchUrl = useMemo(() => {
     if (!app) return "";
     const oneGateDappId = resolveOneGateDappId(app);
+    if (app.app_id === ONEGATE_VAULT_APP_ID) {
+      return buildOneGateVaultLaunchUrl(
+        oneGateDappId || ONEGATE_VAULT_DAPP_ID,
+        launchContext.params,
+        targetCatalogNetwork,
+      );
+    }
     const launchParams = {
       ...launchContext.params,
       ...(launchContext.operation
@@ -2482,6 +2491,38 @@ function resolveOneGateDappId(app: MiniAppInfo): string {
   return /^[A-Za-z0-9_.:-]{1,128}$/.test(raw) ? raw : "";
 }
 
+function firstQueryString(
+  params: Record<string, string>,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = getString(params[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function buildOneGateVaultLaunchUrl(
+  oneGateDappId: string,
+  params: Record<string, string>,
+  network: CatalogNetwork | null,
+): string {
+  const dappId = getString(oneGateDappId) || ONEGATE_VAULT_DAPP_ID;
+  const url = new URL(
+    `https://onegate.space/app/${encodeURIComponent(dappId)}`,
+  );
+  const key = firstQueryString(params, ["key", "claimKey", "code", "k"]);
+  const pool = firstQueryString(params, ["pool", "poolId", "campaignId"]);
+  const networkParam =
+    firstQueryString(params, ["network", "chain"]) ||
+    oneGateNetworkParam(network);
+
+  if (key) url.searchParams.set("key", key);
+  if (pool) url.searchParams.set("pool", pool);
+  if (networkParam) url.searchParams.set("network", networkParam);
+  return url.toString();
+}
+
 function supportsPageCatalogNetwork(
   app: MiniAppInfo,
   network: CatalogNetwork | null,
@@ -2588,12 +2629,17 @@ function resolveOneGateStandaloneRedirect(
     params.get("source") === "onegate" ||
     params.has("oneGateAppId") ||
     params.has("oneGateId") ||
-    params.get("operation") === "claimOneGateVault";
+    params.get("operation") === "claimOneGateVault" ||
+    params.has("key") ||
+    params.has("claimKey") ||
+    params.has("code") ||
+    params.has("k") ||
+    params.has("pool") ||
+    params.has("poolId");
   if (!isOneGateLaunch) return null;
 
-  if (!params.has("source")) params.set("source", "onegate");
-  if (!params.has("appId")) params.set("appId", id);
-  return `${destination}?${params.toString()}`;
+  const query = params.toString();
+  return query ? `${destination}?${query}` : destination;
 }
 
 // Server-Side Props

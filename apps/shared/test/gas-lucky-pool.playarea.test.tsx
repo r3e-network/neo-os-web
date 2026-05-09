@@ -65,7 +65,10 @@ function t(key: string, params?: Record<string, string | number>) {
 }
 
 function launch(claimKey = "ogv_test_key_1234567890") {
-  return launchWithOperation("claimPool", claimKey);
+  return parseMiniAppLaunchContext(
+    `https://onegate.space/app/23?key=${claimKey}&pool=pool-001&network=testnet`,
+    "miniapp-gas-lucky-pool",
+  );
 }
 
 function launchWithOperation(

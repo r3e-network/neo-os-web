@@ -10,9 +10,10 @@ import {
   getLaunchParam,
   type MiniAppLaunchContext,
 } from "@shared/utils/launch-params";
-import { buildOneGateDirectMiniAppUrl } from "@shared/utils/onegate-launch";
 
 const APP_ID = "miniapp-gas-lucky-pool";
+const ONEGATE_VAULT_DAPP_ID = "23";
+const ONEGATE_VAULT_APP_URL = `https://onegate.space/app/${ONEGATE_VAULT_DAPP_ID}`;
 const ONE_GAS_FIXED8 = 100000000n;
 const MAX_VAULT_REWARD_FIXED8 = 50n * ONE_GAS_FIXED8;
 
@@ -180,14 +181,12 @@ function buildClaimKeyUrl(
 ) {
   const key = normalizeClaimKey(claimKey);
   if (!key) return "";
-  const params: Record<string, string | undefined> = {
-    operation: "claimPool",
-    network: network ?? undefined,
-    claimKey: key,
-  };
-  if (identity.poolId) params.pool = identity.poolId;
-  if (identity.oneGateAppId) params.oneGateAppId = identity.oneGateAppId;
-  return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, params);
+  const appId = normalizeClaimIdentity(identity.oneGateAppId) || ONEGATE_VAULT_DAPP_ID;
+  const url = new URL(`https://onegate.space/app/${encodeURIComponent(appId)}`);
+  url.searchParams.set("key", key);
+  if (identity.poolId) url.searchParams.set("pool", identity.poolId);
+  if (network) url.searchParams.set("network", network);
+  return url.toString();
 }
 
 function buildLegacyPoolClaimUrl(
@@ -196,11 +195,10 @@ function buildLegacyPoolClaimUrl(
 ) {
   const id = normalizePoolId(poolId);
   if (!id) return "";
-  return buildOneGateDirectMiniAppUrl("gas-lucky-pool", APP_ID, {
-    operation: "claimPool",
-    network: network ?? undefined,
-    poolId: id,
-  });
+  const url = new URL(ONEGATE_VAULT_APP_URL);
+  url.searchParams.set("pool", id);
+  if (network) url.searchParams.set("network", network);
+  return url.toString();
 }
 
 export function useGasLuckyPool({

@@ -183,8 +183,8 @@ const appMessages = {
     zh: "前端不决定奖励金额，也不保存活动原始 key。服务器校验 key 哈希、网络、活动状态、剩余额度、一次性语义、钱包绑定、随机发放金额和 tx-proxy 转账结果。",
   },
   docOneGateFlow: {
-    en: "The claim QR points to the standalone dApp and carries source=onegate, appId, operation=claimPool, network, and claimKey. OneGate opens the dApp directly, pre-fills the claim key, injects the wallet address, and lets the dApp submit the backend claim.",
-    zh: "领取二维码指向独立 dApp，并包含 source=onegate、appId、operation=claimPool、network 和 claimKey。OneGate 可直接打开 dApp、自动填入领取 key、注入钱包地址，并由小程序提交后端领取请求。",
+    en: "The claim QR opens OneGate app 23 directly and only carries key, pool, and network. OneGate opens the dApp, the dApp pre-fills the claim key, injects the wallet address, and submits the backend claim.",
+    zh: "领取二维码直接打开 OneGate app 23，只携带 key、pool 和 network。OneGate 打开小程序后，小程序自动填入领取 key、注入钱包地址，并提交后端领取请求。",
   },
 } as const;
 
