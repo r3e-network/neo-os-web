@@ -16,6 +16,13 @@ interface PlayAreaProps {
   launchContext: MiniAppLaunchContext;
 }
 
+function maskClaimKey(value: string): string {
+  const key = normalizeClaimKey(value);
+  if (!key) return "";
+  if (key.length <= 12) return `${key.slice(0, 4)}...`;
+  return `${key.slice(0, 7)}...${key.slice(-4)}`;
+}
+
 export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
   const { str, val } = useStateBindings(state as ObservableState);
   const currentClaimKey = str(
@@ -36,14 +43,21 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
       currentClaimKey,
     ),
   );
+  const isClaimOperation =
+    launchContext.operation === "claimPool" ||
+    launchContext.operation === "claimOneGateVault";
   const isOneGateClaimLaunch =
     launchContext.source === "onegate" &&
-    launchContext.operation === "claimPool" &&
+    isClaimOperation &&
     Boolean(launchClaimKey);
   const claimSucceeded =
-    lastSuccessType === "claim" && Boolean(lastTxid) && !lastError;
+    lastSuccessType === "claim" &&
+    claimStatus === "paid" &&
+    Boolean(lastTxid) &&
+    !lastError;
   const preloadedLaunchKeyRef = useRef("");
   const [claimKey, setClaimKey] = useState(currentClaimKey || launchClaimKey);
+  const displayClaimKey = maskClaimKey(lastClaimKey || claimKey);
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -75,11 +89,11 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
                 {lastClaimAmount > 0n
                   ? t("claimCongratsBody", {
                       amount: formatGas(lastClaimAmount, 4),
-                      claimKey: lastClaimKey || claimKey,
+                      claimKey: displayClaimKey,
                       poolId: "OneGate Vault",
                     })
                   : t("claimCongratsPending", {
-                      claimKey: lastClaimKey || claimKey,
+                      claimKey: displayClaimKey,
                       poolId: "OneGate Vault",
                     })}
               </p>

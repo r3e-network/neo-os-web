@@ -78,6 +78,24 @@ describe("MiniAppDetailPage shared runtime", () => {
     expect(result).toEqual({ notFound: true });
   });
 
+  it("redirects OneGate Vault launch URLs to the standalone dApp", async () => {
+    const result = await getServerSideProps({
+      params: { id: "miniapp-gas-lucky-pool" },
+      req: {
+        headers: { host: "127.0.0.1:3000" },
+        url: "/miniapps/miniapp-gas-lucky-pool?source=onegate&operation=claimOneGateVault&network=testnet&pool=pool-001&key=ogv_user_42&oneGateAppId=23",
+      },
+    } as any);
+
+    expect(result).toEqual({
+      redirect: {
+        destination:
+          "/miniapps/gas-lucky-pool/index.html?source=onegate&operation=claimOneGateVault&network=testnet&pool=pool-001&key=ogv_user_42&oneGateAppId=23&appId=miniapp-gas-lucky-pool",
+        permanent: false,
+      },
+    });
+  });
+
   it("renders shared runtime bindings for shared-mode apps", () => {
     render(
       <MiniAppDetailPage

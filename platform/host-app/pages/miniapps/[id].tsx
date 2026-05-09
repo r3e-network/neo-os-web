@@ -165,6 +165,10 @@ const MINIAPP_DETAIL_ROUTE_ALIASES: Record<string, string> = {
   "onegate-vault": "miniapp-gas-lucky-pool",
 };
 
+const ONEGATE_STANDALONE_REDIRECTS: Record<string, string> = {
+  "miniapp-gas-lucky-pool": "/miniapps/gas-lucky-pool/index.html",
+};
+
 const ONEGATE_QR_LOGO_SRC = "/miniapps/gas-lucky-pool/onegate-logo.png";
 const TAB_PANEL_CLASSNAME =
   "min-h-[38rem] [overflow-anchor:none] [contain:layout]";
@@ -2571,6 +2575,27 @@ function appendNavItemIfMissing(
   ];
 }
 
+function resolveOneGateStandaloneRedirect(
+  id: string,
+  url: string | undefined,
+): string | null {
+  const destination = ONEGATE_STANDALONE_REDIRECTS[id];
+  if (!destination) return null;
+
+  const queryString = (url || "").split("?")[1] || "";
+  const params = new URLSearchParams(queryString);
+  const isOneGateLaunch =
+    params.get("source") === "onegate" ||
+    params.has("oneGateAppId") ||
+    params.has("oneGateId") ||
+    params.get("operation") === "claimOneGateVault";
+  if (!isOneGateLaunch) return null;
+
+  if (!params.has("source")) params.set("source", "onegate");
+  if (!params.has("appId")) params.set("appId", id);
+  return `${destination}?${params.toString()}`;
+}
+
 // Server-Side Props
 export const getServerSideProps: GetServerSideProps<
   AppDetailPageProps
@@ -2584,6 +2609,19 @@ export const getServerSideProps: GetServerSideProps<
     return {
       redirect: {
         destination: `/miniapps/${id}${queryString ? `?${queryString}` : ""}`,
+        permanent: false,
+      },
+    };
+  }
+
+  const oneGateStandaloneRedirect = resolveOneGateStandaloneRedirect(
+    id,
+    context.req.url,
+  );
+  if (oneGateStandaloneRedirect) {
+    return {
+      redirect: {
+        destination: oneGateStandaloneRedirect,
         permanent: false,
       },
     };

@@ -345,9 +345,10 @@ describe("OneGate Vault off-chain claim engine", () => {
     expect(formatFixed8Gas("123456789")).toBe("1.23456789");
   });
 
-  it("uses the Morpheus edge txproxy path when a dedicated Vault tx proxy URL is not configured", async () => {
+  it("uses the network-scoped Morpheus edge txproxy path when a dedicated Vault tx proxy URL is not configured", async () => {
     const originalFetch = global.fetch;
     const originalEdgeApiBase = process.env.EDGE_API_BASE;
+    const originalMorpheusEdgeBase = process.env.MORPHEUS_EDGE_BASE;
     const originalTxProxyUrl = process.env.TX_PROXY_URL;
     const originalVaultTxProxyUrl = process.env.ONEGATE_VAULT_TX_PROXY_URL;
     const fetchMock = jest.fn().mockResolvedValue({
@@ -357,10 +358,13 @@ describe("OneGate Vault off-chain claim engine", () => {
     global.fetch = fetchMock as never;
     delete process.env.TX_PROXY_URL;
     delete process.env.ONEGATE_VAULT_TX_PROXY_URL;
-    process.env.EDGE_API_BASE = "https://edge.example";
+    delete process.env.EDGE_API_BASE;
+    process.env.MORPHEUS_EDGE_BASE = "https://edge.example";
 
     try {
-      const payment = createTxProxyOneGateVaultPaymentService();
+      const payment = createTxProxyOneGateVaultPaymentService({
+        rewardSource: "0x***REMOVED***01234567",
+      });
       const result = await payment.sendGas({
         requestId: "req-1",
         network: "mainnet",
@@ -370,13 +374,33 @@ describe("OneGate Vault off-chain claim engine", () => {
 
       expect(result).toEqual({ txHash: "0xedge", status: "paid" });
       expect(fetchMock).toHaveBeenCalledWith(
-        "https://edge.example/txproxy/invoke",
+        "https://edge.example/mainnet/txproxy/invoke",
         expect.objectContaining({ method: "POST" }),
       );
+      const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(JSON.parse(String(request.body))).toMatchObject({
+        request_id: "req-1",
+        network: "mainnet",
+        intent: "gas-sponsor",
+        method: "transfer",
+        contract_hash: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        params: [
+          {
+            type: "Hash160",
+            value: "0x***REMOVED***01234567",
+          },
+          { type: "Hash160", value: WALLET },
+          { type: "Integer", value: "100000000" },
+          { type: "Any", value: null },
+        ],
+      });
     } finally {
       global.fetch = originalFetch;
       if (originalEdgeApiBase === undefined) delete process.env.EDGE_API_BASE;
       else process.env.EDGE_API_BASE = originalEdgeApiBase;
+      if (originalMorpheusEdgeBase === undefined)
+        delete process.env.MORPHEUS_EDGE_BASE;
+      else process.env.MORPHEUS_EDGE_BASE = originalMorpheusEdgeBase;
       if (originalTxProxyUrl === undefined) delete process.env.TX_PROXY_URL;
       else process.env.TX_PROXY_URL = originalTxProxyUrl;
       if (originalVaultTxProxyUrl === undefined) {
@@ -384,6 +408,38 @@ describe("OneGate Vault off-chain claim engine", () => {
       } else {
         process.env.ONEGATE_VAULT_TX_PROXY_URL = originalVaultTxProxyUrl;
       }
+    }
+  });
+
+  it("surfaces non-JSON txproxy failures with HTTP status for payout diagnosis", async () => {
+    const originalFetch = global.fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: jest.fn().mockResolvedValue("<html>Not Found</html>"),
+    });
+    global.fetch = fetchMock as never;
+
+    try {
+      const payment = createTxProxyOneGateVaultPaymentService({
+        txProxyUrl: "https://edge.example/txproxy",
+        rewardSource: "0x***REMOVED***01234567",
+      });
+
+      await expect(
+        payment.sendGas({
+          requestId: "req-1",
+          network: "testnet",
+          toAddress: WALLET,
+          amountFixed8: "100000000",
+        }),
+      ).rejects.toMatchObject({
+        code: "PAYMENT_FAILED",
+        message:
+          "tx-proxy rejected OneGate Vault payout (404): Not Found",
+      });
+    } finally {
+      global.fetch = originalFetch;
     }
   });
 
