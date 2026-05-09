@@ -51,6 +51,7 @@ platform/host-app/.playwright-standalone/
 
 # Local test/output artifacts
 test-results/
+output/
 apps/dashboard/test-results/
 platform/host-app/playwright-report/
 platform/edge/cov_profile/

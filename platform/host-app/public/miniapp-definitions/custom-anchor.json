@@ -1,0 +1,297 @@
+{
+  "$schema": "./miniapp-config.schema.json",
+  "app_id": "miniapp-custom-anchor",
+  "name": "Custom Anchor",
+  "description": "Create your own NEO staking anchor with 21 AA agent accounts, then let users stake NEO, redeem NEO, and claim GAS rewards through the same simple flow.",
+  "template_type": "governance",
+  "category": "Governance",
+  "tags": ["staking", "voting", "governance", "aa", "anchor"],
+  "version": "1.0.0",
+  "status": "active",
+  "developer": {
+    "name": "Yiwu",
+    "url": "https://neomini.app"
+  },
+  "contract": {
+    "template_id": "platform-anchor",
+    "init_params": {
+      "mode": "custom"
+    }
+  },
+  "runtime": {
+    "mode": "platform",
+    "modules": [
+      {
+        "binding": "platform-anchor",
+        "platform": "neo-n3",
+        "appId": "miniapp-custom-anchor",
+        "networks": {
+          "neo-n3-mainnet": {
+            "contract_hash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+            "registered": true,
+            "domain": "customanchor.miniapp.neo"
+          },
+          "neo-n3-testnet": {
+            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "registered": true
+          }
+        }
+      }
+    ]
+  },
+  "entry_url": "mf://manifest?app=miniapp-custom-anchor",
+  "media": {
+    "icon": "/miniapp-assets/trustanchor/logo.jpg",
+    "banner": "/miniapp-assets/trustanchor/banner.jpg"
+  },
+  "permissions": {
+    "payments": true,
+    "governance": true,
+    "aa": true
+  },
+  "frontend_spec": {
+    "layout": "default",
+    "hero": {
+      "eyebrow": "Custom Anchor"
+    },
+    "tabs": [
+      {
+        "id": "overview",
+        "label": "Overview",
+        "type": "content",
+        "blocks": [
+          {
+            "type": "notice",
+            "tone": "info",
+            "content": "Custom Anchor is for teams who want their own 21-agent NEO voting anchor. Registration creates the Anchor app and the 21 AA agent accounts in one NEP-21 batch transaction."
+          },
+          {
+            "type": "bullet_list",
+            "title": "Primary flow",
+            "items": [
+              "Register an Anchor with a slug, a nonce, and exactly 21 council candidate public keys.",
+              "Share a link or OneGate QR with anchorAppId so users can stake, redeem, and claim rewards.",
+              "Use the operator actions only when you need to move NEO between agents or update a vote target."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reviews",
+        "label": "Reviews",
+        "type": "reviews"
+      }
+    ],
+    "operation_panel": {
+      "title": "Custom Anchor",
+      "subtitle": "Register first. After registration, pass anchorAppId by URL or QR for user staking.",
+      "cta_label": "Open Custom Anchor",
+      "operations": []
+    }
+  },
+  "operations": [
+    {
+      "name": "Register Anchor",
+      "method": "registerCustomAnchor",
+      "button_style": "primary",
+      "priority": "primary",
+      "description": "Creates 21 AA agents and registers them to your Anchor in one NEP-21 batch transaction.",
+      "confirm_message": "Register this Custom Anchor and its 21 AA agents?",
+      "params": [
+        {
+          "name": "slug",
+          "type": "string",
+          "label": "Anchor slug",
+          "required": true,
+          "placeholder": "my-anchor"
+        },
+        {
+          "name": "nonce",
+          "type": "string",
+          "label": "Nonce",
+          "required": true,
+          "placeholder": "unique-private-nonce"
+        },
+        {
+          "name": "mode",
+          "type": "select",
+          "label": "Mode",
+          "required": true,
+          "default_value": "trust",
+          "options": [
+            { "label": "Trust", "value": "trust" },
+            { "label": "Profit", "value": "profit" }
+          ]
+        },
+        {
+          "name": "candidates",
+          "type": "string",
+          "label": "21 candidate public keys",
+          "required": true,
+          "placeholder": "Paste 21 compressed public keys, one per line"
+        }
+      ]
+    },
+    {
+      "name": "Stake NEO",
+      "method": "stakeNeo",
+      "button_style": "primary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "anchorAppId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Redeem NEO",
+      "method": "withdrawNeo",
+      "button_style": "secondary",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "anchorAppId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Claim Rewards",
+      "method": "claimRewards",
+      "button_style": "success",
+      "priority": "primary",
+      "params": [
+        {
+          "name": "anchorAppId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        }
+      ]
+    },
+    {
+      "name": "Move NEO",
+      "method": "transferAgentNeo",
+      "button_style": "secondary",
+      "priority": "operator",
+      "confirm_message": "Move NEO between this Anchor's AA agents?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        },
+        {
+          "name": "fromAgentId",
+          "type": "integer",
+          "label": "From agent",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "toAgentId",
+          "type": "integer",
+          "label": "To agent",
+          "required": true,
+          "placeholder": "2"
+        },
+        {
+          "name": "amount",
+          "type": "integer",
+          "label": "NEO",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    },
+    {
+      "name": "Update Vote Target",
+      "method": "setAgentCandidate",
+      "button_style": "secondary",
+      "priority": "operator",
+      "confirm_message": "Update this agent vote target?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        },
+        {
+          "name": "agentId",
+          "type": "integer",
+          "label": "Agent",
+          "required": true,
+          "placeholder": "1"
+        },
+        {
+          "name": "candidate",
+          "type": "publickey",
+          "label": "Candidate public key",
+          "required": true,
+          "placeholder": "02..."
+        }
+      ]
+    },
+    {
+      "name": "Sync Vote",
+      "method": "voteAgent",
+      "button_style": "secondary",
+      "priority": "operator",
+      "confirm_message": "Sync this agent vote on-chain?",
+      "params": [
+        {
+          "name": "appId",
+          "type": "string",
+          "label": "Anchor App ID",
+          "required": true,
+          "placeholder": "custom-anchor:my-anchor:nonce"
+        },
+        {
+          "name": "agentId",
+          "type": "integer",
+          "label": "Agent",
+          "required": true,
+          "placeholder": "1"
+        }
+      ]
+    }
+  ],
+  "integration": {
+    "news_integration": false,
+    "reviews_enabled": true,
+    "forum_enabled": false,
+    "activity_feed": true,
+    "stats_display": ["total_transactions", "total_gas_used"]
+  },
+  "logic": {
+    "provides": ["customAnchor.selfServeRegistration", "customAnchor.userStakeRedeemClaim"],
+    "depends_on": ["aa.registerAccounts", "platformAnchor.registerCustomAnchorApp", "platformAnchor.registerAgents"]
+  },
+  "docs_url": "https://docs.r3e.network/custom-anchor"
+}

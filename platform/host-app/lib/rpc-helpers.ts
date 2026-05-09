@@ -38,6 +38,7 @@ const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
     "miniapp-trustanchor": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
     "miniapp-profitanchor-admin": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
     "miniapp-trustanchor-admin": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+    "miniapp-custom-anchor": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
   },
   testnet: {
     "miniapp-last-survivor": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
@@ -47,6 +48,7 @@ const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
     "miniapp-trustanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
     "miniapp-profitanchor-admin": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
     "miniapp-trustanchor-admin": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "miniapp-custom-anchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
   },
 };
 

@@ -58,6 +58,14 @@ const items = [
     },
   },
   {
+    brand: "Dice Game",
+    manifest: "apps/dice-game/neo-manifest.json",
+    expectedMethodsByNetwork: {
+      "neo-n3-mainnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
+      "neo-n3-testnet": ["getGameType", "getGameAdmin", "isPaused", "placeDiceBet", "resolveDiceBet", "getDiceBet", "getDiceBetLimits"],
+    },
+  },
+  {
     brand: "SelfLoan",
     manifest: "apps/self-loan/neo-manifest.json",
     expectedMethods: ["isPaused", "createLoan", "repayDebt", "getLoanDetails", "getPlatformStats"],

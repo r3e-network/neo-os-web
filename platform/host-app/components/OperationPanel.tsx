@@ -140,6 +140,7 @@ export function OperationPanel({
           onInvoke={onInvoke}
           disabledReason={disabledReason}
           launchContext={launchContext}
+          compact={embedded}
         />
       </div>
     </div>
@@ -260,11 +261,13 @@ function OperationForm({
   onInvoke,
   disabledReason,
   launchContext,
+  compact,
 }: {
   op: OperationEntry;
   onInvoke: Props["onInvoke"];
   disabledReason?: string | null;
   launchContext?: MiniAppLaunchContext | null;
+  compact?: boolean;
 }) {
   const initialValues = useMemo(
     () => buildLaunchParamValues(op.params ?? [], launchContext?.params),
@@ -343,7 +346,14 @@ function OperationForm({
       : null);
 
   return (
-    <div className="flex max-h-[calc(100vh-10rem)] min-h-0 flex-col sm:max-h-[calc(100vh-11rem)]">
+    <div
+      className={cn(
+        "flex min-h-0 flex-col",
+        compact
+          ? "max-h-[28rem] sm:max-h-[30rem]"
+          : "max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]",
+      )}
+    >
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
         {serverPayoutOperation ? (
           <div
@@ -690,24 +700,39 @@ function ParamInput({
   }
 
   const inputId = param.name || label.toLowerCase().replace(/\s+/g, "-");
+  const multiline =
+    param.type === "string" &&
+    /candidate|public\s*keys|keys|list/i.test(`${param.name} ${label}`);
+
   return (
     <div className="flex flex-col space-y-1.5">
       <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
         {label}
       </label>
-      <input
-        id={inputId}
-        type={
-          param.type === "amount" || param.type === "integer"
-            ? "number"
-            : "text"
-        }
-        step={param.type === "amount" ? "any" : "1"}
-        className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-        placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+      {multiline ? (
+        <textarea
+          id={inputId}
+          rows={4}
+          className="w-full resize-y rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-xs text-gray-900 transition-all placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      ) : (
+        <input
+          id={inputId}
+          type={
+            param.type === "amount" || param.type === "integer"
+              ? "number"
+              : "text"
+          }
+          step={param.type === "amount" ? "any" : "1"}
+          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          placeholder={param.placeholder || `Enter ${label.toLowerCase()}`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      )}
     </div>
   );
 }

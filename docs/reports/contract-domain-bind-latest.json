@@ -1,0 +1,244 @@
+{
+  "generated_at": "2026-05-09T00:47:19.181Z",
+  "started_at": "2026-05-09T00:47:19.181Z",
+  "network": "neo-n3-mainnet",
+  "rpc_url": "https://mainnet2.neo.coz.io:443",
+  "network_magic": 860833102,
+  "execute": false,
+  "signer_status": "missing",
+  "required_env_keys": [
+    "NEONS_DOMAIN_OWNER_WIF",
+    "NEO_NNS_DOMAIN_OWNER_WIF",
+    "DOMAIN_OWNER_WIF",
+    "NEO_MAINNET_DOMAIN_OWNER_WIF",
+    "MINIAPP_DOMAIN_OWNER_WIF"
+  ],
+  "action_count": 25,
+  "actions": [
+    {
+      "domain": "breakupcontract.miniapp.neo",
+      "expected_address": "NbPfZ6is9YhGxq5eicFx87xVXMddcGUfc3",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "burnleague.miniapp.neo",
+      "expected_address": "NWV1mHMyWXAf5bG3SqYLvd8wrgpmEp4ssT",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "councilgovernance.miniapp.neo",
+      "expected_address": "NfeVDgmwgUmUsqax9a1NKuj3hD4nQuWWk2",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "customanchor.miniapp.neo",
+      "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "devtipping.miniapp.neo",
+      "expected_address": "NatxszWGb1chEFTExZBXVQPaMDndTh7EPe",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "dicegame.miniapp.neo",
+      "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "eventticketpass.miniapp.neo",
+      "expected_address": "NPuUuywgsc87DJ4YHErFKV2HMVacxn4epK",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "flashloan.miniapp.neo",
+      "expected_address": "NgncPGaVETKNoW3fkUaiCg5xw3ynsZbQTo",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "fogplay.miniapp.neo",
+      "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
+      "current_status": "chain_mismatch",
+      "resolved_address": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "gasbox.miniapp.neo",
+      "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
+      "current_status": "chain_mismatch",
+      "resolved_address": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "gassponsor.miniapp.neo",
+      "expected_address": "NhthDnzcNj51JzJqjF4Q9ZVc7XvYWgYrHe",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "govmerc.miniapp.neo",
+      "expected_address": "NeuUiYQ72M2RjNSkRu4aMzW3N9ukUeAsPL",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "graveyard.miniapp.neo",
+      "expected_address": "NeyokrvkoJjSZQw13YDgunhaKfZxKhKQ6N",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "lastsurvivor.miniapp.neo",
+      "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
+      "current_status": "chain_mismatch",
+      "resolved_address": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "memorialshrine.miniapp.neo",
+      "expected_address": "NRytag9phpdkSkrLCPu6GJcjSf5RvEhisH",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "milestoneescrow.miniapp.neo",
+      "expected_address": "NejoTJX5h93tAt8SN9X6cM7u6n7Hsw2uYx",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "neons.miniapp.neo",
+      "expected_address": "NgBFVumLEHH93XMSXQYHEiYR6aoBJRtJLM",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "onchaintarot.miniapp.neo",
+      "expected_address": "NTpJsygF4zyyF1hDmtcfkscWve9xmcz8VT",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "oracle.morpheus.neo",
+      "expected_address": "NhG9Z6za5oGrS7on6qLWLHoKcgUeBdU166",
+      "current_status": "chain_mismatch",
+      "resolved_address": "NZD9U8EiZdTKf7mK7zAX9jEHRSNz6yvLWX",
+      "parent_domain": "morpheus.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "profitanchor.miniapp.neo",
+      "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "quadraticfunding.miniapp.neo",
+      "expected_address": "NS3okje3AgAadrZr7zvYcq7rmVf9jf91GL",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "soulboundcertificate.miniapp.neo",
+      "expected_address": "NVkc9yoxQdkxFcw88BNzD7SooRnqcHuZfk",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "timecapsule.miniapp.neo",
+      "expected_address": "NYTrtqQYRnCSLevV9hzAXcgifhGZq2HcU1",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "trustanchor.miniapp.neo",
+      "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    },
+    {
+      "domain": "unbreakablevault.miniapp.neo",
+      "expected_address": "NbUtbDH7UmPXHqfpjcr7DMa59KLtduUnUX",
+      "current_status": "chain_missing",
+      "resolved_address": "",
+      "parent_domain": "miniapp.neo",
+      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
+      "status": "blocked_missing_signer"
+    }
+  ]
+}
