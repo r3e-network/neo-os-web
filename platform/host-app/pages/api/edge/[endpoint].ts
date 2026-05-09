@@ -8,6 +8,29 @@ const FETCH_TIMEOUT_MS = 10_000;
 const MAX_BODY_SIZE = 256 * 1024;
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024;
 
+const UNAUTHENTICATED_READ_DEFAULTS: Record<string, unknown> = {
+  "os-badge-get-stat": "0",
+  "os-badge-list": [],
+  "os-checkin-streak": {
+    currentStreak: 0,
+    highestStreak: 0,
+    totalCheckins: 0,
+    lastCheckinTime: 0,
+    unclaimedRewards: "0",
+    totalClaimed: "0",
+  },
+  "os-escrow-get": null,
+  "os-game-status": null,
+  "os-leaderboard-get": [],
+  "os-nft-list": [],
+  "os-payment-balance": "0",
+  "os-storage-get": null,
+  "os-storage-list": {},
+  "os-storage-read-shared": null,
+  "os-vesting-get": null,
+  "os-vesting-list": [],
+};
+
 function parseAllowlist(raw: string): {
   allowAll: boolean;
   entries: Set<string>;
@@ -29,6 +52,15 @@ function isMiniAppEdgeEndpointAllowed(endpoint: string): boolean {
   if (allowAll) return true;
   if (entries.size > 0) return entries.has(endpoint);
   return endpoint.startsWith("os-");
+}
+
+function hasCallerCredential(req: NextApiRequest): boolean {
+  const auth = req.headers.authorization;
+  const apiKey = req.headers["x-api-key"];
+  return Boolean(
+    (Array.isArray(auth) ? auth[0] : auth)?.trim() ||
+      (Array.isArray(apiKey) ? apiKey[0] : apiKey)?.trim(),
+  );
 }
 
 async function readRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -90,6 +122,16 @@ export default async function handler(
       res,
       "EDGE_BASE_URL (or NEXT_PUBLIC_EDGE_URL / NEXT_PUBLIC_SUPABASE_URL) not configured",
     );
+    return;
+  }
+  if (!hasCallerCredential(req) && endpoint in UNAUTHENTICATED_READ_DEFAULTS) {
+    res.setHeader("Cache-Control", "no-store, private");
+    res.setHeader("X-MiniApp-Edge-State", "wallet-required");
+    res.status(200).json({
+      ok: true,
+      data: UNAUTHENTICATED_READ_DEFAULTS[endpoint],
+      meta: { state: "wallet_required" },
+    });
     return;
   }
 
