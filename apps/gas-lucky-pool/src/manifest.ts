@@ -17,7 +17,7 @@ export const manifest: MiniAppManifest = {
       key: "claimPool",
       titleKey: "claimPoolTitle",
       descriptionKey: "claimPoolDescription",
-      actionKey: "claimScannedKey",
+      actionKey: "claimReward",
       actionMethod: "claimPool",
       priority: "primary",
       fields: [

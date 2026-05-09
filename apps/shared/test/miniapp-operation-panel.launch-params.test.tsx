@@ -13,7 +13,7 @@ afterEach(() => cleanup());
 function t(key: string) {
   const labels: Record<string, string> = {
     claimPoolTitle: "Claim with OneGate",
-    claimScannedKey: "Claim scanned reward",
+    claimReward: "Claim Reward",
     fieldRequired: "Required",
   };
   return labels[key] ?? key;
@@ -33,7 +33,7 @@ describe("MiniAppOperationPanel launch params", () => {
           {
             key: "claimPool",
             titleKey: "claimPoolTitle",
-            actionKey: "claimScannedKey",
+            actionKey: "claimReward",
             actionMethod: "claimPool",
             fields: [
               {
@@ -54,7 +54,7 @@ describe("MiniAppOperationPanel launch params", () => {
     );
 
     const button = screen.getByRole("button", {
-      name: "Claim scanned reward",
+      name: "Claim Reward",
     });
     expect((button as HTMLButtonElement).disabled).toBe(false);
 
