@@ -643,6 +643,19 @@ export function MiniAppOperationPanel({
   function renderOperationCard(operation: OperationDefinition) {
     const visibleFields =
       operation.fields?.filter((field) => !field.hidden) ?? [];
+    const claimOnlyOperation = isOneGateClaimOperation(operation);
+    const claimKeyValue = claimOnlyOperation
+      ? String(
+          formData[operation.key]?.claimKey ??
+            formData[operation.key]?.key ??
+            "",
+        ).trim()
+      : "";
+    const actionLabel = resolveActionLabel(operation);
+    const submitting = isSubmitting(operation.key);
+    const buttonLabel = submitting
+      ? submittingActionLabel(operation, actionLabel)
+      : actionLabel;
 
     return (
       <div
@@ -653,7 +666,18 @@ export function MiniAppOperationPanel({
           <span className="neo-card__title">{resolveTitle(operation)}</span>
         </div>
         <div className="neo-card__body">
-          {resolveDescription(operation) && (
+          {claimOnlyOperation && (
+            <div
+              className={`operation-claim-status${claimKeyValue ? " operation-claim-status--ready" : ""}`}
+            >
+              <span aria-hidden="true" />
+              <strong>
+                {claimKeyValue ? t("scanClaimReady") : t("oneGateReady")}
+              </strong>
+            </div>
+          )}
+
+          {!claimOnlyOperation && resolveDescription(operation) && (
             <p className="operation-description">
               {resolveDescription(operation)}
             </p>
@@ -680,22 +704,21 @@ export function MiniAppOperationPanel({
             </div>
           )}
 
-          {resolveActionLabel(operation) && (
+          {actionLabel && (
             <button
               type="button"
               className={`neo-btn neo-btn--primary neo-btn--lg neo-btn--block operation-action-btn${isSubmitting(operation.key) ? " neo-btn--loading" : ""}`}
               disabled={
                 isSubmitting(operation.key) || !isFormValid(operation.key)
               }
-              aria-label={resolveActionLabel(operation)}
+              aria-label={actionLabel}
               aria-busy={isSubmitting(operation.key)}
               onClick={() => submitOperation(operation)}
             >
-              {isSubmitting(operation.key) ? (
-                <div className="neo-btn__spinner" aria-hidden="true" />
-              ) : (
-                resolveActionLabel(operation)
+              {submitting && (
+                <span className="neo-btn__spinner" aria-hidden="true" />
               )}
+              <span>{buttonLabel}</span>
             </button>
           )}
         </div>
@@ -707,6 +730,27 @@ export function MiniAppOperationPanel({
     const label = t(key);
     return label && label !== key ? label : fallback;
   }
+}
+
+function isOneGateClaimOperation(operation: OperationDefinition): boolean {
+  const text =
+    `${operation.key} ${operation.actionMethod ?? ""} ${operation.actionKey ?? ""}`.toLowerCase();
+  const hiddenClaimKey = operation.fields?.some((field) => {
+    const normalized = field.key.replace(/[-_.:]/g, "").toLowerCase();
+    return field.hidden && (normalized === "claimkey" || normalized === "key");
+  });
+  return Boolean(hiddenClaimKey && /claim/.test(text));
+}
+
+function submittingActionLabel(
+  operation: OperationDefinition,
+  actionLabel?: string,
+): string {
+  return isOneGateClaimOperation(operation)
+    ? "Claiming reward..."
+    : actionLabel
+      ? `${actionLabel}...`
+      : "Processing...";
 }
 
 function splitOperations(operations: OperationDefinition[]) {
