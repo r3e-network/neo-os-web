@@ -162,12 +162,12 @@ const appMessages = {
   scanClaimReady: { en: "OneGate scan detected", zh: "已识别 OneGate 扫码" },
   scanClaimPool: { en: "Reward key is ready", zh: "奖励 key 已准备好" },
   scanClaimReview: {
-    en: "Submit the key and wallet address. The reward server sends GAS and this screen watches the payout.",
-    zh: "提交领取 key 和钱包地址。奖励服务器会发送 GAS，本页面会跟踪发放结果。",
+    en: "Tap Claim Reward. We will send GAS and keep this screen updated.",
+    zh: "点击领取奖励。我们会发放 GAS，并在这里更新进度。",
   },
   claimConsoleHint: {
-    en: "Confirm the claim in the action box. The key stays hidden after the OneGate scan.",
-    zh: "请在操作栏确认领取。OneGate 扫码后的 key 会保持隐藏。",
+    en: "Your key stays hidden after the OneGate scan.",
+    zh: "OneGate 扫码后的 key 会保持隐藏。",
   },
   active: { en: "Active", zh: "进行中" },
   expired: { en: "Expired", zh: "已过期" },
