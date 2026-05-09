@@ -333,6 +333,18 @@ function annotateResolvedMatch(record) {
   return "";
 }
 
+function dedupeDomainBindings(records) {
+  const seen = new Set();
+  const out = [];
+  for (const record of records) {
+    const key = `${record.domain}|${record.expected_address}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(record);
+  }
+  return out;
+}
+
 async function main() {
   const startedAt = new Date().toISOString();
   const records = [...loadMiniAppRecords(), ...loadExternalRecords()];
@@ -381,6 +393,8 @@ async function main() {
       status: resolved_match ? "ok" : classifyRecord(normalizedRecord),
     };
   });
+  const domainBindings = dedupeDomainBindings(enriched);
+  const actionable = domainBindings.filter((record) => record.status !== "ok" && record.status !== "configured_unverified");
 
   const summary = {
     generated_at: new Date().toISOString(),
@@ -395,13 +409,21 @@ async function main() {
     chain_missing: enriched.filter((record) => record.status === "chain_missing").length,
     chain_mismatch: enriched.filter((record) => record.status === "chain_mismatch").length,
     chain_error: enriched.filter((record) => record.status === "chain_error").length,
+    unique_domain_bindings: domainBindings.length,
+    unique_configured_domains: domainBindings.filter((record) => record.domain).length,
+    unique_chain_ok: domainBindings.filter((record) => record.status === "ok").length,
+    unique_chain_missing: domainBindings.filter((record) => record.status === "chain_missing").length,
+    unique_chain_mismatch: domainBindings.filter((record) => record.status === "chain_mismatch").length,
+    unique_chain_error: domainBindings.filter((record) => record.status === "chain_error").length,
+    unique_actionable: actionable.length,
     skipped_rpc: SKIP_RPC,
   };
 
   const report = {
     summary,
     records: enriched,
-    actionable: enriched.filter((record) => record.status !== "ok" && record.status !== "configured_unverified"),
+    domain_bindings: domainBindings,
+    actionable,
   };
 
   writeJson(REPORT_PATH, report);
@@ -409,10 +431,12 @@ async function main() {
 
   const statusLine = [
     `contract domains: ${summary.configured}/${summary.total_contract_bindings} configured`,
+    `unique=${summary.unique_configured_domains}/${summary.unique_domain_bindings}`,
     `chain ok=${summary.chain_ok}`,
     `missing=${summary.chain_missing}`,
     `mismatch=${summary.chain_mismatch}`,
     `errors=${summary.chain_error}`,
+    `unique actionable=${summary.unique_actionable}`,
   ].join(", ");
   console.log(statusLine);
   console.log(`report: ${path.relative(ROOT, REPORT_PATH)}`);

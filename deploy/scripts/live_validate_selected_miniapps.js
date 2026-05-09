@@ -33,7 +33,7 @@ const siblingOraclePhalaEnvPath = path.resolve(
 );
 const OUTPUT_PATH = String(
   process.env.SELECTED_MINIAPP_SMOKE_REPORT_PATH
-    || path.join(ROOT, "docs", "reports", "2026-03-19-selected-miniapp-live-smoke.json")
+    || path.join(ROOT, "docs", "reports", "live-smoke", "selected-miniapps-latest.json")
 ).trim();
 const MILLION_PIECE_CLAIM_FUNDING = 10000000n;
 const MILLION_PIECE_BUY_PRICE = 11000000n;
