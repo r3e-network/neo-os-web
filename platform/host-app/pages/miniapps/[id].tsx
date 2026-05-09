@@ -522,12 +522,13 @@ export default function MiniAppDetailPage({
           const txid = String(body.txHash || body.tx_hash || "");
           const amount = String(body.amount || "");
           const luckPercent = String(body.luckPercent || "");
+          const paid = String(body.status || "") === "paid";
           setInvokeFeedback({
             type: "success",
             message:
-              amount && txid
+              paid && amount && txid
                 ? `Reward paid: ${amount} GAS${luckPercent ? ` · luck beat ${luckPercent}%` : ""} (${txid})`
-                : "Reward claim submitted.",
+                : "Reward payout submitted. Waiting for chain confirmation.",
           });
           return;
         }

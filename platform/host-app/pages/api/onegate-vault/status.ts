@@ -147,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     if (!status) return apiError.notFound(res, "claim key has not been claimed yet");
     if (
-      status.status === "submitted" &&
+      (status.status === "submitted" || status.status === "paid") &&
       status.txHash
     ) {
       const payoutStatus = await resolveTxPayoutStatus({
@@ -173,6 +173,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             payoutStatus.reason || "GAS transfer was not confirmed",
         });
         status = { ...status, status: "failed" };
+      } else if (status.status === "paid") {
+        status = { ...status, status: "submitted" };
       }
     }
     return res.status(200).json({
