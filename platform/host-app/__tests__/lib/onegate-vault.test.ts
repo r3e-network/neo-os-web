@@ -147,7 +147,7 @@ describe("OneGate Vault off-chain claim engine", () => {
         {
           id: "pool-001",
           appId: "miniapp-gas-lucky-pool",
-          oneGateAppId: "xx",
+          oneGateAppId: "23",
           network: "mainnet",
           status: "active",
           minAmountFixed8: "100000000",
@@ -181,7 +181,7 @@ describe("OneGate Vault off-chain claim engine", () => {
           address: WALLET,
           network: "mainnet",
           poolId: "pool-999",
-          oneGateAppId: "xx",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         },
         {
@@ -236,7 +236,7 @@ describe("OneGate Vault off-chain claim engine", () => {
         address: WALLET,
         network: "mainnet",
         poolId: "pool-001",
-        oneGateAppId: "xx",
+        oneGateAppId: "23",
         appId: "miniapp-gas-lucky-pool",
       },
       {
@@ -411,7 +411,7 @@ describe("OneGate Vault off-chain claim engine", () => {
       network: "testnet",
       requestId: "req-1",
       poolId: "pool-001",
-      oneGateAppId: "xx",
+      oneGateAppId: "23",
       appId: "miniapp-gas-lucky-pool",
       randomInt: () => 100000000n,
     });
@@ -425,7 +425,7 @@ describe("OneGate Vault off-chain claim engine", () => {
         p_request_id: "req-1",
         p_random_u64: expect.stringMatching(/^\d+$/),
         p_pool_id: "pool-001",
-        p_onegate_app_id: "xx",
+        p_onegate_app_id: "23",
         p_app_id: "miniapp-gas-lucky-pool",
       }),
     );
