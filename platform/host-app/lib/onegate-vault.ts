@@ -16,6 +16,8 @@ export type OneGateVaultClaimStatus =
 
 export type OneGateVaultCampaign = {
   id: string;
+  appId?: string | null;
+  oneGateAppId?: string | null;
   network: OneGateVaultNetwork;
   status: OneGateVaultCampaignStatus;
   minAmountFixed8: string;
@@ -29,6 +31,8 @@ export type OneGateVaultCampaign = {
 export type OneGateVaultClaimKey = {
   keyHash: string;
   campaignId: string;
+  claimKeyId?: string | null;
+  oneGateAppId?: string | null;
   network: OneGateVaultNetwork;
   status: OneGateVaultClaimStatus;
   walletAddress?: string | null;
@@ -61,6 +65,12 @@ export type OneGateVaultClaimResult = {
   requestId: string;
 };
 
+export type OneGateVaultLaunchIdentity = {
+  poolId?: string;
+  oneGateAppId?: string;
+  appId?: string;
+};
+
 export interface OneGateVaultRepository {
   reserveClaim(input: {
     keyHash: string;
@@ -68,19 +78,22 @@ export interface OneGateVaultRepository {
     network: OneGateVaultNetwork;
     requestId: string;
     randomInt: (min: bigint, max: bigint) => bigint;
-  }): Promise<ReservedOneGateVaultClaim>;
+  } & OneGateVaultLaunchIdentity): Promise<ReservedOneGateVaultClaim>;
   markSubmitted(input: {
     keyHash: string;
+    network: OneGateVaultNetwork;
     txHash: string;
     requestId: string;
   }): Promise<void>;
   markPaid(input: {
     keyHash: string;
+    network: OneGateVaultNetwork;
     txHash: string;
     requestId: string;
   }): Promise<void>;
   markFailed(input: {
     keyHash: string;
+    network: OneGateVaultNetwork;
     requestId: string;
     errorMessage: string;
   }): Promise<void>;
@@ -88,7 +101,7 @@ export interface OneGateVaultRepository {
     keyHash: string;
     address?: string;
     network: OneGateVaultNetwork;
-  }): Promise<ReservedOneGateVaultClaim | null>;
+  } & OneGateVaultLaunchIdentity): Promise<ReservedOneGateVaultClaim | null>;
 }
 
 export interface OneGateVaultPaymentService {
@@ -125,6 +138,34 @@ function assertNetwork(value: unknown): OneGateVaultNetwork {
     "INVALID_NETWORK",
     "network must be mainnet or testnet",
   );
+}
+
+function normalizeOptionalVaultId(
+  value: unknown,
+  code: string,
+  label: string,
+): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  const normalized = String(value).trim();
+  if (!normalized) return undefined;
+  if (/^[A-Za-z0-9_.:-]{1,128}$/.test(normalized)) return normalized;
+  throw new OneGateVaultError(code, `${label} is invalid`);
+}
+
+function normalizeLaunchIdentity(input: {
+  poolId?: unknown;
+  oneGateAppId?: unknown;
+  appId?: unknown;
+}): OneGateVaultLaunchIdentity {
+  return {
+    poolId: normalizeOptionalVaultId(input.poolId, "INVALID_POOL_ID", "pool id"),
+    oneGateAppId: normalizeOptionalVaultId(
+      input.oneGateAppId,
+      "INVALID_ONEGATE_APP_ID",
+      "OneGate app id",
+    ),
+    appId: normalizeOptionalVaultId(input.appId, "INVALID_APP_ID", "miniapp id"),
+  };
 }
 
 export function normalizeClaimKey(value: unknown): string {
@@ -201,7 +242,14 @@ function secureRandomUint64String(): string {
 }
 
 export async function claimOneGateVaultReward(
-  input: { claimKey: unknown; address: unknown; network: unknown },
+  input: {
+    claimKey: unknown;
+    address: unknown;
+    network: unknown;
+    poolId?: unknown;
+    oneGateAppId?: unknown;
+    appId?: unknown;
+  },
   deps: {
     repository: OneGateVaultRepository;
     payment: OneGateVaultPaymentService;
@@ -219,6 +267,7 @@ export async function claimOneGateVaultReward(
   }
 
   const network = assertNetwork(input.network);
+  const launchIdentity = normalizeLaunchIdentity(input);
   const keyHash = hashClaimKey(claimKey, deps.keyPepper);
   const requestId = `ogv_${Date.now().toString(36)}_${keyHash.slice(0, 16)}`;
   const reserved = await deps.repository.reserveClaim({
@@ -226,6 +275,7 @@ export async function claimOneGateVaultReward(
     address,
     network,
     requestId,
+    ...launchIdentity,
     randomInt: deps.randomInt ?? secureRandomFixed8,
   });
 
@@ -246,12 +296,14 @@ export async function claimOneGateVaultReward(
     if (payment.status === "paid") {
       await deps.repository.markPaid({
         keyHash,
+        network,
         txHash: payment.txHash,
         requestId: reserved.requestId,
       });
     } else {
       await deps.repository.markSubmitted({
         keyHash,
+        network,
         txHash: payment.txHash,
         requestId: reserved.requestId,
       });
@@ -269,7 +321,12 @@ export async function claimOneGateVaultReward(
     const errorMessage =
       error instanceof Error ? error.message : "payment failed";
     await deps.repository
-      .markFailed({ keyHash, requestId: reserved.requestId, errorMessage })
+      .markFailed({
+        keyHash,
+        network,
+        requestId: reserved.requestId,
+        errorMessage,
+      })
       .catch(() => undefined);
     throw new OneGateVaultError("PAYMENT_FAILED", errorMessage);
   }
@@ -297,20 +354,38 @@ export function createInMemoryOneGateVaultRepository(seed: {
   campaigns: OneGateVaultCampaign[];
   claimKeys: OneGateVaultClaimKey[];
 }): OneGateVaultRepository {
+  const campaignIdentityKey = (campaignId: string, network: OneGateVaultNetwork) =>
+    `${network}:${campaignId}`;
+  const claimIdentityKey = (keyHash: string, network: OneGateVaultNetwork) =>
+    `${network}:${keyHash}`;
   const campaigns = new Map(
-    seed.campaigns.map((campaign) => [campaign.id, { ...campaign }]),
+    seed.campaigns.map((campaign) => [
+      campaignIdentityKey(campaign.id, campaign.network),
+      { ...campaign },
+    ]),
   );
   const claimKeys = new Map(
-    seed.claimKeys.map((claimKey) => [claimKey.keyHash, { ...claimKey }]),
+    seed.claimKeys.map((claimKey) => [
+      claimIdentityKey(claimKey.keyHash, claimKey.network),
+      { ...claimKey },
+    ]),
   );
 
   return {
     async reserveClaim(input) {
-      const claimKey = claimKeys.get(input.keyHash);
-      if (!claimKey || claimKey.network !== input.network) {
+      const claimKey = claimKeys.get(
+        claimIdentityKey(input.keyHash, input.network),
+      );
+      if (!claimKey) {
         throw new OneGateVaultError(
           "CLAIM_KEY_NOT_FOUND",
           "claim key was not found",
+        );
+      }
+      if (input.poolId && claimKey.campaignId !== input.poolId) {
+        throw new OneGateVaultError(
+          "POOL_MISMATCH",
+          "claim key does not belong to this reward pool",
         );
       }
       if (claimKey.walletAddress && claimKey.walletAddress !== input.address) {
@@ -320,13 +395,16 @@ export function createInMemoryOneGateVaultRepository(seed: {
         );
       }
 
-      const campaign = campaigns.get(claimKey.campaignId);
-      if (!campaign || campaign.network !== input.network) {
+      const campaign = campaigns.get(
+        campaignIdentityKey(claimKey.campaignId, input.network),
+      );
+      if (!campaign) {
         throw new OneGateVaultError(
           "VAULT_NOT_FOUND",
           "reward vault was not found",
         );
       }
+      validateLaunchIdentity(input, claimKey, campaign);
       if (campaign.status !== "active") {
         throw new OneGateVaultError(
           "VAULT_INACTIVE",
@@ -398,7 +476,9 @@ export function createInMemoryOneGateVaultRepository(seed: {
     },
 
     async markSubmitted(input) {
-      const claimKey = claimKeys.get(input.keyHash);
+      const claimKey = claimKeys.get(
+        claimIdentityKey(input.keyHash, input.network),
+      );
       if (!claimKey) return;
       claimKey.status = "submitted";
       claimKey.txHash = input.txHash;
@@ -406,7 +486,9 @@ export function createInMemoryOneGateVaultRepository(seed: {
     },
 
     async markPaid(input) {
-      const claimKey = claimKeys.get(input.keyHash);
+      const claimKey = claimKeys.get(
+        claimIdentityKey(input.keyHash, input.network),
+      );
       if (!claimKey) return;
       claimKey.status = "paid";
       claimKey.txHash = input.txHash;
@@ -414,7 +496,9 @@ export function createInMemoryOneGateVaultRepository(seed: {
     },
 
     async markFailed(input) {
-      const claimKey = claimKeys.get(input.keyHash);
+      const claimKey = claimKeys.get(
+        claimIdentityKey(input.keyHash, input.network),
+      );
       if (!claimKey) return;
       claimKey.status = "failed";
       claimKey.errorMessage = input.errorMessage;
@@ -422,8 +506,20 @@ export function createInMemoryOneGateVaultRepository(seed: {
     },
 
     async getClaimStatus(input) {
-      const claimKey = claimKeys.get(input.keyHash);
-      if (!claimKey || claimKey.network !== input.network) return null;
+      const claimKey = claimKeys.get(
+        claimIdentityKey(input.keyHash, input.network),
+      );
+      if (!claimKey) return null;
+      if (input.poolId && claimKey.campaignId !== input.poolId) {
+        throw new OneGateVaultError(
+          "POOL_MISMATCH",
+          "claim key does not belong to this reward pool",
+        );
+      }
+      const campaign = campaigns.get(
+        campaignIdentityKey(claimKey.campaignId, input.network),
+      );
+      if (campaign) validateLaunchIdentity(input, claimKey, campaign);
       if (
         input.address &&
         claimKey.walletAddress &&
@@ -454,6 +550,35 @@ export function createInMemoryOneGateVaultRepository(seed: {
   };
 }
 
+function validateLaunchIdentity(
+  input: OneGateVaultLaunchIdentity,
+  claimKey: OneGateVaultClaimKey,
+  campaign: OneGateVaultCampaign,
+) {
+  if (input.appId && campaign.appId && campaign.appId !== input.appId) {
+    throw new OneGateVaultError(
+      "APP_ID_MISMATCH",
+      "miniapp id does not match this reward pool",
+    );
+  }
+
+  const expectedOneGateAppId =
+    claimKey.oneGateAppId || campaign.oneGateAppId || undefined;
+  if (!expectedOneGateAppId) return;
+  if (!input.oneGateAppId) {
+    throw new OneGateVaultError(
+      "ONEGATE_APP_ID_REQUIRED",
+      "OneGate app id is required for this reward pool",
+    );
+  }
+  if (expectedOneGateAppId !== input.oneGateAppId) {
+    throw new OneGateVaultError(
+      "ONEGATE_APP_ID_MISMATCH",
+      "OneGate app id does not match this reward pool",
+    );
+  }
+}
+
 function mapReservedClaim(
   row: Record<string, unknown>,
 ): ReservedOneGateVaultClaim {
@@ -476,13 +601,16 @@ export function createSupabaseOneGateVaultRepository(
   return {
     async reserveClaim(input) {
       const { data, error } = await supabase.rpc(
-        "onegate_vault_reserve_claim_v2",
+        "onegate_vault_reserve_claim_v3",
         {
           p_key_hash: input.keyHash,
           p_wallet_address: input.address,
           p_network: input.network,
           p_request_id: input.requestId,
           p_random_u64: secureRandomUint64String(),
+          p_pool_id: input.poolId ?? null,
+          p_onegate_app_id: input.oneGateAppId ?? null,
+          p_app_id: input.appId ?? null,
         },
       );
       if (error) throw mapSupabaseVaultError(error);
@@ -499,6 +627,7 @@ export function createSupabaseOneGateVaultRepository(
       await updateSupabaseClaim(
         supabase,
         input.keyHash,
+        input.network,
         {
           status: "submitted",
           tx_hash: input.txHash,
@@ -514,6 +643,7 @@ export function createSupabaseOneGateVaultRepository(
       await updateSupabaseClaim(
         supabase,
         input.keyHash,
+        input.network,
         {
           status: "paid",
           tx_hash: input.txHash,
@@ -529,6 +659,7 @@ export function createSupabaseOneGateVaultRepository(
       await updateSupabaseClaim(
         supabase,
         input.keyHash,
+        input.network,
         {
           status: "failed",
           error_message: input.errorMessage.slice(0, 500),
@@ -544,7 +675,7 @@ export function createSupabaseOneGateVaultRepository(
       const { data, error } = await supabase
         .from("onegate_vault_claim_keys")
         .select(
-          "key_hash,campaign_id,network,status,wallet_address,amount_fixed8,tx_hash,request_id",
+          "key_hash,campaign_id,network,status,wallet_address,amount_fixed8,tx_hash,request_id,onegate_app_id",
         )
         .eq("key_hash", input.keyHash)
         .eq("network", input.network)
@@ -552,6 +683,29 @@ export function createSupabaseOneGateVaultRepository(
       if (error) throw mapSupabaseVaultError(error);
       if (!data) return null;
       const row = data as Record<string, unknown>;
+      if (input.poolId && String(row.campaign_id ?? "") !== input.poolId) {
+        throw new OneGateVaultError(
+          "POOL_MISMATCH",
+          "claim key does not belong to this reward pool",
+        );
+      }
+      const expectedOneGateAppId = String(row.onegate_app_id ?? "").trim();
+      if (expectedOneGateAppId && !input.oneGateAppId) {
+        throw new OneGateVaultError(
+          "ONEGATE_APP_ID_REQUIRED",
+          "OneGate app id is required for this reward pool",
+        );
+      }
+      if (
+        expectedOneGateAppId &&
+        input.oneGateAppId &&
+        expectedOneGateAppId !== input.oneGateAppId
+      ) {
+        throw new OneGateVaultError(
+          "ONEGATE_APP_ID_MISMATCH",
+          "OneGate app id does not match this reward pool",
+        );
+      }
       const walletAddress = String(row.wallet_address ?? "");
       if (input.address && walletAddress && walletAddress !== input.address) {
         throw new OneGateVaultError(
@@ -568,6 +722,7 @@ export function createSupabaseOneGateVaultRepository(
 async function updateSupabaseClaim(
   supabase: SupabaseClient,
   keyHash: string,
+  network: OneGateVaultNetwork,
   values: Record<string, unknown>,
   requestId: string,
   allowedStatuses: OneGateVaultClaimStatus[],
@@ -576,9 +731,10 @@ async function updateSupabaseClaim(
     .from("onegate_vault_claim_keys")
     .update(values)
     .eq("key_hash", keyHash)
+    .eq("network", network)
     .eq("request_id", requestId)
     .in("status", allowedStatuses)
-    .select("key_hash")
+    .select("key_hash,network")
     .maybeSingle();
   if (error) throw mapSupabaseVaultError(error);
   if (!data) {
@@ -608,6 +764,20 @@ function mapSupabaseVaultError(error: {
     return new OneGateVaultError("INVALID_REWARD_RANGE", message);
   if (/state.*changed|CLAIM_STATE_CONFLICT/i.test(message))
     return new OneGateVaultError("CLAIM_STATE_CONFLICT", message);
+  if (/INVALID_POOL_ID/i.test(message))
+    return new OneGateVaultError("INVALID_POOL_ID", message);
+  if (/INVALID_ONEGATE_APP_ID/i.test(message))
+    return new OneGateVaultError("INVALID_ONEGATE_APP_ID", message);
+  if (/INVALID_APP_ID/i.test(message))
+    return new OneGateVaultError("INVALID_APP_ID", message);
+  if (/POOL_MISMATCH|pool.*match|pool.*belong/i.test(message))
+    return new OneGateVaultError("POOL_MISMATCH", message);
+  if (/ONEGATE_APP_ID_REQUIRED|onegate.*required/i.test(message))
+    return new OneGateVaultError("ONEGATE_APP_ID_REQUIRED", message);
+  if (/ONEGATE_APP_ID_MISMATCH|onegate.*match/i.test(message))
+    return new OneGateVaultError("ONEGATE_APP_ID_MISMATCH", message);
+  if (/APP_ID_MISMATCH|miniapp.*match|app.*match/i.test(message))
+    return new OneGateVaultError("APP_ID_MISMATCH", message);
   return new OneGateVaultError("VAULT_STORAGE_ERROR", message);
 }
 
@@ -617,11 +787,15 @@ export function createTxProxyOneGateVaultPaymentService(
     rewardSource?: string;
   } = {},
 ): OneGateVaultPaymentService {
+  const edgeTxProxyUrl = process.env.EDGE_API_BASE
+    ? `${process.env.EDGE_API_BASE.replace(/\/+$/, "")}/txproxy`
+    : "";
   const txProxyUrl =
     options.txProxyUrl ||
     process.env.ONEGATE_VAULT_TX_PROXY_URL ||
     process.env.TX_PROXY_URL ||
     process.env.TXPROXY_URL ||
+    edgeTxProxyUrl ||
     "";
   const rewardSource =
     options.rewardSource ||

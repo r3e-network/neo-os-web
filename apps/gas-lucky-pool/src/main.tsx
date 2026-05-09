@@ -34,18 +34,52 @@ defineMiniApp({
 
     ctx.registerAction("claimPool", async (...args: unknown[]) => {
       const first = args[0];
+      const params =
+        typeof first === "object" && first !== null
+          ? (first as {
+              appId?: unknown;
+              miniappId?: unknown;
+              oneGateAppId?: unknown;
+              oneGateId?: unknown;
+              onegateAppId?: unknown;
+              pool?: unknown;
+              poolId?: unknown;
+              campaignId?: unknown;
+            })
+          : {};
       const claimKey =
         typeof first === "object" && first !== null
-          ? String((first as { claimKey?: unknown }).claimKey ?? pool.currentClaimKey.get())
+          ? String(
+              (first as { claimKey?: unknown }).claimKey ??
+                pool.currentClaimKey.get(),
+            )
           : String(pool.currentClaimKey.get() || "");
       const poolId =
         typeof first === "object" && first !== null
-          ? String((first as { poolId?: unknown }).poolId ?? pool.currentPoolId.get())
+          ? String(
+              params.poolId ??
+                params.pool ??
+                params.campaignId ??
+                pool.currentPoolId.get(),
+            )
           : String(first ?? pool.currentPoolId.get());
       if (claimKey) pool.setClaimKey(claimKey);
       if (poolId) pool.setPoolId(poolId);
       await ctx.services.notify.guard(
-        () => pool.claimPool(claimKey ? { claimKey } : { poolId }),
+        () =>
+          pool.claimPool(
+            claimKey
+              ? {
+                  claimKey,
+                  poolId,
+                  oneGateAppId:
+                    params.oneGateAppId ??
+                    params.oneGateId ??
+                    params.onegateAppId,
+                  appId: params.appId ?? params.miniappId,
+                }
+              : { poolId },
+          ),
         "claimSubmitted",
         "claimFailed",
       );
@@ -53,13 +87,36 @@ defineMiniApp({
 
     ctx.registerAction("checkClaimStatus", async (...args: unknown[]) => {
       const first = args[0];
+      const params =
+        typeof first === "object" && first !== null
+          ? (first as {
+              appId?: unknown;
+              miniappId?: unknown;
+              oneGateAppId?: unknown;
+              oneGateId?: unknown;
+              onegateAppId?: unknown;
+              pool?: unknown;
+              poolId?: unknown;
+              campaignId?: unknown;
+            })
+          : {};
       const claimKey =
         typeof first === "object" && first !== null
-          ? String((first as { claimKey?: unknown }).claimKey ?? pool.currentClaimKey.get())
+          ? String(
+              (first as { claimKey?: unknown }).claimKey ??
+                pool.currentClaimKey.get(),
+            )
           : String(first ?? pool.currentClaimKey.get());
       if (claimKey) pool.setClaimKey(claimKey);
       await ctx.services.notify.guard(
-        () => pool.checkClaimStatus(claimKey),
+        () =>
+          pool.checkClaimStatus({
+            claimKey,
+            poolId: params.poolId ?? params.pool ?? params.campaignId,
+            oneGateAppId:
+              params.oneGateAppId ?? params.oneGateId ?? params.onegateAppId,
+            appId: params.appId ?? params.miniappId,
+          }),
         undefined,
         "claimStatusFailed",
       );
