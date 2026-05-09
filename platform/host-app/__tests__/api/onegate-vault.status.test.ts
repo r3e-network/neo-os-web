@@ -105,4 +105,51 @@ describe("/api/onegate-vault/status", () => {
       expect.objectContaining({ status: "failed" }),
     );
   });
+
+  it("revalidates an existing paid row and fails it when the chain log disproves payment", async () => {
+    const markFailed = jest.fn().mockResolvedValue(undefined);
+    (createSupabaseOneGateVaultRepository as jest.Mock).mockReturnValue({
+      getClaimStatus: jest.fn().mockResolvedValue({
+        keyHash: "hash",
+        campaignId: "pool-001",
+        network: "testnet",
+        status: "paid",
+        walletAddress: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+        amountFixed8: "100000000",
+        txHash:
+          "0x03ccf25f24885badb04486b00b7ba21f557e44f81f9404a9514d86eae5a87c03",
+        requestId: "req-1",
+      }),
+      markPaid: jest.fn(),
+      markFailed,
+    });
+
+    const req = {
+      method: "GET",
+      query: {
+        claimKey: "ogv_test_key_1234567890",
+        address: "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3",
+        network: "testnet",
+        pool: "pool-001",
+      },
+      headers: {},
+      socket: { remoteAddress: "127.0.0.1" },
+      url: "/api/onegate-vault/status",
+    } as unknown as NextApiRequest;
+    const res = mockResponse();
+
+    await handler(req, res);
+
+    expect(markFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        network: "testnet",
+        requestId: "req-1",
+        errorMessage: "GAS transfer returned false",
+      }),
+    );
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "failed" }),
+    );
+  });
 });

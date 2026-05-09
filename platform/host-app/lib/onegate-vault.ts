@@ -1016,8 +1016,7 @@ export function createTxProxyOneGateVaultPaymentService(
         }
         return { txHash, status: "paid" };
       }
-      const status = body.status === "paid" ? "paid" : "submitted";
-      return { txHash, status };
+      return { txHash, status: "submitted" };
     },
   };
 }
