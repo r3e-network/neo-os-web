@@ -126,6 +126,33 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: "/miniapps/miniapp-gas-lucky-pool",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/miniapps/miniapp-gas-lucky-pool/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/miniapps/gas-lucky-pool/index.html",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
         source: "/miniapps/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: MINIAPP_CORS_ORIGIN },

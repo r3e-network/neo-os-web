@@ -106,6 +106,14 @@ function setSecurityHeaders(
   }
 }
 
+function isOneGateVaultHtmlPath(pathname: string): boolean {
+  return (
+    pathname === "/miniapps/miniapp-gas-lucky-pool" ||
+    pathname === "/miniapps/miniapp-gas-lucky-pool/" ||
+    pathname === "/miniapps/gas-lucky-pool/index.html"
+  );
+}
+
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
@@ -135,6 +143,9 @@ export function middleware(req: NextRequest) {
   setSecurityHeaders(res, {
     frameOptions: isMiniAppRuntimeAsset ? null : "DENY",
   });
+  if (isOneGateVaultHtmlPath(pathname)) {
+    res.headers.set("Cache-Control", "no-store, max-age=0, must-revalidate");
+  }
 
   return res;
 }
