@@ -1,0 +1,250 @@
+{
+  "generatedAt": "2026-05-10T02:30:05.049Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "selected": [
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "selected": [
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18527065171",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18527065171"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18527065171"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": false,
+      "error": "oracle updater mismatch: on-chain 0xab63fe1186b890e86a8506823248fa94fb329106, local signer 0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "attempts": 1
+    },
+    "fogPlay": {
+      "ok": false,
+      "error": "oracle updater mismatch: on-chain 0xab63fe1186b890e86a8506823248fa94fb329106, local signer 0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "attempts": 1
+    },
+    "redEnvelope": {
+      "ok": false,
+      "error": "oracle mismatch for 0x5f371cc50116bb13d79554d96ccdd6e246cd5d59: expected 0x5b492098fc094c760402e01f7e0b631b939d2bea, got 0x017520f068fd602082fe5572596185e62a4ad991",
+      "attempts": 1
+    },
+    "profitAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-profitanchor",
+        "mode": "2",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "2",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "weight": "0",
+          "active": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "weight": "0",
+          "active": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-agent-aa-wif",
+        "message": "ProfitAnchor manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test"
+      }
+    },
+    "trustAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-trustanchor",
+        "mode": "1",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "1",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "weight": "0",
+          "active": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "weight": "0",
+          "active": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-agent-aa-wif",
+        "message": "TrustAnchor manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test"
+      }
+    },
+    "selfLoan": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "deferred": true,
+      "reason": "needs-neo-funding",
+      "message": "selfLoan deferred for NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32: requires 1 whole NEO collateral; wallet has 0. Fund the wallet with NEO and rerun.",
+      "collateralPrecheck": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "requiredCollateral": "1",
+        "availableNeo": "0"
+      }
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

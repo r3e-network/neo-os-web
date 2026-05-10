@@ -8,7 +8,7 @@
     {
       "name": "PlatformGame",
       "existing_hash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
-      "on_chain_update_counter": 1,
+      "on_chain_update_counter": 2,
       "on_chain_has_update": true,
       "admin_matches_signer": true,
       "updated": true
@@ -17,13 +17,13 @@
   "transactions": [
     {
       "label": "Update PlatformGame",
-      "txid": "0x14e3122024453590ca20be244248a29259a10f80c45fa6ec6e8d971473de97bc",
-      "valid_until_block": 9706866
+      "txid": "0x844541f91caf068507a7e59b953cbfbb3b0b55854bdda6da055de66a35aa6c22",
+      "valid_until_block": 9711768
     }
   ],
   "validation": {
-    "PlatformGame_update_counter_after": 2,
-    "PlatformGame_update_counter_before": 1
+    "PlatformGame_update_counter_after": 3,
+    "PlatformGame_update_counter_before": 2
   },
-  "generated_at_utc": "2026-05-09T23:16:02Z"
+  "generated_at_utc": "2026-05-10T03:31:43Z"
 }

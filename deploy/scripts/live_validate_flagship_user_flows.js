@@ -1437,6 +1437,7 @@ async function runPlatformGameLastSurvivor(contractHash, contract, adminContract
 
 async function runFogPlay() {
   const contractHash = appHash("apps/fogplay/neo-manifest.json");
+  const appId = "miniapp-fogplay";
   const oracleReady = await assertOracleCallbackReady(contractHash);
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
@@ -1444,28 +1445,35 @@ async function runFogPlay() {
     account,
   });
 
-  const transferTx = await transferGAS(contractHash, FOGPLAY_BET, "miniapp-fogplay:bet");
+  const transferTx = await transferGAS(contractHash, FOGPLAY_BET, `${appId}:bet`);
   await sleep(4000);
-  const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeBet", [
+  const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeCoinFlipBet", [
+    Neon.sc.ContractParam.string(appId),
     Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
-    Neon.sc.ContractParam.integer(FOGPLAY_BET),
     Neon.sc.ContractParam.boolean(false),
+    Neon.sc.ContractParam.integer(FOGPLAY_BET),
   ]);
 
-  const betPlaced = findNotification(execution, contractHash, "BetPlaced");
+  const betPlaced = findNotification(execution, contractHash, "CoinFlipBetPlaced");
   const oracleRequested = findOracleRequestNotification(execution, "FogPlay bet");
   if (!betPlaced || !oracleRequested) {
-    throw new Error("BetPlaced or oracle request notification missing");
+    throw new Error("CoinFlipBetPlaced or oracle request notification missing");
   }
 
-  const betId = oracleRequested.requestId ? stackValue(betPlaced.state?.value?.[3]) : null;
+  const betId = stackValue(betPlaced.state?.value?.[4]);
   const requestId = oracleRequested.requestId;
   const request = await waitForRequestStatus(requestId);
   if (!oracleRequestSucceeded(request)) {
     throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
   }
-  const bet = await invokeRead(contractHash, "getBet", [{ type: "Integer", value: String(betId) }]);
-  return { contractHash, oracleReady, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
+  const bet = await invokeRead(contractHash, "getCoinFlipBet", [
+    { type: "String", value: appId },
+    { type: "Integer", value: String(betId) },
+  ]);
+  if (!bet || boolish(bet.resolved) !== true) {
+    throw new Error(`FogPlay bet ${betId} did not resolve after oracle request ${requestId}`);
+  }
+  return { contractHash, appId, oracleReady, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
 }
 
 async function runRedEnvelope() {

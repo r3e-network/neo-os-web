@@ -1,0 +1,228 @@
+{
+  "generatedAt": "2026-05-10T03:58:58.625Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "gasBox",
+      "fogPlay"
+    ],
+    "selected": [
+      "gasBox",
+      "fogPlay"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "gasBox",
+        "fogPlay"
+      ],
+      "selected": [
+        "gasBox",
+        "fogPlay"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": false,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18204250834",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18204250834"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18204250834"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "platformReady": {
+        "appId": "miniapp-gasbox",
+        "gameType": 3,
+        "paused": false
+      },
+      "oracleReady": {
+        "configuredOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "callbackAllowed": null,
+        "legacyCallbackAllowlist": false,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": ""
+      },
+      "machineId": 3,
+      "itemIndex": 1,
+      "prizeItem": {
+        "name": "Small GAS Prize",
+        "weight": "100",
+        "rarity": "COMMON",
+        "assetType": "1",
+        "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "amount": "1000000",
+        "tokenId": "",
+        "stock": "1000000",
+        "tokenCount": "0"
+      },
+      "provisioned": null,
+      "transferTx": "0x9fdcde269d5d03913de773b1e8c679bead8c0f2b5412df35e3e9002f95047d9d",
+      "initiateTx": "0xc5b9af8ecb5d5635a21daa12a458466291c928ae83b3a0c84545c6a4e76976f7",
+      "playId": "7",
+      "requestId": "30",
+      "request": [
+        "30",
+        "morpheus.platform.game",
+        "vrf_random",
+        "vrf_random",
+        "@\u0003(\u000eminiapp-gasbox!\u0001\u0007!\u0001\u0003",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "0x8b6950eff0b3a376e62105a5613f1c9b0656255e",
+        "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "1",
+        "1778385554042",
+        "1778385566947",
+        true,
+        "�\u001d��JG�\nF\u0014\u0007��ː��f����|��\u001f3i����",
+        ""
+      ],
+      "play": {
+        "id": "7",
+        "player": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "machineId": "3",
+        "itemIndex": "1",
+        "price": "10000000",
+        "timestamp": "1778385554042",
+        "resolved": true
+      }
+    },
+    "fogPlay": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "appId": "miniapp-fogplay",
+      "oracleReady": {
+        "configuredOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "callbackAllowed": null,
+        "legacyCallbackAllowlist": false,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0x9dbaf9bd1f3e2597f29020f5159fc5984697b4133ddf932b70dd8dcd53771c2c",
+      "betTx": "0xbc01a5be841c0af80d4a4f6c742f7e085867be9c89a32df7a2175cf09f69b9a8",
+      "requestId": "31",
+      "request": [
+        "31",
+        "morpheus.platform.game",
+        "vrf_random",
+        "vrf_random",
+        "@\u0002(\u000fminiapp-fogplay!\u0001\u0004",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "0x8b6950eff0b3a376e62105a5613f1c9b0656255e",
+        "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "1",
+        "1778385582501",
+        "1778385591875",
+        true,
+        "0����n�+Jij�H-��F=\u0004�ˁ\u0003+�;I�\fwbs",
+        ""
+      ],
+      "betId": "4",
+      "bet": {
+        "betId": "4",
+        "player": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "amount": "5000000",
+        "choice": false,
+        "timestamp": "1778385582501",
+        "resolved": true
+      }
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "skipped": true
+    },
+    "trustAnchor": {
+      "skipped": true
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}
