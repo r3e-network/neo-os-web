@@ -91,6 +91,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
+        public void PlatformGameGachaSettlementDoesNotUseRefPrizeStruct()
+        {
+            string gacha = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Gacha.cs");
+
+            Assert.DoesNotContain("ref selectedItem", gacha);
+            Assert.Contains("selectedAssetType", gacha);
+            Assert.Contains("selectedAssetHash", gacha);
+        }
+
+        [Fact]
         public void RestoredMiniAppBaseAllowsUpdatesButNoDestroy()
         {
             string code = ContractSourceAssertions.ReadSource("contracts", "MiniApp.DevPack", "MiniAppCompactBase.cs");
