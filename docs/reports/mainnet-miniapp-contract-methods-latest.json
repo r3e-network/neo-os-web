@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T01:14:59.292Z",
+  "generatedAt": "2026-05-10T04:04:10.611Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
@@ -14416,9 +14416,9 @@
     }
   ],
   "verifier": {
-    "timeoutMs": 8000,
-    "concurrency": 6,
-    "progressEvery": 10,
+    "timeoutMs": 6000,
+    "concurrency": 8,
+    "progressEvery": 25,
     "maxSafeReads": 0
   }
 }
