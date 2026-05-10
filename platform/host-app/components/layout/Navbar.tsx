@@ -83,6 +83,7 @@ export function Navbar() {
           <Link
             href="/"
             prefetch={false}
+            aria-label="Yiwu home"
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
           >
             <img

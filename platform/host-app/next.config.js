@@ -208,16 +208,7 @@ const nextConfig = {
   },
   async rewrites() {
     return {
-      beforeFiles: [
-        {
-          source: "/miniapps/miniapp-gas-lucky-pool",
-          destination: "/miniapps/gas-lucky-pool/index.html",
-        },
-        {
-          source: "/miniapps/miniapp-gas-lucky-pool/",
-          destination: "/miniapps/gas-lucky-pool/index.html",
-        },
-      ],
+      beforeFiles: [],
       afterFiles: [
         {
           source: "/miniapps/on-chain-tarot/cards/:file",
