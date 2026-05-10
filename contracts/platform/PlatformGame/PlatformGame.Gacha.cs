@@ -466,27 +466,30 @@ namespace NeoMiniAppPlatform.Contracts
 
             GachaItem selectedItem = LoadGachaItem(appId, machineId, expectedIndex);
             ExecutionEngine.Assert(IsGachaItemAvailable(selectedItem), "item out of stock");
+            BigInteger selectedAssetType = selectedItem.AssetType;
+            UInt160 selectedAssetHash = selectedItem.AssetHash;
 
             // Transfer prize
             BigInteger awardedAmount = 0;
             string awardedTokenId = "";
 
-            if (selectedItem.AssetType == GA_ASSET_NEP17)
+            if (selectedAssetType == GA_ASSET_NEP17)
             {
                 ExecutionEngine.Assert(selectedItem.Stock >= selectedItem.Amount, "insufficient stock");
-                bool ok = (bool)Contract.Call(selectedItem.AssetHash, "transfer", CallFlags.All,
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
                     Runtime.ExecutingScriptHash, play.Player, selectedItem.Amount, null);
                 ExecutionEngine.Assert(ok, "prize transfer failed");
 
                 awardedAmount = selectedItem.Amount;
                 selectedItem.Stock -= selectedItem.Amount;
             }
-            else if (selectedItem.AssetType == GA_ASSET_NEP11)
+            else if (selectedAssetType == GA_ASSET_NEP11)
             {
                 ExecutionEngine.Assert(selectedItem.TokenCount > 0, "no tokens");
                 // Pop last token from the token list
-                string tokenId = PopGachaItemToken(appId, machineId, expectedIndex, ref selectedItem);
-                bool ok = (bool)Contract.Call(selectedItem.AssetHash, "transfer", CallFlags.All,
+                string tokenId = PopGachaItemToken(appId, machineId, expectedIndex, selectedItem.TokenCount);
+                selectedItem.TokenCount -= 1;
+                bool ok = (bool)Contract.Call(selectedAssetHash, "transfer", CallFlags.All,
                     Runtime.ExecutingScriptHash, play.Player, tokenId, null);
                 ExecutionEngine.Assert(ok, "NFT transfer failed");
 
@@ -511,7 +514,7 @@ namespace NeoMiniAppPlatform.Contracts
             ReleaseReentrancyLock(appId);
 
             OnGachaPlayResolved(appId, play.Player, machineId, expectedIndex, playId,
-                selectedItem.AssetType, selectedItem.AssetHash, awardedAmount,
+                selectedAssetType, selectedAssetHash, awardedAmount,
                 awardedTokenId == null ? "" : awardedTokenId);
         }
 
@@ -666,9 +669,9 @@ namespace NeoMiniAppPlatform.Contracts
             string appId,
             BigInteger machineId,
             BigInteger itemIndex,
-            ref GachaItem item)
+            BigInteger tokenCount)
         {
-            BigInteger count = item.TokenCount;
+            BigInteger count = tokenCount;
             ExecutionEngine.Assert(count > 0, "no tokens to pop");
 
             // Read the last token
@@ -680,7 +683,6 @@ namespace NeoMiniAppPlatform.Contracts
             // Delete it
             Storage.Delete(Storage.CurrentContext, tokenKey);
 
-            item.TokenCount = count - 1;
             return tokenId;
         }
 

@@ -277,7 +277,7 @@ contracts if they already exist in `deploy/config/deployed_contracts.json`.
 | MiniAppPriceTicker      | `0x838bd5dd3d257a844fadddb5af2b9dac45e1d320` | ✅ Active |
 | MiniAppSecretVote       | `0x7763ce957515f6acef6d093376977ac6c1cbc47d` | ✅ Active |
 | MiniAppSecretPoker      | `0xa27348cc0a79c776699a028244250b4f3d6bbe0c` | ✅ Active |
-| MiniAppRedEnvelope      | `0xf2649c2b6312d8c7b4982c0c597c9772a2595b1e` | ✅ Active |
+| MiniAppRedEnvelope      | `0x5f371cc50116bb13d79554d96ccdd6e246cd5d59` | ✅ Active |
 | MiniAppGasCircle        | `0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6` | ✅ Active |
 | MiniAppCanvas           | `0x53f9c7b86fa2f8336839ef5073d964d644cbb46c` | ✅ Active |
 
