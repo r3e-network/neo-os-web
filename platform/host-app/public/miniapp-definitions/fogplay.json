@@ -162,18 +162,18 @@
           "hidden": true
         },
         {
-          "name": "amount",
-          "type": "amount",
-          "label": "Wager (GAS)",
-          "required": true,
-          "placeholder": "1"
-        },
-        {
           "name": "choice",
           "type": "boolean",
           "label": "Heads",
           "required": true,
           "default_value": "true"
+        },
+        {
+          "name": "amount",
+          "type": "amount",
+          "label": "Wager (GAS)",
+          "required": true,
+          "placeholder": "1"
         }
       ]
     }

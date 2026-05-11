@@ -40,6 +40,8 @@ const OPERATION_TYPE_TO_ABI = new Map([
   ["hash256", "Hash256"],
   ["boolean", "Boolean"],
   ["address", "String"],
+  ["publickey", "PublicKey"],
+  ["bytearray", "ByteArray"],
   ["string", "String"],
 ]);
 
@@ -177,6 +179,63 @@ function hasMatchingSignature(methods, operation, { allowImplicitAppId = false }
   );
 }
 
+function hasMethodSignature(methods, name, params) {
+  return methods.some(
+    (method) =>
+      method.name === name &&
+      method.params.length === params.length &&
+      method.params.every((type, index) => type === params[index]),
+  );
+}
+
+function mappedPlatformOperationSignatures(manifest, operation) {
+  const runtime = asObject(manifest?.runtime);
+  if (String(runtime?.mode || "").toLowerCase() !== "platform") return [];
+
+  switch (operation.method) {
+    case "fundGameCredit":
+    case "stakeNeo":
+      return [
+        {
+          method: "onNEP17Payment",
+          params: ["Hash160", "Integer", "Any"],
+          reason: "NEP-17 transfer action",
+        },
+      ];
+    case "withdrawNeo":
+      return [
+        {
+          method: "withdraw",
+          params: ["String", "Hash160", "Integer"],
+          reason: "Anchor user withdraw action",
+        },
+      ];
+    case "claimRewards":
+      return [
+        {
+          method: "claimRewards",
+          params: ["String", "Hash160"],
+          reason: "Anchor user reward claim action",
+        },
+      ];
+    case "registerCustomAnchor":
+      return [
+        {
+          method: "registerCustomAnchorApp",
+          params: ["String", "Integer", "Hash160"],
+          reason: "Custom Anchor app registration batch",
+        },
+        {
+          method: "registerAgents",
+          params: ["String", "Array", "Array", "Array"],
+          reason: "Custom Anchor AA agent registration batch",
+        },
+      ];
+    default:
+      return [];
+  }
+}
+
 function declaredLogicDependencies(definition, manifest) {
   return [
     ...asArray(definition?.logic?.depends_on),
@@ -223,6 +282,18 @@ test("every bundled MiniApp operation maps to a deployed testnet ABI method", as
 
     for (const operation of operations) {
       checkedOperations++;
+      const mappedSignatures = mappedPlatformOperationSignatures(manifest, operation);
+      if (mappedSignatures.length > 0) {
+        for (const signature of mappedSignatures) {
+          if (!hasMethodSignature(methods, signature.method, signature.params)) {
+            failures.push(
+              `${slug}.${operation.method} maps to ${signature.method}(${signature.params.join(",")}) for ${signature.reason}, but that ABI is not present in ${contractHash}`,
+            );
+          }
+        }
+        continue;
+      }
+
       const allowImplicitAppId = operationUsesPlatformRuntimeInjection(manifest, operation);
       if (!hasMatchingSignature(methods, operation, { allowImplicitAppId })) {
         const expected = expectedAbiParamTypes(operation);
