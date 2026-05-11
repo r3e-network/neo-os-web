@@ -42,6 +42,27 @@ const BUNDLE_AUTHORITATIVE_FIELDS = [
 
 type CatalogApp = Record<string, unknown> & { app_id?: string };
 
+const LOCALIZED_CATALOG_FIELDS = [
+  "name_en",
+  "name_zh",
+  "name_ja",
+  "name_ko",
+  "description_en",
+  "description_zh",
+  "description_ja",
+  "description_ko",
+  "category_name",
+  "category_name_zh",
+  "category_name_ja",
+  "category_name_ko",
+] as const;
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
 function mergeBundle(
   remote: CatalogApp,
   bundled: CatalogApp | null,
@@ -74,25 +95,24 @@ function compactCatalogResponseItem(item: CatalogApp): CatalogApp {
     "logo_url",
     "banner_url",
     "docs_url",
-    "name_en",
-    "name_zh",
-    "name_ja",
-    "name_ko",
-    "description_en",
-    "description_zh",
-    "description_ja",
-    "description_ko",
-    "category_name",
-    "category_name_zh",
-    "category_name_ja",
-    "category_name_ko",
+    ...LOCALIZED_CATALOG_FIELDS,
   ] as const) {
     if (item[field] !== undefined && item[field] !== null) {
       (compact as Record<string, unknown>)[field] = item[field];
     }
   }
   const manifest = compactMiniAppManifestForCatalog(item.manifest);
-  if (manifest) compact.manifest = manifest;
+  if (manifest) {
+    const i18n = asRecord(manifest.i18n);
+    for (const field of LOCALIZED_CATALOG_FIELDS) {
+      if (compact[field] !== undefined && compact[field] !== null) continue;
+      const localizedValue = manifest[field] ?? i18n[field];
+      if (localizedValue !== undefined && localizedValue !== null) {
+        compact[field] = localizedValue;
+      }
+    }
+    compact.manifest = manifest;
+  }
   return compact;
 }
 
