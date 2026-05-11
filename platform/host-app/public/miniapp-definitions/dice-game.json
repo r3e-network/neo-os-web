@@ -96,7 +96,7 @@
         },
         {
           "name": "chosenNumber",
-          "type": "select",
+          "type": "integer",
           "label": "Face",
           "required": true,
           "default_value": "6",
