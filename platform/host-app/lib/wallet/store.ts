@@ -15,6 +15,16 @@ import {
 } from "./adapters";
 
 export type WalletProvider = "nep21" | "neoline" | "o3" | "onegate" | "wif";
+export type ConnectableWalletProvider = Exclude<WalletProvider, "wif">;
+
+export type WalletOption = {
+  id: ConnectableWalletProvider;
+  name: string;
+  icon: string;
+  description: string;
+  protocol: "NEP-21" | "Legacy dAPI";
+  recommended?: boolean;
+};
 
 interface WalletState {
   connected: boolean;
@@ -240,15 +250,43 @@ export function getWalletAdapter(): WalletAdapter | null {
   return provider ? adapters[provider] : null;
 }
 
-const walletIcon = (label: string) =>
+const nep21Icon =
   `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img"><rect width="64" height="64" rx="16" fill="#00e599"/><text x="32" y="39" text-anchor="middle" font-size="20" font-weight="700" font-family="Arial, sans-serif" fill="#07111a">${label}</text></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NEP-21"><rect width="64" height="64" rx="16" fill="#07111a"/><path d="M17 20.5 32 12l15 8.5v23L32 52l-15-8.5v-23Z" fill="#00e599"/><path d="M25 24h14v4H29v4h8v4h-8v4h10v4H25V24Z" fill="#07111a"/></svg>`,
   )}`;
 
 /** Available wallet options */
-export const walletOptions = [
-  { id: "nep21" as const, name: "NEP-21", icon: walletIcon("21") },
-  { id: "neoline" as const, name: "NeoLine", icon: walletIcon("NL") },
-  { id: "o3" as const, name: "O3", icon: walletIcon("O3") },
-  { id: "onegate" as const, name: "OneGate", icon: walletIcon("OG") },
+export const walletOptions: WalletOption[] = [
+  {
+    id: "nep21",
+    name: "NEP-21 Wallet",
+    icon: nep21Icon,
+    description: "Standard Neo dAPI provider exposed by OneGate and compatible wallets.",
+    protocol: "NEP-21",
+    recommended: true,
+  },
+  {
+    id: "onegate",
+    name: "OneGate",
+    icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
+    description: "OneGate host wallet fallback. Prefer NEP-21 when it is injected.",
+    protocol: "NEP-21",
+  },
+  {
+    id: "neoline",
+    name: "NeoLine",
+    icon: "https://neoline.io/assets/images/home/neoline.svg",
+    description: "NeoLine extension for Neo N3 accounts and contract invokes.",
+    protocol: "Legacy dAPI",
+  },
+  {
+    id: "o3",
+    name: "O3 Wallet",
+    icon: "https://docs.o3.app/~gitbook/icon?size=large&theme=light",
+    description: "O3 wallet fallback when its browser provider is injected.",
+    protocol: "Legacy dAPI",
+  },
 ];
+
+export const walletOptionsById: Partial<Record<WalletProvider, WalletOption>> =
+  Object.fromEntries(walletOptions.map((option) => [option.id, option]));

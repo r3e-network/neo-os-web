@@ -14,6 +14,7 @@ import {
   WalletConnectionError,
 } from "./base";
 import { normalizeNeoNetwork, type NeoNetwork } from "@/lib/neo-network";
+import { Nep21Adapter } from "./nep21";
 
 /** Window with OneGate wallet */
 interface OneGateWindow {
@@ -37,16 +38,21 @@ export class OneGateAdapter implements WalletAdapter {
   readonly icon = "https://onegate.space/favicon.ico";
   readonly downloadUrl = "https://onegate.space/";
 
+  private readonly nep21 = new Nep21Adapter("onegate");
+
   private getWindow(): OneGateWindow {
     return window as unknown as OneGateWindow;
   }
 
   isInstalled(): boolean {
     if (typeof window === "undefined") return false;
-    return !!this.getWindow().OneGate;
+    return this.nep21.isInstalled() || !!this.getWindow().OneGate;
   }
 
   async connect(): Promise<WalletAccount> {
+    if (this.nep21.isInstalled()) {
+      return this.nep21.connect();
+    }
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
@@ -64,10 +70,12 @@ export class OneGateAdapter implements WalletAdapter {
   }
 
   async disconnect(): Promise<void> {
+    await this.nep21.disconnect();
     // OneGate doesn't have explicit disconnect
   }
 
   async getNetwork(): Promise<NeoNetwork | null> {
+    if (this.nep21.isInstalled()) return this.nep21.getNetwork();
     if (!this.isInstalled()) return null;
     const api = this.getWindow().OneGate;
     const source = typeof api?.getNetwork === "function"
@@ -81,6 +89,7 @@ export class OneGateAdapter implements WalletAdapter {
   }
 
   async getBalance(address: string): Promise<WalletBalance> {
+    if (this.nep21.isInstalled()) return this.nep21.getBalance(address);
     if (!this.isInstalled()) return { neo: "0", gas: "0" };
 
     try {
@@ -92,6 +101,7 @@ export class OneGateAdapter implements WalletAdapter {
   }
 
   async signMessage(message: string): Promise<SignedMessage> {
+    if (this.nep21.isInstalled()) return this.nep21.signMessage(message);
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }
@@ -101,6 +111,7 @@ export class OneGateAdapter implements WalletAdapter {
   }
 
   async invoke(params: InvokeParams): Promise<TransactionResult> {
+    if (this.nep21.isInstalled()) return this.nep21.invoke(params);
     if (!this.isInstalled()) {
       throw new WalletNotInstalledError(this.name);
     }

@@ -1,5 +1,6 @@
 import { useAuthStore } from "@/lib/auth/store";
 import { WalletProvider, walletOptions } from "@/lib/wallet/store";
+import { cn } from "@/lib/utils";
 import Head from "next/head";
 
 const socialProviders = [
@@ -65,21 +66,47 @@ export default function LoginPage() {
                 key={w.id}
                 onClick={() => loginWallet(w.id as WalletProvider)}
                 disabled={loading}
-                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
+                className="flex w-full items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-700 hover:border-neo hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50"
               >
-                <img
-                  src={w.icon}
-                  alt={w.name}
-                  width={20}
-                  height={20}
-                  className="h-5 w-5 rounded-full"
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-                {w.name}
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50">
+                  <img
+                    src={w.icon}
+                    alt={w.name}
+                    width={28}
+                    height={28}
+                    className="max-h-7 max-w-7 object-contain"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate font-bold text-gray-800">
+                      {w.name}
+                    </span>
+                    {w.recommended && (
+                      <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                        Recommended
+                      </span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 block text-xs font-medium leading-snug text-gray-500">
+                    {w.description}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase",
+                    w.protocol === "NEP-21"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-gray-100 text-gray-500",
+                  )}
+                >
+                  {w.protocol}
+                </span>
               </button>
             ))}
           </div>
