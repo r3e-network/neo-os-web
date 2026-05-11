@@ -14,7 +14,12 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getLocale, type Locale, type TranslationMap } from "../../utils/i18n";
+import {
+  getLocale,
+  normalizeLocale,
+  type Locale,
+  type TranslationMap,
+} from "../../utils/i18n";
 import { commonMessages } from "../../locale/common";
 import { baseMessages } from "../../locale/base-messages";
 import { getHostOrigin } from "../../utils/runtime-origin";
@@ -23,11 +28,6 @@ type InterpolationArgs = Record<string, string | number>;
 
 type BaseMessages = typeof baseMessages;
 type MergedMessages<T extends TranslationMap> = BaseMessages & T;
-
-const normalizeLocale = (lang?: string | null): Locale => {
-  if (!lang) return "en";
-  return lang.toLowerCase().startsWith("zh") ? "zh" : "en";
-};
 
 const interpolate = (value: string, args: InterpolationArgs): string =>
   value.replace(/\{(\w+)\}/g, (_, key) => String(args[key] ?? `{${key}}`));
@@ -133,7 +133,7 @@ export function createUseI18n<T extends TranslationMap>(messages: T) {
           str = entry;
         } else {
           str =
-            entry[sharedLocale] || entry.en || entry.zh || "";
+            entry[sharedLocale] || entry.en || entry.zh || entry.ja || "";
         }
 
         return args ? interpolate(str, args) : str;
