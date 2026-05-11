@@ -12,6 +12,7 @@ import { ConfirmModal } from "@/components/ui/modal";
 import {
   useWalletStore,
   walletOptions,
+  walletOptionsById,
   WalletProvider,
 } from "@/lib/wallet/store";
 import { useAuthStore } from "@/lib/auth/store";
@@ -134,13 +135,27 @@ export function ConnectButton() {
 
   if (wallet.connected || auth.walletAddress) {
     const address = wallet.address || auth.walletAddress;
+    const connectedWallet =
+      wallet.provider && wallet.provider !== "wif"
+        ? walletOptionsById[wallet.provider]
+        : null;
     return (
       <>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 rounded-xl bg-white/60 border border-gray-200/80 px-4 py-2 backdrop-blur-xl shadow-sm hover:border-neo/30 transition-colors group cursor-pointer">
-            <div className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neo opacity-75 duration-1000"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
+            <div className="relative grid h-8 w-8 place-items-center rounded-lg border border-gray-200 bg-white shadow-sm">
+              {connectedWallet ? (
+                <img
+                  src={connectedWallet.icon}
+                  alt={`${connectedWallet.name} wallet`}
+                  className="h-5 w-5 object-contain"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <KeyRound className="h-4 w-4 text-amber-700" />
+              )}
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border border-white bg-neo shadow-[0_0_8px_rgba(0,229,153,0.8)]" />
             </div>
             <div className="flex flex-col">
               <span
@@ -283,29 +298,54 @@ export function ConnectButton() {
                   <p className="text-xs font-bold uppercase text-gray-400 px-1">
                     Neo Ecosystem
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-3">
                     {walletOptions.map((w) => (
                       <button
                         key={w.id}
                         onClick={() => handleConnect(w.id)}
-                        className="flex flex-col items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-4 hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] transition-all group cursor-pointer"
+                        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 group cursor-pointer"
+                        data-testid={`wallet-option-${w.id}`}
                       >
-                        <img
-                          src={w.icon}
-                          alt={w.name}
-                          className="h-8 w-8 object-contain group-hover:scale-110 transition-transform"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.parentElement
-                              ?.querySelector(".fallback-icon")
-                              ?.classList.remove("hidden");
-                          }}
-                        />
-                        <Wallet className="fallback-icon hidden h-8 w-8 text-neo group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-bold text-gray-700">
-                          {w.name}
+                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50">
+                          <img
+                            src={w.icon}
+                            alt={w.name}
+                            className="max-h-7 max-w-7 object-contain group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              e.currentTarget.parentElement
+                                ?.querySelector(".fallback-icon")
+                                ?.classList.remove("hidden");
+                            }}
+                          />
+                          <Wallet className="fallback-icon hidden h-6 w-6 text-neo group-hover:scale-105 transition-transform" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="truncate text-sm font-bold text-gray-800">
+                              {w.name}
+                            </span>
+                            {w.recommended && (
+                              <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
+                                Recommended
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-1 block text-[11px] font-medium leading-snug text-gray-500">
+                            {w.description}
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase",
+                              w.protocol === "NEP-21"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-gray-100 text-gray-500",
+                            )}
+                          >
+                            {w.protocol}
+                          </span>
                         </span>
                       </button>
                     ))}
