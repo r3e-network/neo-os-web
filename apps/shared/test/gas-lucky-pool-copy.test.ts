@@ -7,6 +7,7 @@ import gasPoolNeoManifest from "../../gas-lucky-pool/neo-manifest.json";
 type LocalizedMessage = {
   en: string;
   zh: string;
+  ja?: string;
 };
 
 const gasPoolMessages = messages as Record<string, LocalizedMessage>;
@@ -41,6 +42,38 @@ describe("OneGate Vault copy", () => {
     expect(gasPoolNeoManifest.description).toMatch(/1-50 GAS/);
     expect(gasPoolMessages.subtitle.en).toMatch(/1-50 GAS/);
     expect(gasPoolMessages.luckPercentLabel.zh).toContain("运气超过");
+  });
+
+  it("ships Japanese copy for the OneGate scan claim flow", () => {
+    const claimFlowKeys = [
+      "title",
+      "subtitle",
+      "claimPoolTitle",
+      "claimPoolDescription",
+      "claimReward",
+      "scanClaimReady",
+      "scanClaimReview",
+      "rewardRange",
+      "noPoolSelected",
+      "claimProgressTitle",
+      "claimProgressWallet",
+      "claimProgressSubmitting",
+      "claimProgressConfirming",
+      "claimProgressPaid",
+      "claimProgressFailed",
+      "claimCongratsTitle",
+      "claimCongratsBody",
+      "luckPercentLabel",
+      "claimCongratsPending",
+      "oneGateReady",
+      "docOneGateFlow",
+    ];
+
+    for (const key of claimFlowKeys) {
+      expect(gasPoolMessages[key].ja, key).toEqual(expect.any(String));
+      expect(gasPoolMessages[key].ja?.trim(), key).not.toBe("");
+      expect(gasPoolMessages[key].ja, key).not.toBe(gasPoolMessages[key].en);
+    }
   });
 
   it("does not expose legacy on-chain pool counters in the Vault shell", () => {

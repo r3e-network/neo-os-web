@@ -77,10 +77,23 @@ function resolveOneGateId(manifest, appId) {
   return stableOneGateId(appId);
 }
 
-function localizedJson(en, zh) {
+function localizedJson(en, zh, ja) {
   const name = asString(en);
   const zhName = asString(zh);
-  return JSON.stringify(zhName && zhName !== name ? { en: name, zh: zhName } : { en: name });
+  const jaName = asString(ja);
+  const localized = { en: name };
+  if (zhName && zhName !== name) localized.zh = zhName;
+  if (jaName) localized.ja = jaName;
+  return JSON.stringify(localized);
+}
+
+function resolveLanguages(manifest, entries) {
+  const explicit = asArray(manifest.languages || manifest.supported_languages);
+  if (explicit.length > 0) return Array.from(new Set(["en", ...explicit]));
+  const languages = ["en"];
+  if (entries.some((value) => asString(value.zh))) languages.push("zh");
+  if (entries.some((value) => asString(value.ja))) languages.push("ja");
+  return languages;
 }
 
 function normalizeStandaloneEntry(manifest, slug) {
@@ -112,17 +125,22 @@ function buildCatalogItem(slug, manifest) {
   const bannerPath = normalizeAssetUrl(urls.banner, slug, "banner.jpg");
   const name = asString(manifest.name, appId);
   const nameZh = asString(manifest.name_zh);
+  const nameJa = asString(manifest.name_ja);
   const description = asString(manifest.description);
   const descriptionZh = asString(manifest.description_zh);
+  const descriptionJa = asString(manifest.description_ja);
   const website = asString(developer.website || developer.url);
   const tags = Array.from(new Set(asArray(manifest.tags)));
-  const languages = nameZh || descriptionZh ? ["en", "zh"] : ["en"];
+  const languages = resolveLanguages(manifest, [
+    { zh: nameZh, ja: nameJa },
+    { zh: descriptionZh, ja: descriptionJa },
+  ]);
   const onegateId = resolveOneGateId(manifest, appId);
 
   const onegate = {
     id: onegateId,
     isActive: true,
-    name: localizedJson(name, nameZh),
+    name: localizedJson(name, nameZh, nameJa),
     url: absoluteUrl(standalonePath),
     iconUrl: absoluteUrl(iconPath),
     tags,
@@ -130,7 +148,7 @@ function buildCatalogItem(slug, manifest) {
     developer: asString(developer.name, "R3E Network").slice(0, 32),
     website: website ? absoluteUrl(website) : undefined,
     previews: [absoluteUrl(bannerPath)].filter(Boolean),
-    description: description || descriptionZh ? localizedJson(description, descriptionZh) : undefined,
+    description: description || descriptionZh || descriptionJa ? localizedJson(description, descriptionZh, descriptionJa) : undefined,
   };
 
   return {
@@ -138,8 +156,10 @@ function buildCatalogItem(slug, manifest) {
     slug,
     name,
     name_zh: nameZh || undefined,
+    name_ja: nameJa || undefined,
     description,
     description_zh: descriptionZh || undefined,
+    description_ja: descriptionJa || undefined,
     category: asString(manifest.category, "utility"),
     tags,
     version: asString(manifest.version, "1.0.0"),
