@@ -5,6 +5,8 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import { ConnectButton } from "@/components/features/wallet/ConnectButton";
 import { useAuthStore } from "@/lib/auth/store";
 import { useWalletStore } from "@/lib/wallet/store";
+import { I18nProvider } from "@/lib/i18n/react";
+import { LOCALE_STORAGE_KEY } from "@/lib/i18n";
 
 jest.mock("@auth0/nextjs-auth0/client", () => ({
   useUser: jest.fn(),
@@ -33,6 +35,7 @@ function mockAuth(overrides: Record<string, unknown> = {}) {
 
 describe("ConnectButton wallet choices", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     mockedUseUser.mockReturnValue({ user: null, error: undefined, isLoading: false });
     mockAuth();
     useWalletStore.setState({
@@ -98,5 +101,35 @@ describe("ConnectButton wallet choices", () => {
       "/miniapps/gas-lucky-pool/onegate-logo.png",
     );
     expect(screen.getByText("2.5 GAS")).toBeInTheDocument();
+  });
+
+  it("localizes the login and wallet picker modal in Chinese", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "zh");
+    const user = userEvent.setup();
+
+    render(
+      <I18nProvider>
+        <ConnectButton />
+      </I18nProvider>,
+    );
+
+    const loginButton = await screen.findByRole("button", {
+      name: "登录 / 注册",
+    });
+
+    await act(async () => {
+      await user.click(loginButton);
+    });
+
+    expect(await screen.findByText(/欢迎使用/)).toBeInTheDocument();
+    expect(screen.getByText("邮箱与社交账号")).toBeInTheDocument();
+    expect(screen.getByText("Neo 生态钱包")).toBeInTheDocument();
+
+    const nep21 = screen.getByTestId("wallet-option-nep21");
+    expect(within(nep21).getByText("NEP-21 钱包")).toBeInTheDocument();
+    expect(within(nep21).getByText("推荐")).toBeInTheDocument();
+    expect(
+      within(nep21).getByText("OneGate 和兼容钱包暴露的标准 Neo dAPI 钱包入口。"),
+    ).toBeInTheDocument();
   });
 });

@@ -26,6 +26,15 @@ import {
   compactMiniAppManifestForCatalog,
   getMiniAppCatalogAvailability,
 } from "@/lib/miniapp-catalog-view";
+import {
+  getAvailabilityLabel,
+  getCategoryLabel,
+  getLocalizedMiniAppDescription,
+  getLocalizedMiniAppName,
+  getNetworkLabel,
+} from "@/lib/i18n/miniapp-display";
+import { interpolate, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/react";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { BRAND } from "@/lib/brand";
 import {
@@ -81,8 +90,20 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
   return apps.map((app) => ({
     app_id: app.app_id,
     name: app.name,
+    name_en: app.name_en ?? null,
+    name_zh: app.name_zh ?? null,
+    name_ja: app.name_ja ?? null,
+    name_ko: app.name_ko ?? null,
     description: app.description,
+    description_en: app.description_en ?? null,
+    description_zh: app.description_zh ?? null,
+    description_ja: app.description_ja ?? null,
+    description_ko: app.description_ko ?? null,
     icon: app.icon,
+    category_name: app.category_name ?? null,
+    category_name_zh: app.category_name_zh ?? null,
+    category_name_ja: app.category_name_ja ?? null,
+    category_name_ko: app.category_name_ko ?? null,
     logo_url: app.logo_url ?? null,
     banner_url: app.banner_url ?? null,
     category: app.category,
@@ -115,6 +136,7 @@ export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
 export default function LandingPage({
   initialApps = EMPTY_INITIAL_APPS,
 }: LandingPageProps = {}) {
+  const { locale, t } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState<"featured" | "recent" | "name">(
     "featured",
@@ -134,8 +156,7 @@ export default function LandingPage({
     return partitions.tools;
   });
   const targetNetwork = getRpcNetwork();
-  const networkLabel =
-    targetNetwork === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
+  const networkLabel = getNetworkLabel(targetNetwork, t);
 
   useEffect(() => {
     let active = true;
@@ -171,48 +192,48 @@ export default function LandingPage({
     return [
       {
         id: "all",
-        label: "All Apps",
+        label: t("home.categories.all", "host"),
         icon: CATEGORY_ICONS.all,
         count: counts.all,
       },
       {
         id: "gaming",
-        label: "Gaming",
+        label: getCategoryLabel("gaming", t),
         icon: CATEGORY_ICONS.gaming,
         count: counts.gaming || 0,
       },
       {
         id: "defi",
-        label: "DeFi",
+        label: getCategoryLabel("defi", t),
         icon: CATEGORY_ICONS.defi,
         count: counts.defi || 0,
       },
       {
         id: "social",
-        label: "Social",
+        label: getCategoryLabel("social", t),
         icon: CATEGORY_ICONS.social,
         count: counts.social || 0,
       },
       {
         id: "nft",
-        label: "NFT",
+        label: getCategoryLabel("nft", t),
         icon: CATEGORY_ICONS.nft,
         count: counts.nft || 0,
       },
       {
         id: "governance",
-        label: "Governance",
+        label: getCategoryLabel("governance", t),
         icon: CATEGORY_ICONS.governance,
         count: counts.governance || 0,
       },
       {
         id: "utility",
-        label: "Utility",
+        label: getCategoryLabel("utility", t),
         icon: CATEGORY_ICONS.utility,
         count: counts.utility || 0,
       },
     ];
-  }, [catalogApps]);
+  }, [catalogApps, t]);
 
   const filteredApps = useMemo(() => {
     const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -220,7 +241,15 @@ export default function LandingPage({
     return sortMiniApps(
       normalizedQuery
         ? filtered.filter((app) =>
-            [app.name, app.app_id, app.description, app.category]
+            [
+              app.name,
+              getLocalizedMiniAppName(app, locale),
+              app.app_id,
+              app.description,
+              getLocalizedMiniAppDescription(app, locale),
+              app.category,
+              getCategoryLabel(String(app.category), t),
+            ]
               .filter(Boolean)
               .some((value) =>
                 String(value).toLowerCase().includes(normalizedQuery),
@@ -229,7 +258,7 @@ export default function LandingPage({
         : filtered,
       sortBy,
     );
-  }, [selectedCategory, sortBy, catalogApps, deferredQuery]);
+  }, [selectedCategory, sortBy, catalogApps, deferredQuery, locale, t]);
 
   const featuredList =
     featuredApps.length > 0
@@ -237,11 +266,17 @@ export default function LandingPage({
       : partitionMiniApps(initialApps).flagship;
   const platformStats = [
     {
-      label: "Enabled apps",
+      label: t("home.stats.enabledApps", "host"),
       value: String(catalogApps.length || initialApps.length),
     },
-    { label: "Featured", value: String(featuredList.length) },
-    { label: "Operator tools", value: String(toolApps.length) },
+    {
+      label: t("home.stats.featured", "host"),
+      value: String(featuredList.length),
+    },
+    {
+      label: t("home.stats.operatorTools", "host"),
+      value: String(toolApps.length),
+    },
   ];
 
   return (
@@ -262,29 +297,25 @@ export default function LandingPage({
                 {networkLabel}
               </span>
               <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
-                NEP-21 wallet ready
+                {t("home.badges.nep21Ready", "host")}
               </span>
               <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
-                OneGate dApp export
+                {t("home.badges.onegateExport", "host")}
               </span>
             </div>
 
             <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-end">
               <div>
                 <h1 className="m-0 max-w-4xl text-4xl font-black leading-tight text-gray-950 sm:text-5xl lg:text-6xl">
-                  Yiwu MiniApps, small tools for every Neo scenario.
+                  {t("home.hero.title", "host")}
                 </h1>
                 <p className="mt-5 max-w-3xl text-base leading-7 text-gray-600 sm:text-lg">
-                  Like Yiwu's small-commodity market, this is a single
-                  production interface for small, focused MiniApps: games,
-                  payments, oracle tools, account abstraction, bridge
-                  workflows, ratings, comments, contract state, and wallet-safe
-                  operations.
+                  {t("home.hero.body", "host")}
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link href="/miniapps">
                     <Button className="h-12 rounded-lg bg-gray-950 px-5 text-sm font-bold text-white hover:bg-gray-800">
-                      Open MiniApp Catalog
+                      {t("home.hero.catalogCta", "host")}
                       <Rocket className="ml-2 h-4 w-4" aria-hidden="true" />
                     </Button>
                   </Link>
@@ -293,7 +324,7 @@ export default function LandingPage({
                       variant="outline"
                       className="h-12 rounded-lg border-gray-200 bg-white px-5 text-sm font-bold text-gray-900 hover:bg-gray-50"
                     >
-                      Developer Console
+                      {t("home.hero.developerCta", "host")}
                       <Code2 className="ml-2 h-4 w-4" aria-hidden="true" />
                     </Button>
                   </Link>
@@ -304,10 +335,10 @@ export default function LandingPage({
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="m-0 text-xs font-semibold uppercase text-gray-400">
-                      Platform Status
+                      {t("home.status.title", "host")}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">
-                      Live app shell with native play areas
+                      {t("home.status.subtitle", "host")}
                     </p>
                   </div>
                   <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
@@ -331,9 +362,9 @@ export default function LandingPage({
                 </div>
                 <div className="grid gap-2 text-sm text-gray-600">
                   {[
-                    "Strict mainnet and testnet isolation",
-                    "Shared action console across every app",
-                    "Native PlayArea registry, no iframe shell",
+                    t("home.status.itemNetwork", "host"),
+                    t("home.status.itemConsole", "host"),
+                    t("home.status.itemPlayArea", "host"),
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2">
                       <CheckCircle2
@@ -355,17 +386,17 @@ export default function LandingPage({
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="m-0 text-xs font-semibold uppercase text-gray-400">
-                  Featured Apps
+                  {t("home.featured.eyebrow", "host")}
                 </p>
                 <h2 className="m-0 mt-1 text-lg font-bold text-gray-900">
-                  Start here
+                  {t("home.featured.title", "host")}
                 </h2>
               </div>
               <Link
                 href="/miniapps"
                 className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-bold text-gray-700 hover:border-emerald-300 hover:text-emerald-700"
               >
-                View all
+                {t("actions.viewAll")}
               </Link>
             </div>
             <div className="space-y-2">
@@ -374,6 +405,8 @@ export default function LandingPage({
                   key={app.app_id}
                   app={app}
                   targetNetwork={targetNetwork}
+                  locale={locale}
+                  t={t}
                 />
               ))}
               {catalogLoading && featuredList.length === 0 && (
@@ -397,15 +430,16 @@ export default function LandingPage({
           <div className="mb-6 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_420px]">
             <div>
               <h2 className="m-0 text-2xl font-black text-gray-900">
-                MiniApp Catalog
+                {t("catalog.title", "host")}
               </h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                Browse polished apps by category, then open the unified detail
-                view with the app-specific play area and shared action console.
+                {t("home.catalog.description", "host")}
               </p>
             </div>
             <label className="relative block self-end">
-              <span className="sr-only">Search MiniApps</span>
+              <span className="sr-only">
+                {t("catalog.searchLabel", "host")}
+              </span>
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                 aria-hidden="true"
@@ -414,7 +448,7 @@ export default function LandingPage({
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search apps, categories, or IDs"
+                placeholder={t("home.catalog.searchPlaceholder", "host")}
                 className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
             </label>
@@ -429,7 +463,7 @@ export default function LandingPage({
               <div className="sticky top-24">
                 <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 mb-6 px-2">
                   <Filter size={20} aria-hidden="true" className="text-neo" />
-                  Ecosystems
+                  {t("home.catalog.ecosystems", "host")}
                 </h2>
                 <div className="space-y-2">
                   {categories.map((cat) => {
@@ -488,13 +522,15 @@ export default function LandingPage({
                           : "text-gray-500 hover:text-gray-900 hover:bg-gray-100",
                       )}
                     >
-                      {opt}
+                      {t(`home.sort.${opt}`, "host")}
                     </Button>
                   ))}
                 </div>
 
                 <div className="px-3 text-sm font-semibold text-gray-500">
-                  {filteredApps.length} shown
+                  {interpolate(t("home.catalog.shownCount", "host"), {
+                    shown: filteredApps.length,
+                  })}
                 </div>
               </div>
 
@@ -513,14 +549,20 @@ export default function LandingPage({
                       key={app.app_id}
                       app={app}
                       targetNetwork={targetNetwork}
+                      locale={locale}
+                      t={t}
                       spacious
                     />
                   ))
                 ) : (
                   <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white py-16 text-gray-500">
                     <LayoutGrid className="mb-4 h-12 w-12 text-gray-300" />
-                    <p className="text-xl font-semibold">No apps found</p>
-                    <p className="text-sm mt-2">Try adjusting your filters.</p>
+                    <p className="text-xl font-semibold">
+                      {t("home.catalog.emptyTitle", "host")}
+                    </p>
+                    <p className="text-sm mt-2">
+                      {t("home.catalog.emptyBody", "host")}
+                    </p>
                   </div>
                 )}
               </div>
@@ -535,11 +577,10 @@ export default function LandingPage({
           <div className="mb-6 flex items-end justify-between gap-6">
             <div>
               <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
-                Account & Oracle Tools
+                {t("home.tools.title", "host")}
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-                Focused miniapps for AA registration, permissions, relay checks,
-                and Morpheus Oracle interaction.
+                {t("home.tools.description", "host")}
               </p>
             </div>
             <Link href="/miniapps">
@@ -547,7 +588,7 @@ export default function LandingPage({
                 variant="outline"
                 className="rounded-full border-gray-200"
               >
-                Browse All Tools
+                {t("home.tools.browse", "host")}
               </Button>
             </Link>
           </div>
@@ -563,6 +604,8 @@ export default function LandingPage({
                   key={app.app_id}
                   app={app}
                   targetNetwork={targetNetwork}
+                  locale={locale}
+                  t={t}
                   spacious
                 />
               ))
@@ -570,10 +613,10 @@ export default function LandingPage({
               <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 py-12 text-gray-500">
                 <Wrench className="w-12 h-12 mb-3 text-gray-300" />
                 <p className="text-base font-semibold">
-                  No tools available yet
+                  {t("home.tools.emptyTitle", "host")}
                 </p>
                 <p className="text-sm mt-1">
-                  Check back soon for new operator tools.
+                  {t("home.tools.emptyBody", "host")}
                 </p>
               </div>
             )}
@@ -586,34 +629,33 @@ export default function LandingPage({
         <div className="mx-auto max-w-[1500px]">
           <div className="mb-8">
             <h2 className="m-0 text-2xl font-black text-gray-900 md:text-3xl">
-              Platform Capabilities
+              {t("home.capabilities.title", "host")}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">
-              The shared shell keeps every app consistent while leaving the top
-              play area free for each product's own gameplay or workflow.
+              {t("home.capabilities.description", "host")}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <FeatureItem
               icon={Shield}
-              title="Confidential TEE"
-              desc="Run private logic in AWS Nitro enclaves where even operators can't see the data."
+              title={t("home.capabilities.teeTitle", "host")}
+              desc={t("home.capabilities.teeDesc", "host")}
             />
             <FeatureItem
               icon={Zap}
-              title="Native VRF"
-              desc="Integrated verifiable randomness directly into the consensus layer for guaranteed fairness."
+              title={t("home.capabilities.vrfTitle", "host")}
+              desc={t("home.capabilities.vrfDesc", "host")}
             />
             <FeatureItem
               icon={Globe}
-              title="Oracle Network"
-              desc="Securely access real-world data without external dependencies or heavy fees."
+              title={t("home.capabilities.oracleTitle", "host")}
+              desc={t("home.capabilities.oracleDesc", "host")}
             />
             <FeatureItem
               icon={Cpu}
-              title="NeoFS Storage"
-              desc="De-centralized metadata and vast asset storage baked directly into the protocol."
+              title={t("home.capabilities.storageTitle", "host")}
+              desc={t("home.capabilities.storageDesc", "host")}
             />
           </div>
         </div>
@@ -624,17 +666,16 @@ export default function LandingPage({
         <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-gray-200 bg-gray-950 p-6 text-white shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
           <div>
             <h2 className="m-0 text-2xl font-black md:text-3xl">
-              Build and publish a focused MiniApp.
+              {t("home.cta.title", "host")}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">
-              Use the same shell, wallet adapters, operation panel, media
-              pipeline, and catalog validation that the flagship apps use.
+              {t("home.cta.body", "host")}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link href="/developer">
               <Button className="h-12 rounded-lg bg-neo px-5 text-sm font-bold text-gray-950 hover:bg-neo/90">
-                Start Building
+                {t("home.cta.start", "host")}
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -643,7 +684,7 @@ export default function LandingPage({
                 variant="outline"
                 className="h-12 rounded-lg border-white/20 bg-transparent px-5 text-sm font-bold text-white hover:bg-white/10"
               >
-                Read Docs
+                {t("home.cta.docs", "host")}
               </Button>
             </Link>
           </div>
@@ -657,12 +698,23 @@ function HomeMiniAppRow({
   app,
   spacious = false,
   targetNetwork,
+  locale,
+  t,
 }: {
   app: MiniAppInfo;
   spacious?: boolean;
   targetNetwork: string;
+  locale: Locale;
+  t: (key: string, ns?: "common" | "host" | "admin" | "miniapp") => string;
 }) {
   const availability = getMiniAppCatalogAvailability(app, targetNetwork);
+  const appName = getLocalizedMiniAppName(app, locale);
+  const appDescription = getLocalizedMiniAppDescription(app, locale);
+  const availabilityLabel = getAvailabilityLabel(
+    availability.tone,
+    availability.label,
+    t,
+  );
   const statusClass =
     availability.tone === "live"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -687,12 +739,12 @@ function HomeMiniAppRow({
         manifest={app.manifest || null}
         size={spacious ? "lg" : "md"}
         className="shrink-0"
-        alt={app.name}
+        alt={appName}
       />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate text-sm font-bold text-gray-900">
-            {app.name}
+            {appName}
           </span>
           <span
             className={cn(
@@ -700,11 +752,11 @@ function HomeMiniAppRow({
               statusClass,
             )}
           >
-            {availability.label}
+            {availabilityLabel}
           </span>
         </span>
         <span className="mt-1 line-clamp-2 text-xs leading-5 text-gray-500">
-          {app.description}
+          {appDescription}
         </span>
       </span>
       <ArrowUpRight

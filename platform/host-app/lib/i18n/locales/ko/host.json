@@ -2,7 +2,8 @@
   "hero": {
     "title": "Neo 미니앱 플랫폼",
     "subtitle": "TEE 보안으로 분산 애플리케이션 구축 및 배포",
-    "exploreApps": "앱 탐색"
+    "exploreApps": "앱 탐색",
+    "launchApp": "앱 실행"
   },
   "features": {
     "title": "기능",
@@ -28,7 +29,11 @@
     "social": "소셜",
     "utility": "유틸리티",
     "nft": "NFT",
-    "governance": "거버넌스"
+    "governance": "거버넌스",
+    "data": "데이터",
+    "finance": "금융",
+    "operations": "운영",
+    "other": "기타"
   },
   "activity": {
     "recent": "최근 활동",
@@ -40,5 +45,105 @@
     "profile": "프로필",
     "transactions": "트랜잭션",
     "favorites": "즐겨찾기"
+  },
+  "catalog": {
+    "pageTitle": "미니앱",
+    "title": "미니앱 카탈로그",
+    "description": "Neo N3용 작고 집중된 미니앱을 찾아 플레이 영역을 열고 공용 액션 콘솔에서 작업하세요.",
+    "searchLabel": "미니앱 검색",
+    "searchPlaceholder": "이름, 카테고리, 앱 ID로 검색",
+    "fetchError": "불러오지 못했습니다. 다시 시도하세요.",
+    "openApp": "앱 열기",
+    "shownCount": "미니앱 {total}개 중 {shown}개 표시",
+    "empty": "현재 필터와 일치하는 미니앱이 없습니다.",
+    "network": {
+      "mainnet": "Neo N3 메인넷",
+      "testnet": "Neo N3 테스트넷"
+    },
+    "filters": {
+      "all": "전체",
+      "live": "라이브",
+      "tool": "도구",
+      "otherNetwork": "다른 네트워크",
+      "pending": "대기 중"
+    },
+    "status": {
+      "live": "라이브",
+      "pending": "대기 중",
+      "tool": "도구",
+      "otherNetwork": "다른 네트워크",
+      "testnetOnly": "테스트넷 전용",
+      "mainnetOnly": "메인넷 전용",
+      "networkUnavailable": "네트워크 미지원"
+    }
+  },
+  "home": {
+    "badges": {
+      "nep21Ready": "NEP-21 지갑 준비됨",
+      "onegateExport": "OneGate dApp 내보내기"
+    },
+    "hero": {
+      "title": "Yiwu MiniApps, 모든 Neo 시나리오를 위한 작은 도구.",
+      "body": "게임, 결제, 오라클 도구, 계정 추상화, 브리지, 평점, 댓글, 컨트랙트 상태, 지갑 안전 작업을 하나의 프로덕션 인터페이스로 제공합니다.",
+      "catalogCta": "미니앱 카탈로그 열기",
+      "developerCta": "개발자 콘솔"
+    },
+    "status": {
+      "title": "플랫폼 상태",
+      "subtitle": "네이티브 플레이 영역이 있는 라이브 앱 셸",
+      "itemNetwork": "메인넷과 테스트넷 엄격 분리",
+      "itemConsole": "모든 앱의 공용 액션 콘솔",
+      "itemPlayArea": "iframe이 아닌 네이티브 PlayArea 등록"
+    },
+    "stats": {
+      "enabledApps": "활성 앱",
+      "featured": "추천",
+      "operatorTools": "운영 도구"
+    },
+    "featured": {
+      "eyebrow": "추천 앱",
+      "title": "여기서 시작"
+    },
+    "categories": {
+      "all": "전체 앱"
+    },
+    "catalog": {
+      "description": "카테고리별로 정제된 앱을 둘러보고 전용 플레이 영역과 공용 액션 콘솔을 여세요.",
+      "searchPlaceholder": "앱, 카테고리 또는 ID 검색",
+      "ecosystems": "생태계",
+      "shownCount": "{shown}개 표시",
+      "emptyTitle": "앱을 찾을 수 없음",
+      "emptyBody": "필터를 조정해 보세요."
+    },
+    "sort": {
+      "featured": "추천",
+      "recent": "최근",
+      "name": "이름"
+    },
+    "tools": {
+      "title": "계정 및 오라클 도구",
+      "description": "AA 등록, 권한, relay 확인, Morpheus Oracle 연동을 위한 미니앱입니다.",
+      "browse": "모든 도구 보기",
+      "emptyTitle": "아직 사용 가능한 도구가 없습니다",
+      "emptyBody": "새 운영 도구가 곧 추가됩니다."
+    },
+    "capabilities": {
+      "title": "플랫폼 기능",
+      "description": "공용 셸은 모든 앱의 일관성을 유지하고, 상단 플레이 영역은 각 제품의 고유 흐름에 사용됩니다.",
+      "teeTitle": "기밀 TEE",
+      "teeDesc": "AWS Nitro enclave에서 개인 로직을 실행해 운영자도 데이터를 볼 수 없습니다.",
+      "vrfTitle": "네이티브 VRF",
+      "vrfDesc": "검증 가능한 랜덤을 합의 계층에 통합해 공정성을 보장합니다.",
+      "oracleTitle": "오라클 네트워크",
+      "oracleDesc": "외부 의존성과 높은 수수료 없이 현실 세계 데이터에 안전하게 접근합니다.",
+      "storageTitle": "NeoFS 스토리지",
+      "storageDesc": "분산 메타데이터와 대용량 자산 저장을 프로토콜에 통합합니다."
+    },
+    "cta": {
+      "title": "집중된 미니앱을 만들고 게시하세요.",
+      "body": "플래그십 앱이 사용하는 동일한 셸, 지갑 어댑터, 작업 패널, 미디어 파이프라인, 카탈로그 검증을 사용하세요.",
+      "start": "빌드 시작",
+      "docs": "문서 읽기"
+    }
   }
 }
