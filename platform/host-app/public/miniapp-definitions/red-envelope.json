@@ -101,7 +101,7 @@
   "operations": [
     {
       "name": "Claim",
-      "method": "claimEnvelope",
+      "method": "claim",
       "button_style": "primary",
       "priority": "primary",
       "params": [
@@ -128,14 +128,6 @@
       "button_style": "secondary",
       "priority": "secondary",
       "params": [
-        {
-          "name": "appId",
-          "type": "string",
-          "label": "App ID",
-          "required": true,
-          "default_value": "miniapp-redenvelope",
-          "hidden": true
-        },
         {
           "name": "creator",
           "type": "hash160",

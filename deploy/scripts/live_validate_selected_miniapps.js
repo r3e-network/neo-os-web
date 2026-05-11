@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { chooseNeoCapableActor } = require("./lib/live_actor_selection");
 const {
   sleep,
   asTxid,
@@ -433,7 +434,14 @@ async function transferGAS(accountContract, fromAccount, toHash, amount, memo) {
 }
 
 async function transferNEO(fromAccount, toHash, amount, memo) {
-  const txid = await adminNeo.invoke("transfer", [
+  const sourceNeoContract = fromAccount === admin
+    ? adminNeo
+    : new Neon.experimental.SmartContract(NEO_HASH, {
+        rpcAddress: RPC_URL,
+        networkMagic: NETWORK_MAGIC,
+        account: fromAccount,
+      });
+  const txid = await sourceNeoContract.invoke("transfer", [
     Neon.sc.ContractParam.hash160(`0x${fromAccount.scriptHash}`),
     Neon.sc.ContractParam.hash160(toHash),
     Neon.sc.ContractParam.integer(String(amount)),
@@ -879,7 +887,6 @@ async function runGraveyard() {
 
 async function runHeritageTrust() {
   const contractHash = ADDRESSES.heritagetrust;
-  const contract = appContract(contractHash, admin);
   const pauseState = await assertMiniAppNotPaused("heritagetrust", contractHash);
   const actorPrecheck = assertDistinctActors("heritagetrust");
   if (actorPrecheck.skip) return { contractHash, skipped: true, reason: actorPrecheck.reason };
@@ -902,17 +909,21 @@ async function runHeritageTrust() {
       `heritagetrust: scripted heartbeat ${scriptedHeartbeatSeconds.toString()}s is outside current range ${minHeartbeatSeconds.toString()}-${maxHeartbeatSeconds.toString()}`
     );
   }
-  const adminNeoBalance = await getNeoBalance(`0x${admin.scriptHash}`);
-  if (adminNeoBalance < HERITAGE_TRUST_PRINCIPAL) {
-    throw new Error(
-      `heritagetrust: admin ${admin.address} needs at least ${HERITAGE_TRUST_PRINCIPAL.toString()} NEO for principal deposit, but only has ${adminNeoBalance.toString()}`
-    );
-  }
-  await transferNEO(admin, contractHash, HERITAGE_TRUST_PRINCIPAL.toString(), "miniapp-heritage-trust:create");
+  const [adminNeoBalance, userNeoBalance] = await Promise.all([
+    getNeoBalance(`0x${admin.scriptHash}`),
+    getNeoBalance(`0x${user.scriptHash}`),
+  ]);
+  const principalActor = chooseNeoCapableActor([
+    { label: "admin", account: admin, address: admin.address, neo: adminNeoBalance },
+    { label: "user", account: user, address: user.address, neo: userNeoBalance },
+  ], HERITAGE_TRUST_PRINCIPAL).account;
+  const guardianActor = principalActor === admin ? user : admin;
+  const contract = appContract(contractHash, principalActor);
+  await transferNEO(principalActor, contractHash, HERITAGE_TRUST_PRINCIPAL.toString(), "miniapp-heritage-trust:create");
 
   const createTx = await contract.invoke("createTrust", [
-    Neon.sc.ContractParam.hash160(`0x${admin.scriptHash}`),
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
+    Neon.sc.ContractParam.hash160(`0x${principalActor.scriptHash}`),
+    Neon.sc.ContractParam.hash160(`0x${guardianActor.scriptHash}`),
     Neon.sc.ContractParam.integer(HERITAGE_TRUST_PRINCIPAL.toString()),
     Neon.sc.ContractParam.integer(HERITAGE_TRUST_HEARTBEAT_DAYS.toString()),
     Neon.sc.ContractParam.string(uniqueLabel("Heritage")),
@@ -924,7 +935,7 @@ async function runHeritageTrust() {
 
   const guardianTx = await contract.invoke("addGuardian", [
     Neon.sc.ContractParam.integer(trustId),
-    Neon.sc.ContractParam.hash160(`0x${user.scriptHash}`),
+    Neon.sc.ContractParam.hash160(`0x${guardianActor.scriptHash}`),
   ]);
   const guardianLog = await waitForLog(guardianTx);
   if (guardianLog.execution.vmstate !== "HALT") throw new Error(guardianLog.execution.exception || "addGuardian failed");
@@ -954,6 +965,9 @@ async function runHeritageTrust() {
       maxHeartbeatSeconds: maxHeartbeatSeconds.toString(),
       scriptedHeartbeatSeconds: scriptedHeartbeatSeconds.toString(),
       adminNeoBalance: adminNeoBalance.toString(),
+      userNeoBalance: userNeoBalance.toString(),
+      principalAddress: principalActor.address,
+      guardianAddress: guardianActor.address,
     },
     trustId,
     createTx: asTxid(createTx),

@@ -723,9 +723,14 @@ export default function MiniAppDetailPage({
             values,
             walletAddress,
           );
+          const chainOperation = resolveNetworkOperationMethod(
+            app.app_id,
+            operation.method,
+            targetNetwork,
+          );
           const invokePayload: InvokeParams = {
             scriptHash: resolvedRuntime.contractHash,
-            operation: operation.method,
+            operation: chainOperation,
             args,
           };
           invokePayload.signers = [{ account: walletAddress, scopes: 1 }];
@@ -800,7 +805,11 @@ export default function MiniAppDetailPage({
 
             const invokePayload: InvokeParams = {
               scriptHash: directContractHash,
-              operation: operation.method,
+              operation: resolveNetworkOperationMethod(
+                app.app_id,
+                operation.method,
+                targetNetwork,
+              ),
               args,
             };
 
@@ -2257,6 +2266,21 @@ function resolveAnchorOperationAppId(
       launchContext?.params.anchor ||
       "",
   ).trim();
+}
+
+function resolveNetworkOperationMethod(
+  appId: string,
+  method: string,
+  network: string,
+): string {
+  if (
+    appId === "miniapp-self-loan" &&
+    network === "neo-n3-mainnet" &&
+    method === "repayLoan"
+  ) {
+    return "repayDebt";
+  }
+  return method;
 }
 
 function resolveCustomAnchorOperations(

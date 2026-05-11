@@ -291,7 +291,7 @@
   },
   "logic": {
     "provides": ["customAnchor.selfServeRegistration", "customAnchor.userStakeRedeemClaim"],
-    "depends_on": ["aa.registerAccounts", "platformAnchor.registerCustomAnchorApp", "platformAnchor.registerAgents"]
+    "uses": ["aa.registerAccounts", "platformAnchor.registerCustomAnchorApp", "platformAnchor.registerAgents"]
   },
   "docs_url": "https://docs.r3e.network/custom-anchor"
 }
