@@ -24,7 +24,7 @@
   },
   "contracts": {
     "neo-n3-mainnet": "0x942da575b31f39cbb59e64b5813b128739b44c25",
-    "neo-n3-testnet": "0xb43bd0ded09b5d79ed858484106affc1c858483c"
+    "neo-n3-testnet": "0x39d4584ddb0731e48e611647931993ee033bf373"
   },
   "contract_domains": {
     "neo-n3-mainnet": "selfloan.miniapp.neo"
@@ -53,7 +53,7 @@
             "domain": "selfloan.miniapp.neo"
           },
           "neo-n3-testnet": {
-            "contract_hash": "0xb43bd0ded09b5d79ed858484106affc1c858483c",
+            "contract_hash": "0x39d4584ddb0731e48e611647931993ee033bf373",
             "registered": true
           }
         }

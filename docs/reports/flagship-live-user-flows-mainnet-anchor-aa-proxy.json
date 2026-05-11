@@ -1,0 +1,245 @@
+{
+  "generatedAt": "2026-05-10T13:07:42.984Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "profitAnchor",
+      "trustAnchor"
+    ],
+    "selected": [
+      "profitAnchor",
+      "trustAnchor"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "profitAnchor",
+        "trustAnchor"
+      ],
+      "selected": [
+        "profitAnchor",
+        "trustAnchor"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "15984789205",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "15984789205"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "15984789205"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "skipped": true
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "deferred": true,
+      "reason": "needs-anchor-aa-userop-writer",
+      "message": "ProfitAnchor AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke",
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-profitanchor",
+        "mode": "2",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "2",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0xcf3ad5f51f024a445c675cfe287a134b41f486c7",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "accountId": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "expectedProxyAccount": "0xcf3ad5f51f024a445c675cfe287a134b41f486c7",
+          "aaProxyMatched": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0x4c78b256b5ce0087201247300eb0781d150e9653",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "accountId": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "expectedProxyAccount": "0x4c78b256b5ce0087201247300eb0781d150e9653",
+          "aaProxyMatched": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-aa-userop-writer",
+        "message": "ProfitAnchor AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke",
+        "sourceAgent": "0xcf3ad5f51f024a445c675cfe287a134b41f486c7",
+        "sourceAccountId": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+        "amount": "1"
+      }
+    },
+    "trustAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "deferred": true,
+      "reason": "needs-anchor-aa-userop-writer",
+      "message": "TrustAnchor AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke",
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-trustanchor",
+        "mode": "1",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "1",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x6d97903409bb339e53768d0fefe5cc06c3b18fd2",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "accountId": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "expectedProxyAccount": "0x6d97903409bb339e53768d0fefe5cc06c3b18fd2",
+          "aaProxyMatched": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0xfda16e1d2735e273527c57719035e6e7533a4380",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "accountId": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "expectedProxyAccount": "0xfda16e1d2735e273527c57719035e6e7533a4380",
+          "aaProxyMatched": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-aa-userop-writer",
+        "message": "TrustAnchor AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke",
+        "sourceAgent": "0x6d97903409bb339e53768d0fefe5cc06c3b18fd2",
+        "sourceAccountId": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+        "amount": "1"
+      }
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

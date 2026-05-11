@@ -76,12 +76,12 @@ npm run build
 
 | Network | Address                                      |
 | ------- | -------------------------------------------- |
-| Testnet | `0xb115dd775a7591bb0eedef6dbf50428d50e7bc07` |
+| Testnet | `0x740671b10330ef6669ab8b2724437eb8d5e7a34c` |
 | Mainnet | `0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7` |
 
 ### Explorer Links
 
-- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xb115dd775a7591bb0eedef6dbf50428d50e7bc07)
+- **Testnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0x740671b10330ef6669ab8b2724437eb8d5e7a34c)
 - **Mainnet**: [View on Neo3Scan](https://www.neo3scan.com/contract/0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7)
 
 ## Domains

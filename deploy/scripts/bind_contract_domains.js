@@ -58,7 +58,7 @@ function reverseHex(hex) {
 }
 
 function signerForRpc(account) {
-  return `0x${reverseHex(account.scriptHash)}`;
+  return `0x${account.scriptHash}`;
 }
 
 function findOwnerWif() {

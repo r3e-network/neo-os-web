@@ -25,7 +25,7 @@ export function useAARelayConsole({ aa, eventBus, t }: UseAARelayConsoleOptions)
 
   const aaAddress = createObservable("");
   const dappId = createObservable("");
-  const payloadJson = createObservable('{\n  "metaInvocation": {\n    "scriptHash": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"\n  }\n}');
+  const payloadJson = createObservable('{\n  "metaInvocation": {\n    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"\n  }\n}');
   const sponsorResult = createObservable<SponsorResult>(null);
   const lastRelayResult = createObservable<RelayResult | null>(null);
 

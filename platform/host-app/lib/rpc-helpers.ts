@@ -44,11 +44,11 @@ const CUSTOM_CONTRACT_HASHES: Record<NeoNetwork, Record<string, string>> = {
     "miniapp-last-survivor": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
     "miniapp-dice-game": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
     "miniapp-self-loan": "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada",
-    "miniapp-profitanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
-    "miniapp-trustanchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
-    "miniapp-profitanchor-admin": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
-    "miniapp-trustanchor-admin": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
-    "miniapp-custom-anchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+    "miniapp-profitanchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
+    "miniapp-trustanchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
+    "miniapp-profitanchor-admin": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
+    "miniapp-trustanchor-admin": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
+    "miniapp-custom-anchor": "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
   },
 };
 

@@ -1,289 +1,557 @@
 {
-  "generated_at": "2026-05-10T04:04:39.918Z",
-  "started_at": "2026-05-10T04:04:39.917Z",
+  "generated_at": "2026-05-10T09:15:30.527Z",
+  "started_at": "2026-05-10T09:14:56.858Z",
   "network": "neo-n3-mainnet",
   "rpc_url": "https://mainnet2.neo.coz.io:443",
   "network_magic": 860833102,
-  "execute": false,
-  "signer_status": "missing",
-  "required_env_keys": [
-    "NEONS_DOMAIN_OWNER_WIF",
-    "NEO_NNS_DOMAIN_OWNER_WIF",
-    "DOMAIN_OWNER_WIF",
-    "NEO_MAINNET_DOMAIN_OWNER_WIF",
-    "MINIAPP_DOMAIN_OWNER_WIF"
-  ],
+  "execute": true,
+  "signer_status": "configured",
+  "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
   "action_count": 30,
-  "actions": [
+  "submitted_count": 30,
+  "ready_count": 0,
+  "blocked_count": 0,
+  "error_count": 0,
+  "rows": [
     {
+      "index": 1,
       "domain": "breakupcontract.miniapp.neo",
       "expected_address": "NbPfZ6is9YhGxq5eicFx87xVXMddcGUfc3",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "944763"
+      },
+      "status": "submitted",
+      "tx_hash": "0xd778dc07b3e37cc8af9522806d1eebd012a19e7e7206ec29af1a2d55ce0e675c",
+      "error": ""
     },
     {
+      "index": 2,
       "domain": "burnleague.miniapp.neo",
       "expected_address": "NWV1mHMyWXAf5bG3SqYLvd8wrgpmEp4ssT",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "851228"
+      },
+      "status": "submitted",
+      "tx_hash": "0xb86082c8435ebb96cb015a9fe249ef0a185e9d1b4c88984e73bcf1b71e3a57e1",
+      "error": ""
     },
     {
+      "index": 3,
       "domain": "callback.morpheus.neo",
       "expected_address": "NSAftcmNDncyNa4xHrtiV8VmkWmE2uvjPY",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0xe1226268f2fe08bea67fb29e1c8fda0d7c8e9844",
       "parent_domain": "morpheus.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "742521"
+      },
+      "status": "submitted",
+      "tx_hash": "0xfc87629e2254a06d5f9024c03b6f88c95e17168c1e4f388f89495c04e59dc5c8",
+      "error": ""
     },
     {
+      "index": 4,
       "domain": "councilgovernance.miniapp.neo",
       "expected_address": "NfeVDgmwgUmUsqax9a1NKuj3hD4nQuWWk2",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "982177"
+      },
+      "status": "submitted",
+      "tx_hash": "0xfac848fbd6050d766b1ff7d8ff9be0f54ec901b1dee0bd5a9a05bc5e4df00267",
+      "error": ""
     },
     {
+      "index": 5,
       "domain": "customanchor.miniapp.neo",
       "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "888642"
+      },
+      "status": "submitted",
+      "tx_hash": "0xac75261a6b5dc4416185a467c7f32aaa0d4cad14cbfd0b255d22885085949778",
+      "error": ""
     },
     {
+      "index": 6,
       "domain": "dailycheckin.miniapp.neo",
       "expected_address": "NgkjESGFZYk5EUvWTtdKmcZk9ZNMfemxaL",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "796642"
+      },
+      "status": "submitted",
+      "tx_hash": "0x8574fc1fb51180b024888b67e7b29fd02259a57eb9787fd615df4e9ae62e5475",
+      "error": ""
     },
     {
+      "index": 7,
       "domain": "devtipping.miniapp.neo",
       "expected_address": "NatxszWGb1chEFTExZBXVQPaMDndTh7EPe",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "851228"
+      },
+      "status": "submitted",
+      "tx_hash": "0xdb7ecbdd22c6a67bbefefc3bf6e631b3cae9d029dab3bb0efe59056b147f4d5f",
+      "error": ""
     },
     {
+      "index": 8,
       "domain": "dicegame.miniapp.neo",
       "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "813814"
+      },
+      "status": "submitted",
+      "tx_hash": "0x9299f7b3f0138e9008308f11123c431593dfb3da6fe9403fc57dbabe4ddfc860",
+      "error": ""
     },
     {
+      "index": 9,
       "domain": "eventticketpass.miniapp.neo",
       "expected_address": "NPuUuywgsc87DJ4YHErFKV2HMVacxn4epK",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "944763"
+      },
+      "status": "submitted",
+      "tx_hash": "0x3fa2d53d312b7677fb8cbbf6e4fb86c133c6e4327e86e3d7903eadc6c8fff80c",
+      "error": ""
     },
     {
+      "index": 10,
       "domain": "flashloan.miniapp.neo",
       "expected_address": "NgncPGaVETKNoW3fkUaiCg5xw3ynsZbQTo",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "832521"
+      },
+      "status": "submitted",
+      "tx_hash": "0x53251ceea559b22bb4d389f4d4d283ed6b3bc0ffe7d7395a149f4bf90e4f4b25",
+      "error": ""
     },
     {
+      "index": 11,
       "domain": "fogplay.miniapp.neo",
       "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0xa5a4b5b82066d86eae9312f6072d1c3604882c81",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "707107"
+      },
+      "status": "submitted",
+      "tx_hash": "0xf44dc76e828d85d98f5898498fd04fa3a4178a02dc53c851c96ce9efd73a44e0",
+      "error": ""
     },
     {
+      "index": 12,
       "domain": "gasbox.miniapp.neo",
       "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0xf111a0d02ecae3ace271da8abeb7ee22fa122f1c",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "689400"
+      },
+      "status": "submitted",
+      "tx_hash": "0xc7f0dfd9c55ac42dfc139a226b3080d8d020c38e14f429884411797776c55f64",
+      "error": ""
     },
     {
+      "index": 13,
       "domain": "gassponsor.miniapp.neo",
       "expected_address": "NhthDnzcNj51JzJqjF4Q9ZVc7XvYWgYrHe",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "851228"
+      },
+      "status": "submitted",
+      "tx_hash": "0x310ff6cfc3661a7ba7d956df1bab3d79a0b809b093048a423a0279eaa27578cf",
+      "error": ""
     },
     {
+      "index": 14,
       "domain": "govmerc.miniapp.neo",
       "expected_address": "NeuUiYQ72M2RjNSkRu4aMzW3N9ukUeAsPL",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "795107"
+      },
+      "status": "submitted",
+      "tx_hash": "0x000a27a4346da3ada57112d86cc2d5a11a68a54d37eb589c11aaa599f66cebae",
+      "error": ""
     },
     {
+      "index": 15,
       "domain": "graveyard.miniapp.neo",
       "expected_address": "NeyokrvkoJjSZQw13YDgunhaKfZxKhKQ6N",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "832521"
+      },
+      "status": "submitted",
+      "tx_hash": "0x646674483fad74c645fd1d9767bb242b054bac445fc936731f313da5d5ec925f",
+      "error": ""
     },
     {
+      "index": 16,
       "domain": "lastsurvivor.miniapp.neo",
       "expected_address": "Ne6SCyu6qsNSzMNK1AYos8TeefzKYSXgB8",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0x180a3a35c088eab4feded508c2ccb1556e07a840",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "796642"
+      },
+      "status": "submitted",
+      "tx_hash": "0x1ab13625d106b2db811cba8045fd390a9b325be45f069c299cca117132988f41",
+      "error": ""
     },
     {
+      "index": 17,
       "domain": "memorialshrine.miniapp.neo",
       "expected_address": "NRytag9phpdkSkrLCPu6GJcjSf5RvEhisH",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "926056"
+      },
+      "status": "submitted",
+      "tx_hash": "0x7e26ef0cdd70342045d2fff301325c37c930b8c0a245dfaaa8698d4766ce50f1",
+      "error": ""
     },
     {
+      "index": 18,
       "domain": "milestoneescrow.miniapp.neo",
       "expected_address": "NejoTJX5h93tAt8SN9X6cM7u6n7Hsw2uYx",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "944763"
+      },
+      "status": "submitted",
+      "tx_hash": "0x88678606a446f49523aa6bef5a8704af177b5f2026db5660bc5d283e4cbf2491",
+      "error": ""
     },
     {
+      "index": 19,
       "domain": "neons.miniapp.neo",
       "expected_address": "NgBFVumLEHH93XMSXQYHEiYR6aoBJRtJLM",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "757693"
+      },
+      "status": "submitted",
+      "tx_hash": "0x7e3dd1c21ce4f42d630818b8a747fb2e22a6cc30e2e9a9e9481f581dd23be7e6",
+      "error": ""
     },
     {
+      "index": 20,
       "domain": "neopay.miniapp.neo",
       "expected_address": "NQgs4RrCJhvgpUt27FyeGsFTW7H2gAonx1",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "689400"
+      },
+      "status": "submitted",
+      "tx_hash": "0x5588163c20bc59b8e5f524e8338c60215bff77d4016a973c781893308bdcb27d",
+      "error": ""
     },
     {
+      "index": 21,
       "domain": "onchaintarot.miniapp.neo",
       "expected_address": "NTpJsygF4zyyF1hDmtcfkscWve9xmcz8VT",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "888642"
+      },
+      "status": "submitted",
+      "tx_hash": "0xbd7c22794db5e76145246f20aab26baaca3d6fe6033f80ef67a09c07ead608ad",
+      "error": ""
     },
     {
+      "index": 22,
       "domain": "oracle.morpheus.neo",
       "expected_address": "NhG9Z6za5oGrS7on6qLWLHoKcgUeBdU166",
-      "current_status": "chain_mismatch",
-      "resolved_address": "NZD9U8EiZdTKf7mK7zAX9jEHRSNz6yvLWX",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "NZD9U8EiZdTKf7mK7zAX9jEHRSNz6yvLWX",
       "parent_domain": "morpheus.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "707107"
+      },
+      "status": "submitted",
+      "tx_hash": "0x819e9c4751a72a14685f11f16a42d6efaf159f27ba877a42b55f60cd00a3e16b",
+      "error": ""
     },
     {
+      "index": 23,
       "domain": "profitanchor.miniapp.neo",
       "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "888642"
+      },
+      "status": "submitted",
+      "tx_hash": "0x92c72171d63e702058f70ab1d7a7fd721abed7e0c2678b83d49224a8968bf558",
+      "error": ""
     },
     {
+      "index": 24,
       "domain": "quadraticfunding.miniapp.neo",
       "expected_address": "NS3okje3AgAadrZr7zvYcq7rmVf9jf91GL",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "963470"
+      },
+      "status": "submitted",
+      "tx_hash": "0x9048c11fe07d26cae0dc58614b72dcbd34ef4ec55c600067d1f3074837e02c89",
+      "error": ""
     },
     {
+      "index": 25,
       "domain": "redenvelope.miniapp.neo",
       "expected_address": "NU4VhJ9r68jeNptDVBdDsRSZj54McD9cLj",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "778935"
+      },
+      "status": "submitted",
+      "tx_hash": "0x5ce055b2b8d3e2ffd0706f1ca8a95bbbb810ecc8cef72be53a8bf3f35f86ffcb",
+      "error": ""
     },
     {
+      "index": 26,
       "domain": "selfloan.miniapp.neo",
       "expected_address": "NPKC5Lk8JF5oipAMPdRgTpdL4N1cTCZ3Mc",
-      "current_status": "chain_mismatch",
-      "resolved_address": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "previous_status": "chain_mismatch",
+      "previous_resolved_address": "0x942da575b31f39cbb59e64b5813b128739b44c25",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "724814"
+      },
+      "status": "submitted",
+      "tx_hash": "0xd9620317951a497715ad69790000d86f47630f6011d5650fe5d3a9711ee71503",
+      "error": ""
     },
     {
+      "index": 27,
       "domain": "soulboundcertificate.miniapp.neo",
       "expected_address": "NVkc9yoxQdkxFcw88BNzD7SooRnqcHuZfk",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "1038298"
+      },
+      "status": "submitted",
+      "tx_hash": "0xe48b24063960ca5f69e18d92e6c1df7ab6485e57327493c6906d00e08bb4c117",
+      "error": ""
     },
     {
+      "index": 28,
       "domain": "timecapsule.miniapp.neo",
       "expected_address": "NYTrtqQYRnCSLevV9hzAXcgifhGZq2HcU1",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "869935"
+      },
+      "status": "submitted",
+      "tx_hash": "0xa9f567cf1284d01f9f2b2e8a9e18b6c8240571720aab42f15d0467e70044c045",
+      "error": ""
     },
     {
+      "index": 29,
       "domain": "trustanchor.miniapp.neo",
       "expected_address": "NZrCYBa9knfFefiWdSfb5WGdw9XEVjVcef",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "869935"
+      },
+      "status": "submitted",
+      "tx_hash": "0xbd685ff88981105f3e9ae4528d7a9f0378bb1ff186c8298c69c1eb4239d4ce6f",
+      "error": ""
     },
     {
+      "index": 30,
       "domain": "unbreakablevault.miniapp.neo",
       "expected_address": "NbUtbDH7UmPXHqfpjcr7DMa59KLtduUnUX",
-      "current_status": "chain_missing",
-      "resolved_address": "",
+      "previous_status": "chain_missing",
+      "previous_resolved_address": "",
       "parent_domain": "miniapp.neo",
-      "parent_owner_address": "NctKgCHNTKkgnE38a7MRocPFrEQDwC4Snf",
-      "status": "blocked_missing_signer"
+      "parent_owner_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "signer_address": "NdRqa1Zp47P9uaexyCU1ZV7NDTBcuA2wQG",
+      "simulation": {
+        "state": "HALT",
+        "exception": null,
+        "gasConsumed": "963470"
+      },
+      "status": "submitted",
+      "tx_hash": "0xec960e137fcef31a19755c5a97fadfaa0b034db19033bea2db0324303718f755",
+      "error": ""
     }
   ]
 }

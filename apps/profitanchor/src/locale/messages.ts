@@ -62,12 +62,12 @@ const appMessages = {
   },
   adminControlTitle: { en: "Admin Controls", zh: "管理员控制边界" },
   adminControl1: {
-    en: "Admin can register AA agent accounts, move NEO between agents with the required AA witness, update candidates, and sync votes.",
-    zh: "管理员可以注册 AA agent 账户，在所需 AA witness 下于 agent 间移动 NEO，更新候选人并同步投票。",
+    en: "Admin can register AA agent accounts, submit AA user operations for agent-to-agent moves, update candidates, and sync votes.",
+    zh: "管理员可以注册 AA agent 账户，通过 AA user operation 发起 agent 间调仓，更新候选人并同步投票。",
   },
   adminControl2: {
-    en: "Moving NEO requires the source AA agent witness; app admin alone cannot move agent funds.",
-    zh: "移动 NEO 需要来源 AA agent witness；只有 app admin 不能移动 agent 资金。",
+    en: "Agent funds are controlled by AA proxy witnesses generated through the AA core, not by an agent WIF.",
+    zh: "Agent 资金由 AA core 生成的 AA proxy witness 控制，不存在 agent WIF。",
   },
   adminControl3: {
     en: "No per-candidate child contract is deployed or managed in this model.",

@@ -1,0 +1,232 @@
+{
+  "generatedAt": "2026-05-11T00:22:48.801Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "selected": [
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "selected": [
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "rngFallbackSignerMatches": true,
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "6525220098421",
+        "neo": "9441"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "1671578353437"
+      },
+      "oracleUpdater": {
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "998582196551"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": false,
+      "error": "at instruction 29 (SYSCALL): failed native call: at instruction 9524 (ABORTMSG): ABORTMSG is executed. Reason: memo required",
+      "attempts": 1
+    },
+    "fogPlay": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+      "appId": "miniapp-fogplay",
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "legacyCallbackAllowlist": true,
+        "requestFee": "1000000",
+        "feeCredit": "10000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0x8d40da354ba54e7e92c9fabf34cf12fee509e92575e86290a0665f53357b0136",
+      "betTx": "0x4c14842c84cd5f99320b3c518eca47fe677501a2c8604f59cc18e7ba445335e6",
+      "requestId": "5439",
+      "request": [
+        "5439",
+        "vrf_random",
+        "@\u0002(\u000fminiapp-fogplay!\u0001\u0001",
+        "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+        "onOracleResult",
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "1",
+        "1778459073747",
+        "1778459086722",
+        true,
+        "@\u0012ͽ�$���8?R�9����\u001c\u0017��Ig�!+�\u0002�\u000b�",
+        ""
+      ],
+      "betId": "1",
+      "bet": {
+        "betId": "1",
+        "player": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "amount": "5000000",
+        "choice": false,
+        "timestamp": "1778459073747",
+        "resolved": true
+      }
+    },
+    "redEnvelope": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "legacyCallbackAllowlist": true,
+        "requestFee": "1000000",
+        "feeCredit": "10000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0xc0a15e01165cef06446b2ebc7a7c01b2458297aa39c13ff7a8f881067d0007bd",
+      "createTx": "0xb99bc659baa1e7e45ce80cc3a14581b571b27cad22e8e54255f8157413687c5e",
+      "requestId": "5440",
+      "envelopeId": "106",
+      "request": [
+        "5440",
+        "vrf_random",
+        "@\u0002!\u0001j!\u0001\u0002",
+        "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+        "onOracleResult",
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "1",
+        "1778459102457",
+        "1778459115231",
+        true,
+        "\u000eM\u0005���Վ��FEC�����U\n\u0016%߸�A\u0000%�5rp",
+        ""
+      ],
+      "envelope": [
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "10000000",
+        "2",
+        "0",
+        "10000000",
+        "0x0000000000000000000000000000000000000000",
+        "0",
+        true,
+        "1778545502457"
+      ],
+      "claimTx": "0x1aff2d55ae5609a0e85a9c75d2993d82493f5bf30b970982bc96220f7df8ea5f"
+    },
+    "profitAnchor": {
+      "ok": false,
+      "error": "Invalid signature",
+      "attempts": 1
+    },
+    "trustAnchor": {
+      "ok": false,
+      "error": "Invalid signature",
+      "attempts": 1
+    },
+    "selfLoan": {
+      "ok": false,
+      "error": "at instruction 7137 (ABORTMSG): ABORTMSG is executed. Reason: profit candidate missing",
+      "attempts": 1
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

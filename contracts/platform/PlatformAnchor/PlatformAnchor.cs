@@ -17,6 +17,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void AnchorRewardsClaimedHandler(string appId, UInt160 user, BigInteger amount);
     public delegate void AnchorVoteChangedHandler(string appId, BigInteger agentId, UInt160 votingAccount, ECPoint candidate);
     public delegate void AnchorAgentTransferHandler(string appId, BigInteger fromAgentId, BigInteger toAgentId, BigInteger amount);
+    public delegate void AnchorAgentAccountUpdatedHandler(string appId, BigInteger agentId, UInt160 account, ByteString verificationScriptHash);
 
     /// <summary>
     /// Shared manual AA-agent routing anchor for TrustAnchor and ProfitAnchor.
@@ -27,7 +28,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     /// </summary>
     [DisplayName("PlatformAnchor")]
     [ManifestExtra("Author", "R3E Network")]
-    [ManifestExtra("Version", "1.0.0")]
+    [ManifestExtra("Version", "1.0.1")]
     [ManifestExtra("Description", "Shared TrustAnchor and ProfitAnchor manual AA-agent routing engine.")]
     [ContractPermission("0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5", "transfer", "vote")]
     [ContractPermission("0xd2a4cff31913016155e38e474a2c06d08be276cf", "balanceOf", "transfer")]
@@ -40,6 +41,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         private static readonly byte[] PREFIX_ADMIN = new byte[] { 0x01 };
         private static readonly byte[] PREFIX_PAUSED = new byte[] { 0x02 };
         private static readonly byte[] PREFIX_TOTAL_REWARD_RESERVE = new byte[] { 0x03 };
+        private static readonly byte[] PREFIX_ABSTRACT_ACCOUNT = new byte[] { 0x04 };
 
         private static readonly byte[] PREFIX_APP_MODE = new byte[] { 0x10 };
         private static readonly byte[] PREFIX_APP_ADMIN = new byte[] { 0x11 };
@@ -86,6 +88,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("AnchorAgentTransfer")]
         public static event AnchorAgentTransferHandler OnAnchorAgentTransfer;
 
+        [DisplayName("AnchorAgentAccountUpdated")]
+        public static event AnchorAgentAccountUpdatedHandler OnAnchorAgentAccountUpdated;
+
         public static void _deploy(object data, bool update)
         {
             if (update) return;
@@ -98,6 +103,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [Safe]
         public static bool IsPaused() => GetBigInteger((ByteString)PREFIX_PAUSED) == 1;
 
+        [Safe]
+        public static UInt160 AbstractAccount() => ReadAddress((ByteString)PREFIX_ABSTRACT_ACCOUNT);
+
         public static void SetAdmin(UInt160 newAdmin)
         {
             ValidateAdmin();
@@ -109,6 +117,13 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         {
             ValidateAdmin();
             Put((ByteString)PREFIX_PAUSED, paused ? 1 : 0);
+        }
+
+        public static void SetAbstractAccount(UInt160 abstractAccount)
+        {
+            ValidateAdmin();
+            ValidateAddress(abstractAccount);
+            PutAddress((ByteString)PREFIX_ABSTRACT_ACCOUNT, abstractAccount);
         }
 
         public static void Update(ByteString nef, string manifest)
@@ -193,6 +208,34 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateAgent(appId, agentId);
             ExecutionEngine.Assert(weight >= 0, "invalid weight");
             Put(AppKey(appId, PREFIX_AGENT_WEIGHT, agentId), weight);
+        }
+
+        public static void SetAgentAccount(
+            string appId,
+            BigInteger agentId,
+            UInt160 agentAccount,
+            ByteString verificationScriptHash)
+        {
+            ValidateAppAuthority(appId);
+            SetAgentAccountCore(appId, agentId, agentAccount, verificationScriptHash);
+        }
+
+        public static void SetAgentAccounts(
+            string appId,
+            BigInteger[] agentIds,
+            UInt160[] agentAccounts,
+            ByteString[] verificationScriptHashes)
+        {
+            ValidateAppAuthority(appId);
+            ExecutionEngine.Assert(agentIds != null && agentAccounts != null && verificationScriptHashes != null, "agent arrays required");
+            ExecutionEngine.Assert(agentIds.Length > 0 && agentIds.Length <= 21, "invalid agent batch");
+            ExecutionEngine.Assert(agentIds.Length == agentAccounts.Length, "agent length mismatch");
+            ExecutionEngine.Assert(agentIds.Length == verificationScriptHashes.Length, "script length mismatch");
+
+            for (int i = 0; i < agentIds.Length; i++)
+            {
+                SetAgentAccountCore(appId, agentIds[i], agentAccounts[i], verificationScriptHashes[i]);
+            }
         }
 
         public static void TransferAgentNeo(
@@ -324,7 +367,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ValidateRegistered(appId);
             ValidateAgent(appId, agentId);
             UInt160 agentAccount = GetAgentAccount(appId, agentId);
-            ExecutionEngine.Assert(Runtime.CheckWitness(agentAccount), "agent AA witness required");
+            ExecutionEngine.Assert(HasAgentExecutionWitness(agentAccount), "agent AA witness required");
             ECPoint candidate = GetAgentCandidateAsPoint(appId, agentId);
             ExecutionEngine.Assert(NEO.Vote(agentAccount, candidate), "agent vote failed");
             Put(AppKey(appId, PREFIX_SELECTED_AGENT), agentId);
@@ -609,10 +652,31 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             UInt160 toAgent = GetAgentAccount(appId, toAgentId);
             ValidateAddress(fromAgent);
             ValidateAddress(toAgent);
-            ExecutionEngine.Assert(Runtime.CheckWitness(fromAgent), "from agent AA witness required");
+            ExecutionEngine.Assert(HasAgentExecutionWitness(fromAgent), "from agent AA witness required");
             ExecutionEngine.Assert(
                 NEO.Transfer(fromAgent, toAgent, amount),
                 "agent NEO transfer failed");
+        }
+
+        private static bool HasAgentExecutionWitness(UInt160 agentAccount)
+        {
+            if (Runtime.CheckWitness(agentAccount)) return true;
+            UInt160 abstractAccount = AbstractAccount();
+            return abstractAccount != UInt160.Zero && Runtime.CallingScriptHash == abstractAccount;
+        }
+
+        private static void SetAgentAccountCore(
+            string appId,
+            BigInteger agentId,
+            UInt160 agentAccount,
+            ByteString verificationScriptHash)
+        {
+            ValidateAgent(appId, agentId);
+            ValidateAddress(agentAccount);
+            ExecutionEngine.Assert(verificationScriptHash != null && verificationScriptHash.Length == 20, "account id hash required");
+            PutAddress(AppKey(appId, PREFIX_AGENT_ACCOUNT, agentId), agentAccount);
+            Put(AppKey(appId, PREFIX_AGENT_SCRIPT_HASH, agentId), verificationScriptHash);
+            OnAnchorAgentAccountUpdated(appId, agentId, agentAccount, verificationScriptHash);
         }
 
         private static bool TransferStakedNeoBackToUser(string appId, UInt160 user, BigInteger amount)

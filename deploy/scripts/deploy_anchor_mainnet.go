@@ -158,6 +158,9 @@ func runMainnetAnchorDeploy() error {
 		"profitanchor_agents": len(profitAgents),
 	}
 
+	if err := mainnetAnchorEnsureAAVerifyScopes(ctx, act, client, aaHash, anchorHash, &report); err != nil {
+		return err
+	}
 	if err := mainnetAnchorValidateRead(act, anchorHash, &report); err != nil {
 		return err
 	}
@@ -253,6 +256,16 @@ func mainnetAnchorComputeRegistrationAccountID(verifier util.Uint160, verifierPa
 	return util.Uint160DecodeBytesLE(digest.BytesBE())
 }
 
+func mainnetAnchorAAProxyScriptHash(aaCore util.Uint160, accountID util.Uint160) (util.Uint160, error) {
+	script := []byte{0x0c, 0x14}
+	script = append(script, accountID.BytesLE()...)
+	script = append(script, []byte{0x11, 0xc0, 0x1f, 0x0c, 0x06, 'v', 'e', 'r', 'i', 'f', 'y', 0x0c, 0x14}...)
+	script = append(script, aaCore.BytesBE()...)
+	script = append(script, []byte{0x41, 0x62, 0x7d, 0x5b, 0x52}...)
+	digest := hash.Hash160(script)
+	return util.Uint160DecodeBytesBE(digest.BytesLE())
+}
+
 func mainnetAnchorEnsureAgent(ctx context.Context, act *actor.Actor, client *rpcclient.Client, contract util.Uint160, appID string, account util.Uint160, candidate *keys.PublicKey, report *mainnetAnchorReport) error {
 	count, err := mainnetAnchorCallInteger(act, contract, "getAgentCount", appID)
 	if err != nil {
@@ -282,15 +295,80 @@ func mainnetAnchorEnsureAgentSet(ctx context.Context, act *actor.Actor, client *
 		if err != nil {
 			return nil, err
 		}
+		agentAccount, err := mainnetAnchorAAProxyScriptHash(aaCore, accountID)
+		if err != nil {
+			return nil, fmt.Errorf("derive %s proxy account: %w", label, err)
+		}
 		report.AAAccounts[label] = "0x" + accountID.StringLE()
-		agents = append(agents, accountID)
+		agents = append(agents, agentAccount)
 		if current < i {
-			if err := mainnetAnchorSendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, accountID, candidate, accountID.BytesBE()); err != nil {
+			if err := mainnetAnchorSendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, agentAccount, candidate, accountID.BytesBE()); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		currentAccount, err := mainnetAnchorCallUint160(act, anchorHash, "getAgentAccount", appID, int64(i))
+		if err != nil {
+			return nil, fmt.Errorf("read %s current agent account: %w", label, err)
+		}
+		if currentAccount != agentAccount {
+			if err := mainnetAnchorSendAndWait(ctx, act, client, anchorHash, "setAgentAccount", report, "Migrate "+label+" AA proxy account", appID, int64(i), agentAccount, accountID.BytesBE()); err != nil {
 				return nil, err
 			}
 		}
 	}
 	return agents, nil
+}
+
+func mainnetAnchorEnsureAAVerifyScopes(ctx context.Context, act *actor.Actor, client *rpcclient.Client, aaCore util.Uint160, anchorHash util.Uint160, report *mainnetAnchorReport) error {
+	if len(report.AAAccounts) == 0 {
+		return nil
+	}
+	state, err := client.GetContractStateByHash(aaCore)
+	if err != nil {
+		return fmt.Errorf("read AA core manifest: %w", err)
+	}
+	if !mainnetAnchorHasMethod(&state.Manifest, "setVerifyScopeTargets", 2) {
+		report.Validation["aa_verify_scope_skipped"] = "AA core does not expose setVerifyScopeTargets"
+		return nil
+	}
+	accountIDs := make([]util.Uint160, 0, len(report.AAAccounts)*2)
+	seen := map[string]bool{}
+	for _, raw := range report.AAAccounts {
+		accountID, err := mainnetAnchorParseHash(raw)
+		if err != nil {
+			return fmt.Errorf("parse AA account id %q: %w", raw, err)
+		}
+		appendScopeAccount := func(value util.Uint160) {
+			key := value.StringLE()
+			if seen[key] {
+				return
+			}
+			seen[key] = true
+			accountIDs = append(accountIDs, value)
+		}
+		appendScopeAccount(accountID)
+		appendScopeAccount(mainnetAnchorReverseUint160LE(accountID))
+	}
+	if err := mainnetAnchorSendAndWait(ctx, act, client, aaCore, "setVerifyScopeTargets", report, "Set Anchor AA verify scopes", accountIDs, anchorHash); err != nil {
+		return err
+	}
+	report.Validation["aa_verify_scope_target"] = "0x" + anchorHash.StringLE()
+	report.Validation["aa_verify_scope_accounts"] = len(report.AAAccounts)
+	report.Validation["aa_verify_scope_storage_keys"] = len(accountIDs)
+	return nil
+}
+
+func mainnetAnchorReverseUint160LE(value util.Uint160) util.Uint160 {
+	bytes := value.BytesLE()
+	for left, right := 0, len(bytes)-1; left < right; left, right = left+1, right-1 {
+		bytes[left], bytes[right] = bytes[right], bytes[left]
+	}
+	reversed, err := util.Uint160DecodeBytesLE(bytes)
+	if err != nil {
+		panic(err)
+	}
+	return reversed
 }
 
 func mainnetAnchorValidateRead(act *actor.Actor, contract util.Uint160, report *mainnetAnchorReport) error {
@@ -437,6 +515,18 @@ func mainnetAnchorLoadManifest(path string) (*manifest.Manifest, error) {
 		return nil, err
 	}
 	return &m, nil
+}
+
+func mainnetAnchorHasMethod(m *manifest.Manifest, name string, paramCount int) bool {
+	if m == nil {
+		return false
+	}
+	for _, method := range m.ABI.Methods {
+		if method.Name == name && len(method.Parameters) == paramCount {
+			return true
+		}
+	}
+	return false
 }
 
 func mainnetAnchorParseHash(raw string) (util.Uint160, error) {

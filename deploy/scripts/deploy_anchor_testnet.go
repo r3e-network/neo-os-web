@@ -43,7 +43,7 @@ const (
 	aaTimelock      = int64(30 * 24 * 60 * 60)
 
 	defaultRPCURL    = "https://testnet1.neo.coz.io:443"
-	defaultAAHash    = "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"
+	defaultAAHash    = "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
 	defaultCandidate = "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d"
 	neoNativeHashLE  = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5"
 	gasNativeHashLE  = "0xd2a4cff31913016155e38e474a2c06d08be276cf"
@@ -177,6 +177,9 @@ func run() error {
 	if err := ensureProduct(ctx, act, client, defiHash, appSelfLoan, productLending, deployerHash, &report); err != nil {
 		return err
 	}
+	if err := ensureAnchorAbstractAccount(ctx, act, client, anchorHash, aaHash, &report); err != nil {
+		return err
+	}
 
 	trustAgents, err := ensureAgentSet(ctx, act, client, aaHash, anchorHash, appTrustAnchor, "trustanchor", agentNonce, deployerHash, candidate, &report)
 	if err != nil {
@@ -186,8 +189,21 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if err := ensureAAVerifyScopes(ctx, act, client, aaHash, anchorHash, &report); err != nil {
+		return err
+	}
 	if err := sendAndWait(ctx, act, client, defiHash, "setProfitAnchor", &report, "Configure SelfLoan ProfitAnchor", appSelfLoan, anchorHash, appProfitAnchor); err != nil {
 		return err
+	}
+
+	if truthy(os.Getenv("ANCHOR_TESTNET_SKIP_LIVE_VALIDATION")) {
+		report.Validation["live_validation_skipped"] = "ANCHOR_TESTNET_SKIP_LIVE_VALIDATION=1"
+		if err := writeReport(report); err != nil {
+			return err
+		}
+		out, _ := json.MarshalIndent(report, "", "  ")
+		fmt.Println(string(out))
+		return nil
 	}
 
 	if err := validateTrustAnchor(ctx, act, client, neoHash, anchorHash, deployerHash, &report); err != nil {
@@ -272,6 +288,25 @@ func ensureProduct(ctx context.Context, act *actor.Actor, client *rpcclient.Clie
 	return sendAndWait(ctx, act, client, contract, "registerProduct", report, "Register "+appID, appID, productType, admin, []byte{})
 }
 
+func ensureAnchorAbstractAccount(ctx context.Context, act *actor.Actor, client *rpcclient.Client, contract util.Uint160, aaCore util.Uint160, report *deploymentReport) error {
+	current, err := callUint160(act, contract, "abstractAccount")
+	if err != nil {
+		current, err = callUint160(act, contract, "AbstractAccount")
+	}
+	if err != nil {
+		return fmt.Errorf("read PlatformAnchor abstract account: %w", err)
+	}
+	if current == aaCore {
+		report.Validation["platform_anchor_abstract_account"] = "0x" + current.StringLE()
+		return nil
+	}
+	if err := sendAndWait(ctx, act, client, contract, "setAbstractAccount", report, "Configure PlatformAnchor AA core", aaCore); err != nil {
+		return err
+	}
+	report.Validation["platform_anchor_abstract_account"] = "0x" + aaCore.StringLE()
+	return nil
+}
+
 func ensureAAAccount(ctx context.Context, act *actor.Actor, client *rpcclient.Client, aaCore util.Uint160, backupOwner util.Uint160, verifierParams []byte, report *deploymentReport, label string) (util.Uint160, error) {
 	zero := util.Uint160{}
 	accountID, err := computeRegistrationAccountID(zero, verifierParams, zero, backupOwner, aaTimelock)
@@ -310,6 +345,16 @@ func computeRegistrationAccountID(verifier util.Uint160, verifierParams []byte, 
 	return util.Uint160DecodeBytesLE(digest.BytesBE())
 }
 
+func aaProxyScriptHash(aaCore util.Uint160, accountID util.Uint160) (util.Uint160, error) {
+	script := []byte{0x0c, 0x14}
+	script = append(script, accountID.BytesLE()...)
+	script = append(script, []byte{0x11, 0xc0, 0x1f, 0x0c, 0x06, 'v', 'e', 'r', 'i', 'f', 'y', 0x0c, 0x14}...)
+	script = append(script, aaCore.BytesBE()...)
+	script = append(script, []byte{0x41, 0x62, 0x7d, 0x5b, 0x52}...)
+	digest := hash.Hash160(script)
+	return util.Uint160DecodeBytesLE(digest.BytesLE())
+}
+
 func ensureAgent(ctx context.Context, act *actor.Actor, client *rpcclient.Client, contract util.Uint160, appID string, account util.Uint160, candidate *keys.PublicKey, report *deploymentReport) error {
 	count, err := callInteger(act, contract, "getAgentCount", appID)
 	if err != nil {
@@ -339,15 +384,92 @@ func ensureAgentSet(ctx context.Context, act *actor.Actor, client *rpcclient.Cli
 		if err != nil {
 			return nil, err
 		}
+		agentAccount, err := aaProxyScriptHash(aaCore, accountID)
+		if err != nil {
+			return nil, fmt.Errorf("derive %s proxy account: %w", label, err)
+		}
 		report.AAAccounts[label] = "0x" + accountID.StringLE()
-		agents = append(agents, accountID)
+		agents = append(agents, agentAccount)
 		if current < i {
-			if err := sendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, accountID, candidate, accountID.BytesBE()); err != nil {
+			if err := sendAndWait(ctx, act, client, anchorHash, "registerAgent", report, "Register "+label, appID, agentAccount, candidate, accountID.BytesBE()); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		currentAccount, err := callUint160(act, anchorHash, "getAgentAccount", appID, int64(i))
+		if err != nil {
+			return nil, fmt.Errorf("read %s current agent account: %w", label, err)
+		}
+		if currentAccount != agentAccount {
+			if err := sendAndWait(ctx, act, client, anchorHash, "setAgentAccount", report, "Migrate "+label+" AA proxy account", appID, int64(i), agentAccount, accountID.BytesBE()); err != nil {
 				return nil, err
 			}
 		}
 	}
 	return agents, nil
+}
+
+func ensureAAVerifyScopes(ctx context.Context, act *actor.Actor, client *rpcclient.Client, aaCore util.Uint160, anchorHash util.Uint160, report *deploymentReport) error {
+	if len(report.AAAccounts) == 0 {
+		return nil
+	}
+	state, err := client.GetContractStateByHash(aaCore)
+	if err != nil {
+		return fmt.Errorf("read AA core manifest: %w", err)
+	}
+	if !hasMethod(&state.Manifest, "setVerifyScopeTargets", 2) {
+		report.Validation["aa_verify_scope_skipped"] = "AA core does not expose setVerifyScopeTargets"
+		return nil
+	}
+	accountIDs := make([]util.Uint160, 0, len(report.AAAccounts)*2)
+	seen := map[string]bool{}
+	for _, raw := range report.AAAccounts {
+		accountID, err := parseHash(raw)
+		if err != nil {
+			return fmt.Errorf("parse AA account id %q: %w", raw, err)
+		}
+		appendScopeAccount := func(value util.Uint160) {
+			key := value.StringLE()
+			if seen[key] {
+				return
+			}
+			seen[key] = true
+			accountIDs = append(accountIDs, value)
+		}
+		appendScopeAccount(accountID)
+		appendScopeAccount(reverseUint160LE(accountID))
+	}
+	if err := sendAndWait(ctx, act, client, aaCore, "setVerifyScopeTargets", report, "Set Anchor AA verify scopes", accountIDs, anchorHash); err != nil {
+		return err
+	}
+	report.Validation["aa_verify_scope_target"] = "0x" + anchorHash.StringLE()
+	report.Validation["aa_verify_scope_accounts"] = len(report.AAAccounts)
+	report.Validation["aa_verify_scope_storage_keys"] = len(accountIDs)
+	return nil
+}
+
+func reverseUint160LE(value util.Uint160) util.Uint160 {
+	bytes := value.BytesLE()
+	for left, right := 0, len(bytes)-1; left < right; left, right = left+1, right-1 {
+		bytes[left], bytes[right] = bytes[right], bytes[left]
+	}
+	reversed, err := util.Uint160DecodeBytesLE(bytes)
+	if err != nil {
+		panic(err)
+	}
+	return reversed
+}
+
+func hasMethod(m *manifest.Manifest, name string, paramCount int) bool {
+	if m == nil {
+		return false
+	}
+	for _, method := range m.ABI.Methods {
+		if method.Name == name && len(method.Parameters) == paramCount {
+			return true
+		}
+	}
+	return false
 }
 
 func validateTrustAnchor(ctx context.Context, act *actor.Actor, client *rpcclient.Client, neoHash util.Uint160, anchorHash util.Uint160, deployer util.Uint160, report *deploymentReport) error {
@@ -607,6 +729,15 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func truthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "y":
+		return true
+	default:
+		return false
+	}
 }
 
 func stringValue(value *big.Int) string {

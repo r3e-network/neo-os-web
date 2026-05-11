@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T22:01:58.757Z",
+  "generatedAt": "2026-05-10T11:49:39.243Z",
   "targetNetwork": "mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
@@ -17,10 +17,12 @@
       "neoPay"
     ],
     "requested": [
-      "dailyCheckin"
+      "profitAnchor",
+      "trustAnchor"
     ],
     "selected": [
-      "dailyCheckin"
+      "profitAnchor",
+      "trustAnchor"
     ],
     "unknown": []
   },
@@ -48,10 +50,12 @@
         "neoPay"
       ],
       "requested": [
-        "dailyCheckin"
+        "profitAnchor",
+        "trustAnchor"
       ],
       "selected": [
-        "dailyCheckin"
+        "profitAnchor",
+        "trustAnchor"
       ],
       "unknown": []
     },
@@ -63,25 +67,26 @@
       "oracleUpdaterWifConfigured": true,
       "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
       "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-      "rngFallbackReady": true,
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
       "oracleUpdaterMinGas": "10000000"
     },
     "wallets": {
       "primary": {
         "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "19043193533",
+        "gas": "17267421087",
         "neo": "0"
       },
       "admin": {
         "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "19043193533"
+        "gas": "17267421087"
       },
       "oracleUpdater": {
         "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "19043193533"
+        "gas": "17267421087"
       }
     },
     "fundingHints": {
@@ -96,21 +101,7 @@
   },
   "results": {
     "dailyCheckin": {
-      "ok": true,
-      "attempts": 1,
-      "contractHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
-      "txid": "0xa9566ffefe088436934b7e9f0922ccf510ba01e84bf150370d7845d110683aff",
-      "notificationObserved": true,
-      "statusBefore": {
-        "currentUtcDay": "20582918",
-        "lastCheckinDay": "20582913",
-        "canCheckin": true,
-        "timeUntilEligible": "0",
-        "streakWillReset": true,
-        "currentStreak": "1",
-        "nextRewardDay": "7"
-      },
-      "statusAfter": null
+      "skipped": true
     },
     "lastSurvivor": {
       "skipped": true
@@ -125,10 +116,98 @@
       "skipped": true
     },
     "profitAnchor": {
-      "skipped": true
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-profitanchor",
+        "mode": "2",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "2",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "weight": "0",
+          "active": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "weight": "0",
+          "active": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-agent-aa-wif",
+        "message": "ProfitAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke",
+        "expected": "0x1175e7213458915ee558cdf88619ca4f48dda342"
+      }
     },
     "trustAnchor": {
-      "skipped": true
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "readChecks": {
+        "appId": "miniapp-trustanchor",
+        "mode": "1",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "1",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "weight": "0",
+          "active": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "weight": "0",
+          "active": true
+        }
+      },
+      "manualWrite": {
+        "deferred": true,
+        "reason": "needs-anchor-agent-aa-wif",
+        "message": "TrustAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke",
+        "expected": "0x9a31336a98a94d12deecfdb8b581c51247d47a56"
+      }
     },
     "selfLoan": {
       "skipped": true

@@ -321,7 +321,7 @@ namespace NeoMiniAppPlatform.Contracts
 
             string inventoryMemo = appId + GA_INVENTORY_MEMO_SUFFIX + ":" + machineId + ":" + itemIndex;
             bool ok = (bool)Contract.Call(item.AssetHash, "transfer", CallFlags.All,
-                owner, Runtime.ExecutingScriptHash, amount, inventoryMemo);
+                owner, Runtime.ExecutingScriptHash, amount, (ByteString)inventoryMemo);
             Storage.Delete(Storage.CurrentContext, pendingKey);
             ExecutionEngine.Assert(ok, "transfer failed");
 

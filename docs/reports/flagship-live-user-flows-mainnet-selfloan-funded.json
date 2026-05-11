@@ -1,0 +1,153 @@
+{
+  "generatedAt": "2026-05-10T07:57:52.160Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "selfLoan"
+    ],
+    "selected": [
+      "selfLoan"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "selfLoan"
+      ],
+      "selected": [
+        "selfLoan"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": false,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn",
+        "scriptHash": "0xfc53b832e1fab9eac16fd7164c332a61a7dd858d",
+        "gas": "200000000",
+        "neo": "4"
+      },
+      "admin": {
+        "address": "NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn",
+        "scriptHash": "0xfc53b832e1fab9eac16fd7164c332a61a7dd858d",
+        "gas": "200000000"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "17592364425"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "skipped": true
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "skipped": true
+    },
+    "trustAnchor": {
+      "skipped": true
+    },
+    "selfLoan": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
+      "collateralPrecheck": {
+        "address": "NYpGpxwdpkUp6aCCiFP2J9hGuATLbM42jn",
+        "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "requiredCollateral": "1",
+        "availableNeo": "4"
+      },
+      "poolTx": "0x7837a914f14f80a9fcad4f70e3befca159b5669dfec016328565570698f0c246",
+      "collateralTx": "0xc1dbf15f44f83c8cb8d72b4d515a8928613f8a41070d82aeb72a7e6fb42de4b7",
+      "createTx": "0x524b9959fe50a92b5c693127d1383325ed29f882f9229c36917b5154402692ab",
+      "loanId": "2",
+      "details": {
+        "id": "2",
+        "borrower": "0xfc53b832e1fab9eac16fd7164c332a61a7dd858d",
+        "collateral": "1",
+        "debt": "20000000",
+        "originalDebt": "20000000",
+        "createdTime": "1778399892714",
+        "ltvBps": "2000",
+        "totalRepaid": "0",
+        "yieldAccrued": "0",
+        "active": true,
+        "healthFactor": "500",
+        "repaidPercent": "0"
+      }
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}
