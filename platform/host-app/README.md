@@ -20,6 +20,19 @@ Current capabilities:
 - AppRegistry workflow for `app-register` / `app-update-manifest`.
 - CSP headers set via `platform/host-app/middleware.ts` with per-request nonces.
 
+## Localization
+
+The host shell reads `neo-miniapp-locale` first and otherwise detects the
+browser/system language. Supported locales are `en`, `zh`, `ja`, and `ko`; any
+unsupported language falls back to English.
+
+Visible host UI should use `@/lib/i18n/react` instead of hardcoded strings.
+Catalog cards localize app names, descriptions, and categories from manifest
+fields such as `name_zh`, `description_zh`, `category_name_zh`, or the
+manifest `i18n` block. The catalog API preserves those localized fields in the
+compact response so the host page, standalone dApp entry, and OneGate-facing
+surfaces do not lose translated metadata.
+
 ## Production Configuration
 
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL for `connect-src` allowlist.

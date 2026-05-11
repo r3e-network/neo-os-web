@@ -14,7 +14,10 @@
     "services": "Services",
     "simulations": "Simulations",
     "users": "Users",
-    "contracts": "Contracts"
+    "contracts": "Contracts",
+    "main": "Main navigation",
+    "mobile": "Mobile navigation",
+    "toggleMenu": "Toggle navigation menu"
   },
   "actions": {
     "connect": "Connect",
@@ -82,7 +85,57 @@
     "connected": "Wallet Connected",
     "notConnected": "Wallet Not Connected",
     "insufficientBalance": "Insufficient Balance",
-    "pleaseConnect": "Please connect your wallet to continue"
+    "pleaseConnect": "Please connect your wallet to continue",
+    "optionAlt": "{wallet} wallet"
+  },
+  "auth": {
+    "connected": "Connected",
+    "logout": "Logout",
+    "login": "Log In",
+    "loginSignup": "Log In / Sign Up",
+    "connecting": "Connecting...",
+    "welcome": "Welcome to {brand}",
+    "continuePrompt": "Connect a wallet or sign in with email to continue.",
+    "emailSocial": "Email & Social",
+    "continueWith": "Continue with {provider}",
+    "or": "OR",
+    "orConnectWallet": "or connect wallet",
+    "neoEcosystem": "Neo Ecosystem",
+    "recommended": "Recommended",
+    "directWifTesting": "Direct WIF Testing",
+    "pasteTestWif": "Paste test wallet WIF",
+    "directWif": "Direct WIF",
+    "showWif": "Show WIF",
+    "hideWif": "Hide WIF",
+    "localValidation": "Local validation only. The key stays in this browser session and is never saved.",
+    "terms": "By connecting, you agree to our Terms of Service and Privacy Policy.",
+    "disconnectTitle": "Disconnect Wallet",
+    "disconnectMessage": "You'll need to reconnect to use blockchain features.",
+    "wifTest": "WIF Test",
+    "dismiss": "Dismiss",
+    "closeLoginModal": "Close login modal"
+  },
+  "walletOptions": {
+    "nep21": {
+      "name": "NEP-21 Wallet",
+      "description": "Standard Neo dAPI provider exposed by OneGate and compatible wallets."
+    },
+    "onegate": {
+      "name": "OneGate",
+      "description": "OneGate host wallet fallback. Prefer NEP-21 when it is injected."
+    },
+    "neoline": {
+      "name": "NeoLine",
+      "description": "NeoLine extension for Neo N3 accounts and contract invokes."
+    },
+    "o3": {
+      "name": "O3 Wallet",
+      "description": "O3 wallet fallback when its browser provider is injected."
+    },
+    "protocol": {
+      "nep21": "NEP-21",
+      "legacyDapi": "Legacy dAPI"
+    }
   },
   "errors": {
     "occurred": "An error occurred",

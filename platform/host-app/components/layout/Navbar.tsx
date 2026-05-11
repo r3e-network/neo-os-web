@@ -69,7 +69,7 @@ export function Navbar() {
 
   return (
     <nav
-      aria-label="Main navigation"
+      aria-label={t("navigation.main")}
       className={cn(
         "fixed top-0 z-50 w-full transition-all duration-300",
         scrolled
@@ -83,7 +83,7 @@ export function Navbar() {
           <Link
             href="/"
             prefetch={false}
-            aria-label="Yiwu home"
+            aria-label={t("navigation.home")}
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105"
           >
             <img
@@ -95,7 +95,7 @@ export function Navbar() {
             <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
               {BRAND.name}{" "}
               <span className="hidden text-emerald-600 sm:inline">
-                MiniApps
+                {t("navigation.miniapps")}
               </span>
             </span>
           </Link>
@@ -155,7 +155,7 @@ export function Navbar() {
             type="button"
             onClick={() => setLocale(locale === "en" ? "zh" : "en")}
             className="px-2 py-2 rounded-xl border border-transparent hover:border-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer flex items-center gap-1.5 sm:px-3"
-            aria-label="Switch language"
+            aria-label={t("language.switch")}
           >
             <Globe size={18} aria-hidden="true" />
             <span className="hidden text-sm font-semibold sm:inline">
@@ -170,7 +170,7 @@ export function Navbar() {
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 text-gray-600 hover:bg-gray-100/60 transition-all cursor-pointer"
-            aria-label="Toggle navigation menu"
+            aria-label={t("navigation.toggleMenu")}
             aria-haspopup="true"
             aria-expanded={mobileMenuOpen}
           >
@@ -184,7 +184,7 @@ export function Navbar() {
         <div
           className="md:hidden absolute top-full left-0 w-full border-b border-gray-200 bg-white/95 backdrop-blur-2xl px-4 py-4 shadow-xl"
           role="navigation"
-          aria-label="Mobile navigation"
+          aria-label={t("navigation.mobile")}
         >
           <form onSubmit={handleSearch} role="search" className="mb-4">
             <div className="relative group">
