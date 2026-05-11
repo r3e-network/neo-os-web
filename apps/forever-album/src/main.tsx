@@ -16,6 +16,7 @@ defineMiniApp({
 
   setup(ctx) {
     const album = useForeverAlbum({
+      chainService: ctx.services.chain,
       nftService: ctx.os.nft,
       storageService: ctx.os.storage,
       badgeService: ctx.os.badge,

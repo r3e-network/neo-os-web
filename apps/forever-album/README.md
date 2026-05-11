@@ -16,8 +16,8 @@ Create a wallet-scoped photo vault through platform storage and NFT service prox
 
 1. **Upload Photos**: Select and encrypt photos before uploading
 2. **Encryption**: Photos are encrypted client-side using AES-256
-3. **Platform Storage**: Metadata and encryption references are written through the shared storage/NFT service proxies
-4. **Share Album**: Create shared albums with specific viewers
+3. **Wallet-signed Storage**: The storage proxy returns a Neo contract intent and `ChainService` submits it through the connected wallet
+4. **View Album**: Saved photos load back from the wallet-scoped storage prefix and open in the in-app viewer
 5. **Durable Access**: Photos remain accessible through the platform storage service and wallet-scoped indexes
 ## Features
 
@@ -58,21 +58,22 @@ Create a wallet-scoped photo vault through platform storage and NFT service prox
 
 1. Select up to five photos and ensure the total payload stays under 60KB.
 2. Optionally enable AES-GCM encryption and set a password.
-3. Submit the upload through the platform storage/NFT service proxy.
-4. Decrypt encrypted photos locally when viewing.
+3. Submit the upload through the platform storage service proxy; the returned contract intent is signed by the wallet.
+4. Reopen the app to view the saved gallery, and decrypt encrypted photos locally when needed.
 
 ## Storage Model
 
-- Photos are stored as base64 data URL payloads per wallet address through the shared storage proxy.
+- Photos are stored as base64 data URL payloads under `photos:<wallet>:<photoId>` through the shared storage proxy.
 - Encrypted uploads store ciphertext only; the password never leaves the client.
 - Each photo entry includes owner, encryption flag, and timestamp.
 - Limits: max 5 photos per upload, 45KB per photo, 60KB total payload.
 
 ## Service Interface
 
-- `storage.list("photos:", 50)` — list wallet-scoped photo records
-- `storage.get("photo:<id>")` — read one stored photo record
-- `nft.mint({ type: "photo", data, encrypted })` — create the durable storage record
+- `storage.list("photos:<wallet>:", 50)` — build/read the wallet-scoped gallery query
+- `storage.set("photos:<wallet>:<photoId>", photo)` — build the durable photo storage intent
+- `chain.invoke(intent.operation, intent.args, { scriptHash: intent.contract })` — submit OS storage writes through the wallet
+- `nft.mint({ type: "album-upload", photoIds, count, encrypted })` — optional lightweight marker after the storage write
 - `badge.award("album-creator")` — award the creator badge after a successful upload
 
 ## Development
