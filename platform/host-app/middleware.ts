@@ -72,7 +72,7 @@ function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = 
     "img-src 'self' data: https:",
     "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
-    "frame-src 'none'",
+    options.allowMiniAppEmbedding ? "frame-src 'self' blob:" : "frame-src 'none'",
     options.allowMiniAppEmbedding
       ? "frame-ancestors 'self' https://neomini.app https://onegate.space https://*.onegate.space https://*.miniapp.r3e.network"
       : "frame-ancestors 'none'",
