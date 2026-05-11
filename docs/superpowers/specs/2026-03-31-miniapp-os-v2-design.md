@@ -2,7 +2,7 @@
 
 **Date**: 2026-03-31
 **Status**: Implemented (2026-03-30)
-**Supersedes**: 2026-03-27-platform-as-os-refactoring-design.md
+**Supersedes**: Earlier Platform-as-OS refactoring design notes removed during repository cleanup
 **Scope**: Complete platform refactoring — OS service contracts, ScriptEngine, frontend PlatformContext, edge proxy layer, legacy cleanup
 
 > **Implementation Complete (2026-03-30):** This design has been fully

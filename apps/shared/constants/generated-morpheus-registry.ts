@@ -82,7 +82,7 @@ export const MORPHEUS_PUBLIC_REGISTRY = {
     },
     "contracts": {
       "aaCore": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
-      "aaWeb3AuthVerifier": "0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d",
+      "aaWeb3AuthVerifier": "0x7147f9a508594a7656a25f45d0a7a7dede7c227f",
       "aaSessionKeyVerifier": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
       "aaSocialRecoveryVerifier": "",
       "aaAddressMarket": "",
