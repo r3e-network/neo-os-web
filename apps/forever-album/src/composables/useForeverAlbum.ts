@@ -1,8 +1,8 @@
 /**
  * useForeverAlbum — Domain logic for the Forever Album miniapp
  *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (NFTProxy, StorageProxy, BadgeProxy) via edge functions.
+ * Uses OS service proxies to build contract intents, then submits those
+ * intents through ChainService so uploads become real wallet-signed writes.
  *
  * Migration from direct chain calls to OS services:
  *
@@ -14,15 +14,14 @@
  *     chain.ensureWallet()
  *
  *   AFTER (OS proxy):
- *     storageService.list("photos:", 50)
- *     storageService.get("photo:<id>")
- *     nftService.mint({ type: "photo", ... })
- *     storageService.set("upload:batch", { payloads, encrypted })
+ *     storageService.list("photos:<wallet>:", 50) -> ChainService.read(...)
+ *     storageService.set("photos:<wallet>:<id>", photo) -> ChainService.invoke(...)
  *     badgeService.award("album-creator", "")
  */
 
 import { createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
+import type { ChainService, ContractArg, TxResult } from "@shared/services";
 import type { NFTProxy } from "@shared/services/os/NFTProxy";
 import type { StorageProxy } from "@shared/services/os/StorageProxy";
 import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
@@ -42,6 +41,8 @@ const MAX_TOTAL_BYTES = 60000;
 // ============================================================================
 
 export interface UseForeverAlbumOptions {
+  /** Chain service used to read and submit OS service intents. */
+  chainService: ChainService;
   /** OS NFTProxy instance from ctx.os.nft */
   nftService: NFTProxy;
   /** OS StorageProxy instance from ctx.os.storage */
@@ -63,6 +64,61 @@ interface StoredPhoto {
   data: string;
   encrypted: boolean;
   createdAt: number;
+  owner?: string;
+  txid?: string;
+}
+
+interface InvocationIntent {
+  contract: string;
+  operation: string;
+  args: ContractArg[];
+}
+
+function isInvocationIntent(value: unknown): value is InvocationIntent {
+  if (!value || typeof value !== "object") return false;
+  const data = value as Partial<InvocationIntent>;
+  return Boolean(data.contract && data.operation && Array.isArray(data.args));
+}
+
+function walletPhotoPrefix(walletAddress: string): string {
+  return `photos:${walletAddress}:`;
+}
+
+function normalizeStoredPhoto(value: unknown): StoredPhoto | null {
+  let raw = value;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const item = raw as Partial<StoredPhoto>;
+  if (!item.id || !item.data) return null;
+  return {
+    id: String(item.id),
+    data: String(item.data),
+    encrypted: Boolean(item.encrypted),
+    createdAt: Number(item.createdAt || 0),
+    owner: item.owner ? String(item.owner) : undefined,
+    txid: item.txid ? String(item.txid) : undefined,
+  };
+}
+
+function normalizePhotoEntries(value: unknown): StoredPhoto[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => normalizeStoredPhoto(entry))
+      .filter((entry): entry is StoredPhoto => Boolean(entry));
+  }
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>)
+      .map((entry) => normalizeStoredPhoto(entry))
+      .filter((entry): entry is StoredPhoto => Boolean(entry));
+  }
+  return [];
 }
 
 // ============================================================================
@@ -70,6 +126,7 @@ interface StoredPhoto {
 // ============================================================================
 
 export function useForeverAlbum({
+  chainService,
   nftService,
   storageService,
   badgeService,
@@ -94,6 +151,7 @@ export function useForeverAlbum({
   const selectedImages = createObservable<UploadItem[]>([]);
   const isEncrypted = createObservable(false);
   const password = createObservable("");
+  const lastTx = createObservable<TxResult | null>(null);
 
   // ── Computed ──────────────────────────────────────────────────────────
   const photosCount: Observable = {
@@ -119,28 +177,44 @@ export function useForeverAlbum({
 
   // ── Photo loading (via StorageProxy) ────────────────────────────────
 
+  async function resolveReadIntent(value: unknown): Promise<unknown> {
+    if (!isInvocationIntent(value)) return value;
+    return chainService.read(value.operation, value.args, {
+      scriptHash: value.contract,
+    });
+  }
+
+  async function submitWriteIntent(value: unknown): Promise<TxResult | null> {
+    if (!isInvocationIntent(value)) return null;
+    const tx = await chainService.invoke(value.operation, value.args, {
+      scriptHash: value.contract,
+    });
+    lastTx.set(tx);
+    return tx;
+  }
+
   /**
-   * Load all photos via StorageProxy.list().
-   * The edge function handles the contract reads and returns normalized data.
+   * Load all wallet-scoped photos via StorageProxy.list().
+   * The proxy may return either concrete data or a read intent depending on
+   * environment; both paths are handled here.
    */
   const loadPhotos = async () => {
     loadingPhotos.set(true);
     try {
-      const photoMap = await storageService.list("photos:", 50);
-      const entries: PhotoItem[] = [];
-      if (photoMap && typeof photoMap === "object") {
-        for (const [, value] of Object.entries(photoMap)) {
-          const stored = value as StoredPhoto;
-          if (stored && stored.id && stored.data) {
-            entries.push({
-              id: String(stored.id),
-              data: String(stored.data),
-              encrypted: Boolean(stored.encrypted),
-              createdAt: Number(stored.createdAt || 0),
-            });
-          }
-        }
+      const walletAddress = chainService.address.get();
+      if (!walletAddress) {
+        photos.set([]);
+        return;
       }
+      const photoMap = await resolveReadIntent(
+        await storageService.list(walletPhotoPrefix(walletAddress), 50),
+      );
+      const entries = normalizePhotoEntries(photoMap).map((stored) => ({
+        id: stored.id,
+        data: stored.data,
+        encrypted: stored.encrypted,
+        createdAt: stored.createdAt,
+      }));
       photos.set(entries.sort((a, b) => b.createdAt - a.createdAt));
     } catch (e) {
       console.warn("[useForeverAlbum] loadPhotos failed:", e instanceof Error ? e.message : String(e));
@@ -231,8 +305,18 @@ export function useForeverAlbum({
   const addFiles = async (files: File[] | FileList) => {
     const list = Array.from(files);
     if (list.length === 0) return [];
+    const availableSlots = Math.max(0, MAX_PHOTOS_PER_UPLOAD - selectedImages.get().length);
+    if (availableSlots === 0) {
+      eventBus.emit("album:error", { message: t("maxPhotosReached") });
+      return [];
+    }
     const additions: UploadItem[] = [];
-    for (const file of list) {
+    for (const file of list.slice(0, availableSlots)) {
+      if (!file.type.startsWith("image/")) continue;
+      if (file.size > MAX_PHOTO_BYTES) {
+        eventBus.emit("album:error", { message: t("imageTooLarge") });
+        continue;
+      }
       try {
         const dataUrl = await readFileAsDataUrl(file);
         additions.push({
@@ -251,8 +335,8 @@ export function useForeverAlbum({
   };
 
   /**
-   * Upload photos via NFTProxy.mint() for each photo.
-   * The edge function handles the contract call for storing photo data on-chain.
+   * Upload photos as wallet-scoped OS storage records. Each proxy call returns
+   * a contract intent and ChainService submits it through the connected wallet.
    */
   const uploadPhotos = async () => {
     if (uploading.get() || selectedImages.get().length === 0) return;
@@ -263,26 +347,46 @@ export function useForeverAlbum({
 
     uploading.set(true);
     try {
-      const payloads: string[] = [];
+      const walletAddress = await chainService.ensureWallet();
+      const records: StoredPhoto[] = [];
       let totalSize = 0;
-      for (const item of selectedImages.get()) {
+      const createdAt = Date.now();
+      for (const [index, item] of selectedImages.get().entries()) {
         const payload = isEncrypted.get()
           ? await encryptPayload(item.dataUrl, password.get())
           : item.dataUrl;
         if (payload.length > MAX_PHOTO_BYTES) throw new Error(t("encryptedTooLarge"));
         totalSize += payload.length;
         if (totalSize > MAX_TOTAL_BYTES) throw new Error(t("totalTooLarge"));
-        payloads.push(payload);
-      }
-
-      // Upload each photo as an NFT via the edge function
-      for (const payload of payloads) {
-        await nftService.mint({
-          type: "photo",
+        records.push({
+          id: `${createdAt}-${index}-${Math.random().toString(36).slice(2, 8)}`,
           data: payload,
           encrypted: isEncrypted.get(),
+          createdAt: createdAt + index,
+          owner: walletAddress,
         });
       }
+
+      for (const record of records) {
+        const tx = await submitWriteIntent(
+          await storageService.set(`${walletPhotoPrefix(walletAddress)}${record.id}`, record),
+        );
+        if (tx?.txid) record.txid = tx.txid;
+      }
+
+      // Mint a lightweight album marker when the backend supports it. The
+      // durable photo payload is already written above, so marker failures do
+      // not hide successful uploads or block viewing.
+      await nftService
+        .mint({
+          type: "album-upload",
+          photoIds: records.map((record) => record.id),
+          count: records.length,
+          encrypted: isEncrypted.get(),
+          createdAt,
+        })
+        .then(submitWriteIntent)
+        .catch(() => {});
 
       eventBus.emit("album:uploaded", { action: t("uploadSuccess") });
 
@@ -327,6 +431,7 @@ export function useForeverAlbum({
     isEncrypted,
     password,
     totalPayloadSize,
+    lastTx,
 
     // ── Constants ────────────────────────────────────────────────────
     MAX_PHOTOS_PER_UPLOAD,

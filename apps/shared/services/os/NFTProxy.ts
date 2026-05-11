@@ -3,7 +3,7 @@ import { OSServiceProxy } from "./OSServiceProxy";
 export class NFTProxy extends OSServiceProxy {
   protected readonly servicePrefix = "os-nft";
 
-  async mint(metadata: Record<string, unknown>): Promise<string> {
+  async mint(metadata: Record<string, unknown>): Promise<unknown> {
     return this.call("mint", { metadata });
   }
 

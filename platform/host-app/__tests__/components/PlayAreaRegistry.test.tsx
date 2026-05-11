@@ -6,6 +6,7 @@ import "@testing-library/jest-dom";
 
 import {
   PlayAreaRegistry,
+  getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
 import type { MiniAppInfo } from "../../components/types";
@@ -138,6 +139,36 @@ describe("PlayAreaRegistry", () => {
     expect(screen.getByText("Total proposals")).toBeVisible();
     expect(screen.queryByText("Council ballot")).not.toBeInTheDocument();
     expect(screen.queryByText("Stage council vote")).not.toBeInTheDocument();
+  });
+
+  it("renders Forever Album as an actual uploader/gallery dApp, not a staged metadata preview", () => {
+    renderPlayarea({
+      app_id: "miniapp-forever-album",
+      name: "Forever Album",
+      category: "social",
+      description: "Wallet-scoped photo vault",
+      dapp_url: "/miniapps/forever-album/index.html",
+      permissions: { storage: true },
+    });
+
+    expect(hasNativePlayArea("miniapp-forever-album")).toBe(true);
+    expect(
+      screen.getByRole("heading", { name: "Forever Album photo vault" }),
+    ).toBeVisible();
+    expect(screen.getByText("Upload and view album")).toBeVisible();
+    expect(screen.getByText("Upload photos")).toBeVisible();
+    expect(screen.getByText("View gallery")).toBeVisible();
+    expect(
+      screen.getByTitle("Forever Album uploader"),
+    ).toHaveAttribute(
+      "src",
+      expect.stringContaining("/miniapps/forever-album/index.html?"),
+    );
+    expect(getNativePlayAreaOperationFallback("miniapp-forever-album")).toEqual(
+      [],
+    );
+    expect(screen.queryByText("Stage album entry")).not.toBeInTheDocument();
+    expect(screen.queryByText("Wallet album preview")).not.toBeInTheDocument();
   });
 
   it("keeps TrustAnchor focused on user staking while folding routing diagnostics", () => {

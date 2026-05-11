@@ -30,7 +30,7 @@ const MiniAppCSP = `
   img-src 'self' data: blob: https:;
   font-src 'self' data: https:;
   connect-src 'self' https://*.r3e.network https://*.seed.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
-  frame-src 'none';
+  frame-src 'self' blob:;
   frame-ancestors 'self' https://neomini.app https://onegate.space https://*.onegate.space https://*.miniapp.r3e.network;
   form-action 'self';
   base-uri 'self';
