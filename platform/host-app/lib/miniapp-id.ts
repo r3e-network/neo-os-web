@@ -8,6 +8,7 @@ const MINIAPP_SLUG_ALIAS_MAP: Record<string, string> = {
   "fogplay": "fogplay",
   "coin-flip": "fogplay",
   "coinflip": "fogplay",
+  "dicegame": "dice-game",
   "breakup-contract": "breakupcontract",
   "daily-checkin": "dailycheckin",
   "doomsday-clock": "last-survivor",
