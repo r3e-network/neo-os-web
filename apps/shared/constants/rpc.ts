@@ -106,6 +106,7 @@ export const MINIAPP_CONTRACTS: Record<NeoNetwork, Record<string, string>> = {
     'miniapp-dice-game': '0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7',
     'miniapp-self-loan': '0x942da575b31f39cbb59e64b5813b128739b44c25',
     'miniapp-neo-pay': '0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34',
+    'miniapp-council-governance': '0xc7e50e67589df63302cbea1a6b00beb649ee74d8',
     'miniapp-profitanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
     'miniapp-trustanchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',
     'miniapp-custom-anchor': '0x02beeef6f65c6989a121c0a0e6b23190333edb98',

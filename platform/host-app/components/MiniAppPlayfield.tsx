@@ -39,6 +39,39 @@ async function invokeRead(
 
 type StackItem = { type: string; value: unknown };
 
+function decodeByteLike(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  if (!value) return "";
+  try {
+    const bin = atob(value);
+    let printable = true;
+    for (let i = 0; i < bin.length; i += 1) {
+      const code = bin.charCodeAt(i);
+      if (code !== 9 && code !== 10 && code !== 13 && (code < 32 || code > 126)) {
+        printable = false;
+        break;
+      }
+    }
+    if (printable) return bin;
+    let hex = "";
+    for (let i = 0; i < bin.length; i += 1) {
+      hex += bin.charCodeAt(i).toString(16).padStart(2, "0");
+    }
+    return hex.length ? `0x${hex}` : "";
+  } catch {
+    return value;
+  }
+}
+
+function decodeStackValue(item: StackItem | undefined): unknown {
+  if (!item) return undefined;
+  if (item.type === "ByteString" || item.type === "ByteArray" || item.type === "Buffer") {
+    return decodeByteLike(item.value);
+  }
+  if (item.type === "Boolean") return Boolean(item.value);
+  return item.value;
+}
+
 function stackInt(stack: unknown[], index = 0): number {
   const item = (stack as StackItem[])[index];
   if (!item) return 0;
@@ -72,15 +105,9 @@ function decodeMap(stack: unknown[], index = 0): Record<string, unknown> {
     key: StackItem;
     value: StackItem;
   }>) || []) {
-    let key = String(kv.key?.value || "");
-    if (kv.key?.type === "ByteString" && key) {
-      try {
-        key = atob(key);
-      } catch {
-        /* ignore */
-      }
-    }
-    out[key] = kv.value?.value;
+    const decodedKey = decodeStackValue(kv.key);
+    const key = String(decodedKey || "");
+    out[key] = decodeStackValue(kv.value);
     (out as Record<string, unknown>)[`__type__${key}`] = kv.value?.type;
   }
   return out;
@@ -704,6 +731,67 @@ async function fetchAppStats(
         ];
       }
 
+      case "miniapp-council-governance": {
+        const countStack = await invokeRead(
+          rpcUrl,
+          contractHash,
+          "getProposalCount",
+          [],
+          network,
+        );
+        const total = stackInt(countStack);
+        if (total <= 0) {
+          return [
+            { label: "Total Proposals", value: "0" },
+            { label: "Active", value: "0" },
+            { label: "Finalized", value: "0" },
+            { label: "Quorum Target", value: "-" },
+            { label: "Status", value: "Ready", accent: true },
+          ];
+        }
+
+        const limit = Math.min(total, 20);
+        const proposalReads = [];
+        for (let id = total; id >= total - limit + 1 && id >= 1; id -= 1) {
+          proposalReads.push(
+            invokeRead(
+              rpcUrl,
+              contractHash,
+              "getProposalDetails",
+              [{ type: "Integer", value: String(id) }],
+              network,
+            )
+              .then((stack) => ({ id, map: decodeMap(stack) }))
+              .catch(() => ({ id, map: {} as Record<string, unknown> })),
+          );
+        }
+        const proposals = await Promise.all(proposalReads);
+        const activeCount = proposals.filter((proposal) =>
+          isCouncilProposalActive(proposal.map),
+        ).length;
+        const latest = proposals.find((proposal) => Object.keys(proposal.map).length > 0);
+        const quorumRequired = parseInt(
+          String(latest?.map.quorumRequired ?? "0"),
+          10,
+        );
+
+        return [
+          {
+            label: "Total Proposals",
+            value: String(total),
+            accent: total > 0,
+          },
+          { label: "Active", value: String(activeCount), accent: activeCount > 0 },
+          { label: "Finalized", value: String(Math.max(0, total - activeCount)) },
+          {
+            label: "Quorum Target",
+            value: quorumRequired > 0 ? String(quorumRequired) : "-",
+          },
+          { label: "Last Proposal", value: latest ? `#${latest.id}` : "-" },
+          { label: "Status", value: "Contract read", accent: true },
+        ];
+      }
+
       default:
         return [{ label: "Live data", value: "No binding" }];
     }
@@ -734,6 +822,8 @@ async function fetchAppActivity(
         return await fetchSelfLoanActivity(rpcUrl, contractHash, network);
       case "miniapp-neo-pay":
         return await fetchNeoPayActivity(rpcUrl, contractHash, network);
+      case "miniapp-council-governance":
+        return await fetchCouncilGovernanceActivity(rpcUrl, contractHash, network);
       case "miniapp-trustanchor":
       case "miniapp-profitanchor":
       case "miniapp-trustanchor-admin":
@@ -747,6 +837,97 @@ async function fetchAppActivity(
     console.warn("[LiveContractView] fetchAppActivity failed for", appId, err);
     return null;
   }
+}
+
+function isCouncilProposalActive(map: Record<string, unknown>): boolean {
+  const status = parseInt(String(map.status ?? "0"), 10);
+  const statusText = String(map.statusString || "").toLowerCase();
+  const expiryTime = parseInt(String(map.expiryTime ?? "0"), 10);
+  const expiryMs = expiryTime > 0 && expiryTime < 10_000_000_000 ? expiryTime * 1000 : expiryTime;
+  if (statusText.includes("active")) {
+    return expiryMs <= 0 || expiryMs > Date.now();
+  }
+  return status === 1 && (expiryMs <= 0 || expiryMs > Date.now());
+}
+
+function councilStatusLabel(map: Record<string, unknown>): string {
+  const text = String(map.statusString || "").trim();
+  if (text) return text;
+  const status = parseInt(String(map.status ?? "0"), 10);
+  if (status === 1) return "active";
+  if (status === 2) return "passed";
+  if (status === 3) return "rejected";
+  if (status === 4) return "revoked";
+  if (status === 5) return "expired";
+  if (status === 6) return "executed";
+  return "pending";
+}
+
+async function fetchCouncilGovernanceActivity(
+  rpcUrl: string,
+  contractHash: string,
+  network: "mainnet" | "testnet",
+): Promise<Activity> {
+  const countStack = await invokeRead(
+    rpcUrl,
+    contractHash,
+    "getProposalCount",
+    [],
+    network,
+  );
+  const total = stackInt(countStack);
+  if (total <= 0) {
+    return {
+      title: "Council Proposals",
+      rows: [],
+      emptyText: "No proposals have been created on this network yet.",
+    };
+  }
+
+  const checks: Array<Promise<{ id: number; map: Record<string, unknown> }>> = [];
+  const limit = Math.min(total, 8);
+  for (let id = total; id >= total - limit + 1 && id >= 1; id -= 1) {
+    checks.push(
+      invokeRead(
+        rpcUrl,
+        contractHash,
+        "getProposalDetails",
+        [{ type: "Integer", value: String(id) }],
+        network,
+      )
+        .then((stack) => ({ id, map: decodeMap(stack) }))
+        .catch(() => ({ id, map: {} as Record<string, unknown> })),
+    );
+  }
+  const proposals = await Promise.all(checks);
+  const rows: Activity["rows"] = proposals
+    .filter((proposal) => Object.keys(proposal.map).length > 0)
+    .map((proposal) => {
+      const yesVotes = parseInt(String(proposal.map.yesVotes ?? "0"), 10);
+      const noVotes = parseInt(String(proposal.map.noVotes ?? "0"), 10);
+      const totalVotes = parseInt(
+        String(proposal.map.totalVotes ?? yesVotes + noVotes),
+        10,
+      );
+      const quorumRequired = parseInt(String(proposal.map.quorumRequired ?? "0"), 10);
+      const active = isCouncilProposalActive(proposal.map);
+      return {
+        icon: active ? "V" : "C",
+        primary: `#${proposal.id} ${String(proposal.map.title || "Untitled proposal")}`,
+        secondary: `${councilStatusLabel(proposal.map)} · for ${yesVotes} / against ${noVotes}`,
+        amount:
+          quorumRequired > 0
+            ? `${totalVotes}/${quorumRequired} quorum`
+            : `${totalVotes} votes`,
+        accent: active,
+      };
+    });
+
+  return {
+    title: "Council Proposals",
+    rows,
+    emptyText: "No readable proposals found in the recent contract range.",
+  };
 }
 
 async function fetchAnchorActivity(

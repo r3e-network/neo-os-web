@@ -1,50 +1,27 @@
-/**
- * useGovernance — Domain composable for Council Governance miniapp (OS Services)
- *
- * Migrated to OS service proxies. All contract interaction is delegated to
- * OS services (StorageProxy, PaymentProxy, BadgeProxy) via edge functions,
- * so this file contains zero contract hashes, parameter encoding, or
- * event parsing logic.
- *
- * Migration from direct chain calls to OS services:
- *
- *   BEFORE (chain):
- *     chain.read("getProposalCount")
- *     chain.read("getProposal", [...])
- *     chain.read("hasVoted", [...])
- *     chain.invoke("createProposal", [...])
- *     chain.invoke("vote", [...])
- *     chain.invoke("executeProposal", [...])
- *
- *   AFTER (OS proxy):
- *     storageService.get("proposalCount")              — load proposal count
- *     storageService.get(`proposal:${id}`)             — load proposal details
- *     storageService.get(`voted:${address}:${id}`)     — check vote status
- *     storageService.list("proposal:")                 — list all proposals
- *     paymentService.deposit(amount, memo)             — deposit for proposal creation
- *     badgeService.award(badgeId, user)                — award governance badges
- *
- * The API call for council member lookup is preserved as-is since it
- * queries the platform backend, not the blockchain.
- */
-
-import { createObservable, createDerived } from "@shared/react/context";
+import { createDerived, createObservable } from "@shared/react/context";
 import type { Observable } from "@shared/react/context";
-import type { StorageProxy } from "@shared/services/os/StorageProxy";
-import type { PaymentProxy } from "@shared/services/os/PaymentProxy";
-import type { BadgeProxy } from "@shared/services/os/BadgeProxy";
+import type { ChainService, ContractArg, TxResult } from "@shared/services";
+import { MINIAPP_CONTRACTS } from "@shared/constants/rpc";
+import { parseInvokeResult } from "@shared/utils/neo";
 import { getHostOrigin } from "@shared/utils/runtime-origin";
 
-// ============================================================================
-// Constants
-// ============================================================================
+const APP_ID = "miniapp-council-governance";
 
 const STATUS_ACTIVE = 1;
+const STATUS_PASSED = 2;
+const STATUS_REJECTED = 3;
+const STATUS_REVOKED = 4;
 const STATUS_EXPIRED = 5;
+const STATUS_EXECUTED = 6;
 
-// ============================================================================
-// Types
-// ============================================================================
+export type ProposalStatusKey =
+  | "active"
+  | "passed"
+  | "rejected"
+  | "revoked"
+  | "expired"
+  | "executed"
+  | "pending";
 
 export interface Proposal {
   id: number;
@@ -53,78 +30,154 @@ export interface Proposal {
   description: string;
   policyMethod?: string;
   policyValue?: string;
+  creator: string;
   yesVotes: number;
   noVotes: number;
+  totalVotes: number;
+  quorumRequired: number;
+  quorumReached: boolean;
+  createTime: number;
   expiryTime: number;
   status: number;
+  statusKey: ProposalStatusKey;
+  statusString?: string;
 }
 
 export type VoteChoice = "for" | "against";
 
 export interface UseGovernanceOptions {
-  /** OS StorageProxy instance from ctx.os.storage */
-  storageService: StorageProxy;
-  /** OS PaymentProxy instance from ctx.os.payment */
-  paymentService: PaymentProxy;
-  /** OS BadgeProxy instance from ctx.os.badge */
-  badgeService: BadgeProxy;
-  /** Translation function */
+  chainService: ChainService;
   t: (key: string, params?: Record<string, string | number>) => string;
-  /** Current chain ID for API calls */
   currentChainId: Observable<string>;
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
+type NeoNetwork = "mainnet" | "testnet";
 
-const parseProposal = (data: Record<string, unknown>): Proposal => {
-  const policyByteString = String(data.policyData || "");
-  let policyMethod: string | undefined;
-  let policyValue: string | undefined;
-  if (policyByteString) {
-    try {
-      const parsed = JSON.parse(policyByteString);
-      policyMethod = parsed.method;
-      policyValue = parsed.get();
-    } catch (_e) {
-      policyValue = policyByteString;
-    }
+function resolveNetwork(chainId: string): NeoNetwork {
+  return chainId.toLowerCase().includes("testnet") ? "testnet" : "mainnet";
+}
+
+function contractHashFor(chainId: string): string | undefined {
+  return MINIAPP_CONTRACTS[resolveNetwork(chainId)]?.[APP_ID];
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function asBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
+}
+
+function asString(value: unknown, fallback = ""): string {
+  const text = String(value ?? fallback).trim();
+  return text || fallback;
+}
+
+function toMsTimestamp(value: unknown): number {
+  const n = asNumber(value, 0);
+  if (n <= 0) return 0;
+  return n < 10_000_000_000 ? n * 1000 : n;
+}
+
+function toBase64Utf8(value: string): string {
+  if (!value) return "";
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function decodeMaybeBase64(value: unknown): string {
+  const text = asString(value);
+  if (!text) return "";
+  if (text.startsWith("0x")) return text;
+  try {
+    const decoded = atob(text);
+    if (/^[\x09\x0a\x0d\x20-\x7e]*$/.test(decoded)) return decoded;
+  } catch {
+    /* not base64 */
   }
+  return text;
+}
+
+function statusKeyFor(status: number, statusString: string | undefined, expiryTime: number): ProposalStatusKey {
+  const normalized = String(statusString || "").toLowerCase();
+  if (normalized.includes("executed")) return "executed";
+  if (normalized.includes("revoked")) return "revoked";
+  if (normalized.includes("reject")) return "rejected";
+  if (normalized.includes("pass")) return "passed";
+  if (normalized.includes("expire")) return "expired";
+  if (status === STATUS_ACTIVE) return expiryTime > 0 && expiryTime < Date.now() ? "expired" : "active";
+  if (status === STATUS_PASSED) return "passed";
+  if (status === STATUS_REJECTED) return "rejected";
+  if (status === STATUS_REVOKED) return "revoked";
+  if (status === STATUS_EXPIRED) return "expired";
+  if (status === STATUS_EXECUTED) return "executed";
+  return "pending";
+}
+
+function parsePolicyData(raw: unknown): Pick<Proposal, "policyMethod" | "policyValue"> {
+  const text = decodeMaybeBase64(raw);
+  if (!text) return {};
+  try {
+    const parsed = JSON.parse(text) as { method?: unknown; value?: unknown };
+    const method = asString(parsed.method);
+    return {
+      policyMethod: method || undefined,
+      policyValue: parsed.value === undefined ? undefined : String(parsed.value),
+    };
+  } catch {
+    return { policyValue: text };
+  }
+}
+
+function parseProposal(raw: unknown): Proposal | null {
+  const data = asRecord(raw);
+  const id = asNumber(data.id, 0);
+  if (!id) return null;
+
+  const status = asNumber(data.status, 0);
+  const statusString = asString(data.statusString);
+  const expiryTime = toMsTimestamp(data.expiryTime);
+  const policy = parsePolicyData(data.policyData);
 
   return {
-    id: Number(data.id || 0),
-    type: Number(data.type || 0),
-    title: String(data.title || ""),
-    description: String(data.description || ""),
-    policyMethod,
-    policyValue,
-    yesVotes: Number(data.yesVotes || 0),
-    noVotes: Number(data.noVotes || 0),
-    expiryTime: Number(data.expiryTime || 0) * 1000,
-    status: Number(data.status || 0),
+    id,
+    type: asNumber(data.type, 0),
+    title: asString(data.title, `Proposal #${id}`),
+    description: asString(data.description),
+    creator: asString(data.creator),
+    ...policy,
+    yesVotes: asNumber(data.yesVotes, 0),
+    noVotes: asNumber(data.noVotes, 0),
+    totalVotes: asNumber(data.totalVotes, asNumber(data.yesVotes, 0) + asNumber(data.noVotes, 0)),
+    quorumRequired: asNumber(data.quorumRequired, 0),
+    quorumReached: asBoolean(data.quorumReached),
+    createTime: toMsTimestamp(data.createTime),
+    expiryTime,
+    status,
+    statusKey: statusKeyFor(status, statusString, expiryTime),
+    statusString,
   };
-};
+}
 
-export const resolveStatus = (proposal: Proposal) => {
-  if (proposal.status === STATUS_ACTIVE && proposal.expiryTime < Date.now()) {
-    return STATUS_EXPIRED;
-  }
-  return proposal.status;
-};
-
-// ============================================================================
-// Composable
-// ============================================================================
+export const resolveStatus = (proposal: Proposal) => proposal.statusKey;
 
 export function useGovernance({
-  storageService,
-  paymentService,
-  badgeService,
+  chainService,
   t,
   currentChainId,
 }: UseGovernanceOptions) {
-  // ── State ────────────────────────────────────────────────────────────
   const proposals = createObservable<Proposal[]>([]);
   const selectedProposal = createObservable<Proposal | null>(null);
   const loadingProposals = createObservable(false);
@@ -134,68 +187,81 @@ export function useGovernance({
   const hasVotedMap = createObservable<Record<number, boolean>>({});
   const isVoting = createObservable(false);
   const address = createObservable("");
+  const lastTx = createObservable<TxResult | null>(null);
 
-  // ── Computed ─────────────────────────────────────────────────────────
   const activeProposals = createDerived(
-    () => proposals.get().filter((p) => resolveStatus(p) === STATUS_ACTIVE),
+    () => proposals.get().filter((p) => p.statusKey === "active"),
     [proposals],
   );
   const historyProposals = createDerived(
-    () => proposals.get().filter((p) => resolveStatus(p) !== STATUS_ACTIVE),
+    () => proposals.get().filter((p) => p.statusKey !== "active"),
     [proposals],
   );
+  const activeCount = createDerived(() => activeProposals.get().length, [proposals]);
+  const historyCount = createDerived(() => historyProposals.get().length, [proposals]);
 
-  // ── API Base (for council member lookup) ─────────────────────────────
   const hostOrigin = getHostOrigin();
-  const API_HOST = hostOrigin && hostOrigin !== window.location.origin ? hostOrigin : "";
+  const currentOrigin = typeof window === "undefined" ? "" : window.location.origin;
+  const API_HOST = hostOrigin && hostOrigin !== currentOrigin ? hostOrigin : "";
 
-  // ── Proposal Selection ──────────────────────────────────────────────
+  async function readContract(method: string, args: ContractArg[] = []): Promise<unknown> {
+    const scriptHash = contractHashFor(currentChainId.get());
+    try {
+      return await chainService.read(method, args, scriptHash ? { scriptHash } : undefined);
+    } catch (walletReadError) {
+      if (!scriptHash) throw walletReadError;
+      const res = await fetch(`${API_HOST}/api/rpc/neo-read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contractHash: scriptHash,
+          method,
+          params: args.map((arg) => ({ type: arg.type, value: String(arg.value) })),
+          network: resolveNetwork(currentChainId.get()),
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const data = await res.json();
+      if (!res.ok || data?.result?.state !== "HALT") {
+        throw walletReadError;
+      }
+      return parseInvokeResult({ stack: data.result.stack || [] });
+    }
+  }
+
+  async function invokeContract(method: string, args: ContractArg[]): Promise<TxResult> {
+    const scriptHash = contractHashFor(currentChainId.get());
+    const tx = await chainService.invoke(method, args, scriptHash ? { scriptHash } : undefined);
+    lastTx.set(tx);
+    return tx;
+  }
 
   const selectProposal = async (p: Proposal) => {
     selectedProposal.set(p);
     if (address.get()) await refreshHasVoted([p.id]);
   };
 
-  // ── Voting (via OS services) ────────────────────────────────────────
-
   const castVote = async (proposalId: number, voteType: VoteChoice) => {
     if (isVoting.get()) return;
     const proposal = activeProposals.get().find((p) => p.id === proposalId);
-    if (!proposal || resolveStatus(proposal) !== STATUS_ACTIVE) return;
-    if (!address.get()) {
-      throw new Error(t("connectWallet"));
-    }
-    if (!isCandidate.get()) {
-      throw new Error(t("notCandidate"));
-    }
-    if (hasVotedMap.get()[proposalId]) {
-      throw new Error(t("alreadyVoted"));
-    }
+    if (!proposal) throw new Error(t("proposalNotActive"));
+    if (!address.get()) throw new Error(t("connectWallet"));
+    if (!isCandidate.get()) throw new Error(t("notCandidate"));
+    if (hasVotedMap.get()[proposalId]) throw new Error(t("alreadyVoted"));
 
     try {
       isVoting.set(true);
-
-      // Vote via StorageProxy — the edge function handles the contract invocation
-      await storageService.set(`vote:${proposalId}`, {
-        voter: address.get(),
-        proposalId,
-        voteFor: voteType === "for",
-      });
-
-      // Award governance badge (fire-and-forget)
-      badgeService.award("governance-voter", address.get()).catch(() => {});
-
+      await invokeContract("vote", [
+        { type: "Hash160", value: address.get() },
+        { type: "Integer", value: String(proposalId) },
+        { type: "Boolean", value: voteType === "for" },
+      ]);
       await loadProposals();
       await refreshHasVoted([proposalId]);
-      selectedProposal.set(null);
-    } catch (e) {
-      throw e;
     } finally {
       isVoting.set(false);
     }
   };
-
-  // ── Proposal Creation (via OS services) ─────────────────────────────
 
   const createProposal = async (proposalData: {
     type: number;
@@ -207,101 +273,63 @@ export function useGovernance({
   }) => {
     const title = proposalData.title.trim();
     const description = proposalData.description.trim();
-    if (!title || !description) {
-      throw new Error(t("fillAllFields"));
-    }
+    if (!title || !description) throw new Error(t("fillAllFields"));
+    if (!address.get()) throw new Error(t("connectWalletCreate"));
+    if (!isCandidate.get()) throw new Error(t("notCandidateCreate"));
 
-    let policyValueNumber: number | null = null;
+    let policyData = "";
     if (proposalData.type === 1) {
-      const rawPolicyValue = String(proposalData.policyValue).trim();
-      if (!proposalData.policyMethod || !rawPolicyValue) {
-        throw new Error(t("policyFieldsRequired"));
-      }
-      const parsed = Number(rawPolicyValue);
-      if (!Number.isFinite(parsed)) {
-        throw new Error(t("invalidPolicyValue"));
-      }
-      policyValueNumber = parsed;
-    }
-    if (!address.get()) {
-      throw new Error(t("connectWallet"));
-    }
-    if (!isCandidate.get()) {
-      throw new Error(t("notCandidate"));
+      const policyMethod = String(proposalData.policyMethod || "").trim();
+      const policyValue = String(proposalData.policyValue || "").trim();
+      if (!policyMethod || !policyValue) throw new Error(t("policyFieldsRequired"));
+      const parsedValue = Number(policyValue);
+      if (!Number.isFinite(parsedValue)) throw new Error(t("invalidPolicyValue"));
+      policyData = toBase64Utf8(JSON.stringify({ method: policyMethod, value: parsedValue }));
     }
 
-    const policyDataS =
-      proposalData.type === 1
-        ? JSON.stringify({ method: proposalData.policyMethod, value: policyValueNumber })
-        : "";
-
-    try {
-      // Create proposal via StorageProxy — the edge function handles
-      // the createProposal contract invocation
-      await storageService.set("proposal:new", {
-        creator: address.get(),
-        type: proposalData.type,
-        title,
-        description,
-        policyData: policyDataS,
-        duration: proposalData.duration,
-      });
-
-      // Award proposal-creator badge (fire-and-forget)
-      badgeService.award("proposal-creator", address.get()).catch(() => {});
-
-      await loadProposals();
-      return true;
-    } catch (e) {
-      throw e;
-    }
+    const duration = proposalData.duration > 0 ? proposalData.duration : 7 * 24 * 60 * 60 * 1000;
+    const tx = await invokeContract("createProposal", [
+      { type: "Hash160", value: address.get() },
+      { type: "Integer", value: String(proposalData.type || 0) },
+      { type: "String", value: title },
+      { type: "String", value: description },
+      { type: "ByteArray", value: policyData },
+      { type: "Integer", value: String(duration) },
+    ]);
+    await loadProposals();
+    return tx;
   };
 
-  // ── Proposal Execution (via OS services) ────────────────────────────
-
-  const executeProposal = async (proposalId: number) => {
-    if (!address.get()) {
-      throw new Error(t("connectWallet"));
-    }
-
-    try {
-      // Execute proposal via StorageProxy — the edge function handles
-      // the executeProposal contract invocation
-      await storageService.set(`proposal:execute:${proposalId}`, {
-        executor: address.get(),
-        proposalId,
-      });
-
-      await loadProposals();
-      selectedProposal.set(null);
-    } catch (e) {
-      throw e;
-    }
+  const finalizeProposal = async (proposalId: number) => {
+    if (!proposalId) return null;
+    const tx = await invokeContract("finalizeProposal", [
+      { type: "Integer", value: String(proposalId) },
+    ]);
+    await loadProposals();
+    return tx;
   };
 
-  // ── Data Loading (via OS services) ──────────────────────────────────
-
-  /**
-   * Load all proposals via StorageProxy.
-   * The edge function reads proposal count and details from the contract.
-   */
   const loadProposals = async () => {
     try {
       loadingProposals.set(true);
-
-      const raw = await storageService.list("proposal:");
-      if (raw && typeof raw === "object") {
-        const results: Proposal[] = [];
-        for (const [, value] of Object.entries(raw)) {
-          if (value && typeof value === "object") {
-            const proposal = parseProposal(value as Record<string, unknown>);
-            if (proposal.id > 0) {
-              results.push(proposal);
-            }
-          }
-        }
-        proposals.set(results.sort((a, b) => b.id - a.id));
+      const count = asNumber(await readContract("getProposalCount"), 0);
+      if (count <= 0) {
+        proposals.set([]);
+        return;
       }
+
+      const limit = Math.min(count, 100);
+      const first = Math.max(1, count - limit + 1);
+      const reads: Array<Promise<Proposal | null>> = [];
+      for (let id = count; id >= first; id -= 1) {
+        reads.push(
+          readContract("getProposalDetails", [{ type: "Integer", value: String(id) }])
+            .then(parseProposal)
+            .catch(() => null),
+        );
+      }
+      const loaded = (await Promise.all(reads)).filter((p): p is Proposal => Boolean(p));
+      proposals.set(loaded.sort((a, b) => b.id - a.id));
     } catch (e) {
       if (proposals.get().length === 0) {
         console.warn("[useGovernance] loadProposals failed:", e instanceof Error ? e.message : String(e));
@@ -312,25 +340,22 @@ export function useGovernance({
   };
 
   const refreshCandidateStatus = async () => {
-    if (!address.get()) {
+    const walletAddress = address.get();
+    if (!walletAddress) {
       isCandidate.set(false);
       votingPower.set(0);
       candidateLoaded.set(true);
       return;
     }
+
     try {
-      const res = await fetch(
-        `${API_HOST}/api/neo/council-members?chain_id=${currentChainId.get()}&address=${address.get()}`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { isCouncilMember?: boolean; chainId: string };
-        isCandidate.set(Boolean(data.isCouncilMember));
-        votingPower.set(isCandidate.get() ? 1 : 0);
-      } else {
-        isCandidate.set(false);
-        votingPower.set(0);
-      }
-    } catch (_e) {
+      const result = await readContract("isCandidate", [
+        { type: "Hash160", value: walletAddress },
+      ]);
+      const eligible = asBoolean(result);
+      isCandidate.set(eligible);
+      votingPower.set(eligible ? 1 : 0);
+    } catch {
       isCandidate.set(false);
       votingPower.set(0);
     } finally {
@@ -338,19 +363,23 @@ export function useGovernance({
     }
   };
 
-  /**
-   * Check vote status via StorageProxy.
-   * The edge function reads hasVoted from the contract.
-   */
   const refreshHasVoted = async (proposalIds?: number[]) => {
-    if (!address.get()) return;
-    const ids = proposalIds ?? proposals.get().map((p) => p.id);
+    const walletAddress = address.get();
+    if (!walletAddress) {
+      hasVotedMap.set({});
+      return;
+    }
+    const ids = proposalIds ?? activeProposals.get().map((p) => p.id);
     const updates: Record<number, boolean> = { ...hasVotedMap.get() };
     await Promise.all(
       ids.map(async (id) => {
         try {
-          const result = await storageService.get(`voted:${address.get()}:${id}`);
-          updates[id] = Boolean(result);
+          updates[id] = asBoolean(
+            await readContract("hasVoted", [
+              { type: "Hash160", value: walletAddress },
+              { type: "Integer", value: String(id) },
+            ]),
+          );
         } catch {
           updates[id] = false;
         }
@@ -359,18 +388,12 @@ export function useGovernance({
     hasVotedMap.set(updates);
   };
 
-  // ── Lifecycle ───────────────────────────────────────────────────────
-
   const init = async () => {
     await loadProposals();
     await refreshCandidateStatus();
     await refreshHasVoted();
   };
 
-  /**
-   * Set the wallet address. Called from main.ts to track the
-   * connected wallet address from the platform's chain service.
-   */
   const setAddress = (addr: string) => {
     address.set(addr);
   };
@@ -379,6 +402,8 @@ export function useGovernance({
     proposals,
     activeProposals,
     historyProposals,
+    activeCount,
+    historyCount,
     selectedProposal,
     loadingProposals,
     candidateLoaded,
@@ -387,10 +412,12 @@ export function useGovernance({
     hasVotedMap,
     isVoting,
     address,
+    lastTx,
     selectProposal,
     castVote,
     createProposal,
-    executeProposal,
+    executeProposal: finalizeProposal,
+    finalizeProposal,
     loadProposals,
     refreshCandidateStatus,
     refreshHasVoted,

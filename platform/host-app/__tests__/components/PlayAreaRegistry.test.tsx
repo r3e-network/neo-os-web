@@ -122,6 +122,24 @@ describe("PlayAreaRegistry", () => {
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
   });
 
+  it("renders Council Governance as a real proposal workspace, not a ballot placeholder", () => {
+    renderPlayarea({
+      app_id: "miniapp-council-governance",
+      name: "Council Governance",
+      category: "governance",
+      description: "On-chain council proposals",
+    });
+
+    expect(hasNativePlayArea("miniapp-council-governance")).toBe(true);
+    expect(
+      screen.getByRole("heading", { name: "Council proposal workspace" }),
+    ).toBeVisible();
+    expect(screen.getByText("Proposal queue")).toBeVisible();
+    expect(screen.getByText("Total proposals")).toBeVisible();
+    expect(screen.queryByText("Council ballot")).not.toBeInTheDocument();
+    expect(screen.queryByText("Stage council vote")).not.toBeInTheDocument();
+  });
+
   it("keeps TrustAnchor focused on user staking while folding routing diagnostics", () => {
     renderPlayarea({
       app_id: "miniapp-trustanchor",
