@@ -109,6 +109,7 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-profitanchor-admin": ProfitAnchorAdminPlayArea,
   "miniapp-trustanchor-admin": TrustAnchorAdminPlayArea,
   "miniapp-custom-anchor": CustomAnchorPlayArea,
+  "miniapp-council-governance": CouncilGovernancePlayArea,
   "miniapp-neo-pay": NeoPayPlayArea,
   "miniapp-onchaintarot": TarotPlayArea,
   "miniapp-on-chain-tarot": TarotPlayArea,
@@ -1224,6 +1225,171 @@ export function hasNativePlayArea(appId: string) {
 export function getNativePlayAreaOperationFallback(
   appId: string,
 ): OperationEntry[] {
+  if (appId === "miniapp-council-governance") {
+    return [
+      {
+        name: "Create Proposal",
+        method: "createProposal",
+        description:
+          "Submit a real text proposal to the Council Governance contract.",
+        button_style: "primary",
+        priority: "primary",
+        confirm_message: "Create this council proposal on-chain?",
+        params: [
+          {
+            name: "creator",
+            type: "hash160",
+            label: "Creator",
+            default_value: "$wallet",
+            hidden: true,
+            required: true,
+          },
+          {
+            name: "type",
+            type: "integer",
+            label: "Proposal type",
+            default_value: "0",
+            hidden: true,
+            required: true,
+          },
+          {
+            name: "title",
+            type: "string",
+            label: "Title",
+            placeholder: "Council proposal title",
+            required: true,
+          },
+          {
+            name: "description",
+            type: "string",
+            label: "Description",
+            placeholder: "What should council members review?",
+            required: true,
+          },
+          {
+            name: "policyData",
+            type: "bytearray",
+            label: "Policy data",
+            default_value: "",
+            hidden: true,
+          },
+          {
+            name: "duration",
+            type: "integer",
+            label: "Voting window",
+            default_value: "604800000",
+            hidden: true,
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "Vote For",
+        method: "vote",
+        description: "Cast a real for vote on an active proposal.",
+        button_style: "success",
+        priority: "primary",
+        confirm_message: "Vote for this proposal on-chain?",
+        params: [
+          {
+            name: "voter",
+            type: "hash160",
+            label: "Voter",
+            default_value: "$wallet",
+            hidden: true,
+            required: true,
+          },
+          {
+            name: "proposalId",
+            type: "integer",
+            label: "Proposal ID",
+            required: true,
+          },
+          {
+            name: "support",
+            type: "boolean",
+            label: "Support",
+            default_value: "true",
+            hidden: true,
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "Vote Against",
+        method: "vote",
+        description: "Cast a real against vote on an active proposal.",
+        button_style: "danger",
+        priority: "primary",
+        confirm_message: "Vote against this proposal on-chain?",
+        params: [
+          {
+            name: "voter",
+            type: "hash160",
+            label: "Voter",
+            default_value: "$wallet",
+            hidden: true,
+            required: true,
+          },
+          {
+            name: "proposalId",
+            type: "integer",
+            label: "Proposal ID",
+            required: true,
+          },
+          {
+            name: "support",
+            type: "boolean",
+            label: "Support",
+            default_value: "false",
+            hidden: true,
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "Finalize",
+        method: "finalizeProposal",
+        description: "Finalize an expired proposal after its voting window closes.",
+        button_style: "secondary",
+        priority: "secondary",
+        confirm_message: "Finalize this proposal on-chain?",
+        params: [
+          {
+            name: "proposalId",
+            type: "integer",
+            label: "Proposal ID",
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "Revoke",
+        method: "revokeProposal",
+        description: "Revoke one of your own proposals before finalization.",
+        button_style: "danger",
+        priority: "operator",
+        confirm_message: "Revoke this proposal on-chain?",
+        params: [
+          {
+            name: "creator",
+            type: "hash160",
+            label: "Creator",
+            default_value: "$wallet",
+            hidden: true,
+            required: true,
+          },
+          {
+            name: "proposalId",
+            type: "integer",
+            label: "Proposal ID",
+            required: true,
+          },
+        ],
+      },
+    ];
+  }
+
   if (appId === "miniapp-gasbox") {
     return [
       {
@@ -1814,6 +1980,106 @@ function ActionBoard({
         ))}
       </div>
     </section>
+  );
+}
+
+function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
+  const {
+    app,
+    statsMap,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    onRefresh,
+  } = props;
+  const total = getMetric(statsMap, "Total Proposals", "0");
+  const active = getMetric(statsMap, "Active", "0");
+  const finalized = getMetric(statsMap, "Finalized", "0");
+  const quorum = getMetric(statsMap, "Quorum Target", "-");
+  const status = getMetric(statsMap, "Status", "Ready");
+  const rows =
+    activity?.rows.length
+      ? activity.rows.slice(0, 5).map((row) => ({
+          label: row.primary,
+          detail: row.secondary,
+          value: row.amount,
+          valueLabel: row.accent ? "active" : undefined,
+          active: row.accent,
+          icon: <Vote className="h-4 w-4" />,
+        }))
+      : [
+          {
+            label: "No proposals on this network yet",
+            detail:
+              "Use Create Proposal with a council wallet to submit the first real proposal.",
+            value: status,
+            valueLabel: network,
+            active: false,
+            icon: <FileSignature className="h-4 w-4" />,
+          },
+        ];
+
+  return (
+    <PlayShell
+      app={app}
+      title="Council proposal workspace"
+      subtitle="Read live proposals from the governance contract, then create, vote for, vote against, finalize, or revoke through real wallet-signed operations."
+      tone="emerald"
+      side={
+        <>
+          <ActivityPanel activity={activity} />
+          <MetricGrid stats={stats} />
+          <ChainStateStrip
+            loading={loading}
+            error={error}
+            contractHash={contractHash}
+            network={network}
+            onRefresh={onRefresh}
+          />
+        </>
+      }
+    >
+      <div className="grid gap-2 sm:grid-cols-4">
+        <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
+          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
+            Total proposals
+          </p>
+          <p className="m-0 mt-1 text-xl font-black text-gray-950">{total}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 shadow-sm shadow-emerald-900/5">
+          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+            Active
+          </p>
+          <p className="m-0 mt-1 text-xl font-black text-emerald-700">
+            {active}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
+          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
+            Finalized
+          </p>
+          <p className="m-0 mt-1 text-xl font-black text-gray-950">
+            {finalized}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5">
+          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-sky-700">
+            Quorum target
+          </p>
+          <p className="m-0 mt-1 text-xl font-black text-sky-700">{quorum}</p>
+        </div>
+      </div>
+
+      <ActionBoard
+        title="Proposal queue"
+        subtitle="Latest contract proposals with vote split and quorum progress."
+        tone="emerald"
+        rows={rows}
+      />
+    </PlayShell>
   );
 }
 

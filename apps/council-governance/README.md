@@ -61,38 +61,47 @@ Decentralized governance for Neo Council members. Only top 21 committee members 
 
 ## API Dependencies
 
-The miniapp uses the following API endpoint for council member validation:
-
-- `GET /api/neo/council-members?chain_id={chain_id}&address={address}`
-  - Returns `{ isCouncilMember: boolean, chainId: string }`
+The miniapp reads proposal state directly from the Council Governance contract.
+If a wallet read provider is not available, the app falls back to the host
+`/api/rpc/neo-read` proxy for read-only calls. Proposal creation and voting are
+always wallet-signed contract invocations.
 
 ## Contract Methods
 
 | Method                     | Description                        | Access       |
 | -------------------------- | ---------------------------------- | ------------ |
-| `GetProposalCount()`       | Get total number of proposals      | Public       |
-| `GetProposal(id)`          | Get proposal details               | Public       |
-| `CreateProposal(...)`      | Create a new proposal              | Council Only |
-| `Vote(voter, id, support)` | Cast a vote                        | Council Only |
-| `HasVoted(voter, id)`      | Check if user has voted            | Public       |
-| `IsCandidate(address)`     | Check if address is council member | Public       |
+| `getProposalCount()`       | Get total number of proposals      | Public       |
+| `getProposalDetails(id)`   | Get proposal details and quorum    | Public       |
+| `createProposal(...)`      | Create a new proposal              | Council Only |
+| `vote(voter, id, support)` | Cast a vote                        | Council Only |
+| `hasVoted(voter, id)`      | Check if user has voted            | Public       |
+| `isCandidate(address)`     | Check if address is council member | Public       |
+| `finalizeProposal(id)`     | Finalize an expired proposal       | Public       |
+| `revokeProposal(owner, id)` | Revoke own proposal                | Creator      |
 
 ## Development
 
 ```bash
 # Navigate to the miniapp directory
-cd miniapps/apps/council-governance
+cd apps/council-governance
 
 # Install dependencies
-pnpm install
+npm install
 
 # Start development server
-pnpm dev
+npm run dev
 ```
 
-## Files Modified for Multi-Chain Support
+## Platform Integration
 
-- `src/pages/index/index.vue`: Updated to use `chain_id` parameter for API calls
+- Standalone dApp: `apps/council-governance/src/PlayArea.tsx` renders the full
+  proposal workspace.
+- Host/OneGate detail page: `platform/host-app/components/playarea/PlayAreaRegistry.tsx`
+  maps `miniapp-council-governance` to a native council play area instead of the
+  generic placeholder.
+- Contract registry: `apps/shared/constants/rpc.ts` and
+  `platform/host-app/lib/rpc-helpers.ts` include both mainnet and testnet
+  Council Governance hashes.
 
 ## Usage
 
@@ -115,7 +124,7 @@ pnpm dev
 
 Council Governance provides decentralized decision-making for Neo Council members:
 
-1. **Identity Verification**: The app verifies if a connected wallet is a Neo Council member via API
+1. **Identity Verification**: The app verifies if a connected wallet is a Neo Council member through `isCandidate`
 2. **Proposal Management**: Council members create and manage governance proposals on-chain
 3. **Voting Mechanism**: Each council member can cast one vote per proposal
 4. **On-Chain Recording**: All votes and proposals are permanently recorded on Neo N3 blockchain
