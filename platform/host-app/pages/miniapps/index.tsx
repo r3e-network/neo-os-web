@@ -18,6 +18,16 @@ import {
   compactMiniAppManifestForCatalog,
   getMiniAppCatalogAvailability,
 } from "@/lib/miniapp-catalog-view";
+import {
+  getAvailabilityLabel,
+  getCategoryLabel,
+  getLocalizedMiniAppCategoryLabel,
+  getLocalizedMiniAppDescription,
+  getLocalizedMiniAppName,
+  getNetworkLabel,
+} from "@/lib/i18n/miniapp-display";
+import { interpolate, type Locale } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/react";
 import { sortMiniApps } from "@/lib/miniapp-showcase";
 import { getRpcNetwork } from "@/lib/rpc-helpers";
 import { BRAND } from "@/lib/brand";
@@ -80,13 +90,25 @@ function MiniAppListingCard({
   app,
   large = false,
   targetNetwork,
+  locale,
+  t,
 }: {
   app: MiniAppInfo;
   large?: boolean;
   targetNetwork: string;
+  locale: Locale;
+  t: (key: string, ns?: "common" | "host" | "admin" | "miniapp") => string;
 }) {
   const accent = flagshipAccents[app.app_id] || defaultAccent;
   const availability = getMiniAppCatalogAvailability(app, targetNetwork);
+  const appName = getLocalizedMiniAppName(app, locale);
+  const appDescription = getLocalizedMiniAppDescription(app, locale);
+  const categoryLabel = getLocalizedMiniAppCategoryLabel(app, locale, t);
+  const availabilityLabel = getAvailabilityLabel(
+    availability.tone,
+    availability.label,
+    t,
+  );
   const statusClass =
     availability.tone === "live"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -141,18 +163,18 @@ function MiniAppListingCard({
                   className={`relative inline-flex h-1.5 w-1.5 rounded-full ${statusDotClass}`}
                 />
               </span>
-              {availability.label}
+              {availabilityLabel}
             </span>
             <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
-              {app.category}
+              {categoryLabel}
             </span>
           </div>
 
           <div className="flex items-start justify-between gap-3">
             <h3
               className={`m-0 truncate font-bold text-gray-900 transition-colors group-hover:text-gray-950 ${large ? "text-xl" : "text-base"}`}
-            >
-              {app.name}
+          >
+              {appName}
             </h3>
             <ArrowUpRight
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-colors group-hover:text-emerald-600"
@@ -163,11 +185,11 @@ function MiniAppListingCard({
           <p
             className={`mt-1.5 text-gray-500 leading-relaxed ${large ? "max-w-3xl text-sm line-clamp-2" : "text-xs line-clamp-2"}`}
           >
-            {app.description}
+            {appDescription}
           </p>
 
           <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-700">
-            Open app
+            {t("catalog.openApp", "host")}
           </div>
         </div>
       </div>
@@ -193,8 +215,20 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
   return apps.map((app) => ({
     app_id: app.app_id,
     name: app.name,
+    name_en: app.name_en ?? null,
+    name_zh: app.name_zh ?? null,
+    name_ja: app.name_ja ?? null,
+    name_ko: app.name_ko ?? null,
     description: app.description,
+    description_en: app.description_en ?? null,
+    description_zh: app.description_zh ?? null,
+    description_ja: app.description_ja ?? null,
+    description_ko: app.description_ko ?? null,
     icon: app.icon,
+    category_name: app.category_name ?? null,
+    category_name_zh: app.category_name_zh ?? null,
+    category_name_ja: app.category_name_ja ?? null,
+    category_name_ko: app.category_name_ko ?? null,
     logo_url: app.logo_url ?? null,
     banner_url: app.banner_url ?? null,
     category: app.category,
@@ -226,6 +260,7 @@ export default function MiniAppsPage({
   initialApps = EMPTY_INITIAL_APPS,
 }: MiniAppsPageProps = {}) {
   const router = useRouter();
+  const { locale, t } = useI18n();
   const sortedInitialApps = useMemo(
     () => sortMiniApps(initialApps, "featured"),
     [initialApps],
@@ -311,26 +346,44 @@ export default function MiniAppsPage({
         statusFilter === "all" || statusFilter === statusLabel;
       const matchesCategory =
         categoryFilter === "all" || app.category === categoryFilter;
+      const localizedName = getLocalizedMiniAppName(app, locale);
+      const localizedDescription = getLocalizedMiniAppDescription(app, locale);
+      const localizedCategory = getLocalizedMiniAppCategoryLabel(app, locale, t);
       const matchesQuery =
         !normalizedQuery ||
-        [app.name, app.app_id, app.description, app.category]
+        [
+          app.name,
+          localizedName,
+          app.app_id,
+          app.description,
+          localizedDescription,
+          app.category,
+          localizedCategory,
+        ]
           .filter(Boolean)
           .some((value) =>
             String(value).toLowerCase().includes(normalizedQuery),
           );
       return matchesStatus && matchesCategory && matchesQuery;
     });
-  }, [categoryFilter, listedApps, deferredQuery, statusFilter, targetNetwork]);
+  }, [
+    categoryFilter,
+    listedApps,
+    deferredQuery,
+    statusFilter,
+    targetNetwork,
+    locale,
+    t,
+  ]);
 
   const hero = filteredApps[0];
   const rest = filteredApps.slice(1);
-  const networkLabel =
-    targetNetwork === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
+  const networkLabel = getNetworkLabel(targetNetwork, t);
 
   return (
     <Layout>
       <Head>
-        <title>{`MiniApps - ${BRAND.productName}`}</title>
+        <title>{`${t("catalog.pageTitle", "host")} - ${BRAND.productName}`}</title>
         <meta name="description" content={BRAND.description} />
       </Head>
 
@@ -350,17 +403,18 @@ export default function MiniAppsPage({
                   </span>
                 </div>
                 <h1 className="m-0 text-3xl font-black text-gray-900 sm:text-4xl">
-                  Yiwu MiniApps
+                  {t("hero.title", "host")}
                 </h1>
                 <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-500">
-                  Browse small, focused MiniApps for Neo N3. Pick one, open
-                  the play area, and operate from the shared action console.
+                  {t("catalog.description", "host")}
                 </p>
               </div>
 
-              <div className="grid gap-2 rounded-[24px] border border-gray-200 bg-gray-50/90 p-3 text-sm shadow-sm shadow-gray-950/5 sm:min-w-[360px]">
+                <div className="grid gap-2 rounded-[24px] border border-gray-200 bg-gray-50/90 p-3 text-sm shadow-sm shadow-gray-950/5 sm:min-w-[360px]">
                 <label className="relative block">
-                  <span className="sr-only">Search MiniApps</span>
+                  <span className="sr-only">
+                    {t("catalog.searchLabel", "host")}
+                  </span>
                   <Search
                     className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                     aria-hidden="true"
@@ -369,7 +423,7 @@ export default function MiniAppsPage({
                     type="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search by name, category, app ID"
+                    placeholder={t("catalog.searchPlaceholder", "host")}
                     className="w-full rounded-2xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-neo focus:ring-2 focus:ring-neo/20"
                   />
                 </label>
@@ -379,11 +433,11 @@ export default function MiniAppsPage({
                     aria-hidden="true"
                   />
                   {[
-                    ["all", "All"],
-                    ["live", "Live"],
-                    ["tool", "Tool"],
-                    ["other-network", "Other network"],
-                    ["pending", "Pending"],
+                    ["all", t("catalog.filters.all", "host")],
+                    ["live", t("catalog.filters.live", "host")],
+                    ["tool", t("catalog.filters.tool", "host")],
+                    ["other-network", t("catalog.filters.otherNetwork", "host")],
+                    ["pending", t("catalog.filters.pending", "host")],
                   ].map(([value, label]) => {
                     const active = statusFilter === value;
                     return (
@@ -413,7 +467,7 @@ export default function MiniAppsPage({
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
             >
-              Failed to load. Please try again.
+              {t("catalog.fetchError", "host")}
             </p>
           </div>
         )}
@@ -424,10 +478,13 @@ export default function MiniAppsPage({
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="m-0 text-base font-bold text-gray-900">
-                  Catalog
+                  {t("catalog.title", "host")}
                 </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  {filteredApps.length} of {listedApps.length} MiniApps shown
+                  {interpolate(t("catalog.shownCount", "host"), {
+                    shown: filteredApps.length,
+                    total: listedApps.length,
+                  })}
                 </p>
               </div>
               <div className="flex gap-1 overflow-x-auto pb-1">
@@ -444,7 +501,9 @@ export default function MiniAppsPage({
                           : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
                       }`}
                     >
-                      {category}
+                      {category === "all"
+                        ? t("categories.all", "host")
+                        : getCategoryLabel(category, t)}
                     </button>
                   );
                 })}
@@ -466,18 +525,26 @@ export default function MiniAppsPage({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {hero ? (
                   <>
-                    <MiniAppListingCard app={hero} targetNetwork={targetNetwork} large />
+                    <MiniAppListingCard
+                      app={hero}
+                      targetNetwork={targetNetwork}
+                      locale={locale}
+                      t={t}
+                      large
+                    />
                     {rest.map((app) => (
                       <MiniAppListingCard
                         key={app.app_id}
                         app={app}
                         targetNetwork={targetNetwork}
+                        locale={locale}
+                        t={t}
                       />
                     ))}
                   </>
                 ) : (
                   <div className="col-span-full rounded-[22px] border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-sm text-gray-500">
-                    No MiniApps match the current filters.
+                    {t("catalog.empty", "host")}
                   </div>
                 )}
               </div>

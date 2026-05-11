@@ -14,7 +14,10 @@
     "services": "サービス",
     "simulations": "シミュレーション",
     "users": "ユーザー",
-    "contracts": "コントラクト"
+    "contracts": "コントラクト",
+    "main": "メインナビゲーション",
+    "mobile": "モバイルナビゲーション",
+    "toggleMenu": "ナビゲーションメニューを切り替え"
   },
   "actions": {
     "connect": "接続",
@@ -82,7 +85,57 @@
     "connected": "ウォレット接続済み",
     "notConnected": "ウォレット未接続",
     "insufficientBalance": "残高不足",
-    "pleaseConnect": "続行するにはウォレットを接続してください"
+    "pleaseConnect": "続行するにはウォレットを接続してください",
+    "optionAlt": "{wallet} ウォレット"
+  },
+  "auth": {
+    "connected": "接続済み",
+    "logout": "ログアウト",
+    "login": "ログイン",
+    "loginSignup": "ログイン / 登録",
+    "connecting": "接続中...",
+    "welcome": "{brand} へようこそ",
+    "continuePrompt": "ウォレットを接続するか、メールでサインインして続行します。",
+    "emailSocial": "メール・ソーシャル",
+    "continueWith": "{provider} で続行",
+    "or": "または",
+    "orConnectWallet": "またはウォレット接続",
+    "neoEcosystem": "Neo エコシステム",
+    "recommended": "推奨",
+    "directWifTesting": "直接 WIF テスト",
+    "pasteTestWif": "テスト用ウォレット WIF を貼り付け",
+    "directWif": "直接 WIF",
+    "showWif": "WIF を表示",
+    "hideWif": "WIF を非表示",
+    "localValidation": "ローカル検証専用です。キーはこのブラウザセッション内だけに保持され、保存されません。",
+    "terms": "接続すると、利用規約とプライバシーポリシーに同意したものとみなされます。",
+    "disconnectTitle": "ウォレットを切断",
+    "disconnectMessage": "ブロックチェーン機能を使うには再接続が必要です。",
+    "wifTest": "WIF テスト",
+    "dismiss": "閉じる",
+    "closeLoginModal": "ログインモーダルを閉じる"
+  },
+  "walletOptions": {
+    "nep21": {
+      "name": "NEP-21 ウォレット",
+      "description": "OneGate と互換ウォレットが公開する標準 Neo dAPI プロバイダーです。"
+    },
+    "onegate": {
+      "name": "OneGate",
+      "description": "OneGate ホストウォレットのフォールバックです。NEP-21 が注入されている場合はそちらを優先します。"
+    },
+    "neoline": {
+      "name": "NeoLine",
+      "description": "Neo N3 アカウントとコントラクト呼び出し用の NeoLine 拡張機能です。"
+    },
+    "o3": {
+      "name": "O3 ウォレット",
+      "description": "ブラウザに O3 provider が注入されている場合のフォールバックです。"
+    },
+    "protocol": {
+      "nep21": "NEP-21",
+      "legacyDapi": "Legacy dAPI"
+    }
   },
   "errors": {
     "occurred": "エラーが発生しました",

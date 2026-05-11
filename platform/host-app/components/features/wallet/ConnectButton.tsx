@@ -18,6 +18,8 @@ import {
 import { useAuthStore } from "@/lib/auth/store";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
+import { interpolate } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/react";
 import { Eye, EyeOff, KeyRound, LogOut, Wallet, X } from "lucide-react";
 
 function canUseDirectWif(): boolean {
@@ -28,6 +30,7 @@ function canUseDirectWif(): boolean {
 }
 
 export function ConnectButton() {
+  const { t } = useI18n();
   const { user } = useUser();
   const wallet = useWalletStore();
   const auth = useAuthStore();
@@ -105,14 +108,14 @@ export function ConnectButton() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-neo border border-neo/50 shadow-[0_0_8px_rgba(0,229,153,0.8)]"></span>
             </div>
             <span className="text-sm font-bold text-gray-900 ">
-              {user.email || user.name || "Connected"}
+              {user.email || user.name || t("auth.connected")}
             </span>
           </div>
           <button
             type="button"
             onClick={() => setShowDisconnectConfirm(true)}
             className="p-2.5 rounded-xl border border-transparent hover:border-red-200/50 text-gray-500 hover:text-red-500 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 group"
-            aria-label="Logout"
+            aria-label={t("auth.logout")}
           >
             <LogOut
               size={16}
@@ -122,9 +125,9 @@ export function ConnectButton() {
         </div>
         <ConfirmModal
           isOpen={showDisconnectConfirm}
-          title="Disconnect Wallet"
-          message="You'll need to reconnect to use blockchain features."
-          confirmText="Disconnect"
+          title={t("auth.disconnectTitle")}
+          message={t("auth.disconnectMessage")}
+          confirmText={t("actions.disconnect")}
           confirmVariant="danger"
           onConfirm={() => auth.logout()}
           onCancel={() => setShowDisconnectConfirm(false)}
@@ -147,7 +150,9 @@ export function ConnectButton() {
               {connectedWallet ? (
                 <img
                   src={connectedWallet.icon}
-                  alt={`${connectedWallet.name} wallet`}
+                  alt={interpolate(t("wallet.optionAlt"), {
+                    wallet: t(`walletOptions.${connectedWallet.id}.name`),
+                  })}
                   className="h-5 w-5 object-contain"
                   loading="lazy"
                   decoding="async"
@@ -167,7 +172,7 @@ export function ConnectButton() {
               {wallet.balance && (
                 <span className="text-[10px] font-semibold text-gray-500 uppercase ">
                   {wallet.provider === "wif"
-                    ? "WIF Test"
+                    ? t("auth.wifTest")
                     : `${wallet.balance.gas} GAS`}
                 </span>
               )}
@@ -177,7 +182,7 @@ export function ConnectButton() {
             type="button"
             onClick={() => setShowDisconnectConfirm(true)}
             className="p-2.5 rounded-xl border border-transparent hover:border-rose-200/50 text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/50 group"
-            aria-label="Disconnect"
+            aria-label={t("actions.disconnect")}
           >
             <LogOut
               size={16}
@@ -187,9 +192,9 @@ export function ConnectButton() {
         </div>
         <ConfirmModal
           isOpen={showDisconnectConfirm}
-          title="Disconnect Wallet"
-          message="You'll need to reconnect to use blockchain features."
-          confirmText="Disconnect"
+          title={t("auth.disconnectTitle")}
+          message={t("auth.disconnectMessage")}
+          confirmText={t("actions.disconnect")}
           confirmVariant="danger"
           onConfirm={() => auth.logout()}
           onCancel={() => setShowDisconnectConfirm(false)}
@@ -232,12 +237,12 @@ export function ConnectButton() {
               className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-[440px] overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:p-8"
               role="dialog"
               aria-modal="true"
-              aria-label="Connect wallet"
+              aria-label={t("wallet.connect")}
             >
               <div className="sticky top-0 z-10 -mt-2 mb-2 flex justify-end bg-white/95 pb-2 backdrop-blur">
                 <button
                   onClick={closeConnectModal}
-                  aria-label="Close login modal"
+                  aria-label={t("auth.closeLoginModal")}
                   className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 cursor-pointer"
                 >
                   <X size={20} />
@@ -246,17 +251,17 @@ export function ConnectButton() {
 
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-black text-gray-900 mb-2">
-                  Welcome to {BRAND.name}
+                  {interpolate(t("auth.welcome"), { brand: BRAND.name })}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Connect a wallet or sign in with email to continue.
+                  {t("auth.continuePrompt")}
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-3">
                   <p className="text-xs font-bold uppercase text-gray-400 px-1">
-                    Email & Social
+                    {t("auth.emailSocial")}
                   </p>
                   <button
                     onClick={() => auth.loginSocial("google")}
@@ -269,7 +274,7 @@ export function ConnectButton() {
                       loading="lazy"
                       decoding="async"
                     />
-                    Continue with Google
+                    {interpolate(t("auth.continueWith"), { provider: "Google" })}
                   </button>
                   <button
                     onClick={() => auth.loginSocial("github")}
@@ -282,21 +287,21 @@ export function ConnectButton() {
                       loading="lazy"
                       decoding="async"
                     />
-                    Continue with GitHub
+                    {interpolate(t("auth.continueWith"), { provider: "GitHub" })}
                   </button>
                 </div>
 
                 <div className="relative flex items-center py-4">
                   <div className="flex-grow border-t border-gray-200"></div>
                   <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">
-                    OR
+                    {t("auth.or")}
                   </span>
                   <div className="flex-grow border-t border-gray-200"></div>
                 </div>
 
                 <div className="space-y-3">
                   <p className="text-xs font-bold uppercase text-gray-400 px-1">
-                    Neo Ecosystem
+                    {t("auth.neoEcosystem")}
                   </p>
                   <div className="grid gap-3">
                     {walletOptions.map((w) => (
@@ -309,7 +314,7 @@ export function ConnectButton() {
                         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50">
                           <img
                             src={w.icon}
-                            alt={w.name}
+                            alt={t(`walletOptions.${w.id}.name`)}
                             className="max-h-7 max-w-7 object-contain group-hover:scale-105 transition-transform"
                             loading="lazy"
                             decoding="async"
@@ -325,16 +330,16 @@ export function ConnectButton() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center gap-2">
                             <span className="truncate text-sm font-bold text-gray-800">
-                              {w.name}
+                              {t(`walletOptions.${w.id}.name`)}
                             </span>
                             {w.recommended && (
                               <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
-                                Recommended
+                                {t("auth.recommended")}
                               </span>
                             )}
                           </span>
                           <span className="mt-1 block text-[11px] font-medium leading-snug text-gray-500">
-                            {w.description}
+                            {t(`walletOptions.${w.id}.description`)}
                           </span>
                           <span
                             className={cn(
@@ -344,7 +349,9 @@ export function ConnectButton() {
                                 : "bg-gray-100 text-gray-500",
                             )}
                           >
-                            {w.protocol}
+                            {w.protocol === "NEP-21"
+                              ? t("walletOptions.protocol.nep21")
+                              : t("walletOptions.protocol.legacyDapi")}
                           </span>
                         </span>
                       </button>
@@ -359,7 +366,7 @@ export function ConnectButton() {
                       <div className="mb-3 flex items-center gap-2">
                         <KeyRound className="h-4 w-4 text-amber-700" />
                         <p className="text-xs font-bold uppercase text-amber-800">
-                          Direct WIF Testing
+                          {t("auth.directWifTesting")}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -370,17 +377,19 @@ export function ConnectButton() {
                             onChange={(event) =>
                               setWifValue(event.target.value)
                             }
-                            placeholder="Paste test wallet WIF"
+                            placeholder={t("auth.pasteTestWif")}
                             autoComplete="off"
                             spellCheck={false}
                             className="h-11 w-full rounded-xl border border-amber-200 bg-white px-3 pr-10 text-sm font-medium text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                            aria-label="Direct WIF"
+                            aria-label={t("auth.directWif")}
                           />
                           <button
                             type="button"
                             onClick={() => setWifVisible((value) => !value)}
                             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-gray-500 hover:bg-amber-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
-                            aria-label={wifVisible ? "Hide WIF" : "Show WIF"}
+                            aria-label={
+                              wifVisible ? t("auth.hideWif") : t("auth.showWif")
+                            }
                           >
                             {wifVisible ? (
                               <EyeOff size={16} />
@@ -396,12 +405,11 @@ export function ConnectButton() {
                           }
                           className="h-11 shrink-0 rounded-xl bg-amber-600 px-4 text-xs font-black text-white hover:bg-amber-700 disabled:opacity-60"
                         >
-                          Connect
+                          {t("actions.connect")}
                         </Button>
                       </div>
                       <p className="mt-2 text-[11px] font-medium leading-relaxed text-amber-800/80">
-                        Local validation only. The key stays in this browser
-                        session and is never saved.
+                        {t("auth.localValidation")}
                       </p>
                     </form>
                   )}
@@ -409,8 +417,7 @@ export function ConnectButton() {
               </div>
 
               <p className="mt-8 text-center text-xs text-gray-400">
-                By connecting, you agree to our Terms of Service and Privacy
-                Policy.
+                {t("auth.terms")}
               </p>
             </div>
           </div>,
@@ -436,7 +443,7 @@ export function ConnectButton() {
               }}
               className="block w-full text-center py-2 cursor-pointer text-xs font-bold text-red-500 hover:text-white hover:bg-red-500 transition-colors rounded-lg border border-red-200"
             >
-              Dismiss
+              {t("auth.dismiss")}
             </button>
           </div>,
           document.body,
@@ -449,16 +456,16 @@ export function ConnectButton() {
         type="button"
         onClick={() => setShowConnectModal(true)}
         disabled={wallet.loading || auth.loading}
-        aria-label="Log In / Sign Up"
+        aria-label={t("auth.loginSignup")}
         className="group relative flex items-center gap-2 rounded-xl bg-black/5 backdrop-blur-md px-3 py-2.5 text-sm font-bold text-gray-900 transition-all hover:bg-black/10 border border-black/10 shadow-[0_0_15px_rgba(0,229,153,0.1)] hover:shadow-[0_0_20px_rgba(0,229,153,0.3)] hover:border-neo/50 disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo sm:px-5"
       >
         <span className="relative z-10 hidden sm:inline">
           {wallet.loading || auth.loading
-            ? "Connecting..."
-            : "Log In / Sign Up"}
+            ? t("auth.connecting")
+            : t("auth.loginSignup")}
         </span>
         <span className="relative z-10 sm:hidden">
-          {wallet.loading || auth.loading ? "..." : "Log In"}
+          {wallet.loading || auth.loading ? "..." : t("auth.login")}
         </span>
       </button>
 

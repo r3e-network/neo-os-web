@@ -76,8 +76,16 @@ function compactCatalogResponseItem(item: CatalogApp): CatalogApp {
     "docs_url",
     "name_en",
     "name_zh",
+    "name_ja",
+    "name_ko",
     "description_en",
     "description_zh",
+    "description_ja",
+    "description_ko",
+    "category_name",
+    "category_name_zh",
+    "category_name_ja",
+    "category_name_ko",
   ] as const) {
     if (item[field] !== undefined && item[field] !== null) {
       (compact as Record<string, unknown>)[field] = item[field];

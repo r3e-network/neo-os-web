@@ -1,6 +1,8 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import MiniAppsPage from "../../pages/miniapps/index";
+import { I18nProvider } from "@/lib/i18n/react";
+import { LOCALE_STORAGE_KEY } from "@/lib/i18n";
 
 jest.mock("next/router", () => ({
   useRouter: jest.fn(() => ({
@@ -75,6 +77,7 @@ describe("MiniAppsPage", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    window.localStorage.clear();
     jest.clearAllMocks();
   });
 
@@ -123,5 +126,49 @@ describe("MiniAppsPage", () => {
     await waitFor(() => {
       expect(screen.getByText("LastSurvivor")).toBeInTheDocument();
     });
+  });
+
+  it("localizes the catalog shell and MiniApp cards when the stored locale is Chinese", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "zh");
+    global.fetch = jest.fn(() => new Promise<Response>(() => undefined)) as typeof fetch;
+
+    render(
+      <I18nProvider>
+        <MiniAppsPage
+          initialApps={[
+            {
+              app_id: "miniapp-last-survivor",
+              name: "Last Survivor",
+              name_zh: "最后生还者",
+              description: "Last clicker wins the pool.",
+              description_zh: "最后按下按钮的人赢得奖池。",
+              icon: "L",
+              category: "gaming",
+              category_name_zh: "游戏",
+              entry_url: "mf://manifest?app=miniapp-last-survivor",
+              permissions: {},
+              manifest: {
+                i18n: {
+                  name_zh: "最后生还者",
+                  description_zh: "最后按下按钮的人赢得奖池。",
+                },
+                category_name_zh: "游戏",
+                contracts: { mainnet: "0x123" },
+              },
+            },
+          ]}
+        />
+      </I18nProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "义乌小程序" })).toBeInTheDocument();
+    });
+
+    expect(screen.getByPlaceholderText("按名称、分类或应用 ID 搜索")).toBeInTheDocument();
+    expect(screen.getByText("最后生还者")).toBeInTheDocument();
+    expect(screen.getByText("最后按下按钮的人赢得奖池。")).toBeInTheDocument();
+    expect(screen.getAllByText("已上线").length).toBeGreaterThan(0);
+    expect(screen.getByText("打开小程序")).toBeInTheDocument();
   });
 });

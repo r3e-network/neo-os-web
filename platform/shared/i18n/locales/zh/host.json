@@ -29,7 +29,11 @@
     "social": "社交",
     "utility": "工具",
     "nft": "NFT",
-    "governance": "治理"
+    "governance": "治理",
+    "data": "数据",
+    "finance": "金融",
+    "operations": "运营",
+    "other": "其他"
   },
   "activity": {
     "recent": "最近活动",
@@ -41,5 +45,105 @@
     "profile": "个人资料",
     "transactions": "交易记录",
     "favorites": "收藏"
+  },
+  "catalog": {
+    "pageTitle": "小程序",
+    "title": "小程序目录",
+    "description": "浏览面向 Neo N3 的小而专注的小程序。选择一个应用，打开操作区，并通过统一操作台完成链上流程。",
+    "searchLabel": "搜索小程序",
+    "searchPlaceholder": "按名称、分类或应用 ID 搜索",
+    "fetchError": "加载失败，请重试。",
+    "openApp": "打开小程序",
+    "shownCount": "已显示 {shown} / {total} 个小程序",
+    "empty": "没有小程序符合当前筛选条件。",
+    "network": {
+      "mainnet": "Neo N3 主网",
+      "testnet": "Neo N3 测试网"
+    },
+    "filters": {
+      "all": "全部",
+      "live": "已上线",
+      "tool": "工具",
+      "otherNetwork": "其他网络",
+      "pending": "待上线"
+    },
+    "status": {
+      "live": "已上线",
+      "pending": "待上线",
+      "tool": "工具",
+      "otherNetwork": "其他网络",
+      "testnetOnly": "仅测试网",
+      "mainnetOnly": "仅主网",
+      "networkUnavailable": "当前网络不可用"
+    }
+  },
+  "home": {
+    "badges": {
+      "nep21Ready": "NEP-21 钱包就绪",
+      "onegateExport": "OneGate dApp 已导出"
+    },
+    "hero": {
+      "title": "义乌小程序，为每个 Neo 场景准备的小工具。",
+      "body": "像义乌小商品市场一样，这里把游戏、支付、预言机工具、账户抽象、跨链流程、评分评论、合约状态和钱包安全操作集中到一个真实可用的生产界面。",
+      "catalogCta": "打开小程序目录",
+      "developerCta": "开发者控制台"
+    },
+    "status": {
+      "title": "平台状态",
+      "subtitle": "已上线的应用外壳，支持原生操作区",
+      "itemNetwork": "主网和测试网严格隔离",
+      "itemConsole": "所有应用共用一致的操作台",
+      "itemPlayArea": "原生 PlayArea 注册表，不使用 iframe 外壳"
+    },
+    "stats": {
+      "enabledApps": "已启用应用",
+      "featured": "精选应用",
+      "operatorTools": "运营工具"
+    },
+    "featured": {
+      "eyebrow": "精选小程序",
+      "title": "从这里开始"
+    },
+    "categories": {
+      "all": "全部应用"
+    },
+    "catalog": {
+      "description": "按分类浏览经过打磨的小程序，进入统一详情页后即可使用应用专属操作区和共享操作台。",
+      "searchPlaceholder": "搜索应用、分类或 ID",
+      "ecosystems": "生态分类",
+      "shownCount": "已显示 {shown} 个",
+      "emptyTitle": "未找到应用",
+      "emptyBody": "请调整筛选条件后再试。"
+    },
+    "sort": {
+      "featured": "精选",
+      "recent": "最近",
+      "name": "名称"
+    },
+    "tools": {
+      "title": "账户与预言机工具",
+      "description": "用于 AA 注册、权限、relay 检查和 Morpheus 预言机交互的专注小程序。",
+      "browse": "浏览全部工具",
+      "emptyTitle": "暂无可用工具",
+      "emptyBody": "稍后会继续上线新的运营工具。"
+    },
+    "capabilities": {
+      "title": "平台能力",
+      "description": "共享外壳保证每个应用体验一致，同时把顶部操作区留给各自真正的玩法或业务流程。",
+      "teeTitle": "机密 TEE",
+      "teeDesc": "在 AWS Nitro enclave 中运行私密逻辑，即使平台运营者也无法看到数据。",
+      "vrfTitle": "原生 VRF",
+      "vrfDesc": "把可验证随机性直接接入共识层，为游戏和抽奖提供可验证公平性。",
+      "oracleTitle": "预言机网络",
+      "oracleDesc": "安全读取现实世界数据，避免外部依赖和高额费用。",
+      "storageTitle": "NeoFS 存储",
+      "storageDesc": "去中心化元数据和大规模资源存储直接融入协议能力。"
+    },
+    "cta": {
+      "title": "构建并发布一个专注的小程序。",
+      "body": "使用与旗舰应用相同的外壳、钱包适配器、操作面板、媒体流水线和目录校验能力。",
+      "start": "开始构建",
+      "docs": "阅读文档"
+    }
   }
 }
