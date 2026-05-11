@@ -15,12 +15,15 @@ defineMiniApp({
   messages,
 
   setup(ctx) {
-    const currentChainId = createObservable<string>("neo-n3-mainnet");
+    const initialNetwork =
+      ctx.launchContext.network === "testnet"
+        ? "neo-n3-testnet"
+        : "neo-n3-mainnet";
+    const currentChainId = createObservable<string>(initialNetwork);
+    const isCreating = createObservable(false);
 
     const gov = useGovernance({
-      storageService: ctx.os.storage,
-      paymentService: ctx.os.payment,
-      badgeService: ctx.os.badge,
+      chainService: ctx.services.chain,
       t: ctx.t,
       currentChainId,
     });
@@ -28,6 +31,8 @@ defineMiniApp({
     gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
     ctx.services.chain.address.subscribe(() => {
       gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
+      void gov.refreshCandidateStatus();
+      void gov.refreshHasVoted();
     });
 
     ctx.registerAction("createProposal", async (...args: unknown[]) => {
@@ -40,23 +45,40 @@ defineMiniApp({
         duration?: number | string;
       };
       await ctx.services.notify.guard(
-        () =>
-          gov.createProposal({
-            type: Number(data.type ?? 0),
-            title: String(data.title ?? ""),
-            description: String(data.description ?? ""),
-            policyMethod: data.policyMethod ? String(data.policyMethod) : undefined,
-            policyValue: data.policyValue ? String(data.policyValue) : undefined,
-            duration: Number(data.duration ?? 0),
-          }),
+        async () => {
+          isCreating.set(true);
+          try {
+            return await gov.createProposal({
+              type: Number(data.type ?? 0),
+              title: String(data.title ?? ""),
+              description: String(data.description ?? ""),
+              policyMethod: data.policyMethod ? String(data.policyMethod) : undefined,
+              policyValue: data.policyValue ? String(data.policyValue) : undefined,
+              duration: Number(data.duration ?? 0),
+            });
+          } finally {
+            isCreating.set(false);
+          }
+        },
         "proposalCreated",
       );
     });
 
     ctx.registerAction("vote", async (...args: unknown[]) => {
-      const data = (args[0] ?? {}) as { proposalId?: number | string; vote?: string };
+      const data = (args[0] ?? {}) as {
+        proposalId?: number | string;
+        vote?: string;
+        support?: boolean;
+      };
       const proposalId = Number(data.proposalId ?? 0);
-      const choice = String(data.vote ?? "for") === "against" ? "against" : "for";
+      const choice =
+        typeof data.support === "boolean"
+          ? data.support
+            ? "for"
+            : "against"
+          : String(data.vote ?? "for") === "against"
+            ? "against"
+            : "for";
       await ctx.services.notify.guard(
         () => gov.castVote(proposalId, choice),
         "voteRecorded",
@@ -83,7 +105,6 @@ defineMiniApp({
       [gov.proposals],
     );
     const isLoading = gov.loadingProposals;
-    const isCreating = createObservable(false);
     const userVotingPower = gov.votingPower;
 
     return {
@@ -91,15 +112,19 @@ defineMiniApp({
         proposals: gov.proposals,
         activeProposals: gov.activeProposals,
         historyProposals: gov.historyProposals,
+        activeCount: gov.activeCount,
+        historyCount: gov.historyCount,
         selectedProposal: gov.selectedProposal,
         isLoading,
         isVoting: gov.isVoting,
         isCreating,
         totalProposals,
+        votingPower: userVotingPower,
         userVotingPower,
         isCandidate: gov.isCandidate,
         candidateLoaded: gov.candidateLoaded,
         hasVotedMap: gov.hasVotedMap,
+        address: gov.address,
       },
       loadData: async () => {
         gov.setAddress(ctx.services.chain.address?.get?.() ?? "");
