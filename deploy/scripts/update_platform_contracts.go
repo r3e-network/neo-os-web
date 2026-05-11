@@ -262,10 +262,10 @@ func loadTargets(network string, deploymentPath string) ([]contractTarget, error
 	deployed.PlatformGame = firstNonEmpty(envByNetwork("PLATFORM_GAME", network), envByNetwork("CONTRACT_PLATFORM_GAME", network), deployed.PlatformGame, gameDeployment.PlatformGame)
 	deployed.PlatformSocial = firstNonEmpty(envByNetwork("PLATFORM_SOCIAL", network), envByNetwork("CONTRACT_PLATFORM_SOCIAL", network), deployed.PlatformSocial)
 	if network == "testnet" && deployed.PlatformDeFi == "" {
-		deployed.PlatformDeFi = "0xb43bd0ded09b5d79ed858484106affc1c858483c"
+		deployed.PlatformDeFi = "0x39d4584ddb0731e48e611647931993ee033bf373"
 	}
 	if deployed.PlatformAnchor == "" {
-		deployed.PlatformAnchor = "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e"
+		deployed.PlatformAnchor = "0xab079b4f9a0a2471d136392e25eb8e99898dcad0"
 	}
 	targets := []contractTarget{}
 	if deployed.PlatformAnchor != "" {

@@ -1,0 +1,201 @@
+{
+  "generatedAt": "2026-05-11T00:56:15.513Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "gasBox",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "selected": [
+      "gasBox",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "gasBox",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "selected": [
+        "gasBox",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "rngFallbackSignerMatches": true,
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "6647800075491",
+        "neo": "9440"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "1670416530486"
+      },
+      "oracleUpdater": {
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "998567300742"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+      "platformReady": {
+        "appId": "miniapp-gasbox",
+        "gameType": 3,
+        "paused": false
+      },
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "legacyCallbackAllowlist": true,
+        "requestFee": "1000000",
+        "feeCredit": "10000000",
+        "topUpTx": ""
+      },
+      "machineId": 2,
+      "itemIndex": 1,
+      "prizeItem": {
+        "name": "Small GAS Prize",
+        "weight": "100",
+        "rarity": "COMMON",
+        "assetType": "1",
+        "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "amount": "1000000",
+        "tokenId": "",
+        "stock": "5000000",
+        "tokenCount": "0"
+      },
+      "provisioned": null,
+      "transferTx": "0x29269b675bf22b50d9a8b3bae372c4f5c29958b6027f9fef4948f565bd66c73e",
+      "initiateTx": "0xbdabcc26e380c5da821b43767ae864d6df690f7de4b7b507a3501623d05a4ccf",
+      "playId": "1",
+      "requestId": "5441",
+      "request": [
+        "5441",
+        "vrf_random",
+        "@\u0003(\u000eminiapp-gasbox!\u0001\u0001!\u0001\u0002",
+        "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+        "onOracleResult",
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "1",
+        "1778460993414",
+        "1778461003094",
+        true,
+        ": \u0011��j��f��)�-�f�CQ�R�b�}�c8\f��+",
+        ""
+      ],
+      "play": {
+        "id": "1",
+        "player": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "machineId": "2",
+        "itemIndex": "1",
+        "price": "10000000",
+        "timestamp": "1778460993414",
+        "resolved": true
+      }
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "ok": false,
+      "error": "Invalid signature",
+      "attempts": 1
+    },
+    "trustAnchor": {
+      "ok": false,
+      "error": "Invalid signature",
+      "attempts": 1
+    },
+    "selfLoan": {
+      "ok": false,
+      "error": "at instruction 7137 (ABORTMSG): ABORTMSG is executed. Reason: profit candidate missing",
+      "attempts": 1
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

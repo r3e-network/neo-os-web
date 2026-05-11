@@ -49,7 +49,7 @@ describe("host chain contract queries", () => {
     const apps = getFlagshipApps("testnet");
 
     expect(apps["miniapp-last-survivor"].contract).toBe("0x740671b10330ef6669ab8b2724437eb8d5e7a34c");
-    expect(apps["miniapp-self-loan"].contract).toBe("0xb43bd0ded09b5d79ed858484106affc1c858483c");
+    expect(apps["miniapp-self-loan"].contract).toBe("0x39d4584ddb0731e48e611647931993ee033bf373");
   });
 
   it("parses platform map return values for coin flip bet limits", async () => {

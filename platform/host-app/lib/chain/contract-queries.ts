@@ -21,13 +21,13 @@ export const CONTRACTS = {
 
 export const TESTNET_CONTRACTS = {
   lastSurvivor: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
-  gasBox: "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c",
+  gasBox: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
   redEnvelope: "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
   dailyCheckin: "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
-  fogPlay: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07",
-  selfLoan: "0xb43bd0ded09b5d79ed858484106affc1c858483c",
+  fogPlay: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+  selfLoan: "0x39d4584ddb0731e48e611647931993ee033bf373",
   neoPay: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
-  platformAnchor: "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+  platformAnchor: "0xeb6b3725d47d0941f36a834bdbd12f1427977604",
 } as const;
 
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";

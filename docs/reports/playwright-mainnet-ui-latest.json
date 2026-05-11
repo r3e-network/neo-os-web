@@ -1,0 +1,403 @@
+{
+  "generatedAt": "2026-05-10T23:08:06.149Z",
+  "total": 20,
+  "failures": [],
+  "results": [
+    {
+      "profile": "desktop",
+      "name": "onegate-vault-standalone",
+      "url": "https://neomini.app/miniapps/gas-lucky-pool/index.html?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault",
+      "blank": false,
+      "bodyText": "GAS ONEGATE SCAN DETECTED Claim Reward Tap Claim Reward. We will send GAS and keep this screen updated. Reward range 1-50 GAS Claim with OneGate OneGate scan detected Claim Reward",
+      "buttons": [
+        "Claim Reward",
+        "Claim Reward"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-standalone.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "onegate-vault-alias",
+      "url": "https://neomini.app/miniapps/miniapp-gas-lucky-pool?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault",
+      "blank": false,
+      "bodyText": "GAS ONEGATE SCAN DETECTED Claim Reward Tap Claim Reward. We will send GAS and keep this screen updated. Reward range 1-50 GAS Claim with OneGate OneGate scan detected Claim Reward",
+      "buttons": [
+        "Claim Reward",
+        "Claim Reward"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-vault-alias.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "onegate-id-23",
+      "url": "https://onegate.space/app/23?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault - OneGate",
+      "blank": false,
+      "bodyText": "Download Explorer Developer EN | 中文 dApp Details OneGate Vault Claim a server-backed 1-50 GAS random reward by scanning a OneGate QR code with an embedded single-use key. Open in OneGate Visit website Overview DEVELOPER R3E Network STATUS Active LANGUAGES English TAGS Social Preview Preview images will appear here when they are available. OneGate to the Blockchain Help Wallet NFT Developer dAPI Doc dAPI Example Contact Us © 2026 OneGate. Terms & Privacy",
+      "buttons": [
+        "Download",
+        "Explorer",
+        "Developer",
+        "dAPI Doc",
+        "dAPI Example",
+        "EN",
+        "中文",
+        "Open in OneGate",
+        "Visit website",
+        "Wallet"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-onegate-id-23.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "red-envelope",
+      "url": "https://neomini.app/miniapps/red-envelope/index.html",
+      "status": 200,
+      "title": "Red Envelope",
+      "blank": false,
+      "bodyText": "Red Envelope NEO N3 Claim Create My NFTs Docs Envelopes 0 Claims 0 Pools 0 RED ENVELOPE Claim red envelope Scan a OneGate QR or enter an envelope ID to receive GAS. No ID SCAN QR Active envelopes No envelopes available yet Recent claims 0 ENVELOPES 0 CLAIMS 0 POOLS Discussion 0 Share your thoughts... Post No comments yet. Be the first! Randomized GAS envelopes for social gifting Claim red envelope Claim the selected GAS envelope. OneGate QR links prefill this ID. Envelope ID Claim now Advanced /",
+      "buttons": [
+        "Claim",
+        "Create",
+        "My NFTs",
+        "Docs",
+        "Claim now",
+        "Send Red Envelope",
+        "Post",
+        "Claim now",
+        "Send Red Envelope"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-red-envelope.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "dice-game",
+      "url": "https://neomini.app/miniapps/dice-game/index.html",
+      "status": 200,
+      "title": "Dice Game",
+      "blank": false,
+      "bodyText": "NEO N3 Roll Rules Docs Face 6 Stake 0.05 GAS Win payout 0.29 GAS 6 Choose a face and roll The result is settled by Morpheus VRF. The play area stays focused on the roll; the action box holds the transaction. Chance 1 / 6 Platform fee 5% Stake range 0.05-20 GAS 1 2 3 4 5 6 Ready 0.05 GAS to 0.29 GAS 6 FACE 0.05 GAS STAKE 0.29 GAS WIN PAYOUT Discussion 0 Share your thoughts... Post No comments yet. Be the first! Documentation Roll Dice Choose one face and stake GAS. A matching VRF roll pays 5.70x.",
+      "buttons": [
+        "Roll",
+        "Rules",
+        "Docs",
+        "Roll with VRF",
+        "Post",
+        "Roll with VRF"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-dice-game.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "profitanchor",
+      "url": "https://neomini.app/miniapps/profitanchor/index.html",
+      "status": 200,
+      "title": "ProfitAnchor",
+      "blank": false,
+      "bodyText": "ProfitAnchor NEO N3 Overview Docs MY STAKE 0.00 NEO CLAIMABLE GAS 0.00 GAS TRACKED NEO 0.00 NEO PROFITANCHOR Stake. Redeem. Claim. NEO-backed rewards with manual AA agent routing handled in the admin console. 0.00 NEO YOUR STAKE 0.00 GAS CLAIMABLE 0.00 NEO TOTAL STAKED 0.00 GAS REWARD RESERVE HOW ROUTING IS PROTECTED 0.00 NEO MY STAKE 0.00 GAS CLAIMABLE GAS 0.00 NEO TRACKED NEO Discussion 0 Share your thoughts... Post No comments yet. Be the first! Documentation Stake NEO Redeem NEO Claim reward",
+      "buttons": [
+        "Overview",
+        "Docs",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO",
+        "Post",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-profitanchor.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "trustanchor",
+      "url": "https://neomini.app/miniapps/trustanchor/index.html",
+      "status": 200,
+      "title": "Trust Anchor",
+      "blank": false,
+      "bodyText": "TrustAnchor NEO N3 Overview Docs MY STAKE 0.00 NEO CLAIMABLE GAS 0.00 GAS TRACKED NEO 0.00 NEO TRUSTANCHOR Stake. Redeem. Claim. NEO-backed rewards with manual AA agent voting handled in the admin console. 0.00 NEO YOUR STAKE 0.00 GAS CLAIMABLE 0.00 NEO TOTAL STAKED 0.00 GAS REWARD RESERVE HOW ROUTING IS PROTECTED 0.00 NEO MY STAKE 0.00 GAS CLAIMABLE GAS 0.00 NEO TRACKED NEO Discussion 0 Share your thoughts... Post No comments yet. Be the first! Documentation Stake NEO Redeem NEO Claim rewards S",
+      "buttons": [
+        "Overview",
+        "Docs",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO",
+        "Post",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-trustanchor.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "self-loan",
+      "url": "https://neomini.app/miniapps/self-loan/index.html",
+      "status": 200,
+      "title": "SelfLoan",
+      "blank": false,
+      "bodyText": "SelfLoan NEO N3 Borrow Stats Docs Has Loan NEO Balance 0 Health Factor N/A Current LTV N/A Collateral vote signal Operator-selected council candidate $-- NEO PRICE 0 TOTAL LOANS 0.00 TOTAL BORROWED 0.00 TOTAL REPAID PROFITANCHOR VOTE ROUTE COLLATERAL VOTE SIGNAL Operator-selected council candidate VOTE-ONLY DEPENDENCY BORROW Your Balance: 0 NEO Collateral Amount NEO Borrow Amount (GAS) GAS LTV RATIO 20% CONSERVATIVE AGGRESSIVE Connect Wallet HAS LOAN 0 NEO BALANCE N/A HEALTH FACTOR N/A CURRENT L",
+      "buttons": [
+        "Borrow",
+        "Stats",
+        "Docs",
+        "Connect Wallet",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-self-loan.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "gasbox",
+      "url": "https://neomini.app/miniapps/gasbox/index.html",
+      "status": 200,
+      "title": "GASBOX",
+      "blank": false,
+      "bodyText": "GASBOX NEO N3 Market Discover Studio Manage Docs Machines 0 Playing No Selected None 0 MACHINES 0 YOUR PULLS 0 TOTAL PULLS SELECT A MACHINE No active machines yet. 0 MACHINES No PLAYING None SELECTED Discussion 0 Share your thoughts... Post No comments yet. Be the first! On-chain blind boxes with escrowed prizes",
+      "buttons": [
+        "Market",
+        "Discover",
+        "Studio",
+        "Manage",
+        "Docs",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-gasbox.png"
+    },
+    {
+      "profile": "desktop",
+      "name": "fogplay",
+      "url": "https://neomini.app/miniapps/fogplay/index.html",
+      "status": 200,
+      "title": "FogPlay",
+      "blank": false,
+      "bodyText": "FogPlay NEO N3 Play History Stats Docs TOTAL GAMES 0 WINS 0 LOSSES 0 TOTAL EARNINGS 0.00 GAS + 0 WINS – 0 LOSSES 0 TOTAL GAMES • 0.00 GAS TOTAL EARNINGS N G Place Your Bet Heads VS Tails ✅ 0 WINS 0 TOTAL GAMES ❌ 0 LOSSES 0% WIN RATE Custom Bet Amount GAS 0.1 - 100 N HEADS G TAILS WAGER AMOUNT 0.1 - 100GAS 1 GAS 5 GAS 10 GAS 50 GAS FLIP COIN • RECENT GAMES No games played yet. Place your first bet. 0 TOTAL GAMES 0 WINS 0 LOSSES 0.00 GAS TOTAL EARNINGS Discussion 0 Share your thoughts... Post No c",
+      "buttons": [
+        "Play",
+        "History",
+        "Stats",
+        "Docs",
+        "Flip Coin",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/desktop-fogplay.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "onegate-vault-standalone",
+      "url": "https://neomini.app/miniapps/gas-lucky-pool/index.html?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault",
+      "blank": false,
+      "bodyText": "GAS ONEGATE SCAN DETECTED Claim Reward Tap Claim Reward. We will send GAS and keep this screen updated. Reward range 1-50 GAS Claim with OneGate OneGate scan detected Claim Reward",
+      "buttons": [
+        "Claim Reward",
+        "Claim Reward"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-standalone.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "onegate-vault-alias",
+      "url": "https://neomini.app/miniapps/miniapp-gas-lucky-pool?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault",
+      "blank": false,
+      "bodyText": "GAS ONEGATE SCAN DETECTED Claim Reward Tap Claim Reward. We will send GAS and keep this screen updated. Reward range 1-50 GAS Claim with OneGate OneGate scan detected Claim Reward",
+      "buttons": [
+        "Claim Reward",
+        "Claim Reward"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-vault-alias.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "onegate-id-23",
+      "url": "https://onegate.space/app/23?key=ogv_ui_smoke_key&network=mainnet",
+      "status": 200,
+      "title": "OneGate Vault - OneGate",
+      "blank": false,
+      "bodyText": "dApp Details OneGate Vault Claim a server-backed 1-50 GAS random reward by scanning a OneGate QR code with an embedded single-use key. Open in OneGate Visit website Overview DEVELOPER R3E Network STATUS Active LANGUAGES English TAGS Social Preview Preview images will appear here when they are available. OneGate to the Blockchain Help Wallet NFT Developer dAPI Doc dAPI Example Contact Us © 2026 OneGate. Terms & Privacy",
+      "buttons": [
+        "Download",
+        "Explorer",
+        "Developer",
+        "dAPI Doc",
+        "dAPI Example",
+        "EN",
+        "中文",
+        "Open in OneGate",
+        "Visit website",
+        "Wallet"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-onegate-id-23.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "red-envelope",
+      "url": "https://neomini.app/miniapps/red-envelope/index.html",
+      "status": 200,
+      "title": "Red Envelope",
+      "blank": false,
+      "bodyText": "RED ENVELOPE Claim red envelope Scan a OneGate QR or enter an envelope ID to receive GAS. No ID SCAN QR Active envelopes No envelopes available yet Recent claims Claim red envelope Claim the selected GAS envelope. OneGate QR links prefill this ID. Envelope ID Claim now Advanced / Operator 1 0 ENVELOPES 0 CLAIMS 0 POOLS Discussion 0 Share your thoughts... Post No comments yet. Be the first! Randomized GAS envelopes for social gifting",
+      "buttons": [
+        "Claim",
+        "Create",
+        "My NFTs",
+        "Docs",
+        "Claim now",
+        "Send Red Envelope",
+        "Post",
+        "Claim now",
+        "Send Red Envelope"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-red-envelope.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "dice-game",
+      "url": "https://neomini.app/miniapps/dice-game/index.html",
+      "status": 200,
+      "title": "Dice Game",
+      "blank": false,
+      "bodyText": "6 Choose a face and roll The result is settled by Morpheus VRF. The play area stays focused on the roll; the action box holds the transaction. Chance 1 / 6 Platform fee 5% Stake range 0.05-20 GAS 1 2 3 4 5 6 Ready 0.05 GAS to 0.29 GAS Roll Dice Choose one face and stake GAS. A matching VRF roll pays 5.70x. Face Select 1 2 3 4 5 6 Stake GAS Roll with VRF 6 FACE 0.05 GAS STAKE 0.29 GAS WIN PAYOUT Discussion 0 Share your thoughts... Post No comments yet. Be the first! Documentation",
+      "buttons": [
+        "Roll",
+        "Rules",
+        "Docs",
+        "Roll with VRF",
+        "Post",
+        "Roll with VRF"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-dice-game.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "profitanchor",
+      "url": "https://neomini.app/miniapps/profitanchor/index.html",
+      "status": 200,
+      "title": "ProfitAnchor",
+      "blank": false,
+      "bodyText": "PROFITANCHOR Stake. Redeem. Claim. NEO-backed rewards with manual AA agent routing handled in the admin console. 0.00 NEO YOUR STAKE 0.00 GAS CLAIMABLE 0.00 NEO TOTAL STAKED 0.00 GAS REWARD RESERVE HOW ROUTING IS PROTECTED Stake NEO Redeem NEO Claim rewards Stake NEO Deposit whole NEO into ProfitAnchor and start earning distributed GAS rewards. NEO amount Stake NEO 0.00 NEO MY STAKE 0.00 GAS CLAIMABLE GAS 0.00 NEO TRACKED NEO Discussion 0 Share your thoughts... Post No comments yet. Be the first",
+      "buttons": [
+        "Overview",
+        "Docs",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO",
+        "Post",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-profitanchor.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "trustanchor",
+      "url": "https://neomini.app/miniapps/trustanchor/index.html",
+      "status": 200,
+      "title": "Trust Anchor",
+      "blank": false,
+      "bodyText": "TRUSTANCHOR Stake. Redeem. Claim. NEO-backed rewards with manual AA agent voting handled in the admin console. 0.00 NEO YOUR STAKE 0.00 GAS CLAIMABLE 0.00 NEO TOTAL STAKED 0.00 GAS REWARD RESERVE HOW ROUTING IS PROTECTED Stake NEO Redeem NEO Claim rewards Stake NEO Deposit whole NEO into TrustAnchor and start earning distributed GAS rewards. NEO amount Stake NEO 0.00 NEO MY STAKE 0.00 GAS CLAIMABLE GAS 0.00 NEO TRACKED NEO Discussion 0 Share your thoughts... Post No comments yet. Be the first! D",
+      "buttons": [
+        "Overview",
+        "Docs",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO",
+        "Post",
+        "Stake NEO",
+        "Redeem NEO",
+        "Claim rewards",
+        "Stake NEO"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-trustanchor.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "self-loan",
+      "url": "https://neomini.app/miniapps/self-loan/index.html",
+      "status": 200,
+      "title": "SelfLoan",
+      "blank": false,
+      "bodyText": "$-- NEO PRICE 0 TOTAL LOANS 0.00 TOTAL BORROWED 0.00 TOTAL REPAID PROFITANCHOR VOTE ROUTE COLLATERAL VOTE SIGNAL Operator-selected council candidate VOTE-ONLY DEPENDENCY BORROW Your Balance: 0 NEO Collateral Amount NEO Borrow Amount (GAS) GAS LTV RATIO 20% CONSERVATIVE AGGRESSIVE Connect Wallet HAS LOAN 0 NEO BALANCE N/A HEALTH FACTOR N/A CURRENT LTV Operator-selected council candidate COLLATERAL VOTE SIGNAL Discussion 0 Share your thoughts... Post No comments yet. Be the first! Tiered LTV self-",
+      "buttons": [
+        "Borrow",
+        "Stats",
+        "Docs",
+        "Connect Wallet",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-self-loan.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "gasbox",
+      "url": "https://neomini.app/miniapps/gasbox/index.html",
+      "status": 200,
+      "title": "GASBOX",
+      "blank": false,
+      "bodyText": "0 MACHINES 0 YOUR PULLS 0 TOTAL PULLS SELECT A MACHINE No active machines yet. 0 MACHINES No PLAYING None SELECTED Discussion 0 Share your thoughts... Post No comments yet. Be the first! On-chain blind boxes with escrowed prizes",
+      "buttons": [
+        "Market",
+        "Discover",
+        "Studio",
+        "Manage",
+        "Docs",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-gasbox.png"
+    },
+    {
+      "profile": "mobile",
+      "name": "fogplay",
+      "url": "https://neomini.app/miniapps/fogplay/index.html",
+      "status": 200,
+      "title": "FogPlay",
+      "blank": false,
+      "bodyText": "+ 0 WINS – 0 LOSSES 0 TOTAL GAMES • 0.00 GAS TOTAL EARNINGS N G Place Your Bet Heads VS Tails ✅ 0 WINS 0 TOTAL GAMES ❌ 0 LOSSES 0% WIN RATE Custom Bet Amount GAS 0.1 - 100 N HEADS G TAILS WAGER AMOUNT 0.1 - 100GAS 1 GAS 5 GAS 10 GAS 50 GAS FLIP COIN • RECENT GAMES No games played yet. Place your first bet. 0 TOTAL GAMES 0 WINS 0 LOSSES 0.00 GAS TOTAL EARNINGS Discussion 0 Share your thoughts... Post No comments yet. Be the first! Oracle-backed coin toss with on-chain escrow",
+      "buttons": [
+        "Play",
+        "History",
+        "Stats",
+        "Docs",
+        "Flip Coin",
+        "Post"
+      ],
+      "consoleErrors": [],
+      "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/playwright-mainnet-ui/mobile-fogplay.png"
+    }
+  ]
+}

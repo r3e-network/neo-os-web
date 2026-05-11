@@ -1,0 +1,212 @@
+{
+  "generatedAt": "2026-05-11T02:05:14.440Z",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "targetInfo": {
+    "available": [
+      "flashloan",
+      "exfiles",
+      "masqueradedao",
+      "millionpiecemap",
+      "graveyard",
+      "heritagetrust",
+      "gascircle",
+      "turtlematch"
+    ],
+    "requested": [],
+    "selected": [
+      "flashloan",
+      "exfiles",
+      "masqueradedao",
+      "millionpiecemap",
+      "graveyard",
+      "heritagetrust",
+      "gascircle",
+      "turtlematch"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingOraclePhalaEnvExists": true,
+      "outputPath": "docs/reports/selected-miniapps-testnet-20260511T020326Z.json"
+    },
+    "targets": {
+      "available": [
+        "flashloan",
+        "exfiles",
+        "masqueradedao",
+        "millionpiecemap",
+        "graveyard",
+        "heritagetrust",
+        "gascircle",
+        "turtlematch"
+      ],
+      "requested": [],
+      "selected": [
+        "flashloan",
+        "exfiles",
+        "masqueradedao",
+        "millionpiecemap",
+        "graveyard",
+        "heritagetrust",
+        "gascircle",
+        "turtlematch"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+      "oracleUpdaterWifConfigured": true,
+      "oracleRequestFee": "1000000",
+      "oracleRequestFeeError": null,
+      "oracleUpdaterMethod": "updater",
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "admin": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "6652780634311",
+        "neo": "9431"
+      },
+      "user": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "6652780634311",
+        "neo": "9431"
+      },
+      "oracleUpdater": {
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "998522267610"
+      }
+    },
+    "actorConstraints": {
+      "gascircleRequiresDistinctActors": true,
+      "adminUserDistinct": false,
+      "adminAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+      "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX"
+    }
+  },
+  "adminAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "userAddress": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "oracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "results": {
+    "flashloan": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xde8e595d8d3c293731db499367ee2a768e1e458b",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "transferTx": "0x79ef9908bf998237919710ab7cf1fc20e7d9a42d42f71313c8c927b41077ef56",
+        "depositTx": "0xb302e2c7f37d4f2eb7c2db7613e00dfda67965173fdebc6dbe64da711e5f794d",
+        "withdrawTx": "0xea16b36e8db21f49372d55590412711090d8571248b7747a9bdd65142d6f091a",
+        "before": "500090000",
+        "contractGasBefore": "500090000",
+        "afterDeposit": "503090000",
+        "afterWithdraw": "500090000"
+      }
+    },
+    "exfiles": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55358f282a519762ad8c7db57dff2f01bb8cd2a",
+        "skipped": true,
+        "reason": "exfiles: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX. Skipping test."
+      }
+    },
+    "masqueradedao": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xa79f897c8f1d6b1450b7204668b82cffd1bad4a0",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "totalMasksBefore": "77",
+        "totalProposalsBefore": "37",
+        "maskA": "78",
+        "maskB": "79",
+        "proposalId": "38",
+        "createMaskAdminTx": "0xef4993a34b47eb3c56ebb0f24328b6c7352c18471d1ca172acfdb6312029096c",
+        "createMaskUserTx": "0x40f729debc56c402e9f58488a3002ce354b5eca1eb6a94994803b16fbe997fc9",
+        "proposalTx": "0x4f4b6163425de423755e67c0d51155b64eca5df2134344f3999eaa48f102b76d",
+        "voteTx": "0xc8d9ff46d27b74d95773c6d20bdcc558de329804825c462d83979fb147f3f54f"
+      }
+    },
+    "millionpiecemap": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4cac0ac79bac3b94c388fe0f27a9ed1a8e476cbf",
+        "skipped": true,
+        "reason": "millionpiecemap: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX. Skipping test."
+      }
+    },
+    "graveyard": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0xb55aa635b10a5abb5cbac169db26a38df739778e",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "fundingPrecheck": {
+          "buryFee": "10000000",
+          "forgetFee": "100000000",
+          "scriptedFunding": "110000000"
+        },
+        "memoryId": "37",
+        "buryTx": "0xc607b0c1ca3e5b05e3c775eac1e206387d3c54a1ab1c867cd96cda2899d98ab0",
+        "epitaphTx": "0x91dab100c4c1b7287cf5a4c865b9c538e1cd67736180972076e0cde682f84289",
+        "forgetTx": "0x51205b309cc57c6c6daa5b886204c0616ea1c270418b05a674eaf4696aad11c2"
+      }
+    },
+    "heritagetrust": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x42e14d04c17dad0b1d76ee7509e537791230431b",
+        "skipped": true,
+        "reason": "heritagetrust: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX. Skipping test."
+      }
+    },
+    "gascircle": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4630b40a4e67882cfab3d3f5041c1da597b0c7b6",
+        "skipped": true,
+        "reason": "gascircle: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX. Skipping test."
+      }
+    },
+    "turtlematch": {
+      "status": "pass",
+      "details": {
+        "contractHash": "0x4750b2d55de0282579e66c2b1b6c07d9138380ad",
+        "pauseState": {
+          "checked": true,
+          "paused": false
+        },
+        "scriptPrecheck": {
+          "scriptName": "turtle-match-logic",
+          "scriptExists": true,
+          "scriptEnabled": true,
+          "onChainScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "expectedScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "defaultScriptHash": "8e1808c97e4b4002ae0f4d2da97e51f85c2b959b25fc5ec5a6b48440271e3ba3",
+          "blindboxPrice": "10000000",
+          "boxCount": "3",
+          "scriptedFunding": "30000000"
+        },
+        "sessionId": "43",
+        "matches": "4",
+        "reward": "63000000",
+        "startTx": "0xd69db2d1882a3328b1124ad1d3d98a3d47eb6d94c0e98802f4c8b7dabb5ba0d6",
+        "settleTx": "0x5239844ec0e5095a601013b84cdcd58fe138de51f2ca580b9fc4be66fe218fb0"
+      }
+    }
+  }
+}

@@ -21,7 +21,7 @@ const { getNetworkConfig } = await import("../../deploy/scripts/lib/neo_network.
 const NETWORK = getNetworkConfig("testnet");
 
 const ORACLE_HASH = NETWORK.oracleHash;
-const AA_CORE_HASH = process.env.AA_CORE_HASH_TESTNET || "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38";
+const AA_CORE_HASH = process.env.AA_CORE_HASH_TESTNET || "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
 const DATAFEED_HASH = process.env.DATAFEED_HASH_TESTNET || "";
 
 // --- Campaign 1: Oracle kernel reads ---

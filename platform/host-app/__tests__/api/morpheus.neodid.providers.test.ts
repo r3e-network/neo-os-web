@@ -81,7 +81,7 @@ describe("/api/morpheus/neodid/providers", () => {
     expect(payload.network).toBe("testnet");
     expect(payload.registry.contract).toBe("");
     expect(payload.oracle.contract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");
-    expect(payload.aa.contract).toBe("0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38");
+    expect(payload.aa.contract).toBe("0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2");
     expect(payload.runtime.runtime_url).toBe(
       "https://oracle.meshmini.app/testnet",
     );

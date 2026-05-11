@@ -1,0 +1,606 @@
+{
+  "generatedAt": "2026-05-10T13:53:48.323Z",
+  "network": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "anchorHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+  "aaCoreHash": "0x0268a387913b250166ddec032b03332690a1ef78",
+  "signer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "signerHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+  "dryRun": false,
+  "apps": {
+    "miniapp-profitanchor": [
+      {
+        "agentId": 1,
+        "accountId": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+        "storedAccountId": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+        "currentAccount": "0xcf3ad5f51f024a445c675cfe287a134b41f486c7",
+        "expectedProxyAccount": "0xc786f4414b137a28fe5c675c444a021ff5d53acf",
+        "migrated": true,
+        "txid": "0x594a22352ef21938d76fe60711f27731653df20482395fb03125930739b05017",
+        "skippedReason": null
+      },
+      {
+        "agentId": 2,
+        "accountId": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+        "storedAccountId": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+        "currentAccount": "0x4c78b256b5ce0087201247300eb0781d150e9653",
+        "expectedProxyAccount": "0x53960e151d78b00e304712208700ceb556b2784c",
+        "migrated": true,
+        "txid": "0x945c392ae1f203dd46c85329150c3c3c78aebf6f1a6814bffa6ff9fdc0527680",
+        "skippedReason": null
+      },
+      {
+        "agentId": 3,
+        "accountId": "0x8f8b789e1ebe2f7cdf8a0dbd21aa2cb7c8ff69b8",
+        "storedAccountId": "0x8f8b789e1ebe2f7cdf8a0dbd21aa2cb7c8ff69b8",
+        "currentAccount": "0x06a448fccbf1724d067a01f45c671d6aae2edd9d",
+        "expectedProxyAccount": "0x9ddd2eae6a1d675cf4017a064d72f1cbfc48a406",
+        "migrated": true,
+        "txid": "0xae46251607a7e4459c1ec43e65da43b7aca89b4847b0b0399a0d22b60d5b37cf",
+        "skippedReason": null
+      },
+      {
+        "agentId": 4,
+        "accountId": "0x34030aff0f0d7a6ceb3873e8f65034a33f605b8e",
+        "storedAccountId": "0x34030aff0f0d7a6ceb3873e8f65034a33f605b8e",
+        "currentAccount": "0xbfe0919b56b098edff590e2f54760cb50371c703",
+        "expectedProxyAccount": "0x03c77103b50c76542f0e59ffed98b0569b91e0bf",
+        "migrated": true,
+        "txid": "0xf6fc7af4e5360fd8315d3afa4a3e43b30282c03742d045e4feb15f18155e49b1",
+        "skippedReason": null
+      },
+      {
+        "agentId": 5,
+        "accountId": "0x62162dd88e565f887b28a232ad24b242ce7fdbbf",
+        "storedAccountId": "0x62162dd88e565f887b28a232ad24b242ce7fdbbf",
+        "currentAccount": "0xcc1cee260d72e82cdf814e5e3bc78c6929ef2bbd",
+        "expectedProxyAccount": "0xbd2bef29698cc73b5e4e81df2ce8720d26ee1ccc",
+        "migrated": true,
+        "txid": "0xc0a45e365afa80c60797591d14f334c39afc29d32944f321d07f4e3bd5903f98",
+        "skippedReason": null
+      },
+      {
+        "agentId": 6,
+        "accountId": "0xb71841976b1d1f06549a28174d5886559c67337a",
+        "storedAccountId": "0xb71841976b1d1f06549a28174d5886559c67337a",
+        "currentAccount": "0x85483c74902fcb70f731210b3e8a692c199dbcbe",
+        "expectedProxyAccount": "0xbebc9d192c698a3e0b2131f770cb2f90743c4885",
+        "migrated": true,
+        "txid": "0xa86790f390b20264eafbebd0dc212c5d1ed9a0fcedeeb9b92dc416b9f4e43301",
+        "skippedReason": null
+      },
+      {
+        "agentId": 7,
+        "accountId": "0x9ec309fcb55e2af10ea6fb23abbbfa261f87dbb4",
+        "storedAccountId": "0x9ec309fcb55e2af10ea6fb23abbbfa261f87dbb4",
+        "currentAccount": "0xc11d154404ca42a607bcb511d3d233015385b351",
+        "expectedProxyAccount": "0x51b385530133d2d311b5bc07a642ca0444151dc1",
+        "migrated": true,
+        "txid": "0x4d42d9e177701356140595545829f6c53a03080a28b278ceb41d5bf66f6aaf42",
+        "skippedReason": null
+      },
+      {
+        "agentId": 8,
+        "accountId": "0x3c7fc793e4414fca30253fe2d36206d6301ed0c6",
+        "storedAccountId": "0x3c7fc793e4414fca30253fe2d36206d6301ed0c6",
+        "currentAccount": "0xcddd35995105a22b274a012d8661e0d598e11599",
+        "expectedProxyAccount": "0x9915e198d5e061862d014a272ba205519935ddcd",
+        "migrated": true,
+        "txid": "0xf94efe1dedad4f947f003d33863e7a48ca886206ede6dd26ed063a92a132a1c4",
+        "skippedReason": null
+      },
+      {
+        "agentId": 9,
+        "accountId": "0x2509ba3ab688318ca57a89cc0e0f616716152bd8",
+        "storedAccountId": "0x2509ba3ab688318ca57a89cc0e0f616716152bd8",
+        "currentAccount": "0x99d9a164cdfe85bd3bc3791026e22ce44ad4963b",
+        "expectedProxyAccount": "0x3b96d44ae42ce2261079c33bbd85fecd64a1d999",
+        "migrated": true,
+        "txid": "0xee6306c49d7beaabb529674f99f1714ebd2fb09a998ea3bb17767b2184dfc7f9",
+        "skippedReason": null
+      },
+      {
+        "agentId": 10,
+        "accountId": "0x57ef96ca957a1b68a814af834016af0c6beaaa3f",
+        "storedAccountId": "0x57ef96ca957a1b68a814af834016af0c6beaaa3f",
+        "currentAccount": "0xd9ac2b5ff9d550b5227ddb115d00dd313b98b8e9",
+        "expectedProxyAccount": "0xe9b8983b31dd005d11db7d22b550d5f95f2bacd9",
+        "migrated": true,
+        "txid": "0x25b0a8cd1903089ea54bcd6b609feb78983f10bea4c9ea9bed110c7618958618",
+        "skippedReason": null
+      },
+      {
+        "agentId": 11,
+        "accountId": "0x072f4738e12d7984eefa34062fc474c9e62506d0",
+        "storedAccountId": "0x072f4738e12d7984eefa34062fc474c9e62506d0",
+        "currentAccount": "0x3263f0003d71cae90eba1deb7fc531473610891d",
+        "expectedProxyAccount": "0x1d8910364731c57feb1dba0ee9ca713d00f06332",
+        "migrated": true,
+        "txid": "0x191a44e5381118073162da9c61c92084b6d1025e49caed1abcf277654d4baf14",
+        "skippedReason": null
+      },
+      {
+        "agentId": 12,
+        "accountId": "0xf298c98d61e675c505398966d6e3dc94912a6c61",
+        "storedAccountId": "0xf298c98d61e675c505398966d6e3dc94912a6c61",
+        "currentAccount": "0x5d9237293db1c5f8894e1973b3ef82c1167c1f40",
+        "expectedProxyAccount": "0x401f7c16c182efb373194e89f8c5b13d2937925d",
+        "migrated": true,
+        "txid": "0xcf9b11f854df063205e263ca3fcc25587daa7c9703fb1d13fe30d5ef490451df",
+        "skippedReason": null
+      },
+      {
+        "agentId": 13,
+        "accountId": "0x628fdec45d627671e4e222c2d77d0e5cf729417e",
+        "storedAccountId": "0x628fdec45d627671e4e222c2d77d0e5cf729417e",
+        "currentAccount": "0x61e7408a4b473d856cda0a6c8da4e17184a737fb",
+        "expectedProxyAccount": "0xfb37a78471e1a48d6c0ada6c853d474b8a40e761",
+        "migrated": true,
+        "txid": "0x8bb364c15ae5807c47c4b92b71d815ccfb0d4e5219f428398345f539766a0336",
+        "skippedReason": null
+      },
+      {
+        "agentId": 14,
+        "accountId": "0x1f9c82e183e2698f4dd40effa43da28a3afc751e",
+        "storedAccountId": "0x1f9c82e183e2698f4dd40effa43da28a3afc751e",
+        "currentAccount": "0x84522e734dbb69739b0755ded8a6bfc355863ab4",
+        "expectedProxyAccount": "0xb43a8655c3bfa6d8de55079b7369bb4d732e5284",
+        "migrated": true,
+        "txid": "0xe0b14f42702048369193c6199ada1ab201a873490c5406e6d7646fb00cc42c04",
+        "skippedReason": null
+      },
+      {
+        "agentId": 15,
+        "accountId": "0x0db290e0c392fcadefa973644a8ebaa54fc8a492",
+        "storedAccountId": "0x0db290e0c392fcadefa973644a8ebaa54fc8a492",
+        "currentAccount": "0xc12f0f06bcb23ebf17fda0fb28c951c9d8935965",
+        "expectedProxyAccount": "0x655993d8c951c928fba0fd17bf3eb2bc060f2fc1",
+        "migrated": true,
+        "txid": "0x60f17426965ae4cc7ffeb5e8a8b93f6745a8c39fe443a443d91fd174f31a6c56",
+        "skippedReason": null
+      },
+      {
+        "agentId": 16,
+        "accountId": "0x23f39e72d1e840686ddb19e7336e5f6294653232",
+        "storedAccountId": "0x23f39e72d1e840686ddb19e7336e5f6294653232",
+        "currentAccount": "0x5f5b8f93deca337a51e01f7ffe60f878095663ed",
+        "expectedProxyAccount": "0xed63560978f860fe7f1fe0517a33cade938f5b5f",
+        "migrated": true,
+        "txid": "0x43203a4c8851a0a1a2a9146de53cb927747b11c14348407042c6c1b425a09ad1",
+        "skippedReason": null
+      },
+      {
+        "agentId": 17,
+        "accountId": "0xba89d121e431a9674495f60463e44f25d70693b9",
+        "storedAccountId": "0xba89d121e431a9674495f60463e44f25d70693b9",
+        "currentAccount": "0x4a25e6368cefc459bb73343dab5666422f943321",
+        "expectedProxyAccount": "0x2133942f426656ab3d3473bb59c4ef8c36e6254a",
+        "migrated": true,
+        "txid": "0xdcbc1d0411c43ced3392df3adef9424dfecdbf9e4d8573e8f1342e6a86d75c18",
+        "skippedReason": null
+      },
+      {
+        "agentId": 18,
+        "accountId": "0xda777fcaccba21d42df703d1a0b183930067164b",
+        "storedAccountId": "0xda777fcaccba21d42df703d1a0b183930067164b",
+        "currentAccount": "0x1f09502f3ac9acaefc93fd2f344463beb7256b4e",
+        "expectedProxyAccount": "0x4e6b25b7be6344342ffd93fcaeacc93a2f50091f",
+        "migrated": true,
+        "txid": "0x4df1feaa7021806e515497c99950d8f3a80a956e86fd474b13464e50b6823630",
+        "skippedReason": null
+      },
+      {
+        "agentId": 19,
+        "accountId": "0x486b17598644a2992fbd2fc7e362a70ffb1cd7b5",
+        "storedAccountId": "0x486b17598644a2992fbd2fc7e362a70ffb1cd7b5",
+        "currentAccount": "0x57777121577bf3d9a586d489c2b26ee51bda2b56",
+        "expectedProxyAccount": "0x562bda1be56eb2c289d486a5d9f37b5721717757",
+        "migrated": true,
+        "txid": "0xa10c32e70f1e83c1372343cd0f7081a3880c7fbbeacdfbec9aa2403d34df8a6c",
+        "skippedReason": null
+      },
+      {
+        "agentId": 20,
+        "accountId": "0xc7f82c512242b2271e128e26e878b29c7f585ba8",
+        "storedAccountId": "0xc7f82c512242b2271e128e26e878b29c7f585ba8",
+        "currentAccount": "0x207c7fe5690eb9234d7a8dbdaf114f23f4b0a1e1",
+        "expectedProxyAccount": "0xe1a1b0f4234f11afbd8d7a4d23b90e69e57f7c20",
+        "migrated": true,
+        "txid": "0xf6d519f6301760ef02634791a9a097367fac7f80cc477250ea91b65421f96dc9",
+        "skippedReason": null
+      },
+      {
+        "agentId": 21,
+        "accountId": "0x2e7992c0db57a2fc4df003eda351b49c94fda09d",
+        "storedAccountId": "0x2e7992c0db57a2fc4df003eda351b49c94fda09d",
+        "currentAccount": "0x635ddf25d0389fb2767906f2799e2cb410071ce9",
+        "expectedProxyAccount": "0xe91c0710b42c9e79f2067976b29f38d025df5d63",
+        "migrated": true,
+        "txid": "0x90d771918f6120adb266ce02f82fbd4be1183dba4acd0324c239696dc0763d84",
+        "skippedReason": null
+      }
+    ],
+    "miniapp-trustanchor": [
+      {
+        "agentId": 1,
+        "accountId": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+        "storedAccountId": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+        "currentAccount": "0x6d97903409bb339e53768d0fefe5cc06c3b18fd2",
+        "expectedProxyAccount": "0xd28fb1c306cce5ef0f8d76539e33bb093490976d",
+        "migrated": true,
+        "txid": "0x9d2bcca1a8632babb9937a920df4a9983d3c7900c231fdd16a69be295bf17973",
+        "skippedReason": null
+      },
+      {
+        "agentId": 2,
+        "accountId": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+        "storedAccountId": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+        "currentAccount": "0xfda16e1d2735e273527c57719035e6e7533a4380",
+        "expectedProxyAccount": "0x80433a53e7e6359071577c5273e235271d6ea1fd",
+        "migrated": true,
+        "txid": "0x76c2df7a64177f1b80099dac849b17b9e79e726d0d7f030b7a55fc4ca4ca7006",
+        "skippedReason": null
+      },
+      {
+        "agentId": 3,
+        "accountId": "0x3e6daa0570756cf7c1711845af2034743357d45e",
+        "storedAccountId": "0x3e6daa0570756cf7c1711845af2034743357d45e",
+        "currentAccount": "0xf4ce3326176f05ca348a0f227dbd0f4e63251ff3",
+        "expectedProxyAccount": "0xf31f25634e0fbd7d220f8a34ca056f172633cef4",
+        "migrated": true,
+        "txid": "0x5abf5267bc6ddd5b5427b9ac8d8d8556bdeccfe5e235fc0afeffac8ef546fd4e",
+        "skippedReason": null
+      },
+      {
+        "agentId": 4,
+        "accountId": "0xc450fbc34792ef8fb6c219cf2fded8153b3dcec4",
+        "storedAccountId": "0xc450fbc34792ef8fb6c219cf2fded8153b3dcec4",
+        "currentAccount": "0xe40a0015687356586abae9895be45769196390e9",
+        "expectedProxyAccount": "0xe99063196957e45b89e9ba6a5856736815000ae4",
+        "migrated": true,
+        "txid": "0x64f95fbf3178fdc4b682a0cdcda775d5da1e401243c52f1de2b04eca416c9272",
+        "skippedReason": null
+      },
+      {
+        "agentId": 5,
+        "accountId": "0x743919591abd4ce402607b2878ef227ebb0a3d8b",
+        "storedAccountId": "0x743919591abd4ce402607b2878ef227ebb0a3d8b",
+        "currentAccount": "0xeae532def5a5f46e1f79589c30a03ce69557956c",
+        "expectedProxyAccount": "0x6c955795e63ca0309c58791f6ef4a5f5de32e5ea",
+        "migrated": true,
+        "txid": "0x4aee4852678d1a95440ece0a81e6d38fe60221fbed13797ee8731fb43d5365df",
+        "skippedReason": null
+      },
+      {
+        "agentId": 6,
+        "accountId": "0xefa5f52bfe12416975cb2583c7d63b1efff4ec49",
+        "storedAccountId": "0xefa5f52bfe12416975cb2583c7d63b1efff4ec49",
+        "currentAccount": "0x83690e0e7df5513bc263e555dec5a80f52b62b85",
+        "expectedProxyAccount": "0x852bb6520fa8c5de55e563c23b51f57d0e0e6983",
+        "migrated": true,
+        "txid": "0x9407799d525bfd1080d91b3eb86fcc7fed70132ea22163a11e0f74a6717eb777",
+        "skippedReason": null
+      },
+      {
+        "agentId": 7,
+        "accountId": "0xf24c2b3e6027f66067c1375a22cb9bdfcbe1db69",
+        "storedAccountId": "0xf24c2b3e6027f66067c1375a22cb9bdfcbe1db69",
+        "currentAccount": "0x487446b2325329820616ce970b8fed9f5f948cb7",
+        "expectedProxyAccount": "0xb78c945f9fed8f0b97ce160682295332b2467448",
+        "migrated": true,
+        "txid": "0xd50feaf9dcd411854155bef62b83532273fab29798667e68bbb445ee334a27ff",
+        "skippedReason": null
+      },
+      {
+        "agentId": 8,
+        "accountId": "0x200e102022103405bbed0ed8d6c22f8b3c2d89f8",
+        "storedAccountId": "0x200e102022103405bbed0ed8d6c22f8b3c2d89f8",
+        "currentAccount": "0xed805a1fa67cb9503a4e9adce8ddca5f40aed81e",
+        "expectedProxyAccount": "0x1ed8ae405fcadde8dc9a4e3a50b97ca61f5a80ed",
+        "migrated": true,
+        "txid": "0x0d7af0e90ef8acebb6c3d87697522725fdd9a3391faf627afa87b5124586e484",
+        "skippedReason": null
+      },
+      {
+        "agentId": 9,
+        "accountId": "0xe7a9c74f7dffc1fca459c6ca7dfcf3abafe805f1",
+        "storedAccountId": "0xe7a9c74f7dffc1fca459c6ca7dfcf3abafe805f1",
+        "currentAccount": "0x1b928abd6da11f23abad6e33d849d9a6e83b77dd",
+        "expectedProxyAccount": "0xdd773be8a6d949d8336eadab231fa16dbd8a921b",
+        "migrated": true,
+        "txid": "0x86ca101a0e7898056b7f3e649f5546bfc0d74bfe388c32ecd0a21ba664f4083f",
+        "skippedReason": null
+      },
+      {
+        "agentId": 10,
+        "accountId": "0x6801f0322d15d0e335d02c21e25ba2e7471677a5",
+        "storedAccountId": "0x6801f0322d15d0e335d02c21e25ba2e7471677a5",
+        "currentAccount": "0x44b700511204795513aae1acff8b7f56e7d855bb",
+        "expectedProxyAccount": "0xbb55d8e7567f8bfface1aa13557904125100b744",
+        "migrated": true,
+        "txid": "0xfc9f10ccc8ff53467b327665c8216d5c69b54b4f1e2116f65aa86045c8ab8fe1",
+        "skippedReason": null
+      },
+      {
+        "agentId": 11,
+        "accountId": "0xa46f90b732d8324b818d8b4d316fcacbed7b360f",
+        "storedAccountId": "0xa46f90b732d8324b818d8b4d316fcacbed7b360f",
+        "currentAccount": "0x4534c9d2b5c30dcbdf67d2077a4726ec6f96936e",
+        "expectedProxyAccount": "0x6e93966fec26477a07d267dfcb0dc3b5d2c93445",
+        "migrated": true,
+        "txid": "0xa98faddcb20222fd2ad5e5a6709a8935c5772c83731723dd03e69587ce36d70b",
+        "skippedReason": null
+      },
+      {
+        "agentId": 12,
+        "accountId": "0xa74ec68f22440a0deca1dba402000c8e188d6ba2",
+        "storedAccountId": "0xa74ec68f22440a0deca1dba402000c8e188d6ba2",
+        "currentAccount": "0xdb57d5a3f1e99654ac26901473237b6b9d1d4aa0",
+        "expectedProxyAccount": "0xa04a1d9d6b7b2373149026ac5496e9f1a3d557db",
+        "migrated": true,
+        "txid": "0xf8b3fcfd95288a6276c13e0f478fc2055fe0e058495c500116ccb2e935440a59",
+        "skippedReason": null
+      },
+      {
+        "agentId": 13,
+        "accountId": "0xaae9219e1952be3d8449d670b6a8ab4a024c36bf",
+        "storedAccountId": "0xaae9219e1952be3d8449d670b6a8ab4a024c36bf",
+        "currentAccount": "0x01068a50d748958c9fb54f2bf02ad187ff4d08a2",
+        "expectedProxyAccount": "0xa2084dff87d12af02b4fb59f8c9548d7508a0601",
+        "migrated": true,
+        "txid": "0x1388cb4355e9f4100dcd8acc49eaa264c559b3a342455d4dcdcbd62b0e849f53",
+        "skippedReason": null
+      },
+      {
+        "agentId": 14,
+        "accountId": "0x1c3d7e3a8b8c588eb9f787e934cd2b5db09b1564",
+        "storedAccountId": "0x1c3d7e3a8b8c588eb9f787e934cd2b5db09b1564",
+        "currentAccount": "0x9831fbfac0eb3b68cb6908566551cada1248ccb3",
+        "expectedProxyAccount": "0xb3cc4812daca5165560869cb683bebc0fafb3198",
+        "migrated": true,
+        "txid": "0x66ae52bc4bfe03c7113417cfc4c590b5d9ca9e52158c84131f8bbb4eed70ef5f",
+        "skippedReason": null
+      },
+      {
+        "agentId": 15,
+        "accountId": "0x93910555bbbc2f6c2e20d26aa8f4a95b56b85ee7",
+        "storedAccountId": "0x93910555bbbc2f6c2e20d26aa8f4a95b56b85ee7",
+        "currentAccount": "0x3473a5952cefdf8edd0eb43a8114c5c8a3df993c",
+        "expectedProxyAccount": "0x3c99dfa3c8c514813ab40edd8edfef2c95a57334",
+        "migrated": true,
+        "txid": "0xff98d453f67ab9cfc21129603e1505098b12863d3b5eb11134ba1a480f30c493",
+        "skippedReason": null
+      },
+      {
+        "agentId": 16,
+        "accountId": "0x1e6d27e334b962d7766f84c27d6dde9b93244a9b",
+        "storedAccountId": "0x1e6d27e334b962d7766f84c27d6dde9b93244a9b",
+        "currentAccount": "0xa7bd36d31f9c8a280dac85220041fb86e997dd21",
+        "expectedProxyAccount": "0x21dd97e986fb41002285ac0d288a9c1fd336bda7",
+        "migrated": true,
+        "txid": "0x8a246207c26d4bfe361fc9c18004e15e74cbdeb401c95c98910693c8cb035ad4",
+        "skippedReason": null
+      },
+      {
+        "agentId": 17,
+        "accountId": "0x970b8552800cdef96f5805268e912c62e0a6c27e",
+        "storedAccountId": "0x970b8552800cdef96f5805268e912c62e0a6c27e",
+        "currentAccount": "0x3697156d2b26724a5b9d3d227f1db125ecf30947",
+        "expectedProxyAccount": "0x4709f3ec25b11d7f223d9d5b4a72262b6d159736",
+        "migrated": true,
+        "txid": "0xe58eaed55ed3d4f15018c928a95fd90dab9fc73e3a27dc993548e4ffbf9f6a59",
+        "skippedReason": null
+      },
+      {
+        "agentId": 18,
+        "accountId": "0x8bfaba2d46ba78607e5a56c1c53b13de4953440d",
+        "storedAccountId": "0x8bfaba2d46ba78607e5a56c1c53b13de4953440d",
+        "currentAccount": "0x12b7a2026e72367e8b1c578cb11e18a639dbee7d",
+        "expectedProxyAccount": "0x7deedb39a6181eb18c571c8b7e36726e02a2b712",
+        "migrated": true,
+        "txid": "0xff6158dc874ba25207a83c13b4f68854b45852c2a03ac2d0e8558a6bdf9f4c74",
+        "skippedReason": null
+      },
+      {
+        "agentId": 19,
+        "accountId": "0xaa858b17ff17c6b8ac1488680519c7e85c61a552",
+        "storedAccountId": "0xaa858b17ff17c6b8ac1488680519c7e85c61a552",
+        "currentAccount": "0xbf5a8e2872e52892d5546f126cd2dd573334ebde",
+        "expectedProxyAccount": "0xdeeb343357ddd26c126f54d59228e572288e5abf",
+        "migrated": true,
+        "txid": "0xb0e6d2024b1c21f0090b1c6464e25eaa05743c9a37994bb13f3b2e2be5494d9c",
+        "skippedReason": null
+      },
+      {
+        "agentId": 20,
+        "accountId": "0x57e30a8041644c551c0e5f7c150316a839338edd",
+        "storedAccountId": "0x57e30a8041644c551c0e5f7c150316a839338edd",
+        "currentAccount": "0x7ec248c43c651a4a5ca09f2f538a30c94d0ef409",
+        "expectedProxyAccount": "0x09f40e4dc9308a532f9fa05c4a1a653cc448c27e",
+        "migrated": true,
+        "txid": "0xf649706f5ea2ea1ecdcf4a8cef98a4b4aaaa8c0fe713efa4b24ea19bfdf8a548",
+        "skippedReason": null
+      },
+      {
+        "agentId": 21,
+        "accountId": "0x78c58f772a9477effe5627a783c1fde87479e9f6",
+        "storedAccountId": "0x78c58f772a9477effe5627a783c1fde87479e9f6",
+        "currentAccount": "0xb19a2b4b50a22e265682d53a2f3249cfc6e1b13b",
+        "expectedProxyAccount": "0x3bb1e1c6cf49322f3ad58256262ea2504b2b9ab1",
+        "migrated": true,
+        "txid": "0x6f8dbc1e2db34d11f84be24333bc398bc095feecd22add4b6ba8eafffe3be654",
+        "skippedReason": null
+      }
+    ]
+  },
+  "transactions": [
+    {
+      "label": "ProfitAnchor agent 1 AA proxy migration",
+      "txid": "0x594a22352ef21938d76fe60711f27731653df20482395fb03125930739b05017"
+    },
+    {
+      "label": "ProfitAnchor agent 2 AA proxy migration",
+      "txid": "0x945c392ae1f203dd46c85329150c3c3c78aebf6f1a6814bffa6ff9fdc0527680"
+    },
+    {
+      "label": "ProfitAnchor agent 3 AA proxy migration",
+      "txid": "0xae46251607a7e4459c1ec43e65da43b7aca89b4847b0b0399a0d22b60d5b37cf"
+    },
+    {
+      "label": "ProfitAnchor agent 4 AA proxy migration",
+      "txid": "0xf6fc7af4e5360fd8315d3afa4a3e43b30282c03742d045e4feb15f18155e49b1"
+    },
+    {
+      "label": "ProfitAnchor agent 5 AA proxy migration",
+      "txid": "0xc0a45e365afa80c60797591d14f334c39afc29d32944f321d07f4e3bd5903f98"
+    },
+    {
+      "label": "ProfitAnchor agent 6 AA proxy migration",
+      "txid": "0xa86790f390b20264eafbebd0dc212c5d1ed9a0fcedeeb9b92dc416b9f4e43301"
+    },
+    {
+      "label": "ProfitAnchor agent 7 AA proxy migration",
+      "txid": "0x4d42d9e177701356140595545829f6c53a03080a28b278ceb41d5bf66f6aaf42"
+    },
+    {
+      "label": "ProfitAnchor agent 8 AA proxy migration",
+      "txid": "0xf94efe1dedad4f947f003d33863e7a48ca886206ede6dd26ed063a92a132a1c4"
+    },
+    {
+      "label": "ProfitAnchor agent 9 AA proxy migration",
+      "txid": "0xee6306c49d7beaabb529674f99f1714ebd2fb09a998ea3bb17767b2184dfc7f9"
+    },
+    {
+      "label": "ProfitAnchor agent 10 AA proxy migration",
+      "txid": "0x25b0a8cd1903089ea54bcd6b609feb78983f10bea4c9ea9bed110c7618958618"
+    },
+    {
+      "label": "ProfitAnchor agent 11 AA proxy migration",
+      "txid": "0x191a44e5381118073162da9c61c92084b6d1025e49caed1abcf277654d4baf14"
+    },
+    {
+      "label": "ProfitAnchor agent 12 AA proxy migration",
+      "txid": "0xcf9b11f854df063205e263ca3fcc25587daa7c9703fb1d13fe30d5ef490451df"
+    },
+    {
+      "label": "ProfitAnchor agent 13 AA proxy migration",
+      "txid": "0x8bb364c15ae5807c47c4b92b71d815ccfb0d4e5219f428398345f539766a0336"
+    },
+    {
+      "label": "ProfitAnchor agent 14 AA proxy migration",
+      "txid": "0xe0b14f42702048369193c6199ada1ab201a873490c5406e6d7646fb00cc42c04"
+    },
+    {
+      "label": "ProfitAnchor agent 15 AA proxy migration",
+      "txid": "0x60f17426965ae4cc7ffeb5e8a8b93f6745a8c39fe443a443d91fd174f31a6c56"
+    },
+    {
+      "label": "ProfitAnchor agent 16 AA proxy migration",
+      "txid": "0x43203a4c8851a0a1a2a9146de53cb927747b11c14348407042c6c1b425a09ad1"
+    },
+    {
+      "label": "ProfitAnchor agent 17 AA proxy migration",
+      "txid": "0xdcbc1d0411c43ced3392df3adef9424dfecdbf9e4d8573e8f1342e6a86d75c18"
+    },
+    {
+      "label": "ProfitAnchor agent 18 AA proxy migration",
+      "txid": "0x4df1feaa7021806e515497c99950d8f3a80a956e86fd474b13464e50b6823630"
+    },
+    {
+      "label": "ProfitAnchor agent 19 AA proxy migration",
+      "txid": "0xa10c32e70f1e83c1372343cd0f7081a3880c7fbbeacdfbec9aa2403d34df8a6c"
+    },
+    {
+      "label": "ProfitAnchor agent 20 AA proxy migration",
+      "txid": "0xf6d519f6301760ef02634791a9a097367fac7f80cc477250ea91b65421f96dc9"
+    },
+    {
+      "label": "ProfitAnchor agent 21 AA proxy migration",
+      "txid": "0x90d771918f6120adb266ce02f82fbd4be1183dba4acd0324c239696dc0763d84"
+    },
+    {
+      "label": "TrustAnchor agent 1 AA proxy migration",
+      "txid": "0x9d2bcca1a8632babb9937a920df4a9983d3c7900c231fdd16a69be295bf17973"
+    },
+    {
+      "label": "TrustAnchor agent 2 AA proxy migration",
+      "txid": "0x76c2df7a64177f1b80099dac849b17b9e79e726d0d7f030b7a55fc4ca4ca7006"
+    },
+    {
+      "label": "TrustAnchor agent 3 AA proxy migration",
+      "txid": "0x5abf5267bc6ddd5b5427b9ac8d8d8556bdeccfe5e235fc0afeffac8ef546fd4e"
+    },
+    {
+      "label": "TrustAnchor agent 4 AA proxy migration",
+      "txid": "0x64f95fbf3178fdc4b682a0cdcda775d5da1e401243c52f1de2b04eca416c9272"
+    },
+    {
+      "label": "TrustAnchor agent 5 AA proxy migration",
+      "txid": "0x4aee4852678d1a95440ece0a81e6d38fe60221fbed13797ee8731fb43d5365df"
+    },
+    {
+      "label": "TrustAnchor agent 6 AA proxy migration",
+      "txid": "0x9407799d525bfd1080d91b3eb86fcc7fed70132ea22163a11e0f74a6717eb777"
+    },
+    {
+      "label": "TrustAnchor agent 7 AA proxy migration",
+      "txid": "0xd50feaf9dcd411854155bef62b83532273fab29798667e68bbb445ee334a27ff"
+    },
+    {
+      "label": "TrustAnchor agent 8 AA proxy migration",
+      "txid": "0x0d7af0e90ef8acebb6c3d87697522725fdd9a3391faf627afa87b5124586e484"
+    },
+    {
+      "label": "TrustAnchor agent 9 AA proxy migration",
+      "txid": "0x86ca101a0e7898056b7f3e649f5546bfc0d74bfe388c32ecd0a21ba664f4083f"
+    },
+    {
+      "label": "TrustAnchor agent 10 AA proxy migration",
+      "txid": "0xfc9f10ccc8ff53467b327665c8216d5c69b54b4f1e2116f65aa86045c8ab8fe1"
+    },
+    {
+      "label": "TrustAnchor agent 11 AA proxy migration",
+      "txid": "0xa98faddcb20222fd2ad5e5a6709a8935c5772c83731723dd03e69587ce36d70b"
+    },
+    {
+      "label": "TrustAnchor agent 12 AA proxy migration",
+      "txid": "0xf8b3fcfd95288a6276c13e0f478fc2055fe0e058495c500116ccb2e935440a59"
+    },
+    {
+      "label": "TrustAnchor agent 13 AA proxy migration",
+      "txid": "0x1388cb4355e9f4100dcd8acc49eaa264c559b3a342455d4dcdcbd62b0e849f53"
+    },
+    {
+      "label": "TrustAnchor agent 14 AA proxy migration",
+      "txid": "0x66ae52bc4bfe03c7113417cfc4c590b5d9ca9e52158c84131f8bbb4eed70ef5f"
+    },
+    {
+      "label": "TrustAnchor agent 15 AA proxy migration",
+      "txid": "0xff98d453f67ab9cfc21129603e1505098b12863d3b5eb11134ba1a480f30c493"
+    },
+    {
+      "label": "TrustAnchor agent 16 AA proxy migration",
+      "txid": "0x8a246207c26d4bfe361fc9c18004e15e74cbdeb401c95c98910693c8cb035ad4"
+    },
+    {
+      "label": "TrustAnchor agent 17 AA proxy migration",
+      "txid": "0xe58eaed55ed3d4f15018c928a95fd90dab9fc73e3a27dc993548e4ffbf9f6a59"
+    },
+    {
+      "label": "TrustAnchor agent 18 AA proxy migration",
+      "txid": "0xff6158dc874ba25207a83c13b4f68854b45852c2a03ac2d0e8558a6bdf9f4c74"
+    },
+    {
+      "label": "TrustAnchor agent 19 AA proxy migration",
+      "txid": "0xb0e6d2024b1c21f0090b1c6464e25eaa05743c9a37994bb13f3b2e2be5494d9c"
+    },
+    {
+      "label": "TrustAnchor agent 20 AA proxy migration",
+      "txid": "0xf649706f5ea2ea1ecdcf4a8cef98a4b4aaaa8c0fe713efa4b24ea19bfdf8a548"
+    },
+    {
+      "label": "TrustAnchor agent 21 AA proxy migration",
+      "txid": "0x6f8dbc1e2db34d11f84be24333bc398bc095feecd22add4b6ba8eafffe3be654"
+    }
+  ]
+}

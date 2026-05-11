@@ -3,137 +3,301 @@
   "rpc_url": "https://testnet1.neo.coz.io:443",
   "deployer": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
   "deployer_hash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-  "platform_anchor": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
-  "platform_defi": "0xb43bd0ded09b5d79ed858484106affc1c858483c",
-  "aa_core": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38",
+  "platform_anchor": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+  "platform_defi": "0x39d4584ddb0731e48e611647931993ee033bf373",
+  "aa_core": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
   "candidate": "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d",
   "aa_accounts": {
-    "profitanchor-agent-1": "0xb80443cc91e13ea4a08b05fc9e872297d9346e5f",
-    "trustanchor-agent-1": "0xe236292368a344ceb85c5e0e8743e4dd9bbf74bf"
+    "profitanchor-agent-1": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+    "profitanchor-agent-10": "0xa34b6b795a2cbdcf1bb51e7999fc18398a787e04",
+    "profitanchor-agent-11": "0xa075a77480487fa7e2daba42600d962d5ff91ea7",
+    "profitanchor-agent-12": "0x1f7166c4a5e9a93c3e3b2df3c3a25cbd6ff59b3b",
+    "profitanchor-agent-13": "0xd326026198a8d98556c3258b959517078061b6d6",
+    "profitanchor-agent-14": "0x5939d3c3f937604c158c6fafe6061f0c0e27e265",
+    "profitanchor-agent-15": "0x50bf0322246a05ecfc2b0e15b6c48fd8ae3709e8",
+    "profitanchor-agent-16": "0xb46af0b33a399c1247619a71a7524e7f6cc9d3a7",
+    "profitanchor-agent-17": "0x930bf6a3e4243349b47cd0a2ee9a5dbac59c95ab",
+    "profitanchor-agent-18": "0xae15e4a369ae63f01f3d007f4e5df895848b4c1c",
+    "profitanchor-agent-19": "0x9551a5a8c89b4bd97bd1e4cfc339b4955b439ff5",
+    "profitanchor-agent-2": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+    "profitanchor-agent-20": "0xc746369dceea06d4fbf6dae956fbc059b77ad2cc",
+    "profitanchor-agent-21": "0x0ab39c8ef505b24839cc2cf8c59433c1d66476a2",
+    "profitanchor-agent-3": "0x2e0bc6619b8a2f3d2abb185e6055ec716e913d51",
+    "profitanchor-agent-4": "0x9e7304bc774a826ba8cc97004c00b5faef953b71",
+    "profitanchor-agent-5": "0xde68f16db301ec7adbd1c31abca7f10df90e9378",
+    "profitanchor-agent-6": "0xde7e7ac85b1e600a33b25727c2dfdc8fac7c21d2",
+    "profitanchor-agent-7": "0xfdbe83f8eaaf5e8191969c4b7170f91940d78d7c",
+    "profitanchor-agent-8": "0x0fe4274e151e63cea82c8a709822778686eced2b",
+    "profitanchor-agent-9": "0x22cc41325a58f0f4aa2b47ba3b12544b6a126952",
+    "trustanchor-agent-1": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+    "trustanchor-agent-10": "0x5acff6d2a30aea8394ee643ca8092f97d19f7678",
+    "trustanchor-agent-11": "0x24a0af41160eb0a77f52df2e169f6778fa32d370",
+    "trustanchor-agent-12": "0xf53ade2ad97db061dce20e21edbfeac836e1698e",
+    "trustanchor-agent-13": "0xb1f853311adbcc4ebbf966bba698d14fea8106cc",
+    "trustanchor-agent-14": "0xa0764e859ced0c93b591d6335a8c4fac087a4dc1",
+    "trustanchor-agent-15": "0xdbbf9a3b605961a30fb6abecec54b5284e094ac8",
+    "trustanchor-agent-16": "0xb328caee8e8575004bca315bddfa9c4d3a014657",
+    "trustanchor-agent-17": "0x9c1a566fbef43f8f4486decb76f554cb944b47f5",
+    "trustanchor-agent-18": "0xb62fdf59c4949cffe482425dd217420a43732354",
+    "trustanchor-agent-19": "0xe2b94ef5a9ad5678ba23eeb5bb26d34c8515304e",
+    "trustanchor-agent-2": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+    "trustanchor-agent-20": "0x4df5c49921c57d7a0e855478c4c99ea76e9d70d1",
+    "trustanchor-agent-21": "0xc3a4b40fb180950606739f46a48278209b810530",
+    "trustanchor-agent-3": "0x9ba08bd79abe3802ecc77f1806813d47dffd6ca0",
+    "trustanchor-agent-4": "0x053b9e926e176a7ca8d18dd2f908d03002dd1a20",
+    "trustanchor-agent-5": "0x36a3bef42671e04aa7278aa435b0749f736965d9",
+    "trustanchor-agent-6": "0x5d40917a7cc00a9ad2ba0218c937bcdb3c19b470",
+    "trustanchor-agent-7": "0x54592bd478d53234c695480a6fb71527da58e852",
+    "trustanchor-agent-8": "0x0394efeb58c7bf874d83c7b657479ebb6043a3f1",
+    "trustanchor-agent-9": "0x908da7f2fb18ec1c18569a08cb755948cd18b331"
   },
   "transactions": [
     {
       "label": "Deploy PlatformAnchor",
-      "txid": "0x066ca0742bc0ca2879ae8f066a388fd05147988bd117c3f52262246c57f70762",
-      "valid_until_block": 15767548
+      "txid": "0xd9c6a42d654d14f594667d1e8ad389cabccfca1ed593a6b8d9accd032c31d708",
+      "valid_until_block": 15932119
     },
     {
       "label": "Register miniapp-trustanchor",
-      "txid": "0xfce02d4ae66c159af8a76cc5ea2e265eb1977f27261062f5372b096421ad157e",
-      "valid_until_block": 15767551
+      "txid": "0x0f9b34f3b65cc0cf37756ad50180f4fa0b51d6a38b4016d779952b1e50f2bbb7",
+      "valid_until_block": 15932121
     },
     {
       "label": "Register miniapp-profitanchor",
-      "txid": "0x281476edbe05aeceac190b070e0077085afc752af048db4c90d29d3e51920ca9",
-      "valid_until_block": 15767552
+      "txid": "0xb82b95d13a89aec998449c59a4460703d2ebfda54d2a9b1e6c278069f9f0401a",
+      "valid_until_block": 15932122
     },
     {
-      "label": "Register miniapp-trustanchor AA agent",
-      "txid": "0xb0afaa92ae38eeeb62693a06498ac0bda4ba9dbe99fa498f4677447fe0a4c8b2",
-      "valid_until_block": 15767554
+      "label": "Configure PlatformAnchor AA core",
+      "txid": "0x16f6eec704b918d1bca8d4366141c9dd83f6ec3fcaabed1e0eab01b66ae6ea9b",
+      "valid_until_block": 15932125
     },
     {
-      "label": "Register miniapp-profitanchor AA agent",
-      "txid": "0x8df68c392de591d93222e19e886c6bdd3876f4a371034ab1a4eb622717f0e0e2",
-      "valid_until_block": 15767557
+      "label": "Register trustanchor-agent-1",
+      "txid": "0x1e2d8d1ac683841749b549f0befd44102ba75e91697d0a9c7b9fd372bc2cdb1b",
+      "valid_until_block": 15932126
     },
     {
-      "label": "Set ProfitAnchor agent score",
-      "txid": "0xf7c8aa885b0f58a5b3dda138f343dfe8e493c4e1003df92f3ca20a433cde02b7",
-      "valid_until_block": 15767558
+      "label": "Register trustanchor-agent-2",
+      "txid": "0x2006b69284b799a9321fcf6ffdb78e7cb39d08f7e1b958b11d730115ec976544",
+      "valid_until_block": 15932128
+    },
+    {
+      "label": "Register trustanchor-agent-3",
+      "txid": "0xeed46261d07d52502ecf09ddc5929d19d93d0d80cab3bf711f23c662f59e7748",
+      "valid_until_block": 15932129
+    },
+    {
+      "label": "Register trustanchor-agent-4",
+      "txid": "0xc1592eb6ecb653815703ef7d727e8d8735729717db6a313eda98818dcb92fdd9",
+      "valid_until_block": 15932132
+    },
+    {
+      "label": "Register trustanchor-agent-5",
+      "txid": "0x847f9b86b2d00022f34887fedc9c5ad484cedfa5be5cc7a4da2c10a81f67660b",
+      "valid_until_block": 15932133
+    },
+    {
+      "label": "Register trustanchor-agent-6",
+      "txid": "0xc2d4ba17d7a92f092bb11eea5f33d21f6cb81b00861c002d4e1959a6ead23dea",
+      "valid_until_block": 15932135
+    },
+    {
+      "label": "Register trustanchor-agent-7",
+      "txid": "0x350988aa8eb33932a45e8650a2bd72509bc0b499ba2e8a9c65ffe398804baf4a",
+      "valid_until_block": 15932136
+    },
+    {
+      "label": "Register trustanchor-agent-8",
+      "txid": "0x4b4596ed6975ce0c7613d50d3b02e7e8b541e51859a1a7e7b0a1276e90253f61",
+      "valid_until_block": 15932138
+    },
+    {
+      "label": "Register trustanchor-agent-9",
+      "txid": "0xdfb2ca46d63938bea6666d62b21f0308fffa513a3e4f221c85ca22ca25c651ab",
+      "valid_until_block": 15932140
+    },
+    {
+      "label": "Register trustanchor-agent-10",
+      "txid": "0x15d94d67c5259da7738456b172384878f05a82e2d133b797185ae14cee06f083",
+      "valid_until_block": 15932142
+    },
+    {
+      "label": "Register trustanchor-agent-11",
+      "txid": "0x976a8b9725906a114798d2ef77c621bac18ea731a6c49f0e6deb3d813ca88fd2",
+      "valid_until_block": 15932144
+    },
+    {
+      "label": "Register trustanchor-agent-12",
+      "txid": "0xaee33865f5ac7e5ed553d6ea18ec20f716ef9cb47ff6f51252e9e48439681268",
+      "valid_until_block": 15932146
+    },
+    {
+      "label": "Register trustanchor-agent-13",
+      "txid": "0x172495662b65c41c083e76363b55992478e1063b157ce18586f77b852d403e80",
+      "valid_until_block": 15932148
+    },
+    {
+      "label": "Register trustanchor-agent-14",
+      "txid": "0x90f0a75afa30f2443c034e715f8b507fefbea24bf852852ae6588a70d1f0c115",
+      "valid_until_block": 15932150
+    },
+    {
+      "label": "Register trustanchor-agent-15",
+      "txid": "0x81d898f83fa496283b55fc37a9c90a6f72d76ea7c279a70d881ea1f0611288c9",
+      "valid_until_block": 15932153
+    },
+    {
+      "label": "Register trustanchor-agent-16",
+      "txid": "0xf4d4389b64caa3d37c878cf61cc416969a346260a9795df01d58f34294e42311",
+      "valid_until_block": 15932154
+    },
+    {
+      "label": "Register trustanchor-agent-17",
+      "txid": "0x95ac530a01b8e8f60fc30fe1199c394213955ccd1cb8034ce67976bf0d132b7b",
+      "valid_until_block": 15932156
+    },
+    {
+      "label": "Register trustanchor-agent-18",
+      "txid": "0x1e1ed90017ba68def8bc4b7f730a8ebc030f1be88b1dfe23b6ba9a5bf2efca28",
+      "valid_until_block": 15932157
+    },
+    {
+      "label": "Register trustanchor-agent-19",
+      "txid": "0xee1ffca06abac630a900c623078f29347ac611b913c8883a5928496eed3b32a1",
+      "valid_until_block": 15932159
+    },
+    {
+      "label": "Register trustanchor-agent-20",
+      "txid": "0x53eec3d7c274108ba463284b795261be8921c0d7f0b5e5c0cdbb4590bf07a4f8",
+      "valid_until_block": 15932162
+    },
+    {
+      "label": "Register trustanchor-agent-21",
+      "txid": "0xbf38f50da38303c175f652f153a61597a2661d719fd8cf61599a906a5a3feb0f",
+      "valid_until_block": 15932163
+    },
+    {
+      "label": "Register profitanchor-agent-1",
+      "txid": "0x4d2391a62b829ef5aac7d2ea8dcc3c8f24fa6ad7bedb252d4c1da38945fcaf8b",
+      "valid_until_block": 15932165
+    },
+    {
+      "label": "Register profitanchor-agent-2",
+      "txid": "0xca0de85774ae2f84cdf36970abc5dfa8970fba5f039e716d06095c9131d144a7",
+      "valid_until_block": 15932167
+    },
+    {
+      "label": "Register profitanchor-agent-3",
+      "txid": "0x90bae3e0a80de662fe6b06f22ce592e89562564f930a56fa82092abffeac423f",
+      "valid_until_block": 15932168
+    },
+    {
+      "label": "Register profitanchor-agent-4",
+      "txid": "0x061719a441b57669f7c587127eb5750c949ceab86158ae3d3923ce67b56ead68",
+      "valid_until_block": 15932170
+    },
+    {
+      "label": "Register profitanchor-agent-5",
+      "txid": "0xa3c651e89bea59f044507be2c2d527204196d27d0820d1c25dbc54ed275939cc",
+      "valid_until_block": 15932171
+    },
+    {
+      "label": "Register profitanchor-agent-6",
+      "txid": "0xa2ed4eed8ec6d7d45af089784fe5c1fbababfe382f095220b68c5aef09120d5d",
+      "valid_until_block": 15932174
+    },
+    {
+      "label": "Register profitanchor-agent-7",
+      "txid": "0x8a76e0b19c6ffc9b2440585a902f7eceaf408f41e4eb6f683196485d21d106d0",
+      "valid_until_block": 15932175
+    },
+    {
+      "label": "Register profitanchor-agent-8",
+      "txid": "0x1198f5df5dc8ccb7c2a1b42c37b4bcd4d3ce5adf1805a45912a5c98d21207107",
+      "valid_until_block": 15932177
+    },
+    {
+      "label": "Register profitanchor-agent-9",
+      "txid": "0x314e09e18c00177e0d1b1dfa251e07f6a3de71269bbab297e3355a441f6b5628",
+      "valid_until_block": 15932180
+    },
+    {
+      "label": "Register profitanchor-agent-10",
+      "txid": "0x4c528efebe856059df72990a173a84f3a834138c7e75418b6fb2ab9dd91a4ce3",
+      "valid_until_block": 15932181
+    },
+    {
+      "label": "Register profitanchor-agent-11",
+      "txid": "0x07727ac8c9d391789a4503db370b74c842c658bd819944a793f84c123fa1cad0",
+      "valid_until_block": 15932184
+    },
+    {
+      "label": "Register profitanchor-agent-12",
+      "txid": "0x11e5210d2f4d6b592b39dd8984fd73a369995ce141ad989aa44d99374cd40995",
+      "valid_until_block": 15932185
+    },
+    {
+      "label": "Register profitanchor-agent-13",
+      "txid": "0xb4f3f8bb52cd4bb6c7b495163afe2fa8f59fc5a2a85f6248aaa5c781cc58e12a",
+      "valid_until_block": 15932187
+    },
+    {
+      "label": "Register profitanchor-agent-14",
+      "txid": "0x14c35d94296d16bfdb1240c8331c457cc2e9275aa3ad0bb313e5b8d89429c015",
+      "valid_until_block": 15932189
+    },
+    {
+      "label": "Register profitanchor-agent-15",
+      "txid": "0x0dcc55bafe85d18348096455494fd861144edc54bdadb5c1d60324ec0c388e31",
+      "valid_until_block": 15932190
+    },
+    {
+      "label": "Register profitanchor-agent-16",
+      "txid": "0xe050487aa969b4922a077d998b3a2a6dfa2ab345b465aaefd1ea2a54ab7751c1",
+      "valid_until_block": 15932193
+    },
+    {
+      "label": "Register profitanchor-agent-17",
+      "txid": "0xe7ddef97da5286b630521ebf4da2141797534c9dd96b79130fb7edd1d920ea72",
+      "valid_until_block": 15932194
+    },
+    {
+      "label": "Register profitanchor-agent-18",
+      "txid": "0xeeb0839a32f83011370c143be90869d06a89e4dfd98a59cfb99352af048efd0f",
+      "valid_until_block": 15932196
+    },
+    {
+      "label": "Register profitanchor-agent-19",
+      "txid": "0x6773623c5f3f3a3936455c363df6d85c69f10c249c00f7b8eaeb73027f50dc62",
+      "valid_until_block": 15932198
+    },
+    {
+      "label": "Register profitanchor-agent-20",
+      "txid": "0x30d36476e96a5e0032c8eee0f56b0ad4cc7a38f8432d20667156c5e4e61b37e9",
+      "valid_until_block": 15932200
+    },
+    {
+      "label": "Register profitanchor-agent-21",
+      "txid": "0x0c6d600f9e63c23b2228a71ff179811dbf92dbf63055c93e967f46019cc798b0",
+      "valid_until_block": 15932203
+    },
+    {
+      "label": "Set Anchor AA verify scopes",
+      "txid": "0x3f71cf6dd629fd253b9c9a153b47aef64fcba8a3e1cb97285a148620e910a572",
+      "valid_until_block": 15932205
     },
     {
       "label": "Configure SelfLoan ProfitAnchor",
-      "txid": "0xdb0d939c07d279b71fdf45a97d9ebc16a64291a97dd761f13f86301358419c92",
-      "valid_until_block": 15767560
-    },
-    {
-      "label": "TrustAnchor stake 1 NEO",
-      "txid": "0xff82d6633ba9609aa03172fba7d13c63071e4f94b41debc2978c7ccf9cbfc4ad",
-      "valid_until_block": 15767563
-    },
-    {
-      "label": "TrustAnchor pooled vote",
-      "txid": "0x1286ca391a42a5ce4cb8c63d521d96f381d6856cefdd8319ea36b939a5df1c26",
-      "valid_until_block": 15767564
-    },
-    {
-      "label": "TrustAnchor withdraw 1 NEO",
-      "txid": "0x59d8cf9dcc244e7b154bc245ce649d8d387ab05f898c1b788877dd1d4224b1f1",
-      "valid_until_block": 15767566
-    },
-    {
-      "label": "ProfitAnchor stake 1 NEO",
-      "txid": "0x0b879f681d5e721f1389d6bfcfae6ac126131ff11f7bf798998d58377d6b59d6",
-      "valid_until_block": 15767568
-    },
-    {
-      "label": "ProfitAnchor fund 0.01 GAS credit",
-      "txid": "0xbf7af5b47c7d6babfc823f3d364c6677870ab06b50c7c058a64bc7c250348303",
-      "valid_until_block": 15767569
-    },
-    {
-      "label": "ProfitAnchor fund rewards",
-      "txid": "0x054b1f387109d1e67eb520108bca2462ea5b50ce38d9196b999ce0652f833cbb",
-      "valid_until_block": 15767572
-    },
-    {
-      "label": "ProfitAnchor claim rewards",
-      "txid": "0x794a4594de08048b1cf1994418fc21e09835399eed81e111a5e163e1c613ced6",
-      "valid_until_block": 15767573
-    },
-    {
-      "label": "ProfitAnchor vote best candidate",
-      "txid": "0xba0fcba7844664c6eee3c87b9cb48aca4c507cadaa7adf8b2e67281af748e728",
-      "valid_until_block": 15767575
-    },
-    {
-      "label": "ProfitAnchor withdraw 1 NEO",
-      "txid": "0x0427d18077bc185048eac63f2bd0896560af3019a3126157d0575ab2135036ff",
-      "valid_until_block": 15767576
-    },
-    {
-      "label": "SelfLoan seed 0.2 GAS",
-      "txid": "0xbf82aa04bab17d8d00c4c1fdf0ca5398091cd65465b752a9182b78ed2222a46f",
-      "valid_until_block": 15767579
-    },
-    {
-      "label": "SelfLoan deposit 1 NEO collateral",
-      "txid": "0x9918871f3af9a67b634399a80bd5a9bc951aaad2c9c012e086f5cd1d8fa217ed",
-      "valid_until_block": 15767580
-    },
-    {
-      "label": "SelfLoan create loan",
-      "txid": "0xc249b4c235024f1aeba2506d565a691e244b504925891872947fc0e6ed86a0fd",
-      "valid_until_block": 15767583
-    },
-    {
-      "label": "SelfLoan sync ProfitAnchor vote",
-      "txid": "0x96d0b3712ae37f1e1cef426e99631e413cb6b048a9bb1efb33d9f1c861ee5408",
-      "valid_until_block": 15767584
-    },
-    {
-      "label": "SelfLoan repay and close loan",
-      "txid": "0xd5d56a9d26028355b467c8ce52a50adcb0d95aac29dda86098fae95e0d00ada5",
-      "valid_until_block": 15767587
+      "txid": "0x7f4f1056bd83dead6d09c7f5fe6212228acf08080e257811b60093625dd2b1cb",
+      "valid_until_block": 15932206
     }
   ],
   "validation": {
-    "profitanchor": {
-      "best_candidate_bytes": "023e9b32ea89b94d066e649b124fd50e396ee91369e8e2a6ae1b11c170d022256d",
-      "pending_reward_before_claim": "1000000",
-      "stake_after_withdraw": "0"
-    },
-    "selfloan": {
-      "total_collateral": "0",
-      "total_debt": "0",
-      "total_loans_after": "17",
-      "total_loans_before": "0"
-    },
-    "trustanchor": {
-      "stake_after_deposit": "1",
-      "stake_after_withdraw": "0"
-    }
+    "aa_verify_scope_accounts": 42,
+    "aa_verify_scope_target": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+    "live_validation_skipped": "ANCHOR_TESTNET_SKIP_LIVE_VALIDATION=1",
+    "platform_anchor_abstract_account": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
   },
-  "generated_at_utc": "2026-05-05T00:07:50Z"
+  "generated_at_utc": "2026-05-11T01:17:49Z"
 }

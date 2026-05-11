@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T04:04:10.611Z",
+  "generatedAt": "2026-05-10T23:02:01.233Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
@@ -8,10 +8,10 @@
   "frontendOrServerOnlyApps": 24,
   "uniqueMainnetContracts": 27,
   "contractStateErrors": 0,
-  "safeMethodsDiscovered": 843,
-  "safeInvocationsAttempted": 843,
+  "safeMethodsDiscovered": 846,
+  "safeInvocationsAttempted": 846,
   "safeInvocationsSkipped": 0,
-  "haltCount": 811,
+  "haltCount": 814,
   "expectedFaultCount": 28,
   "sampleFaultCount": 4,
   "blockerCount": 0,
@@ -29,10 +29,10 @@
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
-        "total": 37,
-        "discovered": 37,
+        "total": 38,
+        "discovered": 38,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 30,
         "expectedFault": 8,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
@@ -44,8 +44,8 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 60,
-      "safeMethodCount": 37,
+      "methodCount": 64,
+      "safeMethodCount": 38,
       "safeMethodResults": [
         {
           "method": "computeRegistrationAccountId",
@@ -100,7 +100,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "isExecutionActive",
@@ -176,7 +176,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getVerifier",
@@ -190,7 +190,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getHook",
@@ -204,7 +204,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getBackupOwner",
@@ -218,7 +218,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTimelock",
@@ -232,7 +232,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTriggeredAt",
@@ -246,7 +246,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getMarketEscrowContract",
@@ -305,7 +305,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getNonce",
@@ -548,6 +548,21 @@
           "status": "halt",
           "vmstate": "HALT",
           "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
           "stackItems": 1
         },
         {
@@ -729,10 +744,10 @@
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
-        "total": 37,
-        "discovered": 37,
+        "total": 38,
+        "discovered": 38,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 30,
         "expectedFault": 8,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
@@ -744,8 +759,8 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 60,
-      "safeMethodCount": 37,
+      "methodCount": 64,
+      "safeMethodCount": 38,
       "safeMethodResults": [
         {
           "method": "computeRegistrationAccountId",
@@ -800,7 +815,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "isExecutionActive",
@@ -876,7 +891,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getVerifier",
@@ -890,7 +905,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getHook",
@@ -904,7 +919,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getBackupOwner",
@@ -918,7 +933,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTimelock",
@@ -932,7 +947,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTriggeredAt",
@@ -946,7 +961,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getMarketEscrowContract",
@@ -1005,7 +1020,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getNonce",
@@ -1248,6 +1263,21 @@
           "status": "halt",
           "vmstate": "HALT",
           "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
           "stackItems": 1
         },
         {
@@ -1342,10 +1372,10 @@
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
-        "total": 37,
-        "discovered": 37,
+        "total": 38,
+        "discovered": 38,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 30,
         "expectedFault": 8,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
@@ -1357,8 +1387,8 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 60,
-      "safeMethodCount": 37,
+      "methodCount": 64,
+      "safeMethodCount": 38,
       "safeMethodResults": [
         {
           "method": "computeRegistrationAccountId",
@@ -1413,7 +1443,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "isExecutionActive",
@@ -1489,7 +1519,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getVerifier",
@@ -1503,7 +1533,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getHook",
@@ -1517,7 +1547,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getBackupOwner",
@@ -1531,7 +1561,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTimelock",
@@ -1545,7 +1575,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getEscapeTriggeredAt",
@@ -1559,7 +1589,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getMarketEscrowContract",
@@ -1618,7 +1648,7 @@
           ],
           "status": "expected_fault",
           "vmstate": "FAULT",
-          "exception": "at instruction 1626 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
         },
         {
           "method": "getNonce",
@@ -1861,6 +1891,21 @@
           "status": "halt",
           "vmstate": "HALT",
           "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "stackType": "ByteString",
           "stackItems": 1
         },
         {
@@ -3502,7 +3547,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 43,
+      "methodCount": 45,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -10417,7 +10462,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 43,
+      "methodCount": 45,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -10851,7 +10896,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 43,
+      "methodCount": 45,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -13170,7 +13215,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 43,
+      "methodCount": 45,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -13604,7 +13649,7 @@
       },
       "failures": [],
       "contractUpdateMethod": true,
-      "methodCount": 43,
+      "methodCount": 45,
       "safeMethodCount": 22,
       "safeMethodResults": [
         {
@@ -14416,9 +14461,9 @@
     }
   ],
   "verifier": {
-    "timeoutMs": 6000,
-    "concurrency": 8,
-    "progressEvery": 25,
+    "timeoutMs": 8000,
+    "concurrency": 6,
+    "progressEvery": 10,
     "maxSafeReads": 0
   }
 }
