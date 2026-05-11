@@ -85,6 +85,8 @@ type DapiWindow = Window & {
   neoDapi?: unknown;
 };
 
+type DapiProviderPreference = "any" | "onegate";
+
 function isDapiProvider(value: unknown): value is DapiProvider {
   if (!value || typeof value !== "object") return false;
   const provider = value as Partial<DapiProvider>;
@@ -96,9 +98,31 @@ function isDapiProvider(value: unknown): value is DapiProvider {
   );
 }
 
-function getImmediateProvider(): DapiProvider | null {
+function matchesPreference(
+  provider: DapiProvider,
+  preference: DapiProviderPreference,
+): boolean {
+  if (preference === "any") return true;
+  if (preference === "onegate") {
+    if (
+      typeof window !== "undefined" &&
+      (window as DapiWindow).OneGateDapiProvider === provider
+    ) {
+      return true;
+    }
+    const providerName = String(provider.name ?? "").toLowerCase();
+    return providerName.includes("onegate");
+  }
+  return false;
+}
+
+function getImmediateProvider(preference: DapiProviderPreference = "any"): DapiProvider | null {
   if (typeof window === "undefined") return null;
   const win = window as DapiWindow;
+  if (preference === "onegate") {
+    const provider = win.OneGateDapiProvider;
+    return isDapiProvider(provider) ? provider : null;
+  }
   const candidates = [
     win.Neo?.DapiProvider,
     win.OneGateDapiProvider,
@@ -108,8 +132,11 @@ function getImmediateProvider(): DapiProvider | null {
   return candidates.find(isDapiProvider) ?? null;
 }
 
-function waitForProvider(timeoutMs = 3000): Promise<DapiProvider> {
-  const immediate = getImmediateProvider();
+function waitForProvider(
+  timeoutMs = 3000,
+  preference: DapiProviderPreference = "any",
+): Promise<DapiProvider> {
+  const immediate = getImmediateProvider(preference);
   if (immediate) return Promise.resolve(immediate);
 
   return new Promise((resolve, reject) => {
@@ -117,6 +144,7 @@ function waitForProvider(timeoutMs = 3000): Promise<DapiProvider> {
     const onReady = (event: Event) => {
       const provider = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
       if (!isDapiProvider(provider)) return;
+      if (!matchesPreference(provider, preference)) return;
       clearTimeout(timeout);
       window.removeEventListener("Neo.DapiProvider.ready", onReady);
       resolve(provider);
@@ -235,6 +263,8 @@ export class Nep21Adapter implements WalletAdapter {
   private accountHash: string | null = null;
   private address: string | null = null;
 
+  constructor(private readonly preference: DapiProviderPreference = "any") {}
+
   private subscribe(events: DapiEventName[], listener: () => void | Promise<void>): () => void {
     const provider = this.provider;
     if (!provider?.on) return () => undefined;
@@ -248,12 +278,12 @@ export class Nep21Adapter implements WalletAdapter {
   }
 
   isInstalled(): boolean {
-    return !!getImmediateProvider();
+    return !!getImmediateProvider(this.preference);
   }
 
   private async getProvider(): Promise<DapiProvider> {
     if (this.provider) return this.provider;
-    this.provider = await waitForProvider();
+    this.provider = await waitForProvider(3000, this.preference);
     return this.provider;
   }
 
