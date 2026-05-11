@@ -5,6 +5,8 @@ const ARCHIVED_MINIAPP_IDS = new Set([
   "miniapp-neo-burger",
   "miniapp-flamingo",
   "miniapp-flaminggo",
+  "miniapp-secretvote",
+  "miniapp-secret-vote",
 ]);
 
 const ARCHIVED_MINIAPP_SLUGS = new Set([
@@ -12,6 +14,8 @@ const ARCHIVED_MINIAPP_SLUGS = new Set([
   "neo-burger",
   "flamingo",
   "flaminggo",
+  "secretvote",
+  "secret-vote",
 ]);
 
 export function isArchivedMiniAppId(value: unknown): boolean {
