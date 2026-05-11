@@ -4,6 +4,7 @@
     "dashboard": "대시보드",
     "apps": "앱",
     "miniapps": "미니앱",
+    "templateStudio": "템플릿 스튜디오",
     "settings": "설정",
     "account": "계정",
     "docs": "문서",
@@ -11,8 +12,12 @@
     "analytics": "분석",
     "stats": "통계",
     "services": "서비스",
+    "simulations": "시뮬레이션",
     "users": "사용자",
-    "contracts": "컨트랙트"
+    "contracts": "컨트랙트",
+    "main": "기본 내비게이션",
+    "mobile": "모바일 내비게이션",
+    "toggleMenu": "내비게이션 메뉴 전환"
   },
   "actions": {
     "connect": "연결",
@@ -80,7 +85,57 @@
     "connected": "지갑 연결됨",
     "notConnected": "지갑 미연결",
     "insufficientBalance": "잔액 부족",
-    "pleaseConnect": "계속하려면 지갑을 연결하세요"
+    "pleaseConnect": "계속하려면 지갑을 연결하세요",
+    "optionAlt": "{wallet} 지갑"
+  },
+  "auth": {
+    "connected": "연결됨",
+    "logout": "로그아웃",
+    "login": "로그인",
+    "loginSignup": "로그인 / 가입",
+    "connecting": "연결 중...",
+    "welcome": "{brand}에 오신 것을 환영합니다",
+    "continuePrompt": "지갑을 연결하거나 이메일로 로그인해 계속하세요.",
+    "emailSocial": "이메일 및 소셜",
+    "continueWith": "{provider}로 계속",
+    "or": "또는",
+    "orConnectWallet": "또는 지갑 연결",
+    "neoEcosystem": "Neo 생태계",
+    "recommended": "추천",
+    "directWifTesting": "직접 WIF 테스트",
+    "pasteTestWif": "테스트 지갑 WIF 붙여넣기",
+    "directWif": "직접 WIF",
+    "showWif": "WIF 표시",
+    "hideWif": "WIF 숨기기",
+    "localValidation": "로컬 검증 전용입니다. 키는 현재 브라우저 세션에만 보관되며 저장되지 않습니다.",
+    "terms": "연결하면 서비스 약관과 개인정보 처리방침에 동의한 것으로 간주됩니다.",
+    "disconnectTitle": "지갑 연결 해제",
+    "disconnectMessage": "블록체인 기능을 사용하려면 다시 연결해야 합니다.",
+    "wifTest": "WIF 테스트",
+    "dismiss": "닫기",
+    "closeLoginModal": "로그인 모달 닫기"
+  },
+  "walletOptions": {
+    "nep21": {
+      "name": "NEP-21 지갑",
+      "description": "OneGate와 호환 지갑이 노출하는 표준 Neo dAPI provider입니다."
+    },
+    "onegate": {
+      "name": "OneGate",
+      "description": "OneGate 호스트 지갑 폴백입니다. NEP-21이 주입되어 있으면 NEP-21을 우선 사용하세요."
+    },
+    "neoline": {
+      "name": "NeoLine",
+      "description": "Neo N3 계정과 컨트랙트 호출을 위한 NeoLine 확장입니다."
+    },
+    "o3": {
+      "name": "O3 지갑",
+      "description": "브라우저에 O3 provider가 주입되어 있을 때 사용하는 폴백입니다."
+    },
+    "protocol": {
+      "nep21": "NEP-21",
+      "legacyDapi": "Legacy dAPI"
+    }
   },
   "errors": {
     "occurred": "오류가 발생했습니다",

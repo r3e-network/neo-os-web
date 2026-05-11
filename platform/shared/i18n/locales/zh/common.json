@@ -14,7 +14,10 @@
     "services": "服务",
     "simulations": "模拟",
     "users": "用户",
-    "contracts": "合约"
+    "contracts": "合约",
+    "main": "主导航",
+    "mobile": "移动端导航",
+    "toggleMenu": "打开或关闭导航菜单"
   },
   "actions": {
     "connect": "连接",
@@ -82,7 +85,57 @@
     "connected": "钱包已连接",
     "notConnected": "钱包未连接",
     "insufficientBalance": "余额不足",
-    "pleaseConnect": "请连接钱包以继续"
+    "pleaseConnect": "请连接钱包以继续",
+    "optionAlt": "{wallet} 钱包"
+  },
+  "auth": {
+    "connected": "已连接",
+    "logout": "退出登录",
+    "login": "登录",
+    "loginSignup": "登录 / 注册",
+    "connecting": "连接中...",
+    "welcome": "欢迎使用 {brand}",
+    "continuePrompt": "连接钱包，或使用邮箱账号继续。",
+    "emailSocial": "邮箱与社交账号",
+    "continueWith": "继续使用 {provider}",
+    "or": "或",
+    "orConnectWallet": "或连接钱包",
+    "neoEcosystem": "Neo 生态钱包",
+    "recommended": "推荐",
+    "directWifTesting": "直接 WIF 测试",
+    "pasteTestWif": "粘贴测试钱包 WIF",
+    "directWif": "直接 WIF",
+    "showWif": "显示 WIF",
+    "hideWif": "隐藏 WIF",
+    "localValidation": "仅用于本地验证。密钥只保留在当前浏览器会话中，不会被保存。",
+    "terms": "连接即表示你同意服务条款和隐私政策。",
+    "disconnectTitle": "断开钱包",
+    "disconnectMessage": "断开后需要重新连接才能使用链上功能。",
+    "wifTest": "WIF 测试",
+    "dismiss": "关闭",
+    "closeLoginModal": "关闭登录弹窗"
+  },
+  "walletOptions": {
+    "nep21": {
+      "name": "NEP-21 钱包",
+      "description": "OneGate 和兼容钱包暴露的标准 Neo dAPI 钱包入口。"
+    },
+    "onegate": {
+      "name": "OneGate",
+      "description": "OneGate 宿主钱包兜底入口；如果已注入 NEP-21，优先使用 NEP-21。"
+    },
+    "neoline": {
+      "name": "NeoLine",
+      "description": "NeoLine 浏览器扩展，用于 Neo N3 账户和合约调用。"
+    },
+    "o3": {
+      "name": "O3 钱包",
+      "description": "当浏览器注入 O3 provider 时使用的 O3 钱包兜底入口。"
+    },
+    "protocol": {
+      "nep21": "NEP-21",
+      "legacyDapi": "旧版 dAPI"
+    }
   },
   "errors": {
     "occurred": "发生错误",

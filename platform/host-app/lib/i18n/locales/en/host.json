@@ -2,7 +2,8 @@
   "hero": {
     "title": "Yiwu MiniApps",
     "subtitle": "Small, focused Neo MiniApps for practical wallet operations",
-    "exploreApps": "Explore Apps"
+    "exploreApps": "Explore Apps",
+    "launchApp": "Launch App"
   },
   "features": {
     "title": "Features",
@@ -28,7 +29,11 @@
     "social": "Social",
     "utility": "Utility",
     "nft": "NFT",
-    "governance": "Governance"
+    "governance": "Governance",
+    "data": "Data",
+    "finance": "Finance",
+    "operations": "Operations",
+    "other": "Other"
   },
   "activity": {
     "recent": "Recent Activity",
@@ -40,5 +45,105 @@
     "profile": "Profile",
     "transactions": "Transactions",
     "favorites": "Favorites"
+  },
+  "catalog": {
+    "pageTitle": "MiniApps",
+    "title": "MiniApp Catalog",
+    "description": "Browse small, focused MiniApps for Neo N3. Pick one, open the play area, and operate from the shared action console.",
+    "searchLabel": "Search MiniApps",
+    "searchPlaceholder": "Search by name, category, app ID",
+    "fetchError": "Failed to load. Please try again.",
+    "openApp": "Open app",
+    "shownCount": "{shown} of {total} MiniApps shown",
+    "empty": "No MiniApps match the current filters.",
+    "network": {
+      "mainnet": "Neo N3 Mainnet",
+      "testnet": "Neo N3 Testnet"
+    },
+    "filters": {
+      "all": "All",
+      "live": "Live",
+      "tool": "Tool",
+      "otherNetwork": "Other network",
+      "pending": "Pending"
+    },
+    "status": {
+      "live": "Live",
+      "pending": "Pending",
+      "tool": "Tool",
+      "otherNetwork": "Other network",
+      "testnetOnly": "Testnet only",
+      "mainnetOnly": "Mainnet only",
+      "networkUnavailable": "Network unavailable"
+    }
+  },
+  "home": {
+    "badges": {
+      "nep21Ready": "NEP-21 wallet ready",
+      "onegateExport": "OneGate dApp export"
+    },
+    "hero": {
+      "title": "Yiwu MiniApps, small tools for every Neo scenario.",
+      "body": "Like Yiwu's small-commodity market, this is a single production interface for small, focused MiniApps: games, payments, oracle tools, account abstraction, bridge workflows, ratings, comments, contract state, and wallet-safe operations.",
+      "catalogCta": "Open MiniApp Catalog",
+      "developerCta": "Developer Console"
+    },
+    "status": {
+      "title": "Platform Status",
+      "subtitle": "Live app shell with native play areas",
+      "itemNetwork": "Strict mainnet and testnet isolation",
+      "itemConsole": "Shared action console across every app",
+      "itemPlayArea": "Native PlayArea registry, no iframe shell"
+    },
+    "stats": {
+      "enabledApps": "Enabled apps",
+      "featured": "Featured",
+      "operatorTools": "Operator tools"
+    },
+    "featured": {
+      "eyebrow": "Featured Apps",
+      "title": "Start here"
+    },
+    "categories": {
+      "all": "All Apps"
+    },
+    "catalog": {
+      "description": "Browse polished apps by category, then open the unified detail view with the app-specific play area and shared action console.",
+      "searchPlaceholder": "Search apps, categories, or IDs",
+      "ecosystems": "Ecosystems",
+      "shownCount": "{shown} shown",
+      "emptyTitle": "No apps found",
+      "emptyBody": "Try adjusting your filters."
+    },
+    "sort": {
+      "featured": "Featured",
+      "recent": "Recent",
+      "name": "Name"
+    },
+    "tools": {
+      "title": "Account & Oracle Tools",
+      "description": "Focused miniapps for AA registration, permissions, relay checks, and Morpheus Oracle interaction.",
+      "browse": "Browse All Tools",
+      "emptyTitle": "No tools available yet",
+      "emptyBody": "Check back soon for new operator tools."
+    },
+    "capabilities": {
+      "title": "Platform Capabilities",
+      "description": "The shared shell keeps every app consistent while leaving the top play area free for each product's own gameplay or workflow.",
+      "teeTitle": "Confidential TEE",
+      "teeDesc": "Run private logic in AWS Nitro enclaves where even operators can't see the data.",
+      "vrfTitle": "Native VRF",
+      "vrfDesc": "Integrated verifiable randomness directly into the consensus layer for guaranteed fairness.",
+      "oracleTitle": "Oracle Network",
+      "oracleDesc": "Securely access real-world data without external dependencies or heavy fees.",
+      "storageTitle": "NeoFS Storage",
+      "storageDesc": "Decentralized metadata and vast asset storage baked directly into the protocol."
+    },
+    "cta": {
+      "title": "Build and publish a focused MiniApp.",
+      "body": "Use the same shell, wallet adapters, operation panel, media pipeline, and catalog validation that the flagship apps use.",
+      "start": "Start Building",
+      "docs": "Read Docs"
+    }
   }
 }

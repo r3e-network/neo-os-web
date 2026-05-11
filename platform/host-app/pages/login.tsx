@@ -1,6 +1,8 @@
 import { useAuthStore } from "@/lib/auth/store";
 import { WalletProvider, walletOptions } from "@/lib/wallet/store";
 import { cn } from "@/lib/utils";
+import { interpolate } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/react";
 import Head from "next/head";
 
 const socialProviders = [
@@ -25,18 +27,19 @@ const socialProviders = [
 ];
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const { loginSocial, loginWallet, loading, error, clearError } =
     useAuthStore();
 
   return (
     <>
       <Head>
-        <title>Log In</title>
+        <title>{t("auth.login")}</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
         <div className="w-full max-w-sm space-y-6 rounded-2xl bg-white p-8 shadow-lg">
           <h1 className="text-center text-2xl font-extrabold text-gray-900">
-            Log in
+            {t("auth.login")}
           </h1>
 
           <div className="space-y-3">
@@ -48,14 +51,16 @@ export default function LoginPage() {
                 disabled={loading}
                 className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${p.bg} ${p.text}`}
               >
-                Continue with {p.name}
+                {interpolate(t("auth.continueWith"), { provider: p.name })}
               </button>
             ))}
           </div>
 
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-500">or connect wallet</span>
+            <span className="text-xs text-gray-500">
+              {t("auth.orConnectWallet")}
+            </span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
@@ -71,7 +76,7 @@ export default function LoginPage() {
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50">
                   <img
                     src={w.icon}
-                    alt={w.name}
+                    alt={t(`walletOptions.${w.id}.name`)}
                     width={28}
                     height={28}
                     className="max-h-7 max-w-7 object-contain"
@@ -85,16 +90,16 @@ export default function LoginPage() {
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate font-bold text-gray-800">
-                      {w.name}
+                      {t(`walletOptions.${w.id}.name`)}
                     </span>
                     {w.recommended && (
                       <span className="rounded-full bg-neo/10 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700">
-                        Recommended
+                        {t("auth.recommended")}
                       </span>
                     )}
                   </span>
                   <span className="mt-0.5 block text-xs font-medium leading-snug text-gray-500">
-                    {w.description}
+                    {t(`walletOptions.${w.id}.description`)}
                   </span>
                 </span>
                 <span
@@ -105,14 +110,18 @@ export default function LoginPage() {
                       : "bg-gray-100 text-gray-500",
                   )}
                 >
-                  {w.protocol}
+                  {w.protocol === "NEP-21"
+                    ? t("walletOptions.protocol.nep21")
+                    : t("walletOptions.protocol.legacyDapi")}
                 </span>
               </button>
             ))}
           </div>
 
           {loading && (
-            <p className="text-center text-sm text-gray-500">Connecting...</p>
+            <p className="text-center text-sm text-gray-500">
+              {t("auth.connecting")}
+            </p>
           )}
           {error && (
             <div
@@ -125,7 +134,7 @@ export default function LoginPage() {
                 onClick={clearError}
                 className="ml-2 underline transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg"
               >
-                dismiss
+                {t("auth.dismiss")}
               </button>
             </div>
           )}
