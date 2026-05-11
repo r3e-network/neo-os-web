@@ -22,10 +22,10 @@ describe("/api/cron/rollup-stats", () => {
     jest.doMock("../../lib/chain", () => ({
       getFlagshipApps: () => ({
         "miniapp-last-survivor": { contract: "0x1021e9e5c17285e706c293a39c525de13100ed92", category: "gaming" },
-        "miniapp-gasbox": { contract: "0x49ec8536ba331d744a16b8da2a6ed4263ef4e89c", category: "gaming" },
+        "miniapp-gasbox": { contract: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c", category: "gaming" },
         "miniapp-redenvelope": { contract: "0xfa1b7240fead2a63999c02defa3aec5eb274a919", category: "social" },
         "miniapp-dailycheckin": { contract: "0xaba84da240a55410d284a656fc8dae044e6ec1a5", category: "gaming" },
-        "miniapp-fogplay": { contract: "0xb115dd775a7591bb0eedef6dbf50428d50e7bc07", category: "gaming" },
+        "miniapp-fogplay": { contract: "0x740671b10330ef6669ab8b2724437eb8d5e7a34c", category: "gaming" },
         "miniapp-self-loan": { contract: "0xb4aa0bdbfec40b44fa1ec4461c8c347829a79ada", category: "defi" },
         "miniapp-neo-pay": { contract: "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e", category: "defi" },
         "miniapp-trustanchor": { contract: "0xee1819916a6b8c7a8c30506af3318c758850033a", category: "defi" },

@@ -36,7 +36,7 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
   // Local form state
   const [aaAddress, setAaAddress] = useState("");
   const [dappIdLocal, setDappIdLocal] = useState("");
-  const [payloadJsonLocal, setPayloadJsonLocal] = useState('{\n  "metaInvocation": {\n    "scriptHash": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38"\n  }\n}');
+  const [payloadJsonLocal, setPayloadJsonLocal] = useState('{\n  "metaInvocation": {\n    "scriptHash": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"\n  }\n}');
 
   return (
     <div className="relay-play-area">

@@ -235,7 +235,7 @@ function decodeOwnerAddress(stackItem) {
   if (!stackItem || stackItem.type !== "ByteString" || !stackItem.value) return "";
   const hex = Buffer.from(String(stackItem.value), "base64").toString("hex");
   if (!/^[0-9a-f]{40}$/i.test(hex)) return "";
-  return wallet.getAddressFromScriptHash(hex);
+  return wallet.getAddressFromScriptHash(hex.match(/../g).reverse().join(""));
 }
 
 async function resolveDomain(rpcUrl, domain) {

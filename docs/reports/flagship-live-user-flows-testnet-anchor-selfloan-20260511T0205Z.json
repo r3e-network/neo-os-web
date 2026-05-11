@@ -1,0 +1,326 @@
+{
+  "generatedAt": "2026-05-11T01:45:12.212Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "selected": [
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "selected": [
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "rngFallbackSignerMatches": true,
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "gas": "6652119709071",
+        "neo": "9433"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "1669181158206"
+      },
+      "oracleUpdater": {
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "998547417658"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "skipped": true
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "readChecks": {
+        "appId": "miniapp-profitanchor",
+        "mode": "2",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "2",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+          "accountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+          "expectedProxyAccount": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
+          "aaProxyMatched": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+          "accountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+          "expectedProxyAccount": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
+          "aaProxyMatched": true
+        }
+      },
+      "manualWrite": {
+        "ok": true,
+        "fundingTx": null,
+        "transferTx": {
+          "txid": "0x9434358ab982d8a6899b625f255ba69a55985d9f94def0b1c9731b7ea4b153d7",
+          "vmstate": "HALT",
+          "gasconsumed": "2230141",
+          "nonce": "0",
+          "deadline": "1778467515435",
+          "networkFee": "284608",
+          "systemFee": "3345212"
+        },
+        "voteTx": {
+          "txid": "0xbc0cc2459e1ec94b8a1334d2ca618ac14528ced99fbbb21fba0d10caf253abda",
+          "vmstate": "HALT",
+          "gasconsumed": "1856041",
+          "nonce": "0",
+          "deadline": "1778467522906",
+          "networkFee": "284428",
+          "systemFee": "2784062"
+        },
+        "sourceAgent": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
+        "sourceAccountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+        "targetAgent": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
+        "targetAccountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+        "amount": "1"
+      }
+    },
+    "trustAnchor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+      "readChecks": {
+        "appId": "miniapp-trustanchor",
+        "mode": "1",
+        "platformAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appAdmin": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "appPaused": false,
+        "stats": {
+          "mode": "1",
+          "totalStaked": "0",
+          "totalStakers": "0",
+          "rewardPerNeo": "0",
+          "rewardReserve": "0",
+          "totalRewardReserve": "0",
+          "rewardRemainder": "0",
+          "agentCount": "21",
+          "selectedAgentId": "0",
+          "paused": false
+        },
+        "agentCount": "21",
+        "firstAgent": {
+          "agentId": "1",
+          "account": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+          "accountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+          "expectedProxyAccount": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
+          "aaProxyMatched": true
+        },
+        "secondAgent": {
+          "agentId": "2",
+          "account": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
+          "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
+          "verificationScriptHash": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+          "weight": "0",
+          "active": true,
+          "storedAccountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+          "accountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+          "expectedProxyAccount": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
+          "aaProxyMatched": true
+        }
+      },
+      "manualWrite": {
+        "ok": true,
+        "fundingTx": null,
+        "transferTx": {
+          "txid": "0x3565c5bef5860debad2921b117757ff57049424d255443bcc3747be23d196a18",
+          "vmstate": "HALT",
+          "gasconsumed": "2168947",
+          "nonce": "0",
+          "deadline": "1778467530163",
+          "networkFee": "284588",
+          "systemFee": "3253421"
+        },
+        "voteTx": {
+          "txid": "0x7ce6a24f1b2f4dea9d84500f9eb6d3b3c003843bff2a8d0fa8025f8de87495f0",
+          "vmstate": "HALT",
+          "gasconsumed": "1794847",
+          "nonce": "0",
+          "deadline": "1778467537653",
+          "networkFee": "284408",
+          "systemFee": "2692271"
+        },
+        "sourceAgent": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
+        "sourceAccountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+        "targetAgent": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
+        "targetAccountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+        "amount": "1"
+      }
+    },
+    "selfLoan": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+      "collateralPrecheck": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "requiredCollateral": "1",
+        "availableNeo": "9433"
+      },
+      "poolTx": "0x524fc59a9ae0c81bb37ea1161baeb04bfc0f2be53fa54c13d08700dd6ab67edf",
+      "collateralTx": "0x6c9f097d88c9e6ddbf99ea1fe0c90cfc5001ee08b96fdb4001f3813f7468aaca",
+      "createTx": "0x9266413c221eaaee08fb7736547fae9eab2adc2ab048c5a4056a3a0964441281",
+      "syncTx": "0xc876ecb7fac01cebb2190b3e798c9247d346780dd652d4d2e5dfe765a4948a10",
+      "repayTx": "0x00a976d8e3eae0347b248aca4af1304ed1c9aab2eb4b57b562dcbf1284a8dbab",
+      "loanId": "8",
+      "details": [
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "1",
+        "0",
+        "20000000",
+        "1778463965463",
+        "1778463965463",
+        "2000",
+        "20000000",
+        "0",
+        false
+      ],
+      "stats": {
+        "totalLoans": "8",
+        "totalCollateral": "7",
+        "totalDebt": "140000000",
+        "totalRepaid": "20000000",
+        "totalBorrowers": "2",
+        "ltvTier1Bps": "2000",
+        "ltvTier2Bps": "3000",
+        "ltvTier3Bps": "4000",
+        "liquidationThresholdBps": "8000",
+        "minHealthFactor": "100",
+        "minCollateral": "1",
+        "lendingFeeBps": "50",
+        "profitAnchor": {
+          "contract": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "appId": "miniapp-profitanchor",
+          "enabled": true
+        }
+      }
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

@@ -40,8 +40,8 @@ const appMessages = {
     zh: "运营方在两个 AA 候选人 agent 之间移动 NEO，在 council 列表变化时更新目标，然后同步投票。",
   },
   rebalanceMetricDesc: {
-    en: "Admin registers AA agent routes and updates candidates; moving NEO still requires the source AA agent witness.",
-    zh: "管理员注册 AA agent 路由并更新候选人；移动 NEO 仍需要来源 AA agent witness。",
+    en: "Admin registers AA agent routes and updates candidates; moving NEO is submitted as an AA user operation.",
+    zh: "管理员注册 AA agent 路由并更新候选人；移动 NEO 通过 AA user operation 提交。",
   },
   howItWorks: { en: "How It Works", zh: "工作原理" },
   step1: {
@@ -66,8 +66,8 @@ const appMessages = {
     zh: "只有 AA agent 注册、agent 间转账、候选人更新和投票同步会改变治理敞口。",
   },
   adminControl2: {
-    en: "Moving NEO requires the source AA agent witness; app admin alone cannot move agent funds.",
-    zh: "移动 NEO 需要来源 AA agent witness；只有 app admin 不能移动 agent 资金。",
+    en: "Agent funds are controlled by AA proxy witnesses generated through the AA core, not by an agent WIF.",
+    zh: "Agent 资金由 AA core 生成的 AA proxy witness 控制，不存在 agent WIF。",
   },
   adminControl3: {
     en: "No per-candidate child contract is deployed or managed in this model.",

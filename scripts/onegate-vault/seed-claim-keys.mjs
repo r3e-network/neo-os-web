@@ -21,6 +21,7 @@ function parseArgs(argv) {
     oneGateAppId: "",
     minFixed8: DEFAULT_MIN_FIXED8,
     maxFixed8: DEFAULT_MAX_FIXED8,
+    rewardSource: "",
     execute: false,
     writeNormalizedCsv: "",
   };
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     else if (arg === "--onegate-app-id") args.oneGateAppId = next();
     else if (arg === "--min-fixed8") args.minFixed8 = BigInt(next());
     else if (arg === "--max-fixed8") args.maxFixed8 = BigInt(next());
+    else if (arg === "--reward-source") args.rewardSource = next();
     else if (arg === "--write-normalized-csv") args.writeNormalizedCsv = next();
     else if (arg === "--execute") args.execute = true;
     else if (arg === "--help") printHelpAndExit();
@@ -63,6 +65,7 @@ Options:
   --pool-id pool-001
   --min-fixed8 100000000
   --max-fixed8 5000000000
+  --reward-source <Neo address or 0x hash>
   --write-normalized-csv <file>
   --execute
 `);
@@ -269,6 +272,15 @@ async function main() {
     group.push(row);
     grouped.set(row.pool, group);
   }
+  const networkSuffix = args.network === "mainnet" ? "MAINNET" : "TESTNET";
+  const rewardSource = String(
+    args.rewardSource ||
+      process.env[`ONEGATE_VAULT_REWARD_SOURCE_${networkSuffix}`] ||
+      process.env[`ONEGATE_VAULT_REWARD_SOURCE_HASH_${networkSuffix}`] ||
+      process.env.ONEGATE_VAULT_REWARD_SOURCE ||
+      process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH ||
+      "",
+  ).trim();
 
   console.log(
     JSON.stringify(
@@ -279,6 +291,7 @@ async function main() {
         network: args.network,
         app_id: args.appId,
         onegate_app_ids: [...new Set(normalized.map((row) => row.onegate_app_id))].sort(),
+        reward_source: rewardSource ? "configured" : "default",
         normalized_csv: args.writeNormalizedCsv || null,
       },
       null,
@@ -318,6 +331,7 @@ async function main() {
       remaining_amount_fixed8: String(args.maxFixed8 * BigInt(group.length)),
       max_claims: group.length,
       claimed_count: 0,
+      ...(rewardSource ? { reward_source: rewardSource } : {}),
       metadata: {
         source: "onegate-vault-seed-claim-keys",
         pool_model: "single-pool-many-keys",
@@ -335,6 +349,7 @@ async function main() {
       min_amount_fixed8: String(args.minFixed8),
       max_amount_fixed8: String(args.maxFixed8),
       max_claims: group.length,
+      ...(rewardSource ? { reward_source: rewardSource } : {}),
       metadata: {
         source: "onegate-vault-seed-claim-keys",
         pool_model: "single-pool-many-keys",

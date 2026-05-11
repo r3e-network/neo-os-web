@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const CozNeon = require("@cityofzion/neon-js");
 const {
   sleep,
   asTxid,
@@ -70,7 +71,18 @@ const ADMIN_WIF =
   process.env.DEPLOYER_WIF ||
   process.env.FLAGSHIP_LIVE_WIF ||
   "";
+const ANCHOR_AGENT_NEO_FUNDER_WIF = firstConfigured(
+  process.env.ANCHOR_AGENT_NEO_FUNDER_WIF,
+  process.env.ANCHOR_NEO_FUNDER_WIF,
+  process.env.FLAGSHIP_NEO_FUNDER_WIF,
+);
+const ANCHOR_AA_OWNER_WIF = firstConfigured(
+  process.env.ANCHOR_AA_OWNER_WIF,
+  process.env.ANCHOR_LIVE_AA_OWNER_WIF,
+);
+const ANCHOR_AUTO_FUND_AGENT_NEO = boolish(process.env.ANCHOR_AUTO_FUND_AGENT_NEO);
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHash).trim();
+const AA_CORE_HASH = (process.env.AA_CORE_HASH || NETWORK_CONFIG.aaCoreHash || "").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const NEO_HASH = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const LIVE_TARGET_FILTER = new Set(
@@ -227,6 +239,8 @@ if (!WIF) {
 let account;
 let adminAccount;
 let oracleUpdaterAccount;
+let anchorAgentNeoFunderAccount;
+let anchorAaOwnerAccount;
 let rpcClient;
 let gasContract;
 let neoContract;
@@ -241,6 +255,8 @@ async function initNeon() {
   account = new Neon.wallet.Account(WIF);
   adminAccount = ADMIN_WIF ? new Neon.wallet.Account(ADMIN_WIF) : account;
   oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
+  anchorAgentNeoFunderAccount = ANCHOR_AGENT_NEO_FUNDER_WIF ? new Neon.wallet.Account(ANCHOR_AGENT_NEO_FUNDER_WIF) : null;
+  anchorAaOwnerAccount = ANCHOR_AA_OWNER_WIF ? new Neon.wallet.Account(ANCHOR_AA_OWNER_WIF) : adminAccount;
   rpcClient = new Neon.rpc.RPCClient(RPC_URL);
   gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
     rpcAddress: RPC_URL,
@@ -404,6 +420,37 @@ function normalizeHash160(value) {
   return /^[0-9a-f]{40}$/.test(text) ? `0x${text}` : text;
 }
 
+function stripHexPrefix(value) {
+  return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
+}
+
+function reverseHex(value) {
+  return stripHexPrefix(value).match(/../g)?.reverse().join("") || "";
+}
+
+function buildAaVerifyScript(accountIdHash, aaCoreHash = AA_CORE_HASH) {
+  const accountId = stripHexPrefix(normalizeHash160(accountIdHash));
+  const core = stripHexPrefix(normalizeHash160(aaCoreHash));
+  if (!/^[0-9a-f]{40}$/.test(accountId)) {
+    throw new Error(`invalid AA account id hash: ${accountIdHash}`);
+  }
+  if (!/^[0-9a-f]{40}$/.test(core)) {
+    throw new Error(`invalid AA core hash: ${aaCoreHash}`);
+  }
+  return [
+    "0c14",
+    accountId,
+    "11c01f0c06766572696679",
+    "0c14",
+    reverseHex(core),
+    "41627d5b52",
+  ].join("");
+}
+
+function deriveAaProxyHash(accountIdHash, aaCoreHash = AA_CORE_HASH) {
+  return normalizeHash160(CozNeon.wallet.getScriptHashFromVerificationScript(buildAaVerifyScript(accountIdHash, aaCoreHash)));
+}
+
 function toBigIntValue(value) {
   try {
     return BigInt(String(value ?? "0"));
@@ -438,6 +485,168 @@ async function getGasBalance(addressOrHash) {
 async function getNeoBalance(addressOrHash) {
   const res = await rpcClient.invokeFunction(NEO_HASH, "balanceOf", [Neon.sc.ContractParam.hash160(addressOrHash)]);
   return toBigIntValue(res?.stack?.[0]?.value || "0");
+}
+
+function aaUserOpParam({ targetContract, method, args = [], nonce = 0n, deadline = 0n, signatureHex = "" }) {
+  return Neon.sc.ContractParam.array(
+    Neon.sc.ContractParam.hash160(targetContract),
+    Neon.sc.ContractParam.string(method),
+    Neon.sc.ContractParam.array(...args),
+    Neon.sc.ContractParam.integer(nonce.toString()),
+    Neon.sc.ContractParam.integer(deadline.toString()),
+    Neon.sc.ContractParam.byteArray(signatureHex ? Buffer.from(signatureHex.replace(/^0x/i, ""), "hex").toString("base64") : ""),
+  );
+}
+
+function paramToJson(param) {
+  if (param && typeof param.toJson === "function") return param.toJson();
+  if (param && typeof param.toJSON === "function") return param.toJSON();
+  return param;
+}
+
+function cozParam(param) {
+  return CozNeon.sc.ContractParam.fromJson(paramToJson(param));
+}
+
+function cozAaUserOpParam({ targetContract, method, args = [], nonce = 0n, deadline = 0n, signatureHex = "" }) {
+  return CozNeon.sc.ContractParam.array(
+    CozNeon.sc.ContractParam.hash160(targetContract),
+    CozNeon.sc.ContractParam.string(method),
+    CozNeon.sc.ContractParam.array(...args.map(cozParam)),
+    CozNeon.sc.ContractParam.integer(nonce.toString()),
+    CozNeon.sc.ContractParam.integer(deadline.toString()),
+    CozNeon.sc.ContractParam.byteArray(signatureHex ? Buffer.from(signatureHex.replace(/^0x/i, ""), "hex").toString("base64") : ""),
+  );
+}
+
+function aaProxySigner(accountHash, targetContract) {
+  const allowedCallers = Array.from(new Set([
+    normalizeHash160(AA_CORE_HASH),
+    normalizeHash160(targetContract),
+  ].filter(Boolean)));
+  const signer = new CozNeon.tx.Signer({
+    account: normalizeHash160(accountHash),
+    scopes: CozNeon.tx.WitnessScope.WitnessRules,
+  });
+  const condition = new CozNeon.tx.OrWitnessCondition(
+    allowedCallers.map((hash) => new CozNeon.tx.CalledByContractWitnessCondition(normalizeHash160(hash)))
+  );
+  signer.addRules(new CozNeon.tx.WitnessRule({
+    action: CozNeon.tx.WitnessRuleAction.Allow,
+    condition,
+  }));
+  return signer;
+}
+
+function entrySigner(accountHash) {
+  return new CozNeon.tx.Signer({
+    account: normalizeHash160(accountHash),
+    scopes: CozNeon.tx.WitnessScope.Global,
+  });
+}
+
+function rpcSigner(signer) {
+  return signer && typeof signer.toJson === "function" ? signer.toJson() : signer;
+}
+
+function accountSigningKey(targetAccount = account) {
+  const key = targetAccount?.WIF || targetAccount?.privateKey;
+  if (!key) throw new Error("signing account does not expose a WIF/private key");
+  return key;
+}
+
+async function estimateNetworkFee(transaction) {
+  try {
+    const tx = Neon.hexToBytes(transaction.serialize(true));
+    const result = await rpcClient.inner.calculateNetworkFee({ tx });
+    return BigInt(result?.networkfee || 0);
+  } catch (error) {
+    if (String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() === "1") {
+      throw new Error(`network fee estimation failed: ${error?.message || error}`);
+    }
+    return 5000000n;
+  }
+}
+
+async function invokeAaUserOpPersisted({
+  accountId,
+  proxyAccount,
+  targetContract,
+  method,
+  args = [],
+  timeoutMs = 180000,
+}) {
+  if (!AA_CORE_HASH) throw new Error("AA core hash is not configured");
+  const cozRpcClient = new CozNeon.rpc.RPCClient(RPC_URL);
+  const channel = process.env.ANCHOR_LIVE_AA_NONCE_CHANNEL || "0";
+  const nonce = toBigIntValue(await invokeRead(AA_CORE_HASH, "getNonce", [
+    Neon.sc.ContractParam.hash160(accountId),
+    Neon.sc.ContractParam.integer(channel),
+  ]));
+  const deadline = BigInt(Date.now() + Number(process.env.ANCHOR_LIVE_AA_DEADLINE_MS || "3600000"));
+  const op = cozAaUserOpParam({ targetContract, method, args, nonce, deadline });
+  const ownerAccount = anchorAaOwnerAccount || adminAccount || account;
+  const ownerHash = `0x${ownerAccount.scriptHash}`;
+  const txSigners = [
+    entrySigner(ownerHash),
+    aaProxySigner(proxyAccount, targetContract),
+  ];
+  const previewSigners = txSigners.map(rpcSigner);
+  const params = [
+    CozNeon.sc.ContractParam.hash160(accountId),
+    op,
+  ];
+  const preview = await cozRpcClient.invokeFunction(AA_CORE_HASH, "executeUserOp", params, previewSigners);
+  if (String(preview?.state || "").toUpperCase() === "FAULT") {
+    throw new Error(preview?.exception || `${method} executeUserOp preview failed`);
+  }
+  if (!preview?.script) {
+    throw new Error(`${method} executeUserOp preview did not return script`);
+  }
+
+  const currentHeight = await rpcClient.getBlockCount();
+  const baseTx = {
+    signers: txSigners,
+    validUntilBlock: currentHeight + 100,
+    script: Buffer.from(preview.script, "base64").toString("hex"),
+    systemFee: Math.ceil(Number(preview.gasconsumed || 0) * 1.5),
+  };
+  const aaWitness = new CozNeon.tx.Witness({
+    invocationScript: "",
+    verificationScript: buildAaVerifyScript(accountId),
+  });
+  const signingKey = accountSigningKey(ownerAccount);
+  const feeProbeTx = new CozNeon.tx.Transaction({
+    ...baseTx,
+    networkFee: 0,
+    witnesses: [],
+  });
+  feeProbeTx.sign(signingKey, NETWORK_MAGIC);
+  feeProbeTx.addWitness(aaWitness);
+  const networkFee = await estimateNetworkFee(feeProbeTx);
+
+  const finalTx = new CozNeon.tx.Transaction({
+    ...baseTx,
+    networkFee: Number(networkFee),
+    witnesses: [],
+  });
+  finalTx.sign(signingKey, NETWORK_MAGIC);
+  finalTx.addWitness(aaWitness);
+  const sent = await cozRpcClient.sendRawTransaction(finalTx);
+  const txid = asTxid(typeof sent === "string" ? sent : sent?.hash || finalTx.hash());
+  const { execution } = await waitForLog(txid, timeoutMs);
+  if (execution.vmstate !== "HALT") {
+    throw new Error(execution.exception || `${method} executeUserOp failed: ${txid}`);
+  }
+  return {
+    txid,
+    vmstate: execution.vmstate,
+    gasconsumed: execution.gasconsumed || null,
+    nonce: nonce.toString(),
+    deadline: deadline.toString(),
+    networkFee: networkFee.toString(),
+    systemFee: String(baseTx.systemFee),
+  };
 }
 
 async function ensureAccountHasGas(accountLike, required, label) {
@@ -610,6 +819,35 @@ async function transferNEO(toHash, amount, memo) {
   }
   if (!executionReturnedTrue(execution)) {
     throw new Error(`NEO transfer returned false for ${toHash}`);
+  }
+  return asTxid(txid);
+}
+
+async function transferNEOFromAccount(fromAccount, toHash, amount, memo) {
+  if (!fromAccount) throw new Error("NEO funding account is not configured");
+  const fromHash = `0x${fromAccount.scriptHash}`;
+  const params = [
+    Neon.sc.ContractParam.hash160(fromHash),
+    Neon.sc.ContractParam.hash160(toHash),
+    Neon.sc.ContractParam.integer(String(amount)),
+    memo == null
+      ? Neon.sc.ContractParam.any(null)
+      : typeof memo === "string"
+        ? Neon.sc.ContractParam.string(memo)
+        : Neon.sc.ContractParam.hash160(memo),
+  ];
+  const fundingContract = new Neon.experimental.SmartContract(NEO_HASH, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account: fromAccount,
+  });
+  const txid = await fundingContract.invoke("transfer", params);
+  const { execution } = await waitForLog(txid);
+  if (execution.vmstate !== "HALT") {
+    throw new Error(execution.exception || `NEO funding transfer failed for ${toHash}`);
+  }
+  if (!executionReturnedTrue(execution)) {
+    throw new Error(`NEO funding transfer returned false for ${toHash}`);
   }
   return asTxid(txid);
 }
@@ -1541,6 +1779,11 @@ async function runSelfLoan() {
     networkMagic: NETWORK_MAGIC,
     account,
   });
+  const adminContract = new Neon.experimental.SmartContract(contractHash, {
+    rpcAddress: RPC_URL,
+    networkMagic: NETWORK_MAGIC,
+    account: adminAccount || account,
+  });
 
   const neoBalance = await rpcClient.execute(new Neon.rpc.Query({
     method: "getnep17balances",
@@ -1593,7 +1836,7 @@ async function runSelfLoan() {
       throw new Error("LoanCreated notification missing");
     }
     const loanId = stackValue(created.state?.value?.[1]);
-    const syncTx = await contract.invoke("syncProfitAnchorVote", [
+    const syncTx = await adminContract.invoke("syncProfitAnchorVote", [
       Neon.sc.ContractParam.string("miniapp-self-loan"),
     ]);
     const syncResult = await waitForLog(syncTx);
@@ -1689,9 +1932,36 @@ async function readAnchorState(contractHash, appId) {
     appPaused: boolish(appPaused),
     stats,
     agentCount: String(agentCount || "0"),
-    firstAgent,
-    secondAgent,
+    firstAgent: normalizeAnchorAgent(firstAgent),
+    secondAgent: normalizeAnchorAgent(secondAgent),
   };
+}
+
+function normalizeAnchorAgent(agent) {
+  if (!agent) return null;
+  const account = normalizeHash160(agent.account);
+  const storedAccountId = normalizeHash160(agent.verificationScriptHash);
+  const accountId = resolveAnchorAccountId(account, storedAccountId);
+  let expectedProxyAccount = "";
+  if (accountId) {
+    expectedProxyAccount = deriveAaProxyHash(accountId);
+  }
+  return {
+    ...agent,
+    account,
+    storedAccountId,
+    accountId,
+    expectedProxyAccount,
+    aaProxyMatched: Boolean(account && expectedProxyAccount && account === expectedProxyAccount && storedAccountId === accountId),
+  };
+}
+
+function resolveAnchorAccountId(account, storedAccountId) {
+  if (!storedAccountId) return "";
+  if (account && deriveAaProxyHash(storedAccountId) === account) return storedAccountId;
+  const reversed = normalizeHash160(reverseHex(storedAccountId));
+  if (account && deriveAaProxyHash(reversed) === account) return reversed;
+  return storedAccountId;
 }
 
 function assertAnchorConfigured({ label, appId, expectedMode }, state) {
@@ -1733,79 +2003,117 @@ function assertAnchorConfigured({ label, appId, expectedMode }, state) {
 }
 
 async function runAnchorManualWriteSmoke(contractHash, config, state) {
-  const agentWif = String(
-    process.env.ANCHOR_LIVE_AGENT_WIF
-      || process.env.ANCHOR_AGENT_WIF
-      || process.env[`${config.envPrefix}_AGENT_WIF`]
-      || ""
-  ).trim();
-  if (!agentWif) {
+  if (!state.firstAgent?.aaProxyMatched || !state.secondAgent?.aaProxyMatched) {
     return {
       deferred: true,
-      reason: "needs-anchor-agent-aa-wif",
-      message: `${config.label} manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test`,
+      reason: "needs-anchor-aa-proxy-migration",
+      message: `${config.label} manual write smoke deferred: registered agent account must be the AA proxy script hash, with the AA accountId stored separately for verification`,
+      firstAgent: {
+        currentAccount: state.firstAgent?.account || "",
+        accountId: state.firstAgent?.accountId || "",
+        expectedProxyAccount: state.firstAgent?.expectedProxyAccount || "",
+      },
+      secondAgent: {
+        currentAccount: state.secondAgent?.account || "",
+        accountId: state.secondAgent?.accountId || "",
+        expectedProxyAccount: state.secondAgent?.expectedProxyAccount || "",
+      },
     };
   }
 
-  const agentAccount = new Neon.wallet.Account(agentWif);
   const fromAgentHash = normalizeHash160(state.firstAgent.account);
-  const signerHash = normalizeHash160(`0x${agentAccount.scriptHash}`);
-  if (signerHash !== fromAgentHash) {
-    return {
-      deferred: true,
-      reason: "anchor-agent-wif-mismatch",
-      message: `${config.label} manual write smoke deferred: configured ANCHOR_LIVE_AGENT_WIF does not match agent #1`,
-      expected: fromAgentHash,
-      actual: signerHash,
-    };
+  const amount = BigInt(String(process.env.ANCHOR_LIVE_REBALANCE_NEO || process.env.ANCHOR_LIVE_AGENT_TRANSFER_NEO || "1"));
+  let sourceBalance = await getNeoBalance(fromAgentHash);
+  let fundingTx = null;
+  if (
+    sourceBalance < amount
+    && String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() === "1"
+    && ANCHOR_AUTO_FUND_AGENT_NEO
+    && anchorAgentNeoFunderAccount
+  ) {
+    const funderHash = `0x${anchorAgentNeoFunderAccount.scriptHash}`;
+    const funderNeo = await getNeoBalance(funderHash);
+    if (funderNeo >= amount - sourceBalance) {
+      fundingTx = await transferNEOFromAccount(
+        anchorAgentNeoFunderAccount,
+        fromAgentHash,
+        (amount - sourceBalance).toString(),
+        `${config.appId}:agent-1-live-smoke`,
+      );
+      sourceBalance = await getNeoBalance(fromAgentHash);
+    }
   }
-
-  const amount = BigInt(String(process.env.ANCHOR_LIVE_AGENT_TRANSFER_NEO || "1"));
-  const sourceBalance = await getNeoBalance(fromAgentHash);
   if (sourceBalance < amount) {
     return {
       deferred: true,
       reason: "needs-anchor-agent-neo",
       requiredNeo: amount.toString(),
       availableNeo: sourceBalance.toString(),
+      autoFunding: {
+        enabled: ANCHOR_AUTO_FUND_AGENT_NEO,
+        funderConfigured: Boolean(anchorAgentNeoFunderAccount),
+        message: "AA control path is ready; fund the source AA agent account with NEO, or set ANCHOR_AGENT_NEO_FUNDER_WIF for this validation script to fund it before running the AA user operation.",
+      },
+      fundingTx,
     };
   }
 
-  const agentContract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account: agentAccount,
-  });
-  const transferTx = await agentContract.invoke("transferAgentNeo", [
-    Neon.sc.ContractParam.string(config.appId),
-    Neon.sc.ContractParam.integer("1"),
-    Neon.sc.ContractParam.integer("2"),
-    Neon.sc.ContractParam.integer(amount.toString()),
-  ]);
-  const transferLog = await waitForLog(transferTx);
-  if (transferLog.execution.vmstate !== "HALT") {
-    throw new Error(transferLog.execution.exception || `${config.label} transferAgentNeo failed`);
-  }
-  if (!findNotification(transferLog.execution, contractHash, "AnchorAgentTransfer")) {
-    throw new Error(`${config.label} AnchorAgentTransfer notification missing`);
-  }
-  const voteTx = await agentContract.invoke("voteAgent", [
-    Neon.sc.ContractParam.string(config.appId),
-    Neon.sc.ContractParam.integer("1"),
-  ]);
-  const voteLog = await waitForLog(voteTx);
-  if (voteLog.execution.vmstate !== "HALT") {
-    throw new Error(voteLog.execution.exception || `${config.label} voteAgent failed`);
-  }
-  if (!findNotification(voteLog.execution, contractHash, "AnchorVoteChanged")) {
-    throw new Error(`${config.label} AnchorVoteChanged notification missing`);
+  if (String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() !== "1") {
+    return {
+      deferred: true,
+      reason: "needs-anchor-aa-userop-writer",
+      message: `${config.label} AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke`,
+      sourceAgent: fromAgentHash,
+      sourceAccountId: state.firstAgent.accountId,
+      amount: amount.toString(),
+    };
   }
 
+  const toAgentHash = normalizeHash160(state.secondAgent.account);
+  const transferTx = await invokeAaUserOpPersisted({
+    accountId: state.firstAgent.accountId,
+    proxyAccount: fromAgentHash,
+    targetContract: contractHash,
+    method: "transferAgentNeo",
+    args: [
+      Neon.sc.ContractParam.string(config.appId),
+      Neon.sc.ContractParam.integer("1"),
+      Neon.sc.ContractParam.integer("2"),
+      Neon.sc.ContractParam.integer(amount.toString()),
+    ],
+  });
+  const secondBalance = await getNeoBalance(toAgentHash);
+  if (secondBalance < amount) {
+    return {
+      deferred: true,
+      reason: "needs-anchor-second-agent-neo-after-transfer",
+      transferTx,
+      secondAgent: toAgentHash,
+      requiredNeo: amount.toString(),
+      availableNeo: secondBalance.toString(),
+    };
+  }
+  const voteTx = await invokeAaUserOpPersisted({
+    accountId: state.secondAgent.accountId,
+    proxyAccount: toAgentHash,
+    targetContract: contractHash,
+    method: "voteAgent",
+    args: [
+      Neon.sc.ContractParam.string(config.appId),
+      Neon.sc.ContractParam.integer("2"),
+    ],
+  });
+
   return {
+    ok: true,
+    fundingTx,
+    transferTx,
+    voteTx,
     sourceAgent: fromAgentHash,
+    sourceAccountId: state.firstAgent.accountId,
+    targetAgent: toAgentHash,
+    targetAccountId: state.secondAgent.accountId,
     amount: amount.toString(),
-    transferTx: asTxid(transferTx),
-    voteTx: asTxid(voteTx),
   };
 }
 
@@ -1815,11 +2123,20 @@ async function runAnchorFlow(config) {
   assertAnchorConfigured(config, before);
   const manualWrite = await runAnchorManualWriteSmoke(contractHash, config, before);
 
-  return {
+  const result = {
     contractHash,
     readChecks: before,
     manualWrite,
   };
+  if (manualWrite?.deferred) {
+    return {
+      deferred: true,
+      reason: manualWrite.reason,
+      message: manualWrite.message,
+      ...result,
+    };
+  }
+  return result;
 }
 
 async function runProfitAnchor() {

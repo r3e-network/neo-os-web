@@ -152,7 +152,7 @@ Current published Morpheus attestation anchors:
 | --------- | ---- |
 | Morpheus Oracle | `0x4b882e94ed766807c4fd728768f972e13008ad52` |
 | Morpheus DataFeed | `0x9bea75cf702f6afc09125aa6d22f082bfd2ee064` |
-| AA canonical shared anchor | `0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38` |
+| AA canonical shared anchor | `0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2` |
 | AA Web3Auth verifier | `0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d` |
 | AA SessionKey verifier | `0xed44c88535650b4dd6b8d59776e6ed045462cab6` |
 
