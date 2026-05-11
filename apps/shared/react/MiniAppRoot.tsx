@@ -22,7 +22,7 @@ import React, {
 } from "react";
 import type { ComponentType } from "react";
 import type { MiniAppManifest } from "../types/miniapp-manifest";
-import type { StatusType } from "../composables/useStatusMessage";
+import type { StatusMessage, StatusType } from "../composables/useStatusMessage";
 import { PlatformServices, EventBus, NOTIFICATION_EVENT } from "../services";
 import type { Notification } from "../services";
 import { createUseI18n } from "./hooks/useI18n";
@@ -459,7 +459,7 @@ export function MiniAppRoot({
 
   const sidebarTitle = tFn(manifest.sidebar?.titleKey ?? "overview");
   const hasOperations = (manifest.operations?.length ?? 0) > 0;
-  const focusMode = isFocusedOneGateLaunch(appId, launchContext);
+  const standaloneDappMode = isStandaloneDappLaunch(launchContext);
 
   const handleBoundaryError = useCallback(
     (error: Error) => {
@@ -469,6 +469,20 @@ export function MiniAppRoot({
   );
 
   const fallbackMessage = tFn("errorFallback");
+  const playArea = (
+    <PlayArea
+      t={tFn}
+      state={appStateRef.current}
+      dispatch={dispatch}
+      services={services}
+      status={status}
+      setStatus={setStatusWithFireworks}
+      clearStatus={clearStatus}
+      loadError={loadError}
+      retryLoad={reloadData}
+      launchContext={launchContext}
+    />
+  );
 
   // --------------------------------------------------------------------------
   // Render
@@ -479,50 +493,47 @@ export function MiniAppRoot({
       <MiniAppManifestContext.Provider value={manifest}>
         <MiniAppActionsContext.Provider value={actionHandlersRef.current}>
           <MiniAppStateContext.Provider value={appStateRef.current}>
-            <StandardAppShell>
-              <MiniAppPage
-                name={appId}
-                config={templateConfig}
-                state={
-                  appStateRef.current as unknown as Record<string, unknown>
-                }
-                t={tFn as (key: string) => string}
-                statusMessage={status}
+            {standaloneDappMode ? (
+              <StandaloneDappSurface
+                status={status}
                 fireworksActive={fireworksActive}
-                sidebarItems={sidebarItems}
-                sidebarTitle={sidebarTitle}
-                fallbackMessage={fallbackMessage}
-                onBoundaryError={handleBoundaryError}
-                onBoundaryRetry={reloadData}
-                focusMode={focusMode}
-                renderOperation={
-                  hasOperations
-                    ? () => (
-                        <MiniAppOperationPanel
-                          operations={manifest.operations ?? []}
-                          t={tFn}
-                          state={appStateRef.current}
-                          onAction={handleAction}
-                          launchContext={launchContext}
-                        />
-                      )
-                    : undefined
-                }
               >
-                <PlayArea
-                  t={tFn}
-                  state={appStateRef.current}
-                  dispatch={dispatch}
-                  services={services}
-                  status={status}
-                  setStatus={setStatusWithFireworks}
-                  clearStatus={clearStatus}
-                  loadError={loadError}
-                  retryLoad={reloadData}
-                  launchContext={launchContext}
-                />
-              </MiniAppPage>
-            </StandardAppShell>
+                {playArea}
+              </StandaloneDappSurface>
+            ) : (
+              <StandardAppShell>
+                <MiniAppPage
+                  name={appId}
+                  config={templateConfig}
+                  state={
+                    appStateRef.current as unknown as Record<string, unknown>
+                  }
+                  t={tFn as (key: string) => string}
+                  statusMessage={status}
+                  fireworksActive={fireworksActive}
+                  sidebarItems={sidebarItems}
+                  sidebarTitle={sidebarTitle}
+                  fallbackMessage={fallbackMessage}
+                  onBoundaryError={handleBoundaryError}
+                  onBoundaryRetry={reloadData}
+                  renderOperation={
+                    hasOperations
+                      ? () => (
+                          <MiniAppOperationPanel
+                            operations={manifest.operations ?? []}
+                            t={tFn}
+                            state={appStateRef.current}
+                            onAction={handleAction}
+                            launchContext={launchContext}
+                          />
+                        )
+                      : undefined
+                  }
+                >
+                  {playArea}
+                </MiniAppPage>
+              </StandardAppShell>
+            )}
           </MiniAppStateContext.Provider>
         </MiniAppActionsContext.Provider>
       </MiniAppManifestContext.Provider>
@@ -530,13 +541,45 @@ export function MiniAppRoot({
   );
 }
 
-function isFocusedOneGateLaunch(
-  appId: string,
-  launchContext: MiniAppLaunchContext,
-): boolean {
-  if (launchContext.source === "onegate") return true;
-  if (appId !== "miniapp-gas-lucky-pool") return false;
-  return ["claimKey", "key", "code", "k"].some((key) =>
-    Boolean(launchContext.params[key]),
+function StandaloneDappSurface({
+  status,
+  fireworksActive,
+  children,
+}: {
+  status: StatusMessage | null;
+  fireworksActive: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`standalone-dapp-root${fireworksActive ? " standalone-dapp-root--celebrating" : ""}`}
+      data-testid="standalone-dapp-root"
+      style={{ minHeight: "100vh" }}
+    >
+      {status && (
+        <div
+          className={`status-toast ${status.type}`}
+          role={status.type === "error" || status.type === "danger" ? "alert" : "status"}
+        >
+          <span className="toast-dot" />
+          <span>{status.msg}</span>
+        </div>
+      )}
+      {children}
+    </div>
   );
+}
+
+const MINIAPP_PLATFORM_SOURCES = new Set([
+  "platform",
+  "miniapp",
+  "miniapp-platform",
+  "neomini",
+  "yiwu",
+  "yiwu-miniapp",
+]);
+
+function isStandaloneDappLaunch(launchContext: MiniAppLaunchContext): boolean {
+  const source = launchContext.source.trim().toLowerCase();
+  return !MINIAPP_PLATFORM_SOURCES.has(source);
 }

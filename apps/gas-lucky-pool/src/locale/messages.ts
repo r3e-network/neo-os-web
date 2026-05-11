@@ -1,6 +1,6 @@
 import { mergeMessages } from "@shared/locale/base-messages";
 
-const appMessages = {
+const appMessagesBase = {
   title: { en: "OneGate Vault", zh: "OneGate 金库" },
   subtitle: {
     en: "1-50 GAS random rewards via OneGate QR",
@@ -196,5 +196,135 @@ const appMessages = {
     zh: "领取二维码直接打开 OneGate app 23，只携带 key、pool 和 network。OneGate 打开小程序后，小程序自动填入领取 key、注入钱包地址，并提交后端领取请求。",
   },
 } as const;
+
+const jaMessages = {
+  title: "OneGate Vault（金庫）",
+  subtitle: "OneGate QRで1〜50 GASのランダム報酬",
+  playTab: "プール",
+  activityTab: "アクティビティ",
+  docsTab: "ドキュメント",
+  poolOverview: "プール概要",
+  activePools: "稼働中のプール",
+  totalPools: "プール総数",
+  claims: "受取件数",
+  remainingGas: "残りGAS",
+  gasCredit: "回収可能なGAS",
+  createPoolTitle: "報酬プールを作成",
+  createPoolDescription:
+    "キャンペーン管理者はバックエンドで1〜50 GASの報酬と一回限りのclaim keyを設定し、OneGate QRコードとして配布します。",
+  claimPoolTitle: "OneGateで受け取る",
+  claimPoolDescription:
+    "QRリンクをスキャンまたは開くと、dAppがclaim keyとウォレットアドレスを報酬サーバーへ送信し、GAS送金トランザクションを追跡します。",
+  poolId: "旧プールID",
+  claimKey: "Claim key",
+  totalAmount: "合計GAS",
+  minClaim: "最小受取額",
+  maxClaim: "最大受取額",
+  maxClaims: "受取枠",
+  expiryHours: "有効期限（時間）",
+  createPool: "プールを作成",
+  claimOnce: "一度だけ受け取る",
+  claimScannedPool: "プール #{poolId} を受け取る",
+  topUpAmount: "追加額",
+  topUpPool: "GASを追加",
+  refundPool: "残りGASを回収",
+  inspectPool: "プールを確認",
+  shareQr: "OneGate QR受取",
+  shareLink: "受取リンク",
+  copied: "コピー済み",
+  poolCreated: "プール作成を送信しました",
+  claimSubmitted: "報酬送金を送信しました",
+  claimPaid: "報酬を受け取りました",
+  claimProgressTitle: "受取の進捗",
+  claimProgressWallet: "ウォレット準備完了",
+  claimProgressSubmitting: "受取リクエスト送信中",
+  claimProgressConfirming: "GAS送金の確認待ち",
+  claimProgressPaid: "GASを受け取りました",
+  claimProgressFailed: "再試行が必要です",
+  claimStatusFailed: "報酬ステータスの取得に失敗しました。",
+  inspectClaim: "報酬を確認",
+  claimedAmount: "{amount} GASを受け取りました",
+  rewardRange: "報酬範囲",
+  claimReward: "報酬を受け取る",
+  claimCongratsTitle: "おめでとうございます。報酬を受け取りました",
+  claimCongratsBody: "Claim key {claimKey} に {amount} GAS が付与されました。",
+  luckPercentLabel: "あなたの運は上位{percent}%相当です。",
+  claimCongratsPending:
+    "Claim key {claimKey} は送信済みです。サーバー送金がインデックスされると最終金額が表示されます。",
+  refundSubmitted: "返金トランザクションを送信しました",
+  topUpSubmitted: "GAS追加トランザクションを送信しました",
+  fundCongratsTitle: "プールにGASを追加しました",
+  fundCongratsBody: "プール #{poolId} に {amount} GAS が追加されました。",
+  refundCongratsTitle: "残りGASを返却しました",
+  refundCongratsBody:
+    "プール #{poolId} から作成者へ {amount} GAS を返却しました。",
+  gasCreditTitle: "前払いGASを回収",
+  gasCreditDescription:
+    "GAS送金後、create呼び出し前にプール作成が中断された場合、そのcreditはあなたのアドレスに残り、ここから回収できます。",
+  checkGasCredit: "creditを確認",
+  withdrawGasCredit: "creditを回収",
+  gasCreditLoaded: "GAS creditを読み込みました",
+  gasCreditWithdrawn: "GAS credit回収を送信しました",
+  withdrawGasCreditFailed: "GAS creditの回収に失敗しました。",
+  noGasCredit: "回収可能なGAS creditはありません。",
+  invalidTotal: "少なくとも1 GASを入力してください。",
+  invalidRange: "報酬範囲は1〜50 GASにしてください。",
+  invalidClaimSlots: "受取枠は1〜100にしてください。",
+  invalidExpiry: "有効期限は1〜720時間にしてください。",
+  poolBelowMinimum: "合計GASが全枠の最小支払額を満たしていません。",
+  poolAboveMaximum: "合計GASがこの枠数の最大支払容量を超えています。",
+  poolIdRequired: "プールIDを入力してください。",
+  invalidTopUpAmount: "追加するGAS額を入力してください。",
+  createFailed: "プール作成に失敗しました。",
+  claimFailed: "受け取りに失敗しました。",
+  topUpFailed: "GAS追加に失敗しました。",
+  refundFailed: "返金に失敗しました。",
+  loadFailed: "プール状態の読み込みに失敗しました。",
+  claimKeyRequired: "Claim keyを入力してください。",
+  noPoolSelected: "報酬keyを入力するか、OneGate QRコードをスキャンしてください。",
+  campaignOwnerTitle: "キャンペーン管理者向け設定",
+  campaignOwnerStep1:
+    "バックエンドでキャンペーンを作成し、サーバー送金用ウォレットにGASを用意します。",
+  campaignOwnerStep2:
+    "受取人ごとに独立したclaim keyを生成し、OneGate QRコードに埋め込みます。",
+  campaignOwnerStep3:
+    "受取人がスキャンして一度だけ受け取り、このdAppが送金を追跡して結果を表示します。",
+  scanClaimReady: "OneGateスキャンを検出しました",
+  scanClaimPool: "報酬keyの準備ができました",
+  scanClaimReview:
+    "「報酬を受け取る」をタップしてください。GASを送金し、この画面で進捗を更新します。",
+  claimConsoleHint: "OneGateスキャン後、keyは非表示のまま保持されます。",
+  active: "有効",
+  expired: "期限切れ",
+  empty: "空",
+  unknown: "不明",
+  bestLuck: "最高の運",
+  perAddressOnce: "各プールにつき1アドレス1回まで",
+  contractGuarded: "サーバーで保護",
+  oneGateReady: "OneGate対応",
+  howItWorks: "仕組み",
+  safetyModel: "安全モデル",
+  oneGateFlow: "OneGateフロー",
+  docHowItWorks:
+    "1. 作成者がバックエンドで報酬キャンペーンを設定します。2. バックエンドが受取人ごとに独立したclaim keyを生成し、ハッシュのみを保存します。3. keyをOneGate QRコードに埋め込みます。4. スキャン後、dAppがkeyとウォレットアドレスを送信します。5. バックエンドが1〜50 GASのランダム額を決めてGASを送金します。6. dAppが送金ステータスを追跡し、着金後にお祝い表示と運のパーセンタイルを表示します。",
+  docSafetyModel:
+    "フロントエンドは報酬額を決めず、生のキャンペーンkeyも保存しません。サーバーがkeyハッシュ、ネットワーク、キャンペーン状態、残高、一回限りの利用、ウォレット紐付け、ランダム報酬額、tx-proxy送金結果を検証します。",
+  docOneGateFlow:
+    "受取QRはOneGate app 23を直接開き、key、pool、networkだけを渡します。OneGateがdAppを開くと、dAppはclaim keyを事前入力し、ウォレットアドレスを注入してバックエンドの受取処理を実行します。",
+} satisfies Record<keyof typeof appMessagesBase, string>;
+
+const appMessages = Object.fromEntries(
+  Object.entries(appMessagesBase).map(([key, value]) => [
+    key,
+    {
+      ...value,
+      ja: jaMessages[key as keyof typeof jaMessages],
+    },
+  ]),
+) as {
+  [K in keyof typeof appMessagesBase]: (typeof appMessagesBase)[K] & {
+    ja: string;
+  };
+};
 
 export const messages = mergeMessages(appMessages);
