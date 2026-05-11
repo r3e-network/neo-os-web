@@ -39,9 +39,14 @@ const FLAGSHIP_APPS = [
   {
     brand: "GASBOX",
     slug: "gasbox",
-    contractName: "MiniAppGASBox",
-    readMethods: [{ method: "totalMachines" }],
-    countMethods: [{ method: "totalMachines", minValue: 0n }],
+    contractName: "PlatformGame",
+    readMethods: [
+      { method: "getGameType", args: [strParam("miniapp-gasbox")] },
+      { method: "getGameAdmin", args: [strParam("miniapp-gasbox")] },
+      { method: "isPaused", args: [strParam("miniapp-gasbox")] },
+      { method: "getGachaMachine", args: [strParam("miniapp-gasbox"), intParam(0)] },
+    ],
+    countMethods: [],
   },
   {
     brand: "Red Envelope",
@@ -61,8 +66,13 @@ const FLAGSHIP_APPS = [
   {
     brand: "FogPlay",
     slug: "fogplay",
-    contractName: "MiniAppFogPlay",
-    readMethods: [{ method: "getBetLimits" }],
+    contractName: "PlatformGame",
+    readMethods: [
+      { method: "getGameType", args: [strParam("miniapp-fogplay")] },
+      { method: "getGameAdmin", args: [strParam("miniapp-fogplay")] },
+      { method: "isPaused", args: [strParam("miniapp-fogplay")] },
+      { method: "getCoinFlipBetLimits", args: [strParam("miniapp-fogplay")] },
+    ],
     countMethods: [],
   },
   {

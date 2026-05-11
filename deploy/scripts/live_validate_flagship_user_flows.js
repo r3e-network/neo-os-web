@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const CozNeon = require("@cityofzion/neon-js");
+const { chooseNeoCapableActor } = require("./lib/live_actor_selection");
 const {
   sleep,
   asTxid,
@@ -71,6 +72,12 @@ const ADMIN_WIF =
   process.env.DEPLOYER_WIF ||
   process.env.FLAGSHIP_LIVE_WIF ||
   "";
+const TEST_SMOKE_NEO_ACTOR_WIFS = Array.from(new Set([
+  process.env.TEST_SMOKE_USER_WIF,
+  process.env.LIVE_SMOKE_SELECTED_USER_WIF,
+  TARGET_NETWORK === "testnet" ? process.env.NEO_TESTNET_WIF : "",
+  TARGET_NETWORK === "testnet" ? process.env.TEE_PRIVATE_KEY : "",
+].map((value) => String(value || "").trim()).filter(Boolean)));
 const ANCHOR_AGENT_NEO_FUNDER_WIF = firstConfigured(
   process.env.ANCHOR_AGENT_NEO_FUNDER_WIF,
   process.env.ANCHOR_NEO_FUNDER_WIF,
@@ -80,7 +87,12 @@ const ANCHOR_AA_OWNER_WIF = firstConfigured(
   process.env.ANCHOR_AA_OWNER_WIF,
   process.env.ANCHOR_LIVE_AA_OWNER_WIF,
 );
-const ANCHOR_AUTO_FUND_AGENT_NEO = boolish(process.env.ANCHOR_AUTO_FUND_AGENT_NEO);
+const ANCHOR_AUTO_FUND_AGENT_NEO = process.env.ANCHOR_AUTO_FUND_AGENT_NEO == null
+  ? TARGET_NETWORK === "testnet"
+  : boolish(process.env.ANCHOR_AUTO_FUND_AGENT_NEO);
+const ANCHOR_LIVE_WRITE_SMOKE_ENABLED = process.env.ANCHOR_LIVE_WRITE_SMOKE == null
+  ? TARGET_NETWORK === "testnet"
+  : boolish(process.env.ANCHOR_LIVE_WRITE_SMOKE);
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || NETWORK_CONFIG.oracleHash).trim();
 const AA_CORE_HASH = (process.env.AA_CORE_HASH || NETWORK_CONFIG.aaCoreHash || "").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
@@ -238,8 +250,11 @@ if (!WIF) {
 
 let account;
 let adminAccount;
+let testSmokeUserAccount;
+let testSmokeNeoAccounts = [];
 let oracleUpdaterAccount;
 let anchorAgentNeoFunderAccount;
+let anchorAgentNeoFunderAccounts = [];
 let anchorAaOwnerAccount;
 let rpcClient;
 let gasContract;
@@ -254,8 +269,23 @@ async function initNeon() {
   Neon = (await import("./lib/neon-compat.mjs")).default;
   account = new Neon.wallet.Account(WIF);
   adminAccount = ADMIN_WIF ? new Neon.wallet.Account(ADMIN_WIF) : account;
+  const seenNeoActorHashes = new Set();
+  testSmokeNeoAccounts = TEST_SMOKE_NEO_ACTOR_WIFS
+    .map((wif) => new Neon.wallet.Account(wif))
+    .filter((actor) => {
+      const key = normalizeHash160(`0x${actor.scriptHash}`);
+      if (seenNeoActorHashes.has(key)) return false;
+      seenNeoActorHashes.add(key);
+      return true;
+    });
+  testSmokeUserAccount = testSmokeNeoAccounts[0] || null;
   oracleUpdaterAccount = ORACLE_UPDATER_WIF ? new Neon.wallet.Account(ORACLE_UPDATER_WIF) : account;
-  anchorAgentNeoFunderAccount = ANCHOR_AGENT_NEO_FUNDER_WIF ? new Neon.wallet.Account(ANCHOR_AGENT_NEO_FUNDER_WIF) : null;
+  anchorAgentNeoFunderAccounts = ANCHOR_AGENT_NEO_FUNDER_WIF
+    ? [new Neon.wallet.Account(ANCHOR_AGENT_NEO_FUNDER_WIF)]
+    : TARGET_NETWORK === "testnet"
+      ? testSmokeNeoAccounts
+      : [];
+  anchorAgentNeoFunderAccount = anchorAgentNeoFunderAccounts[0] || null;
   anchorAaOwnerAccount = ANCHOR_AA_OWNER_WIF ? new Neon.wallet.Account(ANCHOR_AA_OWNER_WIF) : adminAccount;
   rpcClient = new Neon.rpc.RPCClient(RPC_URL);
   gasContract = new Neon.experimental.SmartContract(GAS_HASH, {
@@ -529,7 +559,7 @@ function aaProxySigner(accountHash, targetContract) {
     scopes: CozNeon.tx.WitnessScope.WitnessRules,
   });
   const condition = new CozNeon.tx.OrWitnessCondition(
-    allowedCallers.map((hash) => new CozNeon.tx.CalledByContractWitnessCondition(normalizeHash160(hash)))
+    allowedCallers.map((hash) => new CozNeon.tx.CalledByContractWitnessCondition(hash))
   );
   signer.addRules(new CozNeon.tx.WitnessRule({
     action: CozNeon.tx.WitnessRuleAction.Allow,
@@ -561,7 +591,7 @@ async function estimateNetworkFee(transaction) {
     const result = await rpcClient.inner.calculateNetworkFee({ tx });
     return BigInt(result?.networkfee || 0);
   } catch (error) {
-    if (String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() === "1") {
+    if (ANCHOR_LIVE_WRITE_SMOKE_ENABLED) {
       throw new Error(`network fee estimation failed: ${error?.message || error}`);
     }
     return 5000000n;
@@ -585,17 +615,29 @@ async function invokeAaUserOpPersisted({
   ]));
   const deadline = BigInt(Date.now() + Number(process.env.ANCHOR_LIVE_AA_DEADLINE_MS || "3600000"));
   const op = cozAaUserOpParam({ targetContract, method, args, nonce, deadline });
-  const ownerAccount = anchorAaOwnerAccount || adminAccount || account;
+  const params = [
+    CozNeon.sc.ContractParam.hash160(accountId),
+    op,
+  ];
+  const backupOwner = normalizeHash160(await invokeRead(AA_CORE_HASH, "getBackupOwner", [
+    Neon.sc.ContractParam.hash160(accountId),
+  ]).catch(() => ""));
+  const ownerCandidates = [
+    anchorAaOwnerAccount,
+    account,
+    adminAccount,
+    ...testSmokeNeoAccounts,
+  ].filter(Boolean);
+  const ownerAccount = ownerCandidates.find((candidate) => normalizeHash160(`0x${candidate.scriptHash}`) === backupOwner)
+    || anchorAaOwnerAccount
+    || adminAccount
+    || account;
   const ownerHash = `0x${ownerAccount.scriptHash}`;
   const txSigners = [
     entrySigner(ownerHash),
     aaProxySigner(proxyAccount, targetContract),
   ];
   const previewSigners = txSigners.map(rpcSigner);
-  const params = [
-    CozNeon.sc.ContractParam.hash160(accountId),
-    op,
-  ];
   const preview = await cozRpcClient.invokeFunction(AA_CORE_HASH, "executeUserOp", params, previewSigners);
   if (String(preview?.state || "").toUpperCase() === "FAULT") {
     throw new Error(preview?.exception || `${method} executeUserOp preview failed`);
@@ -644,6 +686,8 @@ async function invokeAaUserOpPersisted({
     gasconsumed: execution.gasconsumed || null,
     nonce: nonce.toString(),
     deadline: deadline.toString(),
+    backupOwner,
+    ownerSigner: normalizeHash160(ownerHash),
     networkFee: networkFee.toString(),
     systemFee: String(baseTx.systemFee),
   };
@@ -676,6 +720,15 @@ async function buildPreflightSummary(targets) {
   const accountGas = await getGasBalance(`0x${account.scriptHash}`);
   const accountNeo = await getNeoBalance(`0x${account.scriptHash}`);
   const adminGas = await getGasBalance(`0x${adminAccount.scriptHash}`);
+  const neoActorWallets = [];
+  for (const actor of testSmokeNeoAccounts) {
+    neoActorWallets.push({
+      address: actor.address,
+      scriptHash: normalizeHash160(`0x${actor.scriptHash}`),
+      gas: (await getGasBalance(`0x${actor.scriptHash}`)).toString(),
+      neo: (await getNeoBalance(`0x${actor.scriptHash}`)).toString(),
+    });
+  }
   const updaterGas = await getGasBalance(`0x${oracleUpdaterAccount.scriptHash}`);
   const oracleUpdater = normalizeHash160(await invokeRead(ORACLE_HASH, "updater").catch(() => ""));
   const localOracleUpdater = normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`);
@@ -704,6 +757,8 @@ async function buildPreflightSummary(targets) {
       rngFallbackSignerMatches,
       rngFallbackReady: Boolean(PHALA_API_URL && PHALA_API_TOKEN && rngFallbackSignerMatches),
       oracleUpdaterMinGas: ORACLE_UPDATER_MIN_GAS.toString(),
+      anchorLiveWriteSmokeEnabled: ANCHOR_LIVE_WRITE_SMOKE_ENABLED,
+      anchorAutoFundAgentNeo: ANCHOR_AUTO_FUND_AGENT_NEO,
     },
     wallets: {
       primary: {
@@ -717,6 +772,7 @@ async function buildPreflightSummary(targets) {
         scriptHash: normalizeHash160(`0x${adminAccount.scriptHash}`),
         gas: adminGas.toString(),
       },
+      neoActorCandidates: neoActorWallets,
       oracleUpdater: {
         address: oracleUpdaterAccount.address,
         scriptHash: normalizeHash160(`0x${oracleUpdaterAccount.scriptHash}`),
@@ -1774,27 +1830,91 @@ async function runRedEnvelope() {
 
 async function runSelfLoan() {
   const contractHash = appHash("apps/self-loan/neo-manifest.json");
+  const candidateAccountEntries = [
+    ["primary", account],
+    ...testSmokeNeoAccounts.map((actor, index) => [`neoActor${index + 1}`, actor]),
+    ["admin", adminAccount],
+  ];
+  const seenBorrowerHashes = new Set();
+  const candidateAccounts = [];
+  for (const [label, actor] of candidateAccountEntries) {
+    if (!actor) continue;
+    const scriptHash = normalizeHash160(`0x${actor.scriptHash}`);
+    if (seenBorrowerHashes.has(scriptHash)) continue;
+    seenBorrowerHashes.add(scriptHash);
+    candidateAccounts.push({
+      label,
+      account: actor,
+      address: actor.address,
+      neo: await getNeoBalance(scriptHash),
+    });
+  }
+  let borrowerCandidate;
+  try {
+    borrowerCandidate = chooseNeoCapableActor(candidateAccounts, BigInt(SELF_LOAN_COLLATERAL));
+  } catch (error) {
+    return {
+      contractHash,
+      deferred: true,
+      reason: "needs-neo-funding",
+      message: `selfLoan deferred: ${String(error?.message || error)}`,
+      collateralPrecheck: {
+        assetHash: NEO_HASH,
+        requiredCollateral: SELF_LOAN_COLLATERAL,
+        candidates: candidateAccounts.map((candidate) => ({
+          label: candidate.label,
+          address: candidate.address,
+          availableNeo: String(candidate.neo),
+        })),
+      },
+    };
+  }
+  const borrowerAccount = borrowerCandidate.account;
   const contract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
-    account,
+    account: borrowerAccount,
   });
+  const platformAdmin = normalizeHash160(await invokeRead(contractHash, "admin"));
+  const appAdmin = normalizeHash160(await invokeRead(contractHash, "getAppAdmin", [
+    Neon.sc.ContractParam.string("miniapp-self-loan"),
+  ]));
+  const adminSigner = [account, adminAccount, borrowerAccount, ...testSmokeNeoAccounts]
+    .filter(Boolean)
+    .find((actor) => {
+      const actorHash = normalizeHash160(`0x${actor.scriptHash}`);
+      return actorHash === platformAdmin || actorHash === appAdmin;
+    });
+  if (!adminSigner) {
+    return {
+      contractHash,
+      deferred: true,
+      reason: "needs-self-loan-admin-signer",
+      message: "selfLoan live admin sync requires platform/app admin signer, but none of the configured local actors match the on-chain admin.",
+      collateralPrecheck: {
+        borrowerAddress: borrowerAccount.address,
+        platformAdmin,
+        appAdmin,
+      },
+    };
+  }
   const adminContract = new Neon.experimental.SmartContract(contractHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
-    account: adminAccount || account,
+    account: adminSigner,
   });
 
   const neoBalance = await rpcClient.execute(new Neon.rpc.Query({
     method: "getnep17balances",
-    params: [account.address],
+    params: [borrowerAccount.address],
   }));
   const neoAsset = Array.isArray(neoBalance?.balance)
     ? neoBalance.balance.find((entry) => String(entry.assethash || "").toLowerCase() === NEO_HASH.toLowerCase())
     : null;
   const availableNeo = Number(neoAsset?.amount || "0");
   const collateralPrecheck = {
-    address: account.address,
+    address: borrowerAccount.address,
+    actorLabel: borrowerCandidate.label,
     assetHash: NEO_HASH,
     requiredCollateral: SELF_LOAN_COLLATERAL,
     availableNeo: String(neoAsset?.amount || "0"),
@@ -1806,7 +1926,7 @@ async function runSelfLoan() {
     // ABI parity + mainnet read probes). Surface a structured "deferred"
     // result instead of a hard failure so the rest of the sweep can pass
     // and ops can fund the wallet to lift the deferral.
-    const message = `selfLoan deferred for ${account.address}: requires ${SELF_LOAN_COLLATERAL} whole NEO collateral; wallet has ${String(neoAsset?.amount || "0")}. Fund the wallet with NEO and rerun.`;
+    const message = `selfLoan deferred for ${borrowerAccount.address}: requires ${SELF_LOAN_COLLATERAL} whole NEO collateral; wallet has ${String(neoAsset?.amount || "0")}. Fund the wallet with NEO and rerun.`;
     return {
       contractHash,
       deferred: true,
@@ -1815,16 +1935,16 @@ async function runSelfLoan() {
       collateralPrecheck,
     };
   }
-  await ensureAccountHasGas(account, BigInt(String(SELF_LOAN_POOL_TOPUP)), "selfLoan pool top-up");
+  await ensureAccountHasGas(borrowerAccount, BigInt(String(SELF_LOAN_POOL_TOPUP)), "selfLoan pool top-up");
 
-  const poolTx = await transferGAS(contractHash, SELF_LOAN_POOL_TOPUP, "miniapp-self-loan:pool");
-  const collateralTx = await transferNEO(contractHash, SELF_LOAN_COLLATERAL, "miniapp-self-loan:collateral");
+  const poolTx = await transferGASFrom(borrowerAccount, contractHash, SELF_LOAN_POOL_TOPUP, "miniapp-self-loan:pool");
+  const collateralTx = await transferNEOFromAccount(borrowerAccount, contractHash, SELF_LOAN_COLLATERAL, "miniapp-self-loan:collateral");
   await sleep(4000);
 
   if (TARGET_NETWORK === "testnet") {
     const createTx = await contract.invoke("createLoan", [
       Neon.sc.ContractParam.string("miniapp-self-loan"),
-      Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+      Neon.sc.ContractParam.hash160(`0x${borrowerAccount.scriptHash}`),
       Neon.sc.ContractParam.integer("1"),
     ]);
     const { execution } = await waitForLog(createTx);
@@ -1873,7 +1993,7 @@ async function runSelfLoan() {
   }
 
   const createTx = await contract.invoke("createLoan", [
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    Neon.sc.ContractParam.hash160(`0x${borrowerAccount.scriptHash}`),
     Neon.sc.ContractParam.integer(SELF_LOAN_COLLATERAL),
     Neon.sc.ContractParam.integer("1"),
   ]);
@@ -2025,22 +2145,34 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
   const amount = BigInt(String(process.env.ANCHOR_LIVE_REBALANCE_NEO || process.env.ANCHOR_LIVE_AGENT_TRANSFER_NEO || "1"));
   let sourceBalance = await getNeoBalance(fromAgentHash);
   let fundingTx = null;
+  let fundingCandidates = [];
   if (
     sourceBalance < amount
-    && String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() === "1"
+    && ANCHOR_LIVE_WRITE_SMOKE_ENABLED
     && ANCHOR_AUTO_FUND_AGENT_NEO
-    && anchorAgentNeoFunderAccount
+    && anchorAgentNeoFunderAccounts.length > 0
   ) {
-    const funderHash = `0x${anchorAgentNeoFunderAccount.scriptHash}`;
-    const funderNeo = await getNeoBalance(funderHash);
-    if (funderNeo >= amount - sourceBalance) {
+    fundingCandidates = [];
+    for (const [index, funderAccount] of anchorAgentNeoFunderAccounts.entries()) {
+      const funderHash = normalizeHash160(`0x${funderAccount.scriptHash}`);
+      fundingCandidates.push({
+        label: `funder${index + 1}`,
+        account: funderAccount,
+        address: funderAccount.address,
+        neo: await getNeoBalance(funderHash),
+      });
+    }
+    try {
+      const selectedFunder = chooseNeoCapableActor(fundingCandidates, amount - sourceBalance).account;
       fundingTx = await transferNEOFromAccount(
-        anchorAgentNeoFunderAccount,
+        selectedFunder,
         fromAgentHash,
         (amount - sourceBalance).toString(),
         `${config.appId}:agent-1-live-smoke`,
       );
       sourceBalance = await getNeoBalance(fromAgentHash);
+    } catch {
+      fundingTx = null;
     }
   }
   if (sourceBalance < amount) {
@@ -2051,14 +2183,19 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
       availableNeo: sourceBalance.toString(),
       autoFunding: {
         enabled: ANCHOR_AUTO_FUND_AGENT_NEO,
-        funderConfigured: Boolean(anchorAgentNeoFunderAccount),
+        funderConfigured: anchorAgentNeoFunderAccounts.length > 0,
+        candidates: fundingCandidates.map((candidate) => ({
+          label: candidate.label,
+          address: candidate.address,
+          availableNeo: String(candidate.neo),
+        })),
         message: "AA control path is ready; fund the source AA agent account with NEO, or set ANCHOR_AGENT_NEO_FUNDER_WIF for this validation script to fund it before running the AA user operation.",
       },
       fundingTx,
     };
   }
 
-  if (String(process.env.ANCHOR_LIVE_WRITE_SMOKE || "").trim() !== "1") {
+  if (!ANCHOR_LIVE_WRITE_SMOKE_ENABLED) {
     return {
       deferred: true,
       reason: "needs-anchor-aa-userop-writer",

@@ -178,13 +178,11 @@ const T_RED_ENVELOPE: AppTemplate = {
     },
   },
   operations: [
-    op("Claim", "claimEnvelope", "primary", [
-      str("appId", "App ID", "miniapp-redenvelope", true),
+    op("Claim", "claim", "primary", [
       int("envelopeId", "Envelope ID", ""),
       wallet("claimer", "Claimer"),
     ]),
     op("Create", "createEnvelope", "secondary", [
-      str("appId", "App ID", "miniapp-redenvelope", true),
       wallet("creator", "Creator"),
       amt("amount", "Total GAS", "1"),
       int("packetCount", "Recipients", "8"),
