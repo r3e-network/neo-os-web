@@ -32,7 +32,7 @@
             "domain": "customanchor.miniapp.neo"
           },
           "neo-n3-testnet": {
-            "contract_hash": "0xa1ca7a610105686635f31de8e174ae3ce6b61a3e",
+            "contract_hash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
             "registered": true
           }
         }

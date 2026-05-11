@@ -1,0 +1,262 @@
+{
+  "generatedAt": "2026-05-10T04:53:10.872Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "gasBox",
+      "fogPlay"
+    ],
+    "selected": [
+      "gasBox",
+      "fogPlay"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "gasBox",
+        "fogPlay"
+      ],
+      "selected": [
+        "gasBox",
+        "fogPlay"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": false,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18111551431",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18111551431"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "18111551431"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "platformReady": {
+        "appId": "miniapp-gasbox",
+        "gameType": 3,
+        "paused": false
+      },
+      "oracleReady": {
+        "configuredOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "callbackAllowed": null,
+        "legacyCallbackAllowlist": false,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": ""
+      },
+      "machineId": 4,
+      "itemIndex": 1,
+      "prizeItem": {
+        "name": "Small GAS Prize",
+        "weight": "100",
+        "rarity": "COMMON",
+        "assetType": "1",
+        "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "amount": "1000000",
+        "tokenId": "",
+        "stock": "5000000",
+        "tokenCount": "0"
+      },
+      "provisioned": {
+        "machineId": 4,
+        "machine": {
+          "id": "4",
+          "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "owner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "name": "Codex Live Box 1778388869057",
+          "description": "",
+          "category": "",
+          "price": "10000000",
+          "itemCount": "1",
+          "totalWeight": "100",
+          "plays": "0",
+          "revenue": "0",
+          "createdAt": "1778388872152",
+          "lastPlayedAt": "0",
+          "active": true,
+          "banned": false
+        },
+        "item": {
+          "name": "Small GAS Prize",
+          "weight": "100",
+          "rarity": "COMMON",
+          "assetType": "1",
+          "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "amount": "1000000",
+          "tokenId": "",
+          "stock": "5000000",
+          "tokenCount": "0"
+        },
+        "itemIndex": 1,
+        "createTx": "0x7f4af623a1854817a8cc7cfca4eb7d5ae8a8d76f6c1edd3024ab58bc1959e047",
+        "depositTx": "0x6d1e5bea4c3a6800fb5b5c94480b1108c04337525fe62ff8768d300f2c72ad79",
+        "activateTx": "0x9e0799ee01f2e5838184ecbc83c4cf11b1c81d61f01ebf59de2a6f41c2275e9a"
+      },
+      "transferTx": "0x6992b3dafe19d0e24a6e0af825eb3db76d767d0bfed510d0130be0678717b13e",
+      "initiateTx": "0x907e37ab224f695a2d17b492a3fecad6dde329b965f5f95775c30fab22526a2a",
+      "playId": "8",
+      "requestId": "32",
+      "request": [
+        "32",
+        "morpheus.platform.game",
+        "vrf_random",
+        "vrf_random",
+        "@\u0003(\u000eminiapp-gasbox!\u0001\b!\u0001\u0004",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "0x8b6950eff0b3a376e62105a5613f1c9b0656255e",
+        "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "1",
+        "1778388900355",
+        "1778388909660",
+        true,
+        "�Bh�\u000f}��y!xDYL�zA^K��\b�ʨk/�=g",
+        ""
+      ],
+      "play": {
+        "id": "8",
+        "player": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "machineId": "4",
+        "itemIndex": "1",
+        "price": "10000000",
+        "timestamp": "1778388900355",
+        "resolved": true
+      }
+    },
+    "fogPlay": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+      "appId": "miniapp-fogplay",
+      "oracleReady": {
+        "configuredOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "callbackAllowed": null,
+        "legacyCallbackAllowlist": false,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0x43cb5d2b7a14f5639259f5f85c52be8ea552225bc80e3cdea75bc171702d89e0",
+      "betTx": "0x5898e3fc2dc94fa352e9fa60d3e3635ee30a98995ca1132ca25ae2d3bf230147",
+      "requestId": "33",
+      "request": [
+        "33",
+        "morpheus.platform.game",
+        "vrf_random",
+        "vrf_random",
+        "@\u0002(\u000fminiapp-fogplay!\u0001\u0005",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "0x8b6950eff0b3a376e62105a5613f1c9b0656255e",
+        "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",
+        "1",
+        "1778388925517",
+        "1778388934665",
+        true,
+        "W�J���`�`����SW/�*&\u000f��B��\u001d\u0005�\u001f�8",
+        ""
+      ],
+      "betId": "5",
+      "bet": {
+        "betId": "5",
+        "player": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "amount": "5000000",
+        "choice": false,
+        "timestamp": "1778388925517",
+        "resolved": true
+      }
+    },
+    "redEnvelope": {
+      "skipped": true
+    },
+    "profitAnchor": {
+      "skipped": true
+    },
+    "trustAnchor": {
+      "skipped": true
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

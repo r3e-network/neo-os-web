@@ -15,6 +15,11 @@ const NETWORK_DEFAULTS = {
       || process.env.CONTRACT_MORPHEUS_ORACLE_MAINNET_HASH
       || "0x5b492098fc094c760402e01f7e0b631b939d2bea"
     ).trim(),
+    aaCoreHash: (
+      process.env.AA_CORE_HASH_MAINNET
+      || process.env.CONTRACT_AA_CORE_MAINNET_HASH
+      || "0x0268a387913b250166ddec032b03332690a1ef78"
+    ).trim(),
   },
   testnet: {
     key: "neo-n3-testnet",
@@ -24,6 +29,11 @@ const NETWORK_DEFAULTS = {
       process.env.MORPHEUS_ORACLE_TESTNET_HASH
       || process.env.CONTRACT_MORPHEUS_ORACLE_HASH
       || "0x4b882e94ed766807c4fd728768f972e13008ad52"
+    ).trim(),
+    aaCoreHash: (
+      process.env.AA_CORE_HASH_TESTNET
+      || process.env.CONTRACT_AA_CORE_HASH
+      || "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2"
     ).trim(),
   },
 };

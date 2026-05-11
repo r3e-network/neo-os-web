@@ -8,6 +8,13 @@ const root = path.resolve(__dirname, "..", "..");
 const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || 894710606);
 const DEPLOYER_WIF = process.env.DEPLOYER_WIF || process.env.FLAGSHIP_TESTNET_WIF || process.env.NEO_TESTNET_WIF || "";
+const ORACLE_ADMIN_WIF =
+  process.env.MORPHEUS_ORACLE_ADMIN_WIF ||
+  process.env.MORPHEUS_ORACLE_OWNER_WIF ||
+  process.env.MORPHEUS_ORACLE_UPDATER_WIF ||
+  process.env.MORPHEUS_RELAYER_NEO_N3_WIF ||
+  process.env.PHALA_NEO_N3_WIF ||
+  "";
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_TESTNET_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const MIN_ORACLE_CREDIT = BigInt(process.env.FLAGSHIP_MIN_ORACLE_CREDIT || "10000000");
@@ -18,6 +25,7 @@ if (!DEPLOYER_WIF) {
 }
 
 let account;
+let oracleAdminAccount;
 let rpcClient;
 
 const TARGETS = [
@@ -30,6 +38,7 @@ async function initNeon() {
   if (Neon) return;
   Neon = (await import("./lib/neon-compat.mjs")).default;
   account = new Neon.wallet.Account(DEPLOYER_WIF);
+  oracleAdminAccount = ORACLE_ADMIN_WIF ? new Neon.wallet.Account(ORACLE_ADMIN_WIF) : account;
   rpcClient = new Neon.rpc.RPCClient(RPC_URL);
 }
 
@@ -61,11 +70,11 @@ async function waitForTx(txid, timeoutMs = 120000) {
   throw new Error(`timed out waiting for ${txid}`);
 }
 
-async function invokePersisted(scriptHash, operation, values) {
+async function invokePersisted(scriptHash, operation, values, signerAccount = account) {
   const contract = new Neon.experimental.SmartContract(scriptHash, {
     rpcAddress: RPC_URL,
     networkMagic: NETWORK_MAGIC,
-    account,
+    account: signerAccount,
   });
   const args = values.map((value) => {
     if (value && typeof value === "object" && value.type && value.value !== undefined) return value;
@@ -139,11 +148,14 @@ async function main() {
     const before = await readOracle(contractHash);
     const txids = [];
     for (const [method, args] of target.methods) {
+      if (method === "setOracle" && before.toLowerCase() === ORACLE_HASH.toLowerCase()) {
+        continue;
+      }
       txids.push(await invokePersisted(contractHash, method, args));
     }
     const callbackAllowedBefore = await readBool(ORACLE_HASH, "isAllowedCallback", [hash160JsonArg(contractHash)]);
     if (!callbackAllowedBefore) {
-      txids.push(await invokePersisted(ORACLE_HASH, "addAllowedCallback", [contractHash]));
+      txids.push(await invokePersisted(ORACLE_HASH, "addAllowedCallback", [contractHash], oracleAdminAccount));
     }
     const creditBefore = await readInteger(ORACLE_HASH, "feeCreditOf", [hash160JsonArg(contractHash)]);
     if (target.callbackCredit && creditBefore < MIN_ORACLE_CREDIT) {

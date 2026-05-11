@@ -33,7 +33,7 @@ export const RPC_URL = NETWORK.rpcUrl;
 export const ORACLE_HASH = NETWORK.oracleHash;
 export const AA_CORE_HASH =
   process.env.AA_CORE_HASH_TESTNET ||
-  "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38";
+  "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2";
 
 // Canonical UInt160 zero — 20 zero bytes as a script-hash.
 export const UINT160_ZERO = "0x" + "00".repeat(20);

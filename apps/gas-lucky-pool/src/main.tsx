@@ -16,6 +16,11 @@ defineMiniApp({
       launchContext: ctx.launchContext,
       t: ctx.t,
     });
+    const isClaimLaunch =
+      Boolean(pool.currentClaimKey.get()) &&
+      (!ctx.launchContext.operation ||
+        ctx.launchContext.operation === "claimPool" ||
+        ctx.launchContext.operation === "claimOneGateVault");
 
     ctx.registerAction("createPool", async (...args: unknown[]) => {
       const form = (args[0] ?? {}) as {
@@ -221,7 +226,7 @@ defineMiniApp({
         currentShareUrl: pool.currentShareUrl,
         currentRange: pool.currentRange,
       },
-      loadData: pool.loadAll,
+      loadData: isClaimLaunch ? async () => undefined : pool.loadAll,
     };
   },
 });

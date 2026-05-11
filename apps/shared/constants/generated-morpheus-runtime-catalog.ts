@@ -109,7 +109,7 @@ export const MORPHEUS_PUBLIC_RUNTIME_CATALOG = {
         "neoDidServiceDid": "did:morpheus:neo_n3:service:neodid"
       },
       "contracts": {
-        "aaCore": "0xe24d2980d17d2580ff4ee8dc5dddaa20e3caec38",
+        "aaCore": "0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2",
         "aaWeb3AuthVerifier": "0xf2560a0db44bbb32d0a6919cf90a3d0643ad8e3d",
         "aaSessionKeyVerifier": "0xed44c88535650b4dd6b8d59776e6ed045462cab6",
         "aaSocialRecoveryVerifier": "",

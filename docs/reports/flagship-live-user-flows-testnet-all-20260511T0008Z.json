@@ -1,0 +1,256 @@
+{
+  "generatedAt": "2026-05-11T00:11:36.988Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
+  "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [],
+    "selected": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [],
+      "selected": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": true,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NLtL2v28d7TyMEaXcPqtekunkFRksJ7wxu",
+        "scriptHash": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "gas": "4521816511417",
+        "neo": "73062"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "1671574558596"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "1671574558596"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+      "txid": "0x7565b4d0b01c1a14526225ea61706bf4c9d3e309c0a7dbf940f0f1987495184c",
+      "notificationObserved": true,
+      "statusBefore": {
+        "currentUtcDay": "20584008",
+        "lastCheckinDay": "20574026",
+        "canCheckin": true,
+        "timeUntilEligible": "0",
+        "streakWillReset": true,
+        "currentStreak": "1",
+        "nextRewardDay": "7"
+      },
+      "statusAfter": null
+    },
+    "lastSurvivor": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+      "appId": "miniapp-last-survivor",
+      "startTx": "",
+      "settleTx": "0x703c83df02f24a71b0d6c6a2cd48c4825953a7a36fc090bec05bcf5861a8d60f",
+      "roundId": "32",
+      "cost": "10000000",
+      "paymentTx": "0xb3cda39057ed5b560ad564a9b81e02aede79ccb1ae43df3c94e666a48c14f0a8",
+      "buyTx": "0xa07f54cc29a7101910cdd870bec31cc39f14a74eff6aebac4701d9ece3646a1a",
+      "after": {
+        "roundId": "32",
+        "active": true,
+        "pot": "10450000",
+        "totalKeys": "1",
+        "lastBuyer": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "startTime": "1778458307284",
+        "endTime": "1778458409366",
+        "settled": false,
+        "currentKeyPrice": "10010000",
+        "remainingTime": "83400",
+        "status": "active",
+        "baseKeyPrice": "10000000",
+        "keyPriceIncrementBps": "10",
+        "timeAddedPerKey": "86400",
+        "maxDuration": "86400",
+        "platformFeeBps": "500",
+        "winnerShareBps": "4800",
+        "dividendShareBps": "3000",
+        "totalKeysSold": "34",
+        "totalPotDistributed": "313519000",
+        "totalPlayers": "2",
+        "totalRounds": "32"
+      },
+      "playerStats": {
+        "totalKeysOwned": "1",
+        "totalSpent": "10000000",
+        "totalWon": "0",
+        "roundsPlayed": "1",
+        "roundsWon": "0",
+        "referralEarnings": "0",
+        "badgeCount": "1",
+        "joinTime": "1778458322966",
+        "lastActivityTime": "1778458322966",
+        "highestSinglePurchase": "10000000",
+        "dividendsClaimed": "0",
+        "netProfit": "-10000000",
+        "winRate": "0",
+        "currentRoundKeys": "1"
+      }
+    },
+    "gasBox": {
+      "ok": false,
+      "error": "oracle mismatch for 0x740671b10330ef6669ab8b2724437eb8d5e7a34c: expected 0x4b882e94ed766807c4fd728768f972e13008ad52, got 0x0000000000000000000000000000000000000000",
+      "attempts": 1
+    },
+    "fogPlay": {
+      "ok": false,
+      "error": "oracle mismatch for 0x740671b10330ef6669ab8b2724437eb8d5e7a34c: expected 0x4b882e94ed766807c4fd728768f972e13008ad52, got 0x0000000000000000000000000000000000000000",
+      "attempts": 1
+    },
+    "redEnvelope": {
+      "ok": false,
+      "error": "oracle updater mismatch: on-chain 0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7, local signer 0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "attempts": 1
+    },
+    "profitAnchor": {
+      "ok": false,
+      "error": "at instruction 1477 (ABORTMSG): ABORTMSG is executed. Reason: Native witness failed",
+      "attempts": 1
+    },
+    "trustAnchor": {
+      "ok": false,
+      "error": "at instruction 1477 (ABORTMSG): ABORTMSG is executed. Reason: Native witness failed",
+      "attempts": 1
+    },
+    "selfLoan": {
+      "ok": false,
+      "error": "at instruction 2586 (ABORTMSG): ABORTMSG is executed. Reason: unauthorized",
+      "attempts": 1
+    },
+    "neoPay": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
+      "fundTx": "0xda1cbeaaca2e3d8b7f6003ce4364a264de423e828b3eacb61a0d76f685975c68",
+      "createTx": "0x71ba06e9d656e7279be5bc767c812fd3067cd871fd2085e1cd45d5fff1f8e264",
+      "streamId": "1991",
+      "cancelTx": "0x20ae97f520add0f415422d7ef9326f5ea02a749d4befe95111dfef34f9bddaec",
+      "claimSimulationState": "FAULT",
+      "claimSimulationError": "at instruction 2953 (ABORTMSG): ABORTMSG is executed. Reason: nothing claimable",
+      "detailsBefore": {
+        "id": "1991",
+        "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "100000000",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "active",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778458386833",
+        "cancelledAt": "0"
+      },
+      "detailsAfter": {
+        "id": "1991",
+        "creator": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "beneficiary": "0x13ef519c362973f9a34648a9eac5b71250b2a80a",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "0",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "cancelled",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778458386833",
+        "cancelledAt": "1778458393160"
+      }
+    }
+  }
+}

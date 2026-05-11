@@ -1,0 +1,169 @@
+{
+  "generatedAt": "2026-05-10T07:53:07.939Z",
+  "targetNetwork": "mainnet",
+  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "targetInfo": {
+    "available": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
+      "profitAnchor",
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
+    ],
+    "requested": [
+      "redEnvelope"
+    ],
+    "selected": [
+      "redEnvelope"
+    ],
+    "unknown": []
+  },
+  "preflight": {
+    "files": {
+      "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
+      "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
+      "siblingOracleEnvExists": true,
+      "siblingOracleEnvLocalExists": true,
+      "siblingOraclePhalaEnvExists": true,
+      "siblingEdgeGatewayConfigExists": true
+    },
+    "targets": {
+      "available": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
+        "profitAnchor",
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
+      ],
+      "requested": [
+        "redEnvelope"
+      ],
+      "selected": [
+        "redEnvelope"
+      ],
+      "unknown": []
+    },
+    "runtime": {
+      "phalaApiUrlConfigured": true,
+      "phalaApiTokenConfigured": true,
+      "rngFallbackEnabled": false,
+      "rngFallbackLeadMs": 45000,
+      "oracleUpdaterWifConfigured": true,
+      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
+      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+      "rngFallbackSignerMatches": false,
+      "rngFallbackReady": false,
+      "oracleUpdaterMinGas": "10000000"
+    },
+    "wallets": {
+      "primary": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "17852982667",
+        "neo": "0"
+      },
+      "admin": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "17851941959"
+      },
+      "oracleUpdater": {
+        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "gas": "17851941959"
+      }
+    },
+    "fundingHints": {
+      "dailyCheckinFee": "100000",
+      "fogPlayBet": "5000000",
+      "redEnvelopeTotal": "10000000",
+      "selfLoanPoolTopup": "30000000",
+      "selfLoanCollateral": "1",
+      "anchorLiveStakeNeo": "1",
+      "anchorLiveRewardTopup": "1000000"
+    }
+  },
+  "results": {
+    "dailyCheckin": {
+      "skipped": true
+    },
+    "lastSurvivor": {
+      "skipped": true
+    },
+    "gasBox": {
+      "skipped": true
+    },
+    "fogPlay": {
+      "skipped": true
+    },
+    "redEnvelope": {
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+      "oracleReady": {
+        "configuredOracle": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+        "callbackAllowed": null,
+        "legacyCallbackAllowlist": false,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": ""
+      },
+      "transferTx": "0xd5a17fccc2247a29b59f4ce6adcbbb506f1196cb2bac791ad0e48a34a8058559",
+      "createTx": "0xa6858c36a05e0206acde82c530babb310357d0df3c022e7fece0ed602e4cf898",
+      "requestId": "34",
+      "envelopeId": "9",
+      "request": [
+        "34",
+        "miniapp-redenvelope",
+        "vrf_random",
+        "vrf_random",
+        "@\u0002!\u0001\t!\u0001\u0002",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "0x779838db61bf196f205f1042ed00bc98ccb9f8ec",
+        "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
+        "1",
+        "1778399605112",
+        "1778399617580",
+        true,
+        "�����\u001d�<�|\u0015\u001c��m@��$�r�vɧHtz\"�\u0005y",
+        ""
+      ],
+      "envelope": [
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "10000000",
+        "2",
+        "0",
+        "10000000",
+        "0x0000000000000000000000000000000000000000",
+        "0",
+        true,
+        "1778486005112"
+      ],
+      "claimTx": "0x1ad507bc4dc808b9aa81de2ed6dde02fa996a0f3557e04860afb675ee447a903"
+    },
+    "profitAnchor": {
+      "skipped": true
+    },
+    "trustAnchor": {
+      "skipped": true
+    },
+    "selfLoan": {
+      "skipped": true
+    },
+    "neoPay": {
+      "skipped": true
+    }
+  }
+}

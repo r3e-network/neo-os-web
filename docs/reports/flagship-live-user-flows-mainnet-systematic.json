@@ -235,7 +235,7 @@
       "manualWrite": {
         "deferred": true,
         "reason": "needs-anchor-agent-aa-wif",
-        "message": "ProfitAnchor manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test"
+        "message": "ProfitAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke"
       }
     },
     "trustAnchor": {
@@ -281,7 +281,7 @@
       "manualWrite": {
         "deferred": true,
         "reason": "needs-anchor-agent-aa-wif",
-        "message": "TrustAnchor manual write smoke deferred: set ANCHOR_LIVE_AGENT_WIF to the source AA agent key for a real transfer/vote test"
+        "message": "TrustAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke"
       }
     },
     "selfLoan": {
