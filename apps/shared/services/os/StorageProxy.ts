@@ -7,12 +7,12 @@ export class StorageProxy extends OSServiceProxy {
     return this.call("get", { key });
   }
 
-  async set(key: string, value: unknown): Promise<void> {
-    await this.call("set", { key, value });
+  async set(key: string, value: unknown): Promise<unknown> {
+    return this.call("set", { key, value });
   }
 
-  async delete(key: string): Promise<void> {
-    await this.call("delete", { key });
+  async delete(key: string): Promise<unknown> {
+    return this.call("delete", { key });
   }
 
   async list(prefix: string, limit = 100): Promise<Record<string, unknown>> {
@@ -22,8 +22,8 @@ export class StorageProxy extends OSServiceProxy {
   async grantReadAccess(
     readerAppId: string,
     keyPrefix: string,
-  ): Promise<void> {
-    await this.call("grant-access", { readerAppId, keyPrefix });
+  ): Promise<unknown> {
+    return this.call("grant-access", { readerAppId, keyPrefix });
   }
 
   async readShared(ownerAppId: string, key: string): Promise<unknown> {

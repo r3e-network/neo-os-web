@@ -110,6 +110,7 @@ const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-trustanchor-admin": TrustAnchorAdminPlayArea,
   "miniapp-custom-anchor": CustomAnchorPlayArea,
   "miniapp-council-governance": CouncilGovernancePlayArea,
+  "miniapp-forever-album": ForeverAlbumPlayArea,
   "miniapp-neo-pay": NeoPayPlayArea,
   "miniapp-onchaintarot": TarotPlayArea,
   "miniapp-on-chain-tarot": TarotPlayArea,
@@ -630,28 +631,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     visual: {
       headline: "Atomic loan path",
       slots: ["Borrow", "Trade", "Repay", "Profit"],
-    },
-  },
-  "miniapp-forever-album": {
-    title: "Encrypted album desk",
-    subtitle:
-      "Prepare photo metadata, choose encryption mode, and preview the per-wallet album surface.",
-    tone: "violet",
-    icon: <ImageIcon className="h-5 w-5" />,
-    fields: [
-      { key: "album", label: "Album title", defaultValue: "Neo memories" },
-      { key: "mode", label: "Privacy mode", defaultValue: "AES-GCM optional" },
-    ],
-    cards: [
-      { label: "Storage", value: "wallet scoped" },
-      { label: "Encryption", value: "optional" },
-      { label: "Access", value: "owner" },
-    ],
-    steps: ["Select photo", "Encrypt metadata", "Write hash", "Open album"],
-    primaryAction: "Stage album entry",
-    visual: {
-      headline: "Wallet album preview",
-      slots: ["Photo", "Hash", "Owner", "Album"],
     },
   },
   "miniapp-gas-sponsor": {
@@ -1390,6 +1369,10 @@ export function getNativePlayAreaOperationFallback(
     ];
   }
 
+  if (appId === "miniapp-forever-album") {
+    return [];
+  }
+
   if (appId === "miniapp-gasbox") {
     return [
       {
@@ -1484,6 +1467,29 @@ function getMetric(
   fallback = "0",
 ) {
   return stats[label] || fallback;
+}
+
+function buildEmbeddedDappUrl(
+  app: MiniAppInfo,
+  network: "mainnet" | "testnet",
+  launchContext?: MiniAppLaunchContext | null,
+) {
+  const slug = app.app_id.replace(/^miniapp-/, "");
+  const base =
+    app.dapp_url ||
+    (app.entry_url && app.entry_url.startsWith("/")
+      ? app.entry_url
+      : `/miniapps/${slug}/index.html`);
+  const params = new URLSearchParams();
+  params.set("network", network);
+  params.set("source", launchContext?.source || "platform");
+  if (launchContext?.operation) params.set("operation", launchContext.operation);
+  if (launchContext?.tab) params.set("tab", launchContext.tab);
+  for (const [key, value] of Object.entries(launchContext?.params || {})) {
+    if (!params.has(key)) params.set(key, value);
+  }
+  const joiner = base.includes("?") ? "&" : "?";
+  return `${base}${joiner}${params.toString()}`;
 }
 
 function statsMapFromStats(stats: PlayMetric[]): Record<string, string> {
@@ -2079,6 +2085,112 @@ function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
         tone="emerald"
         rows={rows}
       />
+    </PlayShell>
+  );
+}
+
+function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
+  const {
+    app,
+    stats,
+    activity,
+    loading,
+    error,
+    contractHash,
+    network,
+    launchContext,
+    onRefresh,
+  } = props;
+  const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
+
+  return (
+    <PlayShell
+      app={app}
+      title="Forever Album photo vault"
+      subtitle="Upload image files, optionally encrypt them locally, sign the storage write, and reopen the wallet-scoped gallery from the same dApp."
+      tone="violet"
+      side={
+        <>
+          <ActivityPanel activity={activity} />
+          <MetricGrid stats={stats} />
+          <ChainStateStrip
+            loading={loading}
+            error={error}
+            contractHash={contractHash}
+            network={network}
+            onRefresh={onRefresh}
+          />
+        </>
+      }
+    >
+      <div className="grid gap-3">
+        <section className="overflow-hidden rounded-[18px] border border-violet-100 bg-violet-50/60 shadow-sm shadow-violet-950/5">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-violet-100 bg-white/80 px-3.5 py-3">
+            <div className="min-w-0">
+              <h3 className="m-0 text-sm font-black text-gray-950">
+                Upload and view album
+              </h3>
+              <p className="m-0 mt-1 text-xs leading-5 text-gray-600">
+                This is the actual Forever Album dApp surface, not a staged
+                metadata preview.
+              </p>
+            </div>
+            <a
+              href={dappUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-black text-violet-700 transition hover:bg-violet-50"
+            >
+              Open full dApp
+              <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
+          <iframe
+            title="Forever Album uploader"
+            src={dappUrl}
+            className="block h-[640px] w-full border-0 bg-white"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </section>
+
+        <ActionBoard
+          title="Album workflow"
+          subtitle="The user path is explicit: choose images, write them, then inspect the saved gallery."
+          tone="violet"
+          rows={[
+            {
+              label: "Upload photos",
+              detail: "Choose image files in the embedded dApp uploader.",
+              value: "5 max",
+              valueLabel: "per tx",
+              active: true,
+              icon: <ImageIcon className="h-4 w-4" />,
+            },
+            {
+              label: "Encrypt locally",
+              detail: "AES-GCM password encryption happens before storage.",
+              value: "optional",
+              valueLabel: "privacy",
+              icon: <LockKeyhole className="h-4 w-4" />,
+            },
+            {
+              label: "Sign storage write",
+              detail: "The OS storage intent is submitted by the wallet.",
+              value: network,
+              valueLabel: "network",
+              icon: <FileSignature className="h-4 w-4" />,
+            },
+            {
+              label: "View gallery",
+              detail: "Saved images load back into the same wallet album.",
+              value: "live",
+              valueLabel: "read",
+              icon: <BookOpenCheck className="h-4 w-4" />,
+            },
+          ]}
+        />
+      </div>
     </PlayShell>
   );
 }
