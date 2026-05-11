@@ -123,6 +123,12 @@ describe("MiniAppRoot runtime-owned services", () => {
   });
 
   it("does not reserve an empty operation sidebar when no operations are configured", async () => {
+    window.history.pushState(
+      {},
+      "",
+      "/miniapps/runtime-test/index.html?source=platform",
+    );
+
     const container = document.createElement("div");
     document.body.appendChild(container);
 

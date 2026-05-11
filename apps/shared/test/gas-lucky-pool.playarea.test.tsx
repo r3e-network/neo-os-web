@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createObservable, type ObservableState } from "../react/context";
@@ -144,16 +144,18 @@ describe("OneGate Vault PlayArea launch flow", () => {
     );
 
     expect(screen.getByText("OneGate scan detected")).toBeTruthy();
-    expect(screen.getByText("Reward key is ready")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Claim Reward" })).toBeTruthy();
     expect(screen.queryByLabelText("Claim key")).toBeNull();
     expect(screen.queryByText("Create reward pool")).toBeNull();
     expect(screen.queryByText("OneGate QR claim")).toBeNull();
 
-    expect(screen.queryByRole("button", { name: "Claim Reward" })).toBeNull();
-    expect(
-      screen.getByText("Primary action lives in the right action console."),
-    ).toBeTruthy();
-    expect(dispatch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Claim Reward" }));
+    expect(dispatch).toHaveBeenCalledWith("claimPool", {
+      claimKey: "ogv_test_key_1234567890",
+      poolId: "pool-001",
+      oneGateAppId: "",
+      appId: "miniapp-gas-lucky-pool",
+    });
   });
 
   it("treats the legacy OneGate Vault operation name as a claim launch", () => {

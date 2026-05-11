@@ -41,7 +41,12 @@ function resolveClaimProgress(
   return claiming ? "wallet" : "";
 }
 
-export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
+export default function PlayArea({
+  t,
+  state,
+  dispatch,
+  launchContext,
+}: PlayAreaProps) {
   const { str, val } = useStateBindings(state as ObservableState);
   const currentClaimKey = str(
     "currentClaimKey",
@@ -68,6 +73,16 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
     launchContext.operation === "claimPool" ||
     launchContext.operation === "claimOneGateVault";
   const isOneGateClaimLaunch = isClaimOperation && Boolean(launchClaimKey);
+  const launchPoolId = getLaunchParam(
+    launchContext,
+    ["poolId", "pool", "campaignId"],
+    "",
+  );
+  const launchOneGateAppId = getLaunchParam(
+    launchContext,
+    ["oneGateAppId", "oneGateId", "onegateAppId"],
+    "",
+  );
   const claimSucceeded =
     lastSuccessType === "claim" &&
     claimStatus === "paid" &&
@@ -98,6 +113,16 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
     preloadedLaunchKeyRef.current = launchClaimKey;
     setClaimKey(launchClaimKey);
   }, [isOneGateClaimLaunch, launchClaimKey]);
+
+  const submitClaim = () => {
+    if (!claimKey || isClaiming) return;
+    void dispatch("claimPool", {
+      claimKey,
+      poolId: launchPoolId,
+      oneGateAppId: launchOneGateAppId,
+      appId: launchContext.appId ?? "miniapp-gas-lucky-pool",
+    });
+  };
 
   return (
     <div
@@ -157,6 +182,16 @@ export default function PlayArea({ t, state, launchContext }: PlayAreaProps) {
               <div className="gas-pool-claim-only__action-hint">
                 {t("noPoolSelected")}
               </div>
+            )}
+            {claimKey && !claimSucceeded && (
+              <button
+                type="button"
+                className="gas-pool-claim-only__button"
+                onClick={submitClaim}
+                disabled={isClaiming}
+              >
+                {t("claimReward")}
+              </button>
             )}
             {showClaimProgress ? (
               <div

@@ -3,9 +3,16 @@
   "id": "miniapp-gas-lucky-pool",
   "name": "OneGate Vault",
   "name_zh": "OneGate 金库",
+  "name_ja": "OneGate Vault",
   "version": "1.0.0",
   "description": "Claim a server-backed 1-50 GAS random reward by scanning a OneGate QR code with an embedded single-use key.",
   "description_zh": "通过 OneGate 扫码打开带一次性 key 的奖励页面，由后端随机发放 1-50 GAS 奖励。",
+  "description_ja": "OneGate QRコードをスキャンして、埋め込まれた一回限りのkeyでサーバー管理の1〜50 GASランダム報酬を受け取ります。",
+  "languages": [
+    "en",
+    "zh",
+    "ja"
+  ],
   "category": "social",
   "category_name": "Social",
   "category_name_zh": "社交",
