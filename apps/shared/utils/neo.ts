@@ -5,6 +5,60 @@
  * including contract invocation results and stack items.
  */
 
+function decodeBase64Bytes(value: unknown): Uint8Array | null {
+  if (typeof value !== "string") return null;
+  if (!value) return new Uint8Array();
+  try {
+    const decoded = atob(value);
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i += 1) {
+      bytes[i] = decoded.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function bytesToPrintableText(bytes: Uint8Array): string | null {
+  if (bytes.length === 0) return "";
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    if (/^[\x09\x0a\x0d\x20-\x7e\u00a0-\uffff]*$/.test(text)) {
+      return text;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function parseByteLike(value: unknown): unknown {
+  const bytes = decodeBase64Bytes(value);
+  if (!bytes) return value;
+  const text = bytesToPrintableText(bytes);
+  if (text !== null) return text;
+  if (bytes.length === 20) return `0x${bytesToHex(bytes)}`;
+  return `0x${bytesToHex(bytes)}`;
+}
+
+function parseMapEntry(entry: unknown): [unknown, unknown] | null {
+  if (Array.isArray(entry) && entry.length === 2) {
+    return [entry[0], entry[1]];
+  }
+  if (entry && typeof entry === "object" && "key" in entry && "value" in entry) {
+    const kv = entry as { key: unknown; value: unknown };
+    return [kv.key, kv.value];
+  }
+  return null;
+}
+
 /**
  * Parse a stack item from Neo VM
  *
@@ -21,9 +75,10 @@ export function parseStackItem(item: unknown): unknown {
     const typed = item as { type: string; value: unknown };
 
     switch (typed.type) {
+      case "ByteString":
       case "ByteArray":
       case "Buffer":
-        return typed.value;
+        return parseByteLike(typed.value);
 
       case "Integer":
         // Convert Integer to number
@@ -56,9 +111,9 @@ export function parseStackItem(item: unknown): unknown {
         if (Array.isArray(typed.value)) {
           const map = new Map();
           for (const entry of typed.value) {
-            if (Array.isArray(entry) && entry.length === 2) {
-              map.set(parseStackItem(entry[0]), parseStackItem(entry[1]));
-            }
+            const kv = parseMapEntry(entry);
+            if (!kv) continue;
+            map.set(parseStackItem(kv[0]), parseStackItem(kv[1]));
           }
           return Object.fromEntries(map);
         }

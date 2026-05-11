@@ -2,208 +2,456 @@
 @use "@shared/styles/playarea-base";
 
 .council-play-area {
-  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+  color: #172033;
 }
 
-.council-loading {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+.council-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.25rem;
+
+  h2 {
+    margin: 0;
+    font-size: 1.45rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
 }
 
-/* ── Hero Stats ── */
-.council-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 0.75rem;
-}
-
-.council-hero-stat {
-  text-align: center;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
-}
-
-.council-hero-stat-value {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #10b981;
-}
-
-.council-hero-stat-label {
-  display: block;
-  font-size: 0.75rem;
-  color: #6b7280;
+.council-eyebrow {
+  margin: 0 0 0.35rem;
+  color: #087f5b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 0.25rem;
 }
 
-/* ── Proposals Card ── */
-.council-proposals-card {
+.council-hero-copy {
+  max-width: 44rem;
+  margin: 0.45rem 0 0;
+  color: #607087;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.council-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.council-stat {
+  min-height: 4.75rem;
+  padding: 0.9rem;
+  border: 1px solid #dfe6ef;
+  border-radius: 8px;
+  background: #ffffff;
+
+  span {
+    display: block;
+    color: #111827;
+    font-size: 1.35rem;
+    font-weight: 850;
+    line-height: 1;
+  }
+
+  label {
+    display: block;
+    margin-top: 0.45rem;
+    color: #6b7280;
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.council-stat--accent {
+  border-color: rgba(8, 127, 91, 0.28);
+  background: #f1fbf7;
+}
+
+.council-access {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #f0d58a;
+  border-radius: 8px;
+  background: #fff8e6;
+  color: #7a5200;
+  font-size: 0.82rem;
+  font-weight: 700;
+
+  strong {
+    color: #172033;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+  }
+}
+
+.council-access--ok {
+  border-color: #b9e5d5;
+  background: #effaf5;
+  color: #087f5b;
+}
+
+.council-access-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.council-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid #e5eaf1;
+  border-radius: 8px;
+  background: #f6f8fb;
+
+  button {
+    min-height: 2.45rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    font-weight: 800;
+    letter-spacing: 0;
+
+    &.is-active {
+      background: #ffffff;
+      color: #172033;
+      box-shadow: 0 1px 6px rgba(23, 32, 51, 0.08);
+    }
+  }
+}
+
+.council-create-panel,
+.council-board {
   width: 100%;
 }
 
-.council-proposals-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.council-section-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: #374151;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-/* ── Create Form ── */
-.council-create-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
+.council-panel-heading {
   margin-bottom: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #f3f4f6;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: #607087;
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
 }
 
-/* ── Proposal List ── */
+.council-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.council-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+
+  span {
+    color: #4b5563;
+    font-size: 0.78rem;
+    font-weight: 750;
+  }
+
+  select {
+    min-height: 2.75rem;
+    width: 100%;
+    border: 1px solid #d7dee8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #172033;
+    padding: 0 0.75rem;
+    font-size: 0.92rem;
+    font-weight: 650;
+  }
+}
+
+.council-loading,
 .council-empty {
+  display: grid;
+  min-height: 12rem;
+  place-items: center;
+  border: 1px solid #e5eaf1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #607087;
   text-align: center;
-  padding: 1.5rem;
-  color: #9ca3af;
-  font-size: 0.8125rem;
+}
+
+.council-empty {
+  padding: 2rem 1rem;
+
+  h3 {
+    margin: 0;
+    color: #172033;
+    font-size: 1rem;
+  }
+
+  p {
+    max-width: 28rem;
+    margin: 0.45rem auto 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+}
+
+.council-loading-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0 auto 0.7rem;
+  border: 3px solid #dfe6ef;
+  border-top-color: #087f5b;
+  border-radius: 999px;
+  animation: council-spin 0.8s linear infinite;
+}
+
+@keyframes council-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .council-proposal-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  display: grid;
+  gap: 0.75rem;
 }
 
 .council-proposal-item {
-  padding: 0.75rem;
-  background: #f9fafb;
+  padding: 1rem;
+  border: 1px solid #dfe6ef;
   border-radius: 8px;
-  border: 1px solid #f3f4f6;
-  transition: border-color 0.15s;
-
-  &:hover {
-    border-color: rgba(16, 185, 129, 0.15);
-  }
+  background: #ffffff;
+  box-shadow: 0 1px 8px rgba(23, 32, 51, 0.04);
 }
 
 .council-proposal-top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.375rem;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
 }
 
-.council-status-badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.council-status-badge,
+.council-voted {
+  display: inline-flex;
+  min-height: 1.45rem;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 850;
   letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .council-status--active {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  background: #e8f8f1;
+  color: #087f5b;
 }
 
-.council-status--passed {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+.council-status--passed,
+.council-status--executed {
+  background: #e8f0ff;
+  color: #2759a5;
 }
 
-.council-status--rejected {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+.council-status--rejected,
+.council-status--revoked {
+  background: #ffecec;
+  color: #b42318;
 }
 
+.council-status--expired,
 .council-status--pending {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
+  background: #f0f2f5;
+  color: #5b6472;
+}
+
+.council-voted {
+  background: #f4f0ff;
+  color: #5f3dc4;
 }
 
 .council-proposal-id {
-  font-size: 0.6875rem;
-  color: #9ca3af;
-  font-family: monospace;
+  color: #7b8794;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.76rem;
+  font-weight: 750;
 }
 
 .council-proposal-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
+  margin: 0;
+  color: #172033;
+  font-size: 1.03rem;
+  line-height: 1.28;
 }
 
 .council-proposal-desc {
-  font-size: 0.8125rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+  margin: 0.45rem 0 0;
+  color: #607087;
+  font-size: 0.87rem;
+  line-height: 1.5;
 }
 
-/* ── Vote Bar ── */
 .council-vote-bar {
-  margin-bottom: 0.5rem;
+  margin-top: 0.85rem;
 }
 
 .council-vote-bar-track {
-  width: 100%;
-  height: 6px;
-  background: rgba(239, 68, 68, 0.25);
-  border-radius: 3px;
+  height: 0.5rem;
   overflow: hidden;
-  margin-bottom: 0.25rem;
+  border-radius: 999px;
+  background: #fee2e2;
 }
 
 .council-vote-bar-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.council-vote-bar-for {
+  border-radius: inherit;
   background: #10b981;
+  transition: width 0.2s ease;
 }
 
-.council-vote-counts {
+.council-vote-counts,
+.council-proposal-meta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  font-size: 0.6875rem;
+  gap: 0.5rem 0.85rem;
+  margin-top: 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 750;
 }
 
 .council-vote-for {
-  color: #10b981;
-  font-weight: 600;
+  color: #087f5b;
 }
 
 .council-vote-against {
-  color: #f87171;
-  font-weight: 600;
+  color: #b42318;
 }
 
-/* ── Vote Actions ── */
-.council-vote-actions {
+.council-proposal-meta {
+  justify-content: flex-start;
+  color: #6b7280;
+}
+
+.council-proposal-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.25rem;
+  margin-top: 0.85rem;
+}
+
+.council-details-panel {
+  padding: 1rem;
+  border: 1px solid #dfe6ef;
+  border-radius: 8px;
+  background: #fbfcfe;
+
+  p {
+    margin: 0.7rem 0 0;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+}
+
+.council-details-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  h3 {
+    margin: 0.5rem 0 0;
+    color: #172033;
+    font-size: 1.05rem;
+  }
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid #d7dee8;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #607087;
+    cursor: pointer;
+    font-weight: 900;
+  }
+}
+
+.council-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+
+  div {
+    min-width: 0;
+  }
+
+  dt {
+    color: #7b8794;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    margin: 0.25rem 0 0;
+    overflow-wrap: anywhere;
+    color: #172033;
+    font-size: 0.86rem;
+    font-weight: 750;
+  }
+}
+
+@media (max-width: 720px) {
+  .council-hero {
+    flex-direction: column;
+  }
+
+  .council-stats,
+  .council-form-grid,
+  .council-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .council-stats,
+  .council-form-grid,
+  .council-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .council-tabs {
+    grid-template-columns: 1fr;
+  }
 }
