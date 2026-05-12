@@ -101,6 +101,10 @@ export default function PlayArea({
   );
   const showClaimProgress =
     !claimSucceeded && Boolean(claimKey) && Boolean(activeClaimProgress);
+  const claimNetworkLabel =
+    launchContext.network === "testnet"
+      ? t("networkTestnet")
+      : t("networkMainnet");
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -155,7 +159,33 @@ export default function PlayArea({
                   {t("luckPercentLabel", { percent: lastClaimLuckPercent })}
                 </p>
               )}
-              <code>{formatHash(lastTxid, 10, 8)}</code>
+              <dl
+                className="gas-pool-claim-only__summary"
+                aria-label={t("claimReceiptTitle")}
+              >
+                {lastClaimAmount > 0n && (
+                  <div>
+                    <dt>{t("claimAmountLabel")}</dt>
+                    <dd>{formatGas(lastClaimAmount, 8)} GAS</dd>
+                  </div>
+                )}
+                {displayClaimKey && (
+                  <div>
+                    <dt>{t("claimKeyLabel")}</dt>
+                    <dd>{displayClaimKey}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt>{t("claimNetworkLabel")}</dt>
+                  <dd>{claimNetworkLabel}</dd>
+                </div>
+                <div className="gas-pool-claim-only__summary-row--txid">
+                  <dt>{t("transactionIdLabel")}</dt>
+                  <dd>
+                    <code>{lastTxid}</code>
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
         ) : (
@@ -272,7 +302,7 @@ export default function PlayArea({
         </details>
       )}
 
-      {(lastTxid || lastError) && (
+      {(lastError || (!isOneGateClaimLaunch && lastTxid)) && (
         <div
           className={`gas-pool-toast${lastError ? " gas-pool-toast--error" : ""}`}
         >

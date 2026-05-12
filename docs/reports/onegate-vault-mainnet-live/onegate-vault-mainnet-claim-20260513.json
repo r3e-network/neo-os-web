@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-05-12T23:51:09Z",
+  "productionAlias": "https://neomini.app",
+  "oneGateAppUrlStatus": "HTTP 200 checked separately",
+  "dappUrlStatus": "HTTP 200 checked separately",
+  "claimKeyIndex": "2",
+  "rawClaimKeyRedacted": true,
+  "network": "mainnet",
+  "pool": "pool-001",
+  "oneGateAppId": "23",
+  "appId": "miniapp-gas-lucky-pool",
+  "recipientMasked": "NR3E4D...qNih32",
+  "localeChecks": [
+    {
+      "locale": "ja-JP",
+      "expected": "報酬を受け取る",
+      "ok": true
+    },
+    {
+      "locale": "zh-CN",
+      "expected": "领取奖励",
+      "ok": true
+    },
+    {
+      "locale": "fr-FR",
+      "expected": "English fallback",
+      "ok": true
+    }
+  ],
+  "claimStatus": "paid",
+  "amountFixed8": "4426874529",
+  "amountGas": "44.26874529",
+  "luckPercent": "88.53",
+  "txHash": "0x299ecd4abe0c98ad6f9ed8168e8ef917885404e7d21160d7f5419fe5de5c8466",
+  "txHashVisibleInUi": true,
+  "successTitleVisibleInJapanese": true,
+  "transactionIdLabelVisibleInJapanese": true,
+  "screenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
+  "sameWalletStatusCheck": {
+    "code": 200,
+    "status": "paid",
+    "txHashMatches": true,
+    "amountMatches": true
+  },
+  "differentWalletReplayCheck": {
+    "code": 403,
+    "errorCode": "FORBIDDEN",
+    "rejected": true
+  },
+  "chainVerification": {
+    "rpc": "https://mainnet1.neo.coz.io:443",
+    "txid": "0x299ecd4abe0c98ad6f9ed8168e8ef917885404e7d21160d7f5419fe5de5c8466",
+    "vmstate": "HALT",
+    "gasconsumed": "215925",
+    "eventCount": 1
+  },
+  "productionDeployment": "dpl_8F4B4esuVq14LgMSF5XjyVypAVJE",
+  "polishedUiCheck": {
+    "fullAmountVisible": true,
+    "fullTxidVisible": true,
+    "successTitleVisibleInJapanese": true,
+    "transactionIdLabelVisibleInJapanese": true,
+    "platformToastCount": 0,
+    "localToastCount": 0,
+    "claimSubmittedToastHidden": true,
+    "claimOnlyBackground": "rgb(245, 246, 243)"
+  },
+  "polishedScreenshot": "/Users/jinghuiliao/git/neo-miniapps-platform/docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja-polished.png",
+  "generatedAtLocal": "2026-05-13T07:51:09+0800"
+}
