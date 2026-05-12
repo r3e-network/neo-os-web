@@ -44,6 +44,13 @@ function t(key: string, params?: Record<string, string | number>) {
     claimCongratsBody: "Reward key {claimKey} awarded {amount} GAS.",
     luckPercentLabel: "Luck beat {percent}% of users.",
     claimedAmount: "Claimed {amount} GAS",
+    claimReceiptTitle: "Claim receipt",
+    claimAmountLabel: "Reward",
+    claimKeyLabel: "Claim key",
+    claimNetworkLabel: "Network",
+    networkMainnet: "Neo N3 MainNet",
+    networkTestnet: "Neo N3 TestNet",
+    transactionIdLabel: "Transaction ID",
     totalAmount: "Total GAS",
     maxClaims: "Claim slots",
     minClaim: "Minimum claim",
@@ -202,7 +209,7 @@ describe("OneGate Vault PlayArea launch flow", () => {
         state={baseState({
           lastTxid:
             "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-          lastClaimAmount: 350000000n,
+          lastClaimAmount: 350000001n,
           lastClaimKey: "ogv_test_key_1234567890",
           lastClaimLuckPercent: "7.00",
           claimStatus: "paid",
@@ -219,8 +226,16 @@ describe("OneGate Vault PlayArea launch flow", () => {
         /Reward key ogv_tes\.\.\.7890 awarded 3\.5[0-9]* GAS/,
       ),
     ).toBeTruthy();
+    expect(screen.getByText("3.50000001 GAS")).toBeTruthy();
     expect(screen.getByText("Luck beat 7.00% of users.")).toBeTruthy();
-    expect(screen.getByText(/Claimed 3\.5[0-9]* GAS/)).toBeTruthy();
+    expect(screen.getByText("Transaction ID")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Neo N3 TestNet")).toBeTruthy();
+    expect(screen.queryByText(/Claimed 3\.5[0-9]* GAS/)).toBeNull();
   });
 
   it("does not expose legacy pool management controls in the recipient play area", () => {

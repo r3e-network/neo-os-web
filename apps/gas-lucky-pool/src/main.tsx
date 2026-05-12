@@ -85,7 +85,7 @@ defineMiniApp({
                 }
               : { poolId },
           ),
-        "claimSubmitted",
+        isClaimLaunch ? undefined : "claimSubmitted",
         "claimFailed",
       );
     });
