@@ -1,6 +1,6 @@
 # OneGate Vault Runbook
 
-Last updated: 2026-05-11
+Last updated: 2026-05-13
 
 OneGate Vault is the production OneGate dApp registered as OneGate app id `23`.
 The miniapp slug is `gas-lucky-pool`, and the platform app id is
@@ -10,7 +10,7 @@ The miniapp slug is `gas-lucky-pool`, and the platform app id is
 
 - OneGate app: `https://onegate.space/app/23`
 - dApp runtime: `https://neomini.app/miniapps/gas-lucky-pool/index.html`
-- Production deployment verified: `dpl_8XYZHAgg8oMUG79PmMwP3jMRcoFS`
+- Production deployment verified: `dpl_8F4B4esuVq14LgMSF5XjyVypAVJE`
 - Production alias: `https://neomini.app`
 
 The OneGate QR payload should stay short and only carry the fields needed for a
@@ -32,6 +32,8 @@ When the app is opened from OneGate or directly, it renders as a pure dApp:
 - no miniapp platform shell
 - no sidebar or platform navigation
 - one primary `Claim Reward` action when a key is present
+- after a successful claim, a clean receipt with reward amount, masked claim key,
+  network, and the full transaction id on its own wrapping line
 
 When opened with `source=platform`, it intentionally keeps the miniapp platform
 shell for normal platform browsing.
@@ -57,6 +59,8 @@ Verified behavior:
 - `zh-CN` and `zh-TW` render Chinese, including `领取奖励`.
 - `en-US` renders English, including `Claim Reward`.
 - Unsupported locales such as `fr-FR` and `ko-KR` fall back to English.
+- The final claim receipt uses the same locale, including Japanese, Chinese, and
+  English labels for reward amount, key, network, and transaction id.
 
 ## Claim Security Model
 
@@ -114,6 +118,45 @@ Screenshot artifact:
 output/playwright/onegate-vault-testnet-claim-final.png
 ```
 
+## Latest Mainnet Full-Flow Validation
+
+Validation date: 2026-05-13
+
+Consumed mainnet key index: `2` from
+`/Users/jinghuiliao/Desktop/onegate-vault-claim-keys-2026-05-09-mainnet-id23.csv`.
+The raw key is intentionally not recorded here.
+
+Result:
+
+- OneGate app id `23` returned HTTP 200.
+- dApp runtime returned HTTP 200 with `onegate.space` allowed in
+  `frame-ancestors`.
+- Production deployment `dpl_8F4B4esuVq14LgMSF5XjyVypAVJE` is aliased to
+  `https://neomini.app`.
+- System-language detection rendered Japanese for `ja-JP`, Chinese for
+  `zh-CN`, and English fallback for unsupported `fr-FR`.
+- Simulated OneGate NEP-21 mainnet wallet submitted a real mainnet claim.
+- Status endpoint returned `paid`.
+- Final UI showed the Japanese congratulations state and the full transaction
+  id on its own wrapping row.
+- Same-wallet status lookup returned the same transaction and amount.
+- Different-wallet replay returned HTTP 403.
+- Neo mainnet application log returned `vmstate=HALT`.
+
+Mainnet payout:
+
+```text
+amount: 44.26874529 GAS
+tx_hash: 0x299ecd4abe0c98ad6f9ed8168e8ef917885404e7d21160d7f5419fe5de5c8466
+vmstate: HALT
+```
+
+Screenshot artifact:
+
+```text
+docs/reports/onegate-vault-mainnet-live/onegate-vault-mainnet-claim-ja.png
+```
+
 ## Verification Commands
 
 Use these commands before claiming the flow is production-ready:
@@ -166,4 +209,3 @@ node scripts/onegate-vault/seed-claim-keys.mjs \
   --onegate-app-id 23 \
   --execute
 ```
-
