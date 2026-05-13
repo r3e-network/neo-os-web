@@ -860,7 +860,7 @@ async function readOneGateProviderAddress(
 }
 
 async function readOneGateBridgeAddress(
-  timeoutMs = 10_000,
+  timeoutMs = 12_000,
   diagnostics?: OneGateAddressDiagnostics,
 ): Promise<string> {
   const variants = [
@@ -868,50 +868,91 @@ async function readOneGateBridgeAddress(
       method: "getAccounts",
       includeParams: true,
       label: "getAccounts",
+      delayMs: 0,
     },
     {
       method: "GetAccounts",
       includeParams: false,
       label: "GetAccountsNoParams",
+      delayMs: 250,
     },
     {
       method: "getAccounts",
       includeParams: false,
       label: "getAccountsNoParams",
+      delayMs: 500,
+    },
+    {
+      method: "getAccounts",
+      includeParams: true,
+      label: "getAccountsRetry",
+      delayMs: 1_250,
     },
   ];
   const startedAt = Date.now();
+  let finished = false;
 
-  for (const variant of variants) {
+  const attempts = variants.map(async (variant) => {
+    if (finished) return { address: "", missing: false };
+    if (variant.delayMs > 0) {
+      await oneGateDelay(
+        Math.min(
+          variant.delayMs,
+          Math.max(0, timeoutMs - (Date.now() - startedAt)),
+        ),
+      );
+    }
+    if (finished) return { address: "", missing: false };
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-    if (remainingMs <= 0) break;
+    if (remainingMs <= 0) return { address: "", missing: false };
     try {
       const accounts = await oneGateBridgeRpc(
         variant.method,
         [],
-        Math.min(remainingMs, 5_000),
+        remainingMs,
         diagnostics,
         {
           includeParams: variant.includeParams,
           label: variant.label,
         },
       );
-      if (accounts === null) return "";
+      if (accounts === null) return { address: "", missing: true };
       const address = await addressFromOneGateAccounts(accounts);
       if (address) {
         addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:ok`);
-        return address;
+        return { address, missing: false };
       }
       addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:empty`);
-      return "";
+      return { address: "", missing: false };
     } catch (error) {
       addOneGateDiag(
         diagnostics,
         "bridgeAttempts",
         `${variant.label}:${oneGateErrorCode(error)}`,
       );
+      return { address: "", missing: false };
+    }
+  });
+
+  const pending = attempts.map((attempt, index) => ({ attempt, index }));
+  while (pending.length > 0) {
+    const { result, index } = await Promise.race(
+      pending.map(({ attempt, index }) =>
+        attempt.then((result) => ({ result, index })),
+      ),
+    );
+    const pendingIndex = pending.findIndex((item) => item.index === index);
+    if (pendingIndex >= 0) pending.splice(pendingIndex, 1);
+    if (result.address) {
+      finished = true;
+      return result.address;
+    }
+    if (result.missing) {
+      finished = true;
+      return "";
     }
   }
+
   return "";
 }
 
@@ -937,26 +978,24 @@ async function waitForOneGateInjectedAddress(
 
   do {
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-    const eventProviderAddress = await readOneGateProviderAddress(
-      await eventOneGateDapiProvider(
-        Math.min(remainingMs, 1000),
-        diagnostics,
-      ),
-      diagnostics,
-      "event",
-    );
-    if (eventProviderAddress) return eventProviderAddress;
-
     const address = await readOneGateInjectedAddressOnce(diagnostics);
     if (address) return address;
+
     if (bridgeAttempts < 3) {
       bridgeAttempts += 1;
       const bridgeAddress = await readOneGateBridgeAddress(
-        Math.min(Math.max(0, timeoutMs - (Date.now() - startedAt)), 10_000),
+        Math.min(Math.max(0, timeoutMs - (Date.now() - startedAt)), 12_000),
         diagnostics,
       );
       if (bridgeAddress) return bridgeAddress;
     }
+
+    const eventProviderAddress = await readOneGateProviderAddress(
+      await eventOneGateDapiProvider(Math.min(remainingMs, 500), diagnostics),
+      diagnostics,
+      "event",
+    );
+    if (eventProviderAddress) return eventProviderAddress;
     if (Date.now() - startedAt >= timeoutMs) break;
     requestOneGateDapiProvider(diagnostics);
     await oneGateDelay(
@@ -986,7 +1025,8 @@ function buildClaimKeyUrl(
 ) {
   const key = normalizeClaimKey(claimKey);
   if (!key) return "";
-  const appId = normalizeClaimIdentity(identity.oneGateAppId) || ONEGATE_VAULT_DAPP_ID;
+  const appId =
+    normalizeClaimIdentity(identity.oneGateAppId) || ONEGATE_VAULT_DAPP_ID;
   const url = new URL(`https://onegate.space/app/${encodeURIComponent(appId)}`);
   url.searchParams.set("source", "onegate");
   url.searchParams.set("operation", "claimOneGateVault");
@@ -1393,7 +1433,9 @@ export function useGasLuckyPool({
           record.user_address,
           record.toAddress,
           record.to_address,
-        ].map(normalizeNeoAddress).find(Boolean) ||
+        ]
+          .map(normalizeNeoAddress)
+          .find(Boolean) ||
         launchIdentity.walletAddress ||
         undefined,
     };
@@ -1463,7 +1505,9 @@ export function useGasLuckyPool({
       const walletResult = await walletAddressPromise;
       if (walletResult.kind === "wallet") {
         diagnostics.wallet = "available";
-        const normalizedWalletAddress = normalizeNeoAddress(walletResult.address);
+        const normalizedWalletAddress = normalizeNeoAddress(
+          walletResult.address,
+        );
         return normalizedWalletAddress || walletResult.address;
       }
       if (isWalletUnavailableError(walletResult.error)) {
@@ -1610,9 +1654,11 @@ export function useGasLuckyPool({
       }
 
       if (result.status !== "paid") {
-        const finalStatus = await pollClaimStatus(claimKey, address, identity).catch(
-          () => undefined,
-        );
+        const finalStatus = await pollClaimStatus(
+          claimKey,
+          address,
+          identity,
+        ).catch(() => undefined);
         if (finalStatus?.status === "failed") {
           throw new Error(t("claimFailed"));
         }
