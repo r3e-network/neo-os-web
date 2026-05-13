@@ -1,9 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useGasLuckyPool } from "../../gas-lucky-pool/src/composables/useGasLuckyPool";
 import { parseMiniAppLaunchContext } from "@shared/utils/launch-params";
+import { addressToScriptHash } from "@shared/utils/neo";
 
 const OWNER = "NWMjW2tnPKSuSdHme5uYk86vFm8hyoHeJ3";
+const ONEGATE_OWNER = "NNLi44dJNXtDNSBkofB48aTVYtb1zZrNEs";
 const CLAIM_KEY = "ogv_test_key_1234567890";
 
 function t(key: string) {
@@ -25,6 +27,12 @@ function keyLaunch(claimKey = CLAIM_KEY, extraParams = "") {
 }
 
 describe("OneGate Vault runtime logic", () => {
+  afterEach(() => {
+    delete (window as any).OneGate;
+    delete (window as any).OneGateDapiProvider;
+    delete (window as any).Neo;
+  });
+
   it("loads only recent pool and claim events instead of walking the whole event history", async () => {
     const chain = {
       readArray: vi.fn().mockResolvedValue([]),
@@ -227,6 +235,62 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastClaimAmount.get()).toBe(120000000n);
     expect(pool.lastTxid.get()).toBe("0xonegate");
+  });
+
+  it("claims a scanned key with a OneGate dAPI hash-only account instead of showing a missing wallet error", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegatehash",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    (window as any).OneGateDapiProvider = {
+      getAccounts: vi.fn().mockResolvedValue([{ hash: addressToScriptHash(ONEGATE_OWNER) }]),
+    };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegatehash");
   });
 
   it("polls scanned key status with pool and OneGate identity when payout is submitted asynchronously", async () => {
