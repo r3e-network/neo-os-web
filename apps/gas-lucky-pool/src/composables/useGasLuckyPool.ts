@@ -170,6 +170,202 @@ function normalizeNeoAddress(value: unknown): string {
   return /^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(raw) ? raw : "";
 }
 
+const NEO_N3_ADDRESS_VERSION = 0x35;
+const BASE58_ALPHABET =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const SHA256_K = [
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b,
+  0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
+  0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7,
+  0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+  0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152,
+  0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+  0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+  0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819,
+  0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
+  0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f,
+  0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+];
+
+type OneGateAccountLike = Record<string, unknown>;
+
+type OneGateDapiProviderLike = {
+  name?: string;
+  getAccounts?: () =>
+    | Promise<Array<OneGateAccountLike>>
+    | Array<OneGateAccountLike>;
+  authenticate?: () =>
+    | Promise<OneGateAccountLike>
+    | OneGateAccountLike;
+};
+
+function isOneGateDapiProviderLike(
+  value: unknown,
+): value is OneGateDapiProviderLike {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    (typeof (value as OneGateDapiProviderLike).getAccounts === "function" ||
+      typeof (value as OneGateDapiProviderLike).authenticate === "function")
+  );
+}
+
+function normalizeNeoScriptHash(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^(?:0x)?([0-9a-fA-F]{40})$/);
+  return match ? match[1].toLowerCase() : "";
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function base58Encode(bytes: Uint8Array): string {
+  let value = 0n;
+  for (const byte of bytes) {
+    value = (value << 8n) + BigInt(byte);
+  }
+
+  let output = "";
+  while (value > 0n) {
+    const index = Number(value % 58n);
+    value /= 58n;
+    output = BASE58_ALPHABET[index] + output;
+  }
+
+  for (const byte of bytes) {
+    if (byte !== 0) break;
+    output = BASE58_ALPHABET[0] + output;
+  }
+
+  return output || BASE58_ALPHABET[0];
+}
+
+function rotr(value: number, bits: number): number {
+  return (value >>> bits) | (value << (32 - bits));
+}
+
+function sha256Sync(bytes: Uint8Array): Uint8Array {
+  const bitLength = bytes.length * 8;
+  const paddedLength = Math.ceil((bytes.length + 1 + 8) / 64) * 64;
+  const padded = new Uint8Array(paddedLength);
+  padded.set(bytes);
+  padded[bytes.length] = 0x80;
+
+  const view = new DataView(padded.buffer);
+  view.setUint32(paddedLength - 8, Math.floor(bitLength / 0x100000000));
+  view.setUint32(paddedLength - 4, bitLength >>> 0);
+
+  let h0 = 0x6a09e667;
+  let h1 = 0xbb67ae85;
+  let h2 = 0x3c6ef372;
+  let h3 = 0xa54ff53a;
+  let h4 = 0x510e527f;
+  let h5 = 0x9b05688c;
+  let h6 = 0x1f83d9ab;
+  let h7 = 0x5be0cd19;
+  const w = new Uint32Array(64);
+
+  for (let offset = 0; offset < paddedLength; offset += 64) {
+    for (let i = 0; i < 16; i += 1) {
+      w[i] = view.getUint32(offset + i * 4);
+    }
+    for (let i = 16; i < 64; i += 1) {
+      const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+      const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+    }
+
+    let a = h0;
+    let b = h1;
+    let c = h2;
+    let d = h3;
+    let e = h4;
+    let f = h5;
+    let g = h6;
+    let h = h7;
+
+    for (let i = 0; i < 64; i += 1) {
+      const s1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = (e & f) ^ (~e & g);
+      const temp1 = (h + s1 + ch + SHA256_K[i] + w[i]) >>> 0;
+      const s0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const temp2 = (s0 + maj) >>> 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
+    }
+
+    h0 = (h0 + a) >>> 0;
+    h1 = (h1 + b) >>> 0;
+    h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0;
+    h5 = (h5 + f) >>> 0;
+    h6 = (h6 + g) >>> 0;
+    h7 = (h7 + h) >>> 0;
+  }
+
+  const output = new Uint8Array(32);
+  const outputView = new DataView(output.buffer);
+  [h0, h1, h2, h3, h4, h5, h6, h7].forEach((value, index) => {
+    outputView.setUint32(index * 4, value);
+  });
+  return output;
+}
+
+async function sha256Bytes(bytes: Uint8Array): Promise<Uint8Array> {
+  const subtle = globalThis.crypto?.subtle;
+  if (subtle) {
+    try {
+      const digest = await subtle.digest("SHA-256", bytes);
+      return new Uint8Array(digest);
+    } catch {
+      /* Some embedded WebViews expose crypto without a working subtle API. */
+    }
+  }
+  return sha256Sync(bytes);
+}
+
+async function scriptHashToNeoAddress(value: unknown): Promise<string> {
+  const littleEndianHash = normalizeNeoScriptHash(value);
+  if (!littleEndianHash) return "";
+
+  const scriptHashBytes = hexToBytes(littleEndianHash);
+  const addressHashBytes = new Uint8Array(scriptHashBytes).reverse();
+  const payload = new Uint8Array(1 + addressHashBytes.length);
+  payload[0] = NEO_N3_ADDRESS_VERSION;
+  payload.set(addressHashBytes, 1);
+
+  const checksumSource = await sha256Bytes(await sha256Bytes(payload));
+  if (checksumSource.length < 4) return "";
+
+  const addressBytes = new Uint8Array(payload.length + 4);
+  addressBytes.set(payload, 0);
+  addressBytes.set(checksumSource.slice(0, 4), payload.length);
+  return normalizeNeoAddress(base58Encode(addressBytes));
+}
+
+async function normalizeOneGateAccountAddress(
+  value: unknown,
+): Promise<string> {
+  const address = normalizeNeoAddress(value);
+  if (address) return address;
+  return scriptHashToNeoAddress(value);
+}
+
 function normalizeClaimIdentity(value: unknown): string {
   const raw = String(value ?? "").trim();
   return /^[A-Za-z0-9_.:-]{1,128}$/.test(raw) ? raw : "";
@@ -194,6 +390,15 @@ const WALLET_ADDRESS_PARAM_KEYS = [
   "to_address",
 ];
 
+const ONEGATE_ACCOUNT_ADDRESS_KEYS = [
+  ...WALLET_ADDRESS_PARAM_KEYS,
+  "hash",
+  "scriptHash",
+  "script_hash",
+  "accountHash",
+  "account_hash",
+];
+
 const NORMALIZED_WALLET_ADDRESS_PARAM_KEYS = new Set(
   WALLET_ADDRESS_PARAM_KEYS.map((key) =>
     key.replace(/[-_.:]/g, "").toLowerCase(),
@@ -215,44 +420,132 @@ function walletAddressFromParams(context: MiniAppLaunchContext): string {
   return "";
 }
 
-async function readOneGateInjectedAddressOnce(): Promise<string> {
-  if (typeof window === "undefined") return "";
-  const oneGateWindow = window as unknown as {
-    OneGate?: {
-      getAccount?: () =>
-        | Promise<{ address?: unknown }>
-        | { address?: unknown };
-    };
-    OneGateDapiProvider?: {
-      getAccounts?: () =>
-        | Promise<Array<{ address?: unknown }>>
-        | Array<{ address?: unknown }>;
-      authenticate?: () =>
-        | Promise<{ address?: unknown }>
-        | { address?: unknown };
-    };
-  };
+async function addressFromOneGateRecord(
+  record: unknown,
+  depth = 0,
+): Promise<string> {
+  if (!record || typeof record !== "object") {
+    return normalizeOneGateAccountAddress(record);
+  }
+  const values = record as Record<string, unknown>;
 
-  try {
-    const account = await oneGateWindow.OneGate?.getAccount?.();
-    const address = normalizeNeoAddress(account?.address);
+  for (const key of ONEGATE_ACCOUNT_ADDRESS_KEYS) {
+    const address = await normalizeOneGateAccountAddress(values[key]);
     if (address) return address;
-  } catch {
-    /* OneGate can deny account reads until its WebView finishes injecting. */
   }
 
+  if (depth > 0) return "";
+  for (const value of Object.values(values)) {
+    if (!value || typeof value !== "object") continue;
+    const address = await addressFromOneGateRecord(value, depth + 1);
+    if (address) return address;
+  }
+
+  return "";
+}
+
+async function addressFromOneGateAccounts(accounts: unknown): Promise<string> {
+  if (!Array.isArray(accounts)) return "";
+  const orderedAccounts = [
+    ...accounts.filter(
+      (account) =>
+        !!account &&
+        typeof account === "object" &&
+        (account as { isDefault?: unknown }).isDefault === true,
+    ),
+    ...accounts.filter(
+      (account) =>
+        !(
+          !!account &&
+          typeof account === "object" &&
+          (account as { isDefault?: unknown }).isDefault === true
+        ),
+    ),
+  ];
+  for (const account of orderedAccounts) {
+    const address = await addressFromOneGateRecord(account);
+    if (address) return address;
+  }
+  return "";
+}
+
+function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
+  if (typeof window === "undefined") return null;
+  const oneGateWindow = window as unknown as {
+    OneGateDapiProvider?: unknown;
+    Neo?: { DapiProvider?: unknown };
+  };
+  const directProvider = oneGateWindow.OneGateDapiProvider;
+  if (isOneGateDapiProviderLike(directProvider)) return directProvider;
+
+  const eventProvider = oneGateWindow.Neo?.DapiProvider;
+  if (
+    isOneGateDapiProviderLike(eventProvider) &&
+    String(eventProvider.name ?? "").toLowerCase().includes("onegate")
+  ) {
+    return eventProvider;
+  }
+  return null;
+}
+
+function eventOneGateDapiProvider(
+  timeoutMs = 600,
+): Promise<OneGateDapiProviderLike | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  const immediate = immediateOneGateDapiProvider();
+  if (immediate) return Promise.resolve(immediate);
+
+  return new Promise((resolve) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const cleanup = () => {
+      clearTimeout(timeout);
+      window.removeEventListener("Neo.DapiProvider.ready", onReady);
+    };
+    const onReady = (event: Event) => {
+      const detail = (event as CustomEvent<{ provider?: unknown }>).detail;
+      const provider = detail?.provider ?? detail;
+      if (!isOneGateDapiProviderLike(provider)) return;
+      const name = String(provider.name ?? "").toLowerCase();
+      if (
+        provider !== immediateOneGateDapiProvider() &&
+        name &&
+        !name.includes("onegate")
+      ) {
+        return;
+      }
+      cleanup();
+      resolve(provider);
+    };
+
+    timeout = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, timeoutMs);
+    window.addEventListener("Neo.DapiProvider.ready", onReady);
+    window.dispatchEvent(
+      new CustomEvent("Neo.DapiProvider.request", {
+        detail: { version: "1.0" },
+      }),
+    );
+  });
+}
+
+async function readOneGateProviderAddress(
+  provider: unknown,
+): Promise<string> {
+  if (!isOneGateDapiProviderLike(provider)) return "";
+
   try {
-    const accounts = await oneGateWindow.OneGateDapiProvider?.getAccounts?.();
-    const address = normalizeNeoAddress(accounts?.[0]?.address);
+    const accounts = await provider.getAccounts?.();
+    const address = await addressFromOneGateAccounts(accounts);
     if (address) return address;
   } catch {
     /* Some OneGate builds expose authenticate instead of direct accounts. */
   }
 
   try {
-    const authenticated =
-      await oneGateWindow.OneGateDapiProvider?.authenticate?.();
-    const address = normalizeNeoAddress(authenticated?.address);
+    const authenticated = await provider.authenticate?.();
+    const address = await addressFromOneGateRecord(authenticated);
     if (address) return address;
   } catch {
     /* Keep falling back to the standard wallet path. */
@@ -261,10 +554,41 @@ async function readOneGateInjectedAddressOnce(): Promise<string> {
   return "";
 }
 
+async function readOneGateInjectedAddressOnce(): Promise<string> {
+  if (typeof window === "undefined") return "";
+  const oneGateWindow = window as unknown as {
+    OneGate?: {
+      getAccount?: () =>
+        | Promise<OneGateAccountLike>
+        | OneGateAccountLike;
+    };
+  };
+
+  try {
+    const account = await oneGateWindow.OneGate?.getAccount?.();
+    const address = await addressFromOneGateRecord(account);
+    if (address) return address;
+  } catch {
+    /* OneGate can deny account reads until its WebView finishes injecting. */
+  }
+
+  const providerAddress = await readOneGateProviderAddress(
+    immediateOneGateDapiProvider(),
+  );
+  if (providerAddress) return providerAddress;
+
+  return "";
+}
+
 async function waitForOneGateInjectedAddress(
   timeoutMs = 8000,
 ): Promise<string> {
   const startedAt = Date.now();
+  const eventProviderAddress = await readOneGateProviderAddress(
+    await eventOneGateDapiProvider(Math.min(timeoutMs, 600)),
+  );
+  if (eventProviderAddress) return eventProviderAddress;
+
   do {
     const address = await readOneGateInjectedAddressOnce();
     if (address) return address;
@@ -710,8 +1034,12 @@ export function useGasLuckyPool({
     const currentAddress = normalizeNeoAddress(chain.address?.get?.());
     if (currentAddress) return currentAddress;
 
-    if (launchContext.source === "onegate" || identity.oneGateAppId) {
-      const injectedAddress = await waitForOneGateInjectedAddress();
+    const explicitOneGateLaunch =
+      launchContext.source === "onegate" || !!identity.oneGateAppId;
+    if (explicitOneGateLaunch || currentClaimKey.get()) {
+      const injectedAddress = await waitForOneGateInjectedAddress(
+        explicitOneGateLaunch ? 8000 : 700,
+      );
       if (injectedAddress) return injectedAddress;
     }
 
