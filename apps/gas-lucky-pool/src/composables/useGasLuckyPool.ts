@@ -399,6 +399,12 @@ const ONEGATE_ACCOUNT_ADDRESS_KEYS = [
   "account_hash",
 ];
 
+const NORMALIZED_ONEGATE_ACCOUNT_ADDRESS_KEYS = new Set(
+  ONEGATE_ACCOUNT_ADDRESS_KEYS.map((key) =>
+    key.replace(/[-_.:]/g, "").toLowerCase(),
+  ),
+);
+
 const NORMALIZED_WALLET_ADDRESS_PARAM_KEYS = new Set(
   WALLET_ADDRESS_PARAM_KEYS.map((key) =>
     key.replace(/[-_.:]/g, "").toLowerCase(),
@@ -429,8 +435,10 @@ async function addressFromOneGateRecord(
   }
   const values = record as Record<string, unknown>;
 
-  for (const key of ONEGATE_ACCOUNT_ADDRESS_KEYS) {
-    const address = await normalizeOneGateAccountAddress(values[key]);
+  for (const [key, value] of Object.entries(values)) {
+    const normalizedKey = key.replace(/[-_.:]/g, "").toLowerCase();
+    if (!NORMALIZED_ONEGATE_ACCOUNT_ADDRESS_KEYS.has(normalizedKey)) continue;
+    const address = await normalizeOneGateAccountAddress(value);
     if (address) return address;
   }
 
@@ -444,23 +452,20 @@ async function addressFromOneGateRecord(
   return "";
 }
 
+function isOneGateDefaultAccount(account: unknown): boolean {
+  if (!account || typeof account !== "object") return false;
+  return Object.entries(account as Record<string, unknown>).some(
+    ([key, value]) =>
+      key.replace(/[-_.:]/g, "").toLowerCase() === "isdefault" &&
+      value === true,
+  );
+}
+
 async function addressFromOneGateAccounts(accounts: unknown): Promise<string> {
   if (!Array.isArray(accounts)) return "";
   const orderedAccounts = [
-    ...accounts.filter(
-      (account) =>
-        !!account &&
-        typeof account === "object" &&
-        (account as { isDefault?: unknown }).isDefault === true,
-    ),
-    ...accounts.filter(
-      (account) =>
-        !(
-          !!account &&
-          typeof account === "object" &&
-          (account as { isDefault?: unknown }).isDefault === true
-        ),
-    ),
+    ...accounts.filter(isOneGateDefaultAccount),
+    ...accounts.filter((account) => !isOneGateDefaultAccount(account)),
   ];
   for (const account of orderedAccounts) {
     const address = await addressFromOneGateRecord(account);
