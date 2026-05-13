@@ -79,6 +79,7 @@ interface ClaimLaunchIdentity {
   poolId?: string;
   oneGateAppId?: string;
   appId?: string;
+  walletAddress?: string;
 }
 
 export interface UseGasLuckyPoolOptions {
@@ -164,9 +165,113 @@ export function normalizeClaimKey(value: unknown): string {
   return /^[A-Za-z0-9_:-]{6,128}$/.test(raw) ? raw : "";
 }
 
+function normalizeNeoAddress(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  return /^N[1-9A-HJ-NP-Za-km-z]{33}$/.test(raw) ? raw : "";
+}
+
 function normalizeClaimIdentity(value: unknown): string {
   const raw = String(value ?? "").trim();
   return /^[A-Za-z0-9_.:-]{1,128}$/.test(raw) ? raw : "";
+}
+
+const WALLET_ADDRESS_PARAM_KEYS = [
+  "address",
+  "wallet",
+  "walletAddress",
+  "wallet_address",
+  "account",
+  "accountAddress",
+  "account_address",
+  "neoAddress",
+  "neo_address",
+  "recipient",
+  "recipientAddress",
+  "recipient_address",
+  "userAddress",
+  "user_address",
+  "toAddress",
+  "to_address",
+];
+
+const NORMALIZED_WALLET_ADDRESS_PARAM_KEYS = new Set(
+  WALLET_ADDRESS_PARAM_KEYS.map((key) =>
+    key.replace(/[-_.:]/g, "").toLowerCase(),
+  ),
+);
+
+function walletAddressFromParams(context: MiniAppLaunchContext): string {
+  const exact = normalizeNeoAddress(
+    getLaunchParam(context, WALLET_ADDRESS_PARAM_KEYS, ""),
+  );
+  if (exact) return exact;
+
+  for (const [key, value] of Object.entries(context.params ?? {})) {
+    const normalizedKey = key.replace(/[-_.:]/g, "").toLowerCase();
+    if (!NORMALIZED_WALLET_ADDRESS_PARAM_KEYS.has(normalizedKey)) continue;
+    const address = normalizeNeoAddress(value);
+    if (address) return address;
+  }
+  return "";
+}
+
+async function readOneGateInjectedAddressOnce(): Promise<string> {
+  if (typeof window === "undefined") return "";
+  const oneGateWindow = window as unknown as {
+    OneGate?: {
+      getAccount?: () =>
+        | Promise<{ address?: unknown }>
+        | { address?: unknown };
+    };
+    OneGateDapiProvider?: {
+      getAccounts?: () =>
+        | Promise<Array<{ address?: unknown }>>
+        | Array<{ address?: unknown }>;
+      authenticate?: () =>
+        | Promise<{ address?: unknown }>
+        | { address?: unknown };
+    };
+  };
+
+  try {
+    const account = await oneGateWindow.OneGate?.getAccount?.();
+    const address = normalizeNeoAddress(account?.address);
+    if (address) return address;
+  } catch {
+    /* OneGate can deny account reads until its WebView finishes injecting. */
+  }
+
+  try {
+    const accounts = await oneGateWindow.OneGateDapiProvider?.getAccounts?.();
+    const address = normalizeNeoAddress(accounts?.[0]?.address);
+    if (address) return address;
+  } catch {
+    /* Some OneGate builds expose authenticate instead of direct accounts. */
+  }
+
+  try {
+    const authenticated =
+      await oneGateWindow.OneGateDapiProvider?.authenticate?.();
+    const address = normalizeNeoAddress(authenticated?.address);
+    if (address) return address;
+  } catch {
+    /* Keep falling back to the standard wallet path. */
+  }
+
+  return "";
+}
+
+async function waitForOneGateInjectedAddress(
+  timeoutMs = 8000,
+): Promise<string> {
+  const startedAt = Date.now();
+  do {
+    const address = await readOneGateInjectedAddressOnce();
+    if (address) return address;
+    if (Date.now() - startedAt >= timeoutMs) break;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  } while (true);
+  return "";
 }
 
 function luckPercentFromFixed8(value: unknown): string {
@@ -227,6 +332,7 @@ export function useGasLuckyPool({
         ),
       ) || undefined,
     appId: normalizeClaimIdentity(launchContext.appId) || APP_ID,
+    walletAddress: walletAddressFromParams(launchContext) || undefined,
   };
   const currentPoolId = createObservable(
     normalizePoolId(
@@ -573,7 +679,52 @@ export function useGasLuckyPool({
         normalizeClaimIdentity(record.appId ?? record.miniappId) ||
         launchIdentity.appId ||
         APP_ID,
+      walletAddress:
+        [
+          record.address,
+          record.wallet,
+          record.walletAddress,
+          record.wallet_address,
+          record.account,
+          record.accountAddress,
+          record.account_address,
+          record.neoAddress,
+          record.neo_address,
+          record.recipient,
+          record.recipientAddress,
+          record.recipient_address,
+          record.userAddress,
+          record.user_address,
+          record.toAddress,
+          record.to_address,
+        ].map(normalizeNeoAddress).find(Boolean) ||
+        launchIdentity.walletAddress ||
+        undefined,
     };
+  }
+
+  async function resolveClaimAddress(identity: ClaimLaunchIdentity) {
+    const launchAddress = normalizeNeoAddress(identity.walletAddress);
+    if (launchAddress) return launchAddress;
+
+    const currentAddress = normalizeNeoAddress(chain.address?.get?.());
+    if (currentAddress) return currentAddress;
+
+    if (launchContext.source === "onegate" || identity.oneGateAppId) {
+      const injectedAddress = await waitForOneGateInjectedAddress();
+      if (injectedAddress) return injectedAddress;
+    }
+
+    try {
+      const walletAddress = await chain.ensureWallet();
+      const normalizedWalletAddress = normalizeNeoAddress(walletAddress);
+      return normalizedWalletAddress || walletAddress;
+    } catch (error) {
+      if (isWalletUnavailableError(error)) {
+        throw new Error(t("oneGateWalletAddressRequired"));
+      }
+      throw error;
+    }
   }
 
   function addClaimIdentity(
@@ -642,7 +793,7 @@ export function useGasLuckyPool({
     lastFundAmount.set(0n);
     lastFundPoolId.set("");
     try {
-      const address = await chain.ensureWallet();
+      const address = await resolveClaimAddress(identity);
       claimProgress.set("submitting");
       const request: Record<string, string> = {
         claimKey,
@@ -760,8 +911,8 @@ export function useGasLuckyPool({
         : input;
     const key = normalizeClaimKey(explicitClaimKey);
     if (!key) throw new Error(t("claimKeyRequired"));
-    const address = await chain.ensureWallet();
     const identity = claimIdentityFromInput(input);
+    const address = await resolveClaimAddress(identity);
     const status = await fetchClaimStatus(key, address, identity);
     lastClaimKey.set(key);
     if (status.txHash) lastTxid.set(String(status.txHash));
