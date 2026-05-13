@@ -146,8 +146,8 @@ const appMessagesBase = {
   createFailed: { en: "Pool creation failed.", zh: "奖池创建失败。" },
   claimFailed: { en: "Claim failed.", zh: "领取失败。" },
   oneGateWalletAddressRequired: {
-    en: "OneGate did not provide a wallet address. Reopen this QR inside OneGate or update OneGate, then claim again.",
-    zh: "OneGate 没有提供钱包地址。请在 OneGate 内重新打开这个二维码，或更新 OneGate 后再领取。",
+    en: "OneGate did not expose its default wallet address to this claim page. Reopen this QR inside OneGate; if it still fails, send us the diagnostic line below.",
+    zh: "OneGate 没有把默认钱包地址注入到领取页。请在 OneGate 内重新扫码；如果仍失败，把下方诊断行发给我们。",
   },
   topUpFailed: { en: "Top-up failed.", zh: "补充 GAS 失败。" },
   refundFailed: { en: "Refund failed.", zh: "退款失败。" },
@@ -296,7 +296,7 @@ const jaMessages = {
   createFailed: "プール作成に失敗しました。",
   claimFailed: "受け取りに失敗しました。",
   oneGateWalletAddressRequired:
-    "OneGateからウォレットアドレスを取得できませんでした。OneGate内でQRを開き直すか、OneGateを更新してから再度受け取ってください。",
+    "OneGateのデフォルトウォレットアドレスが受け取りページに渡されませんでした。OneGate内でQRを開き直し、まだ失敗する場合は下の診断行を送ってください。",
   topUpFailed: "GAS追加に失敗しました。",
   refundFailed: "返金に失敗しました。",
   loadFailed: "プール状態の読み込みに失敗しました。",
