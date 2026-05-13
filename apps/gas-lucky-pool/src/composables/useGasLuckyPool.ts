@@ -202,6 +202,23 @@ type OneGateDapiProviderLike = {
     | OneGateAccountLike;
 };
 
+type OneGateBridgeWindow = Window & {
+  __OneGateBridge?: { invoke?: (payload: string) => void };
+  __OneGateDapiCallback?: (response: unknown) => void;
+};
+
+const ONEGATE_PICK_ADDRESS_PROMPT =
+  "Select the address that will receive this reward.";
+
+const oneGateBridgePending = new Map<
+  string,
+  {
+    resolve: (value: unknown) => void;
+    reject: (reason?: unknown) => void;
+    timeout: ReturnType<typeof setTimeout>;
+  }
+>();
+
 function isOneGateDapiProviderLike(
   value: unknown,
 ): value is OneGateDapiProviderLike {
@@ -218,6 +235,94 @@ function normalizeNeoScriptHash(value: unknown): string {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(?:0x)?([0-9a-fA-F]{40})$/);
   return match ? match[1].toLowerCase() : "";
+}
+
+function oneGateCallTimeout<T>(
+  operation: Promise<T> | T | undefined,
+  timeoutMs: number,
+): Promise<T | undefined> {
+  if (operation === undefined) return Promise.resolve(undefined);
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("OneGate dAPI call timed out"));
+    }, timeoutMs);
+    Promise.resolve(operation)
+      .then((value) => {
+        clearTimeout(timeout);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+  });
+}
+
+function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
+  const previous = windowRef.__OneGateDapiCallback;
+  if ((previous as { __oneGateVaultWrapped?: boolean } | undefined)?.__oneGateVaultWrapped) {
+    return;
+  }
+  const callback = (response: unknown) => {
+    let parsed = response;
+    if (typeof response === "string") {
+      try {
+        parsed = JSON.parse(response);
+      } catch {
+        parsed = null;
+      }
+    }
+    const record =
+      parsed && typeof parsed === "object"
+        ? (parsed as Record<string, unknown>)
+        : {};
+    const id = String(record.id ?? "");
+    const pending = oneGateBridgePending.get(id);
+    if (pending) {
+      oneGateBridgePending.delete(id);
+      clearTimeout(pending.timeout);
+      if (record.error) pending.reject(record.error);
+      else pending.resolve(record.result);
+      return;
+    }
+    previous?.(response);
+  };
+  (callback as { __oneGateVaultWrapped?: boolean }).__oneGateVaultWrapped = true;
+  windowRef.__OneGateDapiCallback = callback;
+}
+
+function oneGateBridgeRpc(
+  method: string,
+  params: unknown[] = [],
+  timeoutMs = 20_000,
+): Promise<unknown> | null {
+  if (typeof window === "undefined") return null;
+  const windowRef = window as OneGateBridgeWindow;
+  const invoke = windowRef.__OneGateBridge?.invoke;
+  if (typeof invoke !== "function") return null;
+  installOneGateBridgeCallback(windowRef);
+  const id = `onegate_vault_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      oneGateBridgePending.delete(id);
+      reject(new Error("OneGate bridge call timed out"));
+    }, timeoutMs);
+    oneGateBridgePending.set(id, { resolve, reject, timeout });
+    try {
+      invoke(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id,
+          method,
+          params,
+        }),
+      );
+    } catch (error) {
+      oneGateBridgePending.delete(id);
+      clearTimeout(timeout);
+      reject(error);
+    }
+  });
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -564,7 +669,7 @@ async function readOneGateProviderAddress(
   if (!isOneGateDapiProviderLike(provider)) return "";
 
   try {
-    const accounts = await provider.getAccounts?.();
+    const accounts = await oneGateCallTimeout(provider.getAccounts?.(), 2_500);
     const address = await addressFromOneGateAccounts(accounts);
     if (address) return address;
   } catch {
@@ -572,8 +677,9 @@ async function readOneGateProviderAddress(
   }
 
   try {
-    const pickedAddress = await provider.pickAddress?.(
-      "Select the address that will receive this reward.",
+    const pickedAddress = await oneGateCallTimeout(
+      provider.pickAddress?.(ONEGATE_PICK_ADDRESS_PROMPT),
+      20_000,
     );
     const address = await addressFromOneGateRecord(pickedAddress);
     if (address) return address;
@@ -582,8 +688,32 @@ async function readOneGateProviderAddress(
   }
 
   try {
-    const authenticated = await provider.authenticate?.();
+    const authenticated = await oneGateCallTimeout(provider.authenticate?.(), 2_500);
     const address = await addressFromOneGateRecord(authenticated);
+    if (address) return address;
+  } catch {
+    /* Keep falling back to the standard wallet path. */
+  }
+
+  return "";
+}
+
+async function readOneGateBridgeAddress(): Promise<string> {
+  try {
+    const accounts = await oneGateBridgeRpc("getAccounts", [], 2_500);
+    const address = await addressFromOneGateAccounts(accounts);
+    if (address) return address;
+  } catch {
+    /* Fall through to OneGate's native address picker. */
+  }
+
+  try {
+    const pickedAddress = await oneGateBridgeRpc(
+      "pickAddress",
+      [ONEGATE_PICK_ADDRESS_PROMPT],
+      20_000,
+    );
+    const address = await addressFromOneGateRecord(pickedAddress);
     if (address) return address;
   } catch {
     /* Keep falling back to the standard wallet path. */
@@ -605,6 +735,7 @@ async function waitForOneGateInjectedAddress(
   timeoutMs = 8000,
 ): Promise<string> {
   const startedAt = Date.now();
+  let triedBridge = false;
 
   do {
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
@@ -615,6 +746,11 @@ async function waitForOneGateInjectedAddress(
 
     const address = await readOneGateInjectedAddressOnce();
     if (address) return address;
+    if (!triedBridge) {
+      triedBridge = true;
+      const bridgeAddress = await readOneGateBridgeAddress();
+      if (bridgeAddress) return bridgeAddress;
+    }
     if (Date.now() - startedAt >= timeoutMs) break;
     requestOneGateDapiProvider();
   } while (true);
