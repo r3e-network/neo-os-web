@@ -17,9 +17,9 @@ function launch(poolId = "42") {
   );
 }
 
-function keyLaunch(claimKey = CLAIM_KEY) {
+function keyLaunch(claimKey = CLAIM_KEY, extraParams = "") {
   return parseMiniAppLaunchContext(
-    `https://onegate.space/app/23?key=${claimKey}&pool=pool-001&network=testnet`,
+    `https://onegate.space/app/23?key=${claimKey}&pool=pool-001&network=testnet${extraParams}`,
     "miniapp-gas-lucky-pool",
   );
 }
@@ -172,6 +172,61 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastClaimLuckPercent.get()).toBe("7.00");
     expect(pool.lastTxid.get()).toBe("0xreward");
     expect(pool.claimProgress.get()).toBe("paid");
+  });
+
+  it("claims a scanned key with the OneGate launch address even when no NEP-21 wallet is injected", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegate",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(CLAIM_KEY, `&walletAddress=${OWNER}`),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
+    expect(chain.invoke).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastClaimAmount.get()).toBe(120000000n);
+    expect(pool.lastTxid.get()).toBe("0xonegate");
   });
 
   it("polls scanned key status with pool and OneGate identity when payout is submitted asynchronously", async () => {

@@ -4,6 +4,58 @@ import { manifest } from "./manifest";
 import { messages } from "./locale/messages";
 import { useGasLuckyPool } from "./composables/useGasLuckyPool";
 
+type OneGateClaimActionParams = {
+  appId?: unknown;
+  miniappId?: unknown;
+  oneGateAppId?: unknown;
+  oneGateId?: unknown;
+  onegateAppId?: unknown;
+  pool?: unknown;
+  poolId?: unknown;
+  campaignId?: unknown;
+  address?: unknown;
+  wallet?: unknown;
+  walletAddress?: unknown;
+  wallet_address?: unknown;
+  account?: unknown;
+  accountAddress?: unknown;
+  account_address?: unknown;
+  neoAddress?: unknown;
+  neo_address?: unknown;
+  recipient?: unknown;
+  recipientAddress?: unknown;
+  recipient_address?: unknown;
+  userAddress?: unknown;
+  user_address?: unknown;
+  toAddress?: unknown;
+  to_address?: unknown;
+};
+
+const WALLET_ADDRESS_ACTION_KEYS = [
+  "address",
+  "wallet",
+  "walletAddress",
+  "wallet_address",
+  "account",
+  "accountAddress",
+  "account_address",
+  "neoAddress",
+  "neo_address",
+  "recipient",
+  "recipientAddress",
+  "recipient_address",
+  "userAddress",
+  "user_address",
+  "toAddress",
+  "to_address",
+] as const;
+
+function walletAddressActionParams(params: OneGateClaimActionParams) {
+  return Object.fromEntries(
+    WALLET_ADDRESS_ACTION_KEYS.map((key) => [key, params[key]]),
+  );
+}
+
 defineMiniApp({
   appId: "miniapp-gas-lucky-pool",
   playArea: PlayArea,
@@ -41,16 +93,7 @@ defineMiniApp({
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
-          ? (first as {
-              appId?: unknown;
-              miniappId?: unknown;
-              oneGateAppId?: unknown;
-              oneGateId?: unknown;
-              onegateAppId?: unknown;
-              pool?: unknown;
-              poolId?: unknown;
-              campaignId?: unknown;
-            })
+          ? (first as OneGateClaimActionParams)
           : {};
       const claimKey =
         typeof first === "object" && first !== null
@@ -82,6 +125,7 @@ defineMiniApp({
                     params.oneGateId ??
                     params.onegateAppId,
                   appId: params.appId ?? params.miniappId,
+                  ...walletAddressActionParams(params),
                 }
               : { poolId },
           ),
@@ -94,16 +138,7 @@ defineMiniApp({
       const first = args[0];
       const params =
         typeof first === "object" && first !== null
-          ? (first as {
-              appId?: unknown;
-              miniappId?: unknown;
-              oneGateAppId?: unknown;
-              oneGateId?: unknown;
-              onegateAppId?: unknown;
-              pool?: unknown;
-              poolId?: unknown;
-              campaignId?: unknown;
-            })
+          ? (first as OneGateClaimActionParams)
           : {};
       const claimKey =
         typeof first === "object" && first !== null
@@ -121,6 +156,7 @@ defineMiniApp({
             oneGateAppId:
               params.oneGateAppId ?? params.oneGateId ?? params.onegateAppId,
             appId: params.appId ?? params.miniappId,
+            ...walletAddressActionParams(params),
           }),
         undefined,
         "claimStatusFailed",
