@@ -2039,8 +2039,10 @@ function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
     error,
     contractHash,
     network,
+    launchContext,
     onRefresh,
   } = props;
+  const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
   const total = getMetric(statsMap, "Total Proposals", "0");
   const active = getMetric(statsMap, "Active", "0");
   const finalized = getMetric(statsMap, "Finalized", "0");
@@ -2088,43 +2090,55 @@ function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
         </>
       }
     >
-      <div className="grid gap-2 sm:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
-          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
-            Total proposals
-          </p>
-          <p className="m-0 mt-1 text-xl font-black text-gray-950">{total}</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 shadow-sm shadow-emerald-900/5">
-          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-emerald-700">
-            Active
-          </p>
-          <p className="m-0 mt-1 text-xl font-black text-emerald-700">
-            {active}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
-          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
-            Finalized
-          </p>
-          <p className="m-0 mt-1 text-xl font-black text-gray-950">
-            {finalized}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5">
-          <p className="m-0 text-[10px] font-black uppercase tracking-wide text-sky-700">
-            Quorum target
-          </p>
-          <p className="m-0 mt-1 text-xl font-black text-sky-700">{quorum}</p>
-        </div>
-      </div>
+      <div className="space-y-3">
+        <EmbeddedDappSurface
+          title="Create, inspect, and vote"
+          subtitle="The primary surface is the real Council Governance dApp: council members can create proposals, review active/history proposals, and cast for or against votes with wallet-signed transactions."
+          url={dappUrl}
+          tone="emerald"
+          frameTitle="Council Governance dApp"
+          testId="council-governance-dapp-frame"
+          heightClass="h-[680px]"
+        />
 
-      <ActionBoard
-        title="Proposal queue"
-        subtitle="Latest contract proposals with vote split and quorum progress."
-        tone="emerald"
-        rows={rows}
-      />
+        <div className="grid gap-2 sm:grid-cols-4">
+          <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
+            <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
+              Total proposals
+            </p>
+            <p className="m-0 mt-1 text-xl font-black text-gray-950">{total}</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3 shadow-sm shadow-emerald-900/5">
+            <p className="m-0 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+              Active
+            </p>
+            <p className="m-0 mt-1 text-xl font-black text-emerald-700">
+              {active}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white px-3 py-3 shadow-sm shadow-gray-950/5">
+            <p className="m-0 text-[10px] font-black uppercase tracking-wide text-gray-400">
+              Finalized
+            </p>
+            <p className="m-0 mt-1 text-xl font-black text-gray-950">
+              {finalized}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 px-3 py-3 shadow-sm shadow-sky-900/5">
+            <p className="m-0 text-[10px] font-black uppercase tracking-wide text-sky-700">
+              Quorum target
+            </p>
+            <p className="m-0 mt-1 text-xl font-black text-sky-700">{quorum}</p>
+          </div>
+        </div>
+
+        <ActionBoard
+          title="Proposal queue"
+          subtitle="Latest contract proposals with vote split and quorum progress."
+          tone="emerald"
+          rows={rows}
+        />
+      </div>
     </PlayShell>
   );
 }
