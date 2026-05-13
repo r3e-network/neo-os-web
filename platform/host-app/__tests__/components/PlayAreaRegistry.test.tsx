@@ -6,12 +6,21 @@ import "@testing-library/jest-dom";
 
 import {
   PlayAreaRegistry,
+  getNativePlayAreaKind,
   getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
 import type { MiniAppInfo } from "../../components/types";
 
-function loadActiveMiniAppIds() {
+type LocalMiniAppManifest = {
+  appId: string;
+  name: string;
+  description: string;
+  category: string;
+  entryUrl: string;
+};
+
+function loadActiveMiniAppManifests() {
   const repoRoot = path.resolve(__dirname, "../../../..");
   const appsRoot = path.join(repoRoot, "apps");
 
@@ -24,14 +33,35 @@ function loadActiveMiniAppIds() {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
         app_id?: string;
         id?: string;
+        name?: string;
+        description?: string;
+        category?: string;
+        urls?: { entry?: string };
       };
-      return manifest.app_id || manifest.id;
+      const appId = manifest.app_id || manifest.id;
+      if (!appId) return null;
+      const slug = appId.replace(/^miniapp-/, "");
+      return {
+        appId,
+        name: manifest.name || appId,
+        description: manifest.description || "MiniApp",
+        category: manifest.category || "utility",
+        entryUrl: manifest.urls?.entry || `/miniapps/${slug}/index.html`,
+      } satisfies LocalMiniAppManifest;
     })
-    .filter((appId): appId is string => Boolean(appId))
-    .sort();
+    .filter(
+      (manifest): manifest is LocalMiniAppManifest => Boolean(manifest),
+    )
+    .sort((left, right) => left.appId.localeCompare(right.appId));
 }
 
-const ACTIVE_MINIAPP_IDS = loadActiveMiniAppIds();
+const ACTIVE_MINIAPP_MANIFESTS = loadActiveMiniAppManifests();
+const ACTIVE_MINIAPP_IDS = ACTIVE_MINIAPP_MANIFESTS.map(
+  (manifest) => manifest.appId,
+);
+const PROFILED_MINIAPP_MANIFESTS = ACTIVE_MINIAPP_MANIFESTS.filter(
+  (manifest) => getNativePlayAreaKind(manifest.appId) === "profiled",
+);
 
 const baseApp: MiniAppInfo = {
   app_id: "miniapp-last-survivor",
@@ -242,6 +272,40 @@ describe("PlayAreaRegistry", () => {
       ACTIVE_MINIAPP_IDS.filter((appId) => !hasNativePlayArea(appId)),
     ).toEqual([]);
   });
+
+  it("keeps profiled MiniApps backed by their real standalone dApp surface", () => {
+    expect(PROFILED_MINIAPP_MANIFESTS.length).toBeGreaterThanOrEqual(30);
+  });
+
+  it.each(
+    PROFILED_MINIAPP_MANIFESTS.map((manifest) => [
+      manifest.appId,
+      manifest,
+    ] as const),
+  )(
+    "renders %s as a real dApp iframe instead of a status-only profile",
+    (_appId, manifest) => {
+      renderPlayarea({
+        app_id: manifest.appId,
+        name: manifest.name,
+        category: manifest.category,
+        description: manifest.description,
+        entry_url: manifest.entryUrl,
+        dapp_url: manifest.entryUrl,
+      });
+
+      expect(
+        screen.getByTestId(`native-playarea-${manifest.appId}`),
+      ).toBeVisible();
+      expect(screen.getByText("Live MiniApp workspace")).toBeVisible();
+      expect(
+        screen.getByTestId(`profiled-dapp-frame-${manifest.appId}`),
+      ).toHaveAttribute("src", expect.stringContaining(manifest.entryUrl));
+      expect(
+        screen.queryByText("This MiniApp has no custom playarea profile yet"),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it("renders the confidential transfer miniapp as a Morpheus-backed private payment desk", () => {
     expect(hasNativePlayArea("miniapp-private-transfer")).toBe(true);
