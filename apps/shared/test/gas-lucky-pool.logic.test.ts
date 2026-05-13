@@ -28,6 +28,7 @@ function keyLaunch(claimKey = CLAIM_KEY, extraParams = "") {
 
 describe("OneGate Vault runtime logic", () => {
   afterEach(() => {
+    vi.useRealTimers();
     delete (window as any).OneGate;
     delete (window as any).OneGateDapiProvider;
     delete (window as any).Neo;
@@ -423,6 +424,34 @@ describe("OneGate Vault runtime logic", () => {
     );
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastTxid.get()).toBe("0xonegatebridge");
+  });
+
+  it("adds safe OneGate diagnostics to the missing-address error", async () => {
+    vi.useFakeTimers();
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    const claimPromise = pool.claimPool();
+    const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
+    await vi.advanceTimersByTimeAsync(20_000);
+    await rejection;
+    expect(pool.lastError.get()).toContain("provider=none");
+    expect(pool.lastError.get()).toContain("bridge=none");
+    expect(pool.lastError.get()).toContain("wallet=unavailable");
+    expect(pool.lastError.get()).not.toContain(CLAIM_KEY);
   });
 
   it("claims a scanned key with OneGate master PascalCase account fields", async () => {
