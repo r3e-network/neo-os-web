@@ -296,19 +296,9 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatehash");
   });
 
-  it("claims a scanned key with OneGate pickAddress when iOS does not return accounts up front", async () => {
+  it("does not open OneGate pickAddress during scanned-key claims", async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "paid",
-        claimKey: CLAIM_KEY,
-        address: ONEGATE_OWNER,
-        amountFixed8: "120000000",
-        luckPercent: "2.40",
-        txHash: "0xonegatepick",
-      }),
-    });
+    const fetchMock = vi.fn();
     globalThis.fetch = fetchMock as any;
     const pickAddress = vi.fn().mockResolvedValue(ONEGATE_OWNER);
     (window as any).OneGateDapiProvider = {
@@ -332,28 +322,17 @@ describe("OneGate Vault runtime logic", () => {
     });
 
     try {
-      await pool.claimPool();
+      await expect(pool.claimPool()).rejects.toThrow(/ogvdiag/);
     } finally {
       globalThis.fetch = originalFetch;
     }
 
-    expect(chain.ensureWallet).not.toHaveBeenCalled();
-    expect(pickAddress).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/onegate-vault/claim",
-      expect.objectContaining({
-        body: JSON.stringify({
-          claimKey: CLAIM_KEY,
-          address: ONEGATE_OWNER,
-          network: "testnet",
-          poolId: "pool-001",
-          appId: "miniapp-gas-lucky-pool",
-        }),
-      }),
-    );
-    expect(pool.lastSuccessType.get()).toBe("claim");
-    expect(pool.lastTxid.get()).toBe("0xonegatepick");
-  });
+    expect(pickAddress).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(pool.lastError.get()).toContain("provider=direct");
+    expect(pool.lastError.get()).toContain("accounts:empty");
+    expect(pool.lastError.get()).not.toContain("pick");
+  }, 12_000);
 
   it("claims a scanned key through the raw OneGate bridge when iOS has not exposed the provider wrapper", async () => {
     const originalFetch = globalThis.fetch;
@@ -376,7 +355,7 @@ describe("OneGate Vault runtime logic", () => {
           JSON.stringify({
             jsonrpc: "2.0",
             id: request.id,
-            result: request.method === "pickAddress" ? ONEGATE_OWNER : [],
+            result: [{ address: ONEGATE_OWNER }],
           }),
         );
       }, 0);
@@ -407,7 +386,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(bridgeInvoke).toHaveBeenCalledWith(
       expect.stringContaining('"method":"getAccounts"'),
     );
-    expect(bridgeInvoke).toHaveBeenCalledWith(
+    expect(bridgeInvoke).not.toHaveBeenCalledWith(
       expect.stringContaining('"method":"pickAddress"'),
     );
     expect(fetchMock).toHaveBeenCalledWith(
