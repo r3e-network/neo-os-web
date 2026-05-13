@@ -375,10 +375,21 @@ function oneGateCallTimeout<T>(
 }
 
 function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
-  const previous = windowRef.__OneGateDapiCallback;
-  if ((previous as { __oneGateVaultWrapped?: boolean } | undefined)?.__oneGateVaultWrapped) {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    windowRef,
+    "__OneGateDapiCallback",
+  );
+  const current =
+    typeof descriptor?.get === "function"
+      ? descriptor.get.call(windowRef)
+      : windowRef.__OneGateDapiCallback;
+  if ((current as { __oneGateVaultWrapped?: boolean } | undefined)?.__oneGateVaultWrapped) {
     return;
   }
+  let hostCallback =
+    typeof current === "function"
+      ? (current as (response: unknown) => void)
+      : undefined;
   const callback = (response: unknown) => {
     let parsed = response;
     if (typeof response === "string") {
@@ -401,10 +412,25 @@ function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
       else pending.resolve(record.result);
       return;
     }
-    previous?.(response);
+    hostCallback?.(response);
   };
   (callback as { __oneGateVaultWrapped?: boolean }).__oneGateVaultWrapped = true;
-  windowRef.__OneGateDapiCallback = callback;
+  try {
+    Object.defineProperty(windowRef, "__OneGateDapiCallback", {
+      configurable: true,
+      enumerable: true,
+      get: () => callback,
+      set: (next: unknown) => {
+        if (next === callback) return;
+        hostCallback =
+          typeof next === "function"
+            ? (next as (response: unknown) => void)
+            : undefined;
+      },
+    });
+  } catch {
+    windowRef.__OneGateDapiCallback = callback;
+  }
 }
 
 function oneGateBridgeRpc(
