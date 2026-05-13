@@ -488,6 +488,15 @@ function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
   return null;
 }
 
+function requestOneGateDapiProvider() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("Neo.DapiProvider.request", {
+      detail: { version: "1.0" },
+    }),
+  );
+}
+
 function eventOneGateDapiProvider(
   timeoutMs = 600,
 ): Promise<OneGateDapiProviderLike | null> {
@@ -497,9 +506,18 @@ function eventOneGateDapiProvider(
 
   return new Promise((resolve) => {
     let timeout: ReturnType<typeof setTimeout>;
+    let interval: ReturnType<typeof setInterval>;
+    let settled = false;
     const cleanup = () => {
       clearTimeout(timeout);
+      clearInterval(interval);
       window.removeEventListener("Neo.DapiProvider.ready", onReady);
+    };
+    const settle = (provider: OneGateDapiProviderLike | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(provider);
     };
     const onReady = (event: Event) => {
       const detail = (event as CustomEvent<{ provider?: unknown }>).detail;
@@ -513,20 +531,23 @@ function eventOneGateDapiProvider(
       ) {
         return;
       }
-      cleanup();
-      resolve(provider);
+      settle(provider);
+    };
+    const probe = () => {
+      const provider = immediateOneGateDapiProvider();
+      if (provider) {
+        settle(provider);
+        return;
+      }
+      requestOneGateDapiProvider();
     };
 
     timeout = setTimeout(() => {
-      cleanup();
-      resolve(null);
+      settle(null);
     }, timeoutMs);
+    interval = setInterval(probe, 150);
     window.addEventListener("Neo.DapiProvider.ready", onReady);
-    window.dispatchEvent(
-      new CustomEvent("Neo.DapiProvider.request", {
-        detail: { version: "1.0" },
-      }),
-    );
+    probe();
   });
 }
 
@@ -555,23 +576,6 @@ async function readOneGateProviderAddress(
 }
 
 async function readOneGateInjectedAddressOnce(): Promise<string> {
-  if (typeof window === "undefined") return "";
-  const oneGateWindow = window as unknown as {
-    OneGate?: {
-      getAccount?: () =>
-        | Promise<OneGateAccountLike>
-        | OneGateAccountLike;
-    };
-  };
-
-  try {
-    const account = await oneGateWindow.OneGate?.getAccount?.();
-    const address = await addressFromOneGateRecord(account);
-    if (address) return address;
-  } catch {
-    /* OneGate can deny account reads until its WebView finishes injecting. */
-  }
-
   const providerAddress = await readOneGateProviderAddress(
     immediateOneGateDapiProvider(),
   );
@@ -584,16 +588,18 @@ async function waitForOneGateInjectedAddress(
   timeoutMs = 8000,
 ): Promise<string> {
   const startedAt = Date.now();
-  const eventProviderAddress = await readOneGateProviderAddress(
-    await eventOneGateDapiProvider(Math.min(timeoutMs, 600)),
-  );
-  if (eventProviderAddress) return eventProviderAddress;
 
   do {
+    const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
+    const eventProviderAddress = await readOneGateProviderAddress(
+      await eventOneGateDapiProvider(Math.min(remainingMs, 1000)),
+    );
+    if (eventProviderAddress) return eventProviderAddress;
+
     const address = await readOneGateInjectedAddressOnce();
     if (address) return address;
     if (Date.now() - startedAt >= timeoutMs) break;
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    requestOneGateDapiProvider();
   } while (true);
   return "";
 }
@@ -1036,11 +1042,50 @@ export function useGasLuckyPool({
 
     const explicitOneGateLaunch =
       launchContext.source === "onegate" || !!identity.oneGateAppId;
-    if (explicitOneGateLaunch || currentClaimKey.get()) {
-      const injectedAddress = await waitForOneGateInjectedAddress(
-        explicitOneGateLaunch ? 8000 : 700,
-      );
+    if (explicitOneGateLaunch) {
+      const injectedAddress = await waitForOneGateInjectedAddress(8000);
       if (injectedAddress) return injectedAddress;
+    }
+
+    if (currentClaimKey.get()) {
+      const immediateInjectedAddress = await readOneGateInjectedAddressOnce();
+      if (immediateInjectedAddress) return immediateInjectedAddress;
+
+      const oneGateAddressPromise = waitForOneGateInjectedAddress(8000);
+      const walletAddressPromise = chain
+        .ensureWallet()
+        .then((address) => ({ kind: "wallet" as const, address }))
+        .catch((error: unknown) => ({ kind: "walletError" as const, error }));
+      const oneGateResultPromise = oneGateAddressPromise.then((address) => ({
+        kind: "onegate" as const,
+        address,
+      }));
+      const first = await Promise.race([
+        walletAddressPromise,
+        oneGateResultPromise,
+      ]);
+
+      if (first.kind === "wallet") {
+        const normalizedWalletAddress = normalizeNeoAddress(first.address);
+        return normalizedWalletAddress || first.address;
+      }
+      if (first.kind === "onegate" && first.address) return first.address;
+      if (first.kind === "walletError") {
+        if (!isWalletUnavailableError(first.error)) throw first.error;
+        const injectedAddress = await oneGateAddressPromise;
+        if (injectedAddress) return injectedAddress;
+        throw new Error(t("oneGateWalletAddressRequired"));
+      }
+
+      const walletResult = await walletAddressPromise;
+      if (walletResult.kind === "wallet") {
+        const normalizedWalletAddress = normalizeNeoAddress(walletResult.address);
+        return normalizedWalletAddress || walletResult.address;
+      }
+      if (isWalletUnavailableError(walletResult.error)) {
+        throw new Error(t("oneGateWalletAddressRequired"));
+      }
+      throw walletResult.error;
     }
 
     try {
