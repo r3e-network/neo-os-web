@@ -165,6 +165,11 @@ describe("PlayAreaRegistry", () => {
     expect(
       screen.getByRole("heading", { name: "Council proposal workspace" }),
     ).toBeVisible();
+    expect(screen.getByText("Create, inspect, and vote")).toBeVisible();
+    expect(screen.getByTitle("Council Governance dApp")).toHaveAttribute(
+      "src",
+      expect.stringContaining("/miniapps/council-governance/index.html?"),
+    );
     expect(screen.getByText("Proposal queue")).toBeVisible();
     expect(screen.getByText("Total proposals")).toBeVisible();
     expect(screen.queryByText("Council ballot")).not.toBeInTheDocument();

@@ -24,6 +24,7 @@
     "test:miniapp-deploy-dryrun": "bash -c 'set -a; . ./.env; set +a; go run -tags=scripts deploy/scripts/deploy_selected_miniapp_contracts.go'",
     "update:miniapp-contracts": "go run -tags=scripts deploy/scripts/update_miniapp_contracts.go",
     "audit:miniapps:coverage": "node deploy/scripts/audit_all_miniapp_coverage.js",
+    "audit:miniapps:playareas": "node deploy/scripts/audit_miniapp_playarea_functionality.js",
     "audit:contract-domains": "node deploy/scripts/audit_contract_domains.js --fail-on-config-missing",
     "audit:contract-domains:strict": "node deploy/scripts/audit_contract_domains.js --strict",
     "bind:contract-domains": "node deploy/scripts/bind_contract_domains.js",
