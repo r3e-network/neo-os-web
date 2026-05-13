@@ -405,6 +405,77 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatebridge");
   });
 
+  it("keeps the raw OneGate bridge callback alive when iOS injects the provider wrapper later", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegatebridge-race",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const oneGateWrapperCallback = vi.fn();
+    const bridgeInvoke = vi.fn((payload: string) => {
+      const request = JSON.parse(payload);
+      (window as any).__OneGateDapiCallback = oneGateWrapperCallback;
+      setTimeout(() => {
+        (window as any).__OneGateDapiCallback?.(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: [{ address: ONEGATE_OWNER }],
+          }),
+        );
+      }, 0);
+    });
+    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(bridgeInvoke).toHaveBeenCalledWith(
+      expect.stringContaining('"method":"getAccounts"'),
+    );
+    expect(oneGateWrapperCallback).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegatebridge-race");
+  });
+
   it("adds safe OneGate diagnostics to the missing-address error", async () => {
     vi.useFakeTimers();
     const chain = {
