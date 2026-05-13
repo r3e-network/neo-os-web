@@ -12,6 +12,7 @@ function resetInjectedWallets() {
     neoDapi?: unknown;
     neo3Dapi?: unknown;
     NEOLineN3?: unknown;
+    OneGate?: unknown;
   };
   delete target.Neo;
   delete target.OneGateDapiProvider;
@@ -19,6 +20,7 @@ function resetInjectedWallets() {
   delete target.neoDapi;
   delete target.neo3Dapi;
   delete target.NEOLineN3;
+  delete target.OneGate;
 }
 
 function createNep21Provider(overrides: Record<string, unknown> = {}) {
@@ -79,6 +81,49 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(provider.getAccounts).toHaveBeenCalledTimes(1);
     expect(wallet.address.value).toBe("NTestAddress");
     expect(wallet.chainType.value).toBe("neo-n3-testnet");
+  });
+
+  it("connects through the OneGate host wallet when NEP-21 is not injected", async () => {
+    window.history.replaceState({}, "", "/?network=testnet");
+    const oneGate = {
+      getAccount: vi.fn(async () => ({
+        address: "NOneGateLegacyAddress",
+        publicKey: "03onegate",
+      })),
+      getNetwork: vi.fn(async () => "testnet"),
+      getBalance: vi.fn(async () => ({ gas: "9.5", neo: "1" })),
+      invoke: vi.fn(async () => ({ txid: "0xonegatelegacy" })),
+      signMessage: vi.fn(async () => ({
+        signature: "signed",
+        publicKey: "03onegate",
+      })),
+    };
+    window.OneGate = oneGate;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(oneGate.getAccount).toHaveBeenCalledTimes(1);
+    expect(wallet.address.value).toBe("NOneGateLegacyAddress");
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+    await expect(wallet.getBalance("GAS")).resolves.toBe("9.5");
+    expect(oneGate.getBalance).toHaveBeenCalledWith({
+      address: "NOneGateLegacyAddress",
+    });
+    await expect(
+      wallet.invokeContract({
+        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        operation: "claimRangeGasPool",
+        args: [{ type: "String", value: "miniapp-gas-lucky-pool" }],
+        signers: [{ account: "NOneGateLegacyAddress", scopes: 1 }],
+      }),
+    ).resolves.toMatchObject({ txid: "0xonegatelegacy" });
+    expect(oneGate.invoke).toHaveBeenCalledWith({
+      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      operation: "claimRangeGasPool",
+      args: [{ type: "String", value: "miniapp-gas-lucky-pool" }],
+      signers: [{ account: "NOneGateLegacyAddress", scopes: 1 }],
+    });
   });
 
   it("maps shared invoke/read/balance/sign APIs to NEP-21 methods", async () => {
