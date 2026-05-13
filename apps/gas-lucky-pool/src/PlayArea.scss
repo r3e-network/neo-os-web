@@ -1136,4 +1136,62 @@ body {
       justify-self: center;
     }
   }
+
+  .gas-pool-playarea--claim-only {
+    justify-content: stretch;
+    padding: 0;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(237, 248, 238, 0.5) 46%, rgba(214, 234, 220, 0.82)),
+      #eef6ee;
+  }
+
+  .gas-pool-playarea--claim-only .gas-pool-claim-only {
+    width: 100%;
+    min-height: 100dvh;
+    gap: 0.95rem;
+    margin: 0;
+    align-content: center;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding:
+      max(1.25rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1.25rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(245, 252, 246, 0.92) 54%, rgba(225, 242, 230, 0.98)),
+      transparent;
+
+    &::before {
+      height: 0.42rem;
+    }
+
+    h2 {
+      font-size: clamp(1.75rem, 8vw, 2.35rem);
+      line-height: 0.98;
+    }
+
+    p {
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+  }
+
+  .gas-pool-playarea--claim-only .gas-pool-claim-only__top {
+    align-items: center;
+  }
+
+  .gas-pool-playarea--claim-only .gas-pool-claim-only__receipt {
+    div {
+      grid-template-columns: minmax(5.55rem, 0.52fr) minmax(0, 1fr);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.66);
+      backdrop-filter: blur(8px);
+    }
+  }
+
+  .gas-pool-playarea--claim-only .gas-pool-claim-only__button {
+    min-height: 3.35rem;
+  }
 }
