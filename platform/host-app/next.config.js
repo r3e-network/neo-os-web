@@ -5,6 +5,13 @@ try {
 } catch {}
 
 const MINIAPP_CORS_ORIGIN = "https://neomini.app";
+const ONEGATE_VAULT_STANDALONE_ENTRY = "/miniapps/gas-lucky-pool/index.html";
+const ONEGATE_VAULT_ALIAS_PATHS = [
+  "/miniapps/miniapp-gas-lucky-pool",
+  "/miniapps/miniapp-gas-lucky-pool/",
+  "/miniapps/onegate-vault",
+  "/miniapps/onegate-vault/",
+];
 
 function parsePositiveInt(value) {
   const parsed = Number(value);
@@ -125,26 +132,17 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   async headers() {
     return [
-      {
-        source: "/miniapps/miniapp-gas-lucky-pool",
+      ...ONEGATE_VAULT_ALIAS_PATHS.map((source) => ({
+        source,
         headers: [
           {
             key: "Cache-Control",
             value: "no-store, max-age=0, must-revalidate",
           },
         ],
-      },
+      })),
       {
-        source: "/miniapps/miniapp-gas-lucky-pool/",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-store, max-age=0, must-revalidate",
-          },
-        ],
-      },
-      {
-        source: "/miniapps/gas-lucky-pool/index.html",
+        source: ONEGATE_VAULT_STANDALONE_ENTRY,
         headers: [
           {
             key: "Cache-Control",
@@ -208,7 +206,10 @@ const nextConfig = {
   },
   async rewrites() {
     return {
-      beforeFiles: [],
+      beforeFiles: ONEGATE_VAULT_ALIAS_PATHS.map((source) => ({
+        source,
+        destination: ONEGATE_VAULT_STANDALONE_ENTRY,
+      })),
       afterFiles: [
         {
           source: "/miniapps/on-chain-tarot/cards/:file",
