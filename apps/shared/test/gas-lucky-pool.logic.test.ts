@@ -358,7 +358,10 @@ describe("OneGate Vault runtime logic", () => {
   it("does not open OneGate pickAddress during scanned-key claims", async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "diag_pick", stored: true }),
+    });
     globalThis.fetch = fetchMock as any;
     const pickAddress = vi.fn().mockResolvedValue(ONEGATE_OWNER);
     (window as any).OneGateDapiProvider = {
@@ -391,7 +394,14 @@ describe("OneGate Vault runtime logic", () => {
     }
 
     expect(pickAddress).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/diagnostics",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.anything(),
+    );
     expect(pool.lastError.get()).toContain("provider=direct");
     expect(pool.lastError.get()).toContain("accounts:empty");
     expect(pool.lastError.get()).not.toContain("pick");
@@ -762,6 +772,12 @@ describe("OneGate Vault runtime logic", () => {
 
   it("adds safe OneGate diagnostics to the missing-address error", async () => {
     vi.useFakeTimers();
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: "diag_1", stored: true }),
+    });
+    globalThis.fetch = fetchMock as any;
     const chain = {
       ensureWallet: vi
         .fn()
@@ -778,10 +794,37 @@ describe("OneGate Vault runtime logic", () => {
       t,
     });
 
-    const claimPromise = pool.claimPool();
-    const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(10_000);
-    await rejection;
+    try {
+      const claimPromise = pool.claimPool();
+      const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await rejection;
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/diagnostics",
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const diagnosticBody = JSON.parse(
+      String(fetchMock.mock.calls[0]?.[1]?.body ?? "{}"),
+    );
+    expect(diagnosticBody).toEqual(
+      expect.objectContaining({
+        eventType: "missing_address",
+        network: "testnet",
+        poolId: "pool-001",
+        oneGateAppId: "23",
+        appId: "miniapp-gas-lucky-pool",
+      }),
+    );
+    expect(JSON.stringify(diagnosticBody)).not.toContain(CLAIM_KEY);
+    expect(JSON.stringify(diagnosticBody)).not.toContain(ONEGATE_OWNER);
+    expect(JSON.stringify(diagnosticBody)).not.toContain("onegate.space/app/23?key=");
     expect(pool.lastError.get()).toContain("provider=none");
     expect(pool.lastError.get()).toContain("bridge=none");
     expect(pool.lastError.get()).toContain("wallet=unavailable");
