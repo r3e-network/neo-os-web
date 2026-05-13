@@ -57,6 +57,7 @@ function t(key: string, params?: Record<string, string | number>) {
     maxClaim: "Maximum claim",
     expiryHours: "Expiry hours",
     contractGuarded: "Contract guarded",
+    perAddressOnce: "One claim per address per pool",
     createPool: "Create pool",
     gasCredit: "Recoverable GAS",
     gasCreditDescription: "Recover interrupted prepaid GAS.",

@@ -105,6 +105,20 @@ export default function PlayArea({
     launchContext.network === "testnet"
       ? t("networkTestnet")
       : t("networkMainnet");
+  const claimReceiptItems = [
+    {
+      label: t("claimKeyLabel"),
+      value: displayClaimKey || "—",
+    },
+    {
+      label: t("claimNetworkLabel"),
+      value: claimNetworkLabel,
+    },
+    {
+      label: t("contractGuarded"),
+      value: t("perAddressOnce"),
+    },
+  ];
 
   useEffect(() => {
     const nextKey = currentClaimKey || launchClaimKey;
@@ -179,6 +193,10 @@ export default function PlayArea({
                   <dt>{t("claimNetworkLabel")}</dt>
                   <dd>{claimNetworkLabel}</dd>
                 </div>
+                <div>
+                  <dt>{t("contractGuarded")}</dt>
+                  <dd>{t("perAddressOnce")}</dd>
+                </div>
                 <div className="gas-pool-claim-only__summary-row--txid">
                   <dt>{t("transactionIdLabel")}</dt>
                   <dd>
@@ -208,6 +226,20 @@ export default function PlayArea({
               <span>{t("rewardRange")}</span>
               <strong>1-50 GAS</strong>
             </div>
+            <dl
+              className="gas-pool-claim-only__receipt"
+              aria-label={t("claimReceiptTitle")}
+            >
+              {claimReceiptItems.map((item) => (
+                <div key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <p className="gas-pool-claim-only__note">
+              {t("claimConsoleHint")}
+            </p>
             {!claimKey && (
               <div className="gas-pool-claim-only__action-hint">
                 {t("noPoolSelected")}
