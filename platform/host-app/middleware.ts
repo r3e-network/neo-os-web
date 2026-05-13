@@ -110,6 +110,8 @@ function isOneGateVaultHtmlPath(pathname: string): boolean {
   return (
     pathname === "/miniapps/miniapp-gas-lucky-pool" ||
     pathname === "/miniapps/miniapp-gas-lucky-pool/" ||
+    pathname === "/miniapps/onegate-vault" ||
+    pathname === "/miniapps/onegate-vault/" ||
     pathname === "/miniapps/gas-lucky-pool/index.html"
   );
 }
