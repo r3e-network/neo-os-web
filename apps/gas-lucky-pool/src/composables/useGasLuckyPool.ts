@@ -207,6 +207,14 @@ type OneGateBridgeWindow = Window & {
   __OneGateDapiCallback?: (response: unknown) => void;
 };
 
+type OneGateAddressDiagnostics = {
+  providerRequests: number;
+  providerReadyEvents: number;
+  providerAttempts: string[];
+  bridgeAttempts: string[];
+  wallet: "skipped" | "available" | "unavailable" | "error";
+};
+
 const ONEGATE_PICK_ADDRESS_PROMPT =
   "Select the address that will receive this reward.";
 
@@ -218,6 +226,119 @@ const oneGateBridgePending = new Map<
     timeout: ReturnType<typeof setTimeout>;
   }
 >();
+
+function createOneGateAddressDiagnostics(): OneGateAddressDiagnostics {
+  return {
+    providerRequests: 0,
+    providerReadyEvents: 0,
+    providerAttempts: [],
+    bridgeAttempts: [],
+    wallet: "skipped",
+  };
+}
+
+function addOneGateDiag(
+  diagnostics: OneGateAddressDiagnostics | undefined,
+  bucket: "providerAttempts" | "bridgeAttempts",
+  value: string,
+) {
+  if (!diagnostics) return;
+  const target = diagnostics[bucket];
+  if (target.includes(value) || target.length >= 12) return;
+  target.push(value);
+}
+
+function oneGateErrorCode(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    if (error.message.toLowerCase().includes("timed out")) return "timeout";
+    return "error";
+  }
+  return "unknown";
+}
+
+function oneGateRuntimeState() {
+  if (typeof window === "undefined") {
+    return {
+      provider: "ssr",
+      bridge: "ssr",
+      callback: "ssr",
+      ua: "ssr",
+    };
+  }
+  const oneGateWindow = window as OneGateBridgeWindow & {
+    OneGateDapiProvider?: unknown;
+    Neo?: { DapiProvider?: unknown };
+  };
+  const provider = isOneGateDapiProviderLike(oneGateWindow.OneGateDapiProvider)
+    ? "direct"
+    : isOneGateDapiProviderLike(oneGateWindow.Neo?.DapiProvider)
+      ? "neo"
+      : "none";
+  const bridge =
+    typeof oneGateWindow.__OneGateBridge?.invoke === "function"
+      ? "invoke"
+      : oneGateWindow.__OneGateBridge
+        ? "object"
+        : "none";
+  const callback =
+    typeof oneGateWindow.__OneGateDapiCallback === "function"
+      ? "function"
+      : "none";
+  const ua = navigator.userAgent.includes("iPhone")
+    ? "iphone"
+    : navigator.userAgent.includes("Android")
+      ? "android"
+      : navigator.userAgent.includes("Mac OS X")
+        ? "ios-sim-or-mac"
+        : "other";
+  return { provider, bridge, callback, ua };
+}
+
+function formatOneGateAddressDiagnostics(
+  diagnostics: OneGateAddressDiagnostics,
+  launchContext: MiniAppLaunchContext,
+  identity: ClaimLaunchIdentity,
+) {
+  const runtime = oneGateRuntimeState();
+  const source = launchContext.source || "none";
+  const operation = launchContext.operation || "none";
+  const network = launchContext.network || "mainnet";
+  const app = normalizeClaimIdentity(identity.oneGateAppId) || "none";
+  const providerSteps = diagnostics.providerAttempts.join(",");
+  const bridgeSteps = diagnostics.bridgeAttempts.join(",");
+  return [
+    "ogvdiag",
+    "v=2",
+    `source=${source}`,
+    `op=${operation}`,
+    `network=${network}`,
+    `app=${app}`,
+    `ua=${runtime.ua}`,
+    `provider=${runtime.provider}`,
+    `bridge=${runtime.bridge}`,
+    `callback=${runtime.callback}`,
+    `providerReq=${diagnostics.providerRequests}`,
+    `providerReady=${diagnostics.providerReadyEvents}`,
+    `wallet=${diagnostics.wallet}`,
+    `providerSteps=${providerSteps || "none"}`,
+    `bridgeSteps=${bridgeSteps || "none"}`,
+  ].join(" ");
+}
+
+function oneGateAddressRequiredError(
+  message: string,
+  diagnostics: OneGateAddressDiagnostics,
+  launchContext: MiniAppLaunchContext,
+  identity: ClaimLaunchIdentity,
+) {
+  return new Error(
+    `${message}\n[${formatOneGateAddressDiagnostics(
+      diagnostics,
+      launchContext,
+      identity,
+    )}]`,
+  );
+}
 
 function isOneGateDapiProviderLike(
   value: unknown,
@@ -295,11 +416,15 @@ function oneGateBridgeRpc(
   method: string,
   params: unknown[] = [],
   timeoutMs = 20_000,
+  diagnostics?: OneGateAddressDiagnostics,
 ): Promise<unknown> | null {
   if (typeof window === "undefined") return null;
   const windowRef = window as OneGateBridgeWindow;
   const invoke = windowRef.__OneGateBridge?.invoke;
-  if (typeof invoke !== "function") return null;
+  if (typeof invoke !== "function") {
+    addOneGateDiag(diagnostics, "bridgeAttempts", `${method}:missing`);
+    return null;
+  }
   installOneGateBridgeCallback(windowRef);
   const id = `onegate_vault_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   return new Promise((resolve, reject) => {
@@ -309,6 +434,7 @@ function oneGateBridgeRpc(
     }, timeoutMs);
     oneGateBridgePending.set(id, { resolve, reject, timeout });
     try {
+      addOneGateDiag(diagnostics, "bridgeAttempts", `${method}:sent`);
       invoke(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -600,8 +726,9 @@ function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
   return null;
 }
 
-function requestOneGateDapiProvider() {
+function requestOneGateDapiProvider(diagnostics?: OneGateAddressDiagnostics) {
   if (typeof window === "undefined") return;
+  if (diagnostics) diagnostics.providerRequests += 1;
   window.dispatchEvent(
     new CustomEvent("Neo.DapiProvider.request", {
       detail: { version: "1.0" },
@@ -611,6 +738,7 @@ function requestOneGateDapiProvider() {
 
 function eventOneGateDapiProvider(
   timeoutMs = 600,
+  diagnostics?: OneGateAddressDiagnostics,
 ): Promise<OneGateDapiProviderLike | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
   const immediate = immediateOneGateDapiProvider();
@@ -632,6 +760,7 @@ function eventOneGateDapiProvider(
       resolve(provider);
     };
     const onReady = (event: Event) => {
+      if (diagnostics) diagnostics.providerReadyEvents += 1;
       const detail = (event as CustomEvent<{ provider?: unknown }>).detail;
       const provider = detail?.provider ?? detail;
       if (!isOneGateDapiProviderLike(provider)) return;
@@ -651,7 +780,7 @@ function eventOneGateDapiProvider(
         settle(provider);
         return;
       }
-      requestOneGateDapiProvider();
+      requestOneGateDapiProvider(diagnostics);
     };
 
     timeout = setTimeout(() => {
@@ -665,14 +794,28 @@ function eventOneGateDapiProvider(
 
 async function readOneGateProviderAddress(
   provider: unknown,
+  diagnostics?: OneGateAddressDiagnostics,
+  label = "provider",
 ): Promise<string> {
-  if (!isOneGateDapiProviderLike(provider)) return "";
+  if (!isOneGateDapiProviderLike(provider)) {
+    addOneGateDiag(diagnostics, "providerAttempts", `${label}:missing`);
+    return "";
+  }
 
   try {
     const accounts = await oneGateCallTimeout(provider.getAccounts?.(), 2_500);
     const address = await addressFromOneGateAccounts(accounts);
-    if (address) return address;
-  } catch {
+    if (address) {
+      addOneGateDiag(diagnostics, "providerAttempts", `${label}:accounts:ok`);
+      return address;
+    }
+    addOneGateDiag(diagnostics, "providerAttempts", `${label}:accounts:empty`);
+  } catch (error) {
+    addOneGateDiag(
+      diagnostics,
+      "providerAttempts",
+      `${label}:accounts:${oneGateErrorCode(error)}`,
+    );
     /* Some OneGate builds require an explicit account picker instead. */
   }
 
@@ -682,28 +825,57 @@ async function readOneGateProviderAddress(
       20_000,
     );
     const address = await addressFromOneGateRecord(pickedAddress);
-    if (address) return address;
-  } catch {
+    if (address) {
+      addOneGateDiag(diagnostics, "providerAttempts", `${label}:pick:ok`);
+      return address;
+    }
+    addOneGateDiag(diagnostics, "providerAttempts", `${label}:pick:empty`);
+  } catch (error) {
+    addOneGateDiag(
+      diagnostics,
+      "providerAttempts",
+      `${label}:pick:${oneGateErrorCode(error)}`,
+    );
     /* The user may cancel the OneGate account picker. */
   }
 
   try {
     const authenticated = await oneGateCallTimeout(provider.authenticate?.(), 2_500);
     const address = await addressFromOneGateRecord(authenticated);
-    if (address) return address;
-  } catch {
+    if (address) {
+      addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:ok`);
+      return address;
+    }
+    addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:empty`);
+  } catch (error) {
+    addOneGateDiag(
+      diagnostics,
+      "providerAttempts",
+      `${label}:auth:${oneGateErrorCode(error)}`,
+    );
     /* Keep falling back to the standard wallet path. */
   }
 
   return "";
 }
 
-async function readOneGateBridgeAddress(): Promise<string> {
+async function readOneGateBridgeAddress(
+  diagnostics?: OneGateAddressDiagnostics,
+): Promise<string> {
   try {
-    const accounts = await oneGateBridgeRpc("getAccounts", [], 2_500);
+    const accounts = await oneGateBridgeRpc("getAccounts", [], 2_500, diagnostics);
     const address = await addressFromOneGateAccounts(accounts);
-    if (address) return address;
-  } catch {
+    if (address) {
+      addOneGateDiag(diagnostics, "bridgeAttempts", "getAccounts:ok");
+      return address;
+    }
+    addOneGateDiag(diagnostics, "bridgeAttempts", "getAccounts:empty");
+  } catch (error) {
+    addOneGateDiag(
+      diagnostics,
+      "bridgeAttempts",
+      `getAccounts:${oneGateErrorCode(error)}`,
+    );
     /* Fall through to OneGate's native address picker. */
   }
 
@@ -712,19 +884,33 @@ async function readOneGateBridgeAddress(): Promise<string> {
       "pickAddress",
       [ONEGATE_PICK_ADDRESS_PROMPT],
       20_000,
+      diagnostics,
     );
     const address = await addressFromOneGateRecord(pickedAddress);
-    if (address) return address;
-  } catch {
+    if (address) {
+      addOneGateDiag(diagnostics, "bridgeAttempts", "pickAddress:ok");
+      return address;
+    }
+    addOneGateDiag(diagnostics, "bridgeAttempts", "pickAddress:empty");
+  } catch (error) {
+    addOneGateDiag(
+      diagnostics,
+      "bridgeAttempts",
+      `pickAddress:${oneGateErrorCode(error)}`,
+    );
     /* Keep falling back to the standard wallet path. */
   }
 
   return "";
 }
 
-async function readOneGateInjectedAddressOnce(): Promise<string> {
+async function readOneGateInjectedAddressOnce(
+  diagnostics?: OneGateAddressDiagnostics,
+): Promise<string> {
   const providerAddress = await readOneGateProviderAddress(
     immediateOneGateDapiProvider(),
+    diagnostics,
+    "immediate",
   );
   if (providerAddress) return providerAddress;
 
@@ -733,6 +919,7 @@ async function readOneGateInjectedAddressOnce(): Promise<string> {
 
 async function waitForOneGateInjectedAddress(
   timeoutMs = 8000,
+  diagnostics?: OneGateAddressDiagnostics,
 ): Promise<string> {
   const startedAt = Date.now();
   let triedBridge = false;
@@ -740,20 +927,26 @@ async function waitForOneGateInjectedAddress(
   do {
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
     const eventProviderAddress = await readOneGateProviderAddress(
-      await eventOneGateDapiProvider(Math.min(remainingMs, 1000)),
+      await eventOneGateDapiProvider(
+        Math.min(remainingMs, 1000),
+        diagnostics,
+      ),
+      diagnostics,
+      "event",
     );
     if (eventProviderAddress) return eventProviderAddress;
 
-    const address = await readOneGateInjectedAddressOnce();
+    const address = await readOneGateInjectedAddressOnce(diagnostics);
     if (address) return address;
     if (!triedBridge) {
       triedBridge = true;
-      const bridgeAddress = await readOneGateBridgeAddress();
+      const bridgeAddress = await readOneGateBridgeAddress(diagnostics);
       if (bridgeAddress) return bridgeAddress;
     }
     if (Date.now() - startedAt >= timeoutMs) break;
-    requestOneGateDapiProvider();
+    requestOneGateDapiProvider(diagnostics);
   } while (true);
+  addOneGateDiag(diagnostics, "providerAttempts", "wait:timeout");
   return "";
 }
 
@@ -1187,6 +1380,7 @@ export function useGasLuckyPool({
   }
 
   async function resolveClaimAddress(identity: ClaimLaunchIdentity) {
+    const diagnostics = createOneGateAddressDiagnostics();
     const launchAddress = normalizeNeoAddress(identity.walletAddress);
     if (launchAddress) return launchAddress;
 
@@ -1196,15 +1390,22 @@ export function useGasLuckyPool({
     const explicitOneGateLaunch =
       launchContext.source === "onegate" || !!identity.oneGateAppId;
     if (explicitOneGateLaunch) {
-      const injectedAddress = await waitForOneGateInjectedAddress(8000);
+      const injectedAddress = await waitForOneGateInjectedAddress(
+        8000,
+        diagnostics,
+      );
       if (injectedAddress) return injectedAddress;
     }
 
     if (currentClaimKey.get()) {
-      const immediateInjectedAddress = await readOneGateInjectedAddressOnce();
+      const immediateInjectedAddress =
+        await readOneGateInjectedAddressOnce(diagnostics);
       if (immediateInjectedAddress) return immediateInjectedAddress;
 
-      const oneGateAddressPromise = waitForOneGateInjectedAddress(8000);
+      const oneGateAddressPromise = waitForOneGateInjectedAddress(
+        8000,
+        diagnostics,
+      );
       const walletAddressPromise = chain
         .ensureWallet()
         .then((address) => ({ kind: "wallet" as const, address }))
@@ -1219,36 +1420,61 @@ export function useGasLuckyPool({
       ]);
 
       if (first.kind === "wallet") {
+        diagnostics.wallet = "available";
         const normalizedWalletAddress = normalizeNeoAddress(first.address);
         return normalizedWalletAddress || first.address;
       }
       if (first.kind === "onegate" && first.address) return first.address;
       if (first.kind === "walletError") {
+        diagnostics.wallet = isWalletUnavailableError(first.error)
+          ? "unavailable"
+          : "error";
         if (!isWalletUnavailableError(first.error)) throw first.error;
         const injectedAddress = await oneGateAddressPromise;
         if (injectedAddress) return injectedAddress;
-        throw new Error(t("oneGateWalletAddressRequired"));
+        throw oneGateAddressRequiredError(
+          t("oneGateWalletAddressRequired"),
+          diagnostics,
+          launchContext,
+          identity,
+        );
       }
 
       const walletResult = await walletAddressPromise;
       if (walletResult.kind === "wallet") {
+        diagnostics.wallet = "available";
         const normalizedWalletAddress = normalizeNeoAddress(walletResult.address);
         return normalizedWalletAddress || walletResult.address;
       }
       if (isWalletUnavailableError(walletResult.error)) {
-        throw new Error(t("oneGateWalletAddressRequired"));
+        diagnostics.wallet = "unavailable";
+        throw oneGateAddressRequiredError(
+          t("oneGateWalletAddressRequired"),
+          diagnostics,
+          launchContext,
+          identity,
+        );
       }
+      diagnostics.wallet = "error";
       throw walletResult.error;
     }
 
     try {
       const walletAddress = await chain.ensureWallet();
+      diagnostics.wallet = "available";
       const normalizedWalletAddress = normalizeNeoAddress(walletAddress);
       return normalizedWalletAddress || walletAddress;
     } catch (error) {
       if (isWalletUnavailableError(error)) {
-        throw new Error(t("oneGateWalletAddressRequired"));
+        diagnostics.wallet = "unavailable";
+        throw oneGateAddressRequiredError(
+          t("oneGateWalletAddressRequired"),
+          diagnostics,
+          launchContext,
+          identity,
+        );
       }
+      diagnostics.wallet = "error";
       throw error;
     }
   }
