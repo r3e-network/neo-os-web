@@ -624,6 +624,88 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegateprovider-race");
   });
 
+  it("does not use raw bridge fallback on iPhone OneGate scans", async () => {
+    vi.useFakeTimers();
+    const originalFetch = globalThis.fetch;
+    const originalUserAgent = navigator.userAgent;
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 OneGate",
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegate-ios-provider-only",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const bridgeInvoke = vi.fn();
+    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    const provider = {
+      name: "OneGate",
+      getAccounts: vi.fn().mockResolvedValue([{ address: ONEGATE_OWNER }]),
+    };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    const claimPromise = pool.claimPool();
+    setTimeout(() => {
+      (window as any).OneGateDapiProvider = provider;
+      window.dispatchEvent(
+        new CustomEvent("Neo.DapiProvider.ready", {
+          detail: { provider },
+        }),
+      );
+    }, 2_000);
+    await vi.advanceTimersByTimeAsync(2_400);
+
+    try {
+      await claimPromise;
+    } finally {
+      globalThis.fetch = originalFetch;
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value: originalUserAgent,
+      });
+    }
+
+    expect(bridgeInvoke).not.toHaveBeenCalled();
+    expect(provider.getAccounts).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegate-ios-provider-only");
+  });
+
   it("can use the native iOS WebKit OneGate bridge transport directly", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
