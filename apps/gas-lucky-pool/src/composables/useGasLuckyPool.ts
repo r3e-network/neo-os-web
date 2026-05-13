@@ -237,7 +237,7 @@ function addOneGateDiag(
 ) {
   if (!diagnostics) return;
   const target = diagnostics[bucket];
-  if (target.includes(value) || target.length >= 12) return;
+  if (target.includes(value) || target.length >= 24) return;
   target.push(value);
 }
 
@@ -449,12 +449,17 @@ function oneGateBridgeRpc(
   params: unknown[] = [],
   timeoutMs = 20_000,
   diagnostics?: OneGateAddressDiagnostics,
+  options: { includeParams?: boolean; label?: string } = {},
 ): Promise<unknown> | null {
   if (typeof window === "undefined") return null;
   const windowRef = window as OneGateBridgeWindow;
   const invoke = windowRef.__OneGateBridge?.invoke;
   if (typeof invoke !== "function") {
-    addOneGateDiag(diagnostics, "bridgeAttempts", `${method}:missing`);
+    addOneGateDiag(
+      diagnostics,
+      "bridgeAttempts",
+      `${options.label || method}:missing`,
+    );
     return null;
   }
   installOneGateBridgeCallback(windowRef, diagnostics);
@@ -466,15 +471,15 @@ function oneGateBridgeRpc(
     }, timeoutMs);
     oneGateBridgePending.set(id, { resolve, reject, timeout });
     try {
-      addOneGateDiag(diagnostics, "bridgeAttempts", `${method}:sent`);
-      invoke(
-        JSON.stringify({
-          jsonrpc: "2.0",
-          id,
-          method,
-          params,
-        }),
-      );
+      const label = options.label || method;
+      addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:sent`);
+      const request: Record<string, unknown> = {
+        jsonrpc: "2.0",
+        id,
+        method,
+      };
+      if (options.includeParams !== false) request.params = params;
+      invoke(JSON.stringify(request));
     } catch (error) {
       oneGateBridgePending.delete(id);
       clearTimeout(timeout);
@@ -855,25 +860,58 @@ async function readOneGateProviderAddress(
 }
 
 async function readOneGateBridgeAddress(
+  timeoutMs = 10_000,
   diagnostics?: OneGateAddressDiagnostics,
 ): Promise<string> {
-  try {
-    const accounts = await oneGateBridgeRpc("getAccounts", [], 2_500, diagnostics);
-    const address = await addressFromOneGateAccounts(accounts);
-    if (address) {
-      addOneGateDiag(diagnostics, "bridgeAttempts", "getAccounts:ok");
-      return address;
-    }
-    addOneGateDiag(diagnostics, "bridgeAttempts", "getAccounts:empty");
-  } catch (error) {
-    addOneGateDiag(
-      diagnostics,
-      "bridgeAttempts",
-      `getAccounts:${oneGateErrorCode(error)}`,
-    );
-    /* QR claims must use OneGate's injected default account, not an address picker. */
-  }
+  const variants = [
+    {
+      method: "getAccounts",
+      includeParams: true,
+      label: "getAccounts",
+    },
+    {
+      method: "GetAccounts",
+      includeParams: false,
+      label: "GetAccountsNoParams",
+    },
+    {
+      method: "getAccounts",
+      includeParams: false,
+      label: "getAccountsNoParams",
+    },
+  ];
+  const startedAt = Date.now();
 
+  for (const variant of variants) {
+    const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
+    if (remainingMs <= 0) break;
+    try {
+      const accounts = await oneGateBridgeRpc(
+        variant.method,
+        [],
+        Math.min(remainingMs, 5_000),
+        diagnostics,
+        {
+          includeParams: variant.includeParams,
+          label: variant.label,
+        },
+      );
+      if (accounts === null) return "";
+      const address = await addressFromOneGateAccounts(accounts);
+      if (address) {
+        addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:ok`);
+        return address;
+      }
+      addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:empty`);
+      return "";
+    } catch (error) {
+      addOneGateDiag(
+        diagnostics,
+        "bridgeAttempts",
+        `${variant.label}:${oneGateErrorCode(error)}`,
+      );
+    }
+  }
   return "";
 }
 
@@ -891,11 +929,11 @@ async function readOneGateInjectedAddressOnce(
 }
 
 async function waitForOneGateInjectedAddress(
-  timeoutMs = 8000,
+  timeoutMs = 15_000,
   diagnostics?: OneGateAddressDiagnostics,
 ): Promise<string> {
   const startedAt = Date.now();
-  let triedBridge = false;
+  let bridgeAttempts = 0;
 
   do {
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
@@ -911,9 +949,12 @@ async function waitForOneGateInjectedAddress(
 
     const address = await readOneGateInjectedAddressOnce(diagnostics);
     if (address) return address;
-    if (!triedBridge) {
-      triedBridge = true;
-      const bridgeAddress = await readOneGateBridgeAddress(diagnostics);
+    if (bridgeAttempts < 3) {
+      bridgeAttempts += 1;
+      const bridgeAddress = await readOneGateBridgeAddress(
+        Math.min(Math.max(0, timeoutMs - (Date.now() - startedAt)), 10_000),
+        diagnostics,
+      );
       if (bridgeAddress) return bridgeAddress;
     }
     if (Date.now() - startedAt >= timeoutMs) break;
@@ -947,6 +988,9 @@ function buildClaimKeyUrl(
   if (!key) return "";
   const appId = normalizeClaimIdentity(identity.oneGateAppId) || ONEGATE_VAULT_DAPP_ID;
   const url = new URL(`https://onegate.space/app/${encodeURIComponent(appId)}`);
+  url.searchParams.set("source", "onegate");
+  url.searchParams.set("operation", "claimOneGateVault");
+  url.searchParams.set("oneGateAppId", appId);
   url.searchParams.set("key", key);
   if (identity.poolId) url.searchParams.set("pool", identity.poolId);
   if (network) url.searchParams.set("network", network);
@@ -1367,7 +1411,7 @@ export function useGasLuckyPool({
       launchContext.source === "onegate" || !!identity.oneGateAppId;
     if (explicitOneGateLaunch) {
       const injectedAddress = await waitForOneGateInjectedAddress(
-        8000,
+        15_000,
         diagnostics,
       );
       if (injectedAddress) return injectedAddress;
@@ -1379,7 +1423,7 @@ export function useGasLuckyPool({
       if (immediateInjectedAddress) return immediateInjectedAddress;
 
       const oneGateAddressPromise = waitForOneGateInjectedAddress(
-        8000,
+        15_000,
         diagnostics,
       );
       const walletAddressPromise = chain
