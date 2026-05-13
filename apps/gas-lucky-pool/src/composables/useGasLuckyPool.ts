@@ -196,10 +196,6 @@ type OneGateDapiProviderLike = {
   getAccounts?: () =>
     | Promise<Array<OneGateAccountLike>>
     | Array<OneGateAccountLike>;
-  pickAddress?: (prompt?: string) => Promise<unknown> | unknown;
-  authenticate?: () =>
-    | Promise<OneGateAccountLike>
-    | OneGateAccountLike;
 };
 
 type OneGateBridgeWindow = Window & {
@@ -214,9 +210,6 @@ type OneGateAddressDiagnostics = {
   bridgeAttempts: string[];
   wallet: "skipped" | "available" | "unavailable" | "error";
 };
-
-const ONEGATE_PICK_ADDRESS_PROMPT =
-  "Select the address that will receive this reward.";
 
 const oneGateBridgePending = new Map<
   string,
@@ -254,6 +247,10 @@ function oneGateErrorCode(error: unknown): string {
     return "error";
   }
   return "unknown";
+}
+
+function oneGateDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function oneGateRuntimeState() {
@@ -346,9 +343,7 @@ function isOneGateDapiProviderLike(
   return (
     !!value &&
     typeof value === "object" &&
-    (typeof (value as OneGateDapiProviderLike).getAccounts === "function" ||
-      typeof (value as OneGateDapiProviderLike).pickAddress === "function" ||
-      typeof (value as OneGateDapiProviderLike).authenticate === "function")
+    typeof (value as OneGateDapiProviderLike).getAccounts === "function"
   );
 }
 
@@ -816,44 +811,7 @@ async function readOneGateProviderAddress(
       "providerAttempts",
       `${label}:accounts:${oneGateErrorCode(error)}`,
     );
-    /* Some OneGate builds require an explicit account picker instead. */
-  }
-
-  try {
-    const pickedAddress = await oneGateCallTimeout(
-      provider.pickAddress?.(ONEGATE_PICK_ADDRESS_PROMPT),
-      20_000,
-    );
-    const address = await addressFromOneGateRecord(pickedAddress);
-    if (address) {
-      addOneGateDiag(diagnostics, "providerAttempts", `${label}:pick:ok`);
-      return address;
-    }
-    addOneGateDiag(diagnostics, "providerAttempts", `${label}:pick:empty`);
-  } catch (error) {
-    addOneGateDiag(
-      diagnostics,
-      "providerAttempts",
-      `${label}:pick:${oneGateErrorCode(error)}`,
-    );
-    /* The user may cancel the OneGate account picker. */
-  }
-
-  try {
-    const authenticated = await oneGateCallTimeout(provider.authenticate?.(), 2_500);
-    const address = await addressFromOneGateRecord(authenticated);
-    if (address) {
-      addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:ok`);
-      return address;
-    }
-    addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:empty`);
-  } catch (error) {
-    addOneGateDiag(
-      diagnostics,
-      "providerAttempts",
-      `${label}:auth:${oneGateErrorCode(error)}`,
-    );
-    /* Keep falling back to the standard wallet path. */
+    /* QR claims must use OneGate's injected default account, not an address picker. */
   }
 
   return "";
@@ -876,29 +834,7 @@ async function readOneGateBridgeAddress(
       "bridgeAttempts",
       `getAccounts:${oneGateErrorCode(error)}`,
     );
-    /* Fall through to OneGate's native address picker. */
-  }
-
-  try {
-    const pickedAddress = await oneGateBridgeRpc(
-      "pickAddress",
-      [ONEGATE_PICK_ADDRESS_PROMPT],
-      20_000,
-      diagnostics,
-    );
-    const address = await addressFromOneGateRecord(pickedAddress);
-    if (address) {
-      addOneGateDiag(diagnostics, "bridgeAttempts", "pickAddress:ok");
-      return address;
-    }
-    addOneGateDiag(diagnostics, "bridgeAttempts", "pickAddress:empty");
-  } catch (error) {
-    addOneGateDiag(
-      diagnostics,
-      "bridgeAttempts",
-      `pickAddress:${oneGateErrorCode(error)}`,
-    );
-    /* Keep falling back to the standard wallet path. */
+    /* QR claims must use OneGate's injected default account, not an address picker. */
   }
 
   return "";
@@ -945,6 +881,9 @@ async function waitForOneGateInjectedAddress(
     }
     if (Date.now() - startedAt >= timeoutMs) break;
     requestOneGateDapiProvider(diagnostics);
+    await oneGateDelay(
+      Math.min(150, Math.max(0, timeoutMs - (Date.now() - startedAt))),
+    );
   } while (true);
   addOneGateDiag(diagnostics, "providerAttempts", "wait:timeout");
   return "";
