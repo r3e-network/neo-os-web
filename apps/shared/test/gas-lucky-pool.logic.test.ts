@@ -293,6 +293,75 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatehash");
   });
 
+  it("keeps requesting delayed OneGate dAPI injection on scanned key links before falling back to generic wallets", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegatedelayed",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    let requestCount = 0;
+    const injectProvider = () => {
+      requestCount += 1;
+      if (requestCount < 3) return;
+      (window as any).OneGateDapiProvider = {
+        getAccounts: vi.fn().mockResolvedValue([{ address: ONEGATE_OWNER }]),
+      };
+      window.dispatchEvent(
+        new CustomEvent("Neo.DapiProvider.ready", {
+          detail: { provider: (window as any).OneGateDapiProvider },
+        }),
+      );
+    };
+    window.addEventListener("Neo.DapiProvider.request", injectProvider);
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      window.removeEventListener("Neo.DapiProvider.request", injectProvider);
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
+    expect(requestCount).toBeGreaterThan(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegatedelayed");
+  });
+
   it("polls scanned key status with pool and OneGate identity when payout is submitted asynchronously", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi
