@@ -350,6 +350,93 @@ function oneGateAddressRequiredError(
   );
 }
 
+async function reportOneGateVaultDiagnostic(input: {
+  eventType: "missing_address" | "claim_error" | "scan_open" | "status_error";
+  message: string;
+  diagnostics: OneGateAddressDiagnostics;
+  launchContext: MiniAppLaunchContext;
+  identity: ClaimLaunchIdentity;
+}) {
+  if (typeof fetch !== "function") return;
+  const runtime = oneGateRuntimeState();
+  const controller =
+    typeof AbortController === "function" ? new AbortController() : undefined;
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), 1_200)
+    : undefined;
+  try {
+    const request = fetch("/api/onegate-vault/diagnostics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: input.eventType,
+        message: input.message,
+        diagnostic: formatOneGateAddressDiagnostics(
+          input.diagnostics,
+          input.launchContext,
+          input.identity,
+        ),
+        network: input.launchContext.network || "mainnet",
+        source: input.launchContext.source || "unknown",
+        operation: input.launchContext.operation || "unknown",
+        poolId: input.identity.poolId || "",
+        oneGateAppId: input.identity.oneGateAppId || ONEGATE_VAULT_DAPP_ID,
+        appId: input.identity.appId || APP_ID,
+        locale:
+          typeof navigator !== "undefined"
+            ? navigator.language || "unknown"
+            : "unknown",
+        userAgent:
+          typeof navigator !== "undefined"
+            ? navigator.userAgent || "unknown"
+            : "unknown",
+        platform: runtime.ua,
+        details: {
+          provider: runtime.provider,
+          bridge: runtime.bridge,
+          callback: runtime.callback,
+          providerRequests: input.diagnostics.providerRequests,
+          providerReadyEvents: input.diagnostics.providerReadyEvents,
+          providerSteps: input.diagnostics.providerAttempts,
+          bridgeSteps: input.diagnostics.bridgeAttempts,
+          wallet: input.diagnostics.wallet,
+        },
+      }),
+      keepalive: true,
+      signal: controller?.signal,
+    });
+    await (controller
+      ? request
+      : Promise.race([request, oneGateDelay(1_200)]));
+  } catch {
+    // Diagnostics must never block a claim screen or replace the real error.
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function throwOneGateAddressRequiredError(input: {
+  message: string;
+  diagnostics: OneGateAddressDiagnostics;
+  launchContext: MiniAppLaunchContext;
+  identity: ClaimLaunchIdentity;
+}): Promise<never> {
+  const error = oneGateAddressRequiredError(
+    input.message,
+    input.diagnostics,
+    input.launchContext,
+    input.identity,
+  );
+  await reportOneGateVaultDiagnostic({
+    eventType: "missing_address",
+    message: input.message,
+    diagnostics: input.diagnostics,
+    launchContext: input.launchContext,
+    identity: input.identity,
+  });
+  throw error;
+}
+
 function isOneGateDapiProviderLike(
   value: unknown,
 ): value is OneGateDapiProviderLike {
@@ -1600,12 +1687,12 @@ export function useGasLuckyPool({
         if (!isWalletUnavailableError(first.error)) throw first.error;
         const injectedAddress = await oneGateAddressPromise;
         if (injectedAddress) return injectedAddress;
-        throw oneGateAddressRequiredError(
-          t("oneGateWalletAddressRequired"),
+        await throwOneGateAddressRequiredError({
+          message: t("oneGateWalletAddressRequired"),
           diagnostics,
           launchContext,
           identity,
-        );
+        });
       }
 
       const walletResult = await walletAddressPromise;
@@ -1618,12 +1705,12 @@ export function useGasLuckyPool({
       }
       if (isWalletUnavailableError(walletResult.error)) {
         diagnostics.wallet = "unavailable";
-        throw oneGateAddressRequiredError(
-          t("oneGateWalletAddressRequired"),
+        await throwOneGateAddressRequiredError({
+          message: t("oneGateWalletAddressRequired"),
           diagnostics,
           launchContext,
           identity,
-        );
+        });
       }
       diagnostics.wallet = "error";
       throw walletResult.error;
@@ -1637,12 +1724,12 @@ export function useGasLuckyPool({
     } catch (error) {
       if (isWalletUnavailableError(error)) {
         diagnostics.wallet = "unavailable";
-        throw oneGateAddressRequiredError(
-          t("oneGateWalletAddressRequired"),
+        await throwOneGateAddressRequiredError({
+          message: t("oneGateWalletAddressRequired"),
           diagnostics,
           launchContext,
           identity,
-        );
+        });
       }
       diagnostics.wallet = "error";
       throw error;
