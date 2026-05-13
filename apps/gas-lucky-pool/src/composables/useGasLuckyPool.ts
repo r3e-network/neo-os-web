@@ -190,11 +190,24 @@ const SHA256_K = [
 
 type OneGateAccountLike = Record<string, unknown>;
 
+type OneGateAuthChallenge = {
+  Action: "Authentication";
+  grant_type: "Signature";
+  allowed_algorithms: ["ECDSA-P256"];
+  Domain: string;
+  Networks: [number];
+  Nonce: number;
+  Timestamp: number;
+};
+
 type OneGateDapiProviderLike = {
   name?: string;
   getAccounts?: () =>
     | Promise<Array<OneGateAccountLike>>
     | Array<OneGateAccountLike>;
+  authenticate?: (
+    challenge: OneGateAuthChallenge,
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
 };
 
 type OneGateBridgeWindow = Window & {
@@ -257,6 +270,33 @@ function oneGateErrorCode(error: unknown): string {
 
 function oneGateDelay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function oneGateNetworkMagic(network?: MiniAppLaunchContext["network"]) {
+  return network === "mainnet" ? 860833102 : 894710606;
+}
+
+function oneGateAuthChallenge(
+  network?: MiniAppLaunchContext["network"],
+): OneGateAuthChallenge {
+  const nonceBytes = new Uint32Array(1);
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(nonceBytes);
+  } else {
+    nonceBytes[0] = Math.floor(Math.random() * 0xffffffff);
+  }
+  return {
+    Action: "Authentication",
+    grant_type: "Signature",
+    allowed_algorithms: ["ECDSA-P256"],
+    Domain:
+      typeof window !== "undefined" && window.location.hostname
+        ? window.location.hostname
+        : "neomini.app",
+    Networks: [oneGateNetworkMagic(network)],
+    Nonce: nonceBytes[0],
+    Timestamp: Math.floor(Date.now() / 1000),
+  };
 }
 
 function oneGateRuntimeState() {
@@ -974,6 +1014,7 @@ async function readOneGateProviderAddress(
   provider: unknown,
   diagnostics?: OneGateAddressDiagnostics,
   label = "provider",
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
   if (!isOneGateDapiProviderLike(provider)) {
     addOneGateDiag(diagnostics, "providerAttempts", `${label}:missing`);
@@ -994,7 +1035,27 @@ async function readOneGateProviderAddress(
       "providerAttempts",
       `${label}:accounts:${oneGateErrorCode(error)}`,
     );
-    /* QR claims must use OneGate's injected default account, not an address picker. */
+  }
+
+  if (typeof provider.authenticate === "function") {
+    try {
+      const response = await oneGateCallTimeout(
+        provider.authenticate(oneGateAuthChallenge(network)),
+        3_500,
+      );
+      const address = await addressFromOneGateRecord(response);
+      if (address) {
+        addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:ok`);
+        return address;
+      }
+      addOneGateDiag(diagnostics, "providerAttempts", `${label}:auth:empty`);
+    } catch (error) {
+      addOneGateDiag(
+        diagnostics,
+        "providerAttempts",
+        `${label}:auth:${oneGateErrorCode(error)}`,
+      );
+    }
   }
 
   return "";
@@ -1003,31 +1064,44 @@ async function readOneGateProviderAddress(
 async function readOneGateBridgeAddress(
   timeoutMs = 12_000,
   diagnostics?: OneGateAddressDiagnostics,
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
+  const challenge = oneGateAuthChallenge(network);
   const variants = [
     {
       method: "getAccounts",
+      params: [] as unknown[],
       includeParams: true,
       label: "getAccounts",
       delayMs: 0,
     },
     {
       method: "GetAccounts",
+      params: [] as unknown[],
       includeParams: false,
       label: "GetAccountsNoParams",
       delayMs: 250,
     },
     {
       method: "getAccounts",
+      params: [] as unknown[],
       includeParams: false,
       label: "getAccountsNoParams",
       delayMs: 500,
     },
     {
+      method: "authenticate",
+      params: [challenge] as unknown[],
+      includeParams: true,
+      label: "authenticate",
+      delayMs: 1_500,
+    },
+    {
       method: "getAccounts",
+      params: [] as unknown[],
       includeParams: true,
       label: "getAccountsRetry",
-      delayMs: 1_250,
+      delayMs: 2_500,
     },
   ];
   const startedAt = Date.now();
@@ -1049,7 +1123,7 @@ async function readOneGateBridgeAddress(
     try {
       const accounts = await oneGateBridgeRpc(
         variant.method,
-        [],
+        variant.params,
         remainingMs,
         diagnostics,
         {
@@ -1058,7 +1132,10 @@ async function readOneGateBridgeAddress(
         },
       );
       if (accounts === null) return { address: "", missing: true };
-      const address = await addressFromOneGateAccounts(accounts);
+      const address =
+        variant.method === "authenticate"
+          ? await addressFromOneGateRecord(accounts)
+          : await addressFromOneGateAccounts(accounts);
       if (address) {
         addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:ok`);
         return { address, missing: false };
@@ -1126,11 +1203,12 @@ function firstOneGateAddress(promises: Promise<string>[]): Promise<string> {
 async function pollOneGateProviderAddress(
   timeoutMs: number,
   diagnostics?: OneGateAddressDiagnostics,
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
   const startedAt = Date.now();
 
   do {
-    const address = await readOneGateInjectedAddressOnce(diagnostics);
+    const address = await readOneGateInjectedAddressOnce(diagnostics, network);
     if (address) return address;
 
     const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
@@ -1138,6 +1216,7 @@ async function pollOneGateProviderAddress(
       await eventOneGateDapiProvider(Math.min(remainingMs, 500), diagnostics),
       diagnostics,
       "event",
+      network,
     );
     if (eventProviderAddress) return eventProviderAddress;
 
@@ -1155,6 +1234,7 @@ async function pollOneGateProviderAddress(
 async function pollOneGateBridgeAddress(
   timeoutMs: number,
   diagnostics?: OneGateAddressDiagnostics,
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
   const startedAt = Date.now();
 
@@ -1163,6 +1243,7 @@ async function pollOneGateBridgeAddress(
     const bridgeAddress = await readOneGateBridgeAddress(
       Math.min(remainingMs, 12_000),
       diagnostics,
+      network,
     );
     if (bridgeAddress) return bridgeAddress;
 
@@ -1177,11 +1258,13 @@ async function pollOneGateBridgeAddress(
 
 async function readOneGateInjectedAddressOnce(
   diagnostics?: OneGateAddressDiagnostics,
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
   const providerAddress = await readOneGateProviderAddress(
     immediateOneGateDapiProvider(),
     diagnostics,
     "immediate",
+    network,
   );
   if (providerAddress) return providerAddress;
 
@@ -1191,10 +1274,11 @@ async function readOneGateInjectedAddressOnce(
 async function waitForOneGateInjectedAddress(
   timeoutMs = ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
   diagnostics?: OneGateAddressDiagnostics,
+  network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
   return firstOneGateAddress([
-    pollOneGateProviderAddress(timeoutMs, diagnostics),
-    pollOneGateBridgeAddress(timeoutMs, diagnostics),
+    pollOneGateProviderAddress(timeoutMs, diagnostics, network),
+    pollOneGateBridgeAddress(timeoutMs, diagnostics, network),
     oneGateDelay(timeoutMs).then(() => ""),
   ]);
 }
@@ -1648,18 +1732,20 @@ export function useGasLuckyPool({
       const injectedAddress = await waitForOneGateInjectedAddress(
         ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
         diagnostics,
+        launchContext.network,
       );
       if (injectedAddress) return injectedAddress;
     }
 
     if (currentClaimKey.get()) {
       const immediateInjectedAddress =
-        await readOneGateInjectedAddressOnce(diagnostics);
+        await readOneGateInjectedAddressOnce(diagnostics, launchContext.network);
       if (immediateInjectedAddress) return immediateInjectedAddress;
 
       const oneGateAddressPromise = waitForOneGateInjectedAddress(
         ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
         diagnostics,
+        launchContext.network,
       );
       const walletAddressPromise = chain
         .ensureWallet()
