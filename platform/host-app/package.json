@@ -64,7 +64,7 @@
       "follow-redirects": "1.16.0"
     },
     "@opentelemetry/otlp-transformer": {
-      "protobufjs": "7.5.5"
+      "protobufjs": "7.5.8"
     },
     "socket.io-parser": "4.2.6",
     "glob": "^11.0.0",
