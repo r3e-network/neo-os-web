@@ -944,6 +944,19 @@ function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
   return null;
 }
 
+function isOneGateIosBridgeRuntime(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua =
+    typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
+  if (!/iPhone|iPad|iPod/i.test(ua)) return false;
+  const oneGateWindow = window as OneGateBridgeWindow;
+  return (
+    typeof oneGateWindow.__OneGateBridge?.invoke === "function" ||
+    typeof oneGateWindow.webkit?.messageHandlers?.__OneGateBridge
+      ?.postMessage === "function"
+  );
+}
+
 function requestOneGateDapiProvider(diagnostics?: OneGateAddressDiagnostics) {
   if (typeof window === "undefined") return;
   if (diagnostics) diagnostics.providerRequests += 1;
@@ -1284,6 +1297,15 @@ async function waitForOneGateInjectedAddress(
     network,
   );
   if (providerAddress) return providerAddress;
+
+  if (isOneGateIosBridgeRuntime()) {
+    addOneGateDiag(diagnostics, "providerAttempts", "ios:providerOnly");
+    return pollOneGateProviderAddress(
+      Math.max(0, timeoutMs - (Date.now() - startedAt)),
+      diagnostics,
+      network,
+    );
+  }
 
   const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
   if (remainingMs <= 0) return "";
