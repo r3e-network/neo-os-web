@@ -5,7 +5,6 @@ import {
   BookOpenCheck,
   Boxes,
   BriefcaseBusiness,
-  Building2,
   CalendarCheck,
   CheckCircle2,
   ChevronDown,
@@ -94,6 +93,7 @@ export type PlayAreaRegistryProps = {
 };
 
 type PlayAreaComponent = (props: PlayAreaRegistryProps) => JSX.Element;
+export type NativePlayAreaKind = "custom" | "oracle" | "profiled";
 
 const PLAYAREA_REGISTRY: Record<string, PlayAreaComponent> = {
   "miniapp-last-survivor": LastSurvivorPlayArea,
@@ -423,28 +423,6 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     visual: {
       headline: "Leaderboard impact",
       slots: ["You", "Top 10", "Weekly", "Final"],
-    },
-  },
-  "miniapp-council-governance": {
-    title: "Council voting chamber",
-    subtitle:
-      "Review proposals, stage a council vote, and verify voting power before signing.",
-    tone: "emerald",
-    icon: <Building2 className="h-5 w-5" />,
-    fields: [
-      { key: "proposal", label: "Proposal id", defaultValue: "CIP-42" },
-      { key: "vote", label: "Vote", defaultValue: "Approve" },
-    ],
-    cards: [
-      { label: "Proposal", value: "review" },
-      { label: "Voting power", value: "wallet" },
-      { label: "Ballot", value: "cast vote" },
-    ],
-    steps: ["Read proposal", "Check quorum", "Stage vote", "Confirm receipt"],
-    primaryAction: "Stage council vote",
-    visual: {
-      headline: "Council ballot",
-      slots: ["Approve", "Reject", "Abstain", "Needs quorum"],
     },
   },
   "miniapp-dev-tipping": {
@@ -1193,12 +1171,18 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
 };
 
 export function hasNativePlayArea(appId: string) {
-  return Boolean(
-    PLAYAREA_REGISTRY[appId] ||
-    ORACLE_APP_LABELS[appId] ||
-    PROFILED_PLAYAREAS[appId] ||
-    appId.startsWith("miniapp-oracle-"),
-  );
+  return Boolean(getNativePlayAreaKind(appId));
+}
+
+export function getNativePlayAreaKind(
+  appId: string,
+): NativePlayAreaKind | null {
+  if (PLAYAREA_REGISTRY[appId]) return "custom";
+  if (ORACLE_APP_LABELS[appId] || appId.startsWith("miniapp-oracle-")) {
+    return "oracle";
+  }
+  if (PROFILED_PLAYAREAS[appId]) return "profiled";
+  return null;
 }
 
 export function getNativePlayAreaOperationFallback(
@@ -1985,6 +1969,62 @@ function ActionBoard({
           />
         ))}
       </div>
+    </section>
+  );
+}
+
+function EmbeddedDappSurface({
+  title,
+  subtitle,
+  url,
+  tone = "emerald",
+  frameTitle,
+  testId,
+  heightClass = "h-[620px]",
+}: {
+  title: string;
+  subtitle: string;
+  url: string;
+  tone?: PlayTone;
+  frameTitle: string;
+  testId: string;
+  heightClass?: string;
+}) {
+  const styles = toneStyle(tone);
+
+  return (
+    <section className="overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 bg-gray-50/80 px-3.5 py-3">
+        <div className="min-w-0">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
+            <span className="text-[10px] font-black uppercase tracking-wide text-gray-400">
+              Live dApp
+            </span>
+          </div>
+          <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
+          <p className="m-0 mt-1 max-w-3xl text-xs leading-5 text-gray-600">
+            {subtitle}
+          </p>
+        </div>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className={`inline-flex shrink-0 items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-black transition hover:bg-gray-50 ${styles.text}`}
+        >
+          Open full dApp
+          <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
+        </a>
+      </div>
+      <iframe
+        title={frameTitle}
+        src={url}
+        data-testid={testId}
+        className={`block ${heightClass} w-full border-0 bg-white`}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     </section>
   );
 }
@@ -4408,6 +4448,7 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
     onRefresh,
   } = props;
   const profile = PROFILED_PLAYAREAS[app.app_id];
+  const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
   const initialValues = useCallback(
     () =>
       Object.fromEntries(
@@ -4441,17 +4482,25 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       }
     >
       <div className="space-y-3">
-        <ProfileMarketPanel
-          profile={profile}
-          values={values}
-          network={network}
+        <EmbeddedDappSurface
+          title="Live MiniApp workspace"
+          subtitle="The center playarea loads the actual standalone MiniApp so users can complete the app-specific business flow instead of only reading a staged status preview."
+          url={dappUrl}
+          tone={profile.tone}
+          frameTitle={`${app.name} dApp`}
+          testId={`profiled-dapp-frame-${app.app_id}`}
         />
         <SecondaryInfo
           title="Activity and details"
-          description="Optional workflow, activity, metrics, and launch parameters. The main playarea stays focused on the primary user task."
+          description="Workflow checklist, activity, metrics, and launch parameters stay available without replacing the real MiniApp surface."
           meta="secondary"
         >
           <div className="space-y-3">
+            <ProfileMarketPanel
+              profile={profile}
+              values={values}
+              network={network}
+            />
             <ProfileWorkflowPanel profile={profile} />
             <ProfileModelPanel profile={profile} />
             <ProfileLaunchParamsPanel profile={profile} values={values} />
@@ -4598,8 +4647,10 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
     error,
     contractHash,
     network,
+    launchContext,
     onRefresh,
   } = props;
+  const dappUrl = buildEmbeddedDappUrl(app, network, launchContext);
 
   return (
     <PlayShell
@@ -4618,9 +4669,17 @@ function GenericPlayArea(props: PlayAreaRegistryProps) {
       }
     >
       <div className="space-y-3">
+        <EmbeddedDappSurface
+          title="Live MiniApp workspace"
+          subtitle="This fallback still opens the real standalone MiniApp as the primary surface, with diagnostics kept below."
+          url={dappUrl}
+          tone="emerald"
+          frameTitle={`${app.name} dApp`}
+          testId={`generic-dapp-frame-${app.app_id}`}
+        />
         <ActionBoard
           title="Primary task"
-          subtitle="This MiniApp has no custom playarea profile yet, so the host keeps the center focused and sends input/signing to the operation panel."
+          subtitle="Use the live MiniApp above for the complete business flow; this row only summarizes the platform operation wiring."
           rows={buildGenericActionRows(app)}
           tone="emerald"
         />
