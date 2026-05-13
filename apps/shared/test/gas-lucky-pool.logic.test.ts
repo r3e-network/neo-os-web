@@ -522,7 +522,7 @@ describe("OneGate Vault runtime logic", () => {
     });
 
     const claimPromise = pool.claimPool();
-    await vi.advanceTimersByTimeAsync(350);
+    await vi.advanceTimersByTimeAsync(1_800);
 
     try {
       await claimPromise;
@@ -551,7 +551,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatebridge-retry");
   });
 
-  it("keeps polling OneGate provider injection while an iOS bridge request is stalled", async () => {
+  it("waits for OneGate provider injection before raw iOS bridge fallback", async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -605,9 +605,7 @@ describe("OneGate Vault runtime logic", () => {
       globalThis.fetch = originalFetch;
     }
 
-    expect(bridgeInvoke).toHaveBeenCalledWith(
-      expect.stringContaining('"method":"getAccounts"'),
-    );
+    expect(bridgeInvoke).not.toHaveBeenCalled();
     expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
     expect(provider.getAccounts).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(

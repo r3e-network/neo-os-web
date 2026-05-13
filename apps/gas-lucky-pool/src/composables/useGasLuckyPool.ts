@@ -172,6 +172,7 @@ function normalizeNeoAddress(value: unknown): string {
 
 const NEO_N3_ADDRESS_VERSION = 0x35;
 const ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS = 8_000;
+const ONEGATE_PROVIDER_GRACE_MS = 1_400;
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const SHA256_K = [
@@ -594,12 +595,11 @@ function postOneGateBridgePayload(
   diagnostics?: OneGateAddressDiagnostics,
   label = "bridge",
 ): boolean {
-  let sent = false;
   const invoke = windowRef.__OneGateBridge?.invoke;
   if (typeof invoke === "function") {
     invoke(payload);
-    sent = true;
     addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:invoke`);
+    return true;
   }
 
   const webkitHandler =
@@ -609,11 +609,11 @@ function postOneGateBridgePayload(
       windowRef.webkit?.messageHandlers?.__OneGateBridge,
       payload,
     );
-    sent = true;
     addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:webkit`);
+    return true;
   }
 
-  return sent;
+  return false;
 }
 
 function oneGateBridgeRpc(
@@ -1276,10 +1276,22 @@ async function waitForOneGateInjectedAddress(
   diagnostics?: OneGateAddressDiagnostics,
   network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
+  const startedAt = Date.now();
+  const providerGraceMs = Math.min(ONEGATE_PROVIDER_GRACE_MS, timeoutMs);
+  const providerAddress = await pollOneGateProviderAddress(
+    providerGraceMs,
+    diagnostics,
+    network,
+  );
+  if (providerAddress) return providerAddress;
+
+  const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
+  if (remainingMs <= 0) return "";
+
   return firstOneGateAddress([
-    pollOneGateProviderAddress(timeoutMs, diagnostics, network),
-    pollOneGateBridgeAddress(timeoutMs, diagnostics, network),
-    oneGateDelay(timeoutMs).then(() => ""),
+    pollOneGateProviderAddress(remainingMs, diagnostics, network),
+    pollOneGateBridgeAddress(remainingMs, diagnostics, network),
+    oneGateDelay(remainingMs).then(() => ""),
   ]);
 }
 
