@@ -40,9 +40,15 @@ describe("OneGate Vault runtime logic", () => {
     const chain = {
       readArray: vi.fn().mockResolvedValue([]),
       listEvents: vi.fn().mockResolvedValue([]),
-      listAllEvents: vi.fn().mockRejectedValue(new Error("unbounded history fetch")),
+      listAllEvents: vi
+        .fn()
+        .mockRejectedValue(new Error("unbounded history fetch")),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch(), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch(),
+      t,
+    });
 
     await pool.loadAll();
 
@@ -50,17 +56,27 @@ describe("OneGate Vault runtime logic", () => {
       { type: "String", value: "miniapp-gas-lucky-pool" },
       { type: "Integer", value: "42" },
     ]);
-    expect(chain.listEvents).toHaveBeenCalledWith("RangeGasPoolCreated", { limit: 10 });
-    expect(chain.listEvents).toHaveBeenCalledWith("RangeGasPoolClaimed", { limit: 12 });
+    expect(chain.listEvents).toHaveBeenCalledWith("RangeGasPoolCreated", {
+      limit: 10,
+    });
+    expect(chain.listEvents).toHaveBeenCalledWith("RangeGasPoolClaimed", {
+      limit: 12,
+    });
     expect(chain.listAllEvents).not.toHaveBeenCalled();
   });
 
   it("does not show a startup error when read-only preload runs before a wallet is injected", async () => {
     const chain = {
-      readArray: vi.fn().mockRejectedValue(new Error("Compatible Neo wallet not detected.")),
+      readArray: vi
+        .fn()
+        .mockRejectedValue(new Error("Compatible Neo wallet not detected.")),
       listEvents: vi.fn().mockResolvedValue([]),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch(), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch(),
+      t,
+    });
 
     await pool.loadAll();
 
@@ -74,7 +90,11 @@ describe("OneGate Vault runtime logic", () => {
       read: vi.fn().mockResolvedValue("250000000"),
       invoke: vi.fn().mockResolvedValue({ txid: "0xabc", success: true }),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch(""), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch(""),
+      t,
+    });
 
     await pool.loadGasCredit();
     expect(pool.gasCredit.get()).toBe(250000000n);
@@ -94,7 +114,11 @@ describe("OneGate Vault runtime logic", () => {
 
   it("keeps the OneGate claim URL aligned with the selected pool and network", () => {
     const chain = {};
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch("42"), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch("42"),
+      t,
+    });
 
     const initialUrl = new URL(pool.currentShareUrl.get());
     expect(initialUrl.origin + initialUrl.pathname).toBe(
@@ -114,7 +138,11 @@ describe("OneGate Vault runtime logic", () => {
 
   it("keeps scanned key and reward pool in compact OneGate claim URLs", () => {
     const chain = {};
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
 
     const initialUrl = new URL(pool.currentShareUrl.get());
     expect(initialUrl.origin + initialUrl.pathname).toBe(
@@ -155,7 +183,11 @@ describe("OneGate Vault runtime logic", () => {
       ensureWallet: vi.fn().mockResolvedValue(OWNER),
       invoke: vi.fn(),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
 
     try {
       await pool.claimPool();
@@ -279,7 +311,9 @@ describe("OneGate Vault runtime logic", () => {
     });
     globalThis.fetch = fetchMock as any;
     (window as any).OneGateDapiProvider = {
-      getAccounts: vi.fn().mockResolvedValue([{ hash: addressToScriptHash(ONEGATE_OWNER) }]),
+      getAccounts: vi
+        .fn()
+        .mockResolvedValue([{ hash: addressToScriptHash(ONEGATE_OWNER) }]),
     };
     const chain = {
       ensureWallet: vi
@@ -433,7 +467,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatebridge");
   });
 
-  it("retries the raw OneGate bridge when the first iOS getAccounts call is lost", async () => {
+  it("retries the raw OneGate bridge before the first iOS getAccounts timeout", async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -477,7 +511,7 @@ describe("OneGate Vault runtime logic", () => {
     });
 
     const claimPromise = pool.claimPool();
-    await vi.advanceTimersByTimeAsync(8_000);
+    await vi.advanceTimersByTimeAsync(350);
 
     try {
       await claimPromise;
@@ -815,7 +849,11 @@ describe("OneGate Vault runtime logic", () => {
       ensureWallet: vi.fn().mockResolvedValue(OWNER),
       invoke: vi.fn(),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: keyLaunch(), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
 
     try {
       await pool.claimPool();
@@ -859,7 +897,11 @@ describe("OneGate Vault runtime logic", () => {
       readArray: vi.fn().mockResolvedValue([]),
       listEvents: vi.fn().mockResolvedValue([]),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch("42"), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch("42"),
+      t,
+    });
 
     await pool.claimPool();
 
@@ -892,21 +934,27 @@ describe("OneGate Vault runtime logic", () => {
           ],
         },
       }),
-      readArray: vi.fn().mockResolvedValue([
-        OWNER,
-        "1000000000",
-        "100000000",
-        "500000000",
-        "5",
-        "3",
-        "0",
-        "",
-        "0",
-        "1767225600",
-        false,
-      ]),
+      readArray: vi
+        .fn()
+        .mockResolvedValue([
+          OWNER,
+          "1000000000",
+          "100000000",
+          "500000000",
+          "5",
+          "3",
+          "0",
+          "",
+          "0",
+          "1767225600",
+          false,
+        ]),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch("42"), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch("42"),
+      t,
+    });
 
     await pool.refundPool("42");
 
@@ -941,22 +989,28 @@ describe("OneGate Vault runtime logic", () => {
           ],
         },
       }),
-      readArray: vi.fn().mockResolvedValue([
-        OWNER,
-        "1250000000",
-        "100000000",
-        "500000000",
-        "5",
-        "2",
-        "875000000",
-        "",
-        "0",
-        "1767225600",
-        true,
-      ]),
+      readArray: vi
+        .fn()
+        .mockResolvedValue([
+          OWNER,
+          "1250000000",
+          "100000000",
+          "500000000",
+          "5",
+          "2",
+          "875000000",
+          "",
+          "0",
+          "1767225600",
+          true,
+        ]),
       listEvents: vi.fn().mockResolvedValue([]),
     };
-    const pool = useGasLuckyPool({ chain: chain as any, launchContext: launch("42"), t });
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: launch("42"),
+      t,
+    });
 
     await pool.topUpPool({ poolId: "42", amount: "2.5" });
 
