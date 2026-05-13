@@ -34,6 +34,7 @@ describe("OneGate Vault runtime logic", () => {
     delete (window as any).Neo;
     delete (window as any).__OneGateBridge;
     delete (window as any).__OneGateDapiCallback;
+    delete (window as any).webkit;
   });
 
   it("loads only recent pool and claim events instead of walking the whole event history", async () => {
@@ -383,7 +384,7 @@ describe("OneGate Vault runtime logic", () => {
     try {
       const claimPromise = pool.claimPool();
       const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-      await vi.advanceTimersByTimeAsync(20_000);
+      await vi.advanceTimersByTimeAsync(35_000);
       await rejection;
     } finally {
       globalThis.fetch = originalFetch;
@@ -540,6 +541,151 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatebridge-retry");
   });
 
+  it("keeps polling OneGate provider injection while an iOS bridge request is stalled", async () => {
+    vi.useFakeTimers();
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegateprovider-race",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const bridgeInvoke = vi.fn();
+    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    const provider = {
+      name: "OneGate",
+      getAccounts: vi.fn().mockResolvedValue([{ address: ONEGATE_OWNER }]),
+    };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    const claimPromise = pool.claimPool();
+    setTimeout(() => {
+      (window as any).OneGateDapiProvider = provider;
+      window.dispatchEvent(
+        new CustomEvent("Neo.DapiProvider.ready", {
+          detail: { provider },
+        }),
+      );
+    }, 600);
+    await vi.advanceTimersByTimeAsync(1_200);
+
+    try {
+      await claimPromise;
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(bridgeInvoke).toHaveBeenCalledWith(
+      expect.stringContaining('"method":"getAccounts"'),
+    );
+    expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
+    expect(provider.getAccounts).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegateprovider-race");
+  });
+
+  it("can use the native iOS WebKit OneGate bridge transport directly", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegatewebkit",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const postMessage = vi.fn((payload: string) => {
+      const request = JSON.parse(payload);
+      setTimeout(() => {
+        (window as any).__OneGateDapiCallback?.({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: [{ address: ONEGATE_OWNER }],
+        });
+      }, 0);
+    });
+    (window as any).webkit = {
+      messageHandlers: {
+        __OneGateBridge: { postMessage },
+      },
+    };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(postMessage).toHaveBeenCalledWith(
+      expect.stringContaining('"method":"getAccounts"'),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegatewebkit");
+  });
+
   it("keeps the raw OneGate bridge callback alive when iOS injects the provider wrapper later", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -634,7 +780,7 @@ describe("OneGate Vault runtime logic", () => {
 
     const claimPromise = pool.claimPool();
     const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(20_000);
+    await vi.advanceTimersByTimeAsync(35_000);
     await rejection;
     expect(pool.lastError.get()).toContain("provider=none");
     expect(pool.lastError.get()).toContain("bridge=none");
@@ -676,7 +822,7 @@ describe("OneGate Vault runtime logic", () => {
 
     const claimPromise = pool.claimPool();
     const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(20_000);
+    await vi.advanceTimersByTimeAsync(35_000);
     await rejection;
 
     expect(pool.lastError.get()).toContain("callback:install");
