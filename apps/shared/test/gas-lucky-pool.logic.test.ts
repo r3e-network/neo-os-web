@@ -384,7 +384,7 @@ describe("OneGate Vault runtime logic", () => {
     try {
       const claimPromise = pool.claimPool();
       const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-      await vi.advanceTimersByTimeAsync(35_000);
+      await vi.advanceTimersByTimeAsync(10_000);
       await rejection;
     } finally {
       globalThis.fetch = originalFetch;
@@ -780,7 +780,7 @@ describe("OneGate Vault runtime logic", () => {
 
     const claimPromise = pool.claimPool();
     const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(35_000);
+    await vi.advanceTimersByTimeAsync(10_000);
     await rejection;
     expect(pool.lastError.get()).toContain("provider=none");
     expect(pool.lastError.get()).toContain("bridge=none");
@@ -822,7 +822,7 @@ describe("OneGate Vault runtime logic", () => {
 
     const claimPromise = pool.claimPool();
     const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(35_000);
+    await vi.advanceTimersByTimeAsync(10_000);
     await rejection;
 
     expect(pool.lastError.get()).toContain("callback:install");

@@ -171,6 +171,7 @@ function normalizeNeoAddress(value: unknown): string {
 }
 
 const NEO_N3_ADDRESS_VERSION = 0x35;
+const ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS = 8_000;
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const SHA256_K = [
@@ -1101,7 +1102,7 @@ async function readOneGateInjectedAddressOnce(
 }
 
 async function waitForOneGateInjectedAddress(
-  timeoutMs = 30_000,
+  timeoutMs = ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
   diagnostics?: OneGateAddressDiagnostics,
 ): Promise<string> {
   return firstOneGateAddress([
@@ -1558,7 +1559,7 @@ export function useGasLuckyPool({
       launchContext.source === "onegate" || !!identity.oneGateAppId;
     if (explicitOneGateLaunch) {
       const injectedAddress = await waitForOneGateInjectedAddress(
-        30_000,
+        ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
         diagnostics,
       );
       if (injectedAddress) return injectedAddress;
@@ -1570,7 +1571,7 @@ export function useGasLuckyPool({
       if (immediateInjectedAddress) return immediateInjectedAddress;
 
       const oneGateAddressPromise = waitForOneGateInjectedAddress(
-        30_000,
+        ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
         diagnostics,
       );
       const walletAddressPromise = chain
