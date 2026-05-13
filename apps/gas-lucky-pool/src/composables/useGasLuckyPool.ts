@@ -196,6 +196,7 @@ type OneGateDapiProviderLike = {
   getAccounts?: () =>
     | Promise<Array<OneGateAccountLike>>
     | Array<OneGateAccountLike>;
+  pickAddress?: (prompt?: string) => Promise<unknown> | unknown;
   authenticate?: () =>
     | Promise<OneGateAccountLike>
     | OneGateAccountLike;
@@ -208,6 +209,7 @@ function isOneGateDapiProviderLike(
     !!value &&
     typeof value === "object" &&
     (typeof (value as OneGateDapiProviderLike).getAccounts === "function" ||
+      typeof (value as OneGateDapiProviderLike).pickAddress === "function" ||
       typeof (value as OneGateDapiProviderLike).authenticate === "function")
   );
 }
@@ -566,7 +568,17 @@ async function readOneGateProviderAddress(
     const address = await addressFromOneGateAccounts(accounts);
     if (address) return address;
   } catch {
-    /* Some OneGate builds expose authenticate instead of direct accounts. */
+    /* Some OneGate builds require an explicit account picker instead. */
+  }
+
+  try {
+    const pickedAddress = await provider.pickAddress?.(
+      "Select the address that will receive this reward.",
+    );
+    const address = await addressFromOneGateRecord(pickedAddress);
+    if (address) return address;
+  } catch {
+    /* The user may cancel the OneGate account picker. */
   }
 
   try {
