@@ -31,6 +31,8 @@ describe("OneGate Vault runtime logic", () => {
     delete (window as any).OneGate;
     delete (window as any).OneGateDapiProvider;
     delete (window as any).Neo;
+    delete (window as any).__OneGateBridge;
+    delete (window as any).__OneGateDapiCallback;
   });
 
   it("loads only recent pool and claim events instead of walking the whole event history", async () => {
@@ -350,6 +352,77 @@ describe("OneGate Vault runtime logic", () => {
     );
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastTxid.get()).toBe("0xonegatepick");
+  });
+
+  it("claims a scanned key through the raw OneGate bridge when iOS has not exposed the provider wrapper", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "paid",
+        claimKey: CLAIM_KEY,
+        address: ONEGATE_OWNER,
+        amountFixed8: "120000000",
+        luckPercent: "2.40",
+        txHash: "0xonegatebridge",
+      }),
+    });
+    globalThis.fetch = fetchMock as any;
+    const bridgeInvoke = vi.fn((payload: string) => {
+      const request = JSON.parse(payload);
+      setTimeout(() => {
+        (window as any).__OneGateDapiCallback?.(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: request.method === "pickAddress" ? ONEGATE_OWNER : [],
+          }),
+        );
+      }, 0);
+    });
+    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    try {
+      await pool.claimPool();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    expect(bridgeInvoke).toHaveBeenCalledWith(
+      expect.stringContaining('"method":"getAccounts"'),
+    );
+    expect(bridgeInvoke).toHaveBeenCalledWith(
+      expect.stringContaining('"method":"pickAddress"'),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.objectContaining({
+        body: JSON.stringify({
+          claimKey: CLAIM_KEY,
+          address: ONEGATE_OWNER,
+          network: "testnet",
+          poolId: "pool-001",
+          appId: "miniapp-gas-lucky-pool",
+        }),
+      }),
+    );
+    expect(pool.lastSuccessType.get()).toBe("claim");
+    expect(pool.lastTxid.get()).toBe("0xonegatebridge");
   });
 
   it("claims a scanned key with OneGate master PascalCase account fields", async () => {
