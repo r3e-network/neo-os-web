@@ -9,7 +9,7 @@ function randomNonce(): string {
   return btoa(binary);
 }
 
-function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = {}): string {
+export function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
   const externalFontStyleSources = [
     "https://fonts.googleapis.com",
@@ -57,7 +57,15 @@ function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = 
   }
   const connectSrc = connectSources.join(" ");
 
-  const scriptSources = ["'self'", `'nonce-${nonce}'`];
+  const scriptSources = options.allowMiniAppEmbedding
+    ? [
+        "'self'",
+        // Wallet WebViews such as OneGate inject their dAPI provider after page
+        // navigation. CSP ignores 'unsafe-inline' when a nonce is also present,
+        // so miniapp runtimes must omit the nonce to permit native injection.
+        "'unsafe-inline'",
+      ]
+    : ["'self'", `'nonce-${nonce}'`];
   if (isDev) {
     scriptSources.push("'unsafe-eval'");
   }
