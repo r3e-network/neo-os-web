@@ -1043,6 +1043,8 @@ body {
   color: #047857;
   font-size: 0.82rem;
   font-weight: 800;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .gas-pool-toast--error {
