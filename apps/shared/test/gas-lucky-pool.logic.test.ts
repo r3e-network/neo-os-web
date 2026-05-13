@@ -460,6 +460,9 @@ describe("OneGate Vault runtime logic", () => {
       expect.stringContaining('"method":"getAccounts"'),
     );
     expect(oneGateWrapperCallback).not.toHaveBeenCalled();
+    expect((window as any).__OneGateDapiCallback.__oneGateVaultWrapped).toBe(
+      true,
+    );
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/onegate-vault/claim",
       expect.objectContaining({
@@ -502,6 +505,52 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastError.get()).toContain("bridge=none");
     expect(pool.lastError.get()).toContain("wallet=unavailable");
     expect(pool.lastError.get()).not.toContain(CLAIM_KEY);
+  });
+
+  it("includes OneGate bridge callback lifecycle diagnostics without sensitive values", async () => {
+    vi.useFakeTimers();
+    const bridgeInvoke = vi.fn((payload: string) => {
+      const request = JSON.parse(payload);
+      (window as any).__OneGateDapiCallback = vi.fn();
+      setTimeout(() => {
+        (window as any).__OneGateDapiCallback?.(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: [],
+          }),
+        );
+      }, 0);
+    });
+    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
+          ),
+        ),
+      invoke: vi.fn(),
+    };
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(),
+      t,
+    });
+
+    const claimPromise = pool.claimPool();
+    const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
+    await vi.advanceTimersByTimeAsync(20_000);
+    await rejection;
+
+    expect(pool.lastError.get()).toContain("callback:install");
+    expect(pool.lastError.get()).toContain("callback:guarded");
+    expect(pool.lastError.get()).toContain("callback:hostSet");
+    expect(pool.lastError.get()).toContain("callback:pendingHit");
+    expect(pool.lastError.get()).toContain("getAccounts:empty");
+    expect(pool.lastError.get()).not.toContain(CLAIM_KEY);
+    expect(pool.lastError.get()).not.toContain(ONEGATE_OWNER);
   });
 
   it("claims a scanned key with OneGate master PascalCase account fields", async () => {

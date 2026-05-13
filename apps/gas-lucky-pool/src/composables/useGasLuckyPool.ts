@@ -374,7 +374,10 @@ function oneGateCallTimeout<T>(
   });
 }
 
-function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
+function installOneGateBridgeCallback(
+  windowRef: OneGateBridgeWindow,
+  diagnostics?: OneGateAddressDiagnostics,
+) {
   const descriptor = Object.getOwnPropertyDescriptor(
     windowRef,
     "__OneGateDapiCallback",
@@ -384,8 +387,10 @@ function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
       ? descriptor.get.call(windowRef)
       : windowRef.__OneGateDapiCallback;
   if ((current as { __oneGateVaultWrapped?: boolean } | undefined)?.__oneGateVaultWrapped) {
+    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:wrappedAlready");
     return;
   }
+  addOneGateDiag(diagnostics, "bridgeAttempts", "callback:install");
   let hostCallback =
     typeof current === "function"
       ? (current as (response: unknown) => void)
@@ -396,6 +401,7 @@ function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
       try {
         parsed = JSON.parse(response);
       } catch {
+        addOneGateDiag(diagnostics, "bridgeAttempts", "callback:parseError");
         parsed = null;
       }
     }
@@ -406,12 +412,14 @@ function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
     const id = String(record.id ?? "");
     const pending = oneGateBridgePending.get(id);
     if (pending) {
+      addOneGateDiag(diagnostics, "bridgeAttempts", "callback:pendingHit");
       oneGateBridgePending.delete(id);
       clearTimeout(pending.timeout);
       if (record.error) pending.reject(record.error);
       else pending.resolve(record.result);
       return;
     }
+    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:hostForward");
     hostCallback?.(response);
   };
   (callback as { __oneGateVaultWrapped?: boolean }).__oneGateVaultWrapped = true;
@@ -422,14 +430,17 @@ function installOneGateBridgeCallback(windowRef: OneGateBridgeWindow) {
       get: () => callback,
       set: (next: unknown) => {
         if (next === callback) return;
+        addOneGateDiag(diagnostics, "bridgeAttempts", "callback:hostSet");
         hostCallback =
           typeof next === "function"
             ? (next as (response: unknown) => void)
             : undefined;
       },
     });
+    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:guarded");
   } catch {
     windowRef.__OneGateDapiCallback = callback;
+    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:assigned");
   }
 }
 
@@ -446,7 +457,7 @@ function oneGateBridgeRpc(
     addOneGateDiag(diagnostics, "bridgeAttempts", `${method}:missing`);
     return null;
   }
-  installOneGateBridgeCallback(windowRef);
+  installOneGateBridgeCallback(windowRef, diagnostics);
   const id = `onegate_vault_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
