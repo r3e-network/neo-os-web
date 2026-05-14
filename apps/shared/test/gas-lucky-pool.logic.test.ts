@@ -180,8 +180,13 @@ describe("OneGate Vault runtime logic", () => {
       }),
     });
     globalThis.fetch = fetchMock as any;
+    (window as any).OneGateDapiProvider = {
+      getAccounts: vi.fn().mockResolvedValue([{ address: OWNER }]),
+    };
     const chain = {
-      ensureWallet: vi.fn().mockResolvedValue(OWNER),
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(new Error("generic wallet unavailable")),
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
@@ -197,6 +202,7 @@ describe("OneGate Vault runtime logic", () => {
     }
 
     expect(chain.invoke).not.toHaveBeenCalled();
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/onegate-vault/claim",
       expect.objectContaining({
@@ -207,6 +213,7 @@ describe("OneGate Vault runtime logic", () => {
           address: OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -265,6 +272,7 @@ describe("OneGate Vault runtime logic", () => {
           address: OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -347,6 +355,7 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -407,103 +416,15 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastError.get()).not.toContain("pick");
   });
 
-  it("claims a scanned key through the raw OneGate bridge when iOS has not exposed the provider wrapper", async () => {
-    const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "paid",
-        claimKey: CLAIM_KEY,
-        address: ONEGATE_OWNER,
-        amountFixed8: "120000000",
-        luckPercent: "2.40",
-        txHash: "0xonegatebridge",
-      }),
-    });
-    globalThis.fetch = fetchMock as any;
-    const bridgeInvoke = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: request.id,
-            result: [{ address: ONEGATE_OWNER }],
-          }),
-        );
-      }, 0);
-    });
-    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
-    const chain = {
-      ensureWallet: vi
-        .fn()
-        .mockRejectedValue(
-          new Error(
-            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
-          ),
-        ),
-      invoke: vi.fn(),
-    };
-    const pool = useGasLuckyPool({
-      chain: chain as any,
-      launchContext: keyLaunch(),
-      t,
-    });
-
-    try {
-      await pool.claimPool();
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-
-    expect(bridgeInvoke).toHaveBeenCalledWith(
-      expect.stringContaining('"method":"getAccounts"'),
-    );
-    expect(bridgeInvoke).not.toHaveBeenCalledWith(
-      expect.stringContaining('"method":"pickAddress"'),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/onegate-vault/claim",
-      expect.objectContaining({
-        body: JSON.stringify({
-          claimKey: CLAIM_KEY,
-          address: ONEGATE_OWNER,
-          network: "testnet",
-          poolId: "pool-001",
-          appId: "miniapp-gas-lucky-pool",
-        }),
-      }),
-    );
-    expect(pool.lastSuccessType.get()).toBe("claim");
-    expect(pool.lastTxid.get()).toBe("0xonegatebridge");
-  });
-
-  it("retries the raw OneGate bridge before the first iOS getAccounts timeout", async () => {
+  it("never uses raw OneGate bridge fallback for scanned keys", async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({
-        status: "paid",
-        claimKey: CLAIM_KEY,
-        address: ONEGATE_OWNER,
-        amountFixed8: "120000000",
-        luckPercent: "2.40",
-        txHash: "0xonegatebridge-retry",
-      }),
+      json: async () => ({ id: "diag_1", stored: true }),
     });
     globalThis.fetch = fetchMock as any;
-    const bridgeInvoke = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      if (bridgeInvoke.mock.calls.length < 2) return;
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.({
-          jsonrpc: "2.0",
-          id: request.id,
-          result: [{ Address: ONEGATE_OWNER }],
-        });
-      }, 0);
-    });
+    const bridgeInvoke = vi.fn();
     (window as any).__OneGateBridge = { invoke: bridgeInvoke };
     const chain = {
       ensureWallet: vi
@@ -521,37 +442,31 @@ describe("OneGate Vault runtime logic", () => {
       t,
     });
 
-    const claimPromise = pool.claimPool();
-    await vi.advanceTimersByTimeAsync(1_800);
-
     try {
-      await claimPromise;
+      const claimPromise = pool.claimPool();
+      const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await rejection;
     } finally {
       globalThis.fetch = originalFetch;
     }
 
-    expect(bridgeInvoke).toHaveBeenCalledTimes(2);
-    expect(bridgeInvoke.mock.calls[0][0]).toContain('"method":"getAccounts"');
-    expect(bridgeInvoke.mock.calls[0][0]).toContain('"params":[]');
-    expect(bridgeInvoke.mock.calls[1][0]).toContain('"method":"GetAccounts"');
-    expect(bridgeInvoke.mock.calls[1][0]).not.toContain('"params"');
+    expect(bridgeInvoke).not.toHaveBeenCalled();
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/onegate-vault/claim",
-      expect.objectContaining({
-        body: JSON.stringify({
-          claimKey: CLAIM_KEY,
-          address: ONEGATE_OWNER,
-          network: "testnet",
-          poolId: "pool-001",
-          appId: "miniapp-gas-lucky-pool",
-        }),
-      }),
+      "/api/onegate-vault/diagnostics",
+      expect.objectContaining({ method: "POST" }),
     );
-    expect(pool.lastSuccessType.get()).toBe("claim");
-    expect(pool.lastTxid.get()).toBe("0xonegatebridge-retry");
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/onegate-vault/claim",
+      expect.anything(),
+    );
+    expect(pool.lastError.get()).toContain("provider=none");
+    expect(pool.lastError.get()).not.toContain("getAccounts:sent");
+    expect(pool.lastError.get()).not.toContain("callback:install");
   });
 
-  it("waits for OneGate provider injection before raw iOS bridge fallback", async () => {
+  it("waits for OneGate provider injection without raw bridge fallback", async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
@@ -606,7 +521,7 @@ describe("OneGate Vault runtime logic", () => {
     }
 
     expect(bridgeInvoke).not.toHaveBeenCalled();
-    expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
     expect(provider.getAccounts).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/onegate-vault/claim",
@@ -616,6 +531,7 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -698,156 +614,13 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
     );
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastTxid.get()).toBe("0xonegate-ios-provider-only");
-  });
-
-  it("can use the native iOS WebKit OneGate bridge transport directly", async () => {
-    const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "paid",
-        claimKey: CLAIM_KEY,
-        address: ONEGATE_OWNER,
-        amountFixed8: "120000000",
-        luckPercent: "2.40",
-        txHash: "0xonegatewebkit",
-      }),
-    });
-    globalThis.fetch = fetchMock as any;
-    const postMessage = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.({
-          jsonrpc: "2.0",
-          id: request.id,
-          result: [{ address: ONEGATE_OWNER }],
-        });
-      }, 0);
-    });
-    (window as any).webkit = {
-      messageHandlers: {
-        __OneGateBridge: { postMessage },
-      },
-    };
-    const chain = {
-      ensureWallet: vi
-        .fn()
-        .mockRejectedValue(
-          new Error(
-            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
-          ),
-        ),
-      invoke: vi.fn(),
-    };
-    const pool = useGasLuckyPool({
-      chain: chain as any,
-      launchContext: keyLaunch(),
-      t,
-    });
-
-    try {
-      await pool.claimPool();
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-
-    expect(postMessage).toHaveBeenCalledWith(
-      expect.stringContaining('"method":"getAccounts"'),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/onegate-vault/claim",
-      expect.objectContaining({
-        body: JSON.stringify({
-          claimKey: CLAIM_KEY,
-          address: ONEGATE_OWNER,
-          network: "testnet",
-          poolId: "pool-001",
-          appId: "miniapp-gas-lucky-pool",
-        }),
-      }),
-    );
-    expect(pool.lastSuccessType.get()).toBe("claim");
-    expect(pool.lastTxid.get()).toBe("0xonegatewebkit");
-  });
-
-  it("keeps the raw OneGate bridge callback alive when iOS injects the provider wrapper later", async () => {
-    const originalFetch = globalThis.fetch;
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "paid",
-        claimKey: CLAIM_KEY,
-        address: ONEGATE_OWNER,
-        amountFixed8: "120000000",
-        luckPercent: "2.40",
-        txHash: "0xonegatebridge-race",
-      }),
-    });
-    globalThis.fetch = fetchMock as any;
-    const oneGateWrapperCallback = vi.fn();
-    const bridgeInvoke = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      (window as any).__OneGateDapiCallback = oneGateWrapperCallback;
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: request.id,
-            result: [{ address: ONEGATE_OWNER }],
-          }),
-        );
-      }, 0);
-    });
-    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
-    const chain = {
-      ensureWallet: vi
-        .fn()
-        .mockRejectedValue(
-          new Error(
-            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
-          ),
-        ),
-      invoke: vi.fn(),
-    };
-    const pool = useGasLuckyPool({
-      chain: chain as any,
-      launchContext: keyLaunch(),
-      t,
-    });
-
-    try {
-      await pool.claimPool();
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-
-    expect(bridgeInvoke).toHaveBeenCalledWith(
-      expect.stringContaining('"method":"getAccounts"'),
-    );
-    expect(oneGateWrapperCallback).not.toHaveBeenCalled();
-    expect((window as any).__OneGateDapiCallback.__oneGateVaultWrapped).toBe(
-      true,
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/onegate-vault/claim",
-      expect.objectContaining({
-        body: JSON.stringify({
-          claimKey: CLAIM_KEY,
-          address: ONEGATE_OWNER,
-          network: "testnet",
-          poolId: "pool-001",
-          appId: "miniapp-gas-lucky-pool",
-        }),
-      }),
-    );
-    expect(pool.lastSuccessType.get()).toBe("claim");
-    expect(pool.lastTxid.get()).toBe("0xonegatebridge-race");
   });
 
   it("adds safe OneGate diagnostics to the missing-address error", async () => {
@@ -906,59 +679,12 @@ describe("OneGate Vault runtime logic", () => {
     expect(JSON.stringify(diagnosticBody)).not.toContain(ONEGATE_OWNER);
     expect(JSON.stringify(diagnosticBody)).not.toContain("onegate.space/app/23?key=");
     expect(pool.lastError.get()).toContain("provider=none");
-    expect(pool.lastError.get()).toContain("bridge=none");
-    expect(pool.lastError.get()).toContain("wallet=unavailable");
+    expect(pool.lastError.get()).toContain("bridge=provider-only");
+    expect(pool.lastError.get()).toContain("wallet=skipped");
     expect(pool.lastError.get()).not.toContain(CLAIM_KEY);
   });
 
-  it("includes OneGate bridge callback lifecycle diagnostics without sensitive values", async () => {
-    vi.useFakeTimers();
-    const bridgeInvoke = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      (window as any).__OneGateDapiCallback = vi.fn();
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: request.id,
-            result: [],
-          }),
-        );
-      }, 0);
-    });
-    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
-    const chain = {
-      ensureWallet: vi
-        .fn()
-        .mockRejectedValue(
-          new Error(
-            "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
-          ),
-        ),
-      invoke: vi.fn(),
-    };
-    const pool = useGasLuckyPool({
-      chain: chain as any,
-      launchContext: keyLaunch(),
-      t,
-    });
-
-    const claimPromise = pool.claimPool();
-    const rejection = expect(claimPromise).rejects.toThrow(/ogvdiag/);
-    await vi.advanceTimersByTimeAsync(10_000);
-    await rejection;
-
-    expect(pool.lastError.get()).toContain("callback:install");
-    expect(pool.lastError.get()).toContain("callback:guarded");
-    expect(pool.lastError.get()).toContain("callback:hostSet");
-    expect(pool.lastError.get()).toContain("callback:pendingHit");
-    expect(pool.lastError.get()).toContain("getAccounts:empty");
-    expect(pool.lastError.get()).not.toContain(CLAIM_KEY);
-    expect(pool.lastError.get()).not.toContain(ONEGATE_OWNER);
-  });
-
-  it("claims with OneGate default account auth when bridge getAccounts never returns", async () => {
-    vi.useFakeTimers();
+  it("claims with OneGate default account auth when provider getAccounts fails", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -972,21 +698,18 @@ describe("OneGate Vault runtime logic", () => {
       }),
     });
     globalThis.fetch = fetchMock as any;
-    const bridgeInvoke = vi.fn((payload: string) => {
-      const request = JSON.parse(payload);
-      if (request.method !== "authenticate") return;
-      setTimeout(() => {
-        (window as any).__OneGateDapiCallback?.({
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {
-            Address: ONEGATE_OWNER,
-            Network: 894710606,
-          },
-        });
-      }, 0);
+    const getAccounts = vi
+      .fn()
+      .mockRejectedValue(new Error("provider accounts unavailable"));
+    const authenticate = vi.fn().mockResolvedValue({
+      Address: ONEGATE_OWNER,
+      Network: 894710606,
     });
-    (window as any).__OneGateBridge = { invoke: bridgeInvoke };
+    (window as any).OneGateDapiProvider = {
+      name: "OneGate",
+      getAccounts,
+      authenticate,
+    };
     const chain = {
       ensureWallet: vi
         .fn()
@@ -1004,16 +727,13 @@ describe("OneGate Vault runtime logic", () => {
     });
 
     try {
-      const claimPromise = pool.claimPool();
-      await vi.advanceTimersByTimeAsync(10_000);
-      await claimPromise;
+      await pool.claimPool();
     } finally {
       globalThis.fetch = originalFetch;
     }
 
-    expect(bridgeInvoke).toHaveBeenCalledWith(
-      expect.stringContaining('"method":"authenticate"'),
-    );
+    expect(getAccounts).toHaveBeenCalled();
+    expect(authenticate).toHaveBeenCalled();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/onegate-vault/claim",
       expect.objectContaining({
@@ -1022,6 +742,7 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -1084,6 +805,7 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -1092,7 +814,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegatepascal");
   });
 
-  it("keeps requesting delayed OneGate dAPI injection on scanned key links before falling back to generic wallets", async () => {
+  it("keeps requesting delayed OneGate dAPI injection on scanned key links without using generic wallets", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -1143,7 +865,7 @@ describe("OneGate Vault runtime logic", () => {
       globalThis.fetch = originalFetch;
     }
 
-    expect(chain.ensureWallet).toHaveBeenCalledTimes(1);
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
     expect(requestCount).toBeGreaterThan(1);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/onegate-vault/claim",
@@ -1153,6 +875,7 @@ describe("OneGate Vault runtime logic", () => {
           address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
+          oneGateAppId: "23",
           appId: "miniapp-gas-lucky-pool",
         }),
       }),
@@ -1187,8 +910,13 @@ describe("OneGate Vault runtime logic", () => {
         }),
       });
     globalThis.fetch = fetchMock as any;
+    (window as any).OneGateDapiProvider = {
+      getAccounts: vi.fn().mockResolvedValue([{ address: OWNER }]),
+    };
     const chain = {
-      ensureWallet: vi.fn().mockResolvedValue(OWNER),
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(new Error("generic wallet unavailable")),
       invoke: vi.fn(),
     };
     const pool = useGasLuckyPool({
@@ -1203,6 +931,7 @@ describe("OneGate Vault runtime logic", () => {
       globalThis.fetch = originalFetch;
     }
 
+    expect(chain.ensureWallet).not.toHaveBeenCalled();
     const statusUrl = new URL(
       fetchMock.mock.calls[1][0] as string,
       "https://neomini.app",
@@ -1212,7 +941,7 @@ describe("OneGate Vault runtime logic", () => {
     expect(statusUrl.searchParams.get("address")).toBe(OWNER);
     expect(statusUrl.searchParams.get("network")).toBe("testnet");
     expect(statusUrl.searchParams.get("poolId")).toBe("pool-001");
-    expect(statusUrl.searchParams.get("oneGateAppId")).toBeNull();
+    expect(statusUrl.searchParams.get("oneGateAppId")).toBe("23");
     expect(statusUrl.searchParams.get("appId")).toBe("miniapp-gas-lucky-pool");
     expect(pool.lastSuccessType.get()).toBe("claim");
     expect(pool.lastClaimAmount.get()).toBe(4900000000n);
