@@ -226,20 +226,23 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.claimProgress.get()).toBe("paid");
   });
 
-  it("claims a scanned key with the OneGate launch address even when no NEP-21 wallet is injected", async () => {
+  it("claims a scanned key with the OneGate provider address instead of a launch wallet param", async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         status: "paid",
         claimKey: CLAIM_KEY,
-        address: OWNER,
+        address: ONEGATE_OWNER,
         amountFixed8: "120000000",
         luckPercent: "2.40",
         txHash: "0xonegate",
       }),
     });
     globalThis.fetch = fetchMock as any;
+    (window as any).OneGateDapiProvider = {
+      getAccounts: vi.fn().mockResolvedValue([{ address: ONEGATE_OWNER }]),
+    };
     const chain = {
       ensureWallet: vi
         .fn()
@@ -269,7 +272,7 @@ describe("OneGate Vault runtime logic", () => {
       expect.objectContaining({
         body: JSON.stringify({
           claimKey: CLAIM_KEY,
-          address: OWNER,
+          address: ONEGATE_OWNER,
           network: "testnet",
           poolId: "pool-001",
           oneGateAppId: "23",
