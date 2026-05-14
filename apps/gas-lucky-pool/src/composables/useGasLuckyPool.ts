@@ -1367,14 +1367,10 @@ export function useGasLuckyPool({
 
   async function resolveClaimAddress(identity: ClaimLaunchIdentity) {
     const diagnostics = createOneGateAddressDiagnostics();
-    const launchAddress = normalizeNeoAddress(identity.walletAddress);
-    if (launchAddress) return launchAddress;
-
-    const currentAddress = normalizeNeoAddress(chain.address?.get?.());
-    if (currentAddress) return currentAddress;
-
     const explicitOneGateLaunch =
-      launchContext.source === "onegate" || !!identity.oneGateAppId;
+      launchContext.source === "onegate" ||
+      !!identity.oneGateAppId ||
+      !!currentClaimKey.get();
     if (explicitOneGateLaunch) {
       const injectedAddress = await waitForOneGateInjectedAddress(
         ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
@@ -1390,70 +1386,11 @@ export function useGasLuckyPool({
       });
     }
 
-    if (currentClaimKey.get()) {
-      const immediateInjectedAddress =
-        await readOneGateInjectedAddressOnce(diagnostics, launchContext.network);
-      if (immediateInjectedAddress) return immediateInjectedAddress;
+    const launchAddress = normalizeNeoAddress(identity.walletAddress);
+    if (launchAddress) return launchAddress;
 
-      const oneGateAddressPromise = waitForOneGateInjectedAddress(
-        ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS,
-        diagnostics,
-        launchContext.network,
-      );
-      const walletAddressPromise = chain
-        .ensureWallet()
-        .then((address) => ({ kind: "wallet" as const, address }))
-        .catch((error: unknown) => ({ kind: "walletError" as const, error }));
-      const oneGateResultPromise = oneGateAddressPromise.then((address) => ({
-        kind: "onegate" as const,
-        address,
-      }));
-      const first = await Promise.race([
-        walletAddressPromise,
-        oneGateResultPromise,
-      ]);
-
-      if (first.kind === "wallet") {
-        diagnostics.wallet = "available";
-        const normalizedWalletAddress = normalizeNeoAddress(first.address);
-        return normalizedWalletAddress || first.address;
-      }
-      if (first.kind === "onegate" && first.address) return first.address;
-      if (first.kind === "walletError") {
-        diagnostics.wallet = isWalletUnavailableError(first.error)
-          ? "unavailable"
-          : "error";
-        if (!isWalletUnavailableError(first.error)) throw first.error;
-        const injectedAddress = await oneGateAddressPromise;
-        if (injectedAddress) return injectedAddress;
-        await throwOneGateAddressRequiredError({
-          message: t("oneGateWalletAddressRequired"),
-          diagnostics,
-          launchContext,
-          identity,
-        });
-      }
-
-      const walletResult = await walletAddressPromise;
-      if (walletResult.kind === "wallet") {
-        diagnostics.wallet = "available";
-        const normalizedWalletAddress = normalizeNeoAddress(
-          walletResult.address,
-        );
-        return normalizedWalletAddress || walletResult.address;
-      }
-      if (isWalletUnavailableError(walletResult.error)) {
-        diagnostics.wallet = "unavailable";
-        await throwOneGateAddressRequiredError({
-          message: t("oneGateWalletAddressRequired"),
-          diagnostics,
-          launchContext,
-          identity,
-        });
-      }
-      diagnostics.wallet = "error";
-      throw walletResult.error;
-    }
+    const currentAddress = normalizeNeoAddress(chain.address?.get?.());
+    if (currentAddress) return currentAddress;
 
     try {
       const walletAddress = await chain.ensureWallet();
