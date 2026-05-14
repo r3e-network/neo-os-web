@@ -1,6 +1,15 @@
 export { createHostSDK, createMiniAppSDK } from "./client.js";
 export { createAdminSDK, AdminSDK } from "./admin.js";
 export { installMiniAppSDK } from "./window.js";
+export {
+  extractNep21ProviderFromReadyEvent,
+  isNep21Provider,
+  readImmediateNep21Provider,
+  rememberNep21Provider,
+  requestNep21Provider,
+  resetNep21ProviderCacheForTests,
+  waitForNep21Provider,
+} from "./nep21-provider.js";
 
 // Core types
 export type {
@@ -15,6 +24,16 @@ export type {
   WalletProviderInfo,
   WalletProviderKind,
 } from "./types.js";
+
+export type {
+  NeoDapiAccount,
+  NeoDapiAuthenticationResponse,
+  NeoDapiEventName,
+  NeoDapiInvocation,
+  NeoDapiProvider,
+  Nep21ProviderPreference,
+  Nep21Window,
+} from "./nep21-provider.js";
 
 // Admin types
 export type {
