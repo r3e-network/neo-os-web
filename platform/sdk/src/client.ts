@@ -46,6 +46,12 @@ import type {
   WalletBindResponse,
   WalletNonceResponse,
 } from "./types.js";
+import {
+  readImmediateNep21Provider,
+  waitForNep21Provider,
+  type NeoDapiAccount as DapiAccount,
+  type NeoDapiProvider as BaseNeoDapiProvider,
+} from "./nep21-provider.js";
 
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
@@ -77,59 +83,7 @@ interface EIP1193Provider {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 }
 
-type DapiAccount = {
-  hash: string;
-  address?: string;
-  label?: string;
-  isDefault?: boolean;
-};
-
-type DapiInvocation = {
-  hash: string;
-  operation: string;
-  args?: ContractParam[];
-  abortOnFail?: boolean;
-};
-
-type NeoDapiProvider = {
-  name?: string;
-  dapiVersion?: string;
-  network?: number;
-  supportedNetworks?: number[];
-  compatibility?: string[];
-  getAccounts?: () => Promise<DapiAccount[]>;
-  authenticate?: (payload: {
-    action: "Authentication";
-    grant_type: "Signature";
-    allowed_algorithms: ["ECDSA-P256"];
-    domain: string;
-    networks: number[];
-    nonce: string;
-    timestamp: number;
-  }) => Promise<{
-    network?: number;
-    address?: string;
-    pubkey?: string;
-    signature?: string;
-  }>;
-  invoke?: (
-    invocations: DapiInvocation[],
-    signers?: Array<Record<string, unknown>>,
-    suggestedSystemFee?: string,
-  ) => Promise<unknown>;
-  signMessage?: (
-    message: string,
-    account?: string,
-  ) => Promise<{
-    signature?: string;
-    data?: string;
-    account?: string;
-    pubkey?: string;
-    publicKey?: string;
-    salt?: string;
-    message?: string;
-  }>;
-};
+type NeoDapiProvider = BaseNeoDapiProvider<ContractParam>;
 
 type InjectedWalletContext =
   | {
@@ -146,10 +100,6 @@ interface WindowWithInjectedWallets extends Window {
   ethereum?: EIP1193Provider;
   NEOLineN3?: NeoLineN3Wallet;
   NEOLine?: NeoLineN3Wallet;
-  Neo?: { DapiProvider?: unknown };
-  OneGateDapiProvider?: unknown;
-  neoDapiProvider?: unknown;
-  neoDapi?: unknown;
   [key: string]: unknown;
 }
 
@@ -172,53 +122,17 @@ function createNonce(): string {
   return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
 
-function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
-  if (!candidate || typeof candidate !== "object") return false;
-  const provider = candidate as Partial<NeoDapiProvider>;
-  return (
-    typeof provider.getAccounts === "function" ||
-    typeof provider.authenticate === "function"
-  );
-}
-
 function readImmediateDapiProvider(): NeoDapiProvider | null {
-  if (typeof window === "undefined") return null;
-  const g = window as unknown as WindowWithInjectedWallets;
-  const candidates = [
-    g.Neo?.DapiProvider,
-    g.OneGateDapiProvider,
-    g.neoDapiProvider,
-    g.neoDapi,
-  ];
-  return candidates.find(isNeoDapiProvider) ?? null;
+  return readImmediateNep21Provider() as NeoDapiProvider | null;
 }
 
 function waitForDapiProvider(timeoutMs = 750): Promise<NeoDapiProvider | null> {
   const immediate = readImmediateDapiProvider();
   if (immediate) return Promise.resolve(immediate);
   if (typeof window === "undefined") return Promise.resolve(null);
-
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (provider: NeoDapiProvider | null) => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("Neo.DapiProvider.ready", onReady);
-      resolve(provider);
-    };
-    const onReady = (event: Event) => {
-      const provider = (event as CustomEvent<{ provider?: unknown }>).detail
-        ?.provider;
-      if (isNeoDapiProvider(provider)) finish(provider);
-    };
-    window.addEventListener("Neo.DapiProvider.ready", onReady);
-    setTimeout(() => finish(null), timeoutMs);
-    window.dispatchEvent(
-      new CustomEvent("Neo.DapiProvider.request", {
-        detail: { version: "1.0" },
-      }),
-    );
-  });
+  return waitForNep21Provider({ timeoutMs }).catch(() => null) as Promise<
+    NeoDapiProvider | null
+  >;
 }
 
 function getAuthenticationDomain(): string {
