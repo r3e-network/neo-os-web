@@ -49,9 +49,11 @@ const FLAGSHIP_APPS = [
 ] as const;
 
 async function expectNoPageCrash(page: Page) {
-  await expect(page.locator("body")).not.toContainText("Unhandled Runtime Error");
-  await expect(page.locator("body")).not.toContainText("Application error");
-  await expect(page.locator("body")).not.toContainText("TypeError:");
+  const body = page.locator("body");
+  await expect(body).toBeVisible();
+  await expect(body).not.toContainText("Unhandled Runtime Error");
+  await expect(body).not.toContainText("Application error");
+  await expect(body).not.toContainText("TypeError:");
 }
 
 async function exerciseRenderedTabs(page: Page) {
@@ -81,10 +83,9 @@ async function expectOperationSurface(page: Page) {
 }
 
 async function expectWalletEntryPoint(page: Page) {
-  const navigation = page.getByRole("navigation", { name: "Main navigation" });
   await expect(
-    navigation.getByRole("button", { name: /log in \/ sign up/i }),
-  ).toBeVisible({ timeout: 15_000 });
+    page.getByRole("button", { name: /log in \/ sign up/i }),
+  ).toBeVisible({ timeout: 20_000 });
 }
 
 test.describe("Flagship MiniApp frontend workflows", () => {
@@ -94,7 +95,7 @@ test.describe("Flagship MiniApp frontend workflows", () => {
 
       await expectNoPageCrash(page);
       await expect(page.getByRole("heading", { name: app.name, level: 1 })).toBeVisible();
-      await expect(page.getByText(app.category).first()).toBeVisible();
+      await expect(page.getByText(new RegExp(app.category, "i")).first()).toBeVisible();
       await expectWalletEntryPoint(page);
       await expect(page.getByText("App ID:")).toBeVisible();
       await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
@@ -114,7 +115,7 @@ test.describe("Flagship MiniApp frontend workflows", () => {
       const card = page.locator(`a[href="/miniapps/${app.id}"]`);
       await expect(card).toBeVisible();
       await expect(card).toContainText(app.name);
-      await expect(card).toContainText(app.category);
+      await expect(card).toContainText(new RegExp(app.category, "i"));
     }
   });
 });

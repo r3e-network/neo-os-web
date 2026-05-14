@@ -66,6 +66,8 @@ export default defineConfig({
       PORT: "3004",
     },
     url: "http://127.0.0.1:3004",
+    stdout: "pipe",
+    stderr: "pipe",
     reuseExistingServer: false,
     timeout: 120000,
   },

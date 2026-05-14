@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-10T11:49:39.243Z",
-  "targetNetwork": "mainnet",
-  "rpcUrl": "https://mainnet2.neo.coz.io:443",
+  "generatedAt": "2026-05-14T20:24:23.322Z",
+  "targetNetwork": "testnet",
+  "rpcUrl": "https://testnet1.neo.coz.io:443",
   "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
-  "oracleHash": "0x5b492098fc094c760402e01f7e0b631b939d2bea",
+  "oracleHash": "0x4b882e94ed766807c4fd728768f972e13008ad52",
   "targetInfo": {
     "available": [
       "dailyCheckin",
@@ -16,13 +16,17 @@
       "selfLoan",
       "neoPay"
     ],
-    "requested": [
-      "profitAnchor",
-      "trustAnchor"
-    ],
+    "requested": [],
     "selected": [
+      "dailyCheckin",
+      "lastSurvivor",
+      "gasBox",
+      "fogPlay",
+      "redEnvelope",
       "profitAnchor",
-      "trustAnchor"
+      "trustAnchor",
+      "selfLoan",
+      "neoPay"
     ],
     "unknown": []
   },
@@ -30,7 +34,7 @@
     "files": {
       "siblingOracleEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env",
       "siblingOracleEnvLocalPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/.env.local",
-      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.mainnet.env",
+      "siblingOraclePhalaEnvPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/phala/morpheus.testnet.env",
       "siblingEdgeGatewayConfigPath": "/Users/jinghuiliao/git/neo-morpheus-oracle/deploy/cloudflare/morpheus-edge-gateway/wrangler.meshmini.toml",
       "siblingOracleEnvExists": true,
       "siblingOracleEnvLocalExists": true,
@@ -49,13 +53,17 @@
         "selfLoan",
         "neoPay"
       ],
-      "requested": [
-        "profitAnchor",
-        "trustAnchor"
-      ],
+      "requested": [],
       "selected": [
+        "dailyCheckin",
+        "lastSurvivor",
+        "gasBox",
+        "fogPlay",
+        "redEnvelope",
         "profitAnchor",
-        "trustAnchor"
+        "trustAnchor",
+        "selfLoan",
+        "neoPay"
       ],
       "unknown": []
     },
@@ -65,28 +73,44 @@
       "rngFallbackEnabled": true,
       "rngFallbackLeadMs": 45000,
       "oracleUpdaterWifConfigured": true,
-      "oracleUpdaterOnChain": "0xab63fe1186b890e86a8506823248fa94fb329106",
-      "oracleUpdaterLocal": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-      "rngFallbackSignerMatches": false,
-      "rngFallbackReady": false,
-      "oracleUpdaterMinGas": "10000000"
+      "oracleUpdaterOnChain": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "oracleUpdaterLocal": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+      "rngFallbackSignerMatches": true,
+      "rngFallbackReady": true,
+      "oracleUpdaterMinGas": "10000000",
+      "anchorLiveWriteSmokeEnabled": true,
+      "anchorAutoFundAgentNeo": true
     },
     "wallets": {
       "primary": {
         "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "17267421087",
+        "gas": "1598871168443",
         "neo": "0"
       },
       "admin": {
         "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
         "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "17267421087"
+        "gas": "1598871168443"
       },
+      "neoActorCandidates": [
+        {
+          "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+          "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "gas": "1598871168443",
+          "neo": "0"
+        },
+        {
+          "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+          "scriptHash": "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+          "gas": "6993917704613",
+          "neo": "9397"
+        }
+      ],
       "oracleUpdater": {
-        "address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
-        "scriptHash": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
-        "gas": "17267421087"
+        "address": "NiUs458jFbTH1DA3b9QyeDhMaD282h3iJg",
+        "scriptHash": "0xe421999c396ee0249a8a8c9dd95bfbdaf55f8bf7",
+        "gas": "993803472484"
       }
     },
     "fundingHints": {
@@ -101,24 +125,172 @@
   },
   "results": {
     "dailyCheckin": {
-      "skipped": true
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0xaba84da240a55410d284a656fc8dae044e6ec1a5",
+      "txid": "0xa379fda3caa3b953d6c505d9216d9dd7c690bcdbd6f144650910ad6f050cd5f4",
+      "notificationObserved": true,
+      "statusBefore": {
+        "currentUtcDay": "20587850",
+        "lastCheckinDay": "20587841",
+        "canCheckin": true,
+        "timeUntilEligible": "0",
+        "streakWillReset": true,
+        "currentStreak": "1",
+        "nextRewardDay": "7"
+      },
+      "statusAfter": null
     },
     "lastSurvivor": {
-      "skipped": true
+      "ok": false,
+      "error": "This operation was aborted",
+      "attempts": 2
     },
     "gasBox": {
-      "skipped": true
+      "ok": true,
+      "attempts": 2,
+      "contractHash": "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+      "platformReady": {
+        "appId": "miniapp-gasbox",
+        "gameType": 3,
+        "paused": false
+      },
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "legacyCallbackAllowlist": true,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": "0xbe4cfbd7b8ad2822edf97340c0ff0e3645590a6dcfda30701689cb271d0f2052"
+      },
+      "machineId": 6,
+      "itemIndex": 1,
+      "prizeItem": {
+        "name": "Small GAS Prize",
+        "weight": "100",
+        "rarity": "COMMON",
+        "assetType": "1",
+        "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "amount": "1000000",
+        "tokenId": "",
+        "stock": "5000000",
+        "tokenCount": "0"
+      },
+      "provisioned": {
+        "machineId": 6,
+        "machine": {
+          "id": "6",
+          "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "owner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "name": "Codex Live Box 1778790430686",
+          "description": "",
+          "category": "",
+          "price": "10000000",
+          "itemCount": "1",
+          "totalWeight": "100",
+          "plays": "0",
+          "revenue": "0",
+          "createdAt": "1778790432961",
+          "lastPlayedAt": "0",
+          "active": true,
+          "banned": false
+        },
+        "item": {
+          "name": "Small GAS Prize",
+          "weight": "100",
+          "rarity": "COMMON",
+          "assetType": "1",
+          "assetHash": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+          "amount": "1000000",
+          "tokenId": "",
+          "stock": "5000000",
+          "tokenCount": "0"
+        },
+        "itemIndex": 1,
+        "createTx": "0xfba092aa7ccf8b18b47bbbb679d499aa3d8249d0548f1023938df570ac09cd71",
+        "depositTx": "0x6c9a1fc4d70ed3b79ab8c3b38e0438911d1e32bc9d1fa84730c7eb872bb07bc7",
+        "activateTx": "0xa42f45a4496a9e938bead94f2c817d2c08089ebb6f66c3d64a36c9a98397467f"
+      },
+      "transferTx": "0x94c29a6647502adaec38ec3612a0ce50bfc1c82a265ef701862c1af1094d52f1",
+      "initiateTx": "0x07e2d46c61d7fcda3c17b0690ed4f32692ab39e9e4f3ad78646205d24a0fce34",
+      "playId": "21",
+      "requestId": "5524",
+      "request": [
+        "5524",
+        "vrf_random",
+        "@\u0003(\u000eminiapp-gasbox!\u0001\u0015!\u0001\u0006",
+        "0x740671b10330ef6669ab8b2724437eb8d5e7a34c",
+        "onOracleResult",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "1",
+        "1778790467416",
+        "1778790486574",
+        true,
+        "�i\f1�\u001f\u0007q;�����\u000f^�\f�w���g!k��/�5�",
+        ""
+      ],
+      "play": {
+        "id": "21",
+        "player": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "machineId": "6",
+        "itemIndex": "1",
+        "price": "10000000",
+        "timestamp": "1778790467416",
+        "resolved": true
+      }
     },
     "fogPlay": {
-      "skipped": true
+      "ok": false,
+      "error": "This operation was aborted",
+      "attempts": 2
     },
     "redEnvelope": {
-      "skipped": true
+      "ok": true,
+      "attempts": 2,
+      "contractHash": "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+      "oracleReady": {
+        "configuredOracle": "0x4b882e94ed766807c4fd728768f972e13008ad52",
+        "callbackAllowed": true,
+        "legacyCallbackAllowlist": true,
+        "requestFee": "1000000",
+        "feeCredit": "1000000",
+        "topUpTx": "0xcd2839a6122d6a35d94e078ee98b3f735bb0ad1ff7e06efb37940b6cc5f92c4b"
+      },
+      "transferTx": "0xba62c654166948161b6e607d9fa16a90dbc9d0ef6da0a2f4f5ba484fefed5e93",
+      "createTx": "0x9d30a374614416e95bb5930f4a902c657476b27868b2fa767dbb12a4978cd4be",
+      "requestId": "5525",
+      "envelopeId": "125",
+      "request": [
+        "5525",
+        "vrf_random",
+        "@\u0002!\u0001}!\u0001\u0002",
+        "0xfa1b7240fead2a63999c02defa3aec5eb274a919",
+        "onOracleResult",
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "1",
+        "1778790568710",
+        "1778790575144",
+        true,
+        "�\\`T;�Y�-�j\u0017��Oj�l���~�\u0018�%`�g68\u000e",
+        ""
+      ],
+      "envelope": [
+        "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "10000000",
+        "2",
+        "0",
+        "10000000",
+        "0x0000000000000000000000000000000000000000",
+        "0",
+        true,
+        "1778876968710"
+      ],
+      "claimTx": "0x617041c3e9723ff88208a24ec44a67a4753b0bd71d21c1b916ab7f5b2b580f5c"
     },
     "profitAnchor": {
       "ok": true,
       "attempts": 1,
-      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "contractHash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "readChecks": {
         "appId": "miniapp-profitanchor",
         "mode": "2",
@@ -134,38 +306,71 @@
           "totalRewardReserve": "0",
           "rewardRemainder": "0",
           "agentCount": "21",
-          "selectedAgentId": "0",
+          "selectedAgentId": "2",
           "paused": false
         },
         "agentCount": "21",
         "firstAgent": {
           "agentId": "1",
-          "account": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "account": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
           "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
-          "verificationScriptHash": "0x1175e7213458915ee558cdf88619ca4f48dda342",
+          "verificationScriptHash": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
           "weight": "0",
-          "active": true
+          "active": true,
+          "storedAccountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+          "accountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+          "expectedProxyAccount": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
+          "aaProxyMatched": true
         },
         "secondAgent": {
           "agentId": "2",
-          "account": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "account": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
           "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
-          "verificationScriptHash": "0xd1d0011b8a4278c24bd2f6ddddc40a8471191865",
+          "verificationScriptHash": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
           "weight": "0",
-          "active": true
+          "active": true,
+          "storedAccountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+          "accountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+          "expectedProxyAccount": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
+          "aaProxyMatched": true
         }
       },
       "manualWrite": {
-        "deferred": true,
-        "reason": "needs-anchor-agent-aa-wif",
-        "message": "ProfitAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke",
-        "expected": "0x1175e7213458915ee558cdf88619ca4f48dda342"
+        "ok": true,
+        "fundingTx": "0x257af1b6d150c5d9164a027a3911b618c33ade59a77ddf0d3e9c636f2c85bae9",
+        "transferTx": {
+          "txid": "0xe8cda0e207876a0519f5065cd52a8d64049947ef900f5e110fd6365a65334071",
+          "vmstate": "HALT",
+          "gasconsumed": "2225535",
+          "nonce": "18",
+          "deadline": "1778794193974",
+          "backupOwner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "ownerSigner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "networkFee": "284628",
+          "systemFee": "3338303"
+        },
+        "voteTx": {
+          "txid": "0x95e189eefced85a41539460cd65adb88d70ca9e0e6c9a9dcae594f07e32632ae",
+          "vmstate": "HALT",
+          "gasconsumed": "1851435",
+          "nonce": "18",
+          "deadline": "1778794199558",
+          "backupOwner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "ownerSigner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "networkFee": "284448",
+          "systemFee": "2777153"
+        },
+        "sourceAgent": "0x2ae21d1b801815dd855cd939015c623745eb6af1",
+        "sourceAccountId": "0xa38c1d64dba73b013e3cf878eea61551384bd473",
+        "targetAgent": "0xa4b04c7a74a63d9e19f7fc37fa32b27df05eb7b8",
+        "targetAccountId": "0x0cdf2149f3bdbc337e34380f3efed90192ea49ae",
+        "amount": "1"
       }
     },
     "trustAnchor": {
       "ok": true,
       "attempts": 1,
-      "contractHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
+      "contractHash": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
       "readChecks": {
         "appId": "miniapp-trustanchor",
         "mode": "1",
@@ -181,39 +386,160 @@
           "totalRewardReserve": "0",
           "rewardRemainder": "0",
           "agentCount": "21",
-          "selectedAgentId": "0",
+          "selectedAgentId": "2",
           "paused": false
         },
         "agentCount": "21",
         "firstAgent": {
           "agentId": "1",
-          "account": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "account": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
           "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
-          "verificationScriptHash": "0x9a31336a98a94d12deecfdb8b581c51247d47a56",
+          "verificationScriptHash": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
           "weight": "0",
-          "active": true
+          "active": true,
+          "storedAccountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+          "accountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+          "expectedProxyAccount": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
+          "aaProxyMatched": true
         },
         "secondAgent": {
           "agentId": "2",
-          "account": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "account": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
           "candidate": "\u0002>�2ꉹM\u0006nd�\u0012O�\u000e9n�\u0013i�⦮\u001b\u0011�p�\"%m",
-          "verificationScriptHash": "0x914d16b2ea1a4097cab928e075afe5c41ee1d310",
+          "verificationScriptHash": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
           "weight": "0",
-          "active": true
+          "active": true,
+          "storedAccountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+          "accountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+          "expectedProxyAccount": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
+          "aaProxyMatched": true
         }
       },
       "manualWrite": {
-        "deferred": true,
-        "reason": "needs-anchor-agent-aa-wif",
-        "message": "TrustAnchor manual write smoke deferred: fund the source AA proxy account with NEO, then run the AA executeUserOp transfer/vote smoke",
-        "expected": "0x9a31336a98a94d12deecfdb8b581c51247d47a56"
+        "ok": true,
+        "fundingTx": "0x3d8af5e3e5ad4d858cda59c1fcc7923d4d33a5d71579f5acb64f99f91f2c098f",
+        "transferTx": {
+          "txid": "0x1446e440661da2a77df8fb57cd233dc824b0a40bf1bb2c435e8e9a8a14c490bc",
+          "vmstate": "HALT",
+          "gasconsumed": "2164341",
+          "nonce": "19",
+          "deadline": "1778794212791",
+          "backupOwner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "ownerSigner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "networkFee": "284608",
+          "systemFee": "3246512"
+        },
+        "voteTx": {
+          "txid": "0x00862830a0f04e9cc23a76d6f05a6ffba1a77aa1fc012cc72b27e21854a257f2",
+          "vmstate": "HALT",
+          "gasconsumed": "1790241",
+          "nonce": "18",
+          "deadline": "1778794218428",
+          "backupOwner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "ownerSigner": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+          "networkFee": "284428",
+          "systemFee": "2685362"
+        },
+        "sourceAgent": "0x9a11fb2995e8afc1a673c5ca535ca4c54781997a",
+        "sourceAccountId": "0x2d589e59e73b7740dbfe555f42ebb6035c592df8",
+        "targetAgent": "0x595794129e9b512946dcc35a94a7cc41ec608bac",
+        "targetAccountId": "0x8b499e4846c3877be55809c11b8113a0ec822d84",
+        "amount": "1"
       }
     },
     "selfLoan": {
-      "skipped": true
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x39d4584ddb0731e48e611647931993ee033bf373",
+      "collateralPrecheck": {
+        "address": "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+        "actorLabel": "neoActor2",
+        "assetHash": "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
+        "requiredCollateral": "1",
+        "availableNeo": "9395"
+      },
+      "poolTx": "0x920216361774e0988da959239ed99718c79149b7abd3100dba15b752d98228d6",
+      "collateralTx": "0x9289ed2c11622069db44e7357a7b1ca0eb67abd9bd36ae7fcc9b27b00b13b16a",
+      "createTx": "0x1e7bb1389dd543d3d83b8ea675361764eab1b8b7c7c055cda53cc1399b23ec0e",
+      "syncTx": "0xe832022e25aaf16910c7dc1c3f733412747762aee4f348e163e84764b8ebc067",
+      "repayTx": "0x592cf2572eaddce060b43ef7b3f7e87ed85424fef2bb2cd2f16f60cc9a2d658e",
+      "loanId": "28",
+      "details": [
+        "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56",
+        "1",
+        "0",
+        "20000000",
+        "1778790647950",
+        "1778790647950",
+        "2000",
+        "20000000",
+        "0",
+        false
+      ],
+      "stats": {
+        "totalLoans": "28",
+        "totalCollateral": "8",
+        "totalDebt": "160000000",
+        "totalRepaid": "400000000",
+        "totalBorrowers": "2",
+        "ltvTier1Bps": "2000",
+        "ltvTier2Bps": "3000",
+        "ltvTier3Bps": "4000",
+        "liquidationThresholdBps": "8000",
+        "minHealthFactor": "100",
+        "minCollateral": "1",
+        "lendingFeeBps": "50",
+        "profitAnchor": {
+          "contract": "0xab079b4f9a0a2471d136392e25eb8e99898dcad0",
+          "appId": "miniapp-profitanchor",
+          "enabled": true
+        }
+      }
     },
     "neoPay": {
-      "skipped": true
+      "ok": true,
+      "attempts": 1,
+      "contractHash": "0x27a81e6d2f01a1d241b9aef5bed74c93f3a5ca5e",
+      "fundTx": "0x213bfa2cd67c23ad22f187fd9efa1f6e5f3622735189101127f485dcd7a923ff",
+      "createTx": "0x274a47cd2594609b438f5e0eee7a12e9e62d0ef05f2774025a5dcd07cd1ac391",
+      "streamId": "2010",
+      "cancelTx": "0xed3e2c588c5567cf12bf892aa7de8e8d8523049beebf1ecf39dfb4752f6dc87c",
+      "claimSimulationState": "FAULT",
+      "claimSimulationError": "at instruction 2953 (ABORTMSG): ABORTMSG is executed. Reason: nothing claimable",
+      "detailsBefore": {
+        "id": "2010",
+        "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "beneficiary": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "100000000",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "active",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778790673224",
+        "cancelledAt": "0"
+      },
+      "detailsAfter": {
+        "id": "2010",
+        "creator": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "beneficiary": "0x6d0656f6dd91469db1c90cc1e574380613f43738",
+        "asset": "0xd2a4cff31913016155e38e474a2c06d08be276cf",
+        "totalAmount": "100000000",
+        "releasedAmount": "0",
+        "remainingAmount": "0",
+        "rateAmount": "100000000",
+        "intervalSeconds": "86400",
+        "status": "cancelled",
+        "claimable": "0",
+        "title": "Codex Payroll Smoke",
+        "notes": "testnet validation stream",
+        "createdTime": "1778790673224",
+        "cancelledAt": "1778790679559"
+      }
     }
   }
 }

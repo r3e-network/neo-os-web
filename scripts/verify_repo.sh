@@ -76,8 +76,29 @@ cleanup_playwright_artifacts
 
 export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
 
-npm audit --omit=dev --audit-level=high
-npm audit --workspace platform/host-app --omit=dev --audit-level=high
+audit_output=""
+if audit_output="$(npm audit --omit=dev --audit-level=high 2>&1)"; then
+  printf "%s\n" "$audit_output"
+else
+  if printf "%s\n" "$audit_output" | grep -Eqi "(ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up|SSL connection timeout|request to .* failed|audit endpoint returned an error)"; then
+    echo "[verify_repo] npm audit skipped due to network error (root audit)." >&2
+  else
+    printf "%s\n" "$audit_output" >&2
+    exit 1
+  fi
+fi
+
+audit_output=""
+if audit_output="$(npm audit --workspace platform/host-app --omit=dev --audit-level=high 2>&1)"; then
+  printf "%s\n" "$audit_output"
+else
+  if printf "%s\n" "$audit_output" | grep -Eqi "(ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNREFUSED|socket hang up|SSL connection timeout|request to .* failed|audit endpoint returned an error)"; then
+    echo "[verify_repo] npm audit skipped due to network error (host-app audit)." >&2
+  else
+    printf "%s\n" "$audit_output" >&2
+    exit 1
+  fi
+fi
 npm run test:deploy-scripts
 npm --prefix platform/admin-console test --silent
 npm --prefix platform/admin-console run typecheck
