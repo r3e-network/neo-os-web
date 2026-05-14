@@ -40,6 +40,27 @@ interface ChainHealth {
   error?: string;
 }
 
+function redactRpcUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.hostname}`;
+  } catch {
+    return "<invalid-rpc-url>";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_resolve, reject) => {
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
+        reject(new Error(`timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }),
+  ]);
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -57,20 +78,28 @@ export default async function handler(
   const rpcUrls = getNeoRPCURLs(network as "testnet" | "mainnet");
 
   const failures: string[] = [];
-  for (const rpcUrl of rpcUrls) {
-    try {
-      const health = await checkChainHealth(
-        rpcUrl,
-        network as "testnet" | "mainnet",
-      );
-      res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
-      res.status(200).json(health);
-      return;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "unknown error";
-      failures.push(`${rpcUrl}: ${message}`);
-      logger.warn("Chain health RPC failed:", message);
-    }
+  const normalizedNetwork = network as "testnet" | "mainnet";
+  const perRequestTimeoutMs = normalizedNetwork === "mainnet" ? 3500 : 3000;
+  const overallTimeoutMs = normalizedNetwork === "mainnet" ? 12000 : 8000;
+
+  const probes = rpcUrls.map((rpcUrl) =>
+    checkChainHealth(rpcUrl, normalizedNetwork, perRequestTimeoutMs).catch(
+      (err: unknown) => {
+        const message = err instanceof Error ? err.message : "unknown error";
+        failures.push(`${redactRpcUrl(rpcUrl)}: ${message}`);
+        throw err;
+      },
+    ),
+  );
+
+  try {
+    const health = await withTimeout(Promise.any(probes), overallTimeoutMs);
+    res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
+    res.status(200).json(health);
+    return;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    logger.warn("Chain health RPC failed:", message);
   }
 
   logger.error("Chain health check failed for all RPC endpoints");
@@ -89,9 +118,8 @@ export default async function handler(
 async function checkChainHealth(
   rpcUrl: string,
   network: "testnet" | "mainnet",
+  rpcTimeoutMs: number,
 ): Promise<ChainHealth> {
-  const rpcTimeout = 10000;
-
   const blockRes = await fetch(rpcUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -101,7 +129,7 @@ async function checkChainHealth(
       params: [],
       id: 1,
     }),
-    signal: AbortSignal.timeout(rpcTimeout),
+    signal: AbortSignal.timeout(rpcTimeoutMs),
   });
   if (!blockRes.ok) {
     throw new Error(`RPC error: ${blockRes.status}`);
@@ -121,7 +149,7 @@ async function checkChainHealth(
       params: [blockHeight - 1, true],
       id: 2,
     }),
-    signal: AbortSignal.timeout(rpcTimeout),
+    signal: AbortSignal.timeout(rpcTimeoutMs),
   });
   if (!headerRes.ok) {
     throw new Error(`RPC error: ${headerRes.status}`);
@@ -146,6 +174,6 @@ async function checkChainHealth(
     blockHeight,
     pendingTxCount: 0,
     status,
-    rpcUrl,
+    rpcUrl: redactRpcUrl(rpcUrl),
   };
 }

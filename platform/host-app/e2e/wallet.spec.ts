@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Wallet Connection", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/miniapps");
   });
 
   test("should display login button", async ({ page }) => {
@@ -19,21 +19,23 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByText("Neo Ecosystem")).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with github/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: "NEP-21" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "NeoLine" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "O3" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "OneGate" })).toBeVisible();
+    await expect(page.getByTestId("wallet-option-nep21")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-onegate")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-o3")).toBeVisible();
     await expect(page.getByText("Direct WIF Testing")).toBeVisible();
     await expect(page.getByLabel("Direct WIF")).toBeVisible();
   });
 
-  test("should display wallet icons", async ({ page }) => {
+  test("should display wallet option buttons", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
-    const walletImages = page.locator('img[alt="NEP-21"], img[alt="NeoLine"], img[alt="O3"], img[alt="OneGate"]');
-    await expect(walletImages).toHaveCount(4);
+    await expect(page.getByTestId("wallet-option-nep21")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-onegate")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-o3")).toBeVisible();
   });
 
   test("should open and close login modal", async ({ page }) => {

@@ -49,14 +49,14 @@ MORPHEUS_ENV_FILE="${MORPHEUS_ENV_FILE:-$(pick_env_file "$MORPHEUS_DIR" "$MORPHE
 MORPHEUS_ENV_LOCAL_FILE="${MORPHEUS_ENV_LOCAL_FILE:-$(pick_env_file "$MORPHEUS_DIR" "$MORPHEUS_CANONICAL_ROOT" ".env.local")}"
 
 PAYMASTER_APP_ID="${MORPHEUS_PAYMASTER_APP_ID:-ddff154546fe22d15b65667156dd4b7c611e6093}"
-PAYMASTER_ACCOUNT_ID="${PAYMASTER_ACCOUNT_ID:-0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56}"
+PAYMASTER_ACCOUNT_ID="${PAYMASTER_ACCOUNT_ID:-}"
 AA_TEST_WIF="${AA_TEST_WIF:-}"
 AA_CORE_HASH_TESTNET="${AA_CORE_HASH_TESTNET:-0xdbf38e7b2117186bf7a5e17ead702322c0c5b6f2}"
 ORACLE_SMOKE_PROVIDER="${MORPHEUS_SMOKE_PROVIDER:-twelvedata}"
 ORACLE_SMOKE_SYMBOL="${MORPHEUS_SMOKE_SYMBOL:-NEO-USD}"
 ORACLE_SMOKE_JSON_PATH="${MORPHEUS_SMOKE_JSON_PATH:-}"
-if [[ -z "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" && "$PAYMASTER_ACCOUNT_ID" == "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56" ]]; then
-  SKIP_PAYMASTER_ALLOWLIST_UPDATE=1
+if [[ -z "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" && -z "${PAYMASTER_ACCOUNT_ID}" ]]; then
+  SKIP_PAYMASTER_ALLOWLIST_UPDATE=0
 fi
 
 if [[ -z "$ORACLE_SMOKE_JSON_PATH" ]]; then
@@ -152,8 +152,8 @@ Environment overrides:
 
 Notes:
   - This script validates the preferred direct Oracle / direct AA testnet path.
-  - AA_TEST_WIF must control PAYMASTER_ACCOUNT_ID when using the stable allowlisted account path.
-  - The stable default paymaster account path auto-enables SKIP_PAYMASTER_ALLOWLIST_UPDATE=1.
+  - When PAYMASTER_ACCOUNT_ID is unset, the AA relay validation derives a fresh account id and enables per-request allowlist overrides (SKIP_PAYMASTER_ALLOWLIST_UPDATE=0 by default).
+  - When PAYMASTER_ACCOUNT_ID is set, set SKIP_PAYMASTER_ALLOWLIST_UPDATE=1 to replay an already-allowlisted account id without per-request overrides.
 USAGE
 }
 
@@ -211,6 +211,9 @@ if [[ ! -s "$WORKSPACE_SECRETS_ENV_FILE" ]]; then
 fi
 
 load_env_defaults "$WORKSPACE_SECRETS_ENV_FILE"
+if [[ "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" == "0" ]]; then
+  PAYMASTER_ACCOUNT_ID=""
+fi
 verify_runtime_catalog_contract "$WORKSPACE_RUNTIME_CATALOG_FILE"
 
 MORPHEUS_PUBLIC_API_URL="${MORPHEUS_PUBLIC_API_URL:-$(cd "$MORPHEUS_DIR" && node -e 'const fs = require("fs"); const path = require("path"); const repoRoot = process.argv[1]; const config = JSON.parse(fs.readFileSync(path.join(repoRoot, "config/networks/testnet.json"), "utf8")); process.stdout.write(String(config?.phala?.public_api_url || ""));' "$MORPHEUS_DIR")}"
@@ -239,6 +242,10 @@ MORPHEUS_CALLBACK_HASH="${MORPHEUS_CALLBACK_HASH:-$(printf '%s' "$WORKSPACE_CONT
 AA_CORE_HASH_TESTNET="${AA_CORE_HASH_TESTNET:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.core_hash_testnet')}"
 PAYMASTER_APP_ID="${MORPHEUS_PAYMASTER_APP_ID:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.paymaster_app_id')}"
 PAYMASTER_ACCOUNT_ID="${PAYMASTER_ACCOUNT_ID:-$(printf '%s' "$WORKSPACE_CONTEXT_JSON" | jq -r '.aa.paymaster_account_id')}"
+
+if [[ -n "${SKIP_PAYMASTER_ALLOWLIST_UPDATE:-}" && "$SKIP_PAYMASTER_ALLOWLIST_UPDATE" != "0" && "$PAYMASTER_ACCOUNT_ID" != "0x0c3146e78efc42bfb7d4cc2e06e3efd063c01c56" ]]; then
+  unset SKIP_PAYMASTER_ALLOWLIST_UPDATE
+fi
 
 if [[ -z "${NEO_TESTNET_WIF:-}" || "$NEO_TESTNET_WIF" == "null" ]]; then
   echo "NEO_TESTNET_WIF missing in workspace validation context" >&2
@@ -329,6 +336,13 @@ done
 
 echo ""
 echo "=== Direct AA: neo-abstract-account paymaster relay ==="
+(PAYMASTER_RELAY_TIMEOUT_SECONDS="${PAYMASTER_RELAY_TIMEOUT_SECONDS:-600}"
+TIMEOUT_BIN=""
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_BIN="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_BIN="gtimeout"
+fi
 (cd "$AA_DIR" && \
   env \
     MORPHEUS_LOCAL_PAYMASTER_HANDLER_PATH="$MORPHEUS_DIR/workers/phala-worker/src/worker.js" \
@@ -345,9 +359,10 @@ echo "=== Direct AA: neo-abstract-account paymaster relay ==="
     MORPHEUS_PAYMASTER_TESTNET_ALLOW_DAPPS="${MORPHEUS_PAYMASTER_TESTNET_ALLOW_DAPPS:-demo-dapp}" \
     TEST_WIF="$AA_TEST_WIF" \
     TESTNET_RPC_URL="$AA_TESTNET_RPC_URL" \
-    PAYMASTER_ACCOUNT_ID="$PAYMASTER_ACCOUNT_ID" \
     ${SKIP_PAYMASTER_ALLOWLIST_UPDATE:+SKIP_PAYMASTER_ALLOWLIST_UPDATE=$SKIP_PAYMASTER_ALLOWLIST_UPDATE} \
+    ${TIMEOUT_BIN:+$TIMEOUT_BIN "${PAYMASTER_RELAY_TIMEOUT_SECONDS}s"} \
     node sdk/js/tests/v3_testnet_paymaster_relay.mjs)
+)
 
 echo ""
 echo "Cross-repo testnet validation completed successfully."

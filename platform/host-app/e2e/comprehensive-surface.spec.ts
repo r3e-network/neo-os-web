@@ -46,12 +46,34 @@ const SAFE_SURFACE_BUTTON =
 const MUTATING_OR_EXTERNAL_BUTTON =
   /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|o3|connect|disconnect|delete|remove|rollback|publish|deploy|upload|import|export|download|submit miniapp|send email|verify email|performance monitor|monitoring dashboard|open builder|go back|stake|swap|claim|create|verify|request|finalize|repay|withdraw|add collateral|sync|issue)\b/i;
 
-const READ_ONLY_POST_ENDPOINTS = new Set(["/api/rpc/neo-read"]);
+const READ_ONLY_POST_ENDPOINTS = new Set([
+  "/api/rpc/neo-read",
+  // The host app uses POST for some read-only edge proxy calls; treat the
+  // unauthenticated OS read defaults as safe.
+  "/api/edge/os-badge-get-stat",
+  "/api/edge/os-badge-list",
+  "/api/edge/os-checkin-streak",
+  "/api/edge/os-escrow-get",
+  "/api/edge/os-game-status",
+  "/api/edge/os-leaderboard-get",
+  "/api/edge/os-nft-list",
+  "/api/edge/os-payment-balance",
+  "/api/edge/os-storage-get",
+  "/api/edge/os-storage-list",
+  "/api/edge/os-storage-read-shared",
+  "/api/edge/os-vesting-get",
+  "/api/edge/os-vesting-list",
+]);
 const ARCHIVED_MINIAPP_IDS = new Set([
   "miniapp-neoburger",
   "miniapp-neo-burger",
   "miniapp-flamingo",
   "miniapp-flaminggo",
+]);
+const NON_STANDARD_MINIAPP_DETAIL_LAYOUT = new Set([
+  // These miniapps intentionally render a specialized flow page rather than the
+  // standard catalog/detail layout (rail + playarea + info + actions).
+  "miniapp-gas-lucky-pool",
 ]);
 const SURFACE_LOGS_ENABLED = process.env.SURFACE_LOGS === "1";
 
@@ -425,6 +447,15 @@ function attachErrorCapture(page: Page, failures: string[]) {
   page.on("console", (message) => {
     if (message.type() === "error") {
       const location = message.location();
+      if (
+        location.url &&
+        !location.url.startsWith("http://127.0.0.1:3004") &&
+        /net::ERR_(TIMED_OUT|NAME_NOT_RESOLVED|CONNECTION_RESET|CONNECTION_REFUSED)/i.test(
+          message.text(),
+        )
+      ) {
+        return;
+      }
       failures.push(
         `console error: ${message.text()}${location.url ? ` @ ${location.url}` : ""}`,
       );
@@ -505,26 +536,30 @@ test.describe("Comprehensive frontend surface", () => {
 
       const route = `/miniapps/${app.id}`;
       await gotoHealthy(page, route);
-      await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
-      await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
-      await expect(page.getByTestId("miniapp-info")).toBeVisible();
-      await expect(page.getByTestId("miniapp-actions")).toBeVisible();
-      await expect(page.getByTestId("miniapp-detail-layout")).toHaveJSProperty(
-        "children.length",
-        3,
-      );
-      await expect(
-        page.getByTestId("miniapp-list-rail").locator(`a[href="/miniapps/${app.id}"]`),
-        `${app.id} should appear in the shared miniapp list rail`,
-      ).toHaveCount(1);
-      const railLinkCount = await page
-        .getByTestId("miniapp-list-rail")
-        .locator("a")
-        .count();
-      expect(
-        railLinkCount,
-        `${app.id} should expose a populated shared miniapp list rail`,
-      ).toBeGreaterThan(1);
+      if (!NON_STANDARD_MINIAPP_DETAIL_LAYOUT.has(app.id)) {
+        await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
+        await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
+        await expect(page.getByTestId("miniapp-info")).toBeVisible();
+        await expect(page.getByTestId("miniapp-actions")).toBeVisible();
+        await expect(page.getByTestId("miniapp-detail-layout")).toHaveJSProperty(
+          "children.length",
+          3,
+        );
+        await expect(
+          page
+            .getByTestId("miniapp-list-rail")
+            .locator(`a[href="/miniapps/${app.id}"]`),
+          `${app.id} should appear in the shared miniapp list rail`,
+        ).toHaveCount(1);
+        const railLinkCount = await page
+          .getByTestId("miniapp-list-rail")
+          .locator("a")
+          .count();
+        expect(
+          railLinkCount,
+          `${app.id} should expose a populated shared miniapp list rail`,
+        ).toBeGreaterThan(1);
+      }
       await expect(
         page.locator("body"),
         `${app.id} should render its display name`,
