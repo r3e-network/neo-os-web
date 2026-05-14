@@ -9,7 +9,13 @@ function randomNonce(): string {
   return btoa(binary);
 }
 
-export function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boolean } = {}): string {
+export function buildCSP(
+  nonce: string,
+  options: {
+    allowMiniAppEmbedding?: boolean;
+    allowNativeWalletEval?: boolean;
+  } = {},
+): string {
   const isDev = process.env.NODE_ENV !== "production";
   const externalFontStyleSources = [
     "https://fonts.googleapis.com",
@@ -66,6 +72,9 @@ export function buildCSP(nonce: string, options: { allowMiniAppEmbedding?: boole
         "'unsafe-inline'",
       ]
     : ["'self'", `'nonce-${nonce}'`];
+  if (options.allowNativeWalletEval) {
+    scriptSources.push("'unsafe-eval'");
+  }
   if (isDev) {
     scriptSources.push("'unsafe-eval'");
   }
@@ -148,7 +157,10 @@ export function middleware(req: NextRequest) {
 
   res.headers.set(
     "Content-Security-Policy",
-    buildCSP(nonce, { allowMiniAppEmbedding: isMiniAppRuntimeAsset }),
+    buildCSP(nonce, {
+      allowMiniAppEmbedding: isMiniAppRuntimeAsset,
+      allowNativeWalletEval: isOneGateVaultHtmlPath(pathname),
+    }),
   );
   setSecurityHeaders(res, {
     frameOptions: isMiniAppRuntimeAsset ? null : "DENY",
