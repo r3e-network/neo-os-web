@@ -202,6 +202,10 @@ type OneGateAuthChallenge = {
 
 type OneGateDapiProviderLike = {
   name?: string;
+  dapiVersion?: string;
+  compatibility?: unknown;
+  icon?: string;
+  website?: string;
   getAccounts?: () =>
     | Promise<Array<OneGateAccountLike>>
     | Array<OneGateAccountLike>;
@@ -290,12 +294,15 @@ function oneGateRuntimeState() {
   const oneGateWindow = window as Window & {
     OneGateDapiProvider?: unknown;
     Neo?: { DapiProvider?: unknown };
+    NEP21Provider?: unknown;
   };
-  const provider = isOneGateDapiProviderLike(oneGateWindow.OneGateDapiProvider)
-    ? "direct"
-    : isOneGateDapiProviderLike(oneGateWindow.Neo?.DapiProvider)
-      ? "neo"
-      : "none";
+  const provider = isOneGateDapiProviderLike(oneGateWindow.NEP21Provider)
+    ? "nep21"
+    : isOneGateDapiProviderLike(oneGateWindow.OneGateDapiProvider)
+      ? "direct"
+      : isOneGateDapiProviderLike(oneGateWindow.Neo?.DapiProvider)
+        ? "neo"
+        : "none";
   const ua = navigator.userAgent.includes("iPhone")
     ? "iphone"
     : navigator.userAgent.includes("Android")
@@ -447,10 +454,16 @@ async function throwOneGateAddressRequiredError(input: {
 function isOneGateDapiProviderLike(
   value: unknown,
 ): value is OneGateDapiProviderLike {
+  if (!value || typeof value !== "object") return false;
+  const provider = value as OneGateDapiProviderLike;
+  const compatibility = provider.compatibility;
+  const isNep21 =
+    Array.isArray(compatibility) &&
+    compatibility.some((entry) => String(entry).toUpperCase() === "NEP-21") &&
+    String(provider.dapiVersion ?? "") === "1.0";
   return (
-    !!value &&
-    typeof value === "object" &&
-    typeof (value as OneGateDapiProviderLike).getAccounts === "function"
+    isNep21 ||
+    typeof provider.getAccounts === "function"
   );
 }
 
@@ -735,24 +748,92 @@ async function addressFromOneGateAccounts(accounts: unknown): Promise<string> {
   return "";
 }
 
-function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
+type OneGateDapiDiscoveryState = {
+  cleanup?: () => void;
+  provider?: OneGateDapiProviderLike;
+  started: boolean;
+  window?: Window;
+};
+
+const oneGateDapiDiscovery: OneGateDapiDiscoveryState = {
+  started: false,
+};
+
+function oneGateWindowWithProviders() {
   if (typeof window === "undefined") return null;
-  const oneGateWindow = window as unknown as {
+  return window as Window & {
     OneGateDapiProvider?: unknown;
     Neo?: { DapiProvider?: unknown };
+    NEP21Provider?: unknown;
+    NEP21Providers?: Record<string, unknown>;
   };
+}
+
+function resetOneGateDapiDiscoveryForWindow(targetWindow: Window) {
+  if (oneGateDapiDiscovery.window === targetWindow) return;
+  oneGateDapiDiscovery.cleanup?.();
+  oneGateDapiDiscovery.cleanup = undefined;
+  oneGateDapiDiscovery.provider = undefined;
+  oneGateDapiDiscovery.started = false;
+  oneGateDapiDiscovery.window = targetWindow;
+}
+
+function rememberOneGateDapiProvider(
+  provider: unknown,
+): OneGateDapiProviderLike | null {
+  if (!isOneGateDapiProviderLike(provider)) return null;
+  const oneGateWindow = oneGateWindowWithProviders();
+  if (!oneGateWindow) return provider;
+  resetOneGateDapiDiscoveryForWindow(oneGateWindow);
+
+  const name = String(provider.name ?? "").trim();
+  oneGateDapiDiscovery.provider = provider;
+  oneGateWindow.NEP21Provider = provider;
+  if (name) {
+    oneGateWindow.NEP21Providers = {
+      ...(oneGateWindow.NEP21Providers ?? {}),
+      [name]: provider,
+    };
+  }
+  return provider;
+}
+
+function cachedOneGateDapiProvider(): OneGateDapiProviderLike | null {
+  const oneGateWindow = oneGateWindowWithProviders();
+  if (!oneGateWindow) return null;
+  resetOneGateDapiDiscoveryForWindow(oneGateWindow);
+
+  const provider = oneGateDapiDiscovery.provider;
+  if (!provider) return null;
+  const name = String(provider.name ?? "").trim();
+  if (
+    oneGateWindow.NEP21Provider === provider ||
+    (name && oneGateWindow.NEP21Providers?.[name] === provider)
+  ) {
+    return provider;
+  }
+  oneGateDapiDiscovery.provider = undefined;
+  return null;
+}
+
+function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
+  const oneGateWindow = oneGateWindowWithProviders();
+  if (!oneGateWindow) return null;
+  const cachedProvider = cachedOneGateDapiProvider();
+  if (cachedProvider) return cachedProvider;
+
+  const registeredProvider = rememberOneGateDapiProvider(
+    oneGateWindow.NEP21Provider,
+  );
+  if (registeredProvider) return registeredProvider;
+
   const directProvider = oneGateWindow.OneGateDapiProvider;
-  if (isOneGateDapiProviderLike(directProvider)) return directProvider;
+  const rememberedDirect = rememberOneGateDapiProvider(directProvider);
+  if (rememberedDirect) return rememberedDirect;
 
   const eventProvider = oneGateWindow.Neo?.DapiProvider;
-  if (
-    isOneGateDapiProviderLike(eventProvider) &&
-    String(eventProvider.name ?? "")
-      .toLowerCase()
-      .includes("onegate")
-  ) {
-    return eventProvider;
-  }
+  const rememberedEvent = rememberOneGateDapiProvider(eventProvider);
+  if (rememberedEvent) return rememberedEvent;
   return null;
 }
 
@@ -792,16 +873,8 @@ function eventOneGateDapiProvider(
     const onReady = (event: Event) => {
       if (diagnostics) diagnostics.providerReadyEvents += 1;
       const detail = (event as CustomEvent<{ provider?: unknown }>).detail;
-      const provider = detail?.provider ?? detail;
-      if (!isOneGateDapiProviderLike(provider)) return;
-      const name = String(provider.name ?? "").toLowerCase();
-      if (
-        provider !== immediateOneGateDapiProvider() &&
-        name &&
-        !name.includes("onegate")
-      ) {
-        return;
-      }
+      const provider = rememberOneGateDapiProvider(detail?.provider ?? detail);
+      if (!provider) return;
       settle(provider);
     };
     const probe = () => {
@@ -822,6 +895,26 @@ function eventOneGateDapiProvider(
   });
 }
 
+function startOneGateDapiProviderDiscovery() {
+  const oneGateWindow = oneGateWindowWithProviders();
+  if (!oneGateWindow) return;
+  resetOneGateDapiDiscoveryForWindow(oneGateWindow);
+  if (cachedOneGateDapiProvider()) return;
+
+  if (!oneGateDapiDiscovery.started) {
+    const onReady = (event: Event) => {
+      const detail = (event as CustomEvent<{ provider?: unknown }>).detail;
+      rememberOneGateDapiProvider(detail?.provider ?? detail);
+    };
+    oneGateWindow.addEventListener("Neo.DapiProvider.ready", onReady);
+    oneGateDapiDiscovery.cleanup = () => {
+      oneGateWindow.removeEventListener("Neo.DapiProvider.ready", onReady);
+    };
+    oneGateDapiDiscovery.started = true;
+  }
+  requestOneGateDapiProvider();
+}
+
 async function readOneGateProviderAddress(
   provider: unknown,
   diagnostics?: OneGateAddressDiagnostics,
@@ -834,7 +927,15 @@ async function readOneGateProviderAddress(
   }
 
   try {
-    const accounts = await oneGateCallTimeout(provider.getAccounts?.(), 2_500);
+    if (typeof provider.getAccounts !== "function") {
+      addOneGateDiag(
+        diagnostics,
+        "providerAttempts",
+        `${label}:accounts:missing`,
+      );
+      return "";
+    }
+    const accounts = await oneGateCallTimeout(provider.getAccounts(), 2_500);
     const address = await addressFromOneGateAccounts(accounts);
     if (address) {
       addOneGateDiag(diagnostics, "providerAttempts", `${label}:accounts:ok`);
@@ -996,6 +1097,13 @@ export function useGasLuckyPool({
     appId: normalizeClaimIdentity(launchContext.appId) || APP_ID,
     walletAddress: walletAddressFromParams(launchContext) || undefined,
   };
+  if (
+    launchClaimKey ||
+    launchContext.source === "onegate" ||
+    launchIdentity.oneGateAppId
+  ) {
+    startOneGateDapiProviderDiscovery();
+  }
   const currentPoolId = createObservable(
     normalizePoolId(
       getLaunchParam(launchContext, ["poolId", "pool", "id"], ""),
