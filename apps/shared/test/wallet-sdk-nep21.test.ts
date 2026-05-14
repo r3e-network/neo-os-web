@@ -6,6 +6,8 @@ const TESTNET_MAGIC = 894710606;
 
 function resetInjectedWallets() {
   const target = window as typeof window & {
+    NEP21Provider?: unknown;
+    NEP21Providers?: unknown;
     Neo?: unknown;
     OneGateDapiProvider?: unknown;
     neoDapiProvider?: unknown;
@@ -14,6 +16,8 @@ function resetInjectedWallets() {
     NEOLineN3?: unknown;
     OneGate?: unknown;
   };
+  delete target.NEP21Provider;
+  delete target.NEP21Providers;
   delete target.Neo;
   delete target.OneGateDapiProvider;
   delete target.neoDapiProvider;
@@ -81,6 +85,32 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(provider.getAccounts).toHaveBeenCalledTimes(1);
     expect(wallet.address.value).toBe("NTestAddress");
     expect(wallet.chainType.value).toBe("neo-n3-testnet");
+  });
+
+  it("connects through the governance-style NEP21Provider global", async () => {
+    const provider = createNep21Provider({ dapiVersion: "1.0" });
+    (window as typeof window & { NEP21Provider?: unknown }).NEP21Provider =
+      provider;
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(provider.getAccounts).toHaveBeenCalledTimes(1);
+    expect(wallet.address.value).toBe("NTestAddress");
+    expect(wallet.chainType.value).toBe("neo-n3-testnet");
+  });
+
+  it("connects through a named provider in the governance-style NEP21Providers registry", async () => {
+    const provider = createNep21Provider({ name: "OneGate", dapiVersion: "1.0" });
+    (window as typeof window & { NEP21Providers?: Record<string, unknown> }).NEP21Providers = {
+      OneGate: provider,
+    };
+
+    const wallet = useWallet();
+    await wallet.connect();
+
+    expect(provider.getAccounts).toHaveBeenCalledTimes(1);
+    expect(wallet.address.value).toBe("NTestAddress");
   });
 
   it("connects through the OneGate host wallet when NEP-21 is not injected", async () => {
@@ -246,6 +276,21 @@ describe("wallet-sdk NEP-21 support", () => {
 
     window.dispatchEvent(new CustomEvent("Neo.DapiProvider.ready", {
       detail: { provider },
+    }));
+
+    await connectPromise;
+    expect(wallet.address.value).toBe("NTestAddress");
+  });
+
+  it("accepts ready events where detail is the NEP-21 provider itself", async () => {
+    const provider = createNep21Provider();
+    const wallet = useWallet();
+    const connectPromise = wallet.connect();
+
+    await Promise.resolve();
+
+    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.ready", {
+      detail: provider,
     }));
 
     await connectPromise;

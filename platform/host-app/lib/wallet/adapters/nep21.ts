@@ -24,140 +24,30 @@ import {
   normalizeNeoNetwork,
   type NeoNetwork,
 } from "@/lib/neo-network";
+import {
+  readImmediateNep21Provider,
+  waitForNep21Provider,
+  type NeoDapiAccount as DapiAccount,
+  type NeoDapiEventName as DapiEventName,
+  type NeoDapiInvocation as DapiInvocation,
+  type NeoDapiProvider as DapiProvider,
+  type Nep21ProviderPreference as DapiProviderPreference,
+} from "../../../../sdk/src/nep21-provider";
 
 const NEO_CONTRACT = "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5";
 const GAS_CONTRACT = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 
-type DapiEventName = "accountchanged" | "accountschanged" | "networkchanged";
-
-type DapiAccount = {
-  hash: string;
-  address?: string;
-  label?: string;
-  isDefault?: boolean;
-};
-
-type DapiInvocation = {
-  hash: string;
-  operation: string;
-  args?: Array<{ type: string; value: unknown }>;
-  abortOnFail?: boolean;
-};
-
-type DapiProvider = {
-  name?: string;
-  dapiVersion?: string;
-  network?: number;
-  supportedNetworks?: number[];
-  compatibility?: string[];
-  on?: (event: DapiEventName, listener: () => void) => void;
-  removeListener?: (event: DapiEventName, listener: () => void) => void;
-  authenticate?: (payload: {
-    action: "Authentication";
-    grant_type: "Signature";
-    allowed_algorithms: ["ECDSA-P256"];
-    domain: string;
-    networks: number[];
-    nonce: string;
-    timestamp: number;
-  }) => Promise<{
-    network?: number;
-    address?: string;
-    pubkey?: string;
-    signature?: string;
-  }>;
-  getAccounts: () => Promise<DapiAccount[]>;
-  getBalance?: (asset: string, account?: string) => Promise<unknown>;
-  invoke?: (invocations: DapiInvocation[], signers?: Array<Record<string, unknown>>, suggestedSystemFee?: string) => Promise<unknown>;
-  call?: (invocation: DapiInvocation) => Promise<unknown>;
-  send?: (asset: string, from: string, to: string, amount: string, data?: { type: string; value: unknown }) => Promise<unknown>;
-  signMessage?: (message: string, account?: string) => Promise<{
-    signature: string;
-    account: string;
-    pubkey: string;
-  }>;
-};
-
-type DapiWindow = Window & {
-  Neo?: { DapiProvider?: unknown };
-  OneGateDapiProvider?: unknown;
-  neoDapiProvider?: unknown;
-  neoDapi?: unknown;
-};
-
-type DapiProviderPreference = "any" | "onegate";
-
-function isDapiProvider(value: unknown): value is DapiProvider {
-  if (!value || typeof value !== "object") return false;
-  const provider = value as Partial<DapiProvider>;
-  return typeof provider.getAccounts === "function" && (
-    typeof provider.invoke === "function" ||
-    typeof provider.call === "function" ||
-    typeof provider.send === "function" ||
-    typeof provider.signMessage === "function"
-  );
-}
-
-function matchesPreference(
-  provider: DapiProvider,
-  preference: DapiProviderPreference,
-): boolean {
-  if (preference === "any") return true;
-  if (preference === "onegate") {
-    if (
-      typeof window !== "undefined" &&
-      (window as DapiWindow).OneGateDapiProvider === provider
-    ) {
-      return true;
-    }
-    const providerName = String(provider.name ?? "").toLowerCase();
-    return providerName.includes("onegate");
-  }
-  return false;
-}
-
 function getImmediateProvider(preference: DapiProviderPreference = "any"): DapiProvider | null {
-  if (typeof window === "undefined") return null;
-  const win = window as DapiWindow;
-  if (preference === "onegate") {
-    const provider = win.OneGateDapiProvider;
-    return isDapiProvider(provider) ? provider : null;
-  }
-  const candidates = [
-    win.Neo?.DapiProvider,
-    win.OneGateDapiProvider,
-    win.neoDapiProvider,
-    win.neoDapi,
-  ];
-  return candidates.find(isDapiProvider) ?? null;
+  return readImmediateNep21Provider({ preference }) as DapiProvider | null;
 }
 
 function waitForProvider(
   timeoutMs = 3000,
   preference: DapiProviderPreference = "any",
 ): Promise<DapiProvider> {
-  const immediate = getImmediateProvider(preference);
-  if (immediate) return Promise.resolve(immediate);
-
-  return new Promise((resolve, reject) => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const onReady = (event: Event) => {
-      const provider = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
-      if (!isDapiProvider(provider)) return;
-      if (!matchesPreference(provider, preference)) return;
-      clearTimeout(timeout);
-      window.removeEventListener("Neo.DapiProvider.ready", onReady);
-      resolve(provider);
-    };
-    timeout = setTimeout(() => {
-      window.removeEventListener("Neo.DapiProvider.ready", onReady);
-      reject(new WalletNotInstalledError("NEP-21 dAPI"));
-    }, timeoutMs);
-    window.addEventListener("Neo.DapiProvider.ready", onReady);
-    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.request", {
-      detail: { version: "1.0" },
-    }));
-  });
+  return waitForNep21Provider({ timeoutMs, preference }).catch(() => {
+    throw new WalletNotInstalledError("NEP-21 dAPI");
+  }) as Promise<DapiProvider>;
 }
 
 function encodeBase64Utf8(value: string): string {
@@ -374,8 +264,8 @@ export class Nep21Adapter implements WalletAdapter {
     if (!provider.signMessage) throw new WalletTransactionError("NEP-21 wallet does not support signMessage");
     const signed = await provider.signMessage(encodeBase64Utf8(message), this.accountHash ?? this.address ?? undefined);
     return {
-      publicKey: signed.pubkey,
-      data: signed.signature,
+      publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
+      data: String(signed.signature ?? signed.data ?? ""),
       salt: "",
       message,
     };

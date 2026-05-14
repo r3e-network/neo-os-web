@@ -1,3 +1,8 @@
+import {
+  readImmediateNep21Provider,
+  waitForNep21Provider,
+} from "./nep21-provider.js";
+
 const MAINNET_MAGIC = 860833102;
 const TESTNET_MAGIC = 894710606;
 const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
@@ -18,49 +23,14 @@ function createNonce() {
   }
   return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`;
 }
-function isNeoDapiProvider(candidate) {
-  if (!candidate || typeof candidate !== "object") return false;
-  const provider = candidate;
-  return (
-    typeof provider.getAccounts === "function" ||
-    typeof provider.authenticate === "function"
-  );
-}
 function readImmediateDapiProvider() {
-  if (typeof window === "undefined") return null;
-  const g = window;
-  const candidates = [
-    g.Neo?.DapiProvider,
-    g.OneGateDapiProvider,
-    g.neoDapiProvider,
-    g.neoDapi,
-  ];
-  return candidates.find(isNeoDapiProvider) ?? null;
+  return readImmediateNep21Provider();
 }
 function waitForDapiProvider(timeoutMs = 750) {
   const immediate = readImmediateDapiProvider();
   if (immediate) return Promise.resolve(immediate);
   if (typeof window === "undefined") return Promise.resolve(null);
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (provider) => {
-      if (settled) return;
-      settled = true;
-      window.removeEventListener("Neo.DapiProvider.ready", onReady);
-      resolve(provider);
-    };
-    const onReady = (event) => {
-      const provider = event.detail?.provider;
-      if (isNeoDapiProvider(provider)) finish(provider);
-    };
-    window.addEventListener("Neo.DapiProvider.ready", onReady);
-    setTimeout(() => finish(null), timeoutMs);
-    window.dispatchEvent(
-      new CustomEvent("Neo.DapiProvider.request", {
-        detail: { version: "1.0" },
-      }),
-    );
-  });
+  return waitForNep21Provider({ timeoutMs }).catch(() => null);
 }
 function getAuthenticationDomain() {
   if (typeof window === "undefined") return "localhost";

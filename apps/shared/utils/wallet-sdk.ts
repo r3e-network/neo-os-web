@@ -19,6 +19,14 @@ import {
   TESTNET_MAGIC,
 } from "../constants/rpc";
 import { MiniAppError } from "./errorHandling";
+import {
+  readImmediateNep21Provider,
+  resetNep21ProviderCacheForTests,
+  waitForNep21Provider,
+  type NeoDapiAccount,
+  type NeoDapiInvocation,
+  type NeoDapiProvider as BaseNeoDapiProvider,
+} from "./nep21-provider";
 
 // Error codes for i18n-compatible error handling
 const ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED =
@@ -233,74 +241,7 @@ interface OneGateLegacyWallet {
   }) => Promise<InvokeResult>;
 }
 
-// ---------------------------------------------------------------------------
-// NEP-21 dAPI provider interface
-// ---------------------------------------------------------------------------
-
-type NeoDapiEventName = "accountchanged" | "accountschanged" | "networkchanged";
-
-type NeoDapiAccount = {
-  hash: string;
-  address?: string;
-  label?: string;
-  isDefault?: boolean;
-};
-
-type NeoDapiInvocation = {
-  hash: string;
-  operation: string;
-  args?: ContractArg[];
-  abortOnFail?: boolean;
-};
-
-type NeoDapiAuthenticationResponse = {
-  network?: number;
-  address?: string;
-  nonce?: string;
-  pubkey?: string;
-  signature?: string;
-};
-
-interface NeoDapiProvider {
-  compatibility?: string[];
-  dapiVersion?: string;
-  extra?: unknown;
-  name?: string;
-  network?: number;
-  supportedNetworks?: number[];
-  version?: string;
-  website?: string;
-  on?: (event: NeoDapiEventName, listener: () => void) => void;
-  removeListener?: (event: NeoDapiEventName, listener: () => void) => void;
-  authenticate?: (payload: {
-    action: "Authentication";
-    grant_type: "Signature";
-    allowed_algorithms: ["ECDSA-P256"];
-    domain: string;
-    networks: number[];
-    nonce: string;
-    timestamp: number;
-  }) => Promise<NeoDapiAuthenticationResponse>;
-  call?: (invocation: NeoDapiInvocation) => Promise<InvokeResult>;
-  getAccounts: () => Promise<NeoDapiAccount[]>;
-  getBalance?: (asset: string, account?: string) => Promise<unknown>;
-  invoke?: (
-    invocations: NeoDapiInvocation[],
-    signers?: WalletSigner[],
-    suggestedSystemFee?: string,
-  ) => Promise<unknown>;
-  send?: (
-    asset: string,
-    from: string,
-    to: string,
-    amount: string,
-    data?: ContractArg,
-  ) => Promise<unknown>;
-  signMessage?: (
-    message: string,
-    account?: string,
-  ) => Promise<{ signature: string; account: string; pubkey: string }>;
-}
+type NeoDapiProvider = BaseNeoDapiProvider<ContractArg, InvokeResult>;
 
 type ActiveWalletProvider =
   | { kind: "nep21"; provider: NeoDapiProvider }
@@ -317,6 +258,8 @@ declare global {
   interface Window {
     NEOLineN3?: { Init: new () => NeoLineN3 };
     neo3Dapi?: NeoLineN3;
+    NEP21Provider?: NeoDapiProvider;
+    NEP21Providers?: Record<string, NeoDapiProvider>;
     OneGateDapiProvider?: NeoDapiProvider;
     OneGate?: OneGateLegacyWallet;
     Neo?: { DapiProvider?: NeoDapiProvider };
@@ -494,34 +437,8 @@ function mapDapiArgs(
   });
 }
 
-function isNeoDapiProvider(candidate: unknown): candidate is NeoDapiProvider {
-  if (!candidate || typeof candidate !== "object") return false;
-  const provider = candidate as Partial<NeoDapiProvider>;
-  return (
-    typeof provider.getAccounts === "function" &&
-    (typeof provider.invoke === "function" ||
-      typeof provider.call === "function" ||
-      typeof provider.send === "function" ||
-      typeof provider.signMessage === "function")
-  );
-}
-
-let cachedDapiProvider: NeoDapiProvider | null = null;
-let dapiReadyListenerInstalled = false;
-let dapiWaiters: Array<(provider: NeoDapiProvider) => void> = [];
-
 function readImmediateDapiProvider(): NeoDapiProvider | null {
-  if (cachedDapiProvider) return cachedDapiProvider;
-  if (typeof window === "undefined") return null;
-  const candidates = [
-    window.OneGateDapiProvider,
-    window.Neo?.DapiProvider,
-    window.neoDapiProvider,
-    window.neoDapi,
-  ];
-  const provider = candidates.find(isNeoDapiProvider) ?? null;
-  if (provider) cachedDapiProvider = provider;
-  return provider;
+  return readImmediateNep21Provider() as NeoDapiProvider | null;
 }
 
 function readImmediateOneGateLegacyWallet(): OneGateLegacyWallet | null {
@@ -556,42 +473,8 @@ function waitForOneGateLegacyWallet(
   });
 }
 
-function installDapiReadyListener(): void {
-  if (dapiReadyListenerInstalled || typeof window === "undefined") return;
-  dapiReadyListenerInstalled = true;
-  window.addEventListener("Neo.DapiProvider.ready", (event: Event) => {
-    const provider = (event as CustomEvent<{ provider?: unknown }>).detail
-      ?.provider;
-    if (!isNeoDapiProvider(provider)) return;
-    cachedDapiProvider = provider;
-    const waiters = dapiWaiters;
-    dapiWaiters = [];
-    waiters.forEach((resolve) => resolve(provider));
-  });
-}
-
 function waitForDapiProvider(timeoutMs = 3000): Promise<NeoDapiProvider> {
-  installDapiReadyListener();
-  const immediate = readImmediateDapiProvider();
-  if (immediate) return Promise.resolve(immediate);
-
-  return new Promise((resolve, reject) => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const waiter = (provider: NeoDapiProvider) => {
-      clearTimeout(timeout);
-      resolve(provider);
-    };
-    timeout = setTimeout(() => {
-      dapiWaiters = dapiWaiters.filter((entry) => entry !== waiter);
-      reject(new Error("NEP-21 dAPI provider not detected."));
-    }, timeoutMs);
-    dapiWaiters.push(waiter);
-    window.dispatchEvent(
-      new CustomEvent("Neo.DapiProvider.request", {
-        detail: { version: "1.0" },
-      }),
-    );
-  });
+  return waitForNep21Provider({ timeoutMs }) as Promise<NeoDapiProvider>;
 }
 
 function resolveNetworkFromMagic(network?: number): NeoNetwork | null {
@@ -748,8 +631,7 @@ function isStaticMiniAppRuntimePath(pathname: string): boolean {
 
 export function __resetWalletForTests(): void {
   walletInstance = null;
-  cachedDapiProvider = null;
-  dapiWaiters = [];
+  resetNep21ProviderCacheForTests();
 }
 
 async function loadCurrentMiniAppManifest(): Promise<MiniAppManifest | null> {
