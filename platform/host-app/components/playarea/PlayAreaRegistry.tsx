@@ -198,7 +198,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Bind owner witness",
       "Submit register",
     ],
-    primaryAction: "Stage account registration",
+    primaryAction: "Prepare account registration",
     visual: {
       headline: "Registration flow",
       slots: ["Owner", "Salt", "Account ID", "AA Core"],
@@ -236,7 +236,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Accept counterparty",
       "Settle or dispute",
     ],
-    primaryAction: "Stage listing",
+    primaryAction: "Create listing",
     visual: {
       headline: "Trustless listing board",
       slots: ["Draft", "Funded", "Accepted", "Settled"],
@@ -245,7 +245,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-aa-permissions-lab": {
     title: "AA permission binding console",
     subtitle:
-      "Inspect verifier and hook bindings, then stage permission updates with clear before and after state.",
+      "Inspect verifier and hook bindings, then prepare permission updates with clear before and after state.",
     tone: "slate",
     icon: <ClipboardCheck className="h-5 w-5" />,
     fields: [
@@ -260,10 +260,10 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
     steps: [
       "Read bindings",
       "Compare desired policy",
-      "Stage update",
+      "Apply update",
       "Verify event",
     ],
-    primaryAction: "Stage permission update",
+    primaryAction: "Prepare permission update",
     visual: {
       headline: "Binding matrix",
       slots: [
@@ -331,7 +331,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Verifier", value: "session key" },
     ],
     steps: ["Define scope", "Set limit", "Bind verifier", "Activate key"],
-    primaryAction: "Stage session key",
+    primaryAction: "Activate session key",
     visual: {
       headline: "Scoped key lifecycle",
       slots: ["Issue", "Use", "Throttle", "Expire"],
@@ -358,7 +358,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Review action",
       "Enable monitor",
     ],
-    primaryAction: "Stage automation",
+    primaryAction: "Enable automation",
     visual: {
       headline: "Runbook chain",
       slots: ["Trigger", "Oracle", "Policy", "Action"],
@@ -391,7 +391,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Lock assets",
       "Release split",
     ],
-    primaryAction: "Stage agreement",
+    primaryAction: "Prepare agreement",
     visual: {
       headline: "Split ledger",
       slots: ["Party A", "Party B", "Shared pool", "Release"],
@@ -400,7 +400,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
   "miniapp-burn-league": {
     title: "Burn league arena",
     subtitle:
-      "Enter a burn challenge, preview leaderboard impact, and stage the burn transaction intentionally.",
+      "Enter a burn challenge, preview leaderboard impact, and submit the burn transaction intentionally.",
     tone: "amber",
     icon: <Flame className="h-5 w-5" />,
     fields: [
@@ -419,7 +419,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Season", value: "round" },
     ],
     steps: ["Choose league", "Preview burn", "Submit burn", "Update rank"],
-    primaryAction: "Stage burn entry",
+    primaryAction: "Submit burn entry",
     visual: {
       headline: "Leaderboard impact",
       slots: ["You", "Top 10", "Weekly", "Final"],
@@ -447,7 +447,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Receipt", value: "on-chain" },
     ],
     steps: ["Pick developer", "Write note", "Preview tip", "Send receipt"],
-    primaryAction: "Stage tip",
+    primaryAction: "Send tip",
     visual: {
       headline: "Tip flow",
       slots: ["Sender", "Message", "Developer", "Receipt"],
@@ -474,7 +474,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Gate", value: "attendance" },
     ],
     steps: ["Create event", "Mint passes", "Scan QR", "Mark used"],
-    primaryAction: "Stage ticket batch",
+    primaryAction: "Issue ticket batch",
     visual: {
       headline: "Event pass preview",
       slots: ["NEP-11", "QR", "Gate", "Used"],
@@ -505,9 +505,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Choose audited template",
       "Set token parameters",
       "Review owner controls",
-      "Stage deployment",
+      "Prepare deployment",
     ],
-    primaryAction: "Stage NEP-17 launch",
+    primaryAction: "Prepare NEP-17 launch",
     visual: {
       headline: "Token launch checklist",
       slots: ["Template", "Symbol", "Supply", "Owner"],
@@ -541,9 +541,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Select collection template",
       "Attach metadata policy",
       "Review mint controls",
-      "Stage collection",
+      "Prepare collection",
     ],
-    primaryAction: "Stage NEP-11 collection",
+    primaryAction: "Prepare NEP-11 collection",
     visual: {
       headline: "Collection launch board",
       slots: ["Template", "Metadata", "Mint policy", "Royalty"],
@@ -569,9 +569,9 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Pick app template",
       "Bind owner and modules",
       "Review OneGate launch URL",
-      "Stage catalog entry",
+      "Prepare catalog entry",
     ],
-    primaryAction: "Stage MiniApp launch",
+    primaryAction: "Prepare MiniApp launch",
     visual: {
       headline: "MiniApp publish path",
       slots: ["Template", "Owner", "Launch URL", "Catalog"],
@@ -605,7 +605,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Profit", value: "preview" },
     ],
     steps: ["Borrow", "Execute route", "Repay", "Keep surplus"],
-    primaryAction: "Stage flash route",
+    primaryAction: "Prepare flash route",
     visual: {
       headline: "Atomic loan path",
       slots: ["Borrow", "Trade", "Repay", "Profit"],
@@ -633,7 +633,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Mode", value: "gasless" },
     ],
     steps: ["Choose contract", "Set cap", "Enable sponsor", "Audit usage"],
-    primaryAction: "Stage sponsor policy",
+    primaryAction: "Enable sponsor policy",
     visual: {
       headline: "Sponsorship rules",
       slots: ["Low balance", "Contract allowlist", "Daily cap", "Usage log"],
@@ -666,7 +666,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Delegate power",
       "Track result",
     ],
-    primaryAction: "Stage delegation",
+    primaryAction: "Delegate voting power",
     visual: {
       headline: "Voting power offers",
       slots: ["Delegate", "Rate", "Epoch", "Reward"],
@@ -694,7 +694,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Payment", value: "forgetting" },
     ],
     steps: ["Encrypt memory", "Commit hash", "Set price", "Bury record"],
-    primaryAction: "Stage burial",
+    primaryAction: "Bury record",
     visual: {
       headline: "Sealed memory",
       slots: ["Ciphertext", "Hash", "Price", "Buried"],
@@ -720,7 +720,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Visitors", value: "shared page" },
     ],
     steps: ["Write tribute", "Preview wall", "Anchor proof", "Share memorial"],
-    primaryAction: "Stage tribute",
+    primaryAction: "Anchor tribute",
     visual: {
       headline: "Shrine wall",
       slots: ["Portrait", "Message", "Proof", "Visitors"],
@@ -752,7 +752,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Release", value: "milestone" },
     ],
     steps: ["Fund escrow", "Submit milestone", "Approve work", "Release funds"],
-    primaryAction: "Stage escrow",
+    primaryAction: "Fund escrow",
     visual: {
       headline: "Milestone release plan",
       slots: ["Fund", "M1", "M2", "Release"],
@@ -801,7 +801,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Slippage", value: "0.5%" },
       { label: "Settlement", value: "wallet" },
     ],
-    steps: ["Select assets", "Preview quote", "Check slippage", "Stage swap"],
+    steps: ["Select assets", "Preview quote", "Check slippage", "Confirm swap"],
     primaryAction: "Preview swap route",
     visual: {
       headline: "Swap quote route",
@@ -837,7 +837,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Collect threshold",
       "Broadcast",
     ],
-    primaryAction: "Stage multisig request",
+    primaryAction: "Create multisig request",
     visual: {
       headline: "Signature progress",
       slots: ["Signer 1", "Signer 2", "Signer 3", "Threshold"],
@@ -865,7 +865,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Renewal", value: "extension" },
     ],
     steps: ["Search name", "Resolve price", "Register", "Set resolver"],
-    primaryAction: "Stage domain registration",
+    primaryAction: "Register domain",
     visual: {
       headline: "Name resolution",
       slots: ["name", "owner", "resolver", "expiry"],
@@ -893,7 +893,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Vesting", value: "stream" },
     ],
     steps: ["Fund vault", "Create stream", "Claim vested", "Cancel if needed"],
-    primaryAction: "Stage shared stream",
+    primaryAction: "Create shared stream",
     visual: {
       headline: "Shared runtime stream",
       slots: ["Vault", "Stream", "Claim", "Cancel"],
@@ -919,7 +919,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Verify", value: "local" },
     ],
     steps: ["Write message", "Hash digest", "Sign wallet", "Verify signature"],
-    primaryAction: "Stage signature",
+    primaryAction: "Sign message",
     visual: {
       headline: "Signature envelope",
       slots: ["Message", "Digest", "Signature", "Verifier"],
@@ -963,7 +963,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Verify", value: "oracle-ready" },
     ],
     steps: ["Load DID", "Select claims", "Package proof", "Verify request"],
-    primaryAction: "Stage credential proof",
+    primaryAction: "Prepare credential proof",
     visual: {
       headline: "Passport card",
       slots: ["DID", "Claim", "Issuer", "Proof"],
@@ -996,7 +996,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Preview match",
       "Submit donation",
     ],
-    primaryAction: "Stage contribution",
+    primaryAction: "Submit contribution",
     visual: {
       headline: "Matching pool impact",
       slots: ["Grant A", "Grant B", "Your match", "Pool"],
@@ -1023,7 +1023,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Wait timelock",
       "Execute recovery",
     ],
-    primaryAction: "Stage recovery ticket",
+    primaryAction: "Open recovery ticket",
     visual: {
       headline: "Recovery path",
       slots: ["Ticket", "Guardian", "Timelock", "Recover"],
@@ -1050,7 +1050,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       "Mint certificate",
       "Share proof",
     ],
-    primaryAction: "Stage certificate",
+    primaryAction: "Issue certificate",
     visual: {
       headline: "Soulbound credential",
       slots: ["Recipient", "Claim", "Issuer", "Token ID"],
@@ -1072,7 +1072,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Proof", value: "public hash" },
     ],
     steps: ["Hash message", "Set unlock", "Seal capsule", "Open later"],
-    primaryAction: "Stage capsule",
+    primaryAction: "Seal capsule",
     visual: {
       headline: "Capsule schedule",
       slots: ["Seal", "Wait", "Unlock", "Reveal"],
@@ -1098,7 +1098,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Lookup", value: "proof" },
     ],
     steps: ["Hash file", "Anchor digest", "Record block", "Verify proof"],
-    primaryAction: "Stage timestamp",
+    primaryAction: "Anchor timestamp",
     visual: {
       headline: "Proof journal",
       slots: ["File", "SHA-256", "Block", "Verify"],
@@ -1126,7 +1126,7 @@ const PROFILED_PLAYAREAS: Record<string, PlayAreaProfile> = {
       { label: "Security", value: "hashlock" },
     ],
     steps: ["Lock bounty", "Publish hash", "Submit preimage", "Release reward"],
-    primaryAction: "Stage vault",
+    primaryAction: "Create vault",
     visual: {
       headline: "Bounty vault",
       slots: ["Hash", "Bounty", "Preimage", "Release"],
@@ -1751,7 +1751,7 @@ function ChainStateStrip({
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-500">
           <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold">
             <Radio className="h-3.5 w-3.5 text-emerald-600" />
-            {loading ? "Syncing" : error ? "Local preview" : "Live state"}
+            {loading ? "Syncing" : error ? "Cached state" : "Live state"}
           </span>
           <span className="font-semibold uppercase text-gray-400">
             {network}
@@ -2185,8 +2185,8 @@ function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
                 Upload and view album
               </h3>
               <p className="m-0 mt-1 text-xs leading-5 text-gray-600">
-                This is the actual Forever Album dApp surface, not a staged
-                metadata preview.
+                This is the actual Forever Album dApp surface, not just a
+                metadata summary.
               </p>
             </div>
             <a
@@ -2331,8 +2331,8 @@ function LastSurvivorPlayArea(props: PlayAreaRegistryProps) {
                 valueLabel: "per key",
               },
               {
-                label: "Staged buy",
-                detail: `${keys || "1"} keys staged for the next buy`,
+                label: "Pending buy",
+                detail: `${keys || "1"} keys selected for the next buy`,
                 value: formatGas(projected),
                 valueLabel: "preview",
               },
@@ -2531,7 +2531,7 @@ function GasBoxPlayArea(props: PlayAreaRegistryProps) {
     <PlayShell
       app={app}
       title="GASBox gacha machine"
-      subtitle="Pick a machine, inspect its capsule pool, and stage a draw before sending the on-chain play operation."
+      subtitle="Pick a machine, inspect its capsule pool, and prepare a draw before sending the on-chain play operation."
       tone="amber"
       side={<ActivityPanel activity={activity} />}
       footer={
@@ -4438,7 +4438,7 @@ function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
               label: "Builder",
               detail: sealing
                 ? "Sealing request with Morpheus"
-                : "Ready to submit",
+                : "Operation ready",
               value: sealing ? "sealing" : "ready",
               valueLabel: "state",
             },
@@ -4498,7 +4498,7 @@ function ProfiledPlayArea(props: PlayAreaRegistryProps) {
       <div className="space-y-3">
         <EmbeddedDappSurface
           title="Live MiniApp workspace"
-          subtitle="The center playarea loads the actual standalone MiniApp so users can complete the app-specific business flow instead of only reading a staged status preview."
+          subtitle="The center playarea loads the actual standalone MiniApp so users can complete the app-specific business flow instead of only reading a status summary."
           url={dappUrl}
           tone={profile.tone}
           frameTitle={`${app.name} dApp`}

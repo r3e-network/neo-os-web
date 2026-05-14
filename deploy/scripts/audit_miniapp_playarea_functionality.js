@@ -320,6 +320,9 @@ function auditApp(app, kinds) {
   if (/coming soon|not implemented|status only|status-only|mock only/i.test(sourceText)) {
     gaps.push("source contains placeholder-only language");
   }
+  if (/\b[Ss]tage\s+|staged status preview|Ready to submit|Local preview/.test(sourceText)) {
+    gaps.push("source contains staging/status-only user-facing language");
+  }
 
   const platformSurface =
     kind === "profiled"

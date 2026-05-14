@@ -46,7 +46,7 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
     zh: "带路由预览的 NEO/GAS 兑换",
   },
   docDescription: {
-    en: "Neo Swap provides direct swaps between NEO and GAS. Prices are fetched through the data feed and settlement is staged for wallet submission.",
+    en: "Neo Swap provides direct swaps between NEO and GAS. Prices are fetched through the data feed and settlement is prepared for wallet submission.",
     zh: "Neo Swap 提供 NEO 与 GAS 的直接兑换。价格通过数据源获取，结算通过共享钱包操作台发起。",
   },
   step1: {
@@ -67,7 +67,7 @@ title: { en: "Neo Swap", zh: "Neo 兑换" },
   },
   feature1Name: { en: "Best Rates", zh: "最佳汇率" },
   feature1Desc: {
-    en: "Compares route context before the wallet transaction is staged.",
+    en: "Compares route context before the wallet transaction is prepared.",
     zh: "在发起钱包交易前比较路由上下文。",
   },
   feature2Name: { en: "Low Slippage", zh: "低滑点" },
