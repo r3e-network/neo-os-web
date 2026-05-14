@@ -172,7 +172,6 @@ function normalizeNeoAddress(value: unknown): string {
 
 const NEO_N3_ADDRESS_VERSION = 0x35;
 const ONEGATE_ADDRESS_DETECTION_TIMEOUT_MS = 8_000;
-const ONEGATE_PROVIDER_GRACE_MS = 1_400;
 const BASE58_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const SHA256_K = [
@@ -211,18 +210,6 @@ type OneGateDapiProviderLike = {
   ) => Promise<Record<string, unknown>> | Record<string, unknown>;
 };
 
-type OneGateBridgeWindow = Window & {
-  __OneGateBridge?: { invoke?: (payload: string) => void };
-  __OneGateDapiCallback?: (response: unknown) => void;
-  webkit?: {
-    messageHandlers?: {
-      __OneGateBridge?: {
-        postMessage?: (payload: string) => void;
-      };
-    };
-  };
-};
-
 type OneGateAddressDiagnostics = {
   providerRequests: number;
   providerReadyEvents: number;
@@ -230,15 +217,6 @@ type OneGateAddressDiagnostics = {
   bridgeAttempts: string[];
   wallet: "skipped" | "available" | "unavailable" | "error";
 };
-
-const oneGateBridgePending = new Map<
-  string,
-  {
-    resolve: (value: unknown) => void;
-    reject: (reason?: unknown) => void;
-    timeout: ReturnType<typeof setTimeout>;
-  }
->();
 
 function createOneGateAddressDiagnostics(): OneGateAddressDiagnostics {
   return {
@@ -304,12 +282,12 @@ function oneGateRuntimeState() {
   if (typeof window === "undefined") {
     return {
       provider: "ssr",
-      bridge: "ssr",
-      callback: "ssr",
+      bridge: "provider-only",
+      callback: "provider-only",
       ua: "ssr",
     };
   }
-  const oneGateWindow = window as OneGateBridgeWindow & {
+  const oneGateWindow = window as Window & {
     OneGateDapiProvider?: unknown;
     Neo?: { DapiProvider?: unknown };
   };
@@ -318,23 +296,6 @@ function oneGateRuntimeState() {
     : isOneGateDapiProviderLike(oneGateWindow.Neo?.DapiProvider)
       ? "neo"
       : "none";
-  const bridge =
-    typeof oneGateWindow.__OneGateBridge?.invoke === "function" &&
-    typeof oneGateWindow.webkit?.messageHandlers?.__OneGateBridge
-      ?.postMessage === "function"
-      ? "invoke+webkit"
-      : typeof oneGateWindow.__OneGateBridge?.invoke === "function"
-        ? "invoke"
-        : oneGateWindow.__OneGateBridge
-          ? "object"
-          : typeof oneGateWindow.webkit?.messageHandlers?.__OneGateBridge
-                ?.postMessage === "function"
-            ? "webkit"
-            : "none";
-  const callback =
-    typeof oneGateWindow.__OneGateDapiCallback === "function"
-      ? "function"
-      : "none";
   const ua = navigator.userAgent.includes("iPhone")
     ? "iphone"
     : navigator.userAgent.includes("Android")
@@ -342,7 +303,12 @@ function oneGateRuntimeState() {
       : navigator.userAgent.includes("Mac OS X")
         ? "ios-sim-or-mac"
         : "other";
-  return { provider, bridge, callback, ua };
+  return {
+    provider,
+    bridge: "provider-only",
+    callback: "provider-only",
+    ua,
+  };
 }
 
 function formatOneGateAddressDiagnostics(
@@ -512,160 +478,6 @@ function oneGateCallTimeout<T>(
         clearTimeout(timeout);
         reject(error);
       });
-  });
-}
-
-function installOneGateBridgeCallback(
-  windowRef: OneGateBridgeWindow,
-  diagnostics?: OneGateAddressDiagnostics,
-) {
-  const descriptor = Object.getOwnPropertyDescriptor(
-    windowRef,
-    "__OneGateDapiCallback",
-  );
-  const current =
-    typeof descriptor?.get === "function"
-      ? descriptor.get.call(windowRef)
-      : windowRef.__OneGateDapiCallback;
-  if (
-    (current as { __oneGateVaultWrapped?: boolean } | undefined)
-      ?.__oneGateVaultWrapped
-  ) {
-    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:wrappedAlready");
-    return;
-  }
-  addOneGateDiag(diagnostics, "bridgeAttempts", "callback:install");
-  let hostCallback =
-    typeof current === "function"
-      ? (current as (response: unknown) => void)
-      : undefined;
-  const callback = (response: unknown) => {
-    let parsed = response;
-    if (typeof response === "string") {
-      try {
-        parsed = JSON.parse(response);
-      } catch {
-        addOneGateDiag(diagnostics, "bridgeAttempts", "callback:parseError");
-        parsed = null;
-      }
-    }
-    const record =
-      parsed && typeof parsed === "object"
-        ? (parsed as Record<string, unknown>)
-        : {};
-    const id = String(record.id ?? "");
-    const pending = oneGateBridgePending.get(id);
-    if (pending) {
-      addOneGateDiag(diagnostics, "bridgeAttempts", "callback:pendingHit");
-      oneGateBridgePending.delete(id);
-      clearTimeout(pending.timeout);
-      if (record.error) pending.reject(record.error);
-      else pending.resolve(record.result);
-      return;
-    }
-    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:hostForward");
-    hostCallback?.(response);
-  };
-  (callback as { __oneGateVaultWrapped?: boolean }).__oneGateVaultWrapped =
-    true;
-  try {
-    Object.defineProperty(windowRef, "__OneGateDapiCallback", {
-      configurable: true,
-      enumerable: true,
-      get: () => callback,
-      set: (next: unknown) => {
-        if (next === callback) return;
-        addOneGateDiag(diagnostics, "bridgeAttempts", "callback:hostSet");
-        hostCallback =
-          typeof next === "function"
-            ? (next as (response: unknown) => void)
-            : undefined;
-      },
-    });
-    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:guarded");
-  } catch {
-    windowRef.__OneGateDapiCallback = callback;
-    addOneGateDiag(diagnostics, "bridgeAttempts", "callback:assigned");
-  }
-}
-
-function postOneGateBridgePayload(
-  windowRef: OneGateBridgeWindow,
-  payload: string,
-  diagnostics?: OneGateAddressDiagnostics,
-  label = "bridge",
-): boolean {
-  const invoke = windowRef.__OneGateBridge?.invoke;
-  if (typeof invoke === "function") {
-    invoke(payload);
-    addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:invoke`);
-    return true;
-  }
-
-  const webkitHandler =
-    windowRef.webkit?.messageHandlers?.__OneGateBridge?.postMessage;
-  if (typeof webkitHandler === "function") {
-    webkitHandler.call(
-      windowRef.webkit?.messageHandlers?.__OneGateBridge,
-      payload,
-    );
-    addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:webkit`);
-    return true;
-  }
-
-  return false;
-}
-
-function oneGateBridgeRpc(
-  method: string,
-  params: unknown[] = [],
-  timeoutMs = 20_000,
-  diagnostics?: OneGateAddressDiagnostics,
-  options: { includeParams?: boolean; label?: string } = {},
-): Promise<unknown> | null {
-  if (typeof window === "undefined") return null;
-  const windowRef = window as OneGateBridgeWindow;
-  const hasBridgeTransport =
-    typeof windowRef.__OneGateBridge?.invoke === "function" ||
-    typeof windowRef.webkit?.messageHandlers?.__OneGateBridge?.postMessage ===
-      "function";
-  if (!hasBridgeTransport) {
-    addOneGateDiag(
-      diagnostics,
-      "bridgeAttempts",
-      `${options.label || method}:missing`,
-    );
-    return null;
-  }
-  installOneGateBridgeCallback(windowRef, diagnostics);
-  const id = `onegate_vault_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      oneGateBridgePending.delete(id);
-      reject(new Error("OneGate bridge call timed out"));
-    }, timeoutMs);
-    oneGateBridgePending.set(id, { resolve, reject, timeout });
-    try {
-      const label = options.label || method;
-      addOneGateDiag(diagnostics, "bridgeAttempts", `${label}:sent`);
-      const request: Record<string, unknown> = {
-        jsonrpc: "2.0",
-        id,
-        method,
-      };
-      if (options.includeParams !== false) request.params = params;
-      const sent = postOneGateBridgePayload(
-        windowRef,
-        JSON.stringify(request),
-        diagnostics,
-        label,
-      );
-      if (!sent) throw new Error("OneGate bridge transport missing");
-    } catch (error) {
-      oneGateBridgePending.delete(id);
-      clearTimeout(timeout);
-      reject(error);
-    }
   });
 }
 
@@ -944,19 +756,6 @@ function immediateOneGateDapiProvider(): OneGateDapiProviderLike | null {
   return null;
 }
 
-function isOneGateIosBridgeRuntime(): boolean {
-  if (typeof window === "undefined") return false;
-  const ua =
-    typeof navigator !== "undefined" ? String(navigator.userAgent || "") : "";
-  if (!/iPhone|iPad|iPod/i.test(ua)) return false;
-  const oneGateWindow = window as OneGateBridgeWindow;
-  return (
-    typeof oneGateWindow.__OneGateBridge?.invoke === "function" ||
-    typeof oneGateWindow.webkit?.messageHandlers?.__OneGateBridge
-      ?.postMessage === "function"
-  );
-}
-
 function requestOneGateDapiProvider(diagnostics?: OneGateAddressDiagnostics) {
   if (typeof window === "undefined") return;
   if (diagnostics) diagnostics.providerRequests += 1;
@@ -1074,145 +873,6 @@ async function readOneGateProviderAddress(
   return "";
 }
 
-async function readOneGateBridgeAddress(
-  timeoutMs = 12_000,
-  diagnostics?: OneGateAddressDiagnostics,
-  network?: MiniAppLaunchContext["network"],
-): Promise<string> {
-  const challenge = oneGateAuthChallenge(network);
-  const variants = [
-    {
-      method: "getAccounts",
-      params: [] as unknown[],
-      includeParams: true,
-      label: "getAccounts",
-      delayMs: 0,
-    },
-    {
-      method: "GetAccounts",
-      params: [] as unknown[],
-      includeParams: false,
-      label: "GetAccountsNoParams",
-      delayMs: 250,
-    },
-    {
-      method: "getAccounts",
-      params: [] as unknown[],
-      includeParams: false,
-      label: "getAccountsNoParams",
-      delayMs: 500,
-    },
-    {
-      method: "authenticate",
-      params: [challenge] as unknown[],
-      includeParams: true,
-      label: "authenticate",
-      delayMs: 1_500,
-    },
-    {
-      method: "getAccounts",
-      params: [] as unknown[],
-      includeParams: true,
-      label: "getAccountsRetry",
-      delayMs: 2_500,
-    },
-  ];
-  const startedAt = Date.now();
-  let finished = false;
-
-  const attempts = variants.map(async (variant) => {
-    if (finished) return { address: "", missing: false };
-    if (variant.delayMs > 0) {
-      await oneGateDelay(
-        Math.min(
-          variant.delayMs,
-          Math.max(0, timeoutMs - (Date.now() - startedAt)),
-        ),
-      );
-    }
-    if (finished) return { address: "", missing: false };
-    const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-    if (remainingMs <= 0) return { address: "", missing: false };
-    try {
-      const accounts = await oneGateBridgeRpc(
-        variant.method,
-        variant.params,
-        remainingMs,
-        diagnostics,
-        {
-          includeParams: variant.includeParams,
-          label: variant.label,
-        },
-      );
-      if (accounts === null) return { address: "", missing: true };
-      const address =
-        variant.method === "authenticate"
-          ? await addressFromOneGateRecord(accounts)
-          : await addressFromOneGateAccounts(accounts);
-      if (address) {
-        addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:ok`);
-        return { address, missing: false };
-      }
-      addOneGateDiag(diagnostics, "bridgeAttempts", `${variant.label}:empty`);
-      return { address: "", missing: false };
-    } catch (error) {
-      addOneGateDiag(
-        diagnostics,
-        "bridgeAttempts",
-        `${variant.label}:${oneGateErrorCode(error)}`,
-      );
-      return { address: "", missing: false };
-    }
-  });
-
-  const pending = attempts.map((attempt, index) => ({ attempt, index }));
-  while (pending.length > 0) {
-    const { result, index } = await Promise.race(
-      pending.map(({ attempt, index }) =>
-        attempt.then((result) => ({ result, index })),
-      ),
-    );
-    const pendingIndex = pending.findIndex((item) => item.index === index);
-    if (pendingIndex >= 0) pending.splice(pendingIndex, 1);
-    if (result.address) {
-      finished = true;
-      return result.address;
-    }
-    if (result.missing) {
-      finished = true;
-      return "";
-    }
-  }
-
-  return "";
-}
-
-function firstOneGateAddress(promises: Promise<string>[]): Promise<string> {
-  if (promises.length === 0) return Promise.resolve("");
-  return new Promise((resolve) => {
-    let remaining = promises.length;
-    let settled = false;
-    for (const promise of promises) {
-      promise
-        .then((address) => {
-          if (settled) return;
-          if (address) {
-            settled = true;
-            resolve(address);
-            return;
-          }
-          remaining -= 1;
-          if (remaining === 0) resolve("");
-        })
-        .catch(() => {
-          if (settled) return;
-          remaining -= 1;
-          if (remaining === 0) resolve("");
-        });
-    }
-  });
-}
-
 async function pollOneGateProviderAddress(
   timeoutMs: number,
   diagnostics?: OneGateAddressDiagnostics,
@@ -1244,31 +904,6 @@ async function pollOneGateProviderAddress(
   return "";
 }
 
-async function pollOneGateBridgeAddress(
-  timeoutMs: number,
-  diagnostics?: OneGateAddressDiagnostics,
-  network?: MiniAppLaunchContext["network"],
-): Promise<string> {
-  const startedAt = Date.now();
-
-  do {
-    const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-    const bridgeAddress = await readOneGateBridgeAddress(
-      Math.min(remainingMs, 12_000),
-      diagnostics,
-      network,
-    );
-    if (bridgeAddress) return bridgeAddress;
-
-    if (Date.now() - startedAt >= timeoutMs) break;
-    await oneGateDelay(
-      Math.min(300, Math.max(0, timeoutMs - (Date.now() - startedAt))),
-    );
-  } while (true);
-
-  return "";
-}
-
 async function readOneGateInjectedAddressOnce(
   diagnostics?: OneGateAddressDiagnostics,
   network?: MiniAppLaunchContext["network"],
@@ -1289,32 +924,8 @@ async function waitForOneGateInjectedAddress(
   diagnostics?: OneGateAddressDiagnostics,
   network?: MiniAppLaunchContext["network"],
 ): Promise<string> {
-  const startedAt = Date.now();
-  const providerGraceMs = Math.min(ONEGATE_PROVIDER_GRACE_MS, timeoutMs);
-  const providerAddress = await pollOneGateProviderAddress(
-    providerGraceMs,
-    diagnostics,
-    network,
-  );
-  if (providerAddress) return providerAddress;
-
-  if (isOneGateIosBridgeRuntime()) {
-    addOneGateDiag(diagnostics, "providerAttempts", "ios:providerOnly");
-    return pollOneGateProviderAddress(
-      Math.max(0, timeoutMs - (Date.now() - startedAt)),
-      diagnostics,
-      network,
-    );
-  }
-
-  const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-  if (remainingMs <= 0) return "";
-
-  return firstOneGateAddress([
-    pollOneGateProviderAddress(remainingMs, diagnostics, network),
-    pollOneGateBridgeAddress(remainingMs, diagnostics, network),
-    oneGateDelay(remainingMs).then(() => ""),
-  ]);
+  addOneGateDiag(diagnostics, "providerAttempts", "providerOnly");
+  return pollOneGateProviderAddress(timeoutMs, diagnostics, network);
 }
 
 function luckPercentFromFixed8(value: unknown): string {
@@ -1365,6 +976,9 @@ export function useGasLuckyPool({
   launchContext,
   t,
 }: UseGasLuckyPoolOptions) {
+  const launchClaimKey = normalizeClaimKey(
+    getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""),
+  );
   const launchIdentity: ClaimLaunchIdentity = {
     poolId:
       normalizeClaimIdentity(
@@ -1377,7 +991,8 @@ export function useGasLuckyPool({
           ["oneGateAppId", "oneGateId", "onegateAppId"],
           "",
         ),
-      ) || undefined,
+      ) ||
+      (launchClaimKey ? ONEGATE_VAULT_DAPP_ID : undefined),
     appId: normalizeClaimIdentity(launchContext.appId) || APP_ID,
     walletAddress: walletAddressFromParams(launchContext) || undefined,
   };
@@ -1387,9 +1002,7 @@ export function useGasLuckyPool({
     ),
   );
   const currentClaimKey = createObservable(
-    normalizeClaimKey(
-      getLaunchParam(launchContext, ["claimKey", "key", "code", "k"], ""),
-    ),
+    launchClaimKey,
   );
   const currentPool = createObservable<GasLuckyPool | null>(null);
   const recentPools = createObservable<GasLuckyPool[]>([]);
@@ -1769,6 +1382,12 @@ export function useGasLuckyPool({
         launchContext.network,
       );
       if (injectedAddress) return injectedAddress;
+      await throwOneGateAddressRequiredError({
+        message: t("oneGateWalletAddressRequired"),
+        diagnostics,
+        launchContext,
+        identity,
+      });
     }
 
     if (currentClaimKey.get()) {
