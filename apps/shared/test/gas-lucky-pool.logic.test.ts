@@ -32,6 +32,8 @@ describe("OneGate Vault runtime logic", () => {
     delete (window as any).OneGate;
     delete (window as any).OneGateDapiProvider;
     delete (window as any).Neo;
+    delete (window as any).NEP21Provider;
+    delete (window as any).NEP21Providers;
     delete (window as any).__OneGateBridge;
     delete (window as any).__OneGateDapiCallback;
     delete (window as any).webkit;
@@ -285,6 +287,46 @@ describe("OneGate Vault runtime logic", () => {
     expect(pool.lastTxid.get()).toBe("0xonegate");
   });
 
+  it("starts OneGate NEP-21 discovery when a scanned vault page initializes", async () => {
+    vi.useFakeTimers();
+    const provider = {
+      name: "OneGate",
+      dapiVersion: "1.0",
+      compatibility: ["NEP-21"],
+      getAccounts: vi.fn().mockResolvedValue([{ address: ONEGATE_OWNER }]),
+    };
+    const chain = {
+      ensureWallet: vi
+        .fn()
+        .mockRejectedValue(new Error("generic wallet unavailable")),
+      invoke: vi.fn(),
+    };
+    let requestCount = 0;
+    const emitProviderOnce = () => {
+      requestCount += 1;
+      if (requestCount !== 1) return;
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("Neo.DapiProvider.ready", {
+            detail: { provider },
+          }),
+        );
+      }, 0);
+    };
+    window.addEventListener("Neo.DapiProvider.request", emitProviderOnce);
+
+    const pool = useGasLuckyPool({
+      chain: chain as any,
+      launchContext: keyLaunch(CLAIM_KEY, `&walletAddress=${OWNER}`),
+      t,
+    });
+    await vi.advanceTimersByTimeAsync(1);
+    window.removeEventListener("Neo.DapiProvider.request", emitProviderOnce);
+
+    expect(pool.currentClaimKey.get()).toBe(CLAIM_KEY);
+    expect(requestCount).toBe(1);
+  });
+
   it("builds future claim QR links with explicit OneGate claim context", () => {
     const chain = {
       ensureWallet: vi.fn(),
@@ -414,7 +456,7 @@ describe("OneGate Vault runtime logic", () => {
       "/api/onegate-vault/claim",
       expect.anything(),
     );
-    expect(pool.lastError.get()).toContain("provider=direct");
+    expect(pool.lastError.get()).toContain("provider=nep21");
     expect(pool.lastError.get()).toContain("accounts:empty");
     expect(pool.lastError.get()).not.toContain("pick");
   });
