@@ -3,6 +3,8 @@ import { OneGateAdapter } from "@/lib/wallet/adapters/onegate";
 describe("OneGateAdapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete (window as unknown as { NEP21Provider?: unknown }).NEP21Provider;
+    delete (window as unknown as { NEP21Providers?: unknown }).NEP21Providers;
     delete (window as unknown as { OneGate?: unknown }).OneGate;
     delete (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider;
     delete (window as unknown as { Neo?: unknown }).Neo;
