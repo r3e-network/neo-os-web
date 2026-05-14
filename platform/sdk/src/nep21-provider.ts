@@ -91,7 +91,6 @@ export type Nep21Window = Window & {
 type Candidate = {
   provider: unknown;
   key?: string;
-  source: string;
 };
 
 let cachedProvider: NeoDapiProvider | null = null;
@@ -139,19 +138,18 @@ function registryCandidates(registry: Nep21Window["NEP21Providers"]): Candidate[
     ([key, provider]) => ({
       key,
       provider,
-      source: `NEP21Providers.${key}`,
     }),
   );
 }
 
 function providerCandidates(win: Nep21Window): Candidate[] {
   return [
-    { provider: win.NEP21Provider, source: "NEP21Provider" },
+    { provider: win.NEP21Provider },
     ...registryCandidates(win.NEP21Providers),
-    { provider: win.OneGateDapiProvider, source: "OneGateDapiProvider" },
-    { provider: win.Neo?.DapiProvider, source: "Neo.DapiProvider" },
-    { provider: win.neoDapiProvider, source: "neoDapiProvider" },
-    { provider: win.neoDapi, source: "neoDapi" },
+    { provider: win.OneGateDapiProvider },
+    { provider: win.Neo?.DapiProvider },
+    { provider: win.neoDapiProvider },
+    { provider: win.neoDapi },
   ];
 }
 

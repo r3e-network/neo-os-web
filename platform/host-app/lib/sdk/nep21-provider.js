@@ -35,17 +35,16 @@ function registryCandidates(registry) {
     return Object.entries(registry).map(([key, provider]) => ({
         key,
         provider,
-        source: `NEP21Providers.${key}`,
     }));
 }
 function providerCandidates(win) {
     return [
-        { provider: win.NEP21Provider, source: "NEP21Provider" },
+        { provider: win.NEP21Provider },
         ...registryCandidates(win.NEP21Providers),
-        { provider: win.OneGateDapiProvider, source: "OneGateDapiProvider" },
-        { provider: win.Neo?.DapiProvider, source: "Neo.DapiProvider" },
-        { provider: win.neoDapiProvider, source: "neoDapiProvider" },
-        { provider: win.neoDapi, source: "neoDapi" },
+        { provider: win.OneGateDapiProvider },
+        { provider: win.Neo?.DapiProvider },
+        { provider: win.neoDapiProvider },
+        { provider: win.neoDapi },
     ];
 }
 function providerMatchesPreference(win, provider, preference, key) {
