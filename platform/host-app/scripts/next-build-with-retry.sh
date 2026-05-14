@@ -86,6 +86,18 @@ clean_next_output() {
   return 0
 }
 
+clean_playwright_standalone() {
+  # The Playwright standalone directory is generated from Next's standalone
+  # output. If it exists during `next build`, Next's file tracing can capture it
+  # and produce a recursive `.playwright-standalone/.../.playwright-standalone`
+  # tree that eventually hits ENAMETOOLONG on macOS (readlink).
+  if [[ -d .playwright-standalone ]]; then
+    chmod -R u+w .playwright-standalone >/dev/null 2>&1 || true
+    rm -rf .playwright-standalone >/dev/null 2>&1 || true
+  fi
+  return 0
+}
+
 kill_stray_next_builds() {
   local repo_root=""
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
@@ -110,6 +122,7 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
   # seen with standalone output on some local filesystems.
   kill_stray_next_builds
   clean_next_output
+  clean_playwright_standalone
 
   : >"$tmp_log"
   set +e
