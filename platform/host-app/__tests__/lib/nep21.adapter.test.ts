@@ -12,6 +12,8 @@ function installProvider(provider: unknown) {
 describe("Nep21Adapter", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete (window as unknown as { NEP21Provider?: unknown }).NEP21Provider;
+    delete (window as unknown as { NEP21Providers?: unknown }).NEP21Providers;
     delete (window as unknown as { Neo?: unknown }).Neo;
     delete (window as unknown as { OneGateDapiProvider?: unknown }).OneGateDapiProvider;
     delete (window as unknown as { neoDapiProvider?: unknown }).neoDapiProvider;
@@ -211,6 +213,52 @@ describe("Nep21Adapter", () => {
     );
   });
 
+  it("detects a governance-style NEP21Provider global immediately", async () => {
+    const provider = {
+      name: "OneGate",
+      dapiVersion: "1.0",
+      network: 894710606,
+      compatibility: ["NEP-21"],
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xproviderhash", address: "NProviderAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xprovider" }),
+    };
+    (window as unknown as { NEP21Provider?: unknown }).NEP21Provider = provider;
+
+    const adapter = new Nep21Adapter();
+
+    expect(adapter.isInstalled()).toBe(true);
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NProviderAddress",
+      network: "testnet",
+    });
+  });
+
+  it("detects a named governance-style NEP21Providers registry entry", async () => {
+    const provider = {
+      name: "OneGate",
+      dapiVersion: "1.0",
+      network: 894710606,
+      compatibility: ["NEP-21"],
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xregistryhash", address: "NRegistryAddress", isDefault: true },
+      ]),
+      invoke: jest.fn().mockResolvedValue({ txid: "0xregistry" }),
+    };
+    (window as unknown as { NEP21Providers?: Record<string, unknown> }).NEP21Providers = {
+      OneGate: provider,
+    };
+
+    const adapter = new Nep21Adapter();
+
+    expect(adapter.isInstalled()).toBe(true);
+    await expect(adapter.connect()).resolves.toMatchObject({
+      address: "NRegistryAddress",
+      network: "testnet",
+    });
+  });
+
   it("accepts the standard Neo.DapiProvider.ready event", async () => {
     const provider = {
       getAccounts: jest.fn().mockResolvedValue([
@@ -230,6 +278,25 @@ describe("Nep21Adapter", () => {
       publicKey: "",
       label: undefined,
       network: null,
+    });
+  });
+
+  it("accepts ready events where detail is the NEP-21 provider itself", async () => {
+    const provider = {
+      getAccounts: jest.fn().mockResolvedValue([
+        { hash: "0xdirecteventhash", address: "NDirectEventAddress", isDefault: true },
+      ]),
+      invoke: jest.fn(),
+    };
+
+    const adapter = new Nep21Adapter();
+    const connected = adapter.connect();
+    window.dispatchEvent(new CustomEvent("Neo.DapiProvider.ready", {
+      detail: provider,
+    }));
+
+    await expect(connected).resolves.toMatchObject({
+      address: "NDirectEventAddress",
     });
   });
 });
