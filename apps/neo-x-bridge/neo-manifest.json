@@ -57,7 +57,7 @@
       {
         "name": "Bridge Asset",
         "method": "bridgeAsset",
-        "description": "Stage a Neo N3 / Neo X asset bridge intent and mirror it in the playarea route board.",
+        "description": "Prepare a Neo N3 / Neo X asset bridge intent and mirror it in the playarea route board.",
         "button_style": "success",
         "params": [
           {
@@ -82,7 +82,7 @@
       {
         "name": "Send Message",
         "method": "bridgeMessage",
-        "description": "Stage a Message Bridge payload for the selected target contract.",
+        "description": "Prepare a Message Bridge payload for the selected target contract.",
         "button_style": "secondary",
         "params": [
           {

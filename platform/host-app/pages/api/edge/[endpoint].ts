@@ -111,6 +111,22 @@ export default async function handler(
     return;
   }
 
+  // Some OS-style endpoints are safe to answer without the configured edge
+  // gateway: they are read-only views that intentionally return defaults when
+  // the caller has not provided wallet credentials. E2E validation relies on
+  // this behavior to avoid noisy 500s (and browser console errors) when
+  // exercising the public surfaces.
+  if (!hasCallerCredential(req) && endpoint in UNAUTHENTICATED_READ_DEFAULTS) {
+    res.setHeader("Cache-Control", "no-store, private");
+    res.setHeader("X-MiniApp-Edge-State", "wallet-required");
+    res.status(200).json({
+      ok: true,
+      data: UNAUTHENTICATED_READ_DEFAULTS[endpoint],
+      meta: { state: "wallet_required" },
+    });
+    return;
+  }
+
   const method = String(req.method || "GET").toUpperCase();
   const hasBody = !(method === "GET" || method === "HEAD");
   const rawBody = hasBody ? await readRawBody(req) : undefined;
@@ -122,16 +138,6 @@ export default async function handler(
       res,
       "EDGE_BASE_URL (or NEXT_PUBLIC_EDGE_URL / NEXT_PUBLIC_SUPABASE_URL) not configured",
     );
-    return;
-  }
-  if (!hasCallerCredential(req) && endpoint in UNAUTHENTICATED_READ_DEFAULTS) {
-    res.setHeader("Cache-Control", "no-store, private");
-    res.setHeader("X-MiniApp-Edge-State", "wallet-required");
-    res.status(200).json({
-      ok: true,
-      data: UNAUTHENTICATED_READ_DEFAULTS[endpoint],
-      meta: { state: "wallet_required" },
-    });
     return;
   }
 

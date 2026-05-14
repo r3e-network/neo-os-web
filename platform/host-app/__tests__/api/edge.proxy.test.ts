@@ -110,7 +110,7 @@ describe("/api/edge/[endpoint]", () => {
     );
   });
 
-  it("does not synthesize OS service data when edge is not configured", async () => {
+  it("returns neutral read state for unauthenticated OS calls even when edge is not configured", async () => {
     delete process.env.EDGE_BASE_URL;
     delete process.env.NEXT_PUBLIC_EDGE_URL;
     delete process.env.MINIAPP_EDGE_ALLOWLIST;
@@ -131,10 +131,13 @@ describe("/api/edge/[endpoint]", () => {
 
     await handler(req, res);
 
-    expect(res._getStatusCode()).toBe(500);
-    expect(JSON.parse(res._getData()).error.message).toMatch(
-      /EDGE_BASE_URL/,
-    );
+    expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("X-MiniApp-Edge-State")).toBe("wallet-required");
+    expect(JSON.parse(res._getData())).toEqual({
+      ok: true,
+      data: null,
+      meta: { state: "wallet_required" },
+    });
   });
 
   it("returns neutral read state for unauthenticated read-only OS calls", async () => {
