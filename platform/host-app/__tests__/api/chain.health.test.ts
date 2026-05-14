@@ -4,6 +4,13 @@ import type { NextApiRequest, NextApiResponse } from "next";
 describe("/api/chain/health", () => {
   const mockFetch = jest.fn();
 
+  function buildRpcResponse(payload: unknown) {
+    return {
+      ok: true,
+      json: async () => payload,
+    };
+  }
+
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
@@ -25,15 +32,20 @@ describe("/api/chain/health", () => {
 
     process.env.NEO_RPC_TESTNET = "https://rpc.example.test";
 
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: 101 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: { time: Math.floor(Date.now() / 1000) } }),
-      });
+    const nowSec = Math.floor(Date.now() / 1000);
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url !== "https://rpc.example.test") {
+        throw new Error("upstream unavailable");
+      }
+      const body = JSON.parse(String(init?.body || "{}"));
+      if (body.method === "getblockcount") {
+        return buildRpcResponse({ result: 101 });
+      }
+      if (body.method === "getblockheader") {
+        return buildRpcResponse({ result: { time: nowSec } });
+      }
+      throw new Error(`unexpected rpc method: ${body.method}`);
+    });
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
@@ -42,8 +54,7 @@ describe("/api/chain/health", () => {
 
     await handler(req, res);
 
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      1,
+    expect(mockFetch).toHaveBeenCalledWith(
       "https://rpc.example.test",
       expect.objectContaining({ method: "POST" }),
     );
@@ -61,16 +72,22 @@ describe("/api/chain/health", () => {
 
     process.env.NEO_RPC_MAINNET = "https://primary.example,https://secondary.example";
 
-    mockFetch
-      .mockRejectedValueOnce(new DOMException("The operation was aborted", "TimeoutError"))
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: 202 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: { time: Date.now() } }),
-      });
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "https://primary.example") {
+        throw new DOMException("The operation was aborted", "TimeoutError");
+      }
+      if (url !== "https://secondary.example") {
+        throw new Error("upstream unavailable");
+      }
+      const body = JSON.parse(String(init?.body || "{}"));
+      if (body.method === "getblockcount") {
+        return buildRpcResponse({ result: 202 });
+      }
+      if (body.method === "getblockheader") {
+        return buildRpcResponse({ result: { time: Date.now() } });
+      }
+      throw new Error(`unexpected rpc method: ${body.method}`);
+    });
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
@@ -79,13 +96,11 @@ describe("/api/chain/health", () => {
 
     await handler(req, res);
 
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      1,
+    expect(mockFetch).toHaveBeenCalledWith(
       "https://primary.example",
       expect.objectContaining({ method: "POST" }),
     );
-    expect(mockFetch).toHaveBeenNthCalledWith(
-      2,
+    expect(mockFetch).toHaveBeenCalledWith(
       "https://secondary.example",
       expect.objectContaining({ method: "POST" }),
     );
@@ -105,15 +120,19 @@ describe("/api/chain/health", () => {
 
     process.env.NEO_RPC_TESTNET = "https://rpc.example.test";
 
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: 303 }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ result: { time: nowMs - 30_000 } }),
-      });
+    mockFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url !== "https://rpc.example.test") {
+        throw new Error("upstream unavailable");
+      }
+      const body = JSON.parse(String(init?.body || "{}"));
+      if (body.method === "getblockcount") {
+        return buildRpcResponse({ result: 303 });
+      }
+      if (body.method === "getblockheader") {
+        return buildRpcResponse({ result: { time: nowMs - 30_000 } });
+      }
+      throw new Error(`unexpected rpc method: ${body.method}`);
+    });
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",

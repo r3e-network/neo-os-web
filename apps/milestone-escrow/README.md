@@ -1,6 +1,6 @@
 # Milestone Escrow
 
-Staged escrow releases with explicit milestone approvals.
+Milestone-based escrow releases with explicit approval and claim steps.
 
 ## Overview
 
