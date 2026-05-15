@@ -1340,8 +1340,6 @@ async function provisionGasBoxMachine(contractHash) {
     Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.string(machineName),
     Neon.sc.ContractParam.integer("10000000"),
-    Neon.sc.ContractParam.integer("250"),
-    Neon.sc.ContractParam.byteArray(""),
   ]);
   const createLog = await waitForLog(createTx);
   if (createLog.execution.vmstate !== "HALT") {

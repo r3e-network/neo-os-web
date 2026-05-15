@@ -53,11 +53,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [InlineData("PlatformSocial")]
         public void PlatformContractsExposeAdminGatedUpdate(string contractName)
         {
-            string code = ContractSourceAssertions.ReadSource(
+            string code = ContractSourceAssertions.ReadSourcesInDirectory(
                 "contracts",
                 "platform",
-                contractName,
-                $"{contractName}.cs");
+                contractName);
 
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "void", "Update");
             Assert.Contains("ValidateAdmin();", code);
