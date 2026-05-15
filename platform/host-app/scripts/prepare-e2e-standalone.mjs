@@ -1,10 +1,21 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = path.join(appRoot, ".next", "standalone");
-const targetRoot = path.join(appRoot, ".playwright-standalone");
+const targetPathFile = path.join(appRoot, ".playwright-standalone-path.txt");
+let previousTargetRoot = "";
+try {
+  previousTargetRoot = fs.readFileSync(targetPathFile, "utf8").trim();
+} catch {}
+// Best-effort cleanup of old temp copies.
+// IMPORTANT: do not delete the previous directory here. The Playwright webServer may
+// still be running from that location, and removing it mid-suite manifests as
+// ERR_CONNECTION_REFUSED / ENOENT for static pages. Cleanup is left to the OS.
+
+const targetRoot = fs.mkdtempSync(path.join(os.tmpdir(), "neo-miniapp-host-playwright-standalone."));
 const targetAppRoot = path.join(targetRoot, "platform", "host-app");
 
 const requiredFiles = [
@@ -32,12 +43,12 @@ for (const relativePath of requiredFiles) {
   requireFile(path.join(sourceRoot, "platform", "host-app"), relativePath);
 }
 
-fs.rmSync(targetRoot, { recursive: true, force: true });
-fs.mkdirSync(path.dirname(targetRoot), { recursive: true });
 fs.cpSync(sourceRoot, targetRoot, { recursive: true, dereference: true });
 
 for (const relativePath of requiredFiles) {
   requireFile(targetAppRoot, relativePath);
 }
 
+fs.writeFileSync(targetPathFile, `${targetRoot}\n`, "utf8");
 console.log(`[prepare-e2e-standalone] copied ${sourceRoot} -> ${targetRoot}`);
+console.log(`[prepare-e2e-standalone] wrote ${targetPathFile}`);

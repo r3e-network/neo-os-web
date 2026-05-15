@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const cases = [
   {
@@ -25,6 +26,16 @@ const cases = [
     file: "deploy/scripts/live_validate_remaining_contracts_part3.js",
     envVar: "REMAINING_MINIAPP_SMOKE_PART3_REPORT_PATH",
     defaultPath: "docs/reports/live-smoke/remaining-contracts-part3.json",
+  },
+  {
+    file: "deploy/scripts/live_validate_council_governance.js",
+    envVar: "COUNCIL_GOVERNANCE_LIVE_REPORT_PATH",
+    defaultPath: "docs/reports/live-smoke/council-governance.json",
+  },
+  {
+    file: "deploy/scripts/live_validate_aa_ns_miniapps.js",
+    envVar: "AA_NS_MINIAPP_SMOKE_REPORT_PATH",
+    defaultPath: "docs/reports/live-smoke/aa-ns-miniapps.json",
   },
 ];
 

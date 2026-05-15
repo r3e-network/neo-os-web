@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 test("cross-repo testnet script honors RPC overrides and retries transient Neo RPC resets", () => {
   const script = fs.readFileSync(path.join(repoRoot, "deploy/scripts/verify_cross_repo_testnet.sh"), "utf8");
