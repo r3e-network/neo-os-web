@@ -706,12 +706,16 @@ async function invokeAaUserOpPersisted({
   finalTx.addWitness(aaWitness);
   const ownerGasBeforeSend = await getGasBalance(ownerHash);
   const proxyGasBeforeSend = await getGasBalance(proxyAccount);
+  const accountIdGasBeforeSend = await getGasBalance(accountId);
+  const finalSender = normalizeHash160(finalTx.sender.toBigEndian());
+  const finalSignerAccounts = finalTx.signers.map((signer) => normalizeHash160(signer.account.toBigEndian())).join(",");
+  const finalWitnessHashes = finalTx.witnesses.map((witness) => normalizeHash160(witness.scriptHash)).join(",");
   let sent;
   try {
     sent = await cozRpcClient.sendRawTransaction(finalTx);
   } catch (error) {
     throw new Error(
-      `${method} executeUserOp send failed: ${error?.message || error}; ownerSigner=${normalizeHash160(ownerHash)}; proxySigner=${normalizeHash160(proxyAccount)}; ownerGas=${ownerGasBeforeSend.toString()}; proxyGas=${proxyGasBeforeSend.toString()}; systemFee=${String(baseTx.systemFee)}; networkFee=${networkFee.toString()}`
+      `${method} executeUserOp send failed: ${error?.message || error}; ownerSigner=${normalizeHash160(ownerHash)}; proxySigner=${normalizeHash160(proxyAccount)}; accountId=${normalizeHash160(accountId)}; txSender=${finalSender}; txSigners=${finalSignerAccounts}; witnessHashes=${finalWitnessHashes}; ownerGas=${ownerGasBeforeSend.toString()}; proxyGas=${proxyGasBeforeSend.toString()}; accountIdGas=${accountIdGasBeforeSend.toString()}; systemFee=${String(baseTx.systemFee)}; networkFee=${networkFee.toString()}`
     );
   }
   const txid = asTxid(typeof sent === "string" ? sent : sent?.hash || finalTx.hash());
@@ -2250,9 +2254,31 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
     };
   }
 
-  const fromAgentHash = normalizeHash160(state.firstAgent.account);
   const amount = BigInt(String(process.env.ANCHOR_LIVE_REBALANCE_NEO || process.env.ANCHOR_LIVE_AGENT_TRANSFER_NEO || "1"));
+  const transferCandidates = [state.firstAgent, state.secondAgent].filter(Boolean);
+  const candidateBalances = [];
+  for (const candidate of transferCandidates) {
+    candidateBalances.push({
+      agent: candidate,
+      balance: await getNeoBalance(normalizeHash160(candidate.account)),
+    });
+  }
+  candidateBalances.sort((a, b) => {
+    const aEnough = a.balance >= amount ? 1 : 0;
+    const bEnough = b.balance >= amount ? 1 : 0;
+    if (aEnough !== bEnough) return bEnough - aEnough;
+    if (a.balance === b.balance) return Number(toBigIntValue(a.agent.agentId) - toBigIntValue(b.agent.agentId));
+    return a.balance > b.balance ? -1 : 1;
+  });
+
+  const sourceAgent = candidateBalances[0]?.agent || state.firstAgent;
+  const targetAgent =
+    transferCandidates.find((candidate) => String(candidate.agentId) !== String(sourceAgent.agentId))
+    || state.secondAgent;
+  const fromAgentHash = normalizeHash160(sourceAgent.account);
+  const toAgentHash = normalizeHash160(targetAgent.account);
   let sourceBalance = await getNeoBalance(fromAgentHash);
+  const targetBalanceBefore = await getNeoBalance(toAgentHash);
   let fundingTx = null;
   let fundingCandidates = [];
   if (
@@ -2277,7 +2303,7 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
         selectedFunder,
         fromAgentHash,
         (amount - sourceBalance).toString(),
-        `${config.appId}:agent-1-live-smoke`,
+        `${config.appId}:agent-${sourceAgent.agentId}-live-smoke`,
       );
       sourceBalance = await getNeoBalance(fromAgentHash);
     } catch {
@@ -2301,6 +2327,8 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
         message: "AA control path is ready; fund the source AA agent account with NEO, or set ANCHOR_AGENT_NEO_FUNDER_WIF for this validation script to fund it before running the AA user operation.",
       },
       fundingTx,
+      sourceAgent: fromAgentHash,
+      sourceAgentId: String(sourceAgent.agentId),
     };
   }
 
@@ -2310,31 +2338,34 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
       reason: "needs-anchor-aa-userop-writer",
       message: `${config.label} AA proxy state is ready; set ANCHOR_LIVE_WRITE_SMOKE=1 to submit the live executeUserOp transferAgentNeo/voteAgent smoke`,
       sourceAgent: fromAgentHash,
-      sourceAccountId: state.firstAgent.accountId,
+      sourceAgentId: String(sourceAgent.agentId),
+      sourceAccountId: sourceAgent.accountId,
+      targetAgent: toAgentHash,
+      targetAgentId: String(targetAgent.agentId),
+      targetAccountId: targetAgent.accountId,
       amount: amount.toString(),
     };
   }
 
   const sourceGasFunding = await ensureAnchorProxyGas(fromAgentHash, config, "source");
   if (sourceGasFunding?.deferred) return sourceGasFunding;
-  const sourceAccountGasFunding = await ensureAnchorProxyGas(state.firstAgent.accountId, config, "source-account");
+  const sourceAccountGasFunding = await ensureAnchorProxyGas(sourceAgent.accountId, config, "source-account");
   if (sourceAccountGasFunding?.deferred) return sourceAccountGasFunding;
 
-  const toAgentHash = normalizeHash160(state.secondAgent.account);
   const transferTx = await invokeAaUserOpPersisted({
-    accountId: state.firstAgent.accountId,
+    accountId: sourceAgent.accountId,
     proxyAccount: fromAgentHash,
     targetContract: contractHash,
     method: "transferAgentNeo",
     args: [
       Neon.sc.ContractParam.string(config.appId),
-      Neon.sc.ContractParam.integer("1"),
-      Neon.sc.ContractParam.integer("2"),
+      Neon.sc.ContractParam.integer(String(sourceAgent.agentId)),
+      Neon.sc.ContractParam.integer(String(targetAgent.agentId)),
       Neon.sc.ContractParam.integer(amount.toString()),
     ],
   });
-  const secondBalance = await getNeoBalance(toAgentHash);
-  if (secondBalance < amount) {
+  const targetBalanceAfter = await getNeoBalance(toAgentHash);
+  if (targetBalanceAfter < targetBalanceBefore + amount) {
     return {
       deferred: true,
       reason: "needs-anchor-second-agent-neo-after-transfer",
@@ -2342,8 +2373,11 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
       sourceGasFunding,
       sourceAccountGasFunding,
       secondAgent: toAgentHash,
+      targetAgent: toAgentHash,
+      targetAgentId: String(targetAgent.agentId),
       requiredNeo: amount.toString(),
-      availableNeo: secondBalance.toString(),
+      beforeNeo: targetBalanceBefore.toString(),
+      afterNeo: targetBalanceAfter.toString(),
     };
   }
   const targetGasFunding = await ensureAnchorProxyGas(toAgentHash, config, "target");
@@ -2355,7 +2389,7 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
       sourceAccountGasFunding,
     };
   }
-  const targetAccountGasFunding = await ensureAnchorProxyGas(state.secondAgent.accountId, config, "target-account");
+  const targetAccountGasFunding = await ensureAnchorProxyGas(targetAgent.accountId, config, "target-account");
   if (targetAccountGasFunding?.deferred) {
     return {
       ...targetAccountGasFunding,
@@ -2366,13 +2400,13 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
     };
   }
   const voteTx = await invokeAaUserOpPersisted({
-    accountId: state.secondAgent.accountId,
+    accountId: targetAgent.accountId,
     proxyAccount: toAgentHash,
     targetContract: contractHash,
     method: "voteAgent",
     args: [
       Neon.sc.ContractParam.string(config.appId),
-      Neon.sc.ContractParam.integer("2"),
+      Neon.sc.ContractParam.integer(String(targetAgent.agentId)),
     ],
   });
 
@@ -2386,9 +2420,11 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
     targetGasFunding,
     targetAccountGasFunding,
     sourceAgent: fromAgentHash,
-    sourceAccountId: state.firstAgent.accountId,
+    sourceAgentId: String(sourceAgent.agentId),
+    sourceAccountId: sourceAgent.accountId,
     targetAgent: toAgentHash,
-    targetAccountId: state.secondAgent.accountId,
+    targetAgentId: String(targetAgent.agentId),
+    targetAccountId: targetAgent.accountId,
     amount: amount.toString(),
   };
 }

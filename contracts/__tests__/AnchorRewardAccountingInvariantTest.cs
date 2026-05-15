@@ -11,7 +11,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorCarriesDistributionAndUserRewardRemainders()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("PREFIX_REWARD_REMAINDER", code);
             Assert.Contains("PREFIX_TOTAL_REWARD_RESERVE", code);
@@ -29,7 +29,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorLetsUsersExitAndClaimWhenPaused()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             string withdraw = ExtractMethod(code, "Withdraw");
             Assert.Contains("ValidateRegistered(appId)", withdraw);
@@ -43,7 +43,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorManualAgentActionsUseAgentWitnessWithoutAdminCosign()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             string transferAgentNeo = ExtractMethod(code, "TransferAgentNeo");
             Assert.DoesNotContain("ValidateAppAuthority(appId)", transferAgentNeo);
@@ -51,12 +51,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
             string transferNeoBetweenSameAppAgents = ExtractMethod(code, "TransferNeoBetweenSameAppAgents");
             Assert.DoesNotContain("ValidateAppAuthority(appId)", transferNeoBetweenSameAppAgents);
-            Assert.Contains("Runtime.CheckWitness(fromAgent)", transferNeoBetweenSameAppAgents);
+            Assert.Contains("HasAgentExecutionWitness(fromAgent)", transferNeoBetweenSameAppAgents);
             Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", transferNeoBetweenSameAppAgents);
 
             string voteAgent = ExtractMethod(code, "VoteAgent");
             Assert.DoesNotContain("ValidateAppAuthority(appId)", voteAgent);
-            Assert.Contains("Runtime.CheckWitness(agentAccount)", voteAgent);
+            Assert.Contains("HasAgentExecutionWitness(agentAccount)", voteAgent);
+
+            Assert.Contains("private static bool HasAgentExecutionWitness(UInt160 agentAccount)", code);
+            Assert.Contains("Runtime.CheckWitness(agentAccount)", code);
+            Assert.Contains("Runtime.CallingScriptHash == abstractAccount", code);
 
             string setAgentCandidate = ExtractMethod(code, "SetAgentCandidate");
             Assert.Contains("ValidateAppAuthority(appId)", setAgentCandidate);
