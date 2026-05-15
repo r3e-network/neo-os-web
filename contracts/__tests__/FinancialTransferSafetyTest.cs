@@ -15,14 +15,14 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformDeFiLendingWrapsNEOTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformDeFi.Lending*.cs", "contracts", "platform", "PlatformDeFi");
             Assert.Contains("ExecutionEngine.Assert", code);
         }
 
         [Fact]
         public void PlatformDeFiLendingOnlyPaysLoanFundsToBorrower()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformDeFi.Lending*.cs", "contracts", "platform", "PlatformDeFi");
 
             Assert.Contains("private static void TransferLoanGasToBorrower", code);
             Assert.Contains("GAS.Transfer(Runtime.ExecutingScriptHash, borrower, amount)", code);
@@ -61,7 +61,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialEnvelopeWrapsGASTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
             Assert.Contains("ExecutionEngine.Assert", code);
             Assert.Contains("GAS.Transfer", code);
         }
@@ -69,7 +69,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialRangeGasPoolWrapsPayoutTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
             Assert.Contains("ClaimRangeGasPool", code);
             Assert.Contains("ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, claimer, amount)", code);
         }
@@ -85,7 +85,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialPayoutsStayWithinTheirDomainRoles()
         {
-            string envelope = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
+            string envelope = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
             string trust = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Trust.cs");
             string vault = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Vault.cs");
 
@@ -109,7 +109,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public void PlatformGamePayoutsStayBoundToGameWinnersAndPlayers()
         {
             string countdown = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Countdown*.cs", "contracts", "platform", "PlatformGame");
-            string coinFlip = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.CoinFlip.cs");
+            string coinFlip = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.CoinFlip*.cs", "contracts", "platform", "PlatformGame");
             string gacha = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Gacha*.cs", "contracts", "platform", "PlatformGame");
             string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
 
