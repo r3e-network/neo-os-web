@@ -93,6 +93,7 @@ async function contractExists(rpcUrl, hash) {
         method: "getcontractstate",
         params: [hash],
       }),
+      signal: AbortSignal.timeout(8000),
     });
     const data = await response.json();
     if (data.error) {
@@ -104,24 +105,36 @@ async function contractExists(rpcUrl, hash) {
   }
 }
 
-async function rpcCall(rpcUrl, method, params = []) {
-  const response = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method,
-      params,
-    }),
-  });
-  const data = await response.json();
-  if (data.error) throw new Error(data.error.message || "rpc error");
-  return data.result;
+async function rpcCall(rpcUrl, method, params = [], { timeoutMs = 8000, attempts = 3 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method,
+          params,
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const data = await response.json();
+      if (data?.error) throw new Error(data.error.message || "rpc error");
+      return data?.result;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+      }
+    }
+  }
+  throw new Error(lastError instanceof Error ? lastError.message : String(lastError || "rpc error"));
 }
 
 async function assertRpcNetwork(rpcUrl, expectedMagic, label) {
-  const version = await rpcCall(rpcUrl, "getversion");
+  const version = await rpcCall(rpcUrl, "getversion", [], { timeoutMs: 8000, attempts: 3 });
   const networkMagic = Number(version?.protocol?.network);
   if (networkMagic !== expectedMagic) {
     throw new Error(
@@ -179,7 +192,15 @@ async function main() {
     .filter((name) => fs.existsSync(path.join(APPS_DIR, name, "neo-manifest.json")));
   const rows = [];
 
+  const startedAt = Date.now();
   for (const app of apps) {
+    if (rows.length > 0 && rows.length % 5 === 0) {
+      const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+      console.error(
+        `[audit:miniapps:coverage] progress ${rows.length}/${apps.length} elapsed=${elapsedSec}s`,
+      );
+    }
+
     const manifest = readJson(path.join(APPS_DIR, app, "neo-manifest.json"));
     const sourcePresent = hasContractSource(app, manifest);
     const testnetHash = String(manifest.contracts?.["neo-n3-testnet"] || "").trim();

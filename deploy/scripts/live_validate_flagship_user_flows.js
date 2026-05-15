@@ -124,6 +124,16 @@ const SELF_LOAN_POOL_TOPUP = process.env.SELF_LOAN_POOL_TOPUP || "30000000";
 const SELF_LOAN_COLLATERAL = "1";
 const ANCHOR_LIVE_STAKE_NEO = process.env.ANCHOR_LIVE_STAKE_NEO || "1";
 const ANCHOR_LIVE_REWARD_TOPUP = process.env.ANCHOR_LIVE_REWARD_TOPUP || "1000000";
+const ANCHOR_LIVE_AGENT_MIN_GAS = process.env.ANCHOR_LIVE_AGENT_MIN_GAS || "10000000";
+const ANCHOR_LIVE_AGENT_GAS_TOPUP = process.env.ANCHOR_LIVE_AGENT_GAS_TOPUP || ANCHOR_LIVE_AGENT_MIN_GAS;
+const ANCHOR_NETWORK_FEE_RETRY_ATTEMPTS = Math.max(
+  1,
+  Number(process.env.ANCHOR_NETWORK_FEE_RETRY_ATTEMPTS || "8"),
+);
+const ANCHOR_NETWORK_FEE_RETRY_DELAY_MS = Math.max(
+  0,
+  Number(process.env.ANCHOR_NETWORK_FEE_RETRY_DELAY_MS || "750"),
+);
 const ORACLE_UPDATER_MIN_GAS = 10000000n;
 const LAST_SURVIVOR_APP_ID = "miniapp-last-survivor";
 const GASBOX_APP_ID = "miniapp-gasbox";
@@ -454,6 +464,10 @@ function stripHexPrefix(value) {
   return String(value || "").trim().replace(/^0x/i, "").toLowerCase();
 }
 
+function cozSignerHash(value) {
+  return stripHexPrefix(normalizeHash160(value));
+}
+
 function reverseHex(value) {
   return stripHexPrefix(value).match(/../g)?.reverse().join("") || "";
 }
@@ -551,11 +565,11 @@ function cozAaUserOpParam({ targetContract, method, args = [], nonce = 0n, deadl
 
 function aaProxySigner(accountHash, targetContract) {
   const allowedCallers = Array.from(new Set([
-    normalizeHash160(AA_CORE_HASH),
-    normalizeHash160(targetContract),
+    cozSignerHash(AA_CORE_HASH),
+    cozSignerHash(targetContract),
   ].filter(Boolean)));
   const signer = new CozNeon.tx.Signer({
-    account: normalizeHash160(accountHash),
+    account: cozSignerHash(accountHash),
     scopes: CozNeon.tx.WitnessScope.WitnessRules,
   });
   const condition = new CozNeon.tx.OrWitnessCondition(
@@ -570,7 +584,7 @@ function aaProxySigner(accountHash, targetContract) {
 
 function entrySigner(accountHash) {
   return new CozNeon.tx.Signer({
-    account: normalizeHash160(accountHash),
+    account: cozSignerHash(accountHash),
     scopes: CozNeon.tx.WitnessScope.Global,
   });
 }
@@ -585,17 +599,33 @@ function accountSigningKey(targetAccount = account) {
   return key;
 }
 
+function isTransientRpcError(error) {
+  return /operation was aborted|aborted|timeout|timed out|fetch failed|econnreset|etimedout|eai_again|502|503|504/i.test(
+    String(error?.message || error || ""),
+  );
+}
+
 async function estimateNetworkFee(transaction) {
-  try {
-    const tx = Neon.hexToBytes(transaction.serialize(true));
-    const result = await rpcClient.inner.calculateNetworkFee({ tx });
-    return BigInt(result?.networkfee || 0);
-  } catch (error) {
-    if (ANCHOR_LIVE_WRITE_SMOKE_ENABLED) {
-      throw new Error(`network fee estimation failed: ${error?.message || error}`);
+  const tx = Neon.hexToBytes(transaction.serialize(true));
+  let lastError;
+  for (let attempt = 1; attempt <= ANCHOR_NETWORK_FEE_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const result = await rpcClient.inner.calculateNetworkFee({ tx });
+      return BigInt(result?.networkfee || 0);
+    } catch (error) {
+      lastError = error;
+      if (!isTransientRpcError(error) || attempt >= ANCHOR_NETWORK_FEE_RETRY_ATTEMPTS) break;
+      await sleep(ANCHOR_NETWORK_FEE_RETRY_DELAY_MS * attempt);
     }
-    return 5000000n;
   }
+  if (ANCHOR_LIVE_WRITE_SMOKE_ENABLED) {
+    throw new Error(
+      `network fee estimation failed after ${ANCHOR_NETWORK_FEE_RETRY_ATTEMPTS} attempts: ${
+        lastError?.message || lastError
+      }`,
+    );
+  }
+  return 5000000n;
 }
 
 async function invokeAaUserOpPersisted({
@@ -674,7 +704,16 @@ async function invokeAaUserOpPersisted({
   });
   finalTx.sign(signingKey, NETWORK_MAGIC);
   finalTx.addWitness(aaWitness);
-  const sent = await cozRpcClient.sendRawTransaction(finalTx);
+  const ownerGasBeforeSend = await getGasBalance(ownerHash);
+  const proxyGasBeforeSend = await getGasBalance(proxyAccount);
+  let sent;
+  try {
+    sent = await cozRpcClient.sendRawTransaction(finalTx);
+  } catch (error) {
+    throw new Error(
+      `${method} executeUserOp send failed: ${error?.message || error}; ownerSigner=${normalizeHash160(ownerHash)}; proxySigner=${normalizeHash160(proxyAccount)}; ownerGas=${ownerGasBeforeSend.toString()}; proxyGas=${proxyGasBeforeSend.toString()}; systemFee=${String(baseTx.systemFee)}; networkFee=${networkFee.toString()}`
+    );
+  }
   const txid = asTxid(typeof sent === "string" ? sent : sent?.hash || finalTx.hash());
   const { execution } = await waitForLog(txid, timeoutMs);
   if (execution.vmstate !== "HALT") {
@@ -787,6 +826,8 @@ async function buildPreflightSummary(targets) {
       selfLoanCollateral: SELF_LOAN_COLLATERAL,
       anchorLiveStakeNeo: ANCHOR_LIVE_STAKE_NEO,
       anchorLiveRewardTopup: ANCHOR_LIVE_REWARD_TOPUP,
+      anchorLiveAgentMinGas: ANCHOR_LIVE_AGENT_MIN_GAS,
+      anchorLiveAgentGasTopup: ANCHOR_LIVE_AGENT_GAS_TOPUP,
     },
   };
 }
@@ -821,6 +862,74 @@ async function transferGASFrom(sourceAccount, toHash, amount, memo) {
 
 async function transferGAS(toHash, amount, memo) {
   return transferGASFrom(account, toHash, amount, memo);
+}
+
+async function ensureAnchorProxyGas(proxyHash, config, role) {
+  const minGas = BigInt(String(ANCHOR_LIVE_AGENT_MIN_GAS));
+  if (minGas <= 0n) {
+    return {
+      proxy: proxyHash,
+      role,
+      minGas: minGas.toString(),
+      beforeGas: "0",
+      afterGas: "0",
+      gasTopupTx: null,
+    };
+  }
+  const beforeGas = await getGasBalance(proxyHash);
+  if (beforeGas >= minGas) {
+    return {
+      proxy: proxyHash,
+      role,
+      minGas: minGas.toString(),
+      beforeGas: beforeGas.toString(),
+      afterGas: beforeGas.toString(),
+      gasTopupTx: null,
+    };
+  }
+  if (!ANCHOR_LIVE_WRITE_SMOKE_ENABLED) {
+    return {
+      deferred: true,
+      reason: "needs-anchor-agent-gas",
+      message: `${config.label} ${role} AA proxy needs GAS before executeUserOp`,
+      proxy: proxyHash,
+      role,
+      minGas: minGas.toString(),
+      beforeGas: beforeGas.toString(),
+    };
+  }
+
+  const topup = BigInt(String(ANCHOR_LIVE_AGENT_GAS_TOPUP));
+  const shortfall = minGas - beforeGas;
+  const amount = topup > shortfall ? topup : shortfall;
+  const gasTopupTx = await transferGASFrom(
+    adminAccount || account,
+    proxyHash,
+    amount.toString(),
+    `${config.appId}:${role}-aa-proxy-gas`,
+  );
+  const afterGas = await getGasBalance(proxyHash);
+  if (afterGas < minGas) {
+    return {
+      deferred: true,
+      reason: "needs-anchor-agent-gas",
+      message: `${config.label} ${role} AA proxy still has insufficient GAS after top-up`,
+      proxy: proxyHash,
+      role,
+      minGas: minGas.toString(),
+      beforeGas: beforeGas.toString(),
+      afterGas: afterGas.toString(),
+      gasTopupTx,
+    };
+  }
+  return {
+    proxy: proxyHash,
+    role,
+    minGas: minGas.toString(),
+    beforeGas: beforeGas.toString(),
+    afterGas: afterGas.toString(),
+    gasTopupTx,
+  };
 }
 
 async function broadcastFaultPreviewInvocation(contract, operation, params, {
@@ -2206,6 +2315,11 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
     };
   }
 
+  const sourceGasFunding = await ensureAnchorProxyGas(fromAgentHash, config, "source");
+  if (sourceGasFunding?.deferred) return sourceGasFunding;
+  const sourceAccountGasFunding = await ensureAnchorProxyGas(state.firstAgent.accountId, config, "source-account");
+  if (sourceAccountGasFunding?.deferred) return sourceAccountGasFunding;
+
   const toAgentHash = normalizeHash160(state.secondAgent.account);
   const transferTx = await invokeAaUserOpPersisted({
     accountId: state.firstAgent.accountId,
@@ -2225,9 +2339,30 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
       deferred: true,
       reason: "needs-anchor-second-agent-neo-after-transfer",
       transferTx,
+      sourceGasFunding,
+      sourceAccountGasFunding,
       secondAgent: toAgentHash,
       requiredNeo: amount.toString(),
       availableNeo: secondBalance.toString(),
+    };
+  }
+  const targetGasFunding = await ensureAnchorProxyGas(toAgentHash, config, "target");
+  if (targetGasFunding?.deferred) {
+    return {
+      ...targetGasFunding,
+      transferTx,
+      sourceGasFunding,
+      sourceAccountGasFunding,
+    };
+  }
+  const targetAccountGasFunding = await ensureAnchorProxyGas(state.secondAgent.accountId, config, "target-account");
+  if (targetAccountGasFunding?.deferred) {
+    return {
+      ...targetAccountGasFunding,
+      transferTx,
+      sourceGasFunding,
+      sourceAccountGasFunding,
+      targetGasFunding,
     };
   }
   const voteTx = await invokeAaUserOpPersisted({
@@ -2246,6 +2381,10 @@ async function runAnchorManualWriteSmoke(contractHash, config, state) {
     fundingTx,
     transferTx,
     voteTx,
+    sourceGasFunding,
+    sourceAccountGasFunding,
+    targetGasFunding,
+    targetAccountGasFunding,
     sourceAgent: fromAgentHash,
     sourceAccountId: state.firstAgent.accountId,
     targetAgent: toAgentHash,

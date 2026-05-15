@@ -78,7 +78,9 @@ func FindContractArtifacts(contractName string) (string, string, error) {
 func SkipIfNoCompiledContracts(t *testing.T) {
 	t.Helper()
 
-	if _, _, err := FindContractArtifacts("Governance"); err != nil {
+	// Legacy contracts (Governance/AppRegistry/RandomnessLog/etc.) were removed from this repo.
+	// Use a currently shipped platform contract as the compilation probe.
+	if _, _, err := FindContractArtifacts("PlatformAnchor"); err != nil {
 		switch {
 		case errors.Is(err, errDotnetMissing):
 			t.Skip("dotnet not installed; install .NET SDK/runtime and re-run")
