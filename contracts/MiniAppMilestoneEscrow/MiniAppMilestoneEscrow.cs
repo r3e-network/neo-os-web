@@ -41,15 +41,12 @@ namespace NeoMiniAppPlatform.Contracts
     {
         #region App Constants
         /// <summary>Unique application identifier for the MilestoneEscrow miniapp.</summary>
-        /// <summary>Unique application identifier for the milestone-escrow miniapp.</summary>
         private const string APP_ID = "miniapp-milestone-escrow";
 
         /// <summary>Minimum NEO amount (1 NEO).</summary>
-        /// <summary>Minimum value for operation.</summary>
         private const long MIN_NEO = 1;
 
         /// <summary>Minimum GAS amount (0.1 GAS).</summary>
-        /// <summary>Minimum value for operation.</summary>
         private const long MIN_GAS = 10000000;
 
         /// <summary>Minimum milestones per escrow.</summary>
@@ -67,39 +64,30 @@ namespace NeoMiniAppPlatform.Contracts
 
         #region App Prefixes (0x20+)
         /// <summary>Prefix 0x20: Current escrow ID counter.</summary>
-        /// <summary>Storage prefix for escrow id.</summary>
         private static readonly byte[] PREFIX_ESCROW_ID = new byte[] { 0x20 };
 
         /// <summary>Prefix 0x21: Escrow data storage.</summary>
-        /// <summary>Storage prefix for escrows.</summary>
         private static readonly byte[] PREFIX_ESCROWS = new byte[] { 0x21 };
 
         /// <summary>Prefix 0x22: Creator escrow list.</summary>
-        /// <summary>Storage prefix for creator escrows.</summary>
         private static readonly byte[] PREFIX_CREATOR_ESCROWS = new byte[] { 0x22 };
 
         /// <summary>Prefix 0x23: Creator escrow count.</summary>
-        /// <summary>Storage prefix for creator escrow count.</summary>
         private static readonly byte[] PREFIX_CREATOR_ESCROW_COUNT = new byte[] { 0x23 };
 
         /// <summary>Prefix 0x24: Beneficiary escrow list.</summary>
-        /// <summary>Storage prefix for beneficiary escrows.</summary>
         private static readonly byte[] PREFIX_BENEFICIARY_ESCROWS = new byte[] { 0x24 };
 
         /// <summary>Prefix 0x25: Beneficiary escrow count.</summary>
-        /// <summary>Storage prefix for beneficiary escrow count.</summary>
         private static readonly byte[] PREFIX_BENEFICIARY_ESCROW_COUNT = new byte[] { 0x25 };
 
         /// <summary>Prefix 0x26: Milestone data storage.</summary>
-        /// <summary>Storage prefix for milestones.</summary>
         private static readonly byte[] PREFIX_MILESTONES = new byte[] { 0x26 };
 
         /// <summary>Prefix 0x27: Total value locked.</summary>
-        /// <summary>Storage prefix for total locked.</summary>
         private static readonly byte[] PREFIX_TOTAL_LOCKED = new byte[] { 0x27 };
 
         /// <summary>Prefix 0x28: Total value released.</summary>
-        /// <summary>Storage prefix for total released.</summary>
         private static readonly byte[] PREFIX_TOTAL_RELEASED = new byte[] { 0x28 };
         #endregion
 
@@ -161,36 +149,31 @@ namespace NeoMiniAppPlatform.Contracts
         /// <param name="asset">Asset contract hash.</param>
         /// <param name="totalAmount">Total escrow amount.</param>
         /// <param name="milestoneCount">Number of milestones.</param>
-        /// <summary>Event emitted when escrow created.</summary>
-    public delegate void EscrowCreatedHandler(BigInteger escrowId, UInt160 creator, UInt160 beneficiary, UInt160 asset, BigInteger totalAmount, BigInteger milestoneCount);
+        public delegate void EscrowCreatedHandler(BigInteger escrowId, UInt160 creator, UInt160 beneficiary, UInt160 asset, BigInteger totalAmount, BigInteger milestoneCount);
 
         /// <summary>Event emitted when milestone is approved.</summary>
         /// <param name="escrowId">Escrow identifier.</param>
         /// <param name="milestoneIndex">Milestone index.</param>
         /// <param name="approver">Approving address.</param>
-        /// <summary>Event emitted when milestone approved.</summary>
-    public delegate void MilestoneApprovedHandler(BigInteger escrowId, BigInteger milestoneIndex, UInt160 approver);
+        public delegate void MilestoneApprovedHandler(BigInteger escrowId, BigInteger milestoneIndex, UInt160 approver);
 
         /// <summary>Event emitted when milestone is claimed.</summary>
         /// <param name="escrowId">Escrow identifier.</param>
         /// <param name="milestoneIndex">Milestone index.</param>
         /// <param name="beneficiary">Claimant address.</param>
         /// <param name="amount">Claimed amount.</param>
-        /// <summary>Event emitted when milestone claimed.</summary>
-    public delegate void MilestoneClaimedHandler(BigInteger escrowId, BigInteger milestoneIndex, UInt160 beneficiary, BigInteger amount);
+        public delegate void MilestoneClaimedHandler(BigInteger escrowId, BigInteger milestoneIndex, UInt160 beneficiary, BigInteger amount);
 
         /// <summary>Event emitted when escrow is cancelled.</summary>
         /// <param name="escrowId">Escrow identifier.</param>
         /// <param name="creator">Creator address.</param>
         /// <param name="refundAmount">Refund amount.</param>
-        /// <summary>Event emitted when escrow cancelled.</summary>
-    public delegate void EscrowCancelledHandler(BigInteger escrowId, UInt160 creator, BigInteger refundAmount);
+        public delegate void EscrowCancelledHandler(BigInteger escrowId, UInt160 creator, BigInteger refundAmount);
 
         /// <summary>Event emitted when escrow is completed.</summary>
         /// <param name="escrowId">Escrow identifier.</param>
         /// <param name="beneficiary">Beneficiary address.</param>
-        /// <summary>Event emitted when escrow completed.</summary>
-    public delegate void EscrowCompletedHandler(BigInteger escrowId, UInt160 beneficiary);
+        public delegate void EscrowCompletedHandler(BigInteger escrowId, UInt160 beneficiary);
         #endregion
 
         #region Events
@@ -210,98 +193,5 @@ namespace NeoMiniAppPlatform.Contracts
         public static event EscrowCompletedHandler OnEscrowCompleted;
         #endregion
 
-        #region Lifecycle
-        /// <summary>
-        /// Contract deployment initialization.
-        /// </summary>
-        /// <param name="data">Deployment data (unused).</param>
-        /// <param name="update">True if this is a contract update.</param>
-        public static void _deploy(object data, bool update)
-        {
-            if (update) return;
-            Storage.Put(Storage.CurrentContext, PREFIX_ADMIN, Runtime.Transaction.Sender);
-            Storage.Put(Storage.CurrentContext, PREFIX_ESCROW_ID, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_LOCKED, 0);
-            Storage.Put(Storage.CurrentContext, PREFIX_TOTAL_RELEASED, 0);
-        }
-
-        /// <summary>
-        /// Accepts inbound NEO / GAS transfers used by escrow funding.
-        ///
-        /// The contract pulls funds inside `CreateEscrow(...)` via native token
-        /// `Transfer(...)` calls. Neo N3 will invoke `onNEP17Payment` on the
-        /// recipient contract, so this callback must exist even though the
-        /// contract does not need to mutate extra deposit state here.
-        /// </summary>
-        public static void OnNEP17Payment(UInt160 from, BigInteger amount, object data)
-        {
-            if (Runtime.CallingScriptHash == NEO.Hash)
-            {
-                CreditDirectAssetPayment(APP_ID, NEO.Hash, from, amount, data);
-                return;
-            }
-            if (Runtime.CallingScriptHash == GAS.Hash)
-            {
-                CreditDirectAssetPayment(APP_ID, GAS.Hash, from, amount, data);
-                return;
-            }
-
-            ExecutionEngine.Assert(false, "unsupported asset");
-        }
-        #endregion
-
-        #region Read Methods
-        /// <summary>
-        /// Gets total escrows created.
-        /// </summary>
-        /// <returns>Total escrow count.</returns>
-        [Safe]
-        public static BigInteger TotalEscrows() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_ESCROW_ID);
-
-        /// <summary>
-        /// Gets total value locked across all escrows.
-        /// </summary>
-        /// <returns>Total locked amount.</returns>
-        [Safe]
-        public static BigInteger TotalLocked() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_LOCKED);
-
-        /// <summary>
-        /// Gets total value released to beneficiaries.
-        /// </summary>
-        /// <returns>Total released amount.</returns>
-        [Safe]
-        public static BigInteger TotalReleased() =>
-            (BigInteger)Storage.Get(Storage.CurrentContext, PREFIX_TOTAL_RELEASED);
-
-        /// <summary>
-        /// Gets escrow data by ID.
-        /// </summary>
-        /// <param name="escrowId">Escrow identifier.</param>
-        /// <returns>Escrow data struct.</returns>
-        [Safe]
-        public static EscrowData GetEscrow(BigInteger escrowId)
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext,
-                Helper.Concat((ByteString)PREFIX_ESCROWS, (ByteString)escrowId.ToByteArray()));
-            if (data == null) return new EscrowData();
-            return (EscrowData)StdLib.Deserialize(data);
-        }
-
-        /// <summary>
-        /// Gets milestone data.
-        /// </summary>
-        /// <param name="escrowId">Escrow identifier.</param>
-        /// <param name="milestoneIndex">Milestone index.</param>
-        /// <returns>Milestone data struct.</returns>
-        [Safe]
-        public static MilestoneData GetMilestone(BigInteger escrowId, BigInteger milestoneIndex)
-        {
-            ByteString data = Storage.Get(Storage.CurrentContext, BuildMilestoneKey(escrowId, milestoneIndex));
-            if (data == null) return new MilestoneData();
-            return (MilestoneData)StdLib.Deserialize(data);
-        }
-        #endregion
     }
 }

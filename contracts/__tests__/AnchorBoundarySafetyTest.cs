@@ -126,7 +126,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void SelfLoanVotesCollateralThroughProfitAnchorWithoutTransferringCustody()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformDeFi", "PlatformDeFi.Lending.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformDeFi.Lending*.cs", "contracts", "platform", "PlatformDeFi");
 
             Assert.Contains("public static void SyncProfitAnchorVote(string appId)", code);
             Assert.Contains("\"getSelectedCandidate\"", code);
