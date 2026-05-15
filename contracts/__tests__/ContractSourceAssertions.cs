@@ -50,6 +50,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 
         public static string ReadSourcesInDirectory(params string[] relativeSegments)
         {
+            return ReadSourcesByPattern("*.cs", relativeSegments);
+        }
+
+        public static string ReadSourcesByPattern(string searchPattern, params string[] relativeSegments)
+        {
             string path = FindRepoRoot();
             foreach (string segment in relativeSegments)
             {
@@ -64,7 +69,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             return string.Join(
                 Environment.NewLine,
                 Directory
-                    .GetFiles(path, "*.cs", SearchOption.TopDirectoryOnly)
+                    .GetFiles(path, searchPattern, SearchOption.TopDirectoryOnly)
                     .OrderBy(file => file, StringComparer.Ordinal)
                     .Select(File.ReadAllText));
         }

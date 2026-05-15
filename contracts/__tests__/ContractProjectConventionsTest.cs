@@ -73,5 +73,69 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                 $"Contract project files should use explicit Compile includes for nccs compatibility. Offenders: {string.Join(", ", offenders)}");
         }
 
+        [Fact]
+        public void PlatformContractPartialFilesStayReviewable()
+        {
+            string repoRoot = ContractSourceAssertions.FindRepoRoot();
+            string platformRoot = Path.Combine(repoRoot, "contracts", "platform");
+
+            List<string> offenders = Directory
+                .GetFiles(platformRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path =>
+                    !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                .Select(path => new
+                {
+                    RelativePath = Path.GetRelativePath(repoRoot, path),
+                    LineCount = File.ReadLines(path).Count()
+                })
+                .Where(file => file.LineCount > 420)
+                .Select(file => $"{file.RelativePath} ({file.LineCount} lines)")
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                $"Platform contract partial files should stay small enough for security review. Offenders: {string.Join(", ", offenders)}");
+        }
+
+        [Fact]
+        public void ContractSourcesDoNotCarryUnusedFuturePlaceholders()
+        {
+            string repoRoot = ContractSourceAssertions.FindRepoRoot();
+            string contractsRoot = Path.Combine(repoRoot, "contracts");
+
+            string[] bannedMarkers =
+            [
+                "currently unused",
+                "reserved for future",
+                "placeholder",
+                "stub"
+            ];
+
+            List<string> offenders = Directory
+                .GetFiles(contractsRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path =>
+                    !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !path.Contains($"{Path.DirectorySeparatorChar}__tests__{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+                .SelectMany(path => File
+                    .ReadLines(path)
+                    .Select((line, index) => new
+                    {
+                        RelativePath = Path.GetRelativePath(repoRoot, path),
+                        LineNumber = index + 1,
+                        Line = line
+                    }))
+                .Where(entry => bannedMarkers.Any(marker => entry.Line.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+                .Select(entry => $"{entry.RelativePath}:{entry.LineNumber}")
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                $"Contract sources should not include unused future placeholders. Offenders: {string.Join(", ", offenders)}");
+        }
+
     }
 }
