@@ -72,19 +72,9 @@ func TestContractABIAlignsWithEdgePayloads(t *testing.T) {
 		}
 	}
 
-	// Edge contract invocations use String IDs (app_id, proposal_id, request_id).
-	expectParams("Governance", "vote", []string{"String", "Boolean", "Integer"})
-	expectParams("Governance", "createProposal", []string{"String", "String", "Integer", "Integer"})
-	expectParams("RandomnessLog", "record", []string{"String", "ByteArray", "ByteArray", "Integer"})
-	expectParams("RandomnessLog", "get", []string{"String"})
-	expectParams("AppRegistry", "register", []string{"String", "ByteArray", "String", "ByteArray"})
-	expectParams("AppRegistry", "registerApp", []string{
-		"String", "ByteArray", "String", "ByteArray", "ByteArray", "String", "String", "String", "String", "String",
-	})
-	expectParams("AppRegistry", "updateManifest", []string{"String", "ByteArray", "String"})
-	expectParams("AppRegistry", "updateApp", []string{
-		"String", "ByteArray", "String", "ByteArray", "String", "String", "String", "String", "String",
-	})
-	expectParams("AppRegistry", "getApp", []string{"String"})
-	expectParams("AppRegistry", "setStatus", []string{"String", "Integer"})
+	// Platform contract invocations use String IDs (app_id, envelope_id, bet_id).
+	// These are the key methods exercised by the shipped flagship miniapps + edge functions.
+	expectParams("PlatformAnchor", "claimRewards", []string{"String", "Hash160"})
+	expectParams("PlatformSocial", "claimEnvelope", []string{"String", "Integer", "Hash160"})
+	expectParams("PlatformGame", "placeDiceBet", []string{"String", "Hash160", "Integer", "Integer"})
 }

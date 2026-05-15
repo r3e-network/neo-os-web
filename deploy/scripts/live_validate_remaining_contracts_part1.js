@@ -17,6 +17,14 @@ const RPC_URL = process.env.NEO_RPC_URL || "https://testnet1.neo.coz.io:443";
 const NETWORK_MAGIC = Number(process.env.NEO_NETWORK_MAGIC || "894710606");
 const ADMIN_WIF = process.env.TEST_SMOKE_ADMIN_WIF || process.env.MINIAPP_UPDATE_WIF || process.env.FLAGSHIP_LIVE_WIF || "";
 const USER_WIF = process.env.TEST_SMOKE_USER_WIF || process.env.NEO_TESTNET_WIF || "";
+const LIVE_ACTOR_WIFS = Array.from(new Set([
+  USER_WIF,
+  process.env.LIVE_SMOKE_SELECTED_USER_WIF,
+  process.env.NEO_TESTNET_WIF,
+  process.env.TEE_PRIVATE_KEY,
+  process.env.FLAGSHIP_LIVE_WIF,
+  ADMIN_WIF,
+].map((value) => String(value || "").trim()).filter(Boolean)));
 const ORACLE_HASH = (process.env.MORPHEUS_ORACLE_HASH || "0x4b882e94ed766807c4fd728768f972e13008ad52").trim();
 const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
 const ROOT = path.resolve(__dirname, "../..");
@@ -39,8 +47,8 @@ const TARGET_FILTER = new Set(
     .filter(Boolean),
 );
 
-if (!ADMIN_WIF || !USER_WIF) {
-  console.error("TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF are required");
+if (!ADMIN_WIF || LIVE_ACTOR_WIFS.length === 0) {
+  console.error("TEST_SMOKE_ADMIN_WIF and at least one testnet live actor WIF are required");
   process.exit(1);
 }
 
@@ -86,6 +94,7 @@ const ADDRESSES = {
 
 let admin;
 let user;
+let liveActors;
 let oracleUpdater;
 let rpcClient;
 let adminGas;
@@ -99,11 +108,38 @@ async function initNeon() {
   if (Neon) return;
   Neon = (await import("./lib/neon-compat.mjs")).default;
   admin = new Neon.wallet.Account(ADMIN_WIF);
-  user = new Neon.wallet.Account(USER_WIF);
+  liveActors = [];
+  const seenActors = new Set();
+  for (const wif of LIVE_ACTOR_WIFS) {
+    const actor = new Neon.wallet.Account(wif);
+    const key = accountKey(actor);
+    if (seenActors.has(key)) continue;
+    seenActors.add(key);
+    liveActors.push(actor);
+  }
+  user = chooseDistinctLiveActor("default user", [admin]);
   oracleUpdater = new Neon.wallet.Account(ORACLE_UPDATER_WIF);
   rpcClient = new Neon.rpc.RPCClient(RPC_URL);
   adminGas = new Neon.experimental.SmartContract(GAS_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: admin });
   oracle = new Neon.experimental.SmartContract(ORACLE_HASH, { rpcAddress: RPC_URL, networkMagic: NETWORK_MAGIC, account: oracleUpdater });
+}
+
+function accountKey(account) {
+  return `0x${account.scriptHash}`.toLowerCase();
+}
+
+function chooseDistinctLiveActor(label, excluded = []) {
+  const excludedKeys = new Set(excluded.map((actor) => accountKey(actor)));
+  const actor = liveActors.find((candidate) => !excludedKeys.has(accountKey(candidate)));
+  if (!actor) {
+    throw new Error(`${label}: no distinct live test account is configured`);
+  }
+  return actor;
+}
+
+function findLiveActorByHash(hash) {
+  const normalized = String(hash || "").toLowerCase();
+  return liveActors.find((actor) => accountKey(actor) === normalized) || null;
 }
 
 function appContract(hash, account) {
@@ -217,8 +253,7 @@ function uniqueLabel(prefix) {
 
 async function runBreakup() {
   if (admin.address === user.address) {
-    console.warn("breakup: TEST_SMOKE_ADMIN_WIF and TEST_SMOKE_USER_WIF resolved to the same address. Skipping test.");
-    return { skipped: true, reason: "same address" };
+    throw new Error("breakup requires two distinct live test accounts");
   }
   const hash = ADDRESSES.breakup;
   const adminContract = appContract(hash, admin);
@@ -302,17 +337,11 @@ async function runBurnLeague() {
 async function runDevTipping() {
   const hash = ADDRESSES.devtipping;
   const onchainAdmin = String(await invokeRead(hash, "admin") || "").toLowerCase();
-  const managerAccount =
-    onchainAdmin === `0x${admin.scriptHash}`.toLowerCase()
-      ? admin
-      : onchainAdmin === `0x${user.scriptHash}`.toLowerCase()
-        ? user
-        : null;
+  const managerAccount = findLiveActorByHash(onchainAdmin);
   if (!managerAccount) {
-    console.warn(`devtipping admin ${onchainAdmin || "<unset>"} does not match available smoke accounts. Skipping test.`);
-    return { skipped: true, reason: "admin mismatch" };
+    throw new Error(`devtipping admin ${onchainAdmin || "<unset>"} does not match configured live test accounts`);
   }
-  const tipperAccount = managerAccount.address === admin.address ? user : admin;
+  const tipperAccount = chooseDistinctLiveActor("devtipping tipper", [managerAccount]);
   const managerContract = appContract(hash, managerAccount);
   const tipperContract = appContract(hash, tipperAccount);
 

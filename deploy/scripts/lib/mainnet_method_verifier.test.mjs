@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const ROOT = path.resolve(import.meta.dirname, "../../..");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const SCRIPT = path.join(ROOT, "deploy/scripts/verify_mainnet_miniapp_contract_methods.js");
 
 test("mainnet miniapp method verifier is bounded and observable", () => {

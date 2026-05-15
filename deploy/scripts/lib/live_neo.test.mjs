@@ -10,6 +10,7 @@ const {
   executionReturnedTrue,
   findNotification,
   createWaitForLog,
+  withStep,
 } = liveNeo;
 
 test("asTxid normalizes missing 0x prefix", () => {
@@ -130,4 +131,13 @@ test("createWaitForLog warns on non-transient errors and times out", async () =>
   } finally {
     console.warn = originalWarn;
   }
+});
+
+test("withStep prefixes thrown errors with the live validation step", async () => {
+  await assert.rejects(
+    () => withStep("breakup.transfer.party1", async () => {
+      throw new Error("This operation was aborted");
+    }),
+    /breakup\.transfer\.party1: This operation was aborted/,
+  );
 });
