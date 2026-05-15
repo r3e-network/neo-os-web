@@ -7,7 +7,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorKeepsUserWithdrawalsUserWitnessed()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void Withdraw(string appId, UInt160 user, BigInteger amount)", code);
             Assert.Contains("Runtime.CheckWitness(user)", code);
@@ -20,7 +20,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorCanStakeDirectlyFromNeoTransferData()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("if (data is string)", code);
             Assert.Contains("StakeFromCredit(appId, from, amount)", code);
@@ -30,7 +30,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorKeepsRewardClaimsUserWitnessed()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void ClaimRewards(string appId, UInt160 user)", code);
             Assert.Contains("Runtime.CheckWitness(user)", code);
@@ -43,7 +43,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorKeepsCreditsUserWitnessed()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void WithdrawCredit(UInt160 user, string asset, BigInteger amount)", code);
             Assert.Contains("Runtime.CheckWitness(user)", code);
@@ -55,7 +55,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorDoesNotHarvestUserGasCredits()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("GetTotalRewardReserve() + GetTotalGasCredit() + amount", code);
             Assert.Contains("PutTotalRewardReserve(GetTotalRewardReserve() + amount)", code);
@@ -67,9 +67,10 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorRequiresAaWitnessForAgentVotes()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void VoteAgent(string appId, BigInteger agentId)", code);
+            Assert.Contains("HasAgentExecutionWitness(agentAccount)", code);
             Assert.Contains("Runtime.CheckWitness(agentAccount)", code);
             Assert.Contains("NEO.Vote(agentAccount, candidate)", code);
         }
@@ -77,7 +78,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorOnlyMovesAgentNeoInsideSameAnchorApp()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void TransferAgentNeo(\n            string appId,\n            BigInteger fromAgentId,\n            BigInteger toAgentId,\n            BigInteger amount)", code);
             Assert.Contains("private static void TransferNeoBetweenSameAppAgents", code);
@@ -85,7 +86,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.Contains("ValidateAgent(appId, toAgentId)", code);
             Assert.Contains("UInt160 fromAgent = GetAgentAccount(appId, fromAgentId)", code);
             Assert.Contains("UInt160 toAgent = GetAgentAccount(appId, toAgentId)", code);
-            Assert.Contains("Runtime.CheckWitness(fromAgent)", code);
+            Assert.Contains("HasAgentExecutionWitness(fromAgent)", code);
+            Assert.Contains("Runtime.CheckWitness(agentAccount)", code);
             Assert.Contains("NEO.Transfer(fromAgent, toAgent, amount)", code);
             Assert.DoesNotContain("TransferAgentNeo(\n            string appId,\n            BigInteger fromAgentId,\n            UInt160", code);
             Assert.DoesNotContain("UInt160 recipient", code);
@@ -94,7 +96,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformAnchorTracksSelectedManualAgentWithoutBestProfitScoring()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("PREFIX_SELECTED_AGENT", code);
             Assert.Contains("public static BigInteger GetSelectedAgentId(string appId)", code);
@@ -104,12 +106,15 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.DoesNotContain("VoteBestProfitCandidate", code);
             Assert.DoesNotContain("VotePooledStake", code);
             Assert.DoesNotContain("SetAgentProfitScore", code);
+            Assert.DoesNotContain("SetAgentWeight", code);
+            Assert.DoesNotContain("PREFIX_AGENT_WEIGHT", code);
+            Assert.DoesNotContain("result[\"weight\"]", code);
         }
 
         [Fact]
         public void PlatformAnchorLetsUsersSelfRegisterCustomAnchorsWithAppAdminWitness()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformAnchor", "PlatformAnchor.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformAnchor");
 
             Assert.Contains("public static void RegisterCustomAnchorApp(string appId, BigInteger mode, UInt160 appAdmin)", code);
             Assert.Contains("Runtime.CheckWitness(appAdmin)", code);
