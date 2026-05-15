@@ -13,4 +13,3 @@ func TestPlatformSocialContract(t *testing.T) {
 		deployed.requireBoolEquals(t, "isPaused", false)
 	})
 }
-
