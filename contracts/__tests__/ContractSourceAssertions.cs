@@ -48,6 +48,27 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             return File.ReadAllText(ResolveRelativeSource(relativeSegments));
         }
 
+        public static string ReadSourcesInDirectory(params string[] relativeSegments)
+        {
+            string path = FindRepoRoot();
+            foreach (string segment in relativeSegments)
+            {
+                path = Path.Combine(path, segment);
+            }
+
+            if (!Directory.Exists(path))
+            {
+                throw new DirectoryNotFoundException($"Expected source directory was not found: {path}");
+            }
+
+            return string.Join(
+                Environment.NewLine,
+                Directory
+                    .GetFiles(path, "*.cs", SearchOption.TopDirectoryOnly)
+                    .OrderBy(file => file, StringComparer.Ordinal)
+                    .Select(File.ReadAllText));
+        }
+
         public static void AssertHasPublicClass(string code, string className)
         {
             AssertContainsDeclaration(
