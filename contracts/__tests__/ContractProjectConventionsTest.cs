@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace NeoMiniAppPlatform.Contracts.Tests
@@ -126,6 +127,33 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.True(
                 offenders.Count == 0,
                 $"Contract sources should not include unused future placeholders. Offenders: {string.Join(", ", offenders)}");
+        }
+
+        [Fact]
+        public void ContractWeightTerminologyStaysLimitedToGachaOdds()
+        {
+            string repoRoot = ContractSourceAssertions.FindRepoRoot();
+            string contractsRoot = Path.Combine(repoRoot, "contracts");
+            Regex weightTerm = new(@"\bweights?\b|\bweighted\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+            List<string> offenders = EnumerateContractSourceFiles(contractsRoot)
+                .Where(path => !Path.GetFileName(path).StartsWith("PlatformGame.Gacha", StringComparison.Ordinal))
+                .SelectMany(path => File
+                    .ReadLines(path)
+                    .Select((line, index) => new
+                    {
+                        RelativePath = Path.GetRelativePath(repoRoot, path),
+                        LineNumber = index + 1,
+                        Line = line
+                    }))
+                .Where(entry => weightTerm.IsMatch(entry.Line))
+                .Select(entry => $"{entry.RelativePath}:{entry.LineNumber}")
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                $"Only PlatformGame Gacha odds should use weight terminology. Offenders: {string.Join(", ", offenders)}");
         }
 
         private static IEnumerable<string> EnumerateContractSourceFiles(string contractsRoot)
