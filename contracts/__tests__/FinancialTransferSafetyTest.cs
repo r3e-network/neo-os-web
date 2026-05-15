@@ -7,7 +7,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGameCountdownWrapsGASTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Countdown*.cs", "contracts", "platform", "PlatformGame");
             Assert.Contains("ExecutionEngine.Assert", code);
             Assert.Contains("GAS.Transfer", code);
         }
@@ -77,7 +77,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialGasCreditWithdrawalWrapsTransferInAssert()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformSocial");
             Assert.Contains("WithdrawGasCredit", code);
             Assert.Contains("ExecutionEngine.Assert(\n                GAS.Transfer(Runtime.ExecutingScriptHash, user, amount)", code);
         }
@@ -108,9 +108,9 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGamePayoutsStayBoundToGameWinnersAndPlayers()
         {
-            string countdown = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
+            string countdown = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Countdown*.cs", "contracts", "platform", "PlatformGame");
             string coinFlip = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.CoinFlip.cs");
-            string gacha = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Gacha.cs");
+            string gacha = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Gacha*.cs", "contracts", "platform", "PlatformGame");
             string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
 
             Assert.Contains("UInt160 winner = round.LastBuyer", countdown);

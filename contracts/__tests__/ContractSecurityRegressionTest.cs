@@ -15,8 +15,8 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialSupportsBoundedGasPrizePools()
         {
-            string contractCode = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.cs");
-            string envelopeCode = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.Envelope.cs");
+            string contractCode = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformSocial");
+            string envelopeCode = ContractSourceAssertions.ReadSourcesByPattern("PlatformSocial.Envelope*.cs", "contracts", "platform", "PlatformSocial");
 
             ContractSourceAssertions.AssertHasPublicStruct(contractCode, "RangeGasPoolData");
             ContractSourceAssertions.AssertHasPublicStaticMethod(envelopeCode, "BigInteger", "CreateRangeGasPool");
@@ -39,7 +39,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformSocialExposesSafeGasCreditRecoveryForTwoStepPoolCreation()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformSocial", "PlatformSocial.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformSocial");
 
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "GetDirectGasCredit");
             ContractSourceAssertions.AssertHasPublicStaticMethod(code, "BigInteger", "WithdrawGasCredit");
@@ -57,7 +57,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGameOnNEP17PaymentValidatesCaller()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.cs");
+            string code = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformGame");
             Assert.Contains("GAS.Hash", code);
             Assert.Contains("NEO.Hash", code);
         }
@@ -65,7 +65,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGameCountdownSettlementImmediatelyStartsNextRound()
         {
-            string code = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Countdown.cs");
+            string code = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Countdown*.cs", "contracts", "platform", "PlatformGame");
 
             Assert.Contains("StartNextCountdownRound(appId, nextRoundPot)", code);
             Assert.Contains("CD_NEXT_ROUND_SHARE_BPS", code);
@@ -75,7 +75,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGameDiceUsesMorpheusVrfAndRequestBinding()
         {
-            string platform = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.cs");
+            string platform = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformGame");
             string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
 
             Assert.Contains("GameType_Dice", platform);
@@ -93,7 +93,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         [Fact]
         public void PlatformGameGachaSettlementDoesNotUseRefPrizeStruct()
         {
-            string gacha = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Gacha.cs");
+            string gacha = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Gacha*.cs", "contracts", "platform", "PlatformGame");
 
             Assert.DoesNotContain("ref selectedItem", gacha);
             Assert.Contains("selectedAssetType", gacha);
