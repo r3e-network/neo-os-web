@@ -78,6 +78,16 @@ func (h *neoTestContractHarness) requireStringArrayContains(t *testing.T, method
 	}, method)
 }
 
+func (h *neoTestContractHarness) requireBoolEquals(t *testing.T, method string, expected bool) {
+	t.Helper()
+
+	h.invoker.InvokeAndCheck(t, func(t testing.TB, stack []stackitem.Item) {
+		require.Len(t, stack, 1)
+		actual := requireBool(t, stack[0])
+		require.Equal(t, expected, actual)
+	}, method)
+}
+
 func (h *neoTestContractHarness) invokeVoid(t *testing.T, method string, args ...any) {
 	t.Helper()
 	h.invoker.Invoke(t, stackitem.Null{}, method, args...)
@@ -139,6 +149,14 @@ func requireInteger(t testing.TB, item stackitem.Item) interface{ Sign() int } {
 	t.Helper()
 
 	value, err := item.TryInteger()
+	require.NoError(t, err)
+	return value
+}
+
+func requireBool(t testing.TB, item stackitem.Item) bool {
+	t.Helper()
+
+	value, err := item.TryBool()
 	require.NoError(t, err)
 	return value
 }

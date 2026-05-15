@@ -74,6 +74,19 @@ function executionReturnedTrue(execution) {
   return false;
 }
 
+async function withStep(label, fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const wrapped = new Error(`${label}: ${message}`);
+    if (error instanceof Error && error.stack) {
+      wrapped.stack = `${wrapped.name}: ${wrapped.message}\nCaused by: ${error.stack}`;
+    }
+    throw wrapped;
+  }
+}
+
 function findNotification(execution, contractHash, eventName) {
   const expected = String(contractHash).toLowerCase();
   return (execution.notifications || []).find(
@@ -117,4 +130,5 @@ module.exports = {
   executionReturnedTrue,
   findNotification,
   createWaitForLog,
+  withStep,
 };

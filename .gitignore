@@ -48,6 +48,7 @@ cmd/marble/marble
 .next/
 .vercel/
 platform/host-app/.playwright-standalone/
+platform/host-app/.playwright-standalone-path.txt
 
 # Local test/output artifacts
 test-results/

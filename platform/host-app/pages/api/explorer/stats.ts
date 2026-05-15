@@ -59,22 +59,33 @@ async function getNetworkStats(
   rpcUrl: string,
   network: string,
 ): Promise<NetworkStats> {
-  const blockRes = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "getblockcount",
-      params: [],
-      id: 1,
-    }),
-    signal: AbortSignal.timeout(10000),
-  });
-  if (!blockRes.ok) {
-    throw new Error(`RPC error: ${blockRes.status}`);
+  let height = 0;
+  try {
+    const blockRes = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "getblockcount",
+        params: [],
+        id: 1,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!blockRes.ok) {
+      throw new Error(`RPC error: ${blockRes.status}`);
+    }
+
+    const blockData = await blockRes.json();
+    height = Number(blockData?.result) || 0;
+  } catch (err) {
+    logger.warn(
+      `Explorer stats RPC ${network} getblockcount failed:`,
+      err instanceof Error ? err.message : String(err),
+    );
+    height = 0;
   }
-  const blockData = await blockRes.json();
-  const height = blockData.result || 0;
 
   let txCount: number | null = null;
   let txCountSource: NetworkStats["txCountSource"] = "unavailable";

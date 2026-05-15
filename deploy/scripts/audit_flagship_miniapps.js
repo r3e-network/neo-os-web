@@ -88,22 +88,54 @@ function expectedMethodsFor(app, networkKey) {
   return app.expectedMethodsByNetwork?.[networkKey] || app.expectedMethods || [];
 }
 
-async function getContractState(rpcUrl, hash) {
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "getcontractstate",
-      params: [hash],
-    }),
-  });
-  const data = await res.json();
-  if (data.error) {
-    throw new Error(data.error.message || "unknown rpc error");
+function isRetryableRpcError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|abort|timeout/i.test(
+    message,
+  );
+}
+
+async function getContractState(rpcUrl, hash, { timeoutMs = 12000, attempts = 3 } = {}) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(rpcUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getcontractstate",
+          params: [hash],
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`RPC HTTP ${res.status}: ${text.slice(0, 200)}`);
+      }
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (error) {
+        throw new Error(
+          `RPC JSON parse error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      if (data.error) {
+        throw new Error(data.error.message || "unknown rpc error");
+      }
+      return data.result;
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts && isRetryableRpcError(error)) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+        continue;
+      }
+      throw error;
+    }
   }
-  return data.result;
+  throw lastError || new Error("unknown rpc error");
 }
 
 async function main() {
