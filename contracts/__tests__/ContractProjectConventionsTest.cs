@@ -74,29 +74,25 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         }
 
         [Fact]
-        public void PlatformContractPartialFilesStayReviewable()
+        public void ContractPartialFilesStayReviewable()
         {
             string repoRoot = ContractSourceAssertions.FindRepoRoot();
-            string platformRoot = Path.Combine(repoRoot, "contracts", "platform");
+            string contractsRoot = Path.Combine(repoRoot, "contracts");
 
-            List<string> offenders = Directory
-                .GetFiles(platformRoot, "*.cs", SearchOption.AllDirectories)
-                .Where(path =>
-                    !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
-                    !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            List<string> offenders = EnumerateContractSourceFiles(contractsRoot)
                 .Select(path => new
                 {
                     RelativePath = Path.GetRelativePath(repoRoot, path),
                     LineCount = File.ReadLines(path).Count()
                 })
-                .Where(file => file.LineCount > 420)
+                .Where(file => file.LineCount > 300)
                 .Select(file => $"{file.RelativePath} ({file.LineCount} lines)")
                 .OrderBy(path => path, StringComparer.Ordinal)
                 .ToList();
 
             Assert.True(
                 offenders.Count == 0,
-                $"Platform contract partial files should stay small enough for security review. Offenders: {string.Join(", ", offenders)}");
+                $"Contract partial files should stay small enough for security review. Offenders: {string.Join(", ", offenders)}");
         }
 
         [Fact]
@@ -113,12 +109,7 @@ namespace NeoMiniAppPlatform.Contracts.Tests
                 "stub"
             ];
 
-            List<string> offenders = Directory
-                .GetFiles(contractsRoot, "*.cs", SearchOption.AllDirectories)
-                .Where(path =>
-                    !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
-                    !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
-                    !path.Contains($"{Path.DirectorySeparatorChar}__tests__{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            List<string> offenders = EnumerateContractSourceFiles(contractsRoot)
                 .SelectMany(path => File
                     .ReadLines(path)
                     .Select((line, index) => new
@@ -135,6 +126,16 @@ namespace NeoMiniAppPlatform.Contracts.Tests
             Assert.True(
                 offenders.Count == 0,
                 $"Contract sources should not include unused future placeholders. Offenders: {string.Join(", ", offenders)}");
+        }
+
+        private static IEnumerable<string> EnumerateContractSourceFiles(string contractsRoot)
+        {
+            return Directory
+                .GetFiles(contractsRoot, "*.cs", SearchOption.AllDirectories)
+                .Where(path =>
+                    !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                    !path.Contains($"{Path.DirectorySeparatorChar}__tests__{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
         }
 
     }
