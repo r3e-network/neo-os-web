@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
 import path from "node:path";
 
 const auth0TestEnv = {
@@ -21,11 +22,25 @@ const safeLocalWorkers = Number.isFinite(localWorkerCount)
   : 1;
 const systemChrome = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "1";
 
+function resolveStandaloneCwd(): string {
+  const pathFile = path.join(__dirname, ".playwright-standalone-path.txt");
+  try {
+    const resolvedRoot = fs.readFileSync(pathFile, "utf8").trim();
+    if (resolvedRoot) {
+      return path.join(resolvedRoot, "platform", "host-app");
+    }
+  } catch {}
+
+  return path.join(__dirname, ".playwright-standalone", "platform", "host-app");
+}
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Local hourly validation can still hit transient RPC/indexer hiccups; allow a single retry
+  // to reduce false negatives while still surfacing persistent regressions.
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : safeLocalWorkers,
   reporter: "html",
   use: {
@@ -53,16 +68,23 @@ export default defineConfig({
     // `public/miniapp-definitions` resolve correctly regardless of the Playwright runner CWD.
     command:
       "node server.js",
-    cwd: path.join(__dirname, ".playwright-standalone", "platform", "host-app"),
+    // Note: the e2e preparation step copies the Next standalone output into a unique
+    // temp directory and writes its location to `.playwright-standalone-path.txt`.
+    // This avoids other local validation builds deleting `.playwright-standalone`
+    // mid-suite (which manifests as ENOENT for SSG pages and ERR_CONNECTION_REFUSED).
+    cwd: resolveStandaloneCwd(),
     env: {
       ...process.env,
       ...auth0TestEnv,
+      NEXT_TELEMETRY_DISABLED: process.env.NEXT_TELEMETRY_DISABLED ?? "1",
       // The standalone server expects production semantics; inheriting NODE_ENV=test from
       // the Playwright runner can break Next's build manifest resolution and lead to blank pages.
       NODE_ENV: "production",
       // The full-suite surface crawl can transiently spike memory in the standalone server.
       // Give it a higher ceiling to avoid mid-suite exits that surface as ERR_CONNECTION_REFUSED.
-      NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=4096",
+      NODE_OPTIONS:
+        process.env.NODE_OPTIONS ??
+        "--max-old-space-size=6144 --dns-result-order=ipv4first",
       PORT: "3004",
     },
     url: "http://127.0.0.1:3004",

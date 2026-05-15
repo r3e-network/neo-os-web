@@ -112,6 +112,15 @@ function safeString(value) {
   return String(value == null ? "" : value);
 }
 
+function normalizeRuntimeOperationMethod(appId, methodName) {
+  const app = String(appId || "");
+  const method = String(methodName || "");
+  if (app === "miniapp-self-loan" && method === "repayLoan") {
+    return "repayDebt";
+  }
+  return method;
+}
+
 async function fetchJsonRpc(rpcUrl, method, params = [], { timeoutMs = RPC_TIMEOUT_MS } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -397,13 +406,15 @@ async function verifySafeMethod(rpcUrl, app, hash, method) {
   };
 
   try {
-    const result = await rpcOn(rpcUrl, "invokefunction", [hash, method.name, args]);
+    const invoked = await rpc("invokefunction", [hash, method.name, args]);
+    const result = invoked.result;
     const state = String(result?.state || "unknown").toUpperCase();
     if (state === "HALT") {
       return {
         ...base,
         status: "halt",
         vmstate: state,
+        rpcUrl: invoked.rpcUrl,
         ...summarizeStack(result),
       };
     }
@@ -414,6 +425,7 @@ async function verifySafeMethod(rpcUrl, app, hash, method) {
       ...base,
       status,
       vmstate: state,
+      rpcUrl: invoked.rpcUrl,
       exception,
     };
   } catch (error) {
@@ -514,18 +526,28 @@ async function main() {
     const runtimeOperations = extractRuntimeOperations(app.manifest);
     row.runtimeOperations = runtimeOperations.map((operation) => ({
       ...operation,
-      existsInAbi: methodNames.has(operation.method),
+      effectiveMethod: normalizeRuntimeOperationMethod(app.appId, operation.method),
+      existsInAbi: methodNames.has(normalizeRuntimeOperationMethod(app.appId, operation.method)),
     }));
     for (const operation of row.runtimeOperations) {
       if (!operation.existsInAbi) {
-        row.failures.push(`runtime operation ${operation.source} -> ${operation.method} missing from live ABI`);
+        const suffix =
+          operation.effectiveMethod && operation.effectiveMethod !== operation.method
+            ? ` (effective=${operation.effectiveMethod})`
+            : "";
+        row.failures.push(
+          `runtime operation ${operation.source} -> ${operation.method} missing from live ABI${suffix}`
+        );
       }
     }
 
     const uiOperationRows = row.uiOperations.map((operation) => ({
       ...operation,
-      existsInAbi: methodNames.has(operation.method),
-      classification: methodNames.has(operation.method) ? "contract" : "client-or-server-action",
+      effectiveMethod: normalizeRuntimeOperationMethod(app.appId, operation.method),
+      existsInAbi: methodNames.has(normalizeRuntimeOperationMethod(app.appId, operation.method)),
+      classification: methodNames.has(normalizeRuntimeOperationMethod(app.appId, operation.method))
+        ? "contract"
+        : "client-or-server-action",
     }));
     row.uiOperations = uiOperationRows;
 
