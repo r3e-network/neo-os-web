@@ -13,4 +13,3 @@ func TestPlatformAnchorContract(t *testing.T) {
 		deployed.requireBoolEquals(t, "isPaused", false)
 	})
 }
-
