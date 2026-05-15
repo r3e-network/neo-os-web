@@ -40,17 +40,52 @@ export const UINT160_ZERO = "0x" + "00".repeat(20);
 
 // ── Raw JSON-RPC caller ───────────────────────────────────────────────────
 
+const RPC_TIMEOUT_MS = Number(process.env.INTEGRATION_RPC_TIMEOUT_MS || 12_000);
+const RPC_ATTEMPTS = Math.max(1, Number(process.env.INTEGRATION_RPC_ATTEMPTS || 3));
+
+function isRetryableRpcError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|ENOTFOUND|socket hang up|abort|timeout/i.test(
+    message,
+  );
+}
+
 export async function rpcCall(method, params = []) {
-  const res = await fetch(RPC_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const data = await res.json();
-  if (data.error) {
-    throw new Error(data.error.message || `rpc ${method} failed`);
+  let lastError = null;
+  for (let attempt = 1; attempt <= RPC_ATTEMPTS; attempt += 1) {
+    try {
+      const res = await fetch(RPC_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        throw new Error(`rpc ${method} HTTP ${res.status}: ${text.slice(0, 200)}`);
+      }
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (error) {
+        throw new Error(
+          `rpc ${method} JSON parse error: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      if (data.error) {
+        throw new Error(data.error.message || `rpc ${method} failed`);
+      }
+      return data.result;
+    } catch (error) {
+      lastError = error;
+      if (attempt < RPC_ATTEMPTS && isRetryableRpcError(error)) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+        continue;
+      }
+      throw error;
+    }
   }
-  return data.result;
+  throw lastError || new Error(`rpc ${method} failed`);
 }
 
 // ── Read-only invoke helpers ──────────────────────────────────────────────

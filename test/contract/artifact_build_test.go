@@ -108,6 +108,11 @@ func contractArtifactCandidates(contractName string) []string {
 
 func contractProjectPath(contractsRoot, contractName string) (string, error) {
 	switch {
+	case strings.EqualFold(contractName, "PlatformAnchor"),
+		strings.EqualFold(contractName, "PlatformDeFi"),
+		strings.EqualFold(contractName, "PlatformGame"),
+		strings.EqualFold(contractName, "PlatformSocial"):
+		return filepath.Join(contractsRoot, "platform", contractName, contractName+".csproj"), nil
 	case strings.EqualFold(contractName, "MiniAppFactory"), strings.EqualFold(contractName, "MiniAppFactoryV2"):
 		return filepath.Join(contractsRoot, "MiniAppFactoryV2", "MiniAppFactoryV2.csproj"), nil
 	case strings.EqualFold(contractName, "MiniAppTemplate"), strings.HasPrefix(strings.ToLower(contractName), "miniapptemplate."):

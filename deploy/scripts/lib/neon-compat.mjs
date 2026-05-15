@@ -61,6 +61,48 @@ function defaultSigners(account) {
   return [{ account: account.scriptHash, scopes: "CalledByEntry" }];
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryAttempts() {
+  const raw = Number(process.env.NEO_RPC_RETRY_ATTEMPTS || "5");
+  return Number.isFinite(raw) && raw > 0 ? Math.trunc(raw) : 5;
+}
+
+function retryDelayMs() {
+  const raw = Number(process.env.NEO_RPC_RETRY_DELAY_MS || "250");
+  return Number.isFinite(raw) && raw >= 0 ? Math.trunc(raw) : 250;
+}
+
+function isTransientRpcError(error) {
+  const message = String(error?.message || error || "");
+  return /operation was aborted|aborted|timeout|timed out|fetch failed|econnreset|etimedout|eai_again|502|503|504/i.test(message);
+}
+
+async function withTransientRpcRetry(label, fn) {
+  const attempts = retryAttempts();
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts || !isTransientRpcError(error)) {
+        if (!isTransientRpcError(error)) throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        const wrapped = new Error(`${label}: ${message}`);
+        if (error instanceof Error && error.stack) {
+          wrapped.stack = `${wrapped.name}: ${wrapped.message}\nCaused by: ${error.stack}`;
+        }
+        throw wrapped;
+      }
+      await sleep(retryDelayMs() * attempt);
+    }
+  }
+  throw lastError || new Error(`${label} failed`);
+}
+
 function resolveSigningKey(account) {
   if (!account) throw new Error("account is required to sign transaction");
   return account.WIF || account.privateKey;
@@ -108,19 +150,21 @@ class RPCClient {
   }
 
   async execute(query) {
-    return this.inner.send(query.method, query.params);
+    return this.send(query.method, query.params);
   }
 
   async send(method, params = []) {
-    return this.inner.send(method, params);
+    return withTransientRpcRetry(`rpc.${method}`, () => this.inner.send(method, params));
   }
 
   async getApplicationLog(txid, trigger) {
-    return this.inner.getApplicationLog({ hash: normalizeTxId(txid), trigger });
+    return withTransientRpcRetry("rpc.getApplicationLog", () =>
+      this.inner.getApplicationLog({ hash: normalizeTxId(txid), trigger })
+    );
   }
 
   async getBlockCount() {
-    return this.inner.getBlockCount();
+    return withTransientRpcRetry("rpc.getBlockCount", () => this.inner.getBlockCount());
   }
 
   async invokeFunction(scriptHash, operation, args = [], signers = undefined) {
@@ -132,7 +176,7 @@ class RPCClient {
     if (Array.isArray(signers) && signers.length > 0) {
       params.push(normalizeSigners(signers));
     }
-    return this.inner.send("invokefunction", params);
+    return this.send("invokefunction", params);
   }
 
   async sendRawTransaction(input) {
@@ -140,7 +184,18 @@ class RPCClient {
       typeof input === "string" || typeof input?.serialize === "function"
         ? input
         : input?.tx;
-    return this.inner.sendRawTransaction({ tx: toRpcBinaryPayload(payload) });
+    return withTransientRpcRetry("rpc.sendrawtransaction", async () => {
+      try {
+        return await this.inner.sendRawTransaction({ tx: toRpcBinaryPayload(payload) });
+      } catch (error) {
+        const message = String(error?.message || error || "");
+        const hash = typeof input?.hash === "function" ? input.hash() : input?.hash;
+        if (/already exists|alreadyaccepted|already in mempool/i.test(message) && hash) {
+          return { hash, alreadyAccepted: true };
+        }
+        throw error;
+      }
+    });
   }
 }
 

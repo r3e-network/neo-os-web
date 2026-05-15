@@ -9,6 +9,7 @@ import type { Observable } from "@shared/react/context";
 import type { ChainService, EventBus } from "@shared/services";
 
 const NNS_CONTRACT_HASH = "0x50ac1c37690cc2cfc594472833cf57505d5f46de";
+const NNS_RECORD_TYPE_ADDRESS = 16;
 const EXPIRY_WARNING_MS = 30 * 24 * 60 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 500;
 
@@ -93,10 +94,18 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
           const props = await chain.read("properties", [{ type: "ByteArray", value: String(tokenId) }], readOpts) as Record<string, unknown> | null;
           if (props) {
             const name = tokenIdToName(String(tokenId)) || String(props.name || tokenId);
+            let target = props.target ? String(props.target) : undefined;
+            try {
+              const resolvedTarget = await chain.read("resolve", [
+                { type: "String", value: name },
+                { type: "Integer", value: String(NNS_RECORD_TYPE_ADDRESS) },
+              ], readOpts);
+              if (resolvedTarget) target = String(resolvedTarget);
+            } catch { /* address record can be unset */ }
             domains.push({
               name, owner: addr,
               expiry: Number(props.expiration || 0) * 1000,
-              target: props.target ? String(props.target) : undefined,
+              target,
             });
           }
         } catch (e) {
@@ -175,12 +184,9 @@ export function useNeoNS({ chain, eventBus, t, nnsContractHash }: UseNeoNSOption
     isLoading.set(true);
     try {
       await chain.ensureWallet();
-      // The on-chain NameService ABI is `setRecord(name, type, data)` —
-      // there is no `setTarget`. Type 1 is the "A" record (Neo address
-      // as string). Calling the wrong name FAULTed with method-not-found.
       const result = await chain.invoke("setRecord", [
         { type: "String", value: domain.name },
-        { type: "Integer", value: 1 },
+        { type: "Integer", value: String(NNS_RECORD_TYPE_ADDRESS) },
         { type: "String", value: targetAddress },
       ], { scriptHash: contractHash });
       if (result.success) {
