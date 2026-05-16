@@ -118,6 +118,15 @@ async function getInjectedWalletContext(options = {}) {
     "NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods",
   );
 }
+async function getInjectedNeoInvocationContext() {
+  const context = await getInjectedWalletContext({ includeEvm: false });
+  if (context.kind === "evm") {
+    throw new Error(
+      "direct contract invocation requires a Neo wallet provider",
+    );
+  }
+  return context;
+}
 async function getInjectedWalletAddress() {
   return (await getInjectedWalletContext()).address;
 }
@@ -179,24 +188,11 @@ function resolveInvocationParams(params, userAddress) {
   });
 }
 async function invokeDirectInvocation(invocation) {
-  const context = await getInjectedWalletContext();
+  const context = await getInjectedNeoInvocationContext();
   const scriptHash = String(invocation.contract_hash ?? "").trim();
   const operation = String(invocation.method ?? "").trim();
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
-  if (context.kind === "evm") {
-    const data = "0x"; // Evm encoding placeholder
-    return await context.provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: context.address,
-          to: scriptHash,
-          data: data,
-        },
-      ],
-    });
-  }
   const signerAccount =
     context.kind === "nep21"
       ? (context.accountHash ?? context.address)
