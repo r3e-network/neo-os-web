@@ -95,6 +95,11 @@ type InjectedWalletContext =
   | { kind: "neoline"; address: string; instance: NeoLineN3Instance }
   | { kind: "evm"; address: string; provider: EIP1193Provider };
 
+type NeoInvocationWalletContext = Extract<
+  InjectedWalletContext,
+  { kind: "nep21" } | { kind: "neoline" }
+>;
+
 /** Extended window with supported injected wallets */
 interface WindowWithInjectedWallets extends Window {
   ethereum?: EIP1193Provider;
@@ -246,6 +251,16 @@ async function getInjectedWalletContext(
   );
 }
 
+async function getInjectedNeoInvocationContext(): Promise<NeoInvocationWalletContext> {
+  const context = await getInjectedWalletContext({ includeEvm: false });
+  if (context.kind === "evm") {
+    throw new Error(
+      "direct contract invocation requires a Neo wallet provider",
+    );
+  }
+  return context;
+}
+
 async function getInjectedWalletAddress(): Promise<string> {
   return (await getInjectedWalletContext()).address;
 }
@@ -318,27 +333,13 @@ function resolveInvocationParams(
 async function invokeDirectInvocation(
   invocation: InvocationIntent,
 ): Promise<unknown> {
-  const context = await getInjectedWalletContext();
+  const context = await getInjectedNeoInvocationContext();
 
   const scriptHash = String(invocation.contract_hash ?? "").trim();
   const operation = String(invocation.method ?? "").trim();
 
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
-
-  if (context.kind === "evm") {
-    const data = "0x"; // Evm encoding placeholder
-    return await context.provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: context.address,
-          to: scriptHash,
-          data: data,
-        },
-      ],
-    });
-  }
 
   const signerAccount =
     context.kind === "nep21"
