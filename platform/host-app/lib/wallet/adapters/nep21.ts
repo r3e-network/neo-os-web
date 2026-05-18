@@ -94,7 +94,7 @@ function normalizeTxResult(result: unknown): TransactionResult {
     const txid = String(record.txid ?? record.tx ?? record.hash ?? "");
     if (txid) return { txid, nodeUrl: typeof record.nodeUrl === "string" ? record.nodeUrl : undefined };
   }
-  throw new WalletTransactionError("NEP-21 wallet did not return a transaction hash");
+  throw new WalletTransactionError("Connected Neo wallet did not return a transaction hash");
 }
 
 function normalizeBalance(value: unknown, assetHash: string): string {
@@ -199,7 +199,7 @@ export class Nep21Adapter implements WalletAdapter {
       }
 
       if (!provider.authenticate) {
-        throw new WalletConnectionError("NEP-21 wallet did not return any account");
+        throw new WalletConnectionError("Connected Neo wallet did not return any account");
       }
       const authenticated = await provider.authenticate({
         action: "Authentication",
@@ -210,7 +210,7 @@ export class Nep21Adapter implements WalletAdapter {
         nonce: createNonce(),
         timestamp: Date.now(),
       });
-      if (!authenticated.address) throw new WalletConnectionError("NEP-21 wallet authentication did not return an address");
+      if (!authenticated.address) throw new WalletConnectionError("Connected Neo wallet authentication did not return an address");
       this.accountHash = null;
       this.address = authenticated.address;
       return {
@@ -220,7 +220,7 @@ export class Nep21Adapter implements WalletAdapter {
       };
     } catch (error) {
       if (error instanceof WalletConnectionError) throw error;
-      throw new WalletConnectionError(`Failed to connect NEP-21 wallet: ${error instanceof Error ? error.message : String(error)}`);
+      throw new WalletConnectionError(`Failed to connect Neo wallet: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -260,7 +260,7 @@ export class Nep21Adapter implements WalletAdapter {
 
   async signMessage(message: string): Promise<SignedMessage> {
     const provider = await this.getProvider();
-    if (!provider.signMessage) throw new WalletTransactionError("NEP-21 wallet does not support signMessage");
+    if (!provider.signMessage) throw new WalletTransactionError("Connected Neo wallet does not support message signing");
     const signed = await provider.signMessage(encodeBase64Utf8(message), this.accountHash ?? this.address ?? undefined);
     return {
       publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
@@ -272,7 +272,7 @@ export class Nep21Adapter implements WalletAdapter {
 
   async invoke(params: InvokeParams): Promise<TransactionResult> {
     const provider = await this.getProvider();
-    if (!provider.invoke) throw new WalletTransactionError("NEP-21 wallet does not support invoke");
+    if (!provider.invoke) throw new WalletTransactionError("Connected Neo wallet does not support contract invoke");
     const invocation: DapiInvocation = {
       hash: params.scriptHash,
       operation: normalizeOperationName(params.operation),
@@ -287,7 +287,7 @@ export class Nep21Adapter implements WalletAdapter {
     signers?: InvokeParams["signers"],
   ): Promise<TransactionResult> {
     const provider = await this.getProvider();
-    if (!provider.invoke) throw new WalletTransactionError("NEP-21 wallet does not support invoke");
+    if (!provider.invoke) throw new WalletTransactionError("Connected Neo wallet does not support contract invoke");
     if (!params.length) throw new WalletTransactionError("No NEP-21 invocations to submit");
     const invocations: DapiInvocation[] = params.map((param) => ({
       hash: param.scriptHash,

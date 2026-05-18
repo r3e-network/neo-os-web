@@ -379,8 +379,8 @@ export function OverviewTab({
           {Object.entries(app.permissions).map(([key, value]) =>
             value ? (
               <div key={key} className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
-                  ✓
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
                 <span className="text-sm text-gray-700">
                   {formatPermission(key)}

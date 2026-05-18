@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoCard, NeoInput } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import ArenaHero from "./components/ArenaHero";
@@ -57,16 +57,13 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
 
   return (
     <div className="coinflip-play-area">
-      {/* Stats row: Wins / Losses / Total Games / Total Won */}
       <div className="stats-row">
         <div className="stat-cell win">
-          <span className="stat-emoji" aria-hidden="true">+</span>
           <span className="stat-count">{wins}</span>
           <span className="stat-label">{t("wins") || "Wins"}</span>
         </div>
         <div className="stat-divider" />
         <div className="stat-cell loss">
-          <span className="stat-emoji" aria-hidden="true">&ndash;</span>
           <span className="stat-count">{losses}</span>
           <span className="stat-label">{t("losses") || "Losses"}</span>
         </div>
@@ -77,13 +74,11 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         </div>
         <div className="stat-divider" />
         <div className="stat-cell won">
-          <span className="stat-emoji" aria-hidden="true">&bull;</span>
           <span className="stat-count won-amount">{formattedTotalWon}</span>
           <span className="stat-label">{t("totalWon") || "Won"}</span>
         </div>
       </div>
 
-      {/* Coin flip arena hero (3D coin + result flash) */}
       <ArenaHero
         t={t}
         isFlipping={isFlipping}
@@ -91,10 +86,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         result={result}
       />
 
-      {/* Record bar (compact, original component) */}
       <RecordStatsBar t={t} wins={wins} losses={losses} totalGames={totalGames} />
 
-      {/* Custom bet amount input with validation */}
       <div className="custom-bet-section">
         <NeoInput
           type="number"
@@ -111,7 +104,6 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         />
       </div>
 
-      {/* Choice cards + preset wager grid + flip button */}
       <WagerControls
         t={t}
         choice={choice}
@@ -121,10 +113,8 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
         dispatch={dispatch}
       />
 
-      {/* Game history table */}
       <div className="history-section">
         <div className="history-header">
-          <span className="history-icon" aria-hidden="true">&bull;</span>
           <span className="history-title">{t("gameHistory") || "Recent Games"}</span>
         </div>
         {recentHistory.length === 0 ? (

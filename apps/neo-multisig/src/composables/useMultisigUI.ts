@@ -9,17 +9,17 @@ export function useMultisigUI() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "pending":
-        return "⏳";
+        return "P";
       case "ready":
-        return "✅";
+        return "R";
       case "broadcasted":
-        return "🚀";
+        return "B";
       case "cancelled":
-        return "❌";
+        return "C";
       case "expired":
-        return "⏰";
+        return "E";
       default:
-        return "📄";
+        return "U";
     }
   };
 

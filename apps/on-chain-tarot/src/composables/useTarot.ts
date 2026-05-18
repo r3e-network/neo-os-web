@@ -174,7 +174,7 @@ export function useTarot({
           return {
             id: cardId,
             name: `Card ${cardId}`,
-            icon: "\uD83C\uDCA0",
+            icon: "M",
             suit: "major",
             number: cardId,
             arcana: "Major Arcana",

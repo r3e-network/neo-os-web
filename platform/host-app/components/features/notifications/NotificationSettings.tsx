@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Mail, Clock } from "lucide-react";
+import { Bell, CheckCircle2, Mail, Clock } from "lucide-react";
 import { useNotificationStore } from "@/lib/notifications/store";
 import type { DigestFrequency } from "@/lib/notifications/types";
 
@@ -64,7 +64,10 @@ export function NotificationSettings() {
         {preferences.email && preferences.emailVerified ? (
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600">{preferences.email}</span>
-            <span className="text-xs text-emerald-500">✓ Verified</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+              Verified
+            </span>
           </div>
         ) : showVerify ? (
           <VerifyCodeInput
@@ -280,7 +283,9 @@ function FrequencySelector({
             <p className="text-sm font-medium text-gray-900">{opt.label}</p>
             <p className="text-xs text-gray-500">{opt.desc}</p>
           </div>
-          {value === opt.value && <span className="text-emerald-500">✓</span>}
+          {value === opt.value && (
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+          )}
         </button>
       ))}
     </div>

@@ -79,7 +79,7 @@
   },
   "home": {
     "badges": {
-      "nep21Ready": "NEP-21 지갑 준비됨",
+      "nep21Ready": "OneGate / NeoLine 준비됨",
       "onegateExport": "OneGate dApp 내보내기"
     },
     "hero": {

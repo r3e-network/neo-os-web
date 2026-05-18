@@ -45,61 +45,55 @@ test.describe("MiniApp Detail", () => {
     await expect(domainBinding).toContainText("redenvelope.miniapp.neo");
   });
 
-  test("should resolve shared-mode runtime and invoke shared module operations with a mocked NeoLine wallet", async ({
+  test("should resolve shared-mode runtime and invoke shared module operations with a mocked NeoLine NEP-21 wallet", async ({
     page,
   }) => {
     await page.addInitScript(() => {
       const calls: Array<Record<string, unknown>> = [];
       (window as any).__sharedInvokeCalls = calls;
-      (window as any).NEOLineN3 = {
-        Init: function MockNeoLine() {
+      const provider = {
+        name: "NeoLine",
+        dapiVersion: "1.0.0",
+        compatibility: ["NEP-21"],
+        network: 894710606,
+        supportedNetworks: [894710606],
+        async getAccounts() {
+          return [
+            {
+              hash: "0x407c24a382011c16be1597699cd6460f54e49",
+              address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
+              label: "Mock Account",
+              isDefault: true,
+            },
+          ];
+        },
+        async getBalance(asset: string) {
+          if (asset === "0xd2a4cff31913016155e38e474a2c06d08be276cf") {
+            return "123.45";
+          }
+          if (asset === "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5") {
+            return "42";
+          }
+          return "0";
+        },
+        async signMessage(message: string) {
           return {
-            async getAccount() {
-              return {
-                address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-                label: "Mock Account",
-              };
-            },
-            async getPublicKey() {
-              return {
-                address: "NTmHjwiadq4g3VHpJ5FQigQcD4fF5m8TyX",
-                publicKey:
-                  "03407c24a382011c16be1597699cd6460f54e49c25098d4943fdf0192c80cb6917",
-              };
-            },
-            async getBalance() {
-              return [
-                {
-                  contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf",
-                  symbol: "GAS",
-                  amount: "123.45",
-                },
-                {
-                  contract: "0xef4073a0f2b305a38ec4050e4d3d28bc40ea63f5",
-                  symbol: "NEO",
-                  amount: "42",
-                },
-              ];
-            },
-            async signMessage(params: { message: string }) {
-              return {
-                publicKey:
-                  "03407c24a382011c16be1597699cd6460f54e49c25098d4943fdf0192c80cb6917",
-                data: "mock-signature",
-                salt: "mock-salt",
-                message: params.message,
-              };
-            },
-            async invoke(params: Record<string, unknown>) {
-              calls.push(params);
-              return {
-                txid: "0xsharedtesttx",
-                nodeUrl: "https://testnet2.neo.coz.io:443",
-              };
-            },
+            pubkey:
+              "03407c24a382011c16be1597699cd6460f54e49c25098d4943fdf0192c80cb6917",
+            signature: "mock-signature",
+            message,
+          };
+        },
+        async invoke(invocations: Array<Record<string, unknown>>) {
+          calls.push(...invocations);
+          return {
+            txid: "0xsharedtesttx",
+            nodeUrl: "https://testnet2.neo.coz.io:443",
           };
         },
       };
+      (window as any).NEP21Providers = { NeoLine: provider };
+      (window as any).NEP21Provider = provider;
     });
 
     await page.route("**/auth-wallet-nonce", async (route) => {
@@ -431,7 +425,7 @@ test.describe("MiniApp Detail", () => {
     );
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({
-      scriptHash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+      hash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
       operation: "createStream",
     });
   });

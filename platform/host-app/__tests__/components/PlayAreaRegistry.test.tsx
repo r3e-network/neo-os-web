@@ -169,7 +169,50 @@ describe("PlayAreaRegistry", () => {
     expect(screen.getByRole("heading", { name: heading })).toBeVisible();
   });
 
-  it("renders Council Governance as a real proposal workspace, not a ballot placeholder", () => {
+  it("renders Council Governance as a real proposal workspace, not a ballot placeholder", async () => {
+    global.fetch = jest.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("/api/explorer/council-governance")) {
+        return {
+          ok: true,
+          json: async () => ({
+            source: "neo-explorer-ui",
+            network: "testnet",
+            candidates: [
+              {
+                id: "candidate-1",
+                candidate:
+                  "020000000000000000000000000000000000000000000000000000000000000000",
+                displayName: "Neo Council",
+                logoUrl: "https://example.test/neo-council.png",
+                rank: 1,
+                status: "council",
+                votes: 21000000,
+              },
+            ],
+            proposals: [
+              {
+                id: "proposal-42",
+                number: 42,
+                title: "Neo committee budget",
+                status: "finalized",
+                type: "policy",
+                createdAt: "2026-05-01T00:00:00.000Z",
+                endTime: "2026-05-08T00:00:00.000Z",
+                proposerName: "Neo Council",
+                councilVotes: { for: 9, against: 1, neutral: 1 },
+                communityVotes: { for: 2, against: 0, neutral: 0 },
+                messageCount: 5,
+              },
+            ],
+          }),
+        } as Response;
+      }
+      return {
+        ok: false,
+        json: async () => null,
+      } as Response;
+    }) as typeof fetch;
+
     renderPlayarea({
       app_id: "miniapp-council-governance",
       name: "Council Governance",
@@ -188,8 +231,132 @@ describe("PlayAreaRegistry", () => {
     );
     expect(screen.getByText("Proposal queue")).toBeVisible();
     expect(screen.getByText("Total proposals")).toBeVisible();
+    expect(await screen.findByText("Neo committee budget")).toBeVisible();
     expect(screen.queryByText("Council ballot")).not.toBeInTheDocument();
     expect(screen.queryByText("Stage council vote")).not.toBeInTheDocument();
+  });
+
+  it("does not show a false Council Governance empty state while live data is loading", () => {
+    global.fetch = jest.fn(
+      () => new Promise<Response>(() => undefined),
+    ) as typeof fetch;
+
+    renderPlayarea({
+      app_id: "miniapp-council-governance",
+      name: "Council Governance",
+      category: "governance",
+      description: "On-chain council proposals",
+    });
+
+    expect(screen.getByTestId("council-governance-loading")).toBeVisible();
+    expect(
+      screen.getByText("Loading live governance proposals"),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("No proposals on this network yet"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens Council Governance proposal details from Neo Explorer data", async () => {
+    global.fetch = jest.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("/api/explorer/council-governance")) {
+        return {
+          ok: true,
+          json: async () => ({
+            source: "neo-explorer-ui",
+            network: "testnet",
+            candidates: [],
+            proposals: [
+              {
+                id: "proposal-9",
+                number: 9,
+                title: "Protocol fee review",
+                status: "active",
+                type: "policy",
+                createdAt: "2026-05-10T00:00:00.000Z",
+                endTime: "2026-05-17T00:00:00.000Z",
+                proposerName: "Neo Council",
+                councilVotes: { for: 4, against: 1, neutral: 0 },
+                communityVotes: { for: 2, against: 0, neutral: 1 },
+              },
+            ],
+          }),
+        } as Response;
+      }
+      return {
+        ok: false,
+        json: async () => null,
+      } as Response;
+    }) as typeof fetch;
+
+    renderPlayarea({
+      app_id: "miniapp-council-governance",
+      name: "Council Governance",
+      category: "governance",
+      description: "On-chain council proposals",
+    });
+
+    expect(await screen.findByText("Protocol fee review")).toBeVisible();
+    const row = screen.getByTestId("council-proposal-row");
+    expect(screen.getByText(/Neo Council · active/i)).toBeVisible();
+
+    fireEvent.click(row);
+
+    expect(screen.getByTestId("council-proposal-detail")).toBeVisible();
+    expect(screen.getByText("Proposal details")).toBeVisible();
+    expect(screen.getByText("4 for / 1 against / 0 neutral")).toBeVisible();
+    expect(screen.queryByText(/020000000000000000/)).not.toBeInTheDocument();
+  });
+
+  it("does not pretend unprofiled Council candidates have verified names or logos", async () => {
+    global.fetch = jest.fn(async (url: RequestInfo | URL) => {
+      if (String(url).includes("/api/explorer/council-governance")) {
+        return {
+          ok: true,
+          json: async () => ({
+            source: "neo-explorer-ui",
+            network: "testnet",
+            candidates: [
+              {
+                id: "candidate-raw",
+                candidate:
+                  "0x8b915b5abcb81841face2afc42982c08a7e72b81",
+                displayName: "Council node #1",
+                profileSource: "unverified",
+                rank: 1,
+                status: "consensus",
+                votes: 3001287,
+              },
+            ],
+            proposals: [],
+          }),
+        } as Response;
+      }
+      return {
+        ok: false,
+        json: async () => null,
+      } as Response;
+    }) as typeof fetch;
+
+    renderPlayarea({
+      app_id: "miniapp-council-governance",
+      name: "Council Governance",
+      category: "governance",
+      description: "On-chain council proposals",
+    });
+
+    expect(
+      await screen.findAllByText("Unverified consensus node #1"),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText(/profile names or logos/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Node names and logos are resolved/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/0x8b915b5abcb81841face2afc42982c08a7e72b81/i),
+    ).not.toBeInTheDocument();
   });
 
   it("renders Forever Album as an actual uploader/gallery dApp, not a staged metadata preview", () => {

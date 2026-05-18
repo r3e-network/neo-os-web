@@ -32,7 +32,7 @@ export function getWalletNetworkGuardReason(
   targetNetwork: NeoNetwork,
 ): string | null {
   if (!walletNetwork) {
-    return `Wallet network is not verified. Reconnect with a NEP-21 wallet or Direct WIF on ${neoNetworkLabel(targetNetwork)}.`;
+    return `Wallet network is not verified. Reconnect with OneGate or NeoLine on ${neoNetworkLabel(targetNetwork)}.`;
   }
   if (walletNetwork !== targetNetwork) {
     return `Wallet is on ${neoNetworkLabel(walletNetwork)} but this page targets ${neoNetworkLabel(targetNetwork)}. Switch wallet network before submitting.`;

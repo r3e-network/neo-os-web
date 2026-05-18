@@ -198,7 +198,7 @@
     },
     "aa": {
       "enabled": false,
-      "description": "Direct OneGate/NEP-21 wallet flow is used for the initial release."
+      "description": "Direct OneGate and NeoLine signing flow is used for the initial release."
     }
   },
   "contract_domains": {

@@ -21,7 +21,7 @@
  *   name: "burn-league",
  *   messages,
  *   template: {
- *     tabs: [{ key: "game", labelKey: "game", icon: "🎮", default: true }],
+ *     tabs: [{ key: "game", labelKey: "game", icon: "game", default: true }],
  *     fireworks: true,
  *   },
  *   sidebarItems: [
@@ -315,7 +315,7 @@ function buildTemplateConfig(options: TemplateOptions): MiniAppTemplateConfig {
 
   return {
     contentType,
-    tabs: [...tabs, { key: "docs", labelKey: "docs", icon: "📖" }],
+    tabs: [...tabs, { key: "docs", labelKey: "docs", icon: "book" }],
     ...(options.stats && { stats: options.stats }),
     ...(options.twoColumn && { twoColumn: options.twoColumn }),
     features: {

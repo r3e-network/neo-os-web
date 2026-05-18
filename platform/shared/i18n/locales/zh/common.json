@@ -102,31 +102,31 @@
     "orConnectWallet": "或连接钱包",
     "neoEcosystem": "Neo 生态钱包",
     "recommended": "推荐",
-    "directWifTesting": "直接 WIF 测试",
-    "pasteTestWif": "粘贴测试钱包 WIF",
-    "directWif": "直接 WIF",
+    "directWifTesting": "开发者密钥登录",
+    "pasteTestWif": "粘贴本地开发者密钥",
+    "directWif": "开发者密钥",
     "showWif": "显示 WIF",
     "hideWif": "隐藏 WIF",
     "localValidation": "仅用于本地验证。密钥只保留在当前浏览器会话中，不会被保存。",
     "terms": "连接即表示你同意服务条款和隐私政策。",
     "disconnectTitle": "断开钱包",
     "disconnectMessage": "断开后需要重新连接才能使用链上功能。",
-    "wifTest": "WIF 测试",
+    "wifTest": "开发者密钥",
     "dismiss": "关闭",
     "closeLoginModal": "关闭登录弹窗"
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 Provider",
-      "description": "通过标准 Neo NEP-21 dAPI provider 连接。"
+      "name": "已检测到的 Neo 钱包",
+      "description": "检测到兼容钱包后，使用 Neo dAPI 签名协议。"
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate 钱包，Neo N3 合约调用通过 NEP-21 dAPI provider 执行。"
+      "description": "OneGate 钱包，用于 Neo N3 账户连接和合约调用。"
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "NeoLine 浏览器扩展，通过 NEP-21 dAPI provider 连接 Neo N3 账户。"
+      "description": "NeoLine 浏览器扩展，用于 Neo N3 账户连接和合约签名。"
     },
     "protocol": {
       "nep21": "NEP-21"

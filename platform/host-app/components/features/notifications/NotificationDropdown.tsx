@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Bell,
+  Gauge,
+  Mail,
+  Trophy,
+  XCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { logger } from "@/lib/logger";
@@ -17,14 +26,19 @@ type NotificationEventsResponse = {
   events?: NotificationEvent[];
 };
 
-const typeIcons: Record<string, string> = {
-  miniapp_win: "🎉",
-  miniapp_loss: "😢",
-  balance_deposit: "💰",
-  balance_withdraw: "📤",
-  chain_no_block: "⚠️",
-  chain_congestion: "🚦",
+const typeIcons: Record<string, typeof Bell> = {
+  miniapp_win: Trophy,
+  miniapp_loss: XCircle,
+  balance_deposit: ArrowDownCircle,
+  balance_withdraw: ArrowUpCircle,
+  chain_no_block: AlertTriangle,
+  chain_congestion: Gauge,
 };
+
+function NotificationTypeIcon({ type }: { type: string }) {
+  const Icon = typeIcons[type] || Mail;
+  return <Icon className="h-5 w-5 text-emerald-700" aria-hidden="true" />;
+}
 
 function timeAgo(date: string): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -259,8 +273,8 @@ export function NotificationDropdown({
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-neo rounded-r-full shadow-[0_0_10px_rgba(0,229,153,0.5)]" />
                     )}
 
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 text-xl group-hover:scale-110 transition-transform duration-300">
-                      {typeIcons[n.type] || "📬"}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-300">
+                      <NotificationTypeIcon type={n.type} />
                     </div>
 
                     <div className="flex-1 min-w-0 flex flex-col justify-center">

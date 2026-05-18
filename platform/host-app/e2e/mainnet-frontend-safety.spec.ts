@@ -354,7 +354,7 @@ test.describe("Mainnet frontend safety surface", () => {
     expect(requestFailures, "catalog and service checks should not emit mutating requests").toEqual([]);
   });
 
-  test("mainnet wallet modal exposes NEP-21 and OneGate without submitting data", async ({ page }) => {
+  test("mainnet wallet modal exposes only production NEP-21 wallet choices without submitting data", async ({ page }) => {
     const requestFailures: string[] = [];
     await captureUnsafeFrontendRequests(page, requestFailures);
 
@@ -370,8 +370,11 @@ test.describe("Mainnet frontend safety surface", () => {
         ""
       ).replace(/\s+/g, " ").trim()),
     );
-    for (const wallet of ["NEP-21", "NeoLine", "O3", "OneGate"]) {
+    for (const wallet of ["NEP-21", "NeoLine", "OneGate"]) {
       expect(labels.some((label) => label.includes(wallet)), `${wallet} should be available in the wallet modal`).toBe(true);
+    }
+    for (const removedWallet of ["O3", "Direct WIF", "WIF Test"]) {
+      expect(labels.some((label) => label.includes(removedWallet)), `${removedWallet} should not be visible in the production wallet modal`).toBe(false);
     }
     expect(requestFailures, "opening the wallet modal should not submit data").toEqual([]);
   });
