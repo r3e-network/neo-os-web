@@ -6,6 +6,7 @@
  */
 
 import React from "react";
+import { Crown, Flame, LockKeyhole, Waves } from "lucide-react";
 
 export type HeroStats = Record<string, string>;
 
@@ -90,7 +91,7 @@ function LastSurvivorHero({
           </div>
           {leader && (
             <div className="inline-flex items-center gap-2 rounded-xl bg-white/80 px-3 py-2 border border-rose-100 shadow-sm">
-              <span className="text-base">👑</span>
+              <Crown className="h-4 w-4 text-rose-700" aria-hidden="true" />
               <div className="leading-tight">
                 <div className="text-[9px] font-bold uppercase text-rose-700">
                   Current Leader
@@ -357,25 +358,21 @@ function RedEnvelopeVisual() {
       <div className="absolute top-12 sm:top-14 left-1/2 -translate-x-1/2 h-9 w-9 rounded-full bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 shadow-md flex items-center justify-center text-sm font-black text-amber-900">
         福
       </div>
-      {/* Floating coins */}
       <span
-        className="absolute top-1 left-2 text-base"
+        className="absolute top-1 left-2 h-3 w-3 rounded-full bg-amber-200 shadow-[0_0_18px_rgba(251,191,36,0.55)]"
+        aria-hidden="true"
         style={{ animation: "floatY 3s ease-in-out infinite" }}
-      >
-        ✨
-      </span>
+      />
       <span
-        className="absolute top-2 right-3 text-base"
+        className="absolute top-2 right-3 h-5 w-5 rounded-full border border-amber-300 bg-gradient-to-br from-yellow-200 to-amber-500 shadow-md"
+        aria-hidden="true"
         style={{ animation: "floatY 2.5s ease-in-out 0.7s infinite" }}
-      >
-        💰
-      </span>
+      />
       <span
-        className="absolute bottom-2 left-3 text-base"
+        className="absolute bottom-2 left-3 h-4 w-4 rounded-full border border-emerald-200 bg-gradient-to-br from-emerald-200 to-teal-500 shadow-md"
+        aria-hidden="true"
         style={{ animation: "floatY 2.7s ease-in-out 1.2s infinite" }}
-      >
-        🪙
-      </span>
+      />
       <style jsx>{`
         @keyframes floatY {
           0%,
@@ -451,7 +448,7 @@ function FireRing({ label }: { label: string }) {
       <div className="absolute inset-1.5 rounded-full bg-white" />
       <div className="absolute inset-3 rounded-full bg-gradient-to-br from-emerald-50 to-white" />
       <div className="relative z-10 text-center">
-        <div className="text-3xl mb-1">🔥</div>
+        <Flame className="mx-auto mb-1 h-7 w-7 text-emerald-600" aria-hidden="true" />
         <div className="text-2xl font-black text-emerald-700 tabular-nums">
           {label}
         </div>
@@ -532,7 +529,7 @@ function VaultIcon({ label }: { label: string }) {
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-cyan-600 shadow-xl" />
       <div className="absolute inset-2 rounded-xl border-4 border-white/30 bg-gradient-to-br from-sky-400 to-blue-500" />
       <div className="relative z-10 text-center text-white">
-        <div className="text-3xl">🔒</div>
+        <LockKeyhole className="mx-auto h-7 w-7 text-white" aria-hidden="true" />
         <div className="text-2xl font-black tabular-nums leading-tight mt-1">
           {label}
         </div>
@@ -694,7 +691,7 @@ function StreamPipe({ label }: { label: string }) {
       <div className="absolute inset-2 rounded-full bg-white" />
       <div className="absolute inset-3 rounded-full bg-gradient-to-br from-emerald-50 via-white to-emerald-50" />
       <div className="relative z-10 text-center">
-        <div className="text-3xl">💸</div>
+        <Waves className="mx-auto h-7 w-7 text-emerald-600" aria-hidden="true" />
         <div className="text-2xl font-black text-emerald-700 tabular-nums leading-tight mt-1">
           {label}
         </div>

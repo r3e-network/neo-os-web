@@ -8,7 +8,7 @@ const appMessages = {
     zh: "Neo 国库从实时链上数据追踪 Neo 基金会与生态钱包余额。",
   },
   feature1Name: { en: "Transparent Funds", zh: "透明资金" },
-  feature1Desc: { en: "Balances are fetched from public chain data, not mock totals.", zh: "余额来自公开链上数据，不展示模拟总额。" },
+  feature1Desc: { en: "Balances are fetched from public chain data with no placeholder totals.", zh: "余额来自公开链上数据，不使用占位总额。" },
   feature2Name: { en: "Founder Wallets", zh: "创始人钱包" },
   feature2Desc: { en: "Known Da Hongfei and Erik Zhang wallet groups are separated for inspection.", zh: "已知 Da Hongfei 与 Erik Zhang 钱包组分开展示，方便核查。" },
   feature3Name: { en: "Read-only Monitor", zh: "只读监控" },

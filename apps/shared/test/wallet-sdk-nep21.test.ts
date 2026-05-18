@@ -113,7 +113,7 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.address.value).toBe("NTestAddress");
   });
 
-  it("connects through the OneGate host wallet when NEP-21 is not injected", async () => {
+  it("rejects the legacy OneGate host wallet when NEP-21 is not injected", async () => {
     window.history.replaceState({}, "", "/?network=testnet");
     const oneGate = {
       getAccount: vi.fn(async () => ({
@@ -128,32 +128,13 @@ describe("wallet-sdk NEP-21 support", () => {
         publicKey: "03onegate",
       })),
     };
-    window.OneGate = oneGate;
+    (window as typeof window & { OneGate?: unknown }).OneGate = oneGate;
 
     const wallet = useWallet();
-    await wallet.connect();
+    await expect(wallet.connect()).rejects.toThrow(/NEP-21 dAPI wallet/i);
 
-    expect(oneGate.getAccount).toHaveBeenCalledTimes(1);
-    expect(wallet.address.value).toBe("NOneGateLegacyAddress");
-    expect(wallet.chainType.value).toBe("neo-n3-testnet");
-    await expect(wallet.getBalance("GAS")).resolves.toBe("9.5");
-    expect(oneGate.getBalance).toHaveBeenCalledWith({
-      address: "NOneGateLegacyAddress",
-    });
-    await expect(
-      wallet.invokeContract({
-        scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        operation: "claimRangeGasPool",
-        args: [{ type: "String", value: "miniapp-gas-lucky-pool" }],
-        signers: [{ account: "NOneGateLegacyAddress", scopes: 1 }],
-      }),
-    ).resolves.toMatchObject({ txid: "0xonegatelegacy" });
-    expect(oneGate.invoke).toHaveBeenCalledWith({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "claimRangeGasPool",
-      args: [{ type: "String", value: "miniapp-gas-lucky-pool" }],
-      signers: [{ account: "NOneGateLegacyAddress", scopes: 1 }],
-    });
+    expect(oneGate.getAccount).not.toHaveBeenCalled();
+    expect(wallet.address.value).toBeNull();
   });
 
   it("maps shared invoke/read/balance/sign APIs to NEP-21 methods", async () => {
@@ -331,7 +312,7 @@ describe("wallet-sdk NEP-21 support", () => {
     expect(wallet.address.value).toBe("NChangedAddress");
   });
 
-  it("falls back to NeoLine but blocks writes when the wallet network cannot be verified", async () => {
+  it("rejects the legacy NeoLine API when NEP-21 is not injected", async () => {
     const neoLine = {
       getAccount: vi.fn(async () => ({ address: "NNeoLineAddress" })),
       invoke: vi.fn(async () => ({ txid: "0xneoline" })),
@@ -340,17 +321,11 @@ describe("wallet-sdk NEP-21 support", () => {
         GAS: [{ amount: "12", contract: "0xd2a4cff31913016155e38e474a2c06d08be276cf" }],
       })),
     };
-    window.neo3Dapi = neoLine;
+    (window as typeof window & { neo3Dapi?: unknown }).neo3Dapi = neoLine;
 
     const wallet = useWallet();
-    await wallet.connect();
-    expect(wallet.address.value).toBe("NNeoLineAddress");
-
-    await expect(wallet.invokeContract({
-      scriptHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      operation: "Transfer",
-      args: [],
-    })).rejects.toThrow(/not verified/i);
+    await expect(wallet.connect()).rejects.toThrow(/NEP-21 dAPI wallet/i);
+    expect(neoLine.getAccount).not.toHaveBeenCalled();
     expect(neoLine.invoke).not.toHaveBeenCalled();
   });
 

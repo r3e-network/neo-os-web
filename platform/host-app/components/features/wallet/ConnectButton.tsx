@@ -24,9 +24,7 @@ import { Eye, EyeOff, KeyRound, LogOut, Wallet, X } from "lucide-react";
 
 function canUseDirectWif(): boolean {
   if (process.env.NEXT_PUBLIC_ENABLE_WIF_WALLET === "true") return true;
-  if (process.env.NODE_ENV !== "production") return true;
-  if (typeof window === "undefined") return false;
-  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+  return false;
 }
 
 export function ConnectButton() {
@@ -311,13 +309,13 @@ export function ConnectButton() {
                         className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 text-left transition-all hover:border-neo hover:shadow-[0_0_15px_rgba(0,229,153,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/40 group cursor-pointer"
                         data-testid={`wallet-option-${w.id}`}
                       >
-                        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-gray-100 bg-gray-50">
+                        <span className="grid h-12 w-16 shrink-0 place-items-center rounded-xl border border-gray-200 bg-white px-2 shadow-sm">
                           <img
                             src={w.icon}
                             alt={t(`walletOptions.${w.id}.name`)}
-                            className="max-h-7 max-w-7 object-contain group-hover:scale-105 transition-transform"
-                            loading="lazy"
-                            decoding="async"
+                            className="max-h-8 max-w-12 object-contain group-hover:scale-105 transition-transform"
+                            loading="eager"
+                            decoding="sync"
                             onError={(e) => {
                               e.currentTarget.style.display = "none";
                               e.currentTarget.parentElement

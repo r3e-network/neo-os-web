@@ -95,9 +95,9 @@
 @include theme-light("fogplay") {
   --coin-bg-primary: #f8fafc;
   --coin-text-primary: #0f172a;
-  --coin-text-secondary: rgba(15, 23, 42, 0.7);
-  --coin-label: rgba(15, 23, 42, 0.6);
-  --coin-card-bg: rgba(255, 255, 255, 0.85);
+  --coin-text-secondary: #475569;
+  --coin-label: #475569;
+  --coin-card-bg: rgba(255, 255, 255, 0.92);
   --coin-card-border: rgba(15, 23, 42, 0.08);
   --coin-panel-bg: rgba(255, 255, 255, 0.8);
   --coin-panel-border: rgba(15, 23, 42, 0.1);
@@ -128,7 +128,7 @@
   --coin-loss: #dc2626;
   --coin-win: #059669;
   --coin-white: #ffffff;
-  --coin-gold: #d97706;
+  --coin-gold: #b45309;
   --coin-btn-shadow: #047857;
   --flip-cta-gradient: linear-gradient(135deg, #059669 0%, #065f46 100%);
   --coin-arena-ring: rgba(0, 229, 153, 0.08);
@@ -141,8 +141,8 @@
   --coin-record-bg: rgba(255, 255, 255, 0.5);
   --coin-record-border: rgba(15, 23, 42, 0.08);
   --coin-record-divider: rgba(15, 23, 42, 0.1);
-  --coin-text-muted: rgba(15, 23, 42, 0.6);
-  --coin-text-muted-light: rgba(15, 23, 42, 0.4);
+  --coin-text-muted: #475569;
+  --coin-text-muted-light: #334155;
   --coin-balance-pill-bg: rgba(0, 229, 153, 0.08);
   --coin-balance-pill-border: rgba(0, 229, 153, 0.15);
   --coin-glow-pulse: rgba(0, 229, 153, 0.15);

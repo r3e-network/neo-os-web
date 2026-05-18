@@ -16,7 +16,7 @@ title: { en: "Breakup Contract", zh: "分手合约" },
   durationLabel: { en: "Contract Duration", zh: "合约期限" },
   termsLabel: { en: "Contract Terms", zh: "合约条款" },
   signatureLabel: { en: "Your Signature", zh: "您的签名" },
-  signatureEmoji: { en: "✍️", zh: "✍️" },
+  signatureEmoji: { en: "Signature mark", zh: "签名标记" },
   heartIcon: { en: "Active relationship heart", zh: "活跃关系爱心" },
   brokenHeartIcon: { en: "Broken relationship", zh: "破裂关系" },
 

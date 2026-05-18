@@ -22,7 +22,7 @@ export default function ArenaHero({ t, isFlipping, displayOutcome, result }: Are
       </div>
       {result && !isFlipping && (
         <div className={`result-flash ${result.won ? "win" : "lose"}`}>
-          <span className="result-flash-icon" aria-hidden="true">{result.won ? "\u2705" : "\u274C"}</span>
+          <span className="result-flash-icon" aria-hidden="true">{result.won ? "W" : "L"}</span>
           <span className="result-flash-text">{result.won ? "WIN" : "LOSE"}</span>
         </div>
       )}

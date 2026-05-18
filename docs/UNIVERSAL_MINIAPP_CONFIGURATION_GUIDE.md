@@ -304,12 +304,12 @@ Set usage limits:
 
 ## Examples
 
-See the example configurations:
+Example configurations are documentation-only and live outside the production
+`public/miniapp-definitions` runtime directory:
 
-- `prediction-market.example.json` - Full prediction market example
-- `lottery.example.json` - Weekly lottery example
-- `voting.example.json` - DAO voting example
-- `tipping.example.json` - Developer tipping example
+- `docs/examples/miniapp-definitions/voting.example.json` - DAO voting example
+- `docs/examples/miniapp-definitions/tipping.example.json` - Developer tipping example
+- `docs/examples/miniapp-definitions/template-market.example.yaml` - template market example
 
 ## Best Practices
 

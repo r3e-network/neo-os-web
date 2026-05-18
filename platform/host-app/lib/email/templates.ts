@@ -43,10 +43,10 @@ export interface TransactionEmailData {
 export function transactionEmail(data: TransactionEmailData) {
   const { type, appName, amount, txHash } = data;
   const titles: Record<string, string> = {
-    win: "🎉 You Won!",
+    win: "You Won",
     loss: "Game Result",
-    deposit: "💰 Deposit Confirmed",
-    withdraw: "📤 Withdrawal Processed",
+    deposit: "Deposit Confirmed",
+    withdraw: "Withdrawal Processed",
   };
 
   return {
@@ -74,8 +74,8 @@ export interface ChainAlertEmailData {
 export function chainAlertEmail(data: ChainAlertEmailData) {
   const { network, alertType, details } = data;
   const alertTitles = {
-    no_block: "⚠️ Block Production Stalled",
-    congestion: "⚠️ Network Congestion Detected",
+    no_block: "Block Production Stalled",
+    congestion: "Network Congestion Detected",
   };
 
   return {

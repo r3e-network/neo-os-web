@@ -75,57 +75,18 @@ async function getNeoDapiContext(allowAuthenticate = true) {
   if (!address) return null;
   return { kind: "nep21", address, provider };
 }
-async function getNeoLineContext() {
-  if (typeof window === "undefined") return null;
-  const g = window;
-  const neoline = g.NEOLineN3 ?? g.NEOLine;
-  if (!neoline || typeof neoline.Init !== "function") return null;
-  const instance = new neoline.Init();
-  if (!instance || typeof instance.getAccount !== "function") return null;
-  const res = await instance.getAccount();
-  const address = String(res?.address ?? res?.account?.address ?? "").trim();
-  if (!address) return null;
-  return { kind: "neoline", address, instance };
-}
-async function getEvmContext() {
-  if (typeof window === "undefined") return null;
-  const g = window;
-  if (!g.ethereum || typeof g.ethereum.request !== "function") return null;
-  try {
-    const accounts = await g.ethereum.request({ method: "eth_accounts" });
-    if (Array.isArray(accounts) && accounts.length > 0) {
-      const address = String(accounts[0] ?? "").trim();
-      if (address) return { kind: "evm", address, provider: g.ethereum };
-    }
-  } catch {
-    // User denied request or wallet unavailable — try the next wallet option.
-  }
-  return null;
-}
 async function getInjectedWalletContext(options = {}) {
   if (typeof window === "undefined") {
     throw new Error("wallet methods must be called in a browser context");
   }
   const dapi = await getNeoDapiContext(options.allowDapiAuthenticate ?? true);
   if (dapi) return dapi;
-  const neoline = await getNeoLineContext();
-  if (neoline) return neoline;
-  if (options.includeEvm ?? true) {
-    const evm = await getEvmContext();
-    if (evm) return evm;
-  }
   throw new Error(
-    "NEP-21 dAPI or NeoLine N3 wallet not detected, or host must bridge wallet methods",
+    "NEP-21 dAPI wallet not detected. Use OneGate, NeoLine, or another wallet that exposes the standard Neo.DapiProvider interface.",
   );
 }
 async function getInjectedNeoInvocationContext() {
-  const context = await getInjectedWalletContext({ includeEvm: false });
-  if (context.kind === "evm") {
-    throw new Error(
-      "direct contract invocation requires a Neo wallet provider",
-    );
-  }
-  return context;
+  return getInjectedWalletContext();
 }
 async function getInjectedWalletAddress() {
   return (await getInjectedWalletContext()).address;
@@ -134,42 +95,31 @@ async function getWalletProviderInfo() {
   const context = await getInjectedWalletContext({
     allowDapiAuthenticate: false,
   });
-  if (context.kind === "nep21") {
-    return {
-      kind: "nep21",
-      name: context.provider.name || "NEP-21 dAPI",
-      network: context.provider.network,
-      address: context.address,
-      accountHash: context.accountHash,
-    };
-  }
-  if (context.kind === "neoline")
-    return { kind: "neoline", name: "NeoLine N3", address: context.address };
-  return { kind: "evm", name: "EIP-1193", address: context.address };
+  return {
+    kind: "nep21",
+    name: context.provider.name || "NEP-21 dAPI",
+    network: context.provider.network,
+    address: context.address,
+    accountHash: context.accountHash,
+  };
 }
 async function signInjectedWalletMessage(message) {
-  const context = await getInjectedWalletContext({ includeEvm: false });
-  if (context.kind === "nep21") {
-    if (!context.provider.signMessage)
-      throw new Error("NEP-21 wallet does not support signMessage");
-    const signed = await context.provider.signMessage(
-      encodeBase64Utf8(message),
-      context.accountHash ?? context.address,
-    );
-    const signature = String(signed.signature ?? signed.data ?? "");
-    return {
-      publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
-      data: signature,
-      signature,
-      account: signed.account,
-      salt: String(signed.salt ?? ""),
-      message: String(signed.message ?? message),
-    };
-  }
-  if (context.kind === "neoline" && context.instance.signMessage) {
-    return context.instance.signMessage({ message });
-  }
-  throw new Error("Connected wallet does not support signMessage");
+  const context = await getInjectedWalletContext();
+  if (!context.provider.signMessage)
+    throw new Error("Connected Neo wallet does not support message signing");
+  const signed = await context.provider.signMessage(
+    encodeBase64Utf8(message),
+    context.accountHash ?? context.address,
+  );
+  const signature = String(signed.signature ?? signed.data ?? "");
+  return {
+    publicKey: String(signed.pubkey ?? signed.publicKey ?? ""),
+    data: signature,
+    signature,
+    account: signed.account,
+    salt: String(signed.salt ?? ""),
+    message: String(signed.message ?? message),
+  };
 }
 // Resolve SENDER placeholder in invocation params with the user's wallet address.
 // This is used for GAS.Transfer where the 'from' parameter must be the user's address.
@@ -193,62 +143,16 @@ async function invokeDirectInvocation(invocation) {
   const operation = String(invocation.method ?? "").trim();
   if (!scriptHash) throw new Error("invocation missing contract_hash");
   if (!operation) throw new Error("invocation missing method");
-  const signerAccount =
-    context.kind === "nep21"
-      ? (context.accountHash ?? context.address)
-      : context.address;
+  const signerAccount = context.accountHash ?? context.address;
   // Resolve SENDER placeholders in params with the user's actual Neo account.
   const rawArgs = Array.isArray(invocation.params) ? invocation.params : [];
   const args = resolveInvocationParams(rawArgs, signerAccount);
-  if (context.kind === "nep21") {
-    if (!context.provider.invoke) {
-      throw new Error("NEP-21 wallet does not support invoke");
-    }
-    return context.provider.invoke(
-      [{ hash: scriptHash, operation, args }],
-      [{ account: signerAccount, scopes: "CalledByEntry" }],
-    );
+  if (!context.provider.invoke) {
+    throw new Error("Connected Neo wallet does not support contract invoke");
   }
-  if (!context.instance || typeof context.instance.invoke !== "function") {
-    throw new Error(
-      "wallet does not support invoke (NEP-21 dAPI or NeoLine N3 required)",
-    );
-  }
-  // Try strict CalledByEntry signer payloads with/without 0x script hash prefix.
-  const candidates = [
-    {
-      scriptHash,
-      operation,
-      args,
-      signers: [{ account: signerAccount, scopes: "CalledByEntry" }],
-    },
-    {
-      scriptHash: scriptHash.replace(/^0x/i, ""),
-      operation,
-      args,
-      signers: [{ account: signerAccount, scopes: "CalledByEntry" }],
-    },
-  ];
-  let lastErr = null;
-  for (const params of candidates) {
-    try {
-      return await context.instance.invoke(params);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  const tried = candidates
-    .map(
-      (c, i) =>
-        `#${i + 1}{scriptHash=${c.scriptHash},scopes=${String(c.signers?.[0]?.scopes ?? "none")}}`,
-    )
-    .join("; ");
-  const lastMessage =
-    lastErr instanceof Error
-      ? lastErr.message
-      : String(lastErr ?? "invoke failed");
-  throw new Error(
-    `NeoLine invoke failed after ${candidates.length} candidate(s): ${tried}. Last error: ${lastMessage}`,
+  return context.provider.invoke(
+    [{ hash: scriptHash, operation, args }],
+    [{ account: signerAccount, scopes: "CalledByEntry" }],
   );
 }
 async function requestJSON(cfg, path, init) {

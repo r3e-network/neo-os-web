@@ -33,6 +33,7 @@ export type NeoExplorerCouncilGovernance = {
   totalVotes: number;
   candidates: NeoExplorerCouncilCandidate[];
   proposals: NeoExplorerCouncilProposal[];
+  warnings?: string[];
 };
 
 export type NeoExplorerCouncilProposal = {
@@ -98,12 +99,29 @@ function cleanEndpoint(value: string) {
 export function resolveNeoExplorerGovernanceEndpoint(
   network: NeoExplorerGovernanceNetwork,
 ) {
+  return resolveNeoExplorerGovernanceEndpoints(network)[0];
+}
+
+function uniqueEndpoints(endpoints: Array<string | undefined>) {
+  const seen = new Set<string>();
+  return endpoints
+    .map((endpoint) => (endpoint ? cleanEndpoint(endpoint) : ""))
+    .filter((endpoint) => {
+      if (!endpoint || seen.has(endpoint)) return false;
+      seen.add(endpoint);
+      return true;
+    });
+}
+
+function resolveNeoExplorerGovernanceEndpoints(
+  network: NeoExplorerGovernanceNetwork,
+) {
   const networkSpecific =
     network === "mainnet"
       ? process.env.NEO_EXPLORER_API_MAINNET
       : process.env.NEO_EXPLORER_API_TESTNET;
   const shared = process.env.NEO_EXPLORER_API_URL;
-  return cleanEndpoint(networkSpecific || shared || DEFAULT_ENDPOINTS[network]);
+  return uniqueEndpoints([networkSpecific, shared, DEFAULT_ENDPOINTS[network]]);
 }
 
 export function resolveNeoCouncilProfileRpcEndpoint(
@@ -165,31 +183,42 @@ async function explorerRpc(
   method: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
-  const response = await fetch(resolveNeoExplorerGovernanceEndpoint(network), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      params,
-      method,
-    }),
-    signal: AbortSignal.timeout(10_000),
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    params,
+    method,
   });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`Neo Explorer governance HTTP ${response.status}`);
+  for (const endpoint of resolveNeoExplorerGovernanceEndpoints(network)) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        signal: AbortSignal.timeout(5_000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Neo Explorer governance HTTP ${response.status}`);
+      }
+
+      const payload = (await response.json()) as RpcPayload;
+      if (payload.error) {
+        const error = asRecord(payload.error);
+        throw new Error(
+          asString(error.message, asString(error.code, "Neo Explorer governance RPC error")),
+        );
+      }
+
+      return payload.result;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
   }
 
-  const payload = (await response.json()) as RpcPayload;
-  if (payload.error) {
-    const error = asRecord(payload.error);
-    throw new Error(
-      asString(error.message, asString(error.code, "Neo Explorer governance RPC error")),
-    );
-  }
-
-  return payload.result;
+  throw lastError ?? new Error("Neo Explorer governance endpoint unavailable");
 }
 
 async function standardRpc(
@@ -387,19 +416,39 @@ export async function fetchNeoExplorerCouncilGovernance({
 }): Promise<NeoExplorerCouncilGovernance> {
   const safeLimit = clampInteger(limit, 1, 100);
   const safeSkip = clampInteger(skip, 0, 100_000);
+  const warnings: string[] = [];
 
-  const [candidateResult, totalVotesResult] = await Promise.all([
-    explorerRpc(network, "GetCandidate", {
-      Limit: safeLimit,
-      Skip: safeSkip,
-      Sort: "votesOfCandidate = -1",
-    }),
-    explorerRpc(network, "GetTotalVotes", {}),
-  ]);
+  const [candidateOutcome, totalVotesOutcome, profilesOutcome, proposalsOutcome] =
+    await Promise.allSettled([
+      explorerRpc(network, "GetCandidate", {
+        Limit: safeLimit,
+        Skip: safeSkip,
+        Sort: "votesOfCandidate = -1",
+      }),
+      explorerRpc(network, "GetTotalVotes", {}),
+      fetchCouncilProfiles(network),
+      network === "mainnet" ? fetchNeoCommunityProposals() : Promise.resolve([]),
+    ]);
 
-  const candidateResultMap = asRecord(candidateResult);
-  const totalVotesMap = asRecord(totalVotesResult);
-  const profiles = await fetchCouncilProfiles(network).catch(() => new Map());
+  if (candidateOutcome.status === "rejected") {
+    warnings.push("candidates_unavailable");
+  }
+  if (totalVotesOutcome.status === "rejected") {
+    warnings.push("total_votes_unavailable");
+  }
+  if (profilesOutcome.status === "rejected") {
+    warnings.push("candidate_profiles_unavailable");
+  }
+  if (proposalsOutcome.status === "rejected") {
+    warnings.push("proposals_unavailable");
+  }
+
+  const candidateResultMap =
+    candidateOutcome.status === "fulfilled" ? asRecord(candidateOutcome.value) : {};
+  const totalVotesMap =
+    totalVotesOutcome.status === "fulfilled" ? asRecord(totalVotesOutcome.value) : {};
+  const profiles =
+    profilesOutcome.status === "fulfilled" ? profilesOutcome.value : new Map();
   const candidates = asArray(candidateResultMap.result).map((candidate, index) => {
     const rawCandidate = normalizeHash160(asString(asRecord(candidate).candidate));
     return normalizeCandidate(
@@ -413,7 +462,7 @@ export async function fetchNeoExplorerCouncilGovernance({
       ? "neo-explorer-ui+neo-community"
       : "neo-explorer-ui";
   const proposals =
-    network === "mainnet" ? await fetchNeoCommunityProposals().catch(() => []) : [];
+    proposalsOutcome.status === "fulfilled" ? proposalsOutcome.value : [];
 
   return {
     source,
@@ -424,5 +473,6 @@ export async function fetchNeoExplorerCouncilGovernance({
     totalVotes: asNumber(totalVotesMap.totalvotes, 0),
     candidates,
     proposals,
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }

@@ -62,19 +62,19 @@
   <g opacity="0.6">
     <!-- Gaming Icon -->
     <rect x="250" y="60" width="40" height="40" rx="8" fill="#1F2937" stroke="#00E599" stroke-width="1"/>
-    <text x="270" y="87" font-size="20" fill="#00E599" text-anchor="middle">🎮</text>
+    <text x="270" y="85" font-size="14" font-weight="700" font-family="system-ui" fill="#00E599" text-anchor="middle">GX</text>
 
     <!-- DeFi Icon -->
     <rect x="320" y="200" width="40" height="40" rx="8" fill="#1F2937" stroke="#00D9FF" stroke-width="1"/>
-    <text x="340" y="227" font-size="20" fill="#00D9FF" text-anchor="middle">💰</text>
+    <text x="340" y="225" font-size="14" font-weight="700" font-family="system-ui" fill="#00D9FF" text-anchor="middle">DF</text>
 
     <!-- Social Icon -->
     <rect x="840" y="50" width="40" height="40" rx="8" fill="#1F2937" stroke="#00E599" stroke-width="1"/>
-    <text x="860" y="77" font-size="20" fill="#00E599" text-anchor="middle">👥</text>
+    <text x="860" y="75" font-size="14" font-weight="700" font-family="system-ui" fill="#00E599" text-anchor="middle">ID</text>
 
     <!-- NFT Icon -->
     <rect x="900" y="210" width="40" height="40" rx="8" fill="#1F2937" stroke="#00D9FF" stroke-width="1"/>
-    <text x="920" y="237" font-size="20" fill="#00D9FF" text-anchor="middle">🎨</text>
+    <text x="920" y="235" font-size="14" font-weight="700" font-family="system-ui" fill="#00D9FF" text-anchor="middle">NF</text>
   </g>
 
   <!-- Stats Bar -->
