@@ -17,6 +17,31 @@ describe("/api/morpheus/neodid/resolve", () => {
     delete process.env.PHALA_API_TOKEN;
   });
 
+  it("rejects missing network instead of silently resolving against mainnet", async () => {
+    const handler = require("@/pages/api/morpheus/neodid/resolve").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: {
+        did: "did:morpheus:neo_n3:service:neodid",
+      },
+      headers: {
+        host: "miniapps.example",
+        accept: "application/json",
+      },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    const payload = JSON.parse(res._getData());
+    expect(payload.didResolutionMetadata.error).toBe("invalidNetwork");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("resolves the NeoDID service DID against testnet runtime metadata", async () => {
     process.env.MORPHEUS_TESTNET_RUNTIME_URL = "https://testnet-runtime.example";
     process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN = "testnet-token";
@@ -129,6 +154,7 @@ describe("/api/morpheus/neodid/resolve", () => {
       method: "GET",
       query: {
         did: "did:wrong:value",
+        network: "testnet",
       },
     });
 

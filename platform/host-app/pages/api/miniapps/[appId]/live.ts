@@ -5,6 +5,7 @@ import { loadBundledMiniAppById } from "../../../../lib/miniapp-definitions";
 import { isSharedModeApp } from "../../../../lib/chain/shared-mode";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { standardLimit } from "@/lib/rate-limit";
 
 export default async function handler(
@@ -27,7 +28,10 @@ export default async function handler(
   // Auto-resolve contract hash from app ID (whitelist only)
   const bundledApp = await loadBundledMiniAppById(appId).catch(() => null);
   const sharedMode = bundledApp ? isSharedModeApp(bundledApp) : false;
-  const network = (req.query.network as "testnet" | "mainnet") || "testnet";
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const flagshipApps = getFlagshipApps(network);
   const contractHash =
     flagshipApps[appId]?.contract || bundledApp?.contract_hash || "";

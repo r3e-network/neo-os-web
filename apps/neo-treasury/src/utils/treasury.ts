@@ -1,11 +1,11 @@
 // Neo Treasury Data Fetching Utilities
 // Uses global price feed from host-app
 
-// Neo N3 RPC endpoints (same as original site)
+// Neo N3 RPC endpoints (mainnet).
+// Keep this list aligned with the host-app CSP `connect-src` allowlist.
 const RPC_ENDPOINTS = [
-  "https://testnet1.neo.coz.io:443",
-  "https://n3seed2.ngd.network:10332",
-  "https://neo-rpc1.red4sec.com:443",
+  "https://mainnet1.neo.coz.io:443",
+  "https://mainnet2.neo.coz.io:443",
 ];
 
 // Contract addresses (from shared constants)

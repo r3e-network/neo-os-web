@@ -2,135 +2,48 @@ import crypto from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addressToScriptHash } from "@/lib/chain";
 import { isValidWalletAddress } from "@/lib/wallet-user";
+import {
+  ONEGATE_VAULT_MAX_REWARD_FIXED8,
+  ONEGATE_VAULT_MIN_REWARD_FIXED8,
+  OneGateVaultError,
+} from "./onegate-vault-types";
+import type {
+  OneGateVaultCampaign,
+  OneGateVaultClaimKey,
+  OneGateVaultClaimResult,
+  OneGateVaultClaimStatus,
+  OneGateVaultLaunchIdentity,
+  OneGateVaultNetwork,
+  OneGateVaultPaymentService,
+  OneGateVaultPayoutCheck,
+  OneGateVaultRepository,
+  ReservedOneGateVaultClaim,
+} from "./onegate-vault-types";
+import {
+  getTxProxyErrorMessage,
+  parseTxProxyJson,
+  resolveOneGateVaultRewardSource,
+  resolveOneGateVaultTxProxyUrl,
+} from "./onegate-vault-tx-proxy";
 
-export const ONEGATE_VAULT_MIN_REWARD_FIXED8 = 100000000n;
-export const ONEGATE_VAULT_MAX_REWARD_FIXED8 = 5000000000n;
-
-export type OneGateVaultNetwork = "mainnet" | "testnet";
-export type OneGateVaultCampaignStatus = "active" | "paused" | "expired";
-export type OneGateVaultClaimStatus =
-  | "unused"
-  | "pending"
-  | "submitted"
-  | "paid"
-  | "failed";
-
-export type OneGateVaultCampaign = {
-  id: string;
-  appId?: string | null;
-  oneGateAppId?: string | null;
-  network: OneGateVaultNetwork;
-  status: OneGateVaultCampaignStatus;
-  minAmountFixed8: string;
-  maxAmountFixed8: string;
-  remainingAmountFixed8: string;
-  maxClaims: number;
-  claimedCount: number;
-  rewardSource?: string | null;
-  expiresAt?: string | null;
-};
-
-export type OneGateVaultClaimKey = {
-  keyHash: string;
-  campaignId: string;
-  claimKeyId?: string | null;
-  oneGateAppId?: string | null;
-  network: OneGateVaultNetwork;
-  status: OneGateVaultClaimStatus;
-  walletAddress?: string | null;
-  amountFixed8?: string | null;
-  txHash?: string | null;
-  requestId?: string | null;
-  errorMessage?: string | null;
-};
-
-export type ReservedOneGateVaultClaim = {
-  keyHash: string;
-  campaignId: string;
-  network: OneGateVaultNetwork;
-  status: OneGateVaultClaimStatus;
-  walletAddress: string;
-  amountFixed8: string;
-  txHash?: string | null;
-  requestId: string;
-  rewardSource?: string | null;
-};
-
-export type OneGateVaultClaimResult = {
-  status: "submitted" | "paid";
-  claimKey: string;
-  address: string;
-  network: OneGateVaultNetwork;
-  amount: string;
-  amountFixed8: string;
-  luckPercent: string;
-  txHash: string;
-  requestId: string;
-};
-
-export type OneGateVaultLaunchIdentity = {
-  poolId?: string;
-  oneGateAppId?: string;
-  appId?: string;
-};
-
-export interface OneGateVaultRepository {
-  reserveClaim(input: {
-    keyHash: string;
-    address: string;
-    network: OneGateVaultNetwork;
-    requestId: string;
-    randomInt: (min: bigint, max: bigint) => bigint;
-  } & OneGateVaultLaunchIdentity): Promise<ReservedOneGateVaultClaim>;
-  markSubmitted(input: {
-    keyHash: string;
-    network: OneGateVaultNetwork;
-    txHash: string;
-    requestId: string;
-  }): Promise<void>;
-  markPaid(input: {
-    keyHash: string;
-    network: OneGateVaultNetwork;
-    txHash: string;
-    requestId: string;
-  }): Promise<void>;
-  markFailed(input: {
-    keyHash: string;
-    network: OneGateVaultNetwork;
-    requestId: string;
-    errorMessage: string;
-  }): Promise<void>;
-  getClaimStatus(input: {
-    keyHash: string;
-    address?: string;
-    network: OneGateVaultNetwork;
-  } & OneGateVaultLaunchIdentity): Promise<ReservedOneGateVaultClaim | null>;
-}
-
-export interface OneGateVaultPaymentService {
-  sendGas(input: {
-    requestId: string;
-    network: OneGateVaultNetwork;
-    toAddress: string;
-    amountFixed8: string;
-    rewardSource?: string | null;
-  }): Promise<{ txHash: string; status: "submitted" | "paid" }>;
-}
-
-type OneGateVaultPayoutCheck = {
-  ok: boolean;
-  reason?: string;
-};
-
-export class OneGateVaultError extends Error {
-  readonly code: string;
-
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = "OneGateVaultError";
-    this.code = code;
-  }
-}
+export {
+  ONEGATE_VAULT_MAX_REWARD_FIXED8,
+  ONEGATE_VAULT_MIN_REWARD_FIXED8,
+  OneGateVaultError,
+} from "./onegate-vault-types";
+export type {
+  OneGateVaultCampaign,
+  OneGateVaultCampaignStatus,
+  OneGateVaultClaimKey,
+  OneGateVaultClaimResult,
+  OneGateVaultClaimStatus,
+  OneGateVaultLaunchIdentity,
+  OneGateVaultNetwork,
+  OneGateVaultPaymentService,
+  OneGateVaultPayoutCheck,
+  OneGateVaultRepository,
+  ReservedOneGateVaultClaim,
+} from "./onegate-vault-types";
 
 function asFixed8BigInt(value: unknown): bigint {
   try {
@@ -950,6 +863,7 @@ export function createTxProxyOneGateVaultPaymentService(
       const rewardSource = await resolveOneGateVaultRewardSource(
         input.network,
         input.rewardSource || options.rewardSource,
+        normalizeOneGateVaultHash160,
       );
       if (!rewardSource) {
         throw new OneGateVaultError(
@@ -1019,109 +933,4 @@ export function createTxProxyOneGateVaultPaymentService(
       return { txHash, status: "submitted" };
     },
   };
-}
-
-function resolveOneGateVaultTxProxyUrl(
-  network: OneGateVaultNetwork,
-  optionTxProxyUrl?: string,
-): string {
-  const networkSuffix = network === "mainnet" ? "MAINNET" : "TESTNET";
-  const explicit = String(
-    optionTxProxyUrl ||
-      process.env[`ONEGATE_VAULT_TX_PROXY_URL_${networkSuffix}`] ||
-      process.env.ONEGATE_VAULT_TX_PROXY_URL ||
-      process.env[`TX_PROXY_URL_${networkSuffix}`] ||
-      process.env.TX_PROXY_URL ||
-      process.env.TXPROXY_URL ||
-      "",
-  ).trim();
-  if (explicit) return explicit;
-
-  const configuredEdgeBase = String(
-    process.env.ONEGATE_VAULT_EDGE_BASE ||
-      process.env.MORPHEUS_EDGE_BASE ||
-      process.env.NEXT_PUBLIC_MORPHEUS_EDGE_BASE ||
-      "",
-  ).trim();
-  if (configuredEdgeBase) {
-    return `${configuredEdgeBase.replace(/\/+$/, "")}/${network}/txproxy`;
-  }
-
-  const legacyEdgeBase = String(process.env.EDGE_API_BASE || "").trim();
-  if (/meshmini\.app/i.test(legacyEdgeBase)) {
-    const normalized = legacyEdgeBase.replace(/\/+$/, "");
-    return /\/(mainnet|testnet)$/i.test(normalized)
-      ? `${normalized}/txproxy`
-      : `${normalized}/${network}/txproxy`;
-  }
-
-  return `https://edge.meshmini.app/${network}/txproxy`;
-}
-
-function parseTxProxyJson(responseText: string): Record<string, unknown> {
-  if (!responseText.trim()) return {};
-  try {
-    const parsed = JSON.parse(responseText);
-    return parsed && typeof parsed === "object"
-      ? (parsed as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function formatTxProxyHttpError(status: number, responseText: string): string {
-  const compact = responseText
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 180);
-  return compact
-    ? `tx-proxy rejected OneGate Vault payout (${status}): ${compact}`
-    : `tx-proxy rejected OneGate Vault payout (${status})`;
-}
-
-function getTxProxyErrorMessage(
-  body: Record<string, unknown>,
-  status: number,
-  responseText: string,
-): string {
-  const error = body.error;
-  if (typeof error === "string") return error;
-  if (error && typeof error === "object") {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return formatTxProxyHttpError(status, responseText);
-}
-
-async function resolveOneGateVaultRewardSource(
-  network: OneGateVaultNetwork,
-  optionRewardSource?: string,
-): Promise<string> {
-  const networkSuffix = network === "mainnet" ? "MAINNET" : "TESTNET";
-  const explicit = String(
-    optionRewardSource ||
-      process.env[`ONEGATE_VAULT_REWARD_SOURCE_${networkSuffix}`] ||
-      process.env[`ONEGATE_VAULT_REWARD_SOURCE_HASH_${networkSuffix}`] ||
-      process.env.ONEGATE_VAULT_REWARD_SOURCE ||
-      process.env.ONEGATE_VAULT_REWARD_SOURCE_HASH ||
-      "",
-  ).trim();
-  if (explicit && explicit !== "PLATFORM_SPONSOR") return explicit;
-
-  const rewardWif = String(
-    process.env[`ONEGATE_VAULT_REWARD_WIF_${networkSuffix}`] ||
-      process.env.ONEGATE_VAULT_REWARD_WIF ||
-      "",
-  ).trim();
-  if (!rewardWif) return "";
-
-  try {
-    const sdk = await import("@r3e/neo-js-sdk/browser");
-    const account = sdk.Account.fromWIF(rewardWif);
-    return normalizeOneGateVaultHash160(account.address || account.scriptHash);
-  } catch {
-    return "";
-  }
 }

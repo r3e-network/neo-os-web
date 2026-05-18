@@ -211,7 +211,7 @@ export async function handler(req: Request, supabaseFactory?: () => ReturnType<t
       .in("app_id", topAppIds);
 
     if (appsErr) {
-      console.warn("market-trending: failed to fetch app metadata", appsErr instanceof Error ? appsErr.message : (appsErr?.message ?? "unknown error"));
+      console.warn("market-trending: failed to fetch app metadata", appsErr instanceof Error ? appsErr.message : String(appsErr || "unknown error"));
     }
 
     // Fetch total stats

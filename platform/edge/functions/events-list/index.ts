@@ -28,7 +28,7 @@ export async function handler(req: Request): Promise<Response> {
   const appId = url.searchParams.get("app_id") ?? undefined;
   const eventName = url.searchParams.get("event_name") ?? undefined;
   const contractHash = url.searchParams.get("contract_hash") ?? undefined;
-  const network = url.searchParams.get("network")?.trim().toLowerCase() || "mainnet";
+  const network = url.searchParams.get("network")?.trim().toLowerCase();
   if (network !== "mainnet" && network !== "testnet") {
     return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
   }

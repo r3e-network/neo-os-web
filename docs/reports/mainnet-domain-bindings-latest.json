@@ -1,24 +1,24 @@
 {
   "summary": {
-    "generated_at": "2026-05-15T12:05:14.808Z",
-    "started_at": "2026-05-15T12:04:03.390Z",
+    "generated_at": "2026-05-18T01:57:26.322Z",
+    "started_at": "2026-05-18T01:57:05.339Z",
     "network": "neo-n3-mainnet",
     "rpc_url": "https://api.n3index.dev/mainnet",
     "network_magic": 860833102,
     "total_contract_bindings": 46,
     "configured": 46,
     "config_missing": 0,
-    "chain_ok": 45,
+    "chain_ok": 46,
     "chain_missing": 0,
     "chain_mismatch": 0,
-    "chain_error": 1,
+    "chain_error": 0,
     "unique_domain_bindings": 38,
     "unique_configured_domains": 38,
-    "unique_chain_ok": 37,
+    "unique_chain_ok": 38,
     "unique_chain_missing": 0,
     "unique_chain_mismatch": 0,
-    "unique_chain_error": 1,
-    "unique_actionable": 1,
+    "unique_chain_error": 0,
+    "unique_actionable": 0,
     "skipped_rpc": false
   },
   "records": [
@@ -56,17 +56,17 @@
       "expected_address": "NVWN3idz46Vq3sWJ9MGAJGeTChi1EAB3eB",
       "domain": "market.smartwallet.neo",
       "parent_domain": "smartwallet.neo",
-      "resolved_address": "",
-      "nns_status": "error",
-      "nns_error": "fetch failed",
+      "resolved_address": "NVWN3idz46Vq3sWJ9MGAJGeTChi1EAB3eB",
+      "nns_status": "resolved",
+      "nns_error": null,
       "owner_address": "",
       "owner_status": "unregistered",
       "owner_error": "The argument `data` can't be null.",
-      "parent_owner_address": "",
-      "parent_owner_status": "error",
-      "parent_owner_error": "This operation was aborted",
-      "resolved_match": "",
-      "status": "chain_error"
+      "parent_owner_address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "address",
+      "status": "ok"
     },
     {
       "source": "miniapp",
@@ -1116,17 +1116,17 @@
       "expected_address": "NVWN3idz46Vq3sWJ9MGAJGeTChi1EAB3eB",
       "domain": "market.smartwallet.neo",
       "parent_domain": "smartwallet.neo",
-      "resolved_address": "",
-      "nns_status": "error",
-      "nns_error": "fetch failed",
+      "resolved_address": "NVWN3idz46Vq3sWJ9MGAJGeTChi1EAB3eB",
+      "nns_status": "resolved",
+      "nns_error": null,
       "owner_address": "",
       "owner_status": "unregistered",
       "owner_error": "The argument `data` can't be null.",
-      "parent_owner_address": "",
-      "parent_owner_status": "error",
-      "parent_owner_error": "This operation was aborted",
-      "resolved_match": "",
-      "status": "chain_error"
+      "parent_owner_address": "NR3E4D8NUXh3zhbf5ZkAp3rTxWbQqNih32",
+      "parent_owner_status": "registered",
+      "parent_owner_error": null,
+      "resolved_match": "address",
+      "status": "ok"
     },
     {
       "source": "miniapp",
@@ -1957,29 +1957,5 @@
       "status": "ok"
     }
   ],
-  "actionable": [
-    {
-      "source": "miniapp",
-      "id": "miniapp-aa-market-hub",
-      "name": "AA Market Hub",
-      "slug": "aa-market-hub",
-      "manifest_path": "apps/aa-market-hub/neo-manifest.json",
-      "contract_key": "primary",
-      "contract_hash": "0xae7afe3a85ab08bfd1d4907b35ae8b80c75b3a69",
-      "expected_address": "NVWN3idz46Vq3sWJ9MGAJGeTChi1EAB3eB",
-      "domain": "market.smartwallet.neo",
-      "parent_domain": "smartwallet.neo",
-      "resolved_address": "",
-      "nns_status": "error",
-      "nns_error": "fetch failed",
-      "owner_address": "",
-      "owner_status": "unregistered",
-      "owner_error": "The argument `data` can't be null.",
-      "parent_owner_address": "",
-      "parent_owner_status": "error",
-      "parent_owner_error": "This operation was aborted",
-      "resolved_match": "",
-      "status": "chain_error"
-    }
-  ]
+  "actionable": []
 }

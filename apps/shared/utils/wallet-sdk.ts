@@ -5,16 +5,13 @@
  * for Neo N3 web apps. Replaces the legacy package-level wallet shim.
  *
  * Supports:
- * - NeoLine browser extension
- * - WalletConnect
+ * - NEP-21 wallet providers including OneGate and NeoLine
  * - Abstract Account (AA) via social login
  */
-import { ref, type Ref } from "vue";
+import { ref } from "vue";
 import {
   getMiniAppContractHash,
   getNetwork,
-  type NeoNetwork,
-  N3INDEX_API,
   MAINNET_MAGIC,
   TESTNET_MAGIC,
 } from "../constants/rpc";
@@ -23,10 +20,66 @@ import {
   readImmediateNep21Provider,
   resetNep21ProviderCacheForTests,
   waitForNep21Provider,
-  type NeoDapiAccount,
-  type NeoDapiInvocation,
-  type NeoDapiProvider as BaseNeoDapiProvider,
 } from "./nep21-provider";
+import {
+  buildDapiInvocation,
+  chainTypeFromDapiNetwork,
+  mapDapiSigners,
+  mapSigners,
+  networkLabel,
+  normalizeBalanceResult,
+  normalizeOperationName,
+  normalizeTxResult,
+  readOneGateNetwork,
+  resolveNetworkFromChainId,
+} from "./wallet-sdk-invoke-utils";
+import {
+  createEventsComposable,
+  createGasSponsorComposable,
+  createPaymentsComposable,
+} from "./wallet-sdk-composables";
+import type {
+  ActiveWalletProvider,
+  BatchInvokeParams,
+  ContractArg,
+  ContractEvent,
+  EventsListParams,
+  EventsListResponse,
+  GameState,
+  InvokeParams,
+  InvokeResult,
+  MiniAppManifest,
+  NeoDapiProvider,
+  NeoLineN3,
+  OneGateLegacyWallet,
+  StackItem,
+  WalletSDK,
+  WalletSigner,
+} from "./wallet-sdk-types";
+
+export type {
+  ActiveWalletProvider,
+  BatchInvokeParams,
+  ContractArg,
+  ContractEvent,
+  EligibilityResult,
+  EventsListParams,
+  EventsListResponse,
+  GameState,
+  InvokeParams,
+  InvokeResult,
+  NeoDapiProvider,
+  NeoLineN3,
+  OneGateLegacyWallet,
+  StackItem,
+  WalletSDK,
+  WalletSigner,
+} from "./wallet-sdk-types";
+export type {
+  EligibilityResult,
+  PaymentResult,
+  SponsorshipResult,
+} from "./wallet-sdk-composables";
 
 // Error codes for i18n-compatible error handling
 const ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED =
@@ -44,398 +97,8 @@ const ERROR_CODE_PAYMENT_INVALID_AMOUNT = "WALLET_PAYMENT_INVALID_AMOUNT";
 const ERROR_CODE_WALLET_NETWORK_UNVERIFIED = "WALLET_NETWORK_UNVERIFIED";
 const ERROR_CODE_WALLET_NETWORK_MISMATCH = "WALLET_NETWORK_MISMATCH";
 
-// Re-export types that were previously in @neo/types
-export interface WalletSDK {
-  address: Ref<string | null>;
-  chainType: Ref<string>;
-  /** Connected chain ID (e.g. "neo-n3-mainnet", "neo-n3-testnet") */
-  chainId?: Ref<string>;
-  /** App-specific chain ID override (e.g. for AA-based apps) */
-  appChainId?: Ref<string>;
-  connect: () => Promise<void>;
-  invokeContract: (params: InvokeParams) => Promise<InvokeResult>;
-  invokeMultiple: (params: BatchInvokeParams) => Promise<InvokeResult>;
-  invokeRead: (params: InvokeParams) => Promise<InvokeResult>;
-  getBalance: (asset: string) => Promise<string | number>;
-  send?: (
-    asset: string,
-    amount: string | number,
-    to: string,
-    from?: string,
-  ) => Promise<InvokeResult>;
-  getContractAddress: () => Promise<string>;
-  /** Sign a message with the connected wallet */
-  signMessage?: (
-    message: string,
-  ) => Promise<{
-    publicKey?: string;
-    data?: string;
-    signature?: string;
-    account?: string;
-    pubkey?: string;
-  } | null>;
-  /** Switch the wallet to a different chain/network */
-  switchToAppChain?: (chainId: string) => Promise<void>;
-}
-
-export interface InvokeParams {
-  scriptHash: string;
-  operation: string;
-  args?: ContractArg[];
-  signers?: WalletSigner[];
-}
-
-export interface BatchInvokeParams {
-  invokeArgs: InvokeParams[];
-  signers?: WalletSigner[];
-}
-
-export interface ContractArg {
-  type: string;
-  value: unknown;
-}
-
-export interface WalletSigner {
-  account: string;
-  scopes: string | number;
-  allowedContracts?: string[];
-  allowedGroups?: string[];
-  rules?: unknown[];
-}
-
-export interface InvokeResult {
-  stack?: StackItem[];
-  state?: string;
-  gasconsumed?: string;
-  exception?: string | null;
-  tx?: string;
-  txid?: string;
-}
-
-export interface StackItem {
-  type: string;
-  value: unknown;
-}
-
-export interface GameState {
-  wins: number;
-  losses: number;
-  totalGames: number;
-}
-
-export interface EventsListParams {
-  app_id?: string;
-  event_name?: string;
-  limit?: number;
-  offset?: number;
-  tx_hash?: string;
-}
-
-export interface EventsListResponse {
-  events: ContractEvent[];
-  total?: number;
-}
-
-export interface ContractEvent {
-  id: string | number;
-  event_name: string;
-  state: unknown;
-  tx_hash?: string;
-  created_at?: string;
-  block_index?: number;
-}
-
-// ---------------------------------------------------------------------------
-// NeoLine interface (browser extension)
-// ---------------------------------------------------------------------------
-
-interface NeoLineN3 {
-  getAccount: () => Promise<{ address: string }>;
-  invoke: (params: {
-    scriptHash: string;
-    operation: string;
-    args: ContractArg[];
-    signers?: Array<{
-      account: string;
-      scopes: number;
-      allowedContracts?: string[];
-      allowedGroups?: string[];
-      rules?: unknown[];
-    }>;
-  }) => Promise<{ txid: string }>;
-  invokeMultiple?: (params: {
-    invokeArgs: Array<{
-      scriptHash: string;
-      operation: string;
-      args: ContractArg[];
-    }>;
-    signers?: Array<{
-      account: string;
-      scopes: number;
-      allowedContracts?: string[];
-      allowedGroups?: string[];
-      rules?: unknown[];
-    }>;
-  }) => Promise<{ txid: string }>;
-  invokeMulti?: (params: {
-    invokeArgs: Array<{
-      scriptHash: string;
-      operation: string;
-      args: ContractArg[];
-    }>;
-    signers?: Array<{
-      account: string;
-      scopes: number;
-      allowedContracts?: string[];
-      allowedGroups?: string[];
-      rules?: unknown[];
-    }>;
-  }) => Promise<{ txid: string }>;
-  invokeRead: (params: {
-    scriptHash: string;
-    operation: string;
-    args?: ContractArg[];
-  }) => Promise<InvokeResult>;
-  getBalance: (params: {
-    address: string;
-    contracts: string[];
-  }) => Promise<{ [asset: string]: { amount: string; contract: string }[] }>;
-  signMessage?: (params: {
-    message: string;
-  }) => Promise<
-    string | { publicKey?: string; data?: string; signature?: string }
-  >;
-}
-
-interface OneGateLegacyWallet {
-  getAccount: () => Promise<{ address: string; publicKey?: string }>;
-  getNetwork?: () => Promise<unknown>;
-  network?: unknown;
-  getBalance?: (params: { address: string }) => Promise<{
-    neo?: string | number;
-    gas?: string | number;
-    NEO?: string | number;
-    GAS?: string | number;
-  }>;
-  signMessage?: (params: {
-    message: string;
-  }) => Promise<
-    string | { publicKey?: string; data?: string; signature?: string }
-  >;
-  invoke?: (params: {
-    scriptHash: string;
-    operation: string;
-    args?: ContractArg[];
-    signers?: Array<{
-      account: string;
-      scopes: number;
-      allowedContracts?: string[];
-      allowedGroups?: string[];
-      rules?: unknown[];
-    }>;
-  }) => Promise<{ txid?: string; tx?: string; hash?: string } | string>;
-  invokeRead?: (params: {
-    scriptHash: string;
-    operation: string;
-    args?: ContractArg[];
-  }) => Promise<InvokeResult>;
-}
-
-type NeoDapiProvider = BaseNeoDapiProvider<ContractArg, InvokeResult>;
-
-type ActiveWalletProvider =
-  | { kind: "nep21"; provider: NeoDapiProvider }
-  | { kind: "neoline"; provider: NeoLineN3 }
-  | { kind: "onegate"; provider: OneGateLegacyWallet };
-
-type MiniAppManifest = {
-  id?: string;
-  contracts?: Record<string, string>;
-  default_network?: string;
-};
-
-declare global {
-  interface Window {
-    NEOLineN3?: { Init: new () => NeoLineN3 };
-    neo3Dapi?: NeoLineN3;
-    NEP21Provider?: NeoDapiProvider;
-    NEP21Providers?: Record<string, NeoDapiProvider>;
-    OneGateDapiProvider?: NeoDapiProvider;
-    OneGate?: OneGateLegacyWallet;
-    Neo?: { DapiProvider?: NeoDapiProvider };
-    neoDapiProvider?: NeoDapiProvider;
-    neoDapi?: NeoDapiProvider;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Platform API for events.
-// ---------------------------------------------------------------------------
-
 const PLATFORM_API = import.meta.env?.VITE_PLATFORM_API || "";
-
-async function fetchEvents(
-  params: EventsListParams,
-): Promise<EventsListResponse> {
-  if (!PLATFORM_API) {
-    return { events: [], total: 0 };
-  }
-  const query = new URLSearchParams();
-  if (params.app_id) query.set("app_id", params.app_id);
-  if (params.event_name) query.set("event_name", params.event_name);
-  if (params.limit) query.set("limit", String(params.limit));
-  if (params.offset) query.set("offset", String(params.offset));
-  if (params.tx_hash) query.set("tx_hash", params.tx_hash);
-
-  const res = await fetch(
-    `${PLATFORM_API}/api/activity/events?${query.toString()}`,
-  );
-  if (!res.ok) return { events: [], total: 0 };
-  try {
-    return await res.json();
-  } catch (_e) {
-    console.warn(
-      "[wallet-sdk] fetchEvents failed to parse JSON:",
-      _e instanceof Error ? _e.message : String(_e),
-    );
-    return { events: [], total: 0 };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// useWallet composable
-// ---------------------------------------------------------------------------
-
 let walletInstance: WalletSDK | null = null;
-
-const SIGNER_SCOPE_MAP: Record<string, number> = {
-  none: 0,
-  calledbyentry: 1,
-  customcontracts: 16,
-  customgroups: 32,
-  rules: 64,
-  global: 128,
-};
-
-function normalizeOperationName(operation: string): string {
-  const raw = String(operation || "").trim();
-  if (!raw) return raw;
-  return raw.charAt(0).toLowerCase() + raw.slice(1);
-}
-
-function normalizeSignerScope(scope: string | number): number {
-  if (typeof scope === "number" && Number.isFinite(scope)) {
-    return scope;
-  }
-
-  const raw = String(scope ?? "").trim();
-  if (/^\d+$/.test(raw)) {
-    return parseInt(raw, 10);
-  }
-
-  return SIGNER_SCOPE_MAP[raw.toLowerCase()] ?? 1;
-}
-
-function mapSigners(signers?: WalletSigner[]) {
-  return signers?.map((signer) => ({
-    account: signer.account,
-    scopes: normalizeSignerScope(signer.scopes),
-    ...(signer.allowedContracts?.length
-      ? { allowedContracts: signer.allowedContracts }
-      : {}),
-    ...(signer.allowedGroups?.length
-      ? { allowedGroups: signer.allowedGroups }
-      : {}),
-    ...(signer.rules?.length ? { rules: signer.rules } : {}),
-  }));
-}
-
-const DAPI_SCOPE_BY_NUMBER: Record<number, string> = {
-  0: "None",
-  1: "CalledByEntry",
-  16: "CustomContracts",
-  32: "CustomGroups",
-  64: "WitnessRules",
-  128: "Global",
-};
-
-const DAPI_SCOPE_BY_NAME: Record<string, string> = {
-  none: "None",
-  calledbyentry: "CalledByEntry",
-  customcontracts: "CustomContracts",
-  customgroups: "CustomGroups",
-  rules: "WitnessRules",
-  witnessrules: "WitnessRules",
-  global: "Global",
-};
-
-function normalizeDapiSignerScope(scope: string | number): string {
-  if (typeof scope === "number" && Number.isFinite(scope)) {
-    if (DAPI_SCOPE_BY_NUMBER[scope]) return DAPI_SCOPE_BY_NUMBER[scope];
-    const parts = Object.entries(DAPI_SCOPE_BY_NUMBER)
-      .filter(
-        ([bit]) => Number(bit) !== 0 && (scope & Number(bit)) === Number(bit),
-      )
-      .map(([, name]) => name);
-    return parts.length ? parts.join(", ") : "CalledByEntry";
-  }
-
-  const raw = String(scope ?? "").trim();
-  if (/^\d+$/.test(raw)) {
-    return normalizeDapiSignerScope(parseInt(raw, 10));
-  }
-  if (raw.includes(",")) {
-    const parts = raw
-      .split(",")
-      .map(
-        (part) => DAPI_SCOPE_BY_NAME[part.trim().toLowerCase()] ?? part.trim(),
-      )
-      .filter(Boolean);
-    return parts.length ? parts.join(", ") : "CalledByEntry";
-  }
-
-  return DAPI_SCOPE_BY_NAME[raw.toLowerCase()] ?? (raw || "CalledByEntry");
-}
-
-function mapDapiSigners(
-  signers?: WalletSigner[],
-  accountHash?: string | null,
-  currentAddress?: string | null,
-) {
-  return signers?.map((signer) => ({
-    account:
-      accountHash && currentAddress && signer.account === currentAddress
-        ? accountHash
-        : signer.account,
-    scopes: normalizeDapiSignerScope(signer.scopes),
-    ...(signer.allowedContracts?.length
-      ? { allowedContracts: signer.allowedContracts }
-      : {}),
-    ...(signer.allowedGroups?.length
-      ? { allowedGroups: signer.allowedGroups }
-      : {}),
-    ...(signer.rules?.length ? { rules: signer.rules } : {}),
-  }));
-}
-
-function mapDapiArgs(
-  args?: ContractArg[],
-  accountHash?: string | null,
-  currentAddress?: string | null,
-): ContractArg[] | undefined {
-  if (!args?.length) return args;
-  return args.map((arg) => {
-    if (
-      accountHash &&
-      currentAddress &&
-      String(arg.type).toLowerCase() === "hash160" &&
-      arg.value === currentAddress
-    ) {
-      return { ...arg, value: accountHash };
-    }
-    return arg;
-  });
-}
 
 function readImmediateDapiProvider(): NeoDapiProvider | null {
   return readImmediateNep21Provider() as NeoDapiProvider | null;
@@ -475,118 +138,6 @@ function waitForOneGateLegacyWallet(
 
 function waitForDapiProvider(timeoutMs = 3000): Promise<NeoDapiProvider> {
   return waitForNep21Provider({ timeoutMs }) as Promise<NeoDapiProvider>;
-}
-
-function resolveNetworkFromMagic(network?: number): NeoNetwork | null {
-  if (network === MAINNET_MAGIC) return "mainnet";
-  if (network === TESTNET_MAGIC) return "testnet";
-  return null;
-}
-
-function resolveNetworkFromChainId(chainIdValue?: string | null): NeoNetwork | null {
-  const raw = String(chainIdValue ?? "").trim().toLowerCase();
-  if (
-    raw === "mainnet" ||
-    raw === "neo-n3-mainnet" ||
-    raw.includes("mainnet")
-  )
-    return "mainnet";
-  if (
-    raw === "testnet" ||
-    raw === "neo-n3-testnet" ||
-    raw.includes("testnet")
-  )
-    return "testnet";
-  return null;
-}
-
-function resolveNetworkFromUnknown(value: unknown): NeoNetwork | null {
-  if (typeof value === "number") return resolveNetworkFromMagic(value);
-  if (typeof value === "string") return resolveNetworkFromChainId(value);
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return (
-      resolveNetworkFromUnknown(record.network) ||
-      resolveNetworkFromUnknown(record.chainId) ||
-      resolveNetworkFromUnknown(record.id)
-    );
-  }
-  return null;
-}
-
-async function readOneGateNetwork(
-  provider: OneGateLegacyWallet,
-): Promise<NeoNetwork | null> {
-  const raw =
-    typeof provider.getNetwork === "function"
-      ? await provider.getNetwork().catch(() => undefined)
-      : provider.network;
-  return resolveNetworkFromUnknown(raw);
-}
-
-function networkLabel(network: NeoNetwork): string {
-  return network === "testnet" ? "Neo N3 Testnet" : "Neo N3 Mainnet";
-}
-
-function chainTypeFromDapiNetwork(network?: number): string {
-  const resolved = resolveNetworkFromMagic(network);
-  return resolved ? `neo-n3-${resolved}` : "neo-n3";
-}
-
-function buildDapiInvocation(
-  params: InvokeParams,
-  accountHash?: string | null,
-  currentAddress?: string | null,
-): NeoDapiInvocation {
-  return {
-    hash: params.scriptHash,
-    operation: normalizeOperationName(params.operation),
-    args: mapDapiArgs(params.args, accountHash, currentAddress) ?? [],
-  };
-}
-
-function normalizeTxResult(result: unknown): InvokeResult {
-  if (typeof result === "string") return { txid: result, tx: result };
-  if (result && typeof result === "object") {
-    const record = result as Record<string, unknown>;
-    const txid = String(record.txid ?? record.tx ?? record.hash ?? "");
-    return {
-      ...(result as InvokeResult),
-      ...(txid ? { txid, tx: txid } : {}),
-    };
-  }
-  return {};
-}
-
-function normalizeBalanceResult(
-  result: unknown,
-  assetHash: string,
-): string | number {
-  if (typeof result === "string" || typeof result === "number") return result;
-  if (result && typeof result === "object") {
-    const record = result as Record<string, unknown>;
-    if (typeof record.amount === "string" || typeof record.amount === "number")
-      return record.amount;
-
-    const direct =
-      record[assetHash] ??
-      record[assetHash.toLowerCase()] ??
-      record[assetHash.toUpperCase()];
-    if (typeof direct === "string" || typeof direct === "number") return direct;
-
-    if (Array.isArray(direct)) {
-      const match = direct.find(
-        (entry) =>
-          entry &&
-          typeof entry === "object" &&
-          (entry as Record<string, unknown>).contract === assetHash,
-      );
-      const amount = (match as Record<string, unknown> | undefined)?.amount;
-      if (typeof amount === "string" || typeof amount === "number")
-        return amount;
-    }
-  }
-  return "0";
 }
 
 function encodeBase64Utf8(value: string): string {
@@ -1179,7 +730,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
     if (wallet.kind === "onegate") {
       if (!wallet.provider.signMessage) {
-        throw new Error("Connected OneGate wallet does not support signMessage.");
+        throw new Error(
+          "Connected OneGate wallet does not support signMessage.",
+        );
       }
       const signed = await wallet.provider.signMessage({ message });
       return typeof signed === "string"
@@ -1243,328 +796,28 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   return walletInstance;
 }
 
-// ---------------------------------------------------------------------------
-// useGasSponsor composable
-// ---------------------------------------------------------------------------
-
-export interface EligibilityResult {
-  gas_balance: string;
-  used_today: string;
-  daily_limit: string;
-  resets_at: string;
-}
-
-export interface SponsorshipResult {
-  success: boolean;
-}
+const composableDeps = {
+  platformApi: PLATFORM_API,
+  useWallet,
+  loadCurrentMiniAppManifest,
+  errorCodes: {
+    ELIGIBILITY_CHECK_FAILED: ERROR_CODE_ELIGIBILITY_CHECK_FAILED,
+    PLATFORM_API_NOT_CONFIGURED: ERROR_CODE_PLATFORM_API_NOT_CONFIGURED,
+    WALLET_NOT_CONNECTED: ERROR_CODE_WALLET_NOT_CONNECTED,
+    SPONSORSHIP_REQUEST_FAILED: ERROR_CODE_SPONSORSHIP_REQUEST_FAILED,
+    PAYMENT_INVALID_AMOUNT: ERROR_CODE_PAYMENT_INVALID_AMOUNT,
+    MINIAPP_CONTRACT_UNAVAILABLE: ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE,
+  },
+};
 
 export function useGasSponsor() {
-  const isCheckingEligibility = ref(false);
-  const eligibilityError = ref<string | null>(null);
-  const isRequestingSponsorship = ref(false);
-  const sponsorshipError = ref<string | null>(null);
-
-  const checkEligibility = async (): Promise<EligibilityResult> => {
-    isCheckingEligibility.value = true;
-    eligibilityError.value = null;
-    try {
-      if (!PLATFORM_API) {
-        return {
-          gas_balance: "0",
-          used_today: "0",
-          daily_limit: "0.1",
-          resets_at: "",
-        };
-      }
-      const wallet = useWallet();
-      const addr = wallet.address.value;
-      if (!addr) {
-        return {
-          gas_balance: "0",
-          used_today: "0",
-          daily_limit: "0.1",
-          resets_at: "",
-        };
-      }
-      const res = await fetch(
-        `${PLATFORM_API}/api/gas-sponsor/eligibility?address=${addr}`,
-      );
-      if (!res.ok)
-        throw new MiniAppError(
-          "Failed to check eligibility",
-          ERROR_CODE_ELIGIBILITY_CHECK_FAILED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_ELIGIBILITY_CHECK_FAILED,
-        );
-      return res.json();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      eligibilityError.value = msg;
-      return {
-        gas_balance: "0",
-        used_today: "0",
-        daily_limit: "0.1",
-        resets_at: "",
-      };
-    } finally {
-      isCheckingEligibility.value = false;
-    }
-  };
-
-  const requestSponsorship = async (
-    amount: number,
-  ): Promise<SponsorshipResult> => {
-    isRequestingSponsorship.value = true;
-    sponsorshipError.value = null;
-    try {
-      if (!PLATFORM_API)
-        throw new MiniAppError(
-          "Platform API not configured",
-          ERROR_CODE_PLATFORM_API_NOT_CONFIGURED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_PLATFORM_API_NOT_CONFIGURED,
-        );
-      const wallet = useWallet();
-      const addr = wallet.address.value;
-      if (!addr)
-        throw new MiniAppError(
-          "Wallet not connected",
-          ERROR_CODE_WALLET_NOT_CONNECTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_WALLET_NOT_CONNECTED,
-        );
-      const res = await fetch(`${PLATFORM_API}/api/gas-sponsor/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: addr, amount }),
-      });
-      if (!res.ok)
-        throw new MiniAppError(
-          "Sponsorship request failed",
-          ERROR_CODE_SPONSORSHIP_REQUEST_FAILED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_SPONSORSHIP_REQUEST_FAILED,
-        );
-      return res.json();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      sponsorshipError.value = msg;
-      return { success: false };
-    } finally {
-      isRequestingSponsorship.value = false;
-    }
-  };
-
-  return {
-    isCheckingEligibility,
-    eligibilityError,
-    checkEligibility,
-    isRequestingSponsorship,
-    sponsorshipError,
-    requestSponsorship,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// usePayments composable
-// ---------------------------------------------------------------------------
-
-export interface PaymentResult {
-  request_id?: string;
-  receipt_id: string;
-  txid: string;
+  return createGasSponsorComposable(composableDeps);
 }
 
 export function usePayments(appId?: string) {
-  const wallet = useWallet();
-
-  const payGAS = async (
-    amount: string,
-    memo: string,
-    targetContractHash = "",
-    scopedAppId = appId || "miniapp",
-  ): Promise<PaymentResult> => {
-    const GAS_HASH = "0xd2a4cff31913016155e38e474a2c06d08be276cf";
-    const parsedAmount = parseFloat(amount);
-    if (!Number.isFinite(parsedAmount)) {
-      throw new MiniAppError(
-        "Invalid amount",
-        ERROR_CODE_PAYMENT_INVALID_AMOUNT,
-        undefined,
-        undefined,
-        undefined,
-        ERROR_CODE_PAYMENT_INVALID_AMOUNT,
-      );
-    }
-    const amountFixed8 = Math.round(parsedAmount * 1e8).toString();
-    if (!wallet.address.value) {
-      await wallet.connect();
-    }
-    const resolvedTargetHash =
-      targetContractHash || (await wallet.getContractAddress());
-    if (!resolvedTargetHash) {
-      throw new MiniAppError(
-        "MiniApp contract address unavailable",
-        ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE,
-        undefined,
-        undefined,
-        undefined,
-        ERROR_CODE_MINIAPP_CONTRACT_UNAVAILABLE,
-      );
-    }
-    const transferData = String(memo || scopedAppId || "miniapp");
-
-    const result = await wallet.invokeContract({
-      scriptHash: GAS_HASH,
-      operation: "transfer",
-      args: [
-        { type: "Hash160", value: wallet.address.value },
-        { type: "Hash160", value: resolvedTargetHash },
-        { type: "Integer", value: amountFixed8 },
-        { type: "String", value: transferData },
-      ],
-    });
-
-    const txid = result.txid ?? "";
-
-    return {
-      request_id: txid,
-      receipt_id: "",
-      txid,
-    };
-  };
-
-  const processPayment = async (
-    targetContractHash: string,
-    scopedAppId: string,
-    amount: string,
-    memo: string,
-  ): Promise<PaymentResult> => {
-    return payGAS(amount, `${memo}`, targetContractHash, scopedAppId);
-  };
-
-  return { payGAS, processPayment };
+  return createPaymentsComposable(appId, composableDeps);
 }
 
-// ---------------------------------------------------------------------------
-// useEvents composable — N3Index-powered event querying
-// ---------------------------------------------------------------------------
-
 export function useEvents() {
-  /**
-   * List contract events via N3Index decoded events API.
-   * Falls back to platform API if N3Index is unavailable.
-   */
-  const list = async (
-    params: EventsListParams,
-  ): Promise<EventsListResponse> => {
-    // Try N3Index first (decoded events, more reliable)
-    if (params.app_id) {
-      try {
-        const network = getNetwork() as NeoNetwork;
-        let contractHash = getMiniAppContractHash(params.app_id, network);
-        if (!contractHash) {
-          const manifest = await loadCurrentMiniAppManifest();
-          const requestedAppId = String(params.app_id || "").trim();
-          if (manifest?.id === requestedAppId) {
-            contractHash =
-              manifest.contracts?.[`neo-n3-${network}`] ||
-              manifest.contracts?.[network] ||
-              "";
-          }
-        }
-        if (!contractHash) {
-          throw new Error(`missing contract hash for ${params.app_id}`);
-        }
-        const url = new URL(
-          `${N3INDEX_API}/indexer/v1/networks/${network}/contracts/${contractHash}/events`,
-        );
-        if (params.event_name)
-          url.searchParams.set("event_name", params.event_name);
-        if (params.limit) url.searchParams.set("limit", String(params.limit));
-        if (params.offset)
-          url.searchParams.set("offset", String(params.offset));
-        if (params.tx_hash) url.searchParams.set("tx_hash", params.tx_hash);
-
-        const res = await fetch(url.toString());
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            return {
-              events: data.map((e: Record<string, unknown>) => ({
-                id: e.id as string | number,
-                event_name: e.event_name as string,
-                state: e.state,
-                tx_hash: e.txid as string,
-                created_at: e.block_time as string,
-                block_index: e.block_index as number,
-              })),
-              total: data.length,
-            };
-          }
-        }
-      } catch (e) {
-        console.warn(
-          "[useEvents] N3Index fetch failed, falling back to platform API:",
-          e,
-        );
-      }
-    }
-
-    // Fallback to platform API
-    return fetchEvents(params);
-  };
-
-  /**
-   * Wait for a specific event after a transaction.
-   * Uses N3Index polling for decoded contract events.
-   */
-  const waitForEvent = async (
-    txHash: string,
-    eventName: string,
-    appId: string,
-    timeoutMs = 10_000,
-    signal?: AbortSignal,
-  ): Promise<ContractEvent | null> => {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      if (signal?.aborted) return null;
-      const result = await list({
-        app_id: appId,
-        event_name: eventName,
-        tx_hash: txHash,
-        limit: 1,
-      });
-      if (result.events.length > 0) return result.events[0] ?? null;
-      // Wait 2500ms or until signal fires, whichever comes first
-      let aborted = false;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const onAbort = () => {
-        aborted = true;
-      };
-      signal?.addEventListener("abort", onAbort, { once: true });
-      await new Promise((r) => {
-        timer = setTimeout(r, 2500);
-        const onAbortResolve = () => {
-          aborted = true;
-          r(null);
-        };
-        signal?.addEventListener("abort", onAbortResolve, { once: true });
-      });
-      if (timer !== undefined) clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-      if (aborted) return null;
-    }
-    return null;
-  };
-
-  return { list, waitForEvent };
+  return createEventsComposable(composableDeps);
 }

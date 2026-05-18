@@ -14,12 +14,31 @@ describe("/api/miniapps/[appId]/live", () => {
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-not-real" },
+      query: { appId: "miniapp-not-real", network: "testnet" },
     });
 
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(400);
+  });
+
+  it("rejects missing network instead of silently using testnet", async () => {
+    const handler = require("@/pages/api/miniapps/[appId]/live").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { appId: "miniapp-fogplay" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
+    });
   });
 
   it("returns live status for a whitelisted flagship app", async () => {
@@ -39,7 +58,7 @@ describe("/api/miniapps/[appId]/live", () => {
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-fogplay" },
+      query: { appId: "miniapp-fogplay", network: "testnet" },
     });
 
     await handler(req, res);
@@ -85,7 +104,7 @@ describe("/api/miniapps/[appId]/live", () => {
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-neo-pay-shared-example" },
+      query: { appId: "miniapp-neo-pay-shared-example", network: "testnet" },
     });
 
     await handler(req, res);

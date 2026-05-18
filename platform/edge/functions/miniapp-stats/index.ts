@@ -55,22 +55,7 @@ function normalizeLimits(value: unknown): Record<string, string> | undefined {
 }
 
 function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Record<string, unknown> {
-  const fallback = {
-    name: String(stats.app_id ?? "").trim(),
-    description: "",
-    icon: "",
-    banner: "",
-    category: "utility",
-    entry_url: "",
-    contract_hash: "",
-    permissions: {},
-    limits: undefined,
-    news_integration: undefined,
-    stats_display: undefined,
-    status: undefined,
-  };
-
-  if (!meta) return { ...stats, ...fallback };
+  if (!meta) return { ...stats, metadata_available: false };
 
   const manifest = asObject(meta.manifest);
   const name = String(meta.name ?? manifest.name ?? meta.app_id ?? stats.app_id ?? "").trim();
@@ -107,6 +92,7 @@ function mergeStatsWithMeta(stats: MiniAppStatsRow, meta?: MiniAppMetaRow): Reco
     news_integration: newsIntegration,
     stats_display: statsDisplay,
     status,
+    metadata_available: true,
   };
 }
 
@@ -128,7 +114,7 @@ async function loadMiniAppMeta(appIds: string[]): Promise<Record<string, MiniApp
     .in("app_id", appIds);
 
   if (err || !data) {
-    console.warn("miniapp-stats: failed to load miniapp metadata", err instanceof Error ? err.message : (err?.message ?? "unknown error"));
+    console.warn("miniapp-stats: failed to load miniapp metadata", err instanceof Error ? err.message : String(err || "unknown error"));
     return {};
   }
 
@@ -155,12 +141,21 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid request url", "INVALID_URL", req);
   }
   const appId = url.searchParams.get("app_id");
+  const network = url.searchParams.get("network")?.trim().toLowerCase();
+  if (network !== "mainnet" && network !== "testnet") {
+    return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
+  }
 
   const supabase = supabaseClient();
 
   if (appId) {
     // Single app stats
-    const { data, error: err } = await supabase.from("miniapp_stats").select("app_id,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at").eq("app_id", appId).single();
+    const { data, error: err } = await supabase
+      .from("miniapp_stats")
+      .select("app_id,network,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at")
+      .eq("app_id", appId)
+      .eq("network", network)
+      .single();
 
     if (err) return error(404, "app not found", "NOT_FOUND", req);
     const metaMap = await loadMiniAppMeta([appId]);
@@ -171,7 +166,8 @@ export async function handler(req: Request): Promise<Response> {
   // All apps stats
   const { data, error: err } = await supabase
     .from("miniapp_stats")
-    .select("app_id,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at")
+    .select("app_id,network,total_transactions,total_users,total_gas_used,total_gas_earned,method_calls,daily_active_users,weekly_active_users,last_activity_at,stats_updated_at")
+    .eq("network", network)
     .order("total_transactions", { ascending: false })
     .limit(50);
 

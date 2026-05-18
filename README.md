@@ -17,8 +17,8 @@
 Yiwu (义乌) is a Neo N3 MiniApp platform inspired by the world's small-commodity
 market: many small, focused, practical apps, each polished for a specific user
 scenario. The platform keeps the **Android OS-style system service architecture**
-(MiniApp-OS v2): host UX, admin tooling, 10 OS service contracts, 45 edge proxy
-functions, typed frontend proxies, and integration with the externally deployed
+(MiniApp-OS v2): host UX, admin tooling, partial C# platform domain contracts,
+41 edge proxy functions, 9 typed frontend OS proxy classes, and integration with the externally deployed
 Morpheus Oracle and Abstract Account stacks.
 
 ## Repository Boundary
@@ -34,9 +34,9 @@ This repository should be treated as:
 
 - the MiniApp host application
 - the admin console
-- **10 OS system service contracts** (StorageService, PaymentService, GameService, EscrowService, NFTService, ScriptEngine, BadgeService, LeaderboardService, CheckinService, VestingService)
-- **45 OS Binder edge functions** for secure service access
-- **10 typed frontend OS proxy classes** with EdgeClient transport
+- **4 partial platform domain contracts** (PlatformAnchor, PlatformDeFi, PlatformGame, PlatformSocial)
+- **41 OS Binder edge functions** for secure service access
+- **9 typed frontend OS proxy classes** with EdgeClient transport
 - platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor)
 - Supabase edge gateway functions
 - deployment and validation scripts
@@ -50,9 +50,9 @@ The platform provides:
 
 - **MiniApp host UX**: the end-user shell that injects `window.MiniAppSDK`, wallet flows, feeds, stats, and MiniApp rendering.
 - **Admin UX**: manifest review, health monitoring, secrets / Oracle tooling, and operational checks.
-- **OS system service contracts** (MiniApp-OS v2): 10 on-chain contracts replacing the old ModuleRegistry/RecipeRegistry/ServiceGateway chain. MiniApps call `ctx.os.<service>()` for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, vesting, and custom script execution.
-- **OS Binder edge layer**: 45 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to OS contracts.
-- **Typed frontend proxies**: 10 OS proxy classes in `apps/shared/services/os/` with `EdgeClient` transport.
+- **Platform domain contracts** (MiniApp-OS v2): partial C# contracts split by anchor, DeFi, game, and social domains. MiniApps call `ctx.os.<service>()` through platform proxies for storage, payment, game, badge, checkin, leaderboard, escrow, NFT, vesting, and custom script execution.
+- **OS Binder edge layer**: 41 `os-*` Supabase Edge functions enforcing auth, permissions, and rate limits before forwarding to domain contracts or returning wallet intents.
+- **Typed frontend proxies**: 9 OS proxy classes in `apps/shared/services/os/` with `EdgeClient` transport.
 - **Platform infrastructure contracts**: AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry.
 - **Thin edge gateways**: Supabase / Deno functions that authenticate users, rate-limit traffic, enforce policy, and forward Oracle / Compute / RNG / sponsorship requests to external systems.
 - **SaaS integrations**: Sentry (error tracking), PostHog (product analytics), Supabase Realtime (live notifications).
@@ -95,19 +95,17 @@ Current flagship payment rule:
                                  ▼
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     Supabase Edge / Host Proxies                     │
-│  45 OS Binder functions (os-storage-*, os-payment-*, os-game-*, ...) │
+│  41 OS Binder functions (os-storage-*, os-payment-*, os-game-*, ...) │
 │  + auth, wallet binding, rate limits, usage caps, service routing    │
 └──────────────────────────────────────────────────────────────────────┘
         │                    │                                │
         ▼                    ▼                                ▼
 ┌─────────────┐  ┌──────────────────────┐  ┌───────────────────────────┐
-│ OS Contracts │  │ neo-morpheus-oracle  │  │  neo-abstract-account     │
-│ (10 on-chain)│  │ oracle / datafeed /  │  │ AA core / verifiers /     │
-│ Storage,     │  │ vrf / compute /      │  │ relay + AA frontends      │
-│ Payment,     │  │ paymaster runtime    │  └───────────────────────────┘
-│ Game, Escrow,│  └──────────────────────┘             │
-│ NFT, Script, │             │                         │
-│ Badge, etc.  │             │                         │
+│ Domain      │  │ neo-morpheus-oracle  │  │  neo-abstract-account     │
+│ Contracts   │  │ oracle / datafeed /  │  │ AA core / verifiers /     │
+│ Platform    │  │ vrf / compute /      │  │ relay + AA frontends      │
+│ Anchor/DeFi │  │ paymaster runtime    │  └───────────────────────────┘
+│ Game/Social │  └──────────────────────┘             │
 └─────────────┘              │                         │
         │                    └────────────┬────────────┘
         └─────────────────────────────────┘
@@ -199,16 +197,19 @@ Current Neo N3 testnet platform contract values from `.env`:
 
 ## MiniApps
 
-The repository currently contains **46 Neo N3 miniapp manifests** under `apps/*`.
+The repository currently contains **60 Neo N3 miniapp manifests** under `apps/*`.
 Those manifests are the practical source of truth for the current catalog.
 
 Category spread:
 
-- `games`: 6
+- `data`: 1
+- `defi`: 3
 - `finance`: 7
-- `social`: 8
-- `governance`: 3
-- `tools`: 22
+- `games`: 7
+- `governance`: 4
+- `social`: 9
+- `tools`: 26
+- `utility`: 3
 
 Current featured flagship 7:
 
@@ -399,28 +400,20 @@ flagship admin phase and the selected-user phase.
 ```
 ├── deploy/                 # Deployment and validation scripts
 ├── contracts/
-│   ├── os-storage/         # OS StorageService contract
-│   ├── os-payment/         # OS PaymentService contract
-│   ├── os-game/            # OS GameService contract
-│   ├── os-escrow/          # OS EscrowService contract
-│   ├── os-nft/             # OS NFTService contract
-│   ├── os-script/          # OS ScriptEngine contract
-│   ├── os-badge/           # OS BadgeService contract
-│   ├── os-leaderboard/     # OS LeaderboardService contract
-│   ├── os-checkin/         # OS CheckinService contract
-│   ├── os-vesting/         # OS VestingService contract
-│   ├── AppRegistry/        # MiniApp registration
-│   ├── Governance/         # NEO staking and voting
-│   └── ...                 # Other platform infrastructure contracts
+│   ├── platform/PlatformAnchor/  # Governance anchors and staking flows
+│   ├── platform/PlatformDeFi/    # Lending, flashloan, capsule, treasury flows
+│   ├── platform/PlatformGame/    # Dice, flip, gacha, countdown game flows
+│   ├── platform/PlatformSocial/  # Red envelope, trust, vault, social flows
+│   └── ...                       # Focused MiniApp and platform contracts
 ├── platform/
 │   ├── host-app/           # Next.js host shell
 │   ├── admin-console/      # Admin UX
 │   └── edge/functions/
-│       ├── os-*/           # 45 OS Binder edge functions
+│       ├── os-*/           # 41 OS Binder edge functions
 │       └── ...             # Auth, wallet, policy edge functions
 ├── apps/
 │   ├── shared/
-│   │   ├── services/os/    # 10 OS proxy classes + EdgeClient
+│   │   ├── services/os/    # 9 OS proxy classes + EdgeClient
 │   │   ├── services/       # PlatformServices + core services
 │   │   ├── utils/          # defineMiniApp.ts
 │   │   └── types/          # MiniAppContext, OSServices

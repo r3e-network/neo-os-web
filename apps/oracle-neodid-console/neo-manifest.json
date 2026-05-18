@@ -34,8 +34,7 @@
     "read": true,
     "oracle": true,
     "compute": true,
-    "confidential": true,
-    "aa": true
+    "confidential": true
   },
   "features": {
     "stateless": true,

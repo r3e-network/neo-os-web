@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { relaxedLimit } from "@/lib/rate-limit";
 import { getFlagshipApps } from "@/lib/chain";
 import { rpcCall } from "@/lib/chain";
@@ -28,9 +29,10 @@ export default async function handler(
   const params = new URLSearchParams();
   const { app_id, event_name, contract_hash, limit, after_id, tx_hash, network } =
     req.query;
-  const targetNetwork = String(network || "").toLowerCase().includes("testnet")
-    ? "testnet"
-    : "mainnet";
+  const targetNetwork = normalizeNeoNetwork(network);
+  if (!targetNetwork) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   params.set("network", targetNetwork);
 
   if (app_id) {

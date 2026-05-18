@@ -60,6 +60,27 @@ describe("/api/cron/miniapp-lifecycle", () => {
     delete process.env.MINIAPP_LIFECYCLE_RELAYER_URL;
   });
 
+  it("rejects missing network instead of silently using testnet", async () => {
+    const handler = require("@/pages/api/cron/miniapp-lifecycle").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { dry_run: "true" },
+      headers: { authorization: "Bearer cron-secret" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
+    });
+    expect(invokeRead).not.toHaveBeenCalled();
+  });
+
   it("dry-runs automatic countdown lifecycle maintenance for every matching app", async () => {
     invokeRead.mockResolvedValue({
       state: "HALT",

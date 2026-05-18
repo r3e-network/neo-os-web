@@ -1,6 +1,7 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { standardLimit } from "@/lib/rate-limit";
 
 const DEFAULT_NEO_RPC_URLS = {
@@ -71,14 +72,14 @@ export default async function handler(
 
   if (standardLimit(req, res)) return;
 
-  const network = (req.query.network as string) || "testnet";
-  if (network !== "testnet" && network !== "mainnet") {
-    return apiError.badRequest(res, "network must be testnet or mainnet");
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
   }
-  const rpcUrls = getNeoRPCURLs(network as "testnet" | "mainnet");
+  const rpcUrls = getNeoRPCURLs(network);
 
   const failures: string[] = [];
-  const normalizedNetwork = network as "testnet" | "mainnet";
+  const normalizedNetwork = network;
   const perRequestTimeoutMs = normalizedNetwork === "mainnet" ? 3500 : 3000;
   const overallTimeoutMs = normalizedNetwork === "mainnet" ? 12000 : 8000;
 

@@ -2,7 +2,7 @@ import { mergeMessages } from "@shared/locale/base-messages";
 
 const appMessages = {
   title: { en: "Automation Copilot", zh: "自动化副驾驶" },
-  subtitle: { en: "Recipe console for price-triggered AA and Morpheus workflows", zh: "面向价格触发 AA 与 Morpheus 工作流的配方控制台" },
+  subtitle: { en: "Recipe console for price-triggered Morpheus workflows", zh: "面向价格触发 Morpheus 工作流的配方控制台" },
   docsSubtitle: { en: "Inspect live data, assemble a recipe, and keep pricefeed separated from slower jobs.", zh: "检查实时报价、拼装自动化配方，并保持 pricefeed 与慢任务隔离。" },
   latestResult: { en: "Latest Result", zh: "最新结果" },
   automationActions: { en: "Automation Actions", zh: "自动化操作" },
@@ -36,7 +36,7 @@ const appMessages = {
   feature2Name: { en: "Recipe Builder", zh: "配方生成器" },
   feature2Desc: { en: "Model trigger, schedule, and action in one compact payload.", zh: "把触发器、调度和动作压缩到一个紧凑 payload 里。" },
   feature3Name: { en: "Execution Separation", zh: "执行隔离" },
-  feature3Desc: { en: "Keep pricefeed isolated and only route real execution into AA or Morpheus when needed.", zh: "保持 pricefeed 隔离，并只在需要时把实际执行路由到 AA 或 Morpheus。" },
+  feature3Desc: { en: "Keep pricefeed isolated from slower execution jobs and hand off recipes explicitly.", zh: "保持 pricefeed 与较慢执行任务隔离，并明确交接自动化配方。" },
 } as const;
 
 export const messages = mergeMessages(appMessages);

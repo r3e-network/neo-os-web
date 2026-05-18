@@ -104,7 +104,8 @@ export async function handler(req: Request): Promise<Response> {
   const { error: nonceErr } = await supabase.from("users").update({ nonce: nextNonce }).eq("id", auth.userId);
   if (nonceErr) {
     // Nonce rotation failed — delete the binding to prevent replay with stale nonce
-    const { error: cleanupErr } = await supabase.from("user_wallets").delete().eq("id", inserted?.id);
+    const insertedId = inserted && typeof inserted === "object" ? (inserted as { id?: unknown }).id : undefined;
+    const { error: cleanupErr } = await supabase.from("user_wallets").delete().eq("id", String(insertedId ?? ""));
     if (cleanupErr) console.error("[wallet-bind] cleanup delete failed:", cleanupErr.message);
     return error(500, "failed to rotate nonce", "NONCE_ROTATE_FAILED", req);
   }

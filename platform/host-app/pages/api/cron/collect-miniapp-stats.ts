@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { timingSafeEqual } from "crypto";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { getServerSupabaseClient } from "@/lib/server-supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -33,7 +34,10 @@ export default async function handler(
     return apiError.internal(res, "Database not configured");
   }
 
-  const network = (req.query.network as "testnet" | "mainnet") || "testnet";
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const results: { appId: string; success: boolean; error?: string }[] = [];
 
   try {
@@ -95,8 +99,13 @@ async function collectAppStats(
   const { error } = await supabase
     .from("miniapp_stats")
     .upsert(
-      { app_id: appId, last_updated: Date.now() },
-      { onConflict: "app_id" },
+      {
+        app_id: appId,
+        contract_hash: contractHash || null,
+        network,
+        last_updated: Date.now(),
+      },
+      { onConflict: "app_id,network" },
     );
   if (error) throw new Error(`upsert failed: ${error.message}`);
 }

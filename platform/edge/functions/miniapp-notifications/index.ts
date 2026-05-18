@@ -19,7 +19,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(400, "invalid request url", "INVALID_URL", req);
   }
   const appId = url.searchParams.get("app_id")?.trim();
-  const network = url.searchParams.get("network")?.trim().toLowerCase() || "mainnet";
+  const network = url.searchParams.get("network")?.trim().toLowerCase();
   if (network !== "mainnet" && network !== "testnet") {
     return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
   }

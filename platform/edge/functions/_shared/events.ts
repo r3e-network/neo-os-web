@@ -74,15 +74,20 @@ function asRecordOrNull(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-function normalizeNetwork(raw: unknown): "mainnet" | "testnet" {
-  const value = String(raw ?? "mainnet").trim().toLowerCase();
-  return value === "testnet" ? "testnet" : "mainnet";
+function normalizeNetwork(raw: unknown): "mainnet" | "testnet" | null {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (value === "mainnet" || value === "neo-n3-mainnet") return "mainnet";
+  if (value === "testnet" || value === "neo-n3-testnet") return "testnet";
+  return null;
 }
 
 export async function queryEvents(params: EventsQueryParams, req?: Request): Promise<EventsListResponse | Response> {
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
   const network = normalizeNetwork(params.network);
+  if (!network) {
+    return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
+  }
 
   const supabase = supabaseServiceClient();
   let query = supabase
@@ -140,7 +145,7 @@ export async function queryEvents(params: EventsQueryParams, req?: Request): Pro
       contract_hash: String(row.contract_hash ?? ""),
       event_name: String(row.event_name ?? ""),
       app_id: row.app_id ? String(row.app_id) : null,
-      network: normalizeNetwork(row.network),
+      network: normalizeNetwork(row.network) ?? network,
       state: asRecordOrNull(row.state),
       created_at: String(row.created_at ?? ""),
     })),
@@ -156,6 +161,9 @@ export async function queryTransactions(
   const limit = parseLimit(String(params.limit ?? ""), 100, 1000);
   const afterId = params.after_id ? String(params.after_id).trim() : undefined;
   const network = normalizeNetwork(params.network);
+  if (!network) {
+    return error(400, "network must be mainnet or testnet", "INVALID_NETWORK", req);
+  }
 
   const supabase = supabaseServiceClient();
   let query = supabase
@@ -203,7 +211,7 @@ export async function queryTransactions(
       retry_count: Number(row.retry_count ?? 0),
       error_message: row.error_message ? String(row.error_message) : null,
       rpc_endpoint: row.rpc_endpoint ? String(row.rpc_endpoint) : null,
-      network: normalizeNetwork(row.network),
+      network: normalizeNetwork(row.network) ?? network,
       submitted_at: String(row.submitted_at ?? ""),
       confirmed_at: row.confirmed_at ? String(row.confirmed_at) : null,
     })),

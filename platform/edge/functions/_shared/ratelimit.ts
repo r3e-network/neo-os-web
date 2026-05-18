@@ -85,7 +85,7 @@ async function bump(identifier: string, identifierType: string, windowSeconds: n
     p_window_seconds: windowSeconds,
   });
   if (error) {
-    throw new Error(error instanceof Error ? error.message : (error?.message || "rate limit check failed"));
+    throw new Error(error instanceof Error ? error.message : String(error || "rate limit check failed"));
   }
   const row: RateLimitBumpResponse | null = Array.isArray(data) ? data[0] : data;
   return {

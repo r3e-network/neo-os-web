@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { apiError } from "@/lib/api-response";
 import { standardLimit } from "@/lib/rate-limit";
 import { fetchNeoDidProviders } from "@/lib/morpheus-neodid";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,12 +17,10 @@ export default async function handler(
   }
 
   try {
-    const network =
-      String(req.query.network || "")
-        .trim()
-        .toLowerCase() === "testnet"
-        ? "testnet"
-        : "mainnet";
+    const network = normalizeNeoNetwork(req.query.network);
+    if (!network) {
+      return apiError.badRequest(res, "network must be mainnet or testnet");
+    }
     const payload = await fetchNeoDidProviders(network);
     res.status(200).json(payload);
     return;

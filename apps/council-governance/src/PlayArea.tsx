@@ -13,6 +13,8 @@ interface PlayAreaProps {
 
 interface Proposal {
   id: number;
+  externalId?: string;
+  source?: "contract" | "neo-community";
   type: number;
   title: string;
   description: string;
@@ -283,13 +285,16 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
             <div className="council-proposal-list">
               {visibleProposals.map((proposal) => {
                 const alreadyVoted = Boolean(hasVotedMap[proposal.id]);
+                const isExternalProposal = proposal.source === "neo-community";
                 return (
                   <article key={proposal.id} className="council-proposal-item">
                     <div className="council-proposal-top">
                       <span className={`council-status-badge council-status--${proposal.statusKey}`}>
                         {statusLabel(proposal)}
                       </span>
-                      <span className="council-proposal-id">#{proposal.id}</span>
+                      <span className="council-proposal-id">
+                        {proposal.externalId ? `#${proposal.id} · neo.community` : `#${proposal.id}`}
+                      </span>
                       {alreadyVoted && <span className="council-voted">{t("alreadyVotedLabel")}</span>}
                     </div>
 
@@ -319,7 +324,7 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                       <NeoButton variant="secondary" size="sm" onClick={() => openDetails(proposal)}>
                         {t("viewDetails")}
                       </NeoButton>
-                      {proposal.statusKey === "active" && (
+                      {proposal.statusKey === "active" && !isExternalProposal && (
                         <>
                           <NeoButton
                             variant="success"
@@ -340,6 +345,9 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
                             {t("voteAgainst")}
                           </NeoButton>
                         </>
+                      )}
+                      {proposal.statusKey === "active" && isExternalProposal && (
+                        <span className="council-readonly-note">{t("externalProposalReadOnly")}</span>
                       )}
                     </div>
                   </article>
@@ -365,7 +373,10 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
           </div>
           <p>{selectedProposal.description || t("noDescription")}</p>
           <dl className="council-details-grid">
-            <div><dt>{t("proposalId")}</dt><dd>#{selectedProposal.id}</dd></div>
+            <div>
+              <dt>{t("proposalId")}</dt>
+              <dd>{selectedProposal.externalId ? `#${selectedProposal.id} · ${selectedProposal.externalId}` : `#${selectedProposal.id}`}</dd>
+            </div>
             <div><dt>{t("proposalType")}</dt><dd>{selectedProposal.type === 1 ? t("policyType") : t("textType")}</dd></div>
             <div><dt>{t("creator")}</dt><dd>{shortAddress(selectedProposal.creator)}</dd></div>
             <div><dt>{t("proposalCreated")}</dt><dd>{formatDate(selectedProposal.createTime)}</dd></div>
