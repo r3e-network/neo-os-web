@@ -342,16 +342,9 @@ export function ConnectButton() {
                             {t(`walletOptions.${w.id}.description`)}
                           </span>
                           <span
-                            className={cn(
-                              "mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase",
-                              w.protocol === "NEP-21"
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-gray-100 text-gray-500",
-                            )}
+                            className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
                           >
-                            {w.protocol === "NEP-21"
-                              ? t("walletOptions.protocol.nep21")
-                              : t("walletOptions.protocol.legacyDapi")}
+                            {t("walletOptions.protocol.nep21")}
                           </span>
                         </span>
                       </button>

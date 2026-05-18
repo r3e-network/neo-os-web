@@ -9,7 +9,7 @@ export interface Balance {
   gas: string;
 }
 
-export type WalletProvider = "nep21" | "neoline" | "o3" | "onegate";
+export type WalletProvider = "nep21" | "neoline" | "onegate";
 
 export interface WalletState {
   connected: boolean;

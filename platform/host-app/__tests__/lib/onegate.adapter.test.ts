@@ -72,7 +72,7 @@ describe("OneGateAdapter", () => {
     );
   });
 
-  it("falls back to the legacy OneGate API when NEP-21 is not injected", async () => {
+  it("rejects the legacy OneGate API when NEP-21 is not injected", async () => {
     const legacyApi = {
       network: "neo-n3-testnet",
       getAccount: jest.fn().mockResolvedValue({
@@ -92,22 +92,14 @@ describe("OneGateAdapter", () => {
 
     const adapter = new OneGateAdapter();
 
-    await expect(adapter.connect()).resolves.toMatchObject({
-      address: "NLegacyOneGate",
-      publicKey: "03legacy",
-      network: "testnet",
-    });
-    await expect(adapter.getBalance("NLegacyOneGate")).resolves.toEqual({
-      neo: "1",
-      gas: "2",
-    });
-    await expect(adapter.signMessage("hello")).resolves.toMatchObject({
-      data: "legacy-signed",
-    });
+    await expect(adapter.connect()).rejects.toThrow(/OneGate NEP-21 dAPI/i);
+    await expect(adapter.getBalance("NLegacyOneGate")).rejects.toThrow(/OneGate NEP-21 dAPI/i);
+    await expect(adapter.signMessage("hello")).rejects.toThrow(/OneGate NEP-21 dAPI/i);
     await expect(adapter.invoke({
       scriptHash: "0xcontract",
       operation: "claimReward",
       args: [],
-    })).resolves.toEqual({ txid: "0xlegacy" });
+    })).rejects.toThrow(/OneGate NEP-21 dAPI/i);
+    expect(legacyApi.getAccount).not.toHaveBeenCalled();
   });
 });

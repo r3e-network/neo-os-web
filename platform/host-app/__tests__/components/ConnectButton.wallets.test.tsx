@@ -55,7 +55,7 @@ describe("ConnectButton wallet choices", () => {
     });
   });
 
-  it("renders real wallet logos and marks the NEP-21 path as recommended", async () => {
+  it("renders only real NEP-21 wallet choices", async () => {
     const user = userEvent.setup();
     render(<ConnectButton />);
 
@@ -63,14 +63,8 @@ describe("ConnectButton wallet choices", () => {
       await user.click(screen.getByRole("button", { name: /log in \/ sign up/i }));
     });
 
-    const nep21 = screen.getByTestId("wallet-option-nep21");
     const onegate = screen.getByTestId("wallet-option-onegate");
     const neoline = screen.getByTestId("wallet-option-neoline");
-    const o3 = screen.getByTestId("wallet-option-o3");
-
-    expect(within(nep21).getByText("NEP-21 Wallet")).toBeInTheDocument();
-    expect(within(nep21).getByText("Recommended")).toBeInTheDocument();
-    expect(within(nep21).getByText("NEP-21")).toBeInTheDocument();
 
     expect(
       within(onegate).getByAltText("OneGate").getAttribute("src"),
@@ -78,12 +72,13 @@ describe("ConnectButton wallet choices", () => {
     expect(
       within(neoline).getByAltText("NeoLine").getAttribute("src"),
     ).toBe("https://neoline.io/assets/images/home/neoline.svg");
-    expect(
-      within(o3).getByAltText("O3 Wallet").getAttribute("src"),
-    ).toBe("https://docs.o3.app/~gitbook/icon?size=large&theme=light");
 
+    expect(within(onegate).getByText("Recommended")).toBeInTheDocument();
+    expect(within(onegate).getByText("NEP-21")).toBeInTheDocument();
     expect(within(neoline).getByText("NEP-21")).toBeInTheDocument();
-    expect(within(o3).getByText("Legacy dAPI")).toBeInTheDocument();
+    expect(screen.queryByText("NEP-21 Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("O3 Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy dAPI")).not.toBeInTheDocument();
   });
 
   it("shows the connected wallet logo after connection", () => {
@@ -130,11 +125,14 @@ describe("ConnectButton wallet choices", () => {
     expect(screen.getByText("邮箱与社交账号")).toBeInTheDocument();
     expect(screen.getByText("Neo 生态钱包")).toBeInTheDocument();
 
-    const nep21 = screen.getByTestId("wallet-option-nep21");
-    expect(within(nep21).getByText("NEP-21 钱包")).toBeInTheDocument();
-    expect(within(nep21).getByText("推荐")).toBeInTheDocument();
+    const onegate = screen.getByTestId("wallet-option-onegate");
+    const neoline = screen.getByTestId("wallet-option-neoline");
+    expect(within(onegate).getByText("推荐")).toBeInTheDocument();
     expect(
-      within(nep21).getByText("OneGate 和兼容钱包暴露的标准 Neo dAPI 钱包入口。"),
+      within(onegate).getByText("OneGate 钱包，Neo N3 合约调用通过 NEP-21 dAPI provider 执行。"),
     ).toBeInTheDocument();
+    expect(within(neoline).getByText("NeoLine")).toBeInTheDocument();
+    expect(screen.queryByText("NEP-21 钱包")).not.toBeInTheDocument();
+    expect(screen.queryByText("O3 钱包")).not.toBeInTheDocument();
   });
 });

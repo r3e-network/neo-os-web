@@ -44,7 +44,7 @@ const SAFE_SURFACE_BUTTON =
   /^(notifications|switch language|search|close|dismiss|cancel|overview|reviews|forum|news|health|governance|membership|guardians|proof flow)$/i;
 
 const MUTATING_OR_EXTERNAL_BUTTON =
-  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|o3|connect|disconnect|delete|remove|rollback|publish|deploy|upload|import|export|download|submit miniapp|send email|verify email|performance monitor|monitoring dashboard|open builder|go back|stake|swap|claim|create|verify|request|finalize|repay|withdraw|add collateral|sync|issue)\b/i;
+  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|connect|disconnect|delete|remove|rollback|publish|deploy|upload|import|export|download|submit miniapp|send email|verify email|performance monitor|monitoring dashboard|open builder|go back|stake|swap|claim|create|verify|request|finalize|repay|withdraw|add collateral|sync|issue)\b/i;
 
 const READ_ONLY_POST_ENDPOINTS = new Set([
   "/api/rpc/neo-read",
