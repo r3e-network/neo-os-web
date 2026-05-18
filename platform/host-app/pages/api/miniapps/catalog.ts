@@ -27,6 +27,7 @@ import { compactMiniAppManifestForCatalog } from "@/lib/miniapp-catalog-view";
 const BUNDLE_AUTHORITATIVE_FIELDS = [
   "name",
   "description",
+  "icon",
   "category",
   "contract_hash",
   "manifest",
