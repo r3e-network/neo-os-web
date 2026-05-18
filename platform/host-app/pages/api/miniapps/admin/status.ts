@@ -96,7 +96,7 @@ function toMiniAppUpsertRow(row: MiniAppStatusRow): MiniAppUpsertRow | null {
     app_id: appId,
     name: asTrimmedString(row.name) || appId,
     description: asTrimmedString(row.description),
-    icon: asTrimmedString(row.icon) || "🧩",
+    icon: asTrimmedString(row.icon) || "app-window",
     category: normalizeCategory(row.category),
     entry_url: entryUrl,
     contract_hash: asTrimmedString(row.contract_hash) || null,

@@ -125,7 +125,7 @@ const initialForm: FormData = {
   name_zh: "",
   description: "",
   description_zh: "",
-  icon: "📦",
+  icon: "app-window",
   category: "utility",
   template_type: "default",
   frontend_template_id: "default",
@@ -324,7 +324,7 @@ export default function DeveloperPage() {
       description_zh: sourceForm.description_zh || undefined,
       template_type: sourceForm.template_type,
       category: sourceForm.category,
-      icon: sourceForm.icon || "📦",
+      icon: sourceForm.icon || "app-window",
       entry_url: sourceForm.entry_url,
       contract_hash: sourceForm.contract_hash || undefined,
       docs_url: sourceForm.docs_url || undefined,
@@ -956,8 +956,8 @@ export default function DeveloperPage() {
                     id="submit-app-icon"
                     type="text"
                     label="Icon"
-                    placeholder="📦"
-                    className="text-center text-2xl"
+                    placeholder="app-window"
+                    className="text-center"
                     value={form.icon}
                     onChange={(e) => setForm({ ...form, icon: e.target.value })}
                   />

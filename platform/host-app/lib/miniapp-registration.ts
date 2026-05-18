@@ -194,7 +194,7 @@ export function normalizeMiniAppAdminPayload(
   }
 
   const category = normalizeCategory(preparedInput.category ?? existing?.category);
-  const icon = asTrimmedString(preparedInput.icon ?? existing?.icon ?? "🧩") || "🧩";
+  const icon = asTrimmedString(preparedInput.icon ?? existing?.icon ?? "app-window") || "app-window";
   const description = asTrimmedString(preparedInput.description ?? existing?.description ?? "");
 
   const logoUrlValue = preparedInput.logo_url ?? existing?.logo_url;
