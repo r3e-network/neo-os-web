@@ -53,8 +53,8 @@
   "default_network": "neo-n3-mainnet",
   "urls": {
     "entry": "/miniapps/profitanchor-admin/index.html",
-    "icon": "/miniapp-assets/profitanchor/logo.jpg",
-    "banner": "/miniapp-assets/profitanchor/banner.jpg"
+    "icon": "/miniapps/profitanchor-admin/logo.jpg",
+    "banner": "/miniapps/profitanchor-admin/banner.jpg"
   },
   "permissions": [
     "invoke:admin",

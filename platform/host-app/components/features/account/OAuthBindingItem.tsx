@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type OAuthBindingItemProps = {
-  provider: { id: string; name: string; icon: string };
+  provider: { id: string; name: string; iconSrc: string };
   account?: { email?: string; name?: string };
   isLoading: boolean;
   onLink: () => void;
@@ -23,7 +23,14 @@ export function OAuthBindingItem({
   return (
     <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-100 p-4">
       <div className="flex items-center gap-3">
-        <span className="text-2xl">{provider.icon}</span>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white">
+          <img
+            src={provider.iconSrc}
+            alt=""
+            aria-hidden="true"
+            className="h-5 w-5"
+          />
+        </span>
         <div>
           <p className="text-sm font-medium text-gray-900">{provider.name}</p>
           {isConnected && account ? (

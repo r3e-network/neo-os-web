@@ -12,9 +12,9 @@
  * const config: MiniAppTemplateConfig = {
  *   contentType: "game-board",
  *   tabs: [
- *     { key: "play", labelKey: "play", icon: "🎮", default: true },
- *     { key: "stats", labelKey: "stats", icon: "📊" },
- *     { key: "docs", labelKey: "docs", icon: "📖" },
+ *     { key: "play", labelKey: "play", icon: "play", default: true },
+ *     { key: "stats", labelKey: "stats", icon: "bar-chart" },
+ *     { key: "docs", labelKey: "docs", icon: "book-open" },
  *   ],
  *   stats: [
  *     { labelKey: "totalGames", valueKey: "totalGames", format: "number" },
@@ -40,7 +40,7 @@ export interface TabConfig {
   key: string;
   /** i18n key for the tab label */
   labelKey: string;
-  /** Emoji or icon name */
+  /** Icon identifier */
   icon?: string;
   /** Whether this is the default active tab */
   default?: boolean;
@@ -54,7 +54,7 @@ export interface StatConfig {
   valueKey: string;
   /** Display format for the value */
   format?: "number" | "currency" | "percent" | "duration";
-  /** Emoji or icon */
+  /** Icon identifier */
   icon?: string;
   /** StatsDisplay variant for styling */
   variant?: "default" | "accent" | "success" | "danger";

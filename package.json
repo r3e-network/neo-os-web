@@ -26,6 +26,7 @@
     "audit:miniapps:coverage": "node deploy/scripts/audit_all_miniapp_coverage.js",
     "audit:miniapps:live-harness": "node deploy/scripts/audit_live_harness_coverage.js",
     "audit:miniapps:playareas": "node deploy/scripts/audit_miniapp_playarea_functionality.js",
+    "audit:miniapps:media": "node deploy/scripts/audit_miniapp_media_identity.js",
     "audit:contract-domains": "node deploy/scripts/audit_contract_domains.js --fail-on-config-missing",
     "audit:contract-domains:strict": "node deploy/scripts/audit_contract_domains.js --strict",
     "bind:contract-domains": "node deploy/scripts/bind_contract_domains.js",

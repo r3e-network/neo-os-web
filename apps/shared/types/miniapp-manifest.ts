@@ -84,7 +84,7 @@ export interface TabDefinition {
   key: string;
   /** i18n key for the tab label */
   labelKey: string;
-  /** Emoji or icon identifier */
+  /** Icon identifier */
   icon?: string;
   /** Whether this tab is active by default */
   default?: boolean;
@@ -118,7 +118,7 @@ export interface StatDefinition {
   valueKey: string;
   /** Display format for the value */
   format?: StatFormat;
-  /** Emoji or icon identifier */
+  /** Icon identifier */
   icon?: string;
   /** Visual variant for styling */
   variant?: StatVariant;
@@ -302,7 +302,7 @@ export interface MiniAppManifest {
   name: string;
   /** Short description for discovery and SEO */
   description?: string;
-  /** Icon identifier or emoji for the miniapp */
+  /** Icon identifier for the miniapp */
   icon?: string;
   /** Category for platform discovery */
   category?: MiniAppCategory;

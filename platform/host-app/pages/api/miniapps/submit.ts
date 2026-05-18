@@ -125,7 +125,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         app_id,
         name: body.name,
         description: body.description,
-        icon: body.icon || "📦",
+        icon: body.icon || "app-window",
         category: body.category || "utility",
         entry_url: normalizedEntryUrl,
         contract_hash: body.contract_hash,
