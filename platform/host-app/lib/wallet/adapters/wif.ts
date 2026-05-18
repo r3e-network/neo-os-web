@@ -1,5 +1,5 @@
 /**
- * Direct WIF wallet adapter for local and testnet validation.
+ * Developer key wallet adapter for local and testnet validation.
  *
  * The private key stays in browser memory only. RPC calls go through the host
  * API with signed transaction payloads; the WIF is never sent to the server.
@@ -350,7 +350,7 @@ function createTransaction(
 }
 
 export class WifAdapter implements WalletAdapter {
-  readonly name = "Direct WIF";
+  readonly name = "Developer key";
   readonly icon = "";
   readonly downloadUrl = "";
 
@@ -363,12 +363,12 @@ export class WifAdapter implements WalletAdapter {
 
   async connect(): Promise<WalletAccount> {
     if (!this.account) {
-      throw new WalletConnectionError("Paste a WIF before connecting the direct wallet");
+      throw new WalletConnectionError("Paste a developer key before connecting");
     }
     return {
       address: this.account.address,
       publicKey: String(this.account.publicKey),
-      label: "Direct WIF",
+      label: "Developer key",
       network: getRpcNetwork(),
     };
   }
@@ -376,7 +376,7 @@ export class WifAdapter implements WalletAdapter {
   async connectWithWif(wif: string): Promise<WalletAccount> {
     const normalized = wif.trim();
     if (!normalized) {
-      throw new WalletConnectionError("WIF is required");
+      throw new WalletConnectionError("Developer key is required");
     }
 
     try {
@@ -387,14 +387,14 @@ export class WifAdapter implements WalletAdapter {
       return {
         address: account.address,
         publicKey: String(account.publicKey),
-        label: "Direct WIF",
+        label: "Developer key",
         network: getRpcNetwork(),
       };
     } catch (error) {
       this.wif = null;
       this.account = null;
       throw new WalletConnectionError(
-        `Invalid WIF: ${error instanceof Error ? error.message : String(error)}`,
+        `Invalid developer key: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -432,7 +432,7 @@ export class WifAdapter implements WalletAdapter {
 
   async signMessage(message: string): Promise<SignedMessage> {
     if (!this.account) {
-      throw new WalletConnectionError("Direct WIF wallet is not connected");
+      throw new WalletConnectionError("Developer key wallet is not connected");
     }
     return {
       publicKey: String(this.account.publicKey),
@@ -444,7 +444,7 @@ export class WifAdapter implements WalletAdapter {
 
   async invoke(params: InvokeParams): Promise<TransactionResult> {
     if (!this.account || !this.wif) {
-      throw new WalletConnectionError("Direct WIF wallet is not connected");
+      throw new WalletConnectionError("Developer key wallet is not connected");
     }
 
     try {
@@ -471,7 +471,7 @@ export class WifAdapter implements WalletAdapter {
       const maxSystemFee = getMaxSystemFee();
       if (systemFee > maxSystemFee) {
         throw new Error(
-          `estimated system fee ${formatFixed8(systemFee)} GAS exceeds direct WIF limit ${formatFixed8(maxSystemFee)} GAS`,
+          `estimated system fee ${formatFixed8(systemFee)} GAS exceeds developer key limit ${formatFixed8(maxSystemFee)} GAS`,
         );
       }
 
@@ -522,7 +522,7 @@ export class WifAdapter implements WalletAdapter {
       };
     } catch (error) {
       throw new WalletTransactionError(
-        error instanceof Error ? error.message : "Direct WIF transaction failed",
+        error instanceof Error ? error.message : "Developer key transaction failed",
       );
     }
   }

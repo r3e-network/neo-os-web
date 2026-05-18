@@ -117,7 +117,7 @@ export const useWalletStore = create<WalletStore>()(
 
         try {
           if (provider === "wif") {
-            throw new WalletConnectionError("Use connectWif() for direct WIF wallets");
+            throw new WalletConnectionError("Use connectWif() for developer key wallets");
           }
           const account = await adapter.connect();
           const network = await readWalletNetwork(adapter, account);
@@ -205,9 +205,10 @@ export const useWalletStore = create<WalletStore>()(
           });
         } catch (err) {
           const raw = err instanceof Error ? err.message : String(err);
-          const message = raw.toLowerCase().includes("invalid wif")
-            ? "Invalid WIF. Use a funded test wallet WIF and never paste production keys."
-            : "Direct WIF connection failed";
+          const lower = raw.toLowerCase();
+          const message = lower.includes("invalid wif") || lower.includes("invalid developer key")
+            ? "Invalid developer key. Use a funded test wallet key and never paste production keys."
+            : "Developer key connection failed";
 
           set({
             connected: false,
