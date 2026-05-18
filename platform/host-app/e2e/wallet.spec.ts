@@ -23,8 +23,8 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
     await expect(page.getByTestId("wallet-option-nep21")).toHaveCount(0);
     await expect(page.getByTestId("wallet-option-o3")).toHaveCount(0);
-    await expect(page.getByText("Direct WIF Testing")).toHaveCount(0);
-    await expect(page.getByLabel("Direct WIF")).toHaveCount(0);
+    await expect(page.getByText("Developer key")).toHaveCount(0);
+    await expect(page.getByLabel("Developer key")).toHaveCount(0);
   });
 
   test("should display wallet option buttons", async ({ page }) => {
@@ -82,11 +82,11 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByTestId("login-modal-root")).toHaveCount(0);
   });
 
-  test("should keep the direct WIF test path hidden by default", async ({ page }) => {
+  test("should keep the developer key path hidden by default", async ({ page }) => {
     const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
     await connectButton.click();
 
-    await expect(page.getByText("Direct WIF Testing")).toHaveCount(0);
-    await expect(page.getByLabel("Direct WIF")).toHaveCount(0);
+    await expect(page.getByText("Developer key")).toHaveCount(0);
+    await expect(page.getByLabel("Developer key")).toHaveCount(0);
   });
 });

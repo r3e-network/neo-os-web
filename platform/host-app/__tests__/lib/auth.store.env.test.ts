@@ -81,7 +81,7 @@ describe("auth store env access", () => {
     expect(sessionStorage.getItem("sb-access-token")).toBe("jwt-token");
   });
 
-  it("authenticates direct WIF through the same wallet nonce flow", async () => {
+  it("authenticates developer key login through the same wallet nonce flow", async () => {
     const { useAuthStore } = require("../../lib/auth/store") as typeof import("../../lib/auth/store");
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://lazy.supabase.co";

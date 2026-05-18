@@ -76,8 +76,7 @@ describe("ConnectButton wallet choices", () => {
     expect(within(onegate).getByText("Recommended")).toBeInTheDocument();
     expect(within(onegate).getByText("NEP-21")).toBeInTheDocument();
     expect(within(neoline).getByText("NEP-21")).toBeInTheDocument();
-    expect(screen.queryByText("NEP-21 Wallet")).not.toBeInTheDocument();
-    expect(screen.queryByText("NEP-21 Provider")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("wallet-option-nep21")).not.toBeInTheDocument();
     expect(screen.queryByText("O3 Wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("Legacy dAPI")).not.toBeInTheDocument();
   });

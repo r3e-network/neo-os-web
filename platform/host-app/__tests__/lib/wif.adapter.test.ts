@@ -104,7 +104,7 @@ describe("WifAdapter", () => {
     expect(account).toEqual({
       address: "NDirectWifAddress",
       publicKey: "03directpub",
-      label: "Direct WIF",
+      label: "Developer key",
       network: "testnet",
     });
     expect(mockAccountSign).toHaveBeenCalledWith("7369676e2d6d65");
