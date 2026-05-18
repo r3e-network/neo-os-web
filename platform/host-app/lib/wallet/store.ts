@@ -6,7 +6,6 @@ import {
   NeoWalletNetwork,
   Nep21Adapter,
   NeoLineAdapter,
-  O3Adapter,
   OneGateAdapter,
   WifAdapter,
   WalletBalance,
@@ -14,15 +13,16 @@ import {
   WalletNotInstalledError,
 } from "./adapters";
 
-export type WalletProvider = "nep21" | "neoline" | "o3" | "onegate" | "wif";
-export type ConnectableWalletProvider = Exclude<WalletProvider, "wif">;
+export type WalletProvider = "nep21" | "neoline" | "onegate" | "wif";
+export type ConnectableWalletProvider = "onegate" | "neoline";
+type WalletOptionId = "nep21" | ConnectableWalletProvider;
 
 export type WalletOption = {
-  id: ConnectableWalletProvider;
+  id: WalletOptionId;
   name: string;
   icon: string;
   description: string;
-  protocol: "NEP-21" | "Legacy dAPI";
+  protocol: "NEP-21";
   recommended?: boolean;
 };
 
@@ -50,16 +50,36 @@ type WalletStore = WalletState & WalletActions;
 const adapters: Record<WalletProvider, WalletAdapter> = {
   nep21: new Nep21Adapter(),
   neoline: new NeoLineAdapter(),
-  o3: new O3Adapter(),
   onegate: new OneGateAdapter(),
   wif: new WifAdapter(),
 };
+
+const walletProviderIds = new Set<WalletProvider>([
+  "nep21",
+  "neoline",
+  "onegate",
+  "wif",
+]);
 
 let walletEventCleanup: (() => void) | null = null;
 
 function clearWalletEventCleanup() {
   walletEventCleanup?.();
   walletEventCleanup = null;
+}
+
+function isWalletProvider(provider: unknown): provider is WalletProvider {
+  return typeof provider === "string" && walletProviderIds.has(provider as WalletProvider);
+}
+
+function isPersistableWalletProvider(
+  provider: unknown,
+): provider is Exclude<WalletProvider, "wif"> {
+  return provider === "nep21" || provider === "neoline" || provider === "onegate";
+}
+
+function getAdapter(provider: WalletProvider | string | null): WalletAdapter | null {
+  return isWalletProvider(provider) ? adapters[provider] : null;
 }
 
 async function readWalletNetwork(
@@ -205,9 +225,7 @@ export const useWalletStore = create<WalletStore>()(
       disconnect: () => {
         const { provider } = get();
         clearWalletEventCleanup();
-        if (provider) {
-          adapters[provider].disconnect();
-        }
+        getAdapter(provider)?.disconnect();
 
         set({
           connected: false,
@@ -224,9 +242,22 @@ export const useWalletStore = create<WalletStore>()(
         const { connected, address, provider } = get();
         if (!connected || !provider) return;
 
+        const adapter = getAdapter(provider);
+        if (!adapter) {
+          set({
+            connected: false,
+            address: "",
+            publicKey: "",
+            network: null,
+            provider: null,
+            balance: null,
+          });
+          return;
+        }
+
         try {
-          const balance = await adapters[provider].getBalance(address);
-          const network = await readWalletNetwork(adapters[provider]);
+          const balance = await adapter.getBalance(address);
+          const network = await readWalletNetwork(adapter);
           set({ balance, network });
         } catch (_e: unknown) {
           console.warn("[wallet-store] refreshBalance failed:", _e instanceof Error ? _e.message : String(_e));
@@ -238,8 +269,20 @@ export const useWalletStore = create<WalletStore>()(
     {
       name: "neo-wallet",
       partialize: (state) => ({
-        provider: state.provider === "wif" ? null : state.provider,
+        provider: isPersistableWalletProvider(state.provider)
+          ? state.provider
+          : null,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<WalletState> | undefined;
+        return {
+          ...currentState,
+          ...persisted,
+          provider: isPersistableWalletProvider(persisted?.provider)
+            ? persisted.provider
+            : null,
+        };
+      },
     },
   ),
 );
@@ -247,29 +290,16 @@ export const useWalletStore = create<WalletStore>()(
 /** Get adapter for current provider */
 export function getWalletAdapter(): WalletAdapter | null {
   const provider = useWalletStore.getState().provider;
-  return provider ? adapters[provider] : null;
+  return getAdapter(provider);
 }
-
-const nep21Icon =
-  `data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NEP-21"><rect width="64" height="64" rx="16" fill="#07111a"/><path d="M17 20.5 32 12l15 8.5v23L32 52l-15-8.5v-23Z" fill="#00e599"/><path d="M25 24h14v4H29v4h8v4h-8v4h10v4H25V24Z" fill="#07111a"/></svg>`,
-  )}`;
 
 /** Available wallet options */
 export const walletOptions: WalletOption[] = [
   {
-    id: "nep21",
-    name: "NEP-21 Wallet",
-    icon: nep21Icon,
-    description: "Standard Neo dAPI provider exposed by OneGate and compatible wallets.",
-    protocol: "NEP-21",
-    recommended: true,
-  },
-  {
     id: "onegate",
     name: "OneGate",
     icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
-    description: "OneGate host wallet fallback. Prefer NEP-21 when it is injected.",
+    description: "OneGate wallet for Neo N3. Contract calls use the NEP-21 dAPI provider.",
     protocol: "NEP-21",
     recommended: true,
   },
@@ -277,17 +307,22 @@ export const walletOptions: WalletOption[] = [
     id: "neoline",
     name: "NeoLine",
     icon: "https://neoline.io/assets/images/home/neoline.svg",
-    description: "NeoLine extension for Neo N3 accounts and contract invokes.",
+    description: "NeoLine browser extension for Neo N3 accounts through the NEP-21 dAPI provider.",
     protocol: "NEP-21",
-  },
-  {
-    id: "o3",
-    name: "O3 Wallet",
-    icon: "https://docs.o3.app/~gitbook/icon?size=large&theme=light",
-    description: "O3 wallet fallback when its browser provider is injected.",
-    protocol: "Legacy dAPI",
   },
 ];
 
 export const walletOptionsById: Partial<Record<WalletProvider, WalletOption>> =
-  Object.fromEntries(walletOptions.map((option) => [option.id, option]));
+  Object.fromEntries([
+    ...walletOptions.map((option) => [option.id, option] as const),
+    [
+      "nep21",
+      {
+        id: "nep21",
+        name: "NEP-21 Provider",
+        icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
+        description: "Connected through a standard Neo NEP-21 dAPI provider.",
+        protocol: "NEP-21",
+      } satisfies WalletOption,
+    ],
+  ]);

@@ -117,24 +117,19 @@
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 钱包",
-      "description": "OneGate 和兼容钱包暴露的标准 Neo dAPI 钱包入口。"
+      "name": "NEP-21 Provider",
+      "description": "通过标准 Neo NEP-21 dAPI provider 连接。"
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate 宿主钱包兜底入口；如果已注入 NEP-21，优先使用 NEP-21。"
+      "description": "OneGate 钱包，Neo N3 合约调用通过 NEP-21 dAPI provider 执行。"
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "NeoLine 浏览器扩展，用于 Neo N3 账户和合约调用。"
-    },
-    "o3": {
-      "name": "O3 钱包",
-      "description": "当浏览器注入 O3 provider 时使用的 O3 钱包兜底入口。"
+      "description": "NeoLine 浏览器扩展，通过 NEP-21 dAPI provider 连接 Neo N3 账户。"
     },
     "protocol": {
-      "nep21": "NEP-21",
-      "legacyDapi": "旧版 dAPI"
+      "nep21": "NEP-21"
     }
   },
   "errors": {

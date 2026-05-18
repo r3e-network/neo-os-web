@@ -187,7 +187,7 @@ export type MiniAppNotification = {
 export type WalletState = {
   connected: boolean;
   address: string;
-  provider: "nep21" | "neoline" | "o3" | "onegate" | null;
+  provider: "nep21" | "neoline" | "onegate" | null;
   balance?: { neo: string; gas: string };
 };
 
