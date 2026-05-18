@@ -42,7 +42,7 @@ export type Network = keyof typeof RPC_ENDPOINTS;
 
 let requestId = 0;
 
-export async function rpcCall<T>(method: string, params: unknown[], network: Network = "testnet"): Promise<T> {
+export async function rpcCall<T>(method: string, params: unknown[], network: Network): Promise<T> {
   const endpoint = RPC_ENDPOINTS[network];
   const request: RpcRequest = {
     jsonrpc: "2.0",
@@ -74,16 +74,16 @@ export async function rpcCall<T>(method: string, params: unknown[], network: Net
 export async function invokeRead(
   contractHash: string,
   method: string,
-  args: unknown[] = [],
-  network: Network = "testnet",
+  args: unknown[],
+  network: Network,
 ): Promise<InvokeResult> {
   return rpcCall<InvokeResult>("invokefunction", [contractHash, method, args], network);
 }
 
-export async function getBlockCount(network: Network = "testnet"): Promise<number> {
+export async function getBlockCount(network: Network): Promise<number> {
   return rpcCall<number>("getblockcount", [], network);
 }
 
-export async function getApplicationLog(txHash: string, network: Network = "testnet"): Promise<unknown> {
+export async function getApplicationLog(txHash: string, network: Network): Promise<unknown> {
   return rpcCall("getapplicationlog", [txHash], network);
 }

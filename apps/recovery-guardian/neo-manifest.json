@@ -24,7 +24,8 @@
     "website": "https://neomini.app"
   },
   "contracts": {
-    "neo-n3-mainnet": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d"
+    "neo-n3-mainnet": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
+    "neo-n3-testnet": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d"
   },
   "contract_domains": {
     "neo-n3-mainnet": "recovery.smartwallet.neo"
@@ -45,8 +46,9 @@
       "report": "../neo-abstract-account/sdk/docs/reports/mainnet-aa-auxiliary-update-2026-05-08.json"
     },
     "neo-n3-testnet": {
-      "status": "deferred",
-      "reason": "AA shared testnet registry does not currently publish a SocialRecoveryVerifier hash; source and artifacts are maintained in neo-abstract-account."
+      "status": "deployed",
+      "verified_at": "2026-05-18T00:00:00Z",
+      "reason": "Validated via live testnet AA recovery harness; verifier hash matches mainnet deployment."
     }
   },
   "supported_networks": [
@@ -85,5 +87,5 @@
     "transactions": false
   },
   "createdAt": "2026-03-27T00:00:00Z",
-  "updatedAt": "2026-05-08T00:00:00Z"
+  "updatedAt": "2026-05-18T00:00:00Z"
 }

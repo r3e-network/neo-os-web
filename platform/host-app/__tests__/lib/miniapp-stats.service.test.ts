@@ -3,6 +3,26 @@ describe("miniapp stats service", () => {
     jest.resetModules();
   });
 
+  it("returns null for unknown apps instead of fabricated zero stats", async () => {
+    jest.doMock("../../lib/supabase", () => ({
+      isSupabaseConfigured: false,
+      supabase: {},
+    }));
+    jest.doMock("../../lib/chain", () => ({
+      getFlagshipApps: jest.fn(() => ({})),
+      getContractStats: jest.fn(),
+      getLiveStatus: jest.fn(),
+      getSharedModeContractStats: jest.fn(),
+      getSharedModeLiveStatus: jest.fn(),
+    }));
+    jest.doMock("../../lib/miniapp-definitions", () => ({
+      loadBundledMiniAppById: jest.fn().mockResolvedValue(null),
+    }));
+
+    const { getMiniAppStats } = require("../../lib/miniapp-stats/service");
+    await expect(getMiniAppStats("miniapp-not-real", "testnet")).resolves.toBeNull();
+  });
+
   it("delegates live status to chain-specific query helpers", async () => {
     const chainLiveStatus = jest.fn().mockResolvedValue({
       appId: "miniapp-last-survivor",
@@ -12,9 +32,11 @@ describe("miniapp stats service", () => {
     });
 
     jest.doMock("../../lib/chain", () => ({
-      FLAGSHIP_APPS: {},
+      getFlagshipApps: jest.fn(() => ({})),
       getContractStats: jest.fn(),
       getLiveStatus: chainLiveStatus,
+      getSharedModeContractStats: jest.fn(),
+      getSharedModeLiveStatus: jest.fn(),
     }));
 
     const { getLiveStatus } = require("../../lib/miniapp-stats/service");
@@ -47,7 +69,7 @@ describe("miniapp stats service", () => {
     });
 
     jest.doMock("../../lib/chain", () => ({
-      FLAGSHIP_APPS: {},
+      getFlagshipApps: jest.fn(() => ({})),
       getContractStats: jest.fn(),
       getLiveStatus: jest.fn(),
       getSharedModeContractStats: jest.fn(),

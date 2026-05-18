@@ -13,6 +13,18 @@ import { CheckinProxy } from "../services/os/CheckinProxy";
 import { GameProxy, type PoolConfig } from "../services/os/GameProxy";
 import { PaymentProxy } from "../services/os/PaymentProxy";
 
+const walletMock = vi.hoisted(() => ({
+  address: { value: null as string | null },
+  connect: vi.fn(async () => {
+    walletMock.address.value = "NMockSender";
+  }),
+  invokeContract: vi.fn(async () => ({ txid: "0xwalletintent" })),
+}));
+
+vi.mock("../utils/wallet-sdk", () => ({
+  useWallet: () => walletMock,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -39,6 +51,9 @@ describe("EdgeClient", () => {
     vi.stubGlobal("fetch", fetchSpy);
     window.sessionStorage.clear();
     window.localStorage.clear();
+    walletMock.address.value = null;
+    walletMock.connect.mockClear();
+    walletMock.invokeContract.mockClear();
   });
 
   afterEach(() => {
@@ -129,6 +144,64 @@ describe("EdgeClient", () => {
 
     const result = await client.call("os-checkin-streak");
     expect(result).toEqual(payload);
+  });
+
+  it("should submit standard OS invocation intents through the connected wallet", async () => {
+    const intent = {
+      contract: "0xabc",
+      operation: "claimRewards",
+      args: [{ type: "Hash160", value: "SENDER" }],
+    };
+    fetchSpy.mockResolvedValue(mockResponse({ ok: true, data: intent }));
+    const client = new EdgeClient("app-1", "https://edge.example.com");
+
+    const result = await client.call("os-checkin-claim");
+
+    expect(walletMock.connect).toHaveBeenCalledOnce();
+    expect(walletMock.invokeContract).toHaveBeenCalledWith({
+      scriptHash: "0xabc",
+      operation: "claimRewards",
+      args: [{ type: "Hash160", value: "NMockSender" }],
+      signers: [{ account: "NMockSender", scopes: 1 }],
+    });
+    expect(result).toEqual({
+      ...intent,
+      txid: "0xwalletintent",
+      tx: "0xwalletintent",
+    });
+  });
+
+  it("should submit nested invocation payloads and preserve explicit signers", async () => {
+    walletMock.address.value = "NAlreadyConnected";
+    const intent = {
+      intent: "checkin",
+      invocation: {
+        contract_hash: "0xgas",
+        method: "transfer",
+        params: [
+          { type: "Hash160", value: "SENDER" },
+          { type: "Hash160", value: "0xcontract" },
+          { type: "Integer", value: "100000" },
+        ],
+        signers: [{ account: "NExplicit", scopes: 16 }],
+      },
+    };
+    fetchSpy.mockResolvedValue(mockResponse({ ok: true, data: intent }));
+    const client = new EdgeClient("app-1", "https://edge.example.com");
+
+    await client.call("os-checkin-checkin");
+
+    expect(walletMock.connect).not.toHaveBeenCalled();
+    expect(walletMock.invokeContract).toHaveBeenCalledWith({
+      scriptHash: "0xgas",
+      operation: "transfer",
+      args: [
+        { type: "Hash160", value: "NAlreadyConnected" },
+        { type: "Hash160", value: "0xcontract" },
+        { type: "Integer", value: "100000" },
+      ],
+      signers: [{ account: "NExplicit", scopes: 16 }],
+    });
   });
 
   it("should throw on non-OK response with error message from body", async () => {

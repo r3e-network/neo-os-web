@@ -9,9 +9,7 @@ const MORPHEUS_CONFIDENTIAL_APPS = [
   "oracle-compute-lab",
   "oracle-seal-console",
   "oracle-neodid-console",
-  "neodid-passport",
   "recovery-guardian",
-  "graveyard",
   "private-transfer",
 ];
 

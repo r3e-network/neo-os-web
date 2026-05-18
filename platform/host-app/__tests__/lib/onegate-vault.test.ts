@@ -783,15 +783,14 @@ describe("OneGate Vault off-chain claim engine", () => {
   });
 
   it("guards Supabase claim status transitions by request id and current status", async () => {
-    const chain = {
-      update: jest.fn(() => chain),
-      eq: jest.fn(() => chain),
-      in: jest.fn(() => chain),
-      select: jest.fn(() => chain),
-      maybeSingle: jest
-        .fn()
-        .mockResolvedValue({ data: { key_hash: "hash" }, error: null }),
-    };
+    const chain: Record<string, jest.Mock> = {};
+    chain.update = jest.fn(() => chain);
+    chain.eq = jest.fn(() => chain);
+    chain.in = jest.fn(() => chain);
+    chain.select = jest.fn(() => chain);
+    chain.maybeSingle = jest
+      .fn()
+      .mockResolvedValue({ data: { key_hash: "hash" }, error: null });
     const repository = createSupabaseOneGateVaultRepository({
       from: jest.fn(() => chain),
     } as never);

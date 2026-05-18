@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Burn League logo">
+  <defs>
+    <linearGradient id="bg" x1="42" y1="28" x2="456" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0B90B"/>
+      <stop offset=".58" stop-color="#00AF92"/>
+      <stop offset="1" stop-color="#293336"/>
+    </linearGradient>
+    <radialGradient id="wash" cx="34%" cy="22%" r="76%">
+      <stop stop-color="#FFFFFF" stop-opacity=".34"/>
+      <stop offset=".64" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="outerShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#293336" flood-opacity=".16"/>
+    </filter>
+    <filter id="letterShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#293336" flood-opacity=".22"/>
+    </filter>
+    <clipPath id="markClip"><path d="M256 62l164 92v204L256 450 92 358V154L256 62Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#FFF8E7"/>
+  <circle cx="406" cy="98" r="104" fill="#FFFFFF" opacity=".5"/>
+  <circle cx="112" cy="426" r="140" fill="#F0B90B" opacity=".08"/>
+  <g filter="url(#outerShadow)">
+    <g clip-path="url(#markClip)">
+      <path d="M256 62l164 92v204L256 450 92 358V154L256 62Z" fill="url(#bg)"/>
+      <rect x="48" y="48" width="416" height="416" fill="url(#wash)"/>
+      <path d="M256 76c86 100 132 172 132 244 0 86-56 138-132 138s-132-52-132-138c0-72 46-144 132-244Z" fill="#FFFFFF" opacity=".18"/><path d="M210 320c22 44 70 62 114 24 36-32 16-84-18-124 4 48-46 70-96 100Z" fill="#00AF92" opacity=".38"/>
+    </g>
+    <text x="256" y="300" text-anchor="middle" filter="url(#letterShadow)" fill="#FFFFFF" font-family="Avenir Next, Inter, Arial, sans-serif" font-size="156" font-weight="900" letter-spacing="-10">BL</text>
+  <path d="M184 334c42 22 102 22 144 0" fill="none" stroke="#00AF92" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+  </g>
+</svg>

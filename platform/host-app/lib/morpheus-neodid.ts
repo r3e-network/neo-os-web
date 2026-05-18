@@ -57,8 +57,11 @@ function base64Url(buffer: Buffer) {
   return buffer.toString("base64url");
 }
 
-function parseNetwork(value: unknown): NeoNetwork {
-  return resolveNeoNetwork(String(value ?? "").trim().toLowerCase() === "testnet" ? "testnet" : "mainnet");
+function parseNetwork(value: unknown): NeoNetwork | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "mainnet" || raw === "neo-n3-mainnet") return resolveNeoNetwork("mainnet");
+  if (raw === "testnet" || raw === "neo-n3-testnet") return resolveNeoNetwork("testnet");
+  return null;
 }
 
 function isRetryableStatus(status: number) {
@@ -138,7 +141,7 @@ export async function fetchNeoDidProviders(network: NeoNetwork): Promise<Record<
 
   return {
     network,
-    source: "static-fallback",
+    source: "canonical-network-metadata",
     warning: "Dynamic NeoDID provider catalog is unavailable from the configured runtime; returning canonical network metadata only.",
     providers: [],
     registry: {
@@ -403,6 +406,21 @@ export async function resolveMorpheusDid(
   }
 
   const network = parseNetwork(options.network);
+  if (!network) {
+    return {
+      status: 400,
+      contentType: DID_RESOLUTION_CONTENT_TYPE,
+      body: {
+        didResolutionMetadata: {
+          error: "invalidNetwork",
+          message: "network must be mainnet or testnet",
+          contentType: DID_RESOLUTION_CONTENT_TYPE,
+        },
+        didDocument: null,
+        didDocumentMetadata: {},
+      },
+    };
+  }
   const runtime = await fetchNeoDidRuntimeSnapshot(network);
   const origin = resolveOrigin(options.req);
   const wantsDocument = prefersDidDocument(options.accept, options.format);

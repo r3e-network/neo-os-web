@@ -34,7 +34,8 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "failed to calculate rating", "DB_ERROR", req);
   }
 
-  const result = ratingData?.[0] || {
+  const rows = Array.isArray(ratingData) ? ratingData : [];
+  const result = rows[0] || {
     avg_rating: 0,
     total_ratings: 0,
     rating_distribution: {},

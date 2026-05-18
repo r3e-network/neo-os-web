@@ -75,8 +75,8 @@ describe("host chain contract queries", () => {
       invokeRead,
     }));
 
-    const { getCoinFlipState } = require("../../lib/chain/contract-queries");
-    const state = await getCoinFlipState();
+    const { CONTRACTS, getCoinFlipState } = require("../../lib/chain/contract-queries");
+    const state = await getCoinFlipState(CONTRACTS.fogPlay, "mainnet");
 
     expect(invokeRead).toHaveBeenCalledWith(
       "0xa7840a8d5404bbe297a00756a29cc267d6fa6cc7",

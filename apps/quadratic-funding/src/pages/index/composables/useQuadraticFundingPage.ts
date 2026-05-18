@@ -5,9 +5,11 @@ import { useQuadraticRounds } from "@/composables/useQuadraticRounds";
 import { useQuadraticProjects } from "@/composables/useQuadraticProjects";
 import { useQuadraticContributions } from "@/composables/useQuadraticContributions";
 import { formatAddress } from "@shared/utils/format";
-import type RoundForm from "../components/RoundForm";
-import type ProjectForm from "../components/ProjectForm";
-import type ContributionForm from "../components/ContributionForm";
+
+type FormController = {
+  setLoading?: (loading: boolean) => void;
+  reset?: () => void;
+};
 
 export function useQuadraticFundingPage(t: (key: string) => string) {
   const activeTab = createObservable("rounds");
@@ -80,38 +82,38 @@ export function useQuadraticFundingPage(t: (key: string) => string) {
   const contributionStatus = roundsStatus;
 
   // Form refs
-  const roundFormRef = createObservable<InstanceType<typeof RoundForm> | null>(null);
-  const projectFormRef = createObservable<InstanceType<typeof ProjectForm> | null>(null);
-  const contributeFormRef = createObservable<InstanceType<typeof ContributionForm> | null>(null);
+  const roundFormRef = createObservable<FormController | null>(null);
+  const projectFormRef = createObservable<FormController | null>(null);
+  const contributeFormRef = createObservable<FormController | null>(null);
 
   // Form handlers
   const handleCreateRound = async (data: Parameters<typeof createRound>[0]) => {
-    roundFormRef.get()?.setLoading(true);
+    roundFormRef.get()?.setLoading?.(true);
     try {
       await createRound(data);
-      if (roundsStatus.get()?.type === "success") roundFormRef.get()?.reset();
+      if (roundsStatus.get()?.type === "success") roundFormRef.get()?.reset?.();
     } finally {
-      roundFormRef.get()?.setLoading(false);
+      roundFormRef.get()?.setLoading?.(false);
     }
   };
 
   const handleRegisterProject = async (data: Parameters<typeof registerProject>[0]) => {
-    projectFormRef.get()?.setLoading(true);
+    projectFormRef.get()?.setLoading?.(true);
     try {
       await registerProject(data);
-      if (!roundsStatus.get() || roundsStatus.get().type === "success") projectFormRef.get()?.reset();
+      if (!roundsStatus.get() || roundsStatus.get().type === "success") projectFormRef.get()?.reset?.();
     } finally {
-      projectFormRef.get()?.setLoading(false);
+      projectFormRef.get()?.setLoading?.(false);
     }
   };
 
   const handleContribute = async (data: Parameters<typeof contribute>[0]) => {
-    contributeFormRef.get()?.setLoading(true);
+    contributeFormRef.get()?.setLoading?.(true);
     try {
       await contribute(data);
-      if (!roundsStatus.get() || roundsStatus.get().type === "success") contributeFormRef.get()?.reset();
+      if (!roundsStatus.get() || roundsStatus.get().type === "success") contributeFormRef.get()?.reset?.();
     } finally {
-      contributeFormRef.get()?.setLoading(false);
+      contributeFormRef.get()?.setLoading?.(false);
     }
   };
 

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Neo Swap logo">
+  <defs>
+    <linearGradient id="bg" x1="42" y1="28" x2="456" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00AF92"/>
+      <stop offset=".58" stop-color="#1262E5"/>
+      <stop offset="1" stop-color="#0F303A"/>
+    </linearGradient>
+    <radialGradient id="wash" cx="34%" cy="22%" r="76%">
+      <stop stop-color="#FFFFFF" stop-opacity=".34"/>
+      <stop offset=".64" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="outerShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#0F303A" flood-opacity=".16"/>
+    </filter>
+    <filter id="letterShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0F303A" flood-opacity=".22"/>
+    </filter>
+    <clipPath id="markClip"><path d="M256 62l164 92v204L256 450 92 358V154L256 62Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="#EDFAF6"/>
+  <circle cx="406" cy="98" r="104" fill="#FFFFFF" opacity=".5"/>
+  <circle cx="112" cy="426" r="140" fill="#00AF92" opacity=".08"/>
+  <g filter="url(#outerShadow)">
+    <g clip-path="url(#markClip)">
+      <path d="M256 62l164 92v204L256 450 92 358V154L256 62Z" fill="url(#bg)"/>
+      <rect x="48" y="48" width="416" height="416" fill="url(#wash)"/>
+      <path d="M86 196h270l-70-70h92l100 100-100 100h-92l70-70H86v-60Z" fill="#FFFFFF" opacity=".20"/><path d="M426 322H156l70 70h-92L34 292l100-100h92l-70 70h270v60Z" fill="#1262E5" opacity=".36"/>
+    </g>
+    <text x="256" y="300" text-anchor="middle" filter="url(#letterShadow)" fill="#FFFFFF" font-family="Avenir Next, Inter, Arial, sans-serif" font-size="156" font-weight="900" letter-spacing="-10">NS</text>
+  <path d="M184 334c42 22 102 22 144 0" fill="none" stroke="#1262E5" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+  </g>
+</svg>

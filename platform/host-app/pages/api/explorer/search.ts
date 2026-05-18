@@ -1,6 +1,7 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { standardLimit } from "@/lib/rate-limit";
 
 type Network = "mainnet" | "testnet";
@@ -27,7 +28,10 @@ export default async function handler(
     return apiError.badRequest(res, "Query parameter 'q' required");
   }
 
-  const network: Network = req.query.network === "mainnet" ? "mainnet" : "testnet";
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
 
   // Validate and sanitize search input. Only chain-resolvable identifiers are
   // accepted: block heights, tx/block hashes, Neo addresses, and contract hashes.

@@ -21,6 +21,7 @@ const LIVE_CHAIN_FLOWS = new Map([
   ["miniapp-aa-permissions-lab", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "permissions" }],
   ["miniapp-aa-relay-console", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "relay" }],
   ["miniapp-aa-session-key-lab", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "session" }],
+  ["miniapp-recovery-guardian", { script: "deploy/scripts/live_validate_aa_ns_miniapps.js", target: "recovery" }],
   ["miniapp-breakupcontract", { script: "deploy/scripts/live_validate_remaining_contracts_part1.js", target: "breakup" }],
   ["miniapp-burn-league", { script: "deploy/scripts/live_validate_remaining_contracts_part1.js", target: "burnleague" }],
   ["miniapp-council-governance", { script: "deploy/scripts/live_validate_council_governance.js", target: "council" }],

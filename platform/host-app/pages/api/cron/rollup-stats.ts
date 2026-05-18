@@ -9,12 +9,8 @@ import { timingSafeEqual } from "crypto";
 import { getContractStats, getFlagshipApps } from "../../../lib/chain";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { getServerSupabaseClient } from "@/lib/server-supabase";
-
-const DEPLOYED_APPS = Object.entries(getFlagshipApps("testnet")).map(([appId, meta]) => ({
-  appId,
-  contract: meta.contract,
-}));
 
 export default async function handler(
   req: NextApiRequest,
@@ -41,11 +37,20 @@ export default async function handler(
     return apiError.internal(res, "Supabase not configured");
   }
 
+  const network = normalizeNeoNetwork(req.query.network ?? req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
+  const deployedApps = Object.entries(getFlagshipApps(network)).map(([appId, meta]) => ({
+    appId,
+    contract: meta.contract,
+  }));
   const results: { appId: string; success: boolean; error?: string }[] = [];
 
-  for (const app of DEPLOYED_APPS) {
+  for (const app of deployedApps) {
     try {
-      const stats = await getContractStats(app.contract, "testnet", app.appId);
+      const stats = await getContractStats(app.contract, network, app.appId);
 
       const { error: upsertError } = await supabase
         .from("miniapp_stats")
@@ -53,13 +58,14 @@ export default async function handler(
           {
             app_id: app.appId,
             contract_hash: app.contract,
+            network,
             total_unique_users: stats.uniqueUsers,
             total_transactions: stats.totalTransactions,
             total_volume_gas: stats.totalValueLocked,
             last_rollup_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "app_id" },
+          { onConflict: "app_id,network" },
         );
       if (upsertError) throw upsertError;
 
@@ -80,7 +86,8 @@ export default async function handler(
   const successCount = results.filter((r) => r.success).length;
 
   res.status(200).json({
-    message: `Rollup complete: ${successCount}/${DEPLOYED_APPS.length} apps updated`,
+    message: `Rollup complete: ${successCount}/${deployedApps.length} apps updated`,
+    network,
     results,
     timestamp: new Date().toISOString(),
   });

@@ -89,7 +89,7 @@ export function useAutomationCopilot({ t }: UseAutomationCopilotOptions) {
       schedule: schedule.get(),
       execution: {
         action_name: actionName.get(),
-        target: "aa_or_morpheus_runtime",
+        target: "morpheus_automation_runtime",
       },
       protections: {
         datafeed_priority: "highest",

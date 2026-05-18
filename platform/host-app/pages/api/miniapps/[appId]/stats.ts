@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getMiniAppStats } from "../../../../lib/miniapp-stats";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { standardLimit } from "@/lib/rate-limit";
 
 export default async function handler(
@@ -21,7 +22,10 @@ export default async function handler(
     return apiError.badRequest(res, "Invalid appId format");
   }
 
-  const network = (req.query.network as "testnet" | "mainnet") || "testnet";
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
 
   try {
     const stats = await getMiniAppStats(appId, network);

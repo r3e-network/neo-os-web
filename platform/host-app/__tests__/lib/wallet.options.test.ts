@@ -28,14 +28,17 @@ describe("walletOptions", () => {
     }
   });
 
-  it("prefers NEP-21 while keeping legacy wallet adapters explicit", () => {
+  it("marks OneGate and NeoLine as NEP-21 while keeping O3 legacy explicit", () => {
     expect(walletOptionsById.nep21).toMatchObject({
       name: "NEP-21 Wallet",
       protocol: "NEP-21",
       recommended: true,
     });
-    expect(walletOptionsById.onegate?.protocol).toBe("NEP-21");
-    expect(walletOptionsById.neoline?.protocol).toBe("Legacy dAPI");
+    expect(walletOptionsById.onegate).toMatchObject({
+      protocol: "NEP-21",
+      recommended: true,
+    });
+    expect(walletOptionsById.neoline?.protocol).toBe("NEP-21");
     expect(walletOptionsById.o3?.protocol).toBe("Legacy dAPI");
   });
 });

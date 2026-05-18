@@ -42,7 +42,7 @@ describe("/api/miniapps/[appId]/forum/threads", () => {
     const handler = await loadHandler({ configured: false });
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-test" },
+      query: { appId: "miniapp-test", network: "testnet" },
     });
 
     await handler(req, res);
@@ -52,6 +52,21 @@ describe("/api/miniapps/[appId]/forum/threads", () => {
       threads: [],
       hasMore: false,
       total: 0,
+    });
+  });
+
+  it("rejects missing network instead of silently using testnet", async () => {
+    const handler = await loadHandler({ configured: false });
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: { appId: "miniapp-test" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
     });
   });
 
@@ -71,7 +86,7 @@ describe("/api/miniapps/[appId]/forum/threads", () => {
     });
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-test" },
+      query: { appId: "miniapp-test", network: "testnet" },
     });
 
     await handler(req, res);
@@ -115,7 +130,7 @@ describe("/api/miniapps/[appId]/forum/threads", () => {
     });
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
-      query: { appId: "miniapp-test" },
+      query: { appId: "miniapp-test", network: "testnet" },
     });
 
     await handler(req, res);

@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getEdgeFunctionsBaseUrl } from "../../../lib/edge";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { relaxedLimit } from "@/lib/rate-limit";
 
 export default async function handler(
@@ -13,19 +14,20 @@ export default async function handler(
   }
   if (relaxedLimit(req, res)) return;
 
+  const params = new URLSearchParams();
+  const { app_id, limit, after_id, network } = req.query;
+  const targetNetwork = normalizeNeoNetwork(network);
+  if (!targetNetwork) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+  params.set("network", targetNetwork);
+
   const base = getEdgeFunctionsBaseUrl();
   if (!base) {
     res.setHeader("Cache-Control", "no-store, private");
-    res.status(200).json({ transactions: [], total: 0 });
+    res.status(200).json({ transactions: [], total: 0, network: targetNetwork });
     return;
   }
-
-  const params = new URLSearchParams();
-  const { app_id, limit, after_id, network } = req.query;
-  const targetNetwork = String(network || "").toLowerCase().includes("testnet")
-    ? "testnet"
-    : "mainnet";
-  params.set("network", targetNetwork);
 
   if (app_id) {
     const appIdStr = String(app_id);

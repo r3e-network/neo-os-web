@@ -38,7 +38,7 @@ export async function handler(req: Request): Promise<Response> {
     return error(500, "failed to check quota", "DB_ERROR", req);
   }
 
-  const usedToday = parseFloat(quota?.used_amount ?? "0");
+  const usedToday = parseFloat(String((quota as { used_amount?: unknown } | null)?.used_amount ?? "0"));
   const remaining = Math.max(0, DAILY_LIMIT - usedToday);
 
   // Query on-chain GAS balance
