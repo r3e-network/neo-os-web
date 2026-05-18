@@ -1,6 +1,5 @@
 import { useAuthStore } from "@/lib/auth/store";
 import { WalletProvider, walletOptions } from "@/lib/wallet/store";
-import { cn } from "@/lib/utils";
 import { interpolate } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/react";
 import Head from "next/head";
@@ -103,16 +102,9 @@ export default function LoginPage() {
                   </span>
                 </span>
                 <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase",
-                    w.protocol === "NEP-21"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-gray-100 text-gray-500",
-                  )}
+                  className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
                 >
-                  {w.protocol === "NEP-21"
-                    ? t("walletOptions.protocol.nep21")
-                    : t("walletOptions.protocol.legacyDapi")}
+                  {t("walletOptions.protocol.nep21")}
                 </span>
               </button>
             ))}
