@@ -187,6 +187,7 @@ export async function loadMiniAppCatalog(
       app_id: appId,
       name: fallback?.name || app.name,
       description: fallback?.description || app.description,
+      icon: fallback?.icon || app.icon,
       category: fallback?.category || app.category,
       source: app.source || "verified",
       docs_url: fallback?.docs_url ?? app.docs_url,
