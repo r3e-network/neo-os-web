@@ -314,7 +314,7 @@ export default function LandingPage({
                 </p>
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <Link href="/miniapps">
-                    <Button className="h-12 rounded-lg bg-gray-950 px-5 text-sm font-bold text-white hover:bg-gray-800">
+                    <Button className="h-12 rounded-lg bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800">
                       {t("home.hero.catalogCta", "host")}
                       <Rocket className="ml-2 h-4 w-4" aria-hidden="true" />
                     </Button>
@@ -334,7 +334,7 @@ export default function LandingPage({
               <div className="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="m-0 text-xs font-semibold uppercase text-gray-400">
+                    <p className="m-0 text-xs font-semibold uppercase text-gray-600">
                       {t("home.status.title", "host")}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">
@@ -351,7 +351,7 @@ export default function LandingPage({
                       key={item.label}
                       className="rounded-lg border border-gray-200 bg-white p-3"
                     >
-                      <p className="m-0 truncate text-[11px] font-semibold text-gray-400">
+                      <p className="m-0 truncate text-[11px] font-semibold text-gray-600">
                         {item.label}
                       </p>
                       <p className="m-0 mt-1 truncate text-lg font-black text-gray-900">
@@ -385,7 +385,7 @@ export default function LandingPage({
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <p className="m-0 text-xs font-semibold uppercase text-gray-400">
+                <p className="m-0 text-xs font-semibold uppercase text-gray-600">
                   {t("home.featured.eyebrow", "host")}
                 </p>
                 <h2 className="m-0 mt-1 text-lg font-bold text-gray-900">
@@ -462,7 +462,7 @@ export default function LandingPage({
             <aside className="hidden w-72 shrink-0 space-y-8 lg:block">
               <div className="sticky top-24">
                 <h2 className="flex items-center gap-3 font-extrabold text-xl text-gray-900 mb-6 px-2">
-                  <Filter size={20} aria-hidden="true" className="text-neo" />
+                  <Filter size={20} aria-hidden="true" className="text-emerald-700" />
                   {t("home.catalog.ecosystems", "host")}
                 </h2>
                 <div className="space-y-2">
@@ -477,14 +477,14 @@ export default function LandingPage({
                         className={cn(
                           "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo",
                           isActive
-                            ? "bg-neo/15 text-neo font-bold shadow-[inset_0_0_20px_rgba(0,229,153,0.1)]"
+                            ? "bg-emerald-50 text-emerald-700 font-bold shadow-[inset_0_0_20px_rgba(4,120,87,0.08)]"
                             : "text-gray-600 hover:bg-white/50 hover:text-gray-900",
                         )}
                       >
                         <span className="flex items-center gap-3 text-sm">
                           <Icon
                             size={18}
-                            className={isActive ? "text-neo" : ""}
+                            className={isActive ? "text-emerald-700" : ""}
                             aria-hidden="true"
                           />
                           {cat.label}
@@ -493,7 +493,7 @@ export default function LandingPage({
                           className={cn(
                             "text-xs px-2.5 py-1 rounded-full font-semibold",
                             isActive
-                              ? "bg-neo/20 text-neo"
+                              ? "bg-emerald-100 text-emerald-800"
                               : "bg-gray-200/50 text-gray-500",
                           )}
                         >
@@ -586,7 +586,7 @@ export default function LandingPage({
             <Link href="/miniapps">
               <Button
                 variant="outline"
-                className="rounded-full border-gray-200"
+                className="rounded-full border-emerald-200 text-emerald-800 hover:bg-emerald-50"
               >
                 {t("home.tools.browse", "host")}
               </Button>
@@ -663,18 +663,18 @@ export default function LandingPage({
 
       {/* Hero CTA Section */}
       <section className="bg-white px-4 py-16 sm:px-6">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-gray-200 bg-gray-950 p-6 text-white shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6 text-gray-950 shadow-sm md:flex-row md:items-center md:justify-between md:p-8">
           <div>
             <h2 className="m-0 text-2xl font-black md:text-3xl">
               {t("home.cta.title", "host")}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-700">
               {t("home.cta.body", "host")}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link href="/developer">
-              <Button className="h-12 rounded-lg bg-neo px-5 text-sm font-bold text-gray-950 hover:bg-neo/90">
+              <Button className="h-12 rounded-lg bg-emerald-700 px-5 text-sm font-bold text-white hover:bg-emerald-800">
                 {t("home.cta.start", "host")}
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
@@ -682,7 +682,7 @@ export default function LandingPage({
             <Link href="/docs">
               <Button
                 variant="outline"
-                className="h-12 rounded-lg border-white/20 bg-transparent px-5 text-sm font-bold text-white hover:bg-white/10"
+                className="h-12 rounded-lg border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-800 hover:bg-emerald-50"
               >
                 {t("home.cta.docs", "host")}
               </Button>

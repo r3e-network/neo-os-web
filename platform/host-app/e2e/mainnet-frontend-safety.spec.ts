@@ -38,7 +38,7 @@ const NON_UNIFIED_DETAIL_LAYOUT_APP_IDS = new Set([
   "miniapp-gas-lucky-pool",
 ]);
 const AUTH_OR_EXTERNAL_BUTTON =
-  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|nep-21|connect|direct wif|open builder|download|upload|import|export)\b/i;
+  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|nep-21|connect|developer key|open builder|download|upload|import|export)\b/i;
 const MUTATING_APP_BUTTON =
   /\b(stake|claim|create|request|finalize|repay|withdraw|add collateral|sync|issue|swap|sign|bridge|send|vote|buy|check in|open box|sponsor|mint|burn|register|approve|deploy|publish|delete|rollback|submit|verify email|send email)\b/i;
 const ALWAYS_SAFE_BUTTON =
@@ -373,7 +373,7 @@ test.describe("Mainnet frontend safety surface", () => {
     for (const wallet of ["NEP-21", "NeoLine", "OneGate"]) {
       expect(labels.some((label) => label.includes(wallet)), `${wallet} should be available in the wallet modal`).toBe(true);
     }
-    for (const removedWallet of ["O3", "Direct WIF", "WIF Test"]) {
+    for (const removedWallet of ["O3", "Developer key", "WIF Test"]) {
       expect(labels.some((label) => label.includes(removedWallet)), `${removedWallet} should not be visible in the production wallet modal`).toBe(false);
     }
     expect(requestFailures, "opening the wallet modal should not submit data").toEqual([]);
