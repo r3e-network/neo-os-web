@@ -42,7 +42,14 @@ export function OAuthLinks() {
               className="flex items-center justify-between rounded-lg border border-gray-200 p-4"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <span className="text-2xl">{provider.icon}</span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white">
+                  <img
+                    src={provider.iconSrc}
+                    alt=""
+                    aria-hidden="true"
+                    className="h-5 w-5"
+                  />
+                </span>
                 <div>
                   <div className="font-medium text-gray-900">
                     {provider.name}

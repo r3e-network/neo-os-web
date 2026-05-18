@@ -11,6 +11,13 @@ const getSupabase = () =>
 
 export type OAuthProvider = "google" | "twitter" | "github";
 
+export type OAuthProviderMetadata = {
+  id: OAuthProvider;
+  name: string;
+  iconSrc: string;
+  color: string;
+};
+
 export interface OAuthAccount {
   provider: OAuthProvider;
   id: string;
@@ -167,8 +174,8 @@ function waitForOAuthCallback(popup: Window, provider: OAuthProvider): Promise<O
 export const __test__ = { waitForOAuthCallback };
 
 /** OAuth provider metadata */
-export const oauthProviders = [
-  { id: "google" as const, name: "Google", icon: "🔵", color: "#4285F4" },
-  { id: "twitter" as const, name: "Twitter", icon: "🐦", color: "#1DA1F2" },
-  { id: "github" as const, name: "GitHub", icon: "🐙", color: "#333333" },
+export const oauthProviders: OAuthProviderMetadata[] = [
+  { id: "google", name: "Google", iconSrc: "/brand/oauth-google.svg", color: "#4285F4" },
+  { id: "twitter", name: "X / Twitter", iconSrc: "/brand/oauth-x.svg", color: "#111827" },
+  { id: "github", name: "GitHub", iconSrc: "/brand/oauth-github.svg", color: "#181717" },
 ];

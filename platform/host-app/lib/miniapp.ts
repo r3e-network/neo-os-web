@@ -273,7 +273,7 @@ export function coerceMiniAppInfo(raw: unknown, fallback?: MiniAppInfo): MiniApp
 
   const name = toString(obj.name ?? manifestCandidate.name ?? fallback?.name ?? appId).trim() || appId;
   const description = toString(obj.description ?? manifestCandidate.description ?? fallback?.description ?? "").trim();
-  const icon = toString(obj.icon ?? manifestCandidate.icon ?? fallback?.icon ?? "🧩").trim() || "🧩";
+  const icon = toString(obj.icon ?? manifestCandidate.icon ?? fallback?.icon ?? "app-window").trim() || "app-window";
   const category = normalizeCategory(obj.category ?? manifestCandidate.category ?? fallback?.category);
   const manifestContractHash = resolveManifestContractHash(manifestCandidate);
   const contractHash = toString(
