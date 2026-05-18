@@ -303,7 +303,7 @@ function normalizeRawDefinition(raw: unknown, slug: string): Dict {
   const logoVariants = normalizeMediaVariants(media.logo_variants ?? asObject(manifest.media).logo_variants);
   const bannerVariants = normalizeMediaVariants(media.banner_variants ?? asObject(manifest.media).banner_variants);
   const docsUrl = obj.docs_url ?? content.docs_url ?? manifest.docs_url;
-  const icon = obj.icon ?? content.icon ?? media.icon ?? manifest.icon ?? "🧩";
+  const icon = obj.icon ?? content.icon ?? media.icon ?? manifest.icon ?? "app-window";
   const category = obj.category ?? content.category ?? manifest.category ?? "utility";
 
   const normalizedContract = {
