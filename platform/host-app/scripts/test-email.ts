@@ -39,9 +39,9 @@ async function testEmail() {
       `,
     });
 
-    console.log("✅ Email sent successfully!");
+    console.log("Email sent successfully.");
   } catch (error: unknown) {
-    console.error("❌ Failed to send email:");
+    console.error("Failed to send email:");
     if (error instanceof Error) {
       console.error(error.message);
     } else {

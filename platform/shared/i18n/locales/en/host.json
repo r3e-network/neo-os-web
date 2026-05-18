@@ -79,7 +79,7 @@
   },
   "home": {
     "badges": {
-      "nep21Ready": "NEP-21 wallet ready",
+      "nep21Ready": "OneGate / NeoLine ready",
       "onegateExport": "OneGate dApp export"
     },
     "hero": {

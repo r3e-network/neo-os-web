@@ -518,7 +518,7 @@ export default function MiniAppsPage({
                   })}
                 </p>
               </div>
-              <div className="flex gap-1 overflow-x-auto pb-1">
+              <div className="flex flex-wrap gap-1.5 pb-1 sm:justify-end">
                 {["all", ...categories].map((category) => {
                   const active = categoryFilter === category;
                   return (
@@ -526,7 +526,7 @@ export default function MiniAppsPage({
                       key={category}
                       type="button"
                       onClick={() => setCategoryFilter(category)}
-                      className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${
                         active
                           ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                           : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"

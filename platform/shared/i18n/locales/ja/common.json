@@ -102,31 +102,31 @@
     "orConnectWallet": "またはウォレット接続",
     "neoEcosystem": "Neo エコシステム",
     "recommended": "推奨",
-    "directWifTesting": "直接 WIF テスト",
-    "pasteTestWif": "テスト用ウォレット WIF を貼り付け",
-    "directWif": "直接 WIF",
+    "directWifTesting": "開発者キー ログイン",
+    "pasteTestWif": "ローカル開発者キーを貼り付け",
+    "directWif": "開発者キー",
     "showWif": "WIF を表示",
     "hideWif": "WIF を非表示",
     "localValidation": "ローカル検証専用です。キーはこのブラウザセッション内だけに保持され、保存されません。",
     "terms": "接続すると、利用規約とプライバシーポリシーに同意したものとみなされます。",
     "disconnectTitle": "ウォレットを切断",
     "disconnectMessage": "ブロックチェーン機能を使うには再接続が必要です。",
-    "wifTest": "WIF テスト",
+    "wifTest": "開発者キー",
     "dismiss": "閉じる",
     "closeLoginModal": "ログインモーダルを閉じる"
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 Provider",
-      "description": "標準 Neo NEP-21 dAPI provider 経由で接続します。"
+      "name": "検出された Neo ウォレット",
+      "description": "互換ウォレットが注入されている場合、Neo dAPI 署名プロトコルを使用します。"
     },
     "onegate": {
       "name": "OneGate",
-      "description": "Neo N3 用の OneGate ウォレットです。コントラクト呼び出しは NEP-21 dAPI provider を使用します。"
+      "description": "Neo N3 アカウント接続とコントラクト呼び出し用の OneGate ウォレットです。"
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "Neo N3 アカウントを NEP-21 dAPI provider 経由で接続する NeoLine 拡張機能です。"
+      "description": "Neo N3 アカウント接続とコントラクト署名用の NeoLine 拡張機能です。"
     },
     "protocol": {
       "nep21": "NEP-21"

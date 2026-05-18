@@ -8,7 +8,6 @@ import type {
   ContractArg,
   InvokeParams,
   InvokeResult,
-  OneGateLegacyWallet,
   WalletSigner,
 } from "./wallet-sdk-types";
 
@@ -172,16 +171,6 @@ export function resolveNetworkFromUnknown(value: unknown): NeoNetwork | null {
     );
   }
   return null;
-}
-
-export async function readOneGateNetwork(
-  provider: OneGateLegacyWallet,
-): Promise<NeoNetwork | null> {
-  const raw =
-    typeof provider.getNetwork === "function"
-      ? await provider.getNetwork().catch(() => undefined)
-      : provider.network;
-  return resolveNetworkFromUnknown(raw);
 }
 
 export function networkLabel(network: NeoNetwork): string {

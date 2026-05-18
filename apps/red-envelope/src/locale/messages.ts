@@ -133,8 +133,8 @@ const appMessages = {
   packets: { en: "{opened}/{total} opened", zh: "已打开 {opened}/{total}" },
 
   // Dual-type envelope system
-  typeSpreading: { en: "🔄 Spreading", zh: "🔄 传递红包" },
-  typeLucky: { en: "🎯 Lucky Money", zh: "🎯 拼手气红包" },
+  typeSpreading: { en: "Spreading", zh: "传递红包" },
+  typeLucky: { en: "Lucky Money", zh: "拼手气红包" },
   typeSpreadingDesc: {
     en: "One NFT passed along, each holder opens for random GAS",
     zh: "一个 NFT 依次传递，每位持有者打开获得随机 GAS",
@@ -169,11 +169,11 @@ const appMessages = {
   sectionPools: { en: "Pools I Created", zh: "我创建的奖池" },
   sectionClaims: { en: "Claimed NFTs", zh: "已领取的 NFT" },
   noPoolsCreated: { en: "No pools created yet", zh: "暂未创建奖池" },
-  unopened: { en: "🧧 Unopened", zh: "🧧 未打开" },
+  unopened: { en: "Unopened", zh: "未打开" },
   claimedGas: { en: "Claimed {amount} {tokenGas}", zh: "已领取 {amount} {tokenGas}" },
   fromPool: { en: "From Pool #{poolId}", zh: "来自奖池 #{poolId}" },
   poolLabel: { en: "Pool #{poolId}", zh: "奖池 #{poolId}" },
-  reclaimPool: { en: "💰 Reclaim Pool", zh: "💰 回收奖池" },
+  reclaimPool: { en: "Reclaim Pool", zh: "回收奖池" },
   openClaim: { en: "Open", zh: "打开" },
   transferClaim: { en: "Transfer", zh: "转让" },
   noClaims: { en: "No claimed NFTs yet", zh: "暂无领取的 NFT" },

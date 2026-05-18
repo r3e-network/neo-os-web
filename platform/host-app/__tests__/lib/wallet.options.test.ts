@@ -7,17 +7,16 @@ describe("walletOptions", () => {
       "neoline",
     ]);
 
-    expect(walletOptionsById.onegate?.icon).toBe(
-      "/miniapps/gas-lucky-pool/onegate-logo.png",
-    );
+    expect(walletOptionsById.onegate?.icon).toBe("/wallets/onegate.svg");
     expect(walletOptionsById.neoline?.icon).toBe(
-      "https://neoline.io/assets/images/home/neoline.svg",
+      "/wallets/neoline.svg",
     );
 
     for (const option of walletOptions) {
       expect(option.icon).not.toContain(">NL<");
       expect(option.icon).not.toContain(">OG<");
       expect(option.icon).not.toContain("walletIcon");
+      expect(option.icon).not.toContain("gas-lucky-pool");
       expect(option.description.length).toBeGreaterThan(20);
     }
   });

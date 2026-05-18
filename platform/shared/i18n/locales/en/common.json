@@ -102,31 +102,31 @@
     "orConnectWallet": "or connect wallet",
     "neoEcosystem": "Neo Ecosystem",
     "recommended": "Recommended",
-    "directWifTesting": "Direct WIF Testing",
-    "pasteTestWif": "Paste test wallet WIF",
-    "directWif": "Direct WIF",
+    "directWifTesting": "Developer key login",
+    "pasteTestWif": "Paste local developer key",
+    "directWif": "Developer key",
     "showWif": "Show WIF",
     "hideWif": "Hide WIF",
     "localValidation": "Local validation only. The key stays in this browser session and is never saved.",
     "terms": "By connecting, you agree to our Terms of Service and Privacy Policy.",
     "disconnectTitle": "Disconnect Wallet",
     "disconnectMessage": "You'll need to reconnect to use blockchain features.",
-    "wifTest": "WIF Test",
+    "wifTest": "Developer key",
     "dismiss": "Dismiss",
     "closeLoginModal": "Close login modal"
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 Provider",
-      "description": "Connected through a standard Neo NEP-21 dAPI provider."
+      "name": "Detected Neo Wallet",
+      "description": "Uses the Neo dAPI signing protocol when a compatible wallet is injected."
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate wallet for Neo N3. Contract calls use the NEP-21 dAPI provider."
+      "description": "OneGate wallet for Neo N3 account connection and contract calls."
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "NeoLine browser extension for Neo N3 accounts through the NEP-21 dAPI provider."
+      "description": "NeoLine browser extension for Neo N3 accounts and contract signing."
     },
     "protocol": {
       "nep21": "NEP-21"
