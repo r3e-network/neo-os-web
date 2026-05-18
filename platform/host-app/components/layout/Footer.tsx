@@ -120,19 +120,19 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="mt-16 border-t border-gray-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm font-medium text-gray-400">
+          <p className="text-sm font-medium text-gray-600">
             &copy; {new Date().getFullYear()} {BRAND.productName}. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link
               href="/terms"
-              className="text-sm font-medium text-gray-400 hover:text-gray-700 transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
               Terms of Service
             </Link>
             <Link
               href="/privacy"
-              className="text-sm font-medium text-gray-400 hover:text-gray-700 transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
               Privacy Policy
             </Link>

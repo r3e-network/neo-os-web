@@ -629,7 +629,7 @@ function PrimaryValueParam({
         >
           {label}
         </label>
-        <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-400">
+        <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-600">
           <Edit3 className="h-3.5 w-3.5" aria-hidden="true" />
           Edit
         </span>

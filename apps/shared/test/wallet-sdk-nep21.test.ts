@@ -29,7 +29,7 @@ function resetInjectedWallets() {
 
 function createNep21Provider(overrides: Record<string, unknown> = {}) {
   return {
-    name: "Test NEP-21 Wallet",
+    name: "Test NEP-21 connector",
     dapiVersion: "1.0.0",
     network: TESTNET_MAGIC,
     supportedNetworks: [MAINNET_MAGIC, TESTNET_MAGIC],

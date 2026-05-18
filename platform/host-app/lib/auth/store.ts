@@ -78,8 +78,8 @@ async function authenticateWalletSession(address: string, publicKey: string) {
 function toWalletLoginError(err: unknown): string {
   const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
   const lower = raw.toLowerCase();
-  if (lower.includes("invalid wif") || lower.includes("direct wif")) {
-    return "Invalid WIF. Use a funded test wallet WIF and never paste production keys.";
+  if (lower.includes("invalid wif") || lower.includes("invalid developer key") || lower.includes("developer key")) {
+    return "Invalid developer key. Use a funded test wallet key and never paste production keys.";
   }
   if (lower.includes("rejected") || lower.includes("denied")) {
     return "Wallet connection was rejected. Please try again and approve the connection request.";
@@ -138,7 +138,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       const walletStore = useWalletStore.getState();
       await walletStore.connectWif(wif);
       const { address, publicKey } = useWalletStore.getState();
-      if (!address) throw new Error("loginWallet: direct WIF connection failed — address is empty after connectWif()");
+      if (!address) throw new Error("loginWallet: developer key connection failed — address is empty after connectWif()");
 
       const { access_token, user } = await authenticateWalletSession(address, publicKey);
 

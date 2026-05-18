@@ -414,6 +414,9 @@ export function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
                       <span className="block text-[10px] font-black uppercase tracking-wide text-gray-600">
                         for/against/neutral
                       </span>
+                      <span className="mt-1 inline-flex rounded-full bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-100">
+                        Details
+                      </span>
                     </span>
                   </button>
                 );
@@ -471,6 +474,9 @@ export function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
                         {row.amount}
                       </p>
                     )}
+                    <span className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                      Details
+                    </span>
                   </button>
                 );
               })}

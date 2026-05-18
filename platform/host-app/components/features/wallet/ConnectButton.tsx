@@ -258,7 +258,7 @@ export function ConnectButton() {
 
               <div className="space-y-4">
                 <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                  <p className="text-xs font-bold uppercase text-gray-600 px-1">
                     {t("auth.emailSocial")}
                   </p>
                   <button
@@ -291,14 +291,14 @@ export function ConnectButton() {
 
                 <div className="relative flex items-center py-4">
                   <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="flex-shrink-0 mx-4 text-xs text-gray-400 font-medium">
+                  <span className="flex-shrink-0 mx-4 text-xs text-gray-500 font-medium">
                     {t("auth.or")}
                   </span>
                   <div className="flex-grow border-t border-gray-200"></div>
                 </div>
 
                 <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase text-gray-400 px-1">
+                  <p className="text-xs font-bold uppercase text-gray-600 px-1">
                     {t("auth.neoEcosystem")}
                   </p>
                   <div className="grid gap-3">
@@ -407,7 +407,7 @@ export function ConnectButton() {
                 </div>
               </div>
 
-              <p className="mt-8 text-center text-xs text-gray-400">
+              <p className="mt-8 text-center text-xs text-gray-600">
                 {t("auth.terms")}
               </p>
             </div>
