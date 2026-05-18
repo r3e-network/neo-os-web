@@ -117,24 +117,19 @@
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 Wallet",
-      "description": "Standard Neo dAPI provider exposed by OneGate and compatible wallets."
+      "name": "NEP-21 Provider",
+      "description": "Connected through a standard Neo NEP-21 dAPI provider."
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate host wallet fallback. Prefer NEP-21 when it is injected."
+      "description": "OneGate wallet for Neo N3. Contract calls use the NEP-21 dAPI provider."
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "NeoLine extension for Neo N3 accounts and contract invokes."
-    },
-    "o3": {
-      "name": "O3 Wallet",
-      "description": "O3 wallet fallback when its browser provider is injected."
+      "description": "NeoLine browser extension for Neo N3 accounts through the NEP-21 dAPI provider."
     },
     "protocol": {
-      "nep21": "NEP-21",
-      "legacyDapi": "Legacy dAPI"
+      "nep21": "NEP-21"
     }
   },
   "errors": {

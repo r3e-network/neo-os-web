@@ -1,4 +1,4 @@
-import { useWalletStore } from "@/lib/wallet/store";
+import { getWalletAdapter, useWalletStore } from "@/lib/wallet/store";
 
 type ProviderListener = () => void;
 
@@ -59,5 +59,36 @@ describe("wallet store NEP-21 events", () => {
 
     expect(useWalletStore.getState().address).toBe("NChangedAddress");
     expect(useWalletStore.getState().balance).toEqual({ neo: "1", gas: "2" });
+  });
+
+  it("clears a removed persisted wallet provider without touching a missing adapter", async () => {
+    useWalletStore.setState({
+      connected: true,
+      address: "NStalePersistedAddress",
+      publicKey: "stale-public-key",
+      network: "testnet",
+      provider: "o3" as never,
+      balance: { neo: "1", gas: "2" },
+      loading: false,
+      error: null,
+    });
+
+    expect(getWalletAdapter()).toBeNull();
+    await expect(useWalletStore.getState().refreshBalance()).resolves.toBeUndefined();
+    expect(useWalletStore.getState().provider).toBeNull();
+
+    useWalletStore.setState({
+      connected: true,
+      address: "NStalePersistedAddress",
+      publicKey: "stale-public-key",
+      network: "testnet",
+      provider: "o3" as never,
+      balance: { neo: "1", gas: "2" },
+      loading: false,
+      error: null,
+    });
+
+    expect(() => useWalletStore.getState().disconnect()).not.toThrow();
+    expect(useWalletStore.getState().provider).toBeNull();
   });
 });

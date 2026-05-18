@@ -38,7 +38,7 @@ const NON_UNIFIED_DETAIL_LAYOUT_APP_IDS = new Set([
   "miniapp-gas-lucky-pool",
 ]);
 const AUTH_OR_EXTERNAL_BUTTON =
-  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|o3|onegate|nep-21|connect|direct wif|open builder|download|upload|import|export)\b/i;
+  /\b(log in|sign up|continue with google|continue with github|continue with twitter|neoline|onegate|nep-21|connect|direct wif|open builder|download|upload|import|export)\b/i;
 const MUTATING_APP_BUTTON =
   /\b(stake|claim|create|request|finalize|repay|withdraw|add collateral|sync|issue|swap|sign|bridge|send|vote|buy|check in|open box|sponsor|mint|burn|register|approve|deploy|publish|delete|rollback|submit|verify email|send email)\b/i;
 const ALWAYS_SAFE_BUTTON =

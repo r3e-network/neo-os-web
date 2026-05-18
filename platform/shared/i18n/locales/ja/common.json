@@ -117,24 +117,19 @@
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 ウォレット",
-      "description": "OneGate と互換ウォレットが公開する標準 Neo dAPI プロバイダーです。"
+      "name": "NEP-21 Provider",
+      "description": "標準 Neo NEP-21 dAPI provider 経由で接続します。"
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate ホストウォレットのフォールバックです。NEP-21 が注入されている場合はそちらを優先します。"
+      "description": "Neo N3 用の OneGate ウォレットです。コントラクト呼び出しは NEP-21 dAPI provider を使用します。"
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "Neo N3 アカウントとコントラクト呼び出し用の NeoLine 拡張機能です。"
-    },
-    "o3": {
-      "name": "O3 ウォレット",
-      "description": "ブラウザに O3 provider が注入されている場合のフォールバックです。"
+      "description": "Neo N3 アカウントを NEP-21 dAPI provider 経由で接続する NeoLine 拡張機能です。"
     },
     "protocol": {
-      "nep21": "NEP-21",
-      "legacyDapi": "Legacy dAPI"
+      "nep21": "NEP-21"
     }
   },
   "errors": {

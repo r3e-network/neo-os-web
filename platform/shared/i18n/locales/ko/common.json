@@ -117,24 +117,19 @@
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 지갑",
-      "description": "OneGate와 호환 지갑이 노출하는 표준 Neo dAPI provider입니다."
+      "name": "NEP-21 Provider",
+      "description": "표준 Neo NEP-21 dAPI provider를 통해 연결됩니다."
     },
     "onegate": {
       "name": "OneGate",
-      "description": "OneGate 호스트 지갑 폴백입니다. NEP-21이 주입되어 있으면 NEP-21을 우선 사용하세요."
+      "description": "Neo N3용 OneGate 지갑입니다. 컨트랙트 호출은 NEP-21 dAPI provider를 사용합니다."
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "Neo N3 계정과 컨트랙트 호출을 위한 NeoLine 확장입니다."
-    },
-    "o3": {
-      "name": "O3 지갑",
-      "description": "브라우저에 O3 provider가 주입되어 있을 때 사용하는 폴백입니다."
+      "description": "NEP-21 dAPI provider를 통해 Neo N3 계정을 연결하는 NeoLine 확장입니다."
     },
     "protocol": {
-      "nep21": "NEP-21",
-      "legacyDapi": "Legacy dAPI"
+      "nep21": "NEP-21"
     }
   },
   "errors": {

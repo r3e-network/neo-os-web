@@ -19,10 +19,10 @@ test.describe("Wallet Connection", () => {
     await expect(page.getByText("Neo Ecosystem")).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with github/i })).toBeVisible();
-    await expect(page.getByTestId("wallet-option-nep21")).toBeVisible();
     await expect(page.getByTestId("wallet-option-onegate")).toBeVisible();
     await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
-    await expect(page.getByTestId("wallet-option-o3")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-nep21")).toHaveCount(0);
+    await expect(page.getByTestId("wallet-option-o3")).toHaveCount(0);
     await expect(page.getByText("Direct WIF Testing")).toBeVisible();
     await expect(page.getByLabel("Direct WIF")).toBeVisible();
   });
@@ -32,10 +32,10 @@ test.describe("Wallet Connection", () => {
     await connectButton.click();
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
-    await expect(page.getByTestId("wallet-option-nep21")).toBeVisible();
     await expect(page.getByTestId("wallet-option-onegate")).toBeVisible();
     await expect(page.getByTestId("wallet-option-neoline")).toBeVisible();
-    await expect(page.getByTestId("wallet-option-o3")).toBeVisible();
+    await expect(page.getByTestId("wallet-option-nep21")).toHaveCount(0);
+    await expect(page.getByTestId("wallet-option-o3")).toHaveCount(0);
   });
 
   test("should open and close login modal", async ({ page }) => {

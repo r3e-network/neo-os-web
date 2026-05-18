@@ -3,8 +3,7 @@
  *
  * NEP-21 providers expose a common `IDapiProvider` via the
  * `Neo.DapiProvider.ready` browser event. This adapter makes that standard a
- * first-class wallet option in the host while preserving the legacy wallet
- * adapters as fallbacks.
+ * first-class wallet path for OneGate, NeoLine, and compatible wallets.
  */
 
 import {
