@@ -10,7 +10,7 @@ Responsibilities:
 - render MiniApps in the unified host-native three-column product layout
 - resolve catalog manifests into shared information panels, operation panels, and per-app playareas
 - strict CSP for the host runtime and platform APIs
-- surface NEP-21 wallet binding, intent submission, AppRegistry workflows, Morpheus proxies, and AA relay proxying
+- surface OneGate/NeoLine wallet binding, intent submission, AppRegistry workflows, Morpheus proxies, and AA relay proxying
 
 Current capabilities:
 
@@ -193,9 +193,9 @@ The host resolves JSON/YAML/Markdown frontend specs and renders UI directly.
 
 ## Wallet Binding + Intents
 
-The host expects a Neo N3 browser wallet. The host UI supports **NEP-21 dAPI wallets** first, with **NeoLine N3**, **O3**, and **OneGate** compatibility paths.
+The host expects a Neo N3 browser wallet. The visible wallet choices are **OneGate** and **NeoLine**, and both route contract calls through the standard **NEP-21 dAPI** provider.
 
-1. Install a NEP-21-compatible Neo N3 wallet, or NeoLine N3 as a legacy fallback.
+1. Install OneGate or NeoLine with NEP-21 dAPI support enabled.
 2. In the Settings panel:
    - set `Supabase Edge base URL`
    - paste an `Auth JWT` (Supabase session token; required for wallet binding)
@@ -205,6 +205,6 @@ The host expects a Neo N3 browser wallet. The host UI supports **NEP-21 dAPI wal
    - click `Sign & Bind` (the selected wallet will prompt to sign)
 4. In **On-chain Intents**:
    - click `Create Intent` for `pay-gas` / `vote-neo`
-   - click `Submit via Wallet` to call NEP-21 `invoke` or the legacy wallet invoke API
+   - click `Submit via Wallet` to call NEP-21 `invoke`
 
 If `pay-gas` / `vote-neo` returns `WALLET_REQUIRED`, bind a wallet first.

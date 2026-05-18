@@ -68,15 +68,16 @@ describe("ConnectButton wallet choices", () => {
 
     expect(
       within(onegate).getByAltText("OneGate").getAttribute("src"),
-    ).toBe("/miniapps/gas-lucky-pool/onegate-logo.png");
+    ).toBe("/wallets/onegate.svg");
     expect(
       within(neoline).getByAltText("NeoLine").getAttribute("src"),
-    ).toBe("https://neoline.io/assets/images/home/neoline.svg");
+    ).toBe("/wallets/neoline.svg");
 
     expect(within(onegate).getByText("Recommended")).toBeInTheDocument();
     expect(within(onegate).getByText("NEP-21")).toBeInTheDocument();
     expect(within(neoline).getByText("NEP-21")).toBeInTheDocument();
     expect(screen.queryByText("NEP-21 Wallet")).not.toBeInTheDocument();
+    expect(screen.queryByText("NEP-21 Provider")).not.toBeInTheDocument();
     expect(screen.queryByText("O3 Wallet")).not.toBeInTheDocument();
     expect(screen.queryByText("Legacy dAPI")).not.toBeInTheDocument();
   });
@@ -97,9 +98,7 @@ describe("ConnectButton wallet choices", () => {
 
     const icon = screen.getByAltText("OneGate wallet");
     expect(icon).toBeInTheDocument();
-    expect(icon.getAttribute("src")).toBe(
-      "/miniapps/gas-lucky-pool/onegate-logo.png",
-    );
+    expect(icon.getAttribute("src")).toBe("/wallets/onegate.svg");
     expect(screen.getByText("2.5 GAS")).toBeInTheDocument();
   });
 
@@ -129,7 +128,7 @@ describe("ConnectButton wallet choices", () => {
     const neoline = screen.getByTestId("wallet-option-neoline");
     expect(within(onegate).getByText("推荐")).toBeInTheDocument();
     expect(
-      within(onegate).getByText("OneGate 钱包，Neo N3 合约调用通过 NEP-21 dAPI provider 执行。"),
+      within(onegate).getByText("OneGate 钱包，用于 Neo N3 账户连接和合约调用。"),
     ).toBeInTheDocument();
     expect(within(neoline).getByText("NeoLine")).toBeInTheDocument();
     expect(screen.queryByText("NEP-21 钱包")).not.toBeInTheDocument();

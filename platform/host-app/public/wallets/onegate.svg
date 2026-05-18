@@ -1,0 +1,10 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">OneGate wallet mark</title>
+  <desc id="desc">A compact OneGate wallet mark for Neo N3 account connection.</desc>
+  <rect width="96" height="96" rx="24" fill="#061A15"/>
+  <path d="M22 63.5V37.25C22 31.313 26.813 26.5 32.75 26.5H63.25C69.187 26.5 74 31.313 74 37.25V63.5" stroke="#21E8A4" stroke-width="8" stroke-linecap="round"/>
+  <path d="M35 64V42H61V64" stroke="#EAFBF5" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M48 42V64" stroke="#21E8A4" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="48" cy="20" r="6" fill="#EAFBF5"/>
+  <path d="M28 73H68" stroke="#21E8A4" stroke-width="8" stroke-linecap="round"/>
+</svg>

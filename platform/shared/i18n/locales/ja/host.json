@@ -79,7 +79,7 @@
   },
   "home": {
     "badges": {
-      "nep21Ready": "NEP-21 ウォレット対応",
+      "nep21Ready": "OneGate / NeoLine 対応",
       "onegateExport": "OneGate dApp エクスポート"
     },
     "hero": {

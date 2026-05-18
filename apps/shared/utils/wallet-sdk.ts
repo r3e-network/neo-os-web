@@ -5,7 +5,7 @@
  * for Neo N3 web apps. Replaces the legacy package-level wallet shim.
  *
  * Supports:
- * - NEP-21 wallet providers including OneGate and NeoLine
+ * - OneGate and NeoLine through the Neo dAPI / NEP-21 protocol
  * - Abstract Account (AA) via social login
  */
 import { ref } from "vue";
@@ -25,12 +25,9 @@ import {
   buildDapiInvocation,
   chainTypeFromDapiNetwork,
   mapDapiSigners,
-  mapSigners,
   networkLabel,
   normalizeBalanceResult,
-  normalizeOperationName,
   normalizeTxResult,
-  readOneGateNetwork,
   resolveNetworkFromChainId,
 } from "./wallet-sdk-invoke-utils";
 import {
@@ -50,8 +47,6 @@ import type {
   InvokeResult,
   MiniAppManifest,
   NeoDapiProvider,
-  NeoLineN3,
-  OneGateLegacyWallet,
   StackItem,
   WalletSDK,
   WalletSigner,
@@ -69,8 +64,6 @@ export type {
   InvokeParams,
   InvokeResult,
   NeoDapiProvider,
-  NeoLineN3,
-  OneGateLegacyWallet,
   StackItem,
   WalletSDK,
   WalletSigner,
@@ -102,38 +95,6 @@ let walletInstance: WalletSDK | null = null;
 
 function readImmediateDapiProvider(): NeoDapiProvider | null {
   return readImmediateNep21Provider() as NeoDapiProvider | null;
-}
-
-function readImmediateOneGateLegacyWallet(): OneGateLegacyWallet | null {
-  if (typeof window === "undefined") return null;
-  const wallet = window.OneGate;
-  return wallet && typeof wallet.getAccount === "function" ? wallet : null;
-}
-
-function waitForOneGateLegacyWallet(
-  timeoutMs = 3000,
-): Promise<OneGateLegacyWallet> {
-  const immediate = readImmediateOneGateLegacyWallet();
-  if (immediate) return Promise.resolve(immediate);
-  if (typeof window === "undefined") {
-    return Promise.reject(new Error("OneGate wallet not detected."));
-  }
-
-  return new Promise((resolve, reject) => {
-    const startedAt = Date.now();
-    const timer = setInterval(() => {
-      const wallet = readImmediateOneGateLegacyWallet();
-      if (wallet) {
-        clearInterval(timer);
-        resolve(wallet);
-        return;
-      }
-      if (Date.now() - startedAt >= timeoutMs) {
-        clearInterval(timer);
-        reject(new Error("OneGate wallet not detected."));
-      }
-    }, 100);
-  });
 }
 
 function waitForDapiProvider(timeoutMs = 3000): Promise<NeoDapiProvider> {
@@ -230,59 +191,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
   const address = ref<string | null>(null);
   const chainType = ref("neo-n3");
   const chainId = ref("neo-n3");
-  let neoline: NeoLineN3 | null = null;
   let activeProvider: ActiveWalletProvider | null = null;
   let dapiAccountHash: string | null = null;
   let dapiEventsAttached = false;
-
-  const ensureNeoLine = async (): Promise<NeoLineN3> => {
-    if (neoline) return neoline;
-
-    // Check for injected NeoLine
-    if (window.neo3Dapi) {
-      neoline = window.neo3Dapi;
-      return neoline;
-    }
-
-    if (window.NEOLineN3) {
-      neoline = new window.NEOLineN3.Init();
-      return neoline;
-    }
-
-    // Wait for NeoLine to inject (up to 3 seconds)
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      const timeoutId = setTimeout(() => {
-        clearInterval(check);
-        reject(
-          new Error(
-            "NeoLine wallet not detected. Please install NeoLine extension.",
-          ),
-        );
-      }, 3000);
-      const check = setInterval(() => {
-        if (window.neo3Dapi) {
-          clearInterval(check);
-          clearTimeout(timeoutId);
-          neoline = window.neo3Dapi;
-          resolve(neoline);
-        } else if (window.NEOLineN3) {
-          clearInterval(check);
-          clearTimeout(timeoutId);
-          neoline = new window.NEOLineN3.Init();
-          resolve(neoline);
-        } else if (++attempts > 30) {
-          clearInterval(check);
-          clearTimeout(timeoutId);
-          reject(
-            new Error(
-              "NeoLine wallet not detected. Please install NeoLine extension.",
-            ),
-          );
-        }
-      }, 100);
-    });
-  };
 
   const ensureWalletProvider = async (): Promise<ActiveWalletProvider> => {
     if (activeProvider) return activeProvider;
@@ -293,48 +204,13 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       return activeProvider;
     }
 
-    const oneGateLegacy = readImmediateOneGateLegacyWallet();
-    if (oneGateLegacy) {
-      activeProvider = { kind: "onegate", provider: oneGateLegacy };
-      return activeProvider;
-    }
-
-    if (
-      typeof window !== "undefined" &&
-      (window.neo3Dapi || window.NEOLineN3)
-    ) {
-      activeProvider = { kind: "neoline", provider: await ensureNeoLine() };
-      return activeProvider;
-    }
-
-    return new Promise((resolve, reject) => {
-      const errors: Error[] = [];
-      const resolveOnce = (provider: ActiveWalletProvider) => {
-        if (activeProvider) return;
-        activeProvider = provider;
-        resolve(provider);
-      };
-      const rejectIfDone = (error: unknown) => {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
-        if (errors.length >= 3 && !activeProvider) {
-          reject(
-            new Error(
-              "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet or NeoLine extension.",
-            ),
-          );
-        }
-      };
-
-      waitForDapiProvider(3000)
-        .then((provider) => resolveOnce({ kind: "nep21", provider }))
-        .catch(rejectIfDone);
-      ensureNeoLine()
-        .then((provider) => resolveOnce({ kind: "neoline", provider }))
-        .catch(rejectIfDone);
-      waitForOneGateLegacyWallet(3000)
-        .then((provider) => resolveOnce({ kind: "onegate", provider }))
-        .catch(rejectIfDone);
+    const provider = await waitForDapiProvider(3000).catch(() => {
+      throw new Error(
+        "Compatible Neo wallet not detected. Please install a NEP-21 dAPI wallet such as OneGate or NeoLine.",
+      );
     });
+    activeProvider = { kind: "nep21", provider };
+    return activeProvider;
   };
 
   const updateDapiNetwork = (provider: NeoDapiProvider) => {
@@ -348,7 +224,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const walletNetwork = resolveNetworkFromChainId(chainId.value);
     if (!walletNetwork) {
       throw new MiniAppError(
-        `Wallet network is not verified. Reconnect with a NEP-21 wallet on ${networkLabel(targetNetwork)}.`,
+        `Wallet network is not verified. Reconnect OneGate or NeoLine on ${networkLabel(targetNetwork)}.`,
         ERROR_CODE_WALLET_NETWORK_UNVERIFIED,
         undefined,
         undefined,
@@ -394,7 +270,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     }
 
     if (!provider.authenticate) {
-      throw new Error("NEP-21 wallet did not return any account.");
+      throw new Error("Connected Neo wallet did not return any account.");
     }
 
     const supportedNetworks = provider.supportedNetworks?.length
@@ -416,7 +292,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     }
     if (!authenticated.address) {
       throw new Error(
-        "NEP-21 wallet authentication did not return an address.",
+        "Connected Neo wallet authentication did not return an address.",
       );
     }
     dapiAccountHash = null;
@@ -425,33 +301,20 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
 
   const connect = async () => {
     const wallet = await ensureWalletProvider();
-    if (wallet.kind === "nep21") {
-      await connectDapi(wallet.provider);
-      if (!dapiEventsAttached) {
-        dapiEventsAttached = true;
-        const handleAccountChanged = () => {
-          void connectDapi(wallet.provider).catch(() => {
-            dapiAccountHash = null;
-            address.value = null;
-          });
-        };
-        wallet.provider.on?.("networkchanged", () =>
-          updateDapiNetwork(wallet.provider),
-        );
-        wallet.provider.on?.("accountchanged", handleAccountChanged);
-        wallet.provider.on?.("accountschanged", handleAccountChanged);
-      }
-      return;
-    }
-
-    const account = await wallet.provider.getAccount();
-    address.value = account.address;
-    if (wallet.kind === "onegate") {
-      const network = await readOneGateNetwork(wallet.provider);
-      if (network) {
-        chainType.value = `neo-n3-${network}`;
-        chainId.value = chainType.value;
-      }
+    await connectDapi(wallet.provider);
+    if (!dapiEventsAttached) {
+      dapiEventsAttached = true;
+      const handleAccountChanged = () => {
+        void connectDapi(wallet.provider).catch(() => {
+          dapiAccountHash = null;
+          address.value = null;
+        });
+      };
+      wallet.provider.on?.("networkchanged", () =>
+        updateDapiNetwork(wallet.provider),
+      );
+      wallet.provider.on?.("accountchanged", handleAccountChanged);
+      wallet.provider.on?.("accountschanged", handleAccountChanged);
     }
   };
 
@@ -462,52 +325,21 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     if (!address.value) await connect();
     assertWalletMatchesAppNetwork();
 
-    if (wallet.kind === "nep21") {
-      if (!wallet.provider.invoke) {
-        throw new MiniAppError(
-          "Connected NEP-21 wallet does not support invoke.",
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        );
-      }
-      const result = await wallet.provider.invoke(
-        [buildDapiInvocation(params, dapiAccountHash, address.value)],
-        mapDapiSigners(params.signers, dapiAccountHash, address.value),
-      );
-      return normalizeTxResult(result);
-    }
-
-    if (wallet.kind === "onegate") {
-      if (!wallet.provider.invoke) {
-        throw new MiniAppError(
-          "Connected OneGate wallet does not support invoke.",
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        );
-      }
-      return normalizeTxResult(
-        await wallet.provider.invoke({
-          scriptHash: params.scriptHash,
-          operation: normalizeOperationName(params.operation),
-          args: params.args ?? [],
-          signers: mapSigners(params.signers),
-        }),
+    if (!wallet.provider.invoke) {
+      throw new MiniAppError(
+        "Connected Neo wallet does not support contract invoke.",
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
       );
     }
-
-    const result = await wallet.provider.invoke({
-      scriptHash: params.scriptHash,
-      operation: normalizeOperationName(params.operation),
-      args: params.args ?? [],
-      signers: mapSigners(params.signers),
-    });
-    return { txid: result.txid, tx: result.txid };
+    const result = await wallet.provider.invoke(
+      [buildDapiInvocation(params, dapiAccountHash, address.value)],
+      mapDapiSigners(params.signers, dapiAccountHash, address.value),
+    );
+    return normalizeTxResult(result);
   };
 
   const invokeMultiple = async (
@@ -517,29 +349,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     if (!address.value) await connect();
     assertWalletMatchesAppNetwork();
 
-    if (wallet.kind === "nep21") {
-      if (!wallet.provider.invoke) {
-        throw new MiniAppError(
-          "Connected NEP-21 wallet does not support invoke.",
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        );
-      }
-      const result = await wallet.provider.invoke(
-        (params.invokeArgs ?? []).map((entry) =>
-          buildDapiInvocation(entry, dapiAccountHash, address.value),
-        ),
-        mapDapiSigners(params.signers, dapiAccountHash, address.value),
-      );
-      return normalizeTxResult(result);
-    }
-
-    if (wallet.kind === "onegate") {
+    if (!wallet.provider.invoke) {
       throw new MiniAppError(
-        "Connected OneGate wallet does not support invokeMultiple.",
+        "Connected Neo wallet does not support contract invoke.",
         ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
         undefined,
         undefined,
@@ -547,74 +359,32 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
         ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
       );
     }
-
-    const provider =
-      wallet.provider.invokeMultiple || wallet.provider.invokeMulti;
-    if (!provider) {
-      throw new MiniAppError(
-        "Connected Neo wallet does not support invokeMultiple.",
-        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        undefined,
-        undefined,
-        undefined,
-        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-      );
-    }
-
-    const result = await provider({
-      invokeArgs: (params.invokeArgs ?? []).map((entry) => ({
-        scriptHash: entry.scriptHash,
-        operation: normalizeOperationName(entry.operation),
-        args: entry.args ?? [],
-      })),
-      signers: mapSigners(params.signers),
-    });
-    return { txid: result.txid, tx: result.txid };
+    const result = await wallet.provider.invoke(
+      (params.invokeArgs ?? []).map((entry) =>
+        buildDapiInvocation(entry, dapiAccountHash, address.value),
+      ),
+      mapDapiSigners(params.signers, dapiAccountHash, address.value),
+    );
+    return normalizeTxResult(result);
   };
 
   const invokeRead = async (params: InvokeParams): Promise<InvokeResult> => {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
     assertWalletMatchesAppNetwork();
-    if (wallet.kind === "nep21") {
-      if (!wallet.provider.call) {
-        throw new MiniAppError(
-          "Connected NEP-21 wallet does not support call.",
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        );
-      }
-      return wallet.provider.call(
-        buildDapiInvocation(params, dapiAccountHash, address.value),
+    if (!wallet.provider.call) {
+      throw new MiniAppError(
+        "Connected Neo wallet does not support read-only contract call.",
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
+        undefined,
+        undefined,
+        undefined,
+        ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
       );
     }
-
-    if (wallet.kind === "onegate") {
-      if (!wallet.provider.invokeRead) {
-        throw new MiniAppError(
-          "Connected OneGate wallet does not support read-only contract calls.",
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-          undefined,
-          undefined,
-          undefined,
-          ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
-        );
-      }
-      return wallet.provider.invokeRead({
-        scriptHash: params.scriptHash,
-        operation: normalizeOperationName(params.operation),
-        args: params.args,
-      });
-    }
-
-    return wallet.provider.invokeRead({
-      scriptHash: params.scriptHash,
-      operation: normalizeOperationName(params.operation),
-      args: params.args,
-    });
+    return wallet.provider.call(
+      buildDapiInvocation(params, dapiAccountHash, address.value),
+    );
   };
 
   const getBalance = async (asset: string): Promise<string | number> => {
@@ -628,33 +398,12 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const contractHash =
       asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
-    if (wallet.kind === "nep21") {
-      if (!wallet.provider.getBalance) return "0";
-      const result = await wallet.provider.getBalance(
-        contractHash,
-        dapiAccountHash ?? address.value,
-      );
-      return normalizeBalanceResult(result, contractHash);
-    }
-
-    if (wallet.kind === "onegate") {
-      if (!wallet.provider.getBalance) return "0";
-      const result = await wallet.provider.getBalance({
-        address: address.value,
-      });
-      if (asset === "GAS") return result.gas ?? result.GAS ?? "0";
-      if (asset === "NEO") return result.neo ?? result.NEO ?? "0";
-      return "0";
-    }
-
-    const result = await wallet.provider.getBalance({
-      address: address.value,
-      contracts: [contractHash],
-    });
-
-    const balances = Object.values(result).flat();
-    const match = balances.find((b) => b.contract === contractHash);
-    return match?.amount ?? "0";
+    if (!wallet.provider.getBalance) return "0";
+    const result = await wallet.provider.getBalance(
+      contractHash,
+      dapiAccountHash ?? address.value,
+    );
+    return normalizeBalanceResult(result, contractHash);
   };
 
   const send = async (
@@ -672,7 +421,7 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const contractHash =
       asset === "GAS" ? GAS_HASH : asset === "NEO" ? NEO_HASH : asset;
 
-    if (wallet.kind === "nep21" && wallet.provider.send) {
+    if (wallet.provider.send) {
       const result = await wallet.provider.send(
         contractHash,
         resolveDapiAccount(from),
@@ -682,9 +431,9 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
       return normalizeTxResult(result);
     }
 
-    if (wallet.kind === "onegate" && !wallet.provider.invoke) {
+    if (!wallet.provider.invoke) {
       throw new MiniAppError(
-        "Connected OneGate wallet does not support invoke.",
+        "Connected Neo wallet does not support contract invoke.",
         ERROR_CODE_INVOKE_MULTIPLE_UNSUPPORTED,
         undefined,
         undefined,
@@ -709,44 +458,20 @@ export function useWallet(existingWallet?: WalletSDK): WalletSDK {
     const wallet = await ensureWalletProvider();
     if (!address.value) await connect();
 
-    if (wallet.kind === "nep21") {
-      if (!wallet.provider.signMessage) {
-        throw new Error(
-          "Connected NEP-21 wallet does not support signMessage.",
-        );
-      }
-      const signed = await wallet.provider.signMessage(
-        encodeBase64Utf8(message),
-        dapiAccountHash ?? address.value ?? undefined,
-      );
-      return {
-        publicKey: signed.pubkey,
-        data: signed.signature,
-        signature: signed.signature,
-        account: signed.account,
-        pubkey: signed.pubkey,
-      };
-    }
-
-    if (wallet.kind === "onegate") {
-      if (!wallet.provider.signMessage) {
-        throw new Error(
-          "Connected OneGate wallet does not support signMessage.",
-        );
-      }
-      const signed = await wallet.provider.signMessage({ message });
-      return typeof signed === "string"
-        ? { data: signed, signature: signed }
-        : signed;
-    }
-
     if (!wallet.provider.signMessage) {
-      throw new Error("Connected Neo wallet does not support signMessage.");
+      throw new Error("Connected Neo wallet does not support message signing.");
     }
-    const signed = await wallet.provider.signMessage({ message });
-    return typeof signed === "string"
-      ? { data: signed, signature: signed }
-      : signed;
+    const signed = await wallet.provider.signMessage(
+      encodeBase64Utf8(message),
+      dapiAccountHash ?? address.value ?? undefined,
+    );
+    return {
+      publicKey: signed.pubkey,
+      data: signed.signature,
+      signature: signed.signature,
+      account: signed.account,
+      pubkey: signed.pubkey,
+    };
   };
 
   const getContractAddress = async (): Promise<string> => {

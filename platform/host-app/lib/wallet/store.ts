@@ -298,16 +298,16 @@ export const walletOptions: WalletOption[] = [
   {
     id: "onegate",
     name: "OneGate",
-    icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
-    description: "OneGate wallet for Neo N3. Contract calls use the NEP-21 dAPI provider.",
+    icon: "/wallets/onegate.svg",
+    description: "OneGate wallet for Neo N3 account connection and contract calls.",
     protocol: "NEP-21",
     recommended: true,
   },
   {
     id: "neoline",
     name: "NeoLine",
-    icon: "https://neoline.io/assets/images/home/neoline.svg",
-    description: "NeoLine browser extension for Neo N3 accounts through the NEP-21 dAPI provider.",
+    icon: "/wallets/neoline.svg",
+    description: "NeoLine browser extension for Neo N3 accounts and contract signing.",
     protocol: "NEP-21",
   },
 ];
@@ -319,9 +319,9 @@ export const walletOptionsById: Partial<Record<WalletProvider, WalletOption>> =
       "nep21",
       {
         id: "nep21",
-        name: "NEP-21 Provider",
-        icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
-        description: "Connected through a standard Neo NEP-21 dAPI provider.",
+        name: "Detected Neo Wallet",
+        icon: "/wallets/onegate.svg",
+        description: "Uses the Neo dAPI signing protocol when a compatible wallet is injected.",
         protocol: "NEP-21",
       } satisfies WalletOption,
     ],

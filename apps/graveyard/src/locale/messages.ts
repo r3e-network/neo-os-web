@@ -10,7 +10,7 @@ const appMessages = {
   gasReclaimed: { en: "Burial Fees", zh: "埋葬费用" },
   destroyAsset: { en: "Burial Chamber", zh: "埋葬室" },
   assetHashPlaceholder: { en: "Enter encrypted content hash...", zh: "输入加密内容哈希..." },
-  warning: { en: "⚠ PERMANENT RECORD", zh: "⚠ 永久记录" },
+  warning: { en: "PERMANENT RECORD", zh: "永久记录" },
   warningText: {
     en: "This writes the content hash on-chain permanently. Forgetting records an additional paid state change and cannot be reversed.",
     zh: "此操作会将内容哈希永久写入链上。遗忘会记录一次额外的付费状态变更且不可恢复。",

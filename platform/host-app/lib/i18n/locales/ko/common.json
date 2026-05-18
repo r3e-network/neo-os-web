@@ -102,31 +102,31 @@
     "orConnectWallet": "또는 지갑 연결",
     "neoEcosystem": "Neo 생태계",
     "recommended": "추천",
-    "directWifTesting": "직접 WIF 테스트",
-    "pasteTestWif": "테스트 지갑 WIF 붙여넣기",
-    "directWif": "직접 WIF",
+    "directWifTesting": "개발자 키 로그인",
+    "pasteTestWif": "로컬 개발자 키 붙여넣기",
+    "directWif": "개발자 키",
     "showWif": "WIF 표시",
     "hideWif": "WIF 숨기기",
     "localValidation": "로컬 검증 전용입니다. 키는 현재 브라우저 세션에만 보관되며 저장되지 않습니다.",
     "terms": "연결하면 서비스 약관과 개인정보 처리방침에 동의한 것으로 간주됩니다.",
     "disconnectTitle": "지갑 연결 해제",
     "disconnectMessage": "블록체인 기능을 사용하려면 다시 연결해야 합니다.",
-    "wifTest": "WIF 테스트",
+    "wifTest": "개발자 키",
     "dismiss": "닫기",
     "closeLoginModal": "로그인 모달 닫기"
   },
   "walletOptions": {
     "nep21": {
-      "name": "NEP-21 Provider",
-      "description": "표준 Neo NEP-21 dAPI provider를 통해 연결됩니다."
+      "name": "감지된 Neo 지갑",
+      "description": "호환 지갑이 주입되면 Neo dAPI 서명 프로토콜을 사용합니다."
     },
     "onegate": {
       "name": "OneGate",
-      "description": "Neo N3용 OneGate 지갑입니다. 컨트랙트 호출은 NEP-21 dAPI provider를 사용합니다."
+      "description": "Neo N3 계정 연결과 컨트랙트 호출을 위한 OneGate 지갑입니다."
     },
     "neoline": {
       "name": "NeoLine",
-      "description": "NEP-21 dAPI provider를 통해 Neo N3 계정을 연결하는 NeoLine 확장입니다."
+      "description": "Neo N3 계정 연결과 컨트랙트 서명을 위한 NeoLine 브라우저 확장입니다."
     },
     "protocol": {
       "nep21": "NEP-21"

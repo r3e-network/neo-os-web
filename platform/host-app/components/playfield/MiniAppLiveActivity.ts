@@ -477,7 +477,7 @@ async function fetchLastSurvivorActivity(
     const rows: Activity["rows"] = [];
     if (currentRound > 0 && active && !isZeroAddr(lastBuyer)) {
       rows.push({
-        icon: "👑",
+        icon: "L",
         primary: `Current leader: ${fmtAddr(lastBuyer)}`,
         secondary: `Round #${currentRound} — wins if timer hits zero`,
         amount: `${fmtGas(pot)} GAS`,
@@ -515,7 +515,7 @@ async function fetchLastSurvivorActivity(
 
   if (currentRound > 0 && state.active && !isZeroAddr(lastBuyer)) {
     rows.push({
-      icon: "👑",
+      icon: "L",
       primary: `Current leader: ${fmtAddr(lastBuyer)}`,
       secondary: `Round #${currentRound} — wins if timer hits zero`,
       amount: `${fmtGas(state.pot as number | string)} GAS`,
@@ -545,7 +545,7 @@ async function fetchLastSurvivorActivity(
     const prize = parseInt(String(h.map.winnerPrize ?? "0"), 10);
     if (!winner || isZeroAddr(winner)) continue;
     rows.push({
-      icon: "🏆",
+      icon: "W",
       primary: `Round #${h.id} winner: ${fmtAddr(winner)}`,
       secondary: timeAgo(parseInt(String(h.map.endTime ?? "0"), 10)),
       amount: prize > 0 ? `${fmtGas(prize)} GAS` : "—",
@@ -601,7 +601,7 @@ async function fetchRedEnvelopeActivity(
     const claimed = parseInt(String(env.map.claimedCount ?? "0"), 10);
     const open = remaining > 0 && claimed < packetCount;
     return {
-      icon: open ? "🧧" : "📭",
+      icon: open ? "E" : "C",
       primary: `Envelope #${env.id} from ${fmtAddr(String(env.map.creator || ""))}`,
       secondary: open
         ? `${claimed}/${packetCount} claimed · ${fmtGas(remaining)} GAS left`
@@ -659,7 +659,7 @@ async function fetchGasBoxActivity(
       const plays = parseInt(String(r.map.plays ?? "0"), 10);
       const active = Boolean(r.map.active);
       return {
-        icon: active ? "🎰" : "⏸",
+        icon: active ? "G" : "P",
         primary: name,
         secondary: `${plays} plays · ${active ? "ready" : "inactive"}`,
         amount: price > 0 ? `${fmtGas(price)} GAS` : "—",
@@ -756,7 +756,7 @@ async function fetchSelfLoanActivity(
       const debt = parseInt(String(r.map.debt ?? "0"), 10);
       const active = Boolean(r.map.active);
       return {
-        icon: active ? "🏦" : "✅",
+        icon: active ? "L" : "R",
         primary: `Loan #${r.id} · ${fmtAddr(borrower)}`,
         secondary: `${collateral} NEO collateral · ${active ? "open" : "repaid"}`,
         amount: `${fmtGas(debt)} GAS`,
@@ -817,7 +817,7 @@ async function fetchNeoPayActivity(
       const status = String(r.map.status || "");
       const active = status === "active";
       return {
-        icon: active ? "💸" : status === "cancelled" ? "🛑" : "✅",
+        icon: active ? "S" : status === "cancelled" ? "X" : "D",
         primary: `Stream #${r.id} → ${fmtAddr(beneficiary)}`,
         secondary: `${fmtGas(released)} / ${fmtGas(total)} GAS released · ${status || "active"}`,
         amount: `${fmtGas(total)} GAS`,
