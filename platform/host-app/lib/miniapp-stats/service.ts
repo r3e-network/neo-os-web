@@ -21,26 +21,33 @@ import { isSharedModeApp } from "../chain/shared-mode";
  */
 export async function getMiniAppStats(
   appId: string,
-  network: "testnet" | "mainnet" = "testnet",
+  network: "testnet" | "mainnet",
 ): Promise<MiniAppStats | null> {
   // Check cache first
-  const cached = statsCache.get(appId);
+  const cacheKey = `${network}:${appId}`;
+  const cached = statsCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.stats;
   }
 
   // Try to fetch from database
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated").eq("app_id", appId).maybeSingle();
+    const { data } = await supabase
+      .from("miniapp_stats")
+      .select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated")
+      .eq("app_id", appId)
+      .eq("network", network)
+      .maybeSingle();
 
     if (data) {
       const stats = mapDbToStats(data);
-      statsCache.set(appId, { stats, timestamp: Date.now() });
+      statsCache.set(cacheKey, { stats, timestamp: Date.now() });
       return stats;
     }
   }
 
-  // Return default stats if not found
+  // Derive stats only from live chain-backed sources. Unknown apps return null
+  // instead of fabricated zero metrics.
   const flagship = getFlagshipApps(network)[appId];
   if (flagship) {
     const chainStats = await getContractStats(flagship.contract, network, appId);
@@ -85,7 +92,7 @@ export async function getMiniAppStats(
     }
   }
 
-  return getDefaultStats(appId);
+  return null;
 }
 
 /**
@@ -93,26 +100,31 @@ export async function getMiniAppStats(
  */
 export async function getBatchStats(
   appIds: string[],
-  network: "testnet" | "mainnet" = "testnet",
+  network: "testnet" | "mainnet",
 ): Promise<Record<string, MiniAppStats>> {
   const result: Record<string, MiniAppStats> = {};
 
   if (isSupabaseConfigured) {
-    const { data } = await supabase.from("miniapp_stats").select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated").in("app_id", appIds);
+    const { data } = await supabase
+      .from("miniapp_stats")
+      .select("app_id,active_users_monthly,active_users_weekly,active_users_daily,total_transactions,transactions_weekly,transactions_daily,total_volume_gas,volume_weekly_gas,volume_daily_gas,rating,review_count,weekly_trend,last_updated")
+      .in("app_id", appIds)
+      .eq("network", network);
 
     if (data) {
       for (const row of data) {
         const stats = mapDbToStats(row);
         result[row.app_id] = stats;
-        statsCache.set(row.app_id, { stats, timestamp: Date.now() });
+        statsCache.set(`${network}:${row.app_id}`, { stats, timestamp: Date.now() });
       }
     }
   }
 
-  // Fill missing with defaults
+  // Fill missing only when a live chain-backed source can produce real stats.
   for (const appId of appIds) {
     if (!result[appId]) {
-      result[appId] = getDefaultStats(appId);
+      const stats = await getMiniAppStats(appId, network);
+      if (stats) result[appId] = stats;
     }
   }
 
@@ -126,7 +138,7 @@ export async function getLiveStatus(
   appId: string,
   contractHash: string,
   category: string,
-  network: "testnet" | "mainnet" = "testnet",
+  network: "testnet" | "mainnet",
 ): Promise<MiniAppLiveStatus> {
   const bundledApp = await loadBundledMiniAppById(appId).catch(() => null);
   if (bundledApp && isSharedModeApp(bundledApp)) {
@@ -161,24 +173,3 @@ function mapDbToStats(data: Record<string, unknown>): MiniAppStats {
     lastUpdated: (data.last_updated as number) || Date.now(),
   };
 }
-
-function getDefaultStats(appId: string): MiniAppStats {
-  return {
-    appId,
-    activeUsersMonthly: 0,
-    activeUsersWeekly: 0,
-    activeUsersDaily: 0,
-    totalTransactions: 0,
-    transactionsWeekly: 0,
-    transactionsDaily: 0,
-    totalVolumeGas: "0",
-    volumeWeeklyGas: "0",
-    volumeDailyGas: "0",
-    rating: 0,
-    reviewCount: 0,
-    weeklyTrend: 0,
-    lastUpdated: Date.now(),
-  };
-}
-
-export { getDefaultStats };

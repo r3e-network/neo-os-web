@@ -17,6 +17,26 @@ describe("/api/morpheus/neodid/providers", () => {
     delete process.env.PHALA_API_TOKEN;
   });
 
+  it("rejects missing network instead of silently using mainnet", async () => {
+    const handler = require("@/pages/api/morpheus/neodid/providers").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      query: {},
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("returns provider data from the configured runtime when available", async () => {
     process.env.MORPHEUS_TESTNET_RUNTIME_URL = "https://testnet-runtime.example";
     process.env.MORPHEUS_TESTNET_RUNTIME_TOKEN = "testnet-token";
@@ -77,7 +97,7 @@ describe("/api/morpheus/neodid/providers", () => {
 
     expect(res._getStatusCode()).toBe(200);
     const payload = JSON.parse(res._getData());
-    expect(payload.source).toBe("static-fallback");
+    expect(payload.source).toBe("canonical-network-metadata");
     expect(payload.network).toBe("testnet");
     expect(payload.registry.contract).toBe("");
     expect(payload.oracle.contract).toBe("0x4b882e94ed766807c4fd728768f972e13008ad52");

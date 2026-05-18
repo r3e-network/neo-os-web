@@ -48,8 +48,8 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
           <span className="bridge-eyebrow">AxLabs / BaneLabs Bridge Console</span>
           <h2>Neo N3 and Neo X cross-chain control</h2>
           <p>
-            One production-facing surface for GAS bridging, arbitrary MessageBridge payloads,
-            and lifecycle tracking from source transaction to destination finalization.
+            One production-facing surface for official bridge handoffs, arbitrary MessageBridge
+            payloads, and lifecycle tracking from source transaction to destination finalization.
           </p>
         </div>
         <div className="bridge-route-card" aria-label="Active route">
@@ -76,12 +76,12 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
         <NeoCard variant="erobo" className="bridge-module-card">
           <div className="module-heading">
             <span className="module-kicker">Asset Bridge</span>
-            <h3>GAS deposit and withdrawal intent</h3>
+          <h3>GAS deposit and withdrawal handoff</h3>
           </div>
           <p>
             The asset panel prepares the official Neo X bridge flow around GAS.
-            Direction, amount, recipient, wallet requirement, and BaneLabs testnet handoff
-            are captured in one auditable payload before signing.
+            Direction, amount, recipient, and BaneLabs testnet handoff details
+            are captured in one auditable payload before the user signs in the bridge app.
           </p>
           <div className="module-steps" aria-label="Asset bridge flow">
             <FlowPill label="Prepare" active />
@@ -113,7 +113,7 @@ export default function PlayArea({ t, state, services }: PlayAreaProps) {
       <div className="bridge-output-grid">
         <NeoCard
           variant="erobo"
-          title="Generated bridge intent"
+          title="Generated bridge handoff"
           className="bridge-output-card"
           header={
             <NeoButton size="sm" variant="ghost" aria-label="Copy generated JSON" onClick={copyPayload}>

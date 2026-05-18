@@ -1,0 +1,1162 @@
+{
+  "generatedAt": "2026-05-18T08:00:06.923Z",
+  "summary": {
+    "total": 60,
+    "passing": 60,
+    "needsFollowUp": 0,
+    "cleanupWarnings": 0,
+    "byDomain": {
+      "aa": 6,
+      "tool": 15,
+      "social": 9,
+      "game": 7,
+      "governance": 7,
+      "finance": 10,
+      "oracle": 6
+    },
+    "gaps": [],
+    "cleanup": []
+  },
+  "rows": [
+    {
+      "appId": "miniapp-aa-account-lab",
+      "name": "AA Account Lab",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-aa-market-hub",
+      "name": "AA Market Hub",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-aa-permissions-lab",
+      "name": "AA Permissions Lab",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-aa-relay-console",
+      "name": "AA Relay Console",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-aa-session-key-lab",
+      "name": "AA Session Key Lab",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-asset-factory",
+      "name": "Asset Factory",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-automation-copilot",
+      "name": "Automation Copilot",
+      "domain": "tool",
+      "category": "data",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-breakupcontract",
+      "name": "Breakup Contract",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-burn-league",
+      "name": "Burn League",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-council-governance",
+      "name": "Council Governance",
+      "domain": "governance",
+      "category": "governance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-custom-anchor",
+      "name": "Custom Anchor",
+      "domain": "governance",
+      "category": "governance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-dailycheckin",
+      "name": "Daily Check-in",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-dev-tipping",
+      "name": "Developer Tipping",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-dice-game",
+      "name": "Dice Game",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-event-ticket-pass",
+      "name": "Event Ticket",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-explorer",
+      "name": "Block Explorer",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-flashloan",
+      "name": "Flash Loan",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-fogplay",
+      "name": "FogPlay",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-forever-album",
+      "name": "Forever Album",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-gas-lucky-pool",
+      "name": "OneGate Vault",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-gas-sponsor",
+      "name": "Gas Sponsor",
+      "domain": "aa",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-gasbox",
+      "name": "GASBOX",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-gov-merc",
+      "name": "Gov Merc",
+      "domain": "governance",
+      "category": "governance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-graveyard",
+      "name": "Graveyard",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-last-survivor",
+      "name": "LastSurvivor",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-memorial-shrine",
+      "name": "Memorial Shrine",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-milestone-escrow",
+      "name": "Milestone Escrow",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-miniapp-factory",
+      "name": "MiniApp Factory",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-convert",
+      "name": "Neo Convert",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-multisig",
+      "name": "Neo Multisig",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-ns",
+      "name": "Neo Name Service",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-pay",
+      "name": "NeoPay",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-pay-shared-example",
+      "name": "NeoPay Shared Runtime",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-sign-anything",
+      "name": "Neo Sign Anything",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-swap",
+      "name": "Neo Swap",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-treasury",
+      "name": "Neo Treasury",
+      "domain": "finance",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neo-x-bridge",
+      "name": "Neo X Bridge",
+      "domain": "finance",
+      "category": "defi",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-neodid-passport",
+      "name": "NeoDID Passport",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-nft-factory",
+      "name": "NFT Factory",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-onchaintarot",
+      "name": "On-chain Tarot",
+      "domain": "game",
+      "category": "games",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-compute-lab",
+      "name": "Oracle Compute Lab",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-http-console",
+      "name": "Oracle HTTP Console",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-neodid-console",
+      "name": "Oracle NeoDID Console",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-price-console",
+      "name": "Oracle Price Console",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-seal-console",
+      "name": "Oracle Seal Console",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-oracle-vrf-console",
+      "name": "Oracle VRF Console",
+      "domain": "oracle",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-private-transfer",
+      "name": "Confidential Transfer",
+      "domain": "finance",
+      "category": "defi",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-profitanchor",
+      "name": "ProfitAnchor",
+      "domain": "governance",
+      "category": "defi",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-profitanchor-admin",
+      "name": "ProfitAnchor Admin",
+      "domain": "governance",
+      "category": "utility",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-quadratic-funding",
+      "name": "Quadratic Funding",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-recovery-guardian",
+      "name": "Recovery Guardian",
+      "domain": "tool",
+      "category": "utility",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-redenvelope",
+      "name": "Red Envelope",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-self-loan",
+      "name": "SelfLoan",
+      "domain": "finance",
+      "category": "finance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-soulbound-certificate",
+      "name": "Soulbound Certificate",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-time-capsule",
+      "name": "Time Capsule",
+      "domain": "social",
+      "category": "social",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-timestamp-proof",
+      "name": "Timestamp Proof",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-trustanchor",
+      "name": "TrustAnchor",
+      "domain": "governance",
+      "category": "governance",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-trustanchor-admin",
+      "name": "TrustAnchor Admin",
+      "domain": "governance",
+      "category": "utility",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-unbreakablevault",
+      "name": "Unbreakable Vault",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    },
+    {
+      "appId": "miniapp-wallet-health",
+      "name": "Wallet Health",
+      "domain": "tool",
+      "category": "tools",
+      "capabilities": {
+        "query": true,
+        "collection": true,
+        "detail": true,
+        "status": true,
+        "execute": true,
+        "result": true,
+        "emptyError": true,
+        "mobile": true
+      },
+      "missing": [],
+      "cleanupWarnings": [],
+      "status": "business-flow-evidence-present"
+    }
+  ]
+}

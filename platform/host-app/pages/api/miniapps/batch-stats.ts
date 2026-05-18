@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getBatchStats } from "../../../lib/miniapp-stats";
 import { apiError } from "@/lib/api-response";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { standardLimit } from "@/lib/rate-limit";
 
 export default async function handler(
@@ -13,10 +14,10 @@ export default async function handler(
   }
   if (standardLimit(req, res)) return;
 
-  const network =
-    (req.query.network as string) === "mainnet"
-      ? ("mainnet" as const)
-      : ("testnet" as const);
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
 
   // Get appIds from query or body
   let appIds: string[] = [];

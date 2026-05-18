@@ -4,15 +4,13 @@
   "name": "Graveyard",
   "name_zh": "墓地",
   "version": "1.0.0",
-  "description": "Morpheus-sealed memory burial with paid forgetting and on-chain public commitments.",
-  "description_zh": "使用 Morpheus 隐私计算封装记忆内容，并通过链上公开承诺完成付费遗忘。",
+  "description": "Paid on-chain memory burial with hash commitments and forgetting records.",
+  "description_zh": "基于哈希承诺的付费链上记忆埋葬与遗忘记录。",
   "category": "tools",
   "category_name": "Tools",
   "category_name_zh": "工具",
   "tags": [
-    "morpheus",
     "memories",
-    "privacy",
     "history"
   ],
   "developer": {
@@ -38,9 +36,6 @@
   },
   "permissions": {
     "payments": true,
-    "oracle": true,
-    "compute": true,
-    "confidential": true,
     "read": true
   },
   "features": {

@@ -28,8 +28,8 @@ const appMessages = {
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
   deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
   deploymentPendingDesc: {
-    en: "This miniapp remains visible for product review, but no live escrow contract is configured on testnet or mainnet yet. Creation and release actions stay disabled until deployment is completed.",
-    zh: "此小程序目前仅保留产品展示，测试网和主网都还没有配置正式托管合约。创建、审批与领取操作会保持禁用，直到部署完成。",
+    en: "The selected network is missing a configured Milestone Escrow contract address. Switch network or verify deployment configuration before creating or releasing escrows.",
+    zh: "当前网络缺少里程碑托管合约地址。请切换网络或确认部署配置后再创建或释放托管。",
   },
 
   invalidAddress: { en: "Invalid beneficiary address", zh: "受益人地址无效" },

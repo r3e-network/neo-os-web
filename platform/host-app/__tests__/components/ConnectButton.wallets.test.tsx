@@ -36,7 +36,12 @@ function mockAuth(overrides: Record<string, unknown> = {}) {
 describe("ConnectButton wallet choices", () => {
   beforeEach(() => {
     window.localStorage.clear();
-    mockedUseUser.mockReturnValue({ user: null, error: undefined, isLoading: false });
+    mockedUseUser.mockReturnValue({
+      user: undefined,
+      error: undefined,
+      isLoading: false,
+      checkSession: jest.fn(),
+    });
     mockAuth();
     useWalletStore.setState({
       connected: false,
@@ -77,7 +82,7 @@ describe("ConnectButton wallet choices", () => {
       within(o3).getByAltText("O3 Wallet").getAttribute("src"),
     ).toBe("https://docs.o3.app/~gitbook/icon?size=large&theme=light");
 
-    expect(within(neoline).getByText("Legacy dAPI")).toBeInTheDocument();
+    expect(within(neoline).getByText("NEP-21")).toBeInTheDocument();
     expect(within(o3).getByText("Legacy dAPI")).toBeInTheDocument();
   });
 

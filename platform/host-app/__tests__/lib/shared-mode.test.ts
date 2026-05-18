@@ -90,21 +90,24 @@ describe("shared-mode runtime resolver", () => {
     }));
 
     const { resolveSharedModeRuntime } = require("../../lib/chain/shared-mode");
-    const runtime = await resolveSharedModeRuntime({
-      app_id: "miniapp-neo-pay-shared-example",
-      name: "NeoPay Modular Fixture",
-      description: "",
-      icon: "🧩",
-      category: "defi",
-      entry_url: "mf://manifest?app=miniapp-neo-pay",
-      permissions: { payments: true },
-      manifest: {
-        contract_composition: {
-          mode: "shared",
-          instance_id: "neopay:testnet:default",
+    const runtime = await resolveSharedModeRuntime(
+      {
+        app_id: "miniapp-neo-pay-shared-example",
+        name: "NeoPay Modular Fixture",
+        description: "",
+        icon: "🧩",
+        category: "defi",
+        entry_url: "mf://manifest?app=miniapp-neo-pay",
+        permissions: { payments: true },
+        manifest: {
+          contract_composition: {
+            mode: "shared",
+            instance_id: "neopay:testnet:default",
+          },
         },
       },
-    });
+      "testnet",
+    );
 
     expect(runtime).toEqual(
       expect.objectContaining({
@@ -140,51 +143,54 @@ describe("shared-mode runtime resolver", () => {
     }));
 
     const { resolveSharedModeRuntime } = require("../../lib/chain/shared-mode");
-    const runtime = await resolveSharedModeRuntime({
-      app_id: "miniapp-neo-pay-shared-example",
-      name: "NeoPay Shared Runtime",
-      description: "",
-      icon: "N",
-      category: "defi",
-      entry_url: "mf://manifest?app=miniapp-neo-pay-shared-example",
-      permissions: { payments: true },
-      manifest: {
-        contract_composition: {
-          mode: "shared",
-          instance_id: "neopay:testnet:default",
-          registries: {
-            module_registry: "0x1",
-            recipe_registry: "0x2",
-            instance_registry: "0x3",
-          },
-          module_bindings: {
-            stream: {
-              module_id: "module.stream_vesting",
-              version: "1.0.0",
+    const runtime = await resolveSharedModeRuntime(
+      {
+        app_id: "miniapp-neo-pay-shared-example",
+        name: "NeoPay Shared Runtime",
+        description: "",
+        icon: "N",
+        category: "defi",
+        entry_url: "mf://manifest?app=miniapp-neo-pay-shared-example",
+        permissions: { payments: true },
+        manifest: {
+          contract_composition: {
+            mode: "shared",
+            instance_id: "neopay:testnet:default",
+            registries: {
+              module_registry: "0x1",
+              recipe_registry: "0x2",
+              instance_registry: "0x3",
             },
-          },
-          runtime_preview: {
-            instance: {
-              app_id: "miniapp-neo-pay",
-              recipe_id: "recipe.payment_streams.v1",
-              recipe_version: "1.0.0",
-              runtime_mode: "shared",
-              status: 1,
-            },
-            modules: [
-              {
-                binding: "stream",
+            module_bindings: {
+              stream: {
                 module_id: "module.stream_vesting",
                 version: "1.0.0",
-                contract_hash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
-                risk_profile: "payments",
-                active: true,
               },
-            ],
+            },
+            runtime_preview: {
+              instance: {
+                app_id: "miniapp-neo-pay",
+                recipe_id: "recipe.payment_streams.v1",
+                recipe_version: "1.0.0",
+                runtime_mode: "shared",
+                status: 1,
+              },
+              modules: [
+                {
+                  binding: "stream",
+                  module_id: "module.stream_vesting",
+                  version: "1.0.0",
+                  contract_hash: "0x4fa6544b133457b561e4f9db0248483eca3d33cf",
+                  risk_profile: "payments",
+                  active: true,
+                },
+              ],
+            },
           },
         },
       },
-    });
+      "testnet",
+    );
 
     expect(runtime).toEqual(
       expect.objectContaining({

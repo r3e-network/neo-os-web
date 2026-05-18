@@ -1,6 +1,6 @@
 # MiniApp PlayArea Functionality Audit
 
-Generated: 2026-05-15T12:00:52.369Z
+Generated: 2026-05-18T08:00:07.262Z
 
 ## Summary
 
@@ -31,7 +31,7 @@ Generated: 2026-05-15T12:00:52.369Z
 | miniapp-automation-copilot | profiled host + embedded real dApp | yes | yes | 7 | 5 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-breakupcontract | profiled host + embedded real dApp | yes | yes | 9 | 9 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-burn-league | profiled host + embedded real dApp | yes | yes | 3 | 5 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
-| miniapp-council-governance | custom native playarea | yes | yes | 15 | 15 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, native-action-board, live-api-call, action-handlers, interactive-controls | usable-surface-present |
+| miniapp-council-governance | custom native playarea | yes | yes | 15 | 16 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, native-action-board, live-api-call, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-custom-anchor | custom native playarea | yes | yes | 1 | 15 | built-static-dapp, standalone-playarea, registered-actions, native-action-board, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dailycheckin | custom native playarea | yes | yes | 5 | 9 | built-static-dapp, standalone-playarea, registered-actions, native-action-board, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dev-tipping | profiled host + embedded real dApp | yes | yes | 9 | 9 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
@@ -61,7 +61,7 @@ Generated: 2026-05-15T12:00:52.369Z
 | miniapp-neo-x-bridge | custom native playarea | yes | yes | 6 | 10 | built-static-dapp, standalone-playarea, registered-actions, native-action-board, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-neodid-passport | profiled host + embedded real dApp | yes | yes | 7 | 9 | built-static-dapp, standalone-playarea, console-tool-form, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-nft-factory | profiled host + embedded real dApp | yes | yes | 22 | 7 | built-static-dapp, standalone-playarea, shared-factory-workflow, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
-| miniapp-onchaintarot | custom native playarea | yes | yes | 5 | 20 | built-static-dapp, standalone-playarea, registered-actions, live-api-call, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
+| miniapp-onchaintarot | custom native playarea | yes | yes | 5 | 19 | built-static-dapp, standalone-playarea, registered-actions, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-oracle-compute-lab | oracle console playarea | yes | yes | 8 | 14 | built-static-dapp, standalone-playarea, console-tool-form, native-action-board, live-api-call, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-oracle-http-console | oracle console playarea | yes | yes | 8 | 13 | built-static-dapp, standalone-playarea, console-tool-form, native-action-board, live-api-call, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-oracle-neodid-console | oracle console playarea | yes | yes | 8 | 14 | built-static-dapp, standalone-playarea, console-tool-form, native-action-board, live-api-call, manifest-operations, action-handlers, interactive-controls | usable-surface-present |

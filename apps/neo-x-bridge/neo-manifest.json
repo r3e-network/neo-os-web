@@ -4,8 +4,8 @@
   "name": "Neo X Bridge",
   "name_zh": "Neo X 跨链桥",
   "version": "1.0.0",
-  "description": "Operate Neo N3 and Neo X asset bridge, Message Bridge, and operation status tracking in one console.",
-  "description_zh": "在一个控制台里操作 Neo N3 与 Neo X 的资产桥、Message Bridge 和状态追踪。",
+  "description": "Prepare official Neo N3 / Neo X bridge handoffs and track operation status in one console.",
+  "description_zh": "在一个控制台里准备官方 Neo N3 / Neo X 跨链桥交接载荷并追踪操作状态。",
   "category": "defi",
   "category_name": "DeFi",
   "category_name_zh": "DeFi",
@@ -35,7 +35,6 @@
     "banner": "/miniapps/neo-x-bridge/banner.jpg"
   },
   "permissions": [
-    "wallet",
     "read:blockchain"
   ],
   "features": {
@@ -52,12 +51,12 @@
   },
   "operation_panel": {
     "title": "Bridge Console",
-    "subtitle": "Asset bridge, Message Bridge, and status tracking share one OneGate-ready action flow.",
+    "subtitle": "Asset bridge, Message Bridge, and status tracking share one official bridge handoff flow.",
     "operations": [
       {
         "name": "Bridge Asset",
         "method": "bridgeAsset",
-        "description": "Prepare a Neo N3 / Neo X asset bridge intent and mirror it in the playarea route board.",
+        "description": "Prepare a Neo N3 / Neo X asset bridge handoff and mirror it in the playarea route board.",
         "button_style": "success",
         "params": [
           {

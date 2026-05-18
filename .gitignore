@@ -53,10 +53,14 @@ platform/host-app/.playwright-standalone-path.txt
 # Local test/output artifacts
 test-results/
 output/
+.automation-logs/
 apps/dashboard/test-results/
 platform/host-app/playwright-report/
 platform/edge/cov_profile/
 docs/reports/frontend-ux/
+docs/reports/frontend-validation/
+docs/reports/automation/
+docs/reports/hourly-full-stack-validation/
 docs/reports/miniapp-logic/
 docs/reports/morpheus-runtime/
 docs/reports/full-validation-*/

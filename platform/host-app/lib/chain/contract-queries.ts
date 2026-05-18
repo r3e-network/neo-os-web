@@ -42,7 +42,7 @@ function isPlatformGameContract(contractHash: string): boolean {
   return PLATFORM_GAME_CONTRACT_HASHES.has(contractHash.toLowerCase());
 }
 
-export function getFlagshipApps(network: Network = "mainnet"): Record<string, { contract: string; category: string }> {
+export function getFlagshipApps(network: Network): Record<string, { contract: string; category: string }> {
   const contracts = network === "testnet" ? TESTNET_CONTRACTS : CONTRACTS;
   const apps: Record<string, { contract: string; category: string }> = {
     "miniapp-last-survivor": { contract: contracts.lastSurvivor, category: "gaming" },
@@ -136,7 +136,7 @@ export interface MiniAppLiveStatus {
 
 export async function getSharedModeContractStats(
   app: MiniAppInfo,
-  network: Network = "testnet",
+  network: Network,
 ): Promise<MiniAppContractStats | null> {
   const runtime = await resolveSharedModeRuntime(app, network);
   if (!runtime) return null;
@@ -163,7 +163,7 @@ export async function getSharedModeContractStats(
 
 export async function getSharedModeLiveStatus(
   app: MiniAppInfo,
-  network: Network = "testnet",
+  network: Network,
 ): Promise<MiniAppLiveStatus | null> {
   const runtime = await resolveSharedModeRuntime(app, network);
   if (!runtime) return null;
@@ -189,8 +189,8 @@ export async function getSharedModeLiveStatus(
 }
 
 export async function getDoomsdayState(
-  contractHash: string = CONTRACTS.lastSurvivor,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   if (isPlatformGameContract(contractHash) || network === "testnet") {
     const res = await invokeRead(contractHash, "getCountdownStatus", [
@@ -203,8 +203,8 @@ export async function getDoomsdayState(
 }
 
 export async function getDoomsdayPlatformStats(
-  contractHash: string = CONTRACTS.lastSurvivor,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   if (isPlatformGameContract(contractHash) || network === "testnet") {
     const state = await getDoomsdayState(contractHash, network);
@@ -219,24 +219,24 @@ export async function getDoomsdayPlatformStats(
 }
 
 export async function getDailyCheckinState(
-  contractHash: string = CONTRACTS.dailyCheckin,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
   return mapFromResult(res.stack[0]);
 }
 
 export async function getSelfLoanState(
-  contractHash: string = CONTRACTS.selfLoan,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "getPlatformStats", [], network);
   return mapFromResult(res.stack[0]);
 }
 
 export async function getStreamVaultState(
-  contractHash: string = CONTRACTS.neoPay,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   const res = await invokeRead(contractHash, "totalStreams", [], network);
   if (!res.stack || res.stack.length === 0) {
@@ -246,8 +246,8 @@ export async function getStreamVaultState(
 }
 
 export async function getCoinFlipState(
-  contractHash: string = CONTRACTS.fogPlay,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   if (isPlatformGameContract(contractHash)) {
     const res = await invokeRead(contractHash, "getCoinFlipBetLimits", [
@@ -273,8 +273,8 @@ export async function getCoinFlipState(
 }
 
 export async function getNeoGachaState(
-  contractHash: string = CONTRACTS.gasBox,
-  network: Network = "mainnet",
+  contractHash: string,
+  network: Network,
 ): Promise<Record<string, unknown>> {
   if (isPlatformGameContract(contractHash)) {
     return { totalMachines: 0n };
@@ -289,7 +289,7 @@ export async function getNeoGachaState(
 
 export async function getContractStats(
   contractHash: string,
-  network: Network = "testnet",
+  network: Network,
   appId?: string,
 ): Promise<MiniAppContractStats> {
   try {
@@ -342,7 +342,7 @@ export async function getLiveStatus(
   appId: string,
   contractHash: string,
   category: string,
-  network: Network = "testnet",
+  network: Network,
 ): Promise<MiniAppLiveStatus> {
   const status: MiniAppLiveStatus = { appId };
 

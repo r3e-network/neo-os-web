@@ -7,6 +7,12 @@ import { verifyEvmSignature } from "../_shared/evm.ts";
 import { signJwt } from "../_shared/jwt.ts";
 import { getEnv } from "../_shared/env.ts";
 
+function stringField(row: unknown, key: string): string | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -51,26 +57,28 @@ export async function handler(req: Request): Promise<Response> {
   if (userQueryError) {
     console.warn("[auth-wallet] user lookup failed:", userQueryError.message);
   }
-  if (!user?.id) {
+  const accountId = stringField(user, "id");
+  const nonce = stringField(user, "nonce");
+  if (!accountId) {
     return error(404, "account not found", "NOT_FOUND", req);
   }
 
   // Very basic nonce verification (it must be part of the signed message)
-  if (!user.nonce || !message.includes(user.nonce)) {
+  if (!nonce || !message.includes(nonce)) {
     return error(401, "invalid or expired nonce", "AUTH_INVALID", req);
   }
 
   // Clear nonce
-  const { error: nonceClearError } = await supabase.from("users").update({ nonce: null }).eq("id", user.id);
+  const { error: nonceClearError } = await supabase.from("users").update({ nonce: null }).eq("id", accountId);
   if (nonceClearError) {
-    console.warn("[auth-wallet] failed to clear nonce for user", user.id, nonceClearError.message);
+    console.warn("[auth-wallet] failed to clear nonce for user", accountId, nonceClearError.message);
   }
 
   // Generate a standard Supabase-compatible JWT
   const payload = {
     role: "authenticated",
     aud: "authenticated",
-    sub: user.id,
+    sub: accountId,
     address,
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
   };
@@ -84,7 +92,7 @@ export async function handler(req: Request): Promise<Response> {
   return json({
     access_token: token,
     user: {
-      id: user.id,
+      id: accountId,
       address,
     }
   }, {}, req);

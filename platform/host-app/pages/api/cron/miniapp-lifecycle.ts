@@ -9,6 +9,7 @@ import {
   type LifecycleNetwork,
 } from "@/lib/miniapp-lifecycle";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 
 type LifecycleSubmitResult = {
   submitted: boolean;
@@ -33,8 +34,8 @@ function isAuthorized(req: NextApiRequest): boolean {
     && timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
 }
 
-function getNetwork(value: unknown): LifecycleNetwork {
-  return String(value || "").toLowerCase() === "mainnet" ? "mainnet" : "testnet";
+function getNetwork(value: unknown): LifecycleNetwork | null {
+  return normalizeNeoNetwork(value);
 }
 
 function getDryRun(value: unknown): boolean {
@@ -94,6 +95,9 @@ export default async function handler(
   }
 
   const network = getNetwork(req.query.network ?? req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const dryRun = getDryRun(req.query.dry_run ?? req.body?.dry_run);
 
   try {

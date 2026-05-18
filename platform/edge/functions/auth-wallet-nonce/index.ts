@@ -3,6 +3,12 @@ import { readJsonBody } from "../_shared/request.ts";
 import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 
+function stringField(row: unknown, key: string): string | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 export async function handler(req: Request): Promise<Response> {
   const preflight = handleCorsPreflight(req);
   if (preflight) return preflight;
@@ -39,8 +45,9 @@ export async function handler(req: Request): Promise<Response> {
     console.warn("[auth-wallet-nonce] user lookup failed:", userErr.message);
   }
   let accountId: string;
-  if (user?.id) {
-    accountId = user.id;
+  const existingAccountId = stringField(user, "id");
+  if (existingAccountId) {
+    accountId = existingAccountId;
   } else {
     // Create new user
     const { data: newUser, error: acctErr } = await supabase
@@ -52,7 +59,11 @@ export async function handler(req: Request): Promise<Response> {
     if (acctErr || !newUser) {
       return error(500, "failed to create account", "DB_ERROR", req);
     }
-    accountId = newUser.id;
+    const newAccountId = stringField(newUser, "id");
+    if (!newAccountId) {
+      return error(500, "failed to create account", "DB_ERROR", req);
+    }
+    accountId = newAccountId;
   }
 
   // Store nonce

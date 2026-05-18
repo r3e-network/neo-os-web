@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-15T12:13:24.306Z",
+  "generatedAt": "2026-05-18T02:07:27.514Z",
   "network": "neo-n3-mainnet",
   "rpcUrl": "https://mainnet2.neo.coz.io:443",
   "networkMagic": 860833102,
@@ -7,42 +7,15 @@
   "mainnetContractApps": 36,
   "frontendOrServerOnlyApps": 24,
   "uniqueMainnetContracts": 27,
-  "contractStateErrors": 7,
-  "safeMethodsDiscovered": 626,
-  "safeInvocationsAttempted": 626,
+  "contractStateErrors": 0,
+  "safeMethodsDiscovered": 846,
+  "safeInvocationsAttempted": 846,
   "safeInvocationsSkipped": 0,
-  "haltCount": 603,
-  "expectedFaultCount": 1,
-  "sampleFaultCount": 5,
-  "blockerCount": 26,
-  "blockers": [
-    "miniapp-aa-account-lab: mainnet contract not reachable",
-    "miniapp-aa-permissions-lab: mainnet contract not reachable",
-    "miniapp-aa-relay-console: mainnet contract not reachable",
-    "miniapp-aa-session-key-lab: mainnet contract not reachable",
-    "miniapp-burn-league: safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-council-governance: safe read getPassedProposals/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-dailycheckin: safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-flashloan: safe read oracle/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-flashloan: safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-flashloan: safe read isPaused/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-flashloan: safe read timeLockDelay/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-gov-merc: safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-graveyard: safe read gateway/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-memorial-shrine: mainnet contract not reachable",
-    "miniapp-neo-ns: mainnet contract not reachable",
-    "miniapp-neo-pay: safe read admin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-onchaintarot: safe read getAutomationTaskId/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-onchaintarot: safe read getPlatformStats/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-recovery-guardian: mainnet contract not reachable",
-    "miniapp-redenvelope: mainnet contract not reachable",
-    "miniapp-self-loan: safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-self-loan: safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-soulbound-certificate: safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-trustanchor-admin: safe read admin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-trustanchor-admin: safe read getTotalRewardReserve/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-    "miniapp-unbreakablevault: mainnet contract not reachable"
-  ],
+  "haltCount": 814,
+  "expectedFaultCount": 28,
+  "sampleFaultCount": 4,
+  "blockerCount": 0,
+  "blockers": [],
   "rows": [
     {
       "appId": "miniapp-aa-account-lab",
@@ -51,13 +24,663 @@
       "manifestPath": "apps/aa-account-lab/neo-manifest.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "UnifiedSmartWalletV3",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 38,
+        "discovered": 38,
+        "skippedByLimit": 0,
+        "halt": 30,
+        "expectedFault": 8,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "getContractAdmin/0",
+          "getAccountImplementationId/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 64,
+      "safeMethodCount": 38,
+      "safeMethodResults": [
+        {
+          "method": "computeRegistrationAccountId",
+          "signature": "computeRegistrationAccountId/5",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "ByteArray"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getContractAdmin",
+          "signature": "getContractAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "previewUserOpValidation",
+          "signature": "previewUserOpValidation/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Any"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "isExecutionActive",
+          "signature": "isExecutionActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getAccountImplementationId",
+          "signature": "getAccountImplementationId/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsExecutionMode",
+          "signature": "supportsExecutionMode/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsModuleType",
+          "signature": "supportsModuleType/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isModuleInstalled",
+          "signature": "isModuleInstalled/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "String"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getVerifier",
+          "signature": "getVerifier/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getHook",
+          "signature": "getHook/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getBackupOwner",
+          "signature": "getBackupOwner/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTimelock",
+          "signature": "getEscapeTimelock/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTriggeredAt",
+          "signature": "getEscapeTriggeredAt/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getMarketEscrowContract",
+          "signature": "getMarketEscrowContract/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getMarketEscrowListingId",
+          "signature": "getMarketEscrowListingId/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "isMarketEscrowActive",
+          "signature": "isMarketEscrowActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isEscapeActive",
+          "signature": "isEscapeActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getNonce",
+          "signature": "getNonce/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "computeArgsHash",
+          "signature": "computeArgsHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Array"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierUpdate",
+          "signature": "hasPendingVerifierUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookUpdate",
+          "signature": "hasPendingHookUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierUpdateTime",
+          "signature": "getPendingVerifierUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookUpdateTime",
+          "signature": "getPendingHookUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierCall",
+          "signature": "hasPendingVerifierCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookCall",
+          "signature": "hasPendingHookCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallModule",
+          "signature": "getPendingVerifierCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallModule",
+          "signature": "getPendingHookCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallHash",
+          "signature": "getPendingVerifierCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallHash",
+          "signature": "getPendingHookCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallTime",
+          "signature": "getPendingVerifierCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallTime",
+          "signature": "getPendingHookCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMetadataUri",
+          "signature": "getMetadataUri/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "verify",
+          "signature": "verify/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureVerifier",
+          "signature": "canConfigureVerifier/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureHook",
+          "signature": "canConfigureHook/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteVerifier",
+          "signature": "canExecuteVerifier/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteHook",
+          "signature": "canExecuteHook/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -145,7 +768,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         }
@@ -158,13 +781,663 @@
       "manifestPath": "apps/aa-permissions-lab/neo-manifest.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "UnifiedSmartWalletV3",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 38,
+        "discovered": 38,
+        "skippedByLimit": 0,
+        "halt": 30,
+        "expectedFault": 8,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "getContractAdmin/0",
+          "getAccountImplementationId/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 64,
+      "safeMethodCount": 38,
+      "safeMethodResults": [
+        {
+          "method": "computeRegistrationAccountId",
+          "signature": "computeRegistrationAccountId/5",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "ByteArray"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getContractAdmin",
+          "signature": "getContractAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "previewUserOpValidation",
+          "signature": "previewUserOpValidation/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Any"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "isExecutionActive",
+          "signature": "isExecutionActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getAccountImplementationId",
+          "signature": "getAccountImplementationId/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsExecutionMode",
+          "signature": "supportsExecutionMode/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsModuleType",
+          "signature": "supportsModuleType/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isModuleInstalled",
+          "signature": "isModuleInstalled/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "String"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getVerifier",
+          "signature": "getVerifier/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getHook",
+          "signature": "getHook/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getBackupOwner",
+          "signature": "getBackupOwner/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTimelock",
+          "signature": "getEscapeTimelock/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTriggeredAt",
+          "signature": "getEscapeTriggeredAt/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getMarketEscrowContract",
+          "signature": "getMarketEscrowContract/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getMarketEscrowListingId",
+          "signature": "getMarketEscrowListingId/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "isMarketEscrowActive",
+          "signature": "isMarketEscrowActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isEscapeActive",
+          "signature": "isEscapeActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getNonce",
+          "signature": "getNonce/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "computeArgsHash",
+          "signature": "computeArgsHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Array"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierUpdate",
+          "signature": "hasPendingVerifierUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookUpdate",
+          "signature": "hasPendingHookUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierUpdateTime",
+          "signature": "getPendingVerifierUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookUpdateTime",
+          "signature": "getPendingHookUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierCall",
+          "signature": "hasPendingVerifierCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookCall",
+          "signature": "hasPendingHookCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallModule",
+          "signature": "getPendingVerifierCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallModule",
+          "signature": "getPendingHookCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallHash",
+          "signature": "getPendingVerifierCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallHash",
+          "signature": "getPendingHookCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallTime",
+          "signature": "getPendingVerifierCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallTime",
+          "signature": "getPendingHookCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMetadataUri",
+          "signature": "getMetadataUri/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "verify",
+          "signature": "verify/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureVerifier",
+          "signature": "canConfigureVerifier/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureHook",
+          "signature": "canConfigureHook/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteVerifier",
+          "signature": "canExecuteVerifier/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteHook",
+          "signature": "canExecuteHook/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -174,13 +1447,663 @@
       "manifestPath": "apps/aa-relay-console/neo-manifest.json",
       "mainnetHash": "0x0268a387913b250166ddec032b03332690a1ef78",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "UnifiedSmartWalletV3",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 38,
+        "discovered": 38,
+        "skippedByLimit": 0,
+        "halt": 30,
+        "expectedFault": 8,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "getContractAdmin/0",
+          "getAccountImplementationId/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 64,
+      "safeMethodCount": 38,
+      "safeMethodResults": [
+        {
+          "method": "computeRegistrationAccountId",
+          "signature": "computeRegistrationAccountId/5",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "ByteArray"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getContractAdmin",
+          "signature": "getContractAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "previewUserOpValidation",
+          "signature": "previewUserOpValidation/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Any"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "isExecutionActive",
+          "signature": "isExecutionActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getAccountImplementationId",
+          "signature": "getAccountImplementationId/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsExecutionMode",
+          "signature": "supportsExecutionMode/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "supportsModuleType",
+          "signature": "supportsModuleType/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isModuleInstalled",
+          "signature": "isModuleInstalled/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "String"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getVerifier",
+          "signature": "getVerifier/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getHook",
+          "signature": "getHook/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getBackupOwner",
+          "signature": "getBackupOwner/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTimelock",
+          "signature": "getEscapeTimelock/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getEscapeTriggeredAt",
+          "signature": "getEscapeTriggeredAt/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getMarketEscrowContract",
+          "signature": "getMarketEscrowContract/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getMarketEscrowListingId",
+          "signature": "getMarketEscrowListingId/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "isMarketEscrowActive",
+          "signature": "isMarketEscrowActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isEscapeActive",
+          "signature": "isEscapeActive/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1837 (ABORTMSG): ABORTMSG is executed. Reason: Account not found"
+        },
+        {
+          "method": "getNonce",
+          "signature": "getNonce/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "computeArgsHash",
+          "signature": "computeArgsHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Array"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierUpdate",
+          "signature": "hasPendingVerifierUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookUpdate",
+          "signature": "hasPendingHookUpdate/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierUpdateTime",
+          "signature": "getPendingVerifierUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookUpdateTime",
+          "signature": "getPendingHookUpdateTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingVerifierCall",
+          "signature": "hasPendingVerifierCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasPendingHookCall",
+          "signature": "hasPendingHookCall/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallModule",
+          "signature": "getPendingVerifierCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallModule",
+          "signature": "getPendingHookCallModule/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallHash",
+          "signature": "getPendingVerifierCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallHash",
+          "signature": "getPendingHookCallHash/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingVerifierCallTime",
+          "signature": "getPendingVerifierCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingHookCallTime",
+          "signature": "getPendingHookCallTime/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMetadataUri",
+          "signature": "getMetadataUri/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "verify",
+          "signature": "verify/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVerifyScopeTarget",
+          "signature": "getVerifyScopeTarget/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureVerifier",
+          "signature": "canConfigureVerifier/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canConfigureHook",
+          "signature": "canConfigureHook/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteVerifier",
+          "signature": "canExecuteVerifier/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "canExecuteHook",
+          "signature": "canExecuteHook/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -190,13 +2113,119 @@
       "manifestPath": "apps/aa-session-key-lab/neo-manifest.json",
       "mainnetHash": "0x3ba8333406e59f9fd83cf378b33706a33d9f3755",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "SessionKeyVerifier",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 5,
+        "discovered": 5,
+        "skippedByLimit": 0,
+        "halt": 5,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "authorizedCore/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 14,
+      "safeMethodCount": 5,
+      "safeMethodResults": [
+        {
+          "method": "authorizedCore",
+          "signature": "authorizedCore/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getSessionKey",
+          "signature": "getSessionKey/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "getSessionKeyMetadata",
+          "signature": "getSessionKeyMetadata/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "getSpentAmount",
+          "signature": "getSpentAmount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getPayload",
+          "signature": "getPayload/6",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "String"
+            },
+            {
+              "type": "Array"
+            },
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -572,18 +2601,18 @@
       "mainnetHash": "0xd829b7a8c0d9fa3c67a29c703a277de3f922f173",
       "contractBacked": true,
       "contractName": "MiniAppBurnLeague",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 25,
         "discovered": 25,
         "skippedByLimit": 0,
-        "halt": 23,
+        "halt": 25,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
-        "hardFailures": 1,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -604,9 +2633,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 46,
       "safeMethodCount": 25,
@@ -677,8 +2704,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "adminChangeTime",
@@ -912,8 +2942,11 @@
               "type": "Hash160"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
         },
         {
           "method": "getPlatformStats",
@@ -953,18 +2986,18 @@
       "mainnetHash": "0xc7e50e67589df63302cbea1a6b00beb649ee74d8",
       "contractBacked": true,
       "contractName": "MiniAppCouncilGovernance",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 39,
         "discovered": 39,
         "skippedByLimit": 0,
-        "halt": 37,
+        "halt": 38,
         "expectedFault": 1,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 1,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "gateway/0",
@@ -989,9 +3022,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read getPassedProposals/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 66,
       "safeMethodCount": 39,
@@ -1040,7 +3071,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -1217,8 +3248,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
         },
         {
           "method": "getTotalMembers",
@@ -1335,7 +3369,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -1354,7 +3388,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -1474,7 +3508,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -1777,7 +3811,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -1809,7 +3843,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Boolean",
           "stackItems": 1
         },
@@ -2105,7 +4139,7 @@
       "mainnetHash": "0xbd4f3646e189350b9c11a659655854e6f03f9be4",
       "contractBacked": true,
       "contractName": "MiniAppDailyCheckIn",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [
         {
@@ -2131,11 +4165,11 @@
         "total": 30,
         "discovered": 30,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 30,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 1,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -2154,9 +4188,7 @@
           "totalRewarded/0"
         ]
       },
-      "failures": [
-        "safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 48,
       "safeMethodCount": 30,
@@ -2193,7 +4225,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -2227,8 +4259,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "adminChangeTime",
@@ -2286,7 +4321,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -2433,7 +4468,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -2545,7 +4580,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -2634,7 +4669,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -2874,7 +4909,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -3145,7 +5180,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -3252,7 +5287,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -3276,7 +5311,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -3504,7 +5539,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -3573,18 +5608,18 @@
       "mainnetHash": "0xb5d8fb0dc2319edc4be3104304b4136b925df6e4",
       "contractBacked": true,
       "contractName": "MiniAppFlashLoan",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 30,
         "discovered": 30,
         "skippedByLimit": 0,
-        "halt": 26,
+        "halt": 30,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 4,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -3607,12 +5642,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read oracle/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read isPaused/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read timeLockDelay/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 51,
       "safeMethodCount": 30,
@@ -3635,8 +5665,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "paymentHub",
@@ -3656,8 +5689,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "isPaused",
@@ -3665,8 +5701,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
         },
         {
           "method": "pendingAdmin",
@@ -3698,8 +5737,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
         },
         {
           "method": "automationAnchor",
@@ -3809,7 +5851,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Struct",
           "stackItems": 1
         },
@@ -3935,7 +5977,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -4076,10 +6118,10 @@
         "total": 20,
         "discovered": 20,
         "skippedByLimit": 0,
-        "halt": 19,
+        "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
+        "rpcOrSampleError": 0,
         "hardFailures": 0,
         "hardChecked": [
           "getCoinFlipBetLimits/1",
@@ -4150,7 +6192,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -4167,8 +6209,11 @@
               "type": "Hash160"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
         },
         {
           "method": "calculateCountdownKeyCost",
@@ -4185,7 +6230,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -4300,7 +6345,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Boolean",
           "stackItems": 1
         },
@@ -4351,7 +6396,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -4427,7 +6472,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         }
@@ -5017,10 +7062,10 @@
         "total": 20,
         "discovered": 20,
         "skippedByLimit": 0,
-        "halt": 19,
+        "halt": 20,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
+        "rpcOrSampleError": 0,
         "hardFailures": 0,
         "hardChecked": [
           "getCoinFlipBetLimits/1",
@@ -5057,8 +7102,11 @@
               "type": "Integer"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
         },
         {
           "method": "getCoinFlipBetLimits",
@@ -5107,7 +7155,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -5209,7 +7257,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Boolean",
           "stackItems": 1
         },
@@ -5292,7 +7340,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -5382,18 +7430,18 @@
       "mainnetHash": "0xe8f3d8d5784f8570d1f806940bbaa7daff9f52d0",
       "contractBacked": true,
       "contractName": "MiniAppGovMerc",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 31,
         "discovered": 31,
         "skippedByLimit": 0,
-        "halt": 29,
+        "halt": 31,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
-        "hardFailures": 1,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "gateway/0",
@@ -5417,9 +7465,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 52,
       "safeMethodCount": 31,
@@ -5490,8 +7536,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
         },
         {
           "method": "adminChangeTime",
@@ -5650,8 +7699,11 @@
               "type": "Integer"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
         },
         {
           "method": "getUserBid",
@@ -5857,18 +7909,18 @@
       "mainnetHash": "0x0195e668f7a2a41ef4a0200c5b9c2cc1c02e24d1",
       "contractBacked": true,
       "contractName": "MiniAppGraveyard",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 27,
         "discovered": 27,
         "skippedByLimit": 0,
-        "halt": 25,
+        "halt": 27,
         "expectedFault": 0,
         "sampleFault": 0,
-        "rpcOrSampleError": 1,
-        "hardFailures": 1,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "gateway/0",
@@ -5888,9 +7940,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read gateway/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 50,
       "safeMethodCount": 27,
@@ -5913,8 +7963,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
         },
         {
           "method": "paymentHub",
@@ -5936,7 +7989,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -5960,7 +8013,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -6216,8 +8269,11 @@
               "type": "Integer"
             }
           ],
-          "status": "rpc_or_sample_error",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
         },
         {
           "method": "getUserStats",
@@ -6425,7 +8481,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Map",
           "stackItems": 1
         },
@@ -6699,13 +8755,547 @@
       "manifestPath": "apps/memorial-shrine/neo-manifest.json",
       "mainnetHash": "0xee7a548b71c69364fcb0e45a63a40f141b938e42",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "MiniAppMemorialShrine",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 34,
+        "discovered": 34,
+        "skippedByLimit": 0,
+        "halt": 34,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "admin/0",
+          "gateway/0",
+          "paymentHub/0",
+          "pauseRegistry/0",
+          "isPaused/0",
+          "pendingAdmin/0",
+          "adminChangeTime/0",
+          "timeLockDelay/0",
+          "automationAnchor/0",
+          "getAutomationTaskId/0",
+          "totalUsers/0",
+          "getMemorialCount/0",
+          "getObituaryCount/0",
+          "getRecentObituaries/0",
+          "getOfferingMenu/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 54,
+      "safeMethodCount": 34,
+      "safeMethodResults": [
+        {
+          "method": "admin",
+          "signature": "admin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "gateway",
+          "signature": "gateway/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "paymentHub",
+          "signature": "paymentHub/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "pauseRegistry",
+          "signature": "pauseRegistry/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "isPaused",
+          "signature": "isPaused/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "pendingAdmin",
+          "signature": "pendingAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "adminChangeTime",
+          "signature": "adminChangeTime/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "timeLockDelay",
+          "signature": "timeLockDelay/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "automationAnchor",
+          "signature": "automationAnchor/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "getAutomationTaskId",
+          "signature": "getAutomationTaskId/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasBadge",
+          "signature": "hasBadge/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getUserBadgeCount",
+          "signature": "getUserBadgeCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalUsers",
+          "signature": "totalUsers/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorialCount",
+          "signature": "getMemorialCount/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getObituaryCount",
+          "signature": "getObituaryCount/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorial",
+          "signature": "getMemorial/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "getTribute",
+          "signature": "getTribute/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "getCreatorMemorialCount",
+          "signature": "getCreatorMemorialCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getVisitorMemorialCount",
+          "signature": "getVisitorMemorialCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorialTributeCount",
+          "signature": "getMemorialTributeCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getOfferingCost",
+          "signature": "getOfferingCost/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getOfferingName",
+          "signature": "getOfferingName/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getCreatorMemorialAt",
+          "signature": "getCreatorMemorialAt/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorialTributeAt",
+          "signature": "getMemorialTributeAt/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasVisitorVisitedMemorial",
+          "signature": "hasVisitorVisitedMemorial/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVisitorMemorialAt",
+          "signature": "getVisitorMemorialAt/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRecentObituaryAt",
+          "signature": "getRecentObituaryAt/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRecentObituaries",
+          "signature": "getRecentObituaries/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorialDetails",
+          "signature": "getMemorialDetails/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getTributeDetails",
+          "signature": "getTributeDetails/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getOfferingMenu",
+          "signature": "getOfferingMenu/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "getCreatorMemorials",
+          "signature": "getCreatorMemorials/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "getVisitorMemorials",
+          "signature": "getVisitorMemorials/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "getMemorialTributes",
+          "signature": "getMemorialTributes/3",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -7018,13 +9608,235 @@
       "manifestPath": "apps/neo-ns/neo-manifest.json",
       "mainnetHash": "0x50ac1c37690cc2cfc594472833cf57505d5f46de",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "NameService",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 14,
+        "discovered": 14,
+        "skippedByLimit": 0,
+        "halt": 7,
+        "expectedFault": 3,
+        "sampleFault": 4,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "symbol/0",
+          "decimals/0",
+          "totalSupply/0",
+          "tokens/0",
+          "roots/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 26,
+      "safeMethodCount": 14,
+      "safeMethodResults": [
+        {
+          "method": "symbol",
+          "signature": "symbol/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "decimals",
+          "signature": "decimals/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalSupply",
+          "signature": "totalSupply/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "ownerOf",
+          "signature": "ownerOf/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 71 (SYSCALL): invalid conversion: Null/ByteString"
+        },
+        {
+          "method": "properties",
+          "signature": "properties/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 71 (SYSCALL): invalid conversion: Null/ByteString"
+        },
+        {
+          "method": "balanceOf",
+          "signature": "balanceOf/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "tokens",
+          "signature": "tokens/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "InteropInterface",
+          "stackItems": 1
+        },
+        {
+          "method": "tokensOf",
+          "signature": "tokensOf/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "InteropInterface",
+          "stackItems": 1
+        },
+        {
+          "method": "roots",
+          "signature": "roots/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "InteropInterface",
+          "stackItems": 1
+        },
+        {
+          "method": "getPrice",
+          "signature": "getPrice/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "sample_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 1981 (THROW): unhandled exception: \"Length cannot be 0.\""
+        },
+        {
+          "method": "isAvailable",
+          "signature": "isAvailable/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "sample_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 2107 (THROW): unhandled exception: \"The format of the name is incorrect.\""
+        },
+        {
+          "method": "getRecord",
+          "signature": "getRecord/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "sample_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 5967 (THROW): unhandled exception: \"The format of the name is incorrect.\""
+        },
+        {
+          "method": "getAllRecords",
+          "signature": "getAllRecords/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            }
+          ],
+          "status": "expected_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 71 (SYSCALL): invalid conversion: Null/ByteString"
+        },
+        {
+          "method": "resolve",
+          "signature": "resolve/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "String"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "sample_fault",
+          "vmstate": "FAULT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "exception": "at instruction 6957 (THROW): unhandled exception: \"The format of the name is incorrect.\""
+        }
       ]
     },
     {
@@ -7035,7 +9847,7 @@
       "mainnetHash": "0xfd4dcc346d73c4ac6c3db209323561cf7f1b5e34",
       "contractBacked": true,
       "contractName": "MiniAppNeoPay",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [
         {
@@ -7061,11 +9873,11 @@
         "total": 15,
         "discovered": 15,
         "skippedByLimit": 0,
-        "halt": 14,
+        "halt": 15,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 1,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -7081,9 +9893,7 @@
           "totalStreams/0"
         ]
       },
-      "failures": [
-        "safe read admin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 32,
       "safeMethodCount": 15,
@@ -7094,8 +9904,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "oracle",
@@ -7201,7 +10014,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -7423,7 +10236,7 @@
       "mainnetHash": "0xfb5d6b25c974a301e34c570dd038de8c25f3ae56",
       "contractBacked": true,
       "contractName": "MiniAppOnChainTarot",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [
         {
@@ -7449,11 +10262,11 @@
         "total": 38,
         "discovered": 38,
         "skippedByLimit": 0,
-        "halt": 36,
+        "halt": 38,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 2,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "gateway/0",
@@ -7473,10 +10286,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read getAutomationTaskId/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read getPlatformStats/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 65,
       "safeMethodCount": 38,
@@ -7513,7 +10323,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -7549,7 +10359,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -7595,8 +10405,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
         },
         {
           "method": "hasBadge",
@@ -7853,7 +10666,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -8009,8 +10822,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
         },
         {
           "method": "getUserReadings",
@@ -9439,13 +12255,315 @@
       "manifestPath": "apps/recovery-guardian/neo-manifest.json",
       "mainnetHash": "0x198b3a9cec9bccc2110d19bd929b10374a9d034d",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "SocialRecoveryVerifier",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 18,
+        "discovered": 18,
+        "skippedByLimit": 0,
+        "halt": 18,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "version/0",
+          "getContractAdmin/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 40,
+      "safeMethodCount": 18,
+      "safeMethodResults": [
+        {
+          "method": "version",
+          "signature": "version/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getContractAdmin",
+          "signature": "getContractAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getOwner",
+          "signature": "getOwner/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getAAContract",
+          "signature": "getAAContract/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getAccountAddress",
+          "signature": "getAccountAddress/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getMorpheusOracle",
+          "signature": "getMorpheusOracle/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getNetwork",
+          "signature": "getNetwork/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getAccountIdText",
+          "signature": "getAccountIdText/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getThreshold",
+          "signature": "getThreshold/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getTimelock",
+          "signature": "getTimelock/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getRecoveryNonce",
+          "signature": "getRecoveryNonce/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getSessionNonce",
+          "signature": "getSessionNonce/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getMorpheusVerifier",
+          "signature": "getMorpheusVerifier/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "getMasterNullifiers",
+          "signature": "getMasterNullifiers/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "isAllowedMasterNullifier",
+          "signature": "isAllowedMasterNullifier/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            },
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "isActionNullifierUsed",
+          "signature": "isActionNullifierUsed/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            },
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPendingRecovery",
+          "signature": "getPendingRecovery/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        },
+        {
+          "method": "getActiveSession",
+          "signature": "getActiveSession/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "ByteArray"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Array",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -9455,26 +12573,99 @@
       "manifestPath": "apps/red-envelope/neo-manifest.json",
       "mainnetHash": "0x5f371cc50116bb13d79554d96ccdd6e246cd5d59",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "MiniAppRedEnvelope",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [
         {
           "source": "definition.operations[0]",
           "name": "Claim",
           "method": "claim",
-          "params": 2
+          "params": 2,
+          "effectiveMethod": "claim",
+          "existsInAbi": true,
+          "classification": "contract"
         },
         {
           "source": "definition.operations[1]",
           "name": "Create",
           "method": "createEnvelope",
-          "params": 4
+          "params": 4,
+          "effectiveMethod": "createEnvelope",
+          "existsInAbi": true,
+          "classification": "contract"
         }
       ],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 3,
+        "discovered": 3,
+        "skippedByLimit": 0,
+        "halt": 3,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": []
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 26,
+      "safeMethodCount": 3,
+      "safeMethodResults": [
+        {
+          "method": "getEnvelope",
+          "signature": "getEnvelope/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "hasClaimed",
+          "signature": "hasClaimed/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getPacketAmount",
+          "signature": "getPacketAmount/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        }
       ]
     },
     {
@@ -9485,7 +12676,7 @@
       "mainnetHash": "0x942da575b31f39cbb59e64b5813b128739b44c25",
       "contractBacked": true,
       "contractName": "MiniAppSelfLoan",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [
         {
           "source": "runtime.modules[0].operations.create_loan",
@@ -9527,11 +12718,11 @@
         "total": 24,
         "discovered": 24,
         "skippedByLimit": 0,
-        "halt": 22,
+        "halt": 24,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 2,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -9551,10 +12742,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read pendingAdmin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 44,
       "safeMethodCount": 24,
@@ -9579,7 +12767,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -9601,8 +12789,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "isPaused",
@@ -9622,8 +12813,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "adminChangeTime",
@@ -9812,7 +13006,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -9892,18 +13086,18 @@
       "mainnetHash": "0x4e920c7fbc602161dd2c054eca3a0eec6df5eb6b",
       "contractBacked": true,
       "contractName": "MiniAppSoulboundCertificate",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
       "safeMethodSummary": {
         "total": 22,
         "discovered": 22,
         "skippedByLimit": 0,
-        "halt": 21,
+        "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 1,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "oracle/0",
@@ -9919,9 +13113,7 @@
           "getPlatformStats/0"
         ]
       },
-      "failures": [
-        "safe read pauseRegistry/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 36,
       "safeMethodCount": 22,
@@ -9956,8 +13148,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "gateway",
@@ -10071,7 +13266,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Integer",
           "stackItems": 1
         },
@@ -10302,7 +13497,7 @@
           "args": [],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "Any",
           "stackItems": 1
         },
@@ -11227,7 +14422,7 @@
       "mainnetHash": "0x02beeef6f65c6989a121c0a0e6b23190333edb98",
       "contractBacked": true,
       "contractName": "PlatformAnchor",
-      "status": "failed",
+      "status": "passed",
       "runtimeOperations": [
         {
           "source": "runtime.modules[0].operations.move",
@@ -11295,11 +14490,11 @@
         "total": 22,
         "discovered": 22,
         "skippedByLimit": 0,
-        "halt": 20,
+        "halt": 22,
         "expectedFault": 0,
         "sampleFault": 0,
         "rpcOrSampleError": 0,
-        "hardFailures": 2,
+        "hardFailures": 0,
         "hardChecked": [
           "admin/0",
           "isPaused/0",
@@ -11321,10 +14516,7 @@
           "getAnchorStats/1"
         ]
       },
-      "failures": [
-        "safe read admin/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms",
-        "safe read getTotalRewardReserve/0 failed: https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
-      ],
+      "failures": [],
       "contractUpdateMethod": true,
       "methodCount": 45,
       "safeMethodCount": 22,
@@ -11335,8 +14527,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
         },
         {
           "method": "isPaused",
@@ -11468,8 +14663,11 @@
           "safe": true,
           "hard": true,
           "args": [],
-          "status": "failure",
-          "exception": "https://mainnet2.neo.coz.io:443: invokefunction timed out after 8000ms; https://api.n3index.dev/mainnet: invokefunction timed out after 8000ms"
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
         },
         {
           "method": "getRewardRemainder",
@@ -11657,7 +14855,7 @@
           ],
           "status": "halt",
           "vmstate": "HALT",
-          "rpcUrl": "https://api.n3index.dev/mainnet",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
           "stackType": "ByteString",
           "stackItems": 1
         },
@@ -11686,13 +14884,488 @@
       "manifestPath": "apps/unbreakable-vault/neo-manifest.json",
       "mainnetHash": "0x198bfcccabb9b73181f23b5af22fe73afdc6c3aa",
       "contractBacked": true,
-      "contractName": null,
-      "status": "missing-contract",
+      "contractName": "MiniAppUnbreakableVault",
+      "status": "passed",
       "runtimeOperations": [],
       "uiOperations": [],
-      "safeMethodSummary": null,
-      "failures": [
-        "mainnet contract not reachable: https://mainnet2.neo.coz.io:443: getcontractstate timed out after 8000ms"
+      "safeMethodSummary": {
+        "total": 32,
+        "discovered": 32,
+        "skippedByLimit": 0,
+        "halt": 32,
+        "expectedFault": 0,
+        "sampleFault": 0,
+        "rpcOrSampleError": 0,
+        "hardFailures": 0,
+        "hardChecked": [
+          "admin/0",
+          "gateway/0",
+          "paymentHub/0",
+          "pauseRegistry/0",
+          "isPaused/0",
+          "pendingAdmin/0",
+          "adminChangeTime/0",
+          "timeLockDelay/0",
+          "automationAnchor/0",
+          "getAutomationTaskId/0",
+          "totalUsers/0",
+          "totalVaults/0",
+          "totalBounties/0",
+          "totalBroken/0",
+          "totalHackers/0",
+          "totalCreators/0",
+          "totalAttempts/0",
+          "getVaultConstants/0",
+          "getPlatformStatsRaw/0",
+          "getPlatformStats/0"
+        ]
+      },
+      "failures": [],
+      "contractUpdateMethod": true,
+      "methodCount": 52,
+      "safeMethodCount": 32,
+      "safeMethodResults": [
+        {
+          "method": "admin",
+          "signature": "admin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "gateway",
+          "signature": "gateway/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "paymentHub",
+          "signature": "paymentHub/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "pauseRegistry",
+          "signature": "pauseRegistry/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "isPaused",
+          "signature": "isPaused/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "pendingAdmin",
+          "signature": "pendingAdmin/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "adminChangeTime",
+          "signature": "adminChangeTime/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "timeLockDelay",
+          "signature": "timeLockDelay/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "automationAnchor",
+          "signature": "automationAnchor/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Any",
+          "stackItems": 1
+        },
+        {
+          "method": "getAutomationTaskId",
+          "signature": "getAutomationTaskId/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "hasBadge",
+          "signature": "hasBadge/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getUserBadgeCount",
+          "signature": "getUserBadgeCount/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalUsers",
+          "signature": "totalUsers/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalVaults",
+          "signature": "totalVaults/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalBounties",
+          "signature": "totalBounties/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalBroken",
+          "signature": "totalBroken/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalHackers",
+          "signature": "totalHackers/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalCreators",
+          "signature": "totalCreators/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "totalAttempts",
+          "signature": "totalAttempts/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Integer",
+          "stackItems": 1
+        },
+        {
+          "method": "getVault",
+          "signature": "getVault/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "getHackerStats",
+          "signature": "getHackerStats/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "getCreatorStats",
+          "signature": "getCreatorStats/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Struct",
+          "stackItems": 1
+        },
+        {
+          "method": "hasHackerBadge",
+          "signature": "hasHackerBadge/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "hasCreatorBadge",
+          "signature": "hasCreatorBadge/2",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            },
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Boolean",
+          "stackItems": 1
+        },
+        {
+          "method": "getVaultConstants",
+          "signature": "getVaultConstants/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getVaultRaw",
+          "signature": "getVaultRaw/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getPlatformStatsRaw",
+          "signature": "getPlatformStatsRaw/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getVaultDetails",
+          "signature": "getVaultDetails/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getDifficultyName",
+          "signature": "getDifficultyName/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Integer"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "ByteString",
+          "stackItems": 1
+        },
+        {
+          "method": "getHackerStatsDetails",
+          "signature": "getHackerStatsDetails/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getCreatorStatsDetails",
+          "signature": "getCreatorStatsDetails/1",
+          "safe": true,
+          "hard": false,
+          "args": [
+            {
+              "type": "Hash160"
+            }
+          ],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        },
+        {
+          "method": "getPlatformStats",
+          "signature": "getPlatformStats/0",
+          "safe": true,
+          "hard": true,
+          "args": [],
+          "status": "halt",
+          "vmstate": "HALT",
+          "rpcUrl": "https://mainnet2.neo.coz.io:443",
+          "stackType": "Map",
+          "stackItems": 1
+        }
       ]
     },
     {

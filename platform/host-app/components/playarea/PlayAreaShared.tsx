@@ -69,7 +69,7 @@ export function buildEmbeddedDappUrl(
       : `/miniapps/${slug}/index.html`);
   const params = new URLSearchParams();
   params.set("network", network);
-  params.set("source", launchContext?.source || "platform");
+  params.set("source", "platform");
   if (launchContext?.operation)
     params.set("operation", launchContext.operation);
   if (launchContext?.tab) params.set("tab", launchContext.tab);
@@ -226,10 +226,10 @@ export function PlayShell({
           <div className="min-w-0">
             <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
               <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
-              <span className="truncate text-xs font-black uppercase tracking-wide text-gray-500">
+              <span className="truncate text-xs font-black uppercase tracking-wide text-gray-700">
                 {app.name}
               </span>
-              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-500">
+              <span className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-700">
                 Native dApp
               </span>
             </div>
@@ -288,19 +288,19 @@ export function SecondaryInfo({
             {title}
           </span>
           {description && (
-            <span className="mt-0.5 block text-xs leading-5 text-gray-500">
+            <span className="mt-0.5 block text-xs leading-5 text-gray-700">
               {description}
             </span>
           )}
         </span>
         <span className="flex shrink-0 items-center gap-2">
           {meta && (
-            <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-500">
+            <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gray-700">
               {meta}
             </span>
           )}
           <ChevronDown
-            className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180"
+            className="h-4 w-4 text-gray-600 transition-transform group-open:rotate-180"
             aria-hidden="true"
           />
         </span>
@@ -323,12 +323,12 @@ export function ChainStateStrip({
   return (
     <div className="space-y-2 text-xs">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-500">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-gray-700">
           <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2.5 py-1 font-semibold">
             <Radio className="h-3.5 w-3.5 text-emerald-600" />
             {loading ? "Syncing" : error ? "Cached state" : "Live state"}
           </span>
-          <span className="font-semibold uppercase text-gray-400">
+          <span className="font-semibold uppercase text-gray-600">
             {network}
           </span>
         </div>
@@ -345,7 +345,7 @@ export function ChainStateStrip({
         className="group rounded-xl border border-gray-200 bg-white/70"
         data-testid="chain-technical-details"
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-gray-500 marker:content-none">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-gray-700 marker:content-none">
           Technical chain details
           <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
         </summary>
@@ -378,7 +378,7 @@ export function MetricGrid({ stats }: { stats: PlayMetric[] }) {
             key={item.label}
             className="rounded-2xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm shadow-gray-950/5"
           >
-            <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+            <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-600">
               {item.label}
             </p>
             <p
@@ -400,7 +400,7 @@ export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
         <h3 className="m-0 text-sm font-bold text-gray-900">
           {activity?.title || "Recent activity"}
         </h3>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-500">
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold uppercase text-gray-700">
           {activity?.rows.length || 0} items
         </span>
       </div>
@@ -417,7 +417,7 @@ export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
                     {row.primary}
                   </p>
                   {row.secondary && (
-                    <p className="m-0 mt-0.5 truncate text-xs text-gray-500">
+                    <p className="m-0 mt-0.5 truncate text-xs text-gray-700">
                       {row.secondary}
                     </p>
                   )}
@@ -432,7 +432,7 @@ export function ActivityPanel({ activity }: { activity: PlayActivity | null }) {
           ))}
         </div>
       ) : (
-        <p className="m-0 text-sm leading-6 text-gray-500">
+        <p className="m-0 text-sm leading-6 text-gray-700">
           {activity?.emptyText ||
             "No live on-chain events are available for this miniapp yet."}
         </p>
@@ -477,7 +477,7 @@ export function ActionRow({
             {label}
           </span>
           {detail && (
-            <span className="mt-0.5 block break-words text-[11px] font-semibold leading-4 text-gray-500 sm:text-xs sm:leading-5">
+            <span className="mt-0.5 block break-words text-[11px] font-semibold leading-4 text-gray-700 sm:text-xs sm:leading-5">
               {detail}
             </span>
           )}
@@ -491,7 +491,7 @@ export function ActionRow({
             </span>
           )}
           {valueLabel && (
-            <span className="block text-[10px] font-black uppercase tracking-wide text-gray-400">
+            <span className="block text-[10px] font-black uppercase tracking-wide text-gray-600">
               {valueLabel}
             </span>
           )}
@@ -528,7 +528,7 @@ export function ActionBoard({
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-black text-gray-950">{title}</h3>
           {subtitle && (
-            <p className="m-0 mt-1 text-xs leading-5 text-gray-500">
+            <p className="m-0 mt-1 text-xs leading-5 text-gray-700">
               {subtitle}
             </p>
           )}
@@ -573,7 +573,7 @@ export function EmbeddedDappSurface({
         <div className="min-w-0">
           <div className="mb-1.5 flex items-center gap-2">
             <span className={`h-2.5 w-2.5 rounded-full ${styles.accent}`} />
-            <span className="text-[10px] font-black uppercase tracking-wide text-gray-400">
+            <span className="text-[10px] font-black uppercase tracking-wide text-gray-700">
               Live dApp
             </span>
           </div>
@@ -635,7 +635,7 @@ export function PreviewStat({
 }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white/80 px-3 py-2">
-      <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+      <p className="m-0 text-[10px] font-bold uppercase tracking-wide text-gray-600">
         {label}
       </p>
       <p className="m-0 mt-1 break-words text-sm font-black text-gray-950">

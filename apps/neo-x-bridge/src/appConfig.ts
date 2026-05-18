@@ -11,7 +11,7 @@ export const appMeta = {
 export const manifest: MiniAppManifest = {
   name: "Neo X Bridge",
   description:
-    "Operate Neo N3 and Neo X asset bridge, Message Bridge, and cross-chain status tracking in one console.",
+    "Prepare official Neo N3 and Neo X bridge handoffs and cross-chain status tracking in one console.",
   icon: "link",
   category: "defi",
   shell: "console",
@@ -164,7 +164,7 @@ export const manifest: MiniAppManifest = {
       { labelKey: "statDigest", valueKey: "lastDigest", format: "text" },
     ],
   },
-  features: { walletRequired: true, chainWarning: true, comments: true, reviews: true },
+  features: { walletRequired: false, chainWarning: true, comments: true, reviews: true },
   docs: [
     { titleKey: "appName", contentKey: "docsSubtitle", type: "text" },
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
@@ -199,7 +199,7 @@ const appMessages = {
     en: "Prepare a GAS deposit or withdrawal intent for the official Neo X bridge flow.",
     zh: "为官方 Neo X 桥接流程准备 GAS 充值或提现意图。",
   },
-  opAssetAction: { en: "Prepare Asset Intent", zh: "生成资产桥意图" },
+  opAssetAction: { en: "Prepare Bridge Handoff", zh: "生成跨链桥交接载荷" },
   opMessageTitle: { en: "Message Bridge", zh: "Message Bridge" },
   opMessageDesc: {
     en: "Build an arbitrary cross-chain message payload for the BaneLabs MessageBridge SDK.",
@@ -220,7 +220,7 @@ const appMessages = {
   lastRoute: { en: "Route", zh: "路径" },
   emptyPayload: { en: "No bridge intent prepared yet.", zh: "还没有生成跨链意图。" },
   statusReady: { en: "Bridge console ready", zh: "跨链控制台已就绪" },
-  statusAssetReady: { en: "Asset bridge intent prepared", zh: "资产桥意图已生成" },
+  statusAssetReady: { en: "Asset bridge handoff prepared", zh: "资产桥交接载荷已生成" },
   statusMessageReady: { en: "Message bridge intent prepared", zh: "消息桥意图已生成" },
   statusTrackingReady: { en: "Tracking timeline refreshed", zh: "追踪时间线已刷新" },
   copiedPayload: { en: "Bridge payload copied", zh: "跨链载荷已复制" },
@@ -234,8 +234,8 @@ const appMessages = {
   },
   feature1Name: { en: "Native Bridge Flow", zh: "原生桥流程" },
   feature1Desc: {
-    en: "Asset intents are shaped around the official Neo X GAS bridge path.",
-    zh: "资产意图围绕官方 Neo X GAS 跨链路径构造。",
+    en: "Asset handoffs are shaped around the official Neo X GAS bridge path.",
+    zh: "资产交接载荷围绕官方 Neo X GAS 跨链路径构造。",
   },
   feature2Name: { en: "MessageBridge Ready", zh: "MessageBridge 就绪" },
   feature2Desc: {

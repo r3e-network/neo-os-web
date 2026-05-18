@@ -76,8 +76,8 @@ export async function handler(req: Request): Promise<Response> {
 
     if (err) return error(500, "failed to fetch usage", "DB_ERROR", req);
 
-    const usage = normalizeUsageRow(data ?? {}, { app_id: appId, usage_date: date });
-    return json({ usage }, {}, req);
+    const usage = data ? normalizeUsageRow(data, { app_id: appId, usage_date: date }) : null;
+    return json({ usage, date }, {}, req);
   }
 
   const { data, error: err } = await supabase

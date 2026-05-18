@@ -271,13 +271,14 @@ export const walletOptions: WalletOption[] = [
     icon: "/miniapps/gas-lucky-pool/onegate-logo.png",
     description: "OneGate host wallet fallback. Prefer NEP-21 when it is injected.",
     protocol: "NEP-21",
+    recommended: true,
   },
   {
     id: "neoline",
     name: "NeoLine",
     icon: "https://neoline.io/assets/images/home/neoline.svg",
     description: "NeoLine extension for Neo N3 accounts and contract invokes.",
-    protocol: "Legacy dAPI",
+    protocol: "NEP-21",
   },
   {
     id: "o3",

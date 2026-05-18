@@ -86,8 +86,8 @@ const appMessages = {
   agentVerificationScript: { en: "Verification Script", zh: "Verification Script" },
   deploymentPendingTitle: { en: "Shared contract deployment pending", zh: "共享合约待部署" },
   deploymentPendingDesc: {
-    en: "TrustAnchor targets the shared PlatformAnchor contract. Until a network deployment hash is configured, move / candidate update / vote sync stay disabled.",
-    zh: "TrustAnchor 面向共享 PlatformAnchor 合约。在网络部署哈希配置完成前，调仓 / 候选人更新 / 投票同步保持禁用。",
+    en: "TrustAnchor targets the shared PlatformAnchor contract. The selected network must expose a PlatformAnchor hash before move, candidate update, or vote sync actions are sent.",
+    zh: "TrustAnchor 面向共享 PlatformAnchor 合约。当前网络需要配置 PlatformAnchor 哈希后才能发送调仓、候选人更新或投票同步操作。",
   },
   tabOverview: { en: "Overview", zh: "概览" },
   tabRouting: { en: "Routing", zh: "路由" },

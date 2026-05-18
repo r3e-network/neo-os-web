@@ -6,7 +6,7 @@ import type { MiniAppManifest } from "@shared/types/miniapp-manifest";
 
 export const manifest: MiniAppManifest = {
   name: "Neo Treasury",
-  description: "Community treasury management and founder wallet tracking",
+  description: "Read-only Neo Foundation and ecosystem wallet tracking",
   icon: "landmark",
   category: "tool",
   shell: "launcher",
@@ -44,9 +44,5 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature1Name", contentKey: "feature1Desc", type: "features" },
   ],
 
-  permissions: { payments: true },
-
-  contract: {
-    mode: "custom",
-  },
+  permissions: { datafeed: true },
 };

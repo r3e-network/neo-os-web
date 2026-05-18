@@ -88,7 +88,7 @@ export function OperationPanel({
                       "relative min-h-9 cursor-pointer rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-center text-xs font-black leading-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 sm:text-sm",
                       activeTabIdx === idx
                         ? getTabActiveColor(op.button_style)
-                        : "text-gray-400 hover:bg-white/70 hover:text-gray-700",
+                        : "text-gray-600 hover:bg-white/70 hover:text-gray-900",
                     )}
                   >
                     {op.name}
@@ -120,7 +120,7 @@ export function OperationPanel({
                         "min-h-9 cursor-pointer rounded-xl border-0 bg-transparent px-2 py-1.5 text-center text-xs font-black leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30",
                         activeTabIdx === idx
                           ? getTabActiveColor(op.button_style)
-                          : "text-gray-400 hover:bg-gray-50 hover:text-gray-700",
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
                       )}
                     >
                       {op.name}
@@ -537,11 +537,11 @@ function operationTone(op: OperationEntry) {
   }
   return {
     activeChoice:
-      "border-emerald-500 bg-emerald-600 text-white shadow-sm shadow-emerald-600/20",
+      "border-emerald-700 bg-emerald-700 text-white shadow-sm shadow-emerald-700/20",
     inactiveChoice:
-      "border-gray-200 bg-gray-100 text-gray-500 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700",
+      "border-gray-200 bg-gray-100 text-gray-700 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800",
     submitClass:
-      "bg-emerald-600 text-white shadow-sm shadow-emerald-600/15 hover:bg-emerald-700 focus-visible:ring-emerald-500",
+      "bg-emerald-700 text-white shadow-sm shadow-emerald-700/15 hover:bg-emerald-800 focus-visible:ring-emerald-500 disabled:border disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-700 disabled:opacity-100",
   };
 }
 
