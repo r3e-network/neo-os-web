@@ -2,6 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getEnv, mustGetEnv } from "./env.ts";
 import { error } from "./response.ts";
 
+function stringField(row: unknown, key: string): string | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 function parseBearerToken(req: Request): string | undefined {
   const auth = req.headers.get("Authorization")?.trim() ?? "";
   if (!auth.toLowerCase().startsWith("bearer ")) return undefined;
@@ -138,7 +144,11 @@ export async function ensureUserRow(
     .maybeSingle();
 
   if (upsertErr) return error(500, "failed to ensure user", "DB_ERROR", req);
-  return data ?? { id: auth.userId };
+  return {
+    id: stringField(data, "id") ?? auth.userId,
+    nonce: stringField(data, "nonce"),
+    address: stringField(data, "address"),
+  };
 }
 
 function collectRoleClaims(value: unknown, roles: Set<string>) {

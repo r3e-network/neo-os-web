@@ -521,7 +521,7 @@ export function buildSharedInvokeArgs(
 
 export async function resolveSharedModeRuntime(
   app: MiniAppInfo,
-  network: Network = "testnet",
+  network: Network,
 ): Promise<SharedModeRuntimeInfo | null> {
   if (!isSharedModeApp(app)) return null;
 

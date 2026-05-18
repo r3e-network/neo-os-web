@@ -53,6 +53,9 @@ async function getRatings(
   res: NextApiResponse,
 ) {
   const network = getSocialNetworkScope(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const scopedAppId = scopedSocialAppId(appId, network);
   const wallet =
     typeof req.query.wallet === "string" ? req.query.wallet.trim() : undefined;
@@ -165,6 +168,11 @@ async function submitRating(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!hasServiceRoleSupabase()) {
     return apiError.configError(
       res,
@@ -185,7 +193,6 @@ async function submitRating(
   if (!authedWallet) return;
 
   const { wallet, value, review } = req.body;
-  const network = getSocialNetworkScope(req.query.network, req.body?.network);
   const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {

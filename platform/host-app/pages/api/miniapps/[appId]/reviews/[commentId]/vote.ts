@@ -45,6 +45,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     return apiError.methodNotAllowed(res);
   }
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   if (!hasServiceRoleSupabase()) {
     return apiError.configError(
       res,
@@ -65,7 +69,6 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!authedWallet) return;
 
   const { wallet, vote_type } = req.body;
-  const network = getSocialNetworkScope(req.query.network, req.body?.network);
   const scopedAppId = scopedSocialAppId(appId, network);
 
   if (

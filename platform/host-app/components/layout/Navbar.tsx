@@ -94,7 +94,7 @@ export function Navbar() {
             />
             <span className="truncate text-lg font-bold text-gray-900 sm:text-xl">
               {BRAND.name}{" "}
-              <span className="hidden text-emerald-600 sm:inline">
+              <span className="hidden text-emerald-700 sm:inline">
                 {t("navigation.miniapps")}
               </span>
             </span>

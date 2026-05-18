@@ -10,15 +10,31 @@ import {
   getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
-import type { MiniAppInfo } from "../../components/types";
+import type { MiniAppCategory, MiniAppInfo } from "../../components/types";
 
 type LocalMiniAppManifest = {
   appId: string;
   name: string;
   description: string;
-  category: string;
+  category: MiniAppCategory;
   entryUrl: string;
 };
+
+const MINIAPP_CATEGORIES = new Set<MiniAppCategory>([
+  "gaming",
+  "defi",
+  "governance",
+  "utility",
+  "social",
+  "nft",
+  "data",
+  "other",
+]);
+
+function normalizeMiniAppCategory(category: string | undefined): MiniAppCategory {
+  const normalized = category?.trim() as MiniAppCategory | undefined;
+  return normalized && MINIAPP_CATEGORIES.has(normalized) ? normalized : "utility";
+}
 
 function loadActiveMiniAppManifests() {
   const repoRoot = path.resolve(__dirname, "../../../..");
@@ -45,7 +61,7 @@ function loadActiveMiniAppManifests() {
         appId,
         name: manifest.name || appId,
         description: manifest.description || "MiniApp",
-        category: manifest.category || "utility",
+        category: normalizeMiniAppCategory(manifest.category),
         entryUrl: manifest.urls?.entry || `/miniapps/${slug}/index.html`,
       } satisfies LocalMiniAppManifest;
     })

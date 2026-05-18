@@ -57,6 +57,11 @@ async function getComments(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!isServerSupabaseConfigured()) {
     res.status(200).json({ comments: [], hasMore: false, total: 0 });
     return;
@@ -72,6 +77,9 @@ async function getCommentsFromDB(
 ) {
   const parentId = req.query.parent_id as string | undefined;
   const network = getSocialNetworkScope(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const scopedAppId = scopedSocialAppId(appId, network);
   const limit = Math.min(
     Math.max(parseInt(req.query.limit as string) || 20, 1),
@@ -191,6 +199,11 @@ async function createComment(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!hasServiceRoleSupabase()) {
     return apiError.configError(
       res,
@@ -211,7 +224,6 @@ async function createComment(
   if (!authedWallet) return;
 
   const { wallet, content, parent_id } = req.body;
-  const network = getSocialNetworkScope(req.query.network, req.body?.network);
   const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {

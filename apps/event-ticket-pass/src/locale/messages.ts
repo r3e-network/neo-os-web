@@ -9,8 +9,8 @@ const appMessages = {
   contractMissing: { en: "Contract address not configured", zh: "合约地址未配置" },
   deploymentPendingTitle: { en: "Contract deployment pending", zh: "合约待部署" },
   deploymentPendingDesc: {
-    en: "This miniapp is listed in the catalog, but no live testnet or mainnet contract has been configured yet. On-chain actions stay disabled until deployment is completed.",
-    zh: "此小程序已进入目录，但测试网和主网都还未配置正式合约。链上功能会保持禁用，直到部署完成为止。",
+    en: "The selected network is missing a configured Event Ticket contract address. Switch network or verify deployment configuration before sending on-chain actions.",
+    zh: "当前网络缺少活动门票合约地址。请切换网络或确认部署配置后再发送链上操作。",
   },
 
   eventName: { en: "Event name", zh: "活动名称" },

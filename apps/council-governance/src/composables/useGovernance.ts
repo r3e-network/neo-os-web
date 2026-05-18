@@ -25,6 +25,8 @@ export type ProposalStatusKey =
 
 export interface Proposal {
   id: number;
+  externalId?: string;
+  source?: "contract" | "neo-community";
   type: number;
   title: string;
   description: string;
@@ -114,6 +116,7 @@ function statusKeyFor(status: number, statusString: string | undefined, expiryTi
   const normalized = String(statusString || "").toLowerCase();
   if (normalized.includes("executed")) return "executed";
   if (normalized.includes("revoked")) return "revoked";
+  if (normalized.includes("replace")) return "revoked";
   if (normalized.includes("reject")) return "rejected";
   if (normalized.includes("pass")) return "passed";
   if (normalized.includes("expire")) return "expired";
@@ -153,6 +156,7 @@ function parseProposal(raw: unknown): Proposal | null {
 
   return {
     id,
+    source: "contract",
     type: asNumber(data.type, 0),
     title: asString(data.title, `Proposal #${id}`),
     description: asString(data.description),
@@ -167,6 +171,56 @@ function parseProposal(raw: unknown): Proposal | null {
     expiryTime,
     status,
     statusKey: statusKeyFor(status, statusString, expiryTime),
+    statusString,
+  };
+}
+
+function parseIsoTimestamp(value: unknown): number {
+  const text = asString(value);
+  if (!text) return 0;
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseVoteBucket(value: unknown): { for: number; against: number; neutral: number } {
+  const data = asRecord(value);
+  return {
+    for: asNumber(data.for, 0),
+    against: asNumber(data.against, 0),
+    neutral: asNumber(data.neutral, 0),
+  };
+}
+
+function parseExplorerProposal(raw: unknown): Proposal | null {
+  const data = asRecord(raw);
+  const number = asNumber(data.number, 0);
+  const externalId = asString(data.id);
+  if (!number && !externalId) return null;
+  const councilVotes = parseVoteBucket(data.councilVotes);
+  const communityVotes = parseVoteBucket(data.communityVotes);
+  const yesVotes = councilVotes.for + communityVotes.for;
+  const noVotes = councilVotes.against + communityVotes.against;
+  const neutralVotes = councilVotes.neutral + communityVotes.neutral;
+  const statusString = asString(data.status, "active");
+  const expiryTime = parseIsoTimestamp(data.endTime);
+
+  return {
+    id: number || Math.abs(externalId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)),
+    externalId,
+    source: "neo-community",
+    type: asString(data.type).includes("policy") ? 1 : 0,
+    title: asString(data.title, externalId ? `Proposal ${externalId}` : `Proposal #${number}`),
+    description: asString(data.summary, asString(data.description, "")),
+    creator: asString(data.proposerName, asString(data.proposerOrganizationId, "neo.community")),
+    yesVotes,
+    noVotes,
+    totalVotes: yesVotes + noVotes + neutralVotes,
+    quorumRequired: 21,
+    quorumReached: councilVotes.for + councilVotes.against + councilVotes.neutral >= 11,
+    createTime: parseIsoTimestamp(data.createdAt),
+    expiryTime,
+    status: STATUS_ACTIVE,
+    statusKey: statusKeyFor(STATUS_ACTIVE, statusString, 0),
     statusString,
   };
 }
@@ -245,6 +299,7 @@ export function useGovernance({
     if (isVoting.get()) return;
     const proposal = activeProposals.get().find((p) => p.id === proposalId);
     if (!proposal) throw new Error(t("proposalNotActive"));
+    if (proposal.source === "neo-community") throw new Error(t("externalProposalReadOnly"));
     if (!address.get()) throw new Error(t("connectWallet"));
     if (!isCandidate.get()) throw new Error(t("notCandidate"));
     if (hasVotedMap.get()[proposalId]) throw new Error(t("alreadyVoted"));
@@ -312,9 +367,13 @@ export function useGovernance({
   const loadProposals = async () => {
     try {
       loadingProposals.set(true);
+      if (resolveNetwork(currentChainId.get()) === "mainnet") {
+        const explorerLoaded = await loadExplorerProposals();
+        if (explorerLoaded && proposals.get().length > 0) return;
+      }
       const count = asNumber(await readContract("getProposalCount"), 0);
       if (count <= 0) {
-        proposals.set([]);
+        await loadExplorerProposals();
         return;
       }
 
@@ -329,13 +388,34 @@ export function useGovernance({
         );
       }
       const loaded = (await Promise.all(reads)).filter((p): p is Proposal => Boolean(p));
-      proposals.set(loaded.sort((a, b) => b.id - a.id));
+      if (loaded.length > 0) {
+        proposals.set(loaded.sort((a, b) => b.id - a.id));
+      } else {
+        await loadExplorerProposals();
+      }
     } catch (e) {
-      if (proposals.get().length === 0) {
+      if (!(await loadExplorerProposals()) && proposals.get().length === 0) {
         console.warn("[useGovernance] loadProposals failed:", e instanceof Error ? e.message : String(e));
       }
     } finally {
       loadingProposals.set(false);
+    }
+  };
+
+  const loadExplorerProposals = async () => {
+    try {
+      const res = await fetch(`${API_HOST}/api/explorer/council-governance?network=${resolveNetwork(currentChainId.get())}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data?.proposals)) return false;
+      const mirrored = data.proposals
+        .map(parseExplorerProposal)
+        .filter((proposal: Proposal | null): proposal is Proposal => Boolean(proposal));
+      proposals.set(mirrored.sort((a, b) => b.id - a.id));
+      return true;
+    } catch {
+      return false;
     }
   };
 

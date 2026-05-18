@@ -254,8 +254,27 @@ const ORACLE_UPDATER_WIF = String(
 ).trim();
 
 if (!WIF) {
-  console.error("FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required");
-  process.exit(1);
+  const summary = {
+    generatedAt: new Date().toISOString(),
+    targetNetwork: TARGET_NETWORK,
+    rpcUrl: RPC_URL,
+    skipped: true,
+    skipReason: "missing_wif",
+    message: "FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required to run live flagship flows.",
+    results: Object.fromEntries(
+      FLAGSHIP_TASKS.map(([label]) => [label, { skipped: true, reason: "missing_wif" }])
+    ),
+  };
+
+  if (FLAGSHIP_REPORT_PATH) {
+    fs.mkdirSync(path.dirname(FLAGSHIP_REPORT_PATH), { recursive: true });
+    fs.writeFileSync(FLAGSHIP_REPORT_PATH, JSON.stringify(summary, null, 2) + "\n");
+    console.error(`Report: ${FLAGSHIP_REPORT_PATH}`);
+  }
+
+  console.error("FLAGSHIP_LIVE_WIF / DEPLOYER_WIF / network-specific Neo WIF is required; skipping live user flows.");
+  console.log(JSON.stringify(summary, null, 2));
+  process.exit(0);
 }
 
 let account;
@@ -639,16 +658,7 @@ async function invokeAaUserOpPersisted({
   if (!AA_CORE_HASH) throw new Error("AA core hash is not configured");
   const cozRpcClient = new CozNeon.rpc.RPCClient(RPC_URL);
   const channel = process.env.ANCHOR_LIVE_AA_NONCE_CHANNEL || "0";
-  const nonce = toBigIntValue(await invokeRead(AA_CORE_HASH, "getNonce", [
-    Neon.sc.ContractParam.hash160(accountId),
-    Neon.sc.ContractParam.integer(channel),
-  ]));
   const deadline = BigInt(Date.now() + Number(process.env.ANCHOR_LIVE_AA_DEADLINE_MS || "3600000"));
-  const op = cozAaUserOpParam({ targetContract, method, args, nonce, deadline });
-  const params = [
-    CozNeon.sc.ContractParam.hash160(accountId),
-    op,
-  ];
   const backupOwner = normalizeHash160(await invokeRead(AA_CORE_HASH, "getBackupOwner", [
     Neon.sc.ContractParam.hash160(accountId),
   ]).catch(() => ""));
@@ -668,72 +678,92 @@ async function invokeAaUserOpPersisted({
     aaProxySigner(proxyAccount, targetContract),
   ];
   const previewSigners = txSigners.map(rpcSigner);
-  const preview = await cozRpcClient.invokeFunction(AA_CORE_HASH, "executeUserOp", params, previewSigners);
-  if (String(preview?.state || "").toUpperCase() === "FAULT") {
-    throw new Error(preview?.exception || `${method} executeUserOp preview failed`);
-  }
-  if (!preview?.script) {
-    throw new Error(`${method} executeUserOp preview did not return script`);
-  }
 
-  const currentHeight = await rpcClient.getBlockCount();
-  const baseTx = {
-    signers: txSigners,
-    validUntilBlock: currentHeight + 100,
-    script: Buffer.from(preview.script, "base64").toString("hex"),
-    systemFee: Math.ceil(Number(preview.gasconsumed || 0) * 1.5),
-  };
-  const aaWitness = new CozNeon.tx.Witness({
-    invocationScript: "",
-    verificationScript: buildAaVerifyScript(accountId),
-  });
-  const signingKey = accountSigningKey(ownerAccount);
-  const feeProbeTx = new CozNeon.tx.Transaction({
-    ...baseTx,
-    networkFee: 0,
-    witnesses: [],
-  });
-  feeProbeTx.sign(signingKey, NETWORK_MAGIC);
-  feeProbeTx.addWitness(aaWitness);
-  const networkFee = await estimateNetworkFee(feeProbeTx);
+  let lastError = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const nonce = toBigIntValue(await invokeRead(AA_CORE_HASH, "getNonce", [
+      Neon.sc.ContractParam.hash160(accountId),
+      Neon.sc.ContractParam.integer(channel),
+    ]));
+    const op = cozAaUserOpParam({ targetContract, method, args, nonce, deadline });
+    const params = [
+      CozNeon.sc.ContractParam.hash160(accountId),
+      op,
+    ];
 
-  const finalTx = new CozNeon.tx.Transaction({
-    ...baseTx,
-    networkFee: Number(networkFee),
-    witnesses: [],
-  });
-  finalTx.sign(signingKey, NETWORK_MAGIC);
-  finalTx.addWitness(aaWitness);
-  const ownerGasBeforeSend = await getGasBalance(ownerHash);
-  const proxyGasBeforeSend = await getGasBalance(proxyAccount);
-  const accountIdGasBeforeSend = await getGasBalance(accountId);
-  const finalSender = normalizeHash160(finalTx.sender.toBigEndian());
-  const finalSignerAccounts = finalTx.signers.map((signer) => normalizeHash160(signer.account.toBigEndian())).join(",");
-  const finalWitnessHashes = finalTx.witnesses.map((witness) => normalizeHash160(witness.scriptHash)).join(",");
-  let sent;
-  try {
-    sent = await cozRpcClient.sendRawTransaction(finalTx);
-  } catch (error) {
-    throw new Error(
-      `${method} executeUserOp send failed: ${error?.message || error}; ownerSigner=${normalizeHash160(ownerHash)}; proxySigner=${normalizeHash160(proxyAccount)}; accountId=${normalizeHash160(accountId)}; txSender=${finalSender}; txSigners=${finalSignerAccounts}; witnessHashes=${finalWitnessHashes}; ownerGas=${ownerGasBeforeSend.toString()}; proxyGas=${proxyGasBeforeSend.toString()}; accountIdGas=${accountIdGasBeforeSend.toString()}; systemFee=${String(baseTx.systemFee)}; networkFee=${networkFee.toString()}`
-    );
+    const preview = await cozRpcClient.invokeFunction(AA_CORE_HASH, "executeUserOp", params, previewSigners);
+    if (String(preview?.state || "").toUpperCase() === "FAULT") {
+      throw new Error(preview?.exception || `${method} executeUserOp preview failed`);
+    }
+    if (!preview?.script) {
+      throw new Error(`${method} executeUserOp preview did not return script`);
+    }
+
+    const currentHeight = await rpcClient.getBlockCount();
+    const baseTx = {
+      signers: txSigners,
+      validUntilBlock: currentHeight + 100,
+      script: Buffer.from(preview.script, "base64").toString("hex"),
+      systemFee: Math.ceil(Number(preview.gasconsumed || 0) * 1.5),
+    };
+    const aaWitness = new CozNeon.tx.Witness({
+      invocationScript: "",
+      verificationScript: buildAaVerifyScript(accountId),
+    });
+    const signingKey = accountSigningKey(ownerAccount);
+    const feeProbeTx = new CozNeon.tx.Transaction({
+      ...baseTx,
+      networkFee: 0,
+      witnesses: [],
+    });
+    feeProbeTx.sign(signingKey, NETWORK_MAGIC);
+    feeProbeTx.addWitness(aaWitness);
+    const networkFee = await estimateNetworkFee(feeProbeTx);
+
+    const finalTx = new CozNeon.tx.Transaction({
+      ...baseTx,
+      networkFee: Number(networkFee),
+      witnesses: [],
+    });
+    finalTx.sign(signingKey, NETWORK_MAGIC);
+    finalTx.addWitness(aaWitness);
+    const ownerGasBeforeSend = await getGasBalance(ownerHash);
+    const proxyGasBeforeSend = await getGasBalance(proxyAccount);
+    const accountIdGasBeforeSend = await getGasBalance(accountId);
+    const finalSender = normalizeHash160(finalTx.sender.toBigEndian());
+    const finalSignerAccounts = finalTx.signers.map((signer) => normalizeHash160(signer.account.toBigEndian())).join(",");
+    const finalWitnessHashes = finalTx.witnesses.map((witness) => normalizeHash160(witness.scriptHash)).join(",");
+    let sent;
+    try {
+      sent = await cozRpcClient.sendRawTransaction(finalTx);
+    } catch (error) {
+      throw new Error(
+        `${method} executeUserOp send failed: ${error?.message || error}; ownerSigner=${normalizeHash160(ownerHash)}; proxySigner=${normalizeHash160(proxyAccount)}; accountId=${normalizeHash160(accountId)}; txSender=${finalSender}; txSigners=${finalSignerAccounts}; witnessHashes=${finalWitnessHashes}; ownerGas=${ownerGasBeforeSend.toString()}; proxyGas=${proxyGasBeforeSend.toString()}; accountIdGas=${accountIdGasBeforeSend.toString()}; systemFee=${String(baseTx.systemFee)}; networkFee=${networkFee.toString()}`
+      );
+    }
+    const txid = asTxid(typeof sent === "string" ? sent : sent?.hash || finalTx.hash());
+    const { execution } = await waitForLog(txid, timeoutMs);
+    if (execution.vmstate !== "HALT") {
+      const err = new Error(execution.exception || `${method} executeUserOp failed: ${txid}`);
+      lastError = err;
+      if (attempt < 2 && /Invalid sequence for channel/i.test(err.message)) {
+        continue;
+      }
+      throw err;
+    }
+    return {
+      txid,
+      vmstate: execution.vmstate,
+      gasconsumed: execution.gasconsumed || null,
+      nonce: nonce.toString(),
+      deadline: deadline.toString(),
+      backupOwner,
+      ownerSigner: normalizeHash160(ownerHash),
+      networkFee: networkFee.toString(),
+      systemFee: String(baseTx.systemFee),
+    };
   }
-  const txid = asTxid(typeof sent === "string" ? sent : sent?.hash || finalTx.hash());
-  const { execution } = await waitForLog(txid, timeoutMs);
-  if (execution.vmstate !== "HALT") {
-    throw new Error(execution.exception || `${method} executeUserOp failed: ${txid}`);
-  }
-  return {
-    txid,
-    vmstate: execution.vmstate,
-    gasconsumed: execution.gasconsumed || null,
-    nonce: nonce.toString(),
-    deadline: deadline.toString(),
-    backupOwner,
-    ownerSigner: normalizeHash160(ownerHash),
-    networkFee: networkFee.toString(),
-    systemFee: String(baseTx.systemFee),
-  };
+  throw lastError || new Error(`${method} executeUserOp failed`);
 }
 
 async function ensureAccountHasGas(accountLike, required, label) {
@@ -1340,6 +1370,8 @@ async function provisionGasBoxMachine(contractHash) {
     Neon.sc.ContractParam.string(GASBOX_APP_ID),
     Neon.sc.ContractParam.string(machineName),
     Neon.sc.ContractParam.integer("10000000"),
+    Neon.sc.ContractParam.integer("0"),
+    Neon.sc.ContractParam.byteArray(""),
   ]);
   const createLog = await waitForLog(createTx);
   if (createLog.execution.vmstate !== "HALT") {
@@ -1844,41 +1876,92 @@ async function runFogPlay() {
   const contractHash = appHash("apps/fogplay/neo-manifest.json");
   const appId = "miniapp-fogplay";
   const oracleReady = await assertOracleCallbackReady(contractHash);
-  const contract = new Neon.experimental.SmartContract(contractHash, {
-    rpcAddress: RPC_URL,
-    networkMagic: NETWORK_MAGIC,
-    account,
+  const actorCandidates = [account, adminAccount, testSmokeUserAccount, ...testSmokeNeoAccounts].filter(Boolean);
+  const seenActor = new Set();
+  const actors = actorCandidates.filter((actor) => {
+    const key = normalizeHash160(`0x${actor.scriptHash}`);
+    if (seenActor.has(key)) return false;
+    seenActor.add(key);
+    return true;
   });
 
-  const transferTx = await transferGAS(contractHash, FOGPLAY_BET, `${appId}:bet`);
-  await sleep(4000);
-  const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeCoinFlipBet", [
+  const args = [
     Neon.sc.ContractParam.string(appId),
-    Neon.sc.ContractParam.hash160(`0x${account.scriptHash}`),
+    null,
     Neon.sc.ContractParam.boolean(false),
     Neon.sc.ContractParam.integer(FOGPLAY_BET),
-  ]);
+  ];
 
-  const betPlaced = findNotification(execution, contractHash, "CoinFlipBetPlaced");
-  const oracleRequested = findOracleRequestNotification(execution, "FogPlay bet");
-  if (!betPlaced || !oracleRequested) {
-    throw new Error("CoinFlipBetPlaced or oracle request notification missing");
+  let lastCooldown = null;
+  for (const actor of actors) {
+    const actorHash = `0x${actor.scriptHash}`;
+    args[1] = Neon.sc.ContractParam.hash160(actorHash);
+    const contract = new Neon.experimental.SmartContract(contractHash, {
+      rpcAddress: RPC_URL,
+      networkMagic: NETWORK_MAGIC,
+      account: actor,
+    });
+
+    const transferTx = await transferGASFrom(actor, contractHash, FOGPLAY_BET, `${appId}:bet`);
+    await sleep(4000);
+
+    try {
+      const { txid: betTx, execution } = await invokeWithPendingRequestRetry(contract, "placeCoinFlipBet", args);
+
+      const betPlaced = findNotification(execution, contractHash, "CoinFlipBetPlaced");
+      const oracleRequested = findOracleRequestNotification(execution, "FogPlay bet");
+      if (!betPlaced || !oracleRequested) {
+        throw new Error("CoinFlipBetPlaced or oracle request notification missing");
+      }
+
+      const betId = stackValue(betPlaced.state?.value?.[4]);
+      const requestId = oracleRequested.requestId;
+      const request = await waitForRequestStatus(requestId);
+      if (!oracleRequestSucceeded(request)) {
+        throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
+      }
+      const bet = await invokeRead(contractHash, "getCoinFlipBet", [
+        { type: "String", value: appId },
+        { type: "Integer", value: String(betId) },
+      ]);
+      if (!bet || boolish(bet.resolved) !== true) {
+        throw new Error(`FogPlay bet ${betId} did not resolve after oracle request ${requestId}`);
+      }
+
+      return {
+        contractHash,
+        appId,
+        oracleReady,
+        actor: {
+          address: actor.address,
+          scriptHash: normalizeHash160(actorHash),
+        },
+        transferTx,
+        betTx: asTxid(betTx),
+        requestId,
+        request,
+        betId,
+        bet,
+      };
+    } catch (error) {
+      const message = String(error?.message || error);
+      if (message.toLowerCase().includes("max consecutive bets reached")) {
+        lastCooldown = message;
+        continue;
+      }
+      throw error;
+    }
   }
 
-  const betId = stackValue(betPlaced.state?.value?.[4]);
-  const requestId = oracleRequested.requestId;
-  const request = await waitForRequestStatus(requestId);
-  if (!oracleRequestSucceeded(request)) {
-    throw new Error(`oracle rng request ${requestId} failed: ${oracleRequestError(request) || "unknown error"}`);
-  }
-  const bet = await invokeRead(contractHash, "getCoinFlipBet", [
-    { type: "String", value: appId },
-    { type: "Integer", value: String(betId) },
-  ]);
-  if (!bet || boolish(bet.resolved) !== true) {
-    throw new Error(`FogPlay bet ${betId} did not resolve after oracle request ${requestId}`);
-  }
-  return { contractHash, appId, oracleReady, transferTx, betTx: asTxid(betTx), requestId, request, betId, bet };
+  return {
+    contractHash,
+    appId,
+    oracleReady,
+    deferred: true,
+    reason: "cooldown",
+    message: `fogPlay deferred: ${lastCooldown || "all actors were rate-limited"}`,
+  };
+
 }
 
 async function runRedEnvelope() {

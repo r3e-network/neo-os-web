@@ -20,7 +20,7 @@ gateway + TEE services, with final enforcement at the contract layer.
                              ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    MiniApp Contracts (C#)                      │
-│   MiniAppTemplates (Prediction, Lottery, Governance, etc.)     │
+│   Platform domain contracts + focused MiniApp contracts        │
 │   (Store state, call Morpheus Oracle when needed, handle AA)   │
 └────────────────────────────────────────────────────────────────┘
                              │ direct request / callback

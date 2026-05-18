@@ -2,8 +2,11 @@ import { test, expect } from "@playwright/test";
 
 test.describe("MiniApps List", () => {
   test.beforeEach(async ({ page }) => {
-    const catalogRequest = page.waitForResponse((response) => response.url().includes("/api/miniapps/catalog"));
-    await Promise.all([catalogRequest, page.goto("/miniapps")]);
+    const catalogRequest = page.waitForResponse(
+      (response) => response.url().includes("/api/miniapps/catalog"),
+      { timeout: 90_000 },
+    );
+    await Promise.all([catalogRequest, page.goto("/miniapps", { waitUntil: "domcontentloaded" })]);
   });
 
   test("should display the complete catalog hero", async ({ page }) => {

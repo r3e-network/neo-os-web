@@ -110,6 +110,11 @@ async function getThreads(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!isServerSupabaseConfigured()) {
     res.status(200).json({ threads: [], hasMore: false, total: 0 });
     return;
@@ -117,7 +122,6 @@ async function getThreads(
 
   const category =
     typeof req.query.category === "string" ? req.query.category.trim() : "";
-  const network = getSocialNetworkScope(req.query.network);
   const scopedAppId = scopedSocialAppId(appId, network);
   if (
     category &&
@@ -179,6 +183,11 @@ async function createThread(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!hasServiceRoleSupabase()) {
     return apiError.configError(
       res,
@@ -199,7 +208,6 @@ async function createThread(
   if (!authedWallet) return;
 
   const { wallet, title, content, category } = req.body;
-  const network = getSocialNetworkScope(req.query.network, req.body?.network);
   const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {

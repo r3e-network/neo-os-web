@@ -64,7 +64,7 @@ export const manifest: MiniAppManifest = {
     { titleKey: "feature2Name", contentKey: "feature2Desc", type: "features" },
     { titleKey: "feature3Name", contentKey: "feature3Desc", type: "features" },
   ],
-  permissions: { datafeed: true },
+  permissions: {},
 };
 
 const clean = (value: string | undefined, fallback: string) => {

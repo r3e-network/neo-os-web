@@ -4,8 +4,8 @@
   "name": "Automation Copilot",
   "name_zh": "自动化副驾驶",
   "version": "1.0.0",
-  "description": "User-facing launcher for price alerts, AA automation recipes, private oracle jobs, and datafeed-backed runbooks.",
-  "description_zh": "围绕价格提醒、AA 自动执行、隐私预言机任务和数据驱动 runbook 的用户侧自动化入口。",
+  "description": "User-facing recipe console for price alerts, private oracle jobs, and datafeed-backed runbooks.",
+  "description_zh": "围绕价格提醒、隐私预言机任务和数据驱动 runbook 的用户侧配方控制台。",
   "category": "data",
   "category_name": "Data",
   "category_name_zh": "数据",
@@ -13,7 +13,6 @@
     "automation",
     "oracle",
     "pricefeed",
-    "aa",
     "runbook"
   ],
   "developer": {

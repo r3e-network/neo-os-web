@@ -72,7 +72,7 @@ async function checkNeoBlockchainHealth(): Promise<HealthCheckResult> {
   }
 }
 
-async function checkServiceHealth(name: string, url: string) {
+async function checkServiceHealth(name: string, url: string): Promise<HealthCheckResult> {
   const lastCheck = new Date().toISOString();
 
   try {
@@ -125,7 +125,7 @@ export async function handler(req: Request): Promise<Response> {
         }
 
         const services = buildPlatformServices();
-        const promises = services.map((service) => checkServiceHealth(service.name, service.url));
+        const promises: Promise<HealthCheckResult>[] = services.map((service) => checkServiceHealth(service.name, service.url));
         promises.push(checkNeoBlockchainHealth());
         
         const results = await Promise.allSettled(promises);

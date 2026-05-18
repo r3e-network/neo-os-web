@@ -47,13 +47,19 @@ export async function handler(req: Request): Promise<Response> {
       console.error("[twitter-feed] invalid JSON response from Twitter API");
       return json({ tweets: [] }, {}, req);
     }
-    const tweets: Tweet[] = (data.data || []).map((t: Record<string, unknown>) => ({
-      id: t.id,
-      text: t.text,
-      created_at: t.created_at,
+    const payload = data && typeof data === "object" ? data as { data?: unknown } : {};
+    const tweetRows = Array.isArray(payload.data) ? payload.data : [];
+    const tweets: Tweet[] = tweetRows.map((t: unknown) => {
+      const row = t && typeof t === "object" ? t as Record<string, unknown> : {};
+      const id = String(row.id ?? "");
+      return {
+      id,
+      text: String(row.text ?? ""),
+      created_at: String(row.created_at ?? ""),
       author: "Neo Smart Economy",
-      url: `https://twitter.com/Neo_Blockchain/status/${t.id}`,
-    }));
+      url: `https://twitter.com/Neo_Blockchain/status/${id}`,
+    };
+    });
 
     return json({ tweets }, {}, req);
   } catch (err) {

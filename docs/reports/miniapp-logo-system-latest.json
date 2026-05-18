@@ -1,0 +1,627 @@
+{
+  "generatedAt": "2026-05-17T12:47:38.320Z",
+  "total": 60,
+  "style": {
+    "principles": [
+      "brand-first monograms, not generic outline icons",
+      "business metaphors are abstract texture fields, not literal small pictograms",
+      "light Neo ecosystem surfaces and saturated app-icon marks instead of large black blocks",
+      "Neo green and Chainlink blue are anchors; category accents are restrained",
+      "each app has a short readable code for 32px recognition",
+      "SVG source plus JPG/WebP/AVIF runtime assets"
+    ],
+    "references": [
+      "https://neo.org/logo",
+      "https://neo.org/images/presskit/Neo%20Brand%20Manual%20V1.2.pdf",
+      "https://onegate.space/",
+      "https://neoline.io/en/",
+      "https://chain.link/brand-assets"
+    ]
+  },
+  "contactSheet": {
+    "svg": "/tmp/neo-miniapp-logo-system-contact-sheet.svg",
+    "png": "/tmp/neo-miniapp-logo-system-contact-sheet.png"
+  },
+  "rows": [
+    {
+      "slug": "aa-account-lab",
+      "name": "AA Account Lab",
+      "category": "tools",
+      "motif": "account",
+      "code": "AA",
+      "logo": "/miniapps/aa-account-lab/logo.jpg",
+      "banner": "/miniapps/aa-account-lab/banner.jpg",
+      "svg": "/miniapps/aa-account-lab/logo.svg"
+    },
+    {
+      "slug": "aa-market-hub",
+      "name": "AA Market Hub",
+      "category": "tools",
+      "motif": "market",
+      "code": "AM",
+      "logo": "/miniapps/aa-market-hub/logo.jpg",
+      "banner": "/miniapps/aa-market-hub/banner.jpg",
+      "svg": "/miniapps/aa-market-hub/logo.svg"
+    },
+    {
+      "slug": "aa-permissions-lab",
+      "name": "AA Permissions Lab",
+      "category": "tools",
+      "motif": "key",
+      "code": "AP",
+      "logo": "/miniapps/aa-permissions-lab/logo.jpg",
+      "banner": "/miniapps/aa-permissions-lab/banner.jpg",
+      "svg": "/miniapps/aa-permissions-lab/logo.svg"
+    },
+    {
+      "slug": "aa-relay-console",
+      "name": "AA Relay Console",
+      "category": "tools",
+      "motif": "relay",
+      "code": "AR",
+      "logo": "/miniapps/aa-relay-console/logo.jpg",
+      "banner": "/miniapps/aa-relay-console/banner.jpg",
+      "svg": "/miniapps/aa-relay-console/logo.svg"
+    },
+    {
+      "slug": "aa-session-key-lab",
+      "name": "AA Session Key Lab",
+      "category": "tools",
+      "motif": "session",
+      "code": "AS",
+      "logo": "/miniapps/aa-session-key-lab/logo.jpg",
+      "banner": "/miniapps/aa-session-key-lab/banner.jpg",
+      "svg": "/miniapps/aa-session-key-lab/logo.svg"
+    },
+    {
+      "slug": "asset-factory",
+      "name": "Asset Factory",
+      "category": "tools",
+      "motif": "factory",
+      "code": "AF",
+      "logo": "/miniapps/asset-factory/logo.jpg",
+      "banner": "/miniapps/asset-factory/banner.jpg",
+      "svg": "/miniapps/asset-factory/logo.svg"
+    },
+    {
+      "slug": "automation-copilot",
+      "name": "Automation Copilot",
+      "category": "data",
+      "motif": "bot",
+      "code": "AC",
+      "logo": "/miniapps/automation-copilot/logo.jpg",
+      "banner": "/miniapps/automation-copilot/banner.jpg",
+      "svg": "/miniapps/automation-copilot/logo.svg"
+    },
+    {
+      "slug": "breakup-contract",
+      "name": "Breakup Contract",
+      "category": "social",
+      "motif": "heart",
+      "code": "BC",
+      "logo": "/miniapps/breakup-contract/logo.jpg",
+      "banner": "/miniapps/breakup-contract/banner.jpg",
+      "svg": "/miniapps/breakup-contract/logo.svg"
+    },
+    {
+      "slug": "burn-league",
+      "name": "Burn League",
+      "category": "games",
+      "motif": "flame",
+      "code": "BL",
+      "logo": "/miniapps/burn-league/logo.jpg",
+      "banner": "/miniapps/burn-league/banner.jpg",
+      "svg": "/miniapps/burn-league/logo.svg"
+    },
+    {
+      "slug": "council-governance",
+      "name": "Council Governance",
+      "category": "governance",
+      "motif": "governance",
+      "code": "CG",
+      "logo": "/miniapps/council-governance/logo.jpg",
+      "banner": "/miniapps/council-governance/banner.jpg",
+      "svg": "/miniapps/council-governance/logo.svg"
+    },
+    {
+      "slug": "custom-anchor",
+      "name": "Custom Anchor",
+      "category": "governance",
+      "motif": "anchor",
+      "code": "CA",
+      "logo": "/miniapps/custom-anchor/logo.jpg",
+      "banner": "/miniapps/custom-anchor/banner.jpg",
+      "svg": "/miniapps/custom-anchor/logo.svg"
+    },
+    {
+      "slug": "daily-checkin",
+      "name": "Daily Check-in",
+      "category": "games",
+      "motif": "calendar",
+      "code": "DC",
+      "logo": "/miniapps/daily-checkin/logo.jpg",
+      "banner": "/miniapps/daily-checkin/banner.jpg",
+      "svg": "/miniapps/daily-checkin/logo.svg"
+    },
+    {
+      "slug": "dev-tipping",
+      "name": "Developer Tipping",
+      "category": "social",
+      "motif": "tip",
+      "code": "DT",
+      "logo": "/miniapps/dev-tipping/logo.jpg",
+      "banner": "/miniapps/dev-tipping/banner.jpg",
+      "svg": "/miniapps/dev-tipping/logo.svg"
+    },
+    {
+      "slug": "dice-game",
+      "name": "Dice Game",
+      "category": "games",
+      "motif": "dice",
+      "code": "DG",
+      "logo": "/miniapps/dice-game/logo.jpg",
+      "banner": "/miniapps/dice-game/banner.jpg",
+      "svg": "/miniapps/dice-game/logo.svg"
+    },
+    {
+      "slug": "event-ticket-pass",
+      "name": "Event Ticket",
+      "category": "social",
+      "motif": "ticket",
+      "code": "ET",
+      "logo": "/miniapps/event-ticket-pass/logo.jpg",
+      "banner": "/miniapps/event-ticket-pass/banner.jpg",
+      "svg": "/miniapps/event-ticket-pass/logo.svg"
+    },
+    {
+      "slug": "explorer",
+      "name": "Block Explorer",
+      "category": "tools",
+      "motif": "explorer",
+      "code": "EX",
+      "logo": "/miniapps/explorer/logo.jpg",
+      "banner": "/miniapps/explorer/banner.jpg",
+      "svg": "/miniapps/explorer/logo.svg"
+    },
+    {
+      "slug": "flashloan",
+      "name": "Flash Loan",
+      "category": "finance",
+      "motif": "flash",
+      "code": "FL",
+      "logo": "/miniapps/flashloan/logo.jpg",
+      "banner": "/miniapps/flashloan/banner.jpg",
+      "svg": "/miniapps/flashloan/logo.svg"
+    },
+    {
+      "slug": "fogplay",
+      "name": "FogPlay",
+      "category": "games",
+      "motif": "coin",
+      "code": "FP",
+      "logo": "/miniapps/fogplay/logo.jpg",
+      "banner": "/miniapps/fogplay/banner.jpg",
+      "svg": "/miniapps/fogplay/logo.svg"
+    },
+    {
+      "slug": "forever-album",
+      "name": "Forever Album",
+      "category": "social",
+      "motif": "album",
+      "code": "FA",
+      "logo": "/miniapps/forever-album/logo.jpg",
+      "banner": "/miniapps/forever-album/banner.jpg",
+      "svg": "/miniapps/forever-album/logo.svg"
+    },
+    {
+      "slug": "gas-lucky-pool",
+      "name": "OneGate Vault",
+      "category": "social",
+      "motif": "vault",
+      "code": "OG",
+      "logo": "/miniapps/gas-lucky-pool/logo.jpg",
+      "banner": "/miniapps/gas-lucky-pool/banner.jpg",
+      "svg": "/miniapps/gas-lucky-pool/logo.svg"
+    },
+    {
+      "slug": "gas-sponsor",
+      "name": "Gas Sponsor",
+      "category": "tools",
+      "motif": "gas",
+      "code": "GS",
+      "logo": "/miniapps/gas-sponsor/logo.jpg",
+      "banner": "/miniapps/gas-sponsor/banner.jpg",
+      "svg": "/miniapps/gas-sponsor/logo.svg"
+    },
+    {
+      "slug": "gasbox",
+      "name": "GASBOX",
+      "category": "games",
+      "motif": "box",
+      "code": "GB",
+      "logo": "/miniapps/gasbox/logo.jpg",
+      "banner": "/miniapps/gasbox/banner.jpg",
+      "svg": "/miniapps/gasbox/logo.svg"
+    },
+    {
+      "slug": "gov-merc",
+      "name": "Gov Merc",
+      "category": "governance",
+      "motif": "governance",
+      "code": "GM",
+      "logo": "/miniapps/gov-merc/logo.jpg",
+      "banner": "/miniapps/gov-merc/banner.jpg",
+      "svg": "/miniapps/gov-merc/logo.svg"
+    },
+    {
+      "slug": "graveyard",
+      "name": "Graveyard",
+      "category": "tools",
+      "motif": "grave",
+      "code": "GY",
+      "logo": "/miniapps/graveyard/logo.jpg",
+      "banner": "/miniapps/graveyard/banner.jpg",
+      "svg": "/miniapps/graveyard/logo.svg"
+    },
+    {
+      "slug": "last-survivor",
+      "name": "LastSurvivor",
+      "category": "games",
+      "motif": "timer",
+      "code": "LS",
+      "logo": "/miniapps/last-survivor/logo.jpg",
+      "banner": "/miniapps/last-survivor/banner.jpg",
+      "svg": "/miniapps/last-survivor/logo.svg"
+    },
+    {
+      "slug": "memorial-shrine",
+      "name": "Memorial Shrine",
+      "category": "social",
+      "motif": "shrine",
+      "code": "MS",
+      "logo": "/miniapps/memorial-shrine/logo.jpg",
+      "banner": "/miniapps/memorial-shrine/banner.jpg",
+      "svg": "/miniapps/memorial-shrine/logo.svg"
+    },
+    {
+      "slug": "milestone-escrow",
+      "name": "Milestone Escrow",
+      "category": "finance",
+      "motif": "escrow",
+      "code": "ME",
+      "logo": "/miniapps/milestone-escrow/logo.jpg",
+      "banner": "/miniapps/milestone-escrow/banner.jpg",
+      "svg": "/miniapps/milestone-escrow/logo.svg"
+    },
+    {
+      "slug": "miniapp-factory",
+      "name": "MiniApp Factory",
+      "category": "tools",
+      "motif": "factory",
+      "code": "MF",
+      "logo": "/miniapps/miniapp-factory/logo.jpg",
+      "banner": "/miniapps/miniapp-factory/banner.jpg",
+      "svg": "/miniapps/miniapp-factory/logo.svg"
+    },
+    {
+      "slug": "neo-convert",
+      "name": "Neo Convert",
+      "category": "tools",
+      "motif": "convert",
+      "code": "NC",
+      "logo": "/miniapps/neo-convert/logo.jpg",
+      "banner": "/miniapps/neo-convert/banner.jpg",
+      "svg": "/miniapps/neo-convert/logo.svg"
+    },
+    {
+      "slug": "neo-multisig",
+      "name": "Neo Multisig",
+      "category": "tools",
+      "motif": "multisig",
+      "code": "NM",
+      "logo": "/miniapps/neo-multisig/logo.jpg",
+      "banner": "/miniapps/neo-multisig/banner.jpg",
+      "svg": "/miniapps/neo-multisig/logo.svg"
+    },
+    {
+      "slug": "neo-ns",
+      "name": "Neo Name Service",
+      "category": "tools",
+      "motif": "domain",
+      "code": "N.",
+      "logo": "/miniapps/neo-ns/logo.jpg",
+      "banner": "/miniapps/neo-ns/banner.jpg",
+      "svg": "/miniapps/neo-ns/logo.svg"
+    },
+    {
+      "slug": "neo-pay",
+      "name": "NeoPay",
+      "category": "finance",
+      "motif": "pay",
+      "code": "NP",
+      "logo": "/miniapps/neo-pay/logo.jpg",
+      "banner": "/miniapps/neo-pay/banner.jpg",
+      "svg": "/miniapps/neo-pay/logo.svg"
+    },
+    {
+      "slug": "neo-pay-shared-example",
+      "name": "NeoPay Shared Runtime",
+      "category": "finance",
+      "motif": "pay",
+      "code": "N+",
+      "logo": "/miniapps/neo-pay-shared-example/logo.jpg",
+      "banner": "/miniapps/neo-pay-shared-example/banner.jpg",
+      "svg": "/miniapps/neo-pay-shared-example/logo.svg"
+    },
+    {
+      "slug": "neo-sign-anything",
+      "name": "Neo Sign Anything",
+      "category": "tools",
+      "motif": "sign",
+      "code": "SA",
+      "logo": "/miniapps/neo-sign-anything/logo.jpg",
+      "banner": "/miniapps/neo-sign-anything/banner.jpg",
+      "svg": "/miniapps/neo-sign-anything/logo.svg"
+    },
+    {
+      "slug": "neo-swap",
+      "name": "Neo Swap",
+      "category": "finance",
+      "motif": "swap",
+      "code": "NS",
+      "logo": "/miniapps/neo-swap/logo.jpg",
+      "banner": "/miniapps/neo-swap/banner.jpg",
+      "svg": "/miniapps/neo-swap/logo.svg"
+    },
+    {
+      "slug": "neo-treasury",
+      "name": "Neo Treasury",
+      "category": "tools",
+      "motif": "treasury",
+      "code": "NT",
+      "logo": "/miniapps/neo-treasury/logo.jpg",
+      "banner": "/miniapps/neo-treasury/banner.jpg",
+      "svg": "/miniapps/neo-treasury/logo.svg"
+    },
+    {
+      "slug": "neo-x-bridge",
+      "name": "Neo X Bridge",
+      "category": "defi",
+      "motif": "bridge",
+      "code": "NX",
+      "logo": "/miniapps/neo-x-bridge/logo.jpg",
+      "banner": "/miniapps/neo-x-bridge/banner.jpg",
+      "svg": "/miniapps/neo-x-bridge/logo.svg"
+    },
+    {
+      "slug": "neodid-passport",
+      "name": "NeoDID Passport",
+      "category": "tools",
+      "motif": "identity",
+      "code": "ID",
+      "logo": "/miniapps/neodid-passport/logo.jpg",
+      "banner": "/miniapps/neodid-passport/banner.jpg",
+      "svg": "/miniapps/neodid-passport/logo.svg"
+    },
+    {
+      "slug": "nft-factory",
+      "name": "NFT Factory",
+      "category": "tools",
+      "motif": "nft",
+      "code": "NF",
+      "logo": "/miniapps/nft-factory/logo.jpg",
+      "banner": "/miniapps/nft-factory/banner.jpg",
+      "svg": "/miniapps/nft-factory/logo.svg"
+    },
+    {
+      "slug": "on-chain-tarot",
+      "name": "On-chain Tarot",
+      "category": "games",
+      "motif": "tarot",
+      "code": "OT",
+      "logo": "/miniapps/on-chain-tarot/logo.jpg",
+      "banner": "/miniapps/on-chain-tarot/banner.jpg",
+      "svg": "/miniapps/on-chain-tarot/logo.svg"
+    },
+    {
+      "slug": "oracle-compute-lab",
+      "name": "Oracle Compute Lab",
+      "category": "tools",
+      "motif": "compute",
+      "code": "OC",
+      "logo": "/miniapps/oracle-compute-lab/logo.jpg",
+      "banner": "/miniapps/oracle-compute-lab/banner.jpg",
+      "svg": "/miniapps/oracle-compute-lab/logo.svg"
+    },
+    {
+      "slug": "oracle-http-console",
+      "name": "Oracle HTTP Console",
+      "category": "tools",
+      "motif": "network",
+      "code": "OH",
+      "logo": "/miniapps/oracle-http-console/logo.jpg",
+      "banner": "/miniapps/oracle-http-console/banner.jpg",
+      "svg": "/miniapps/oracle-http-console/logo.svg"
+    },
+    {
+      "slug": "oracle-neodid-console",
+      "name": "Oracle NeoDID Console",
+      "category": "tools",
+      "motif": "identity",
+      "code": "OI",
+      "logo": "/miniapps/oracle-neodid-console/logo.jpg",
+      "banner": "/miniapps/oracle-neodid-console/banner.jpg",
+      "svg": "/miniapps/oracle-neodid-console/logo.svg"
+    },
+    {
+      "slug": "oracle-price-console",
+      "name": "Oracle Price Console",
+      "category": "tools",
+      "motif": "price",
+      "code": "OP",
+      "logo": "/miniapps/oracle-price-console/logo.jpg",
+      "banner": "/miniapps/oracle-price-console/banner.jpg",
+      "svg": "/miniapps/oracle-price-console/logo.svg"
+    },
+    {
+      "slug": "oracle-seal-console",
+      "name": "Oracle Seal Console",
+      "category": "tools",
+      "motif": "seal",
+      "code": "OS",
+      "logo": "/miniapps/oracle-seal-console/logo.jpg",
+      "banner": "/miniapps/oracle-seal-console/banner.jpg",
+      "svg": "/miniapps/oracle-seal-console/logo.svg"
+    },
+    {
+      "slug": "oracle-vrf-console",
+      "name": "Oracle VRF Console",
+      "category": "tools",
+      "motif": "random",
+      "code": "OV",
+      "logo": "/miniapps/oracle-vrf-console/logo.jpg",
+      "banner": "/miniapps/oracle-vrf-console/banner.jpg",
+      "svg": "/miniapps/oracle-vrf-console/logo.svg"
+    },
+    {
+      "slug": "private-transfer",
+      "name": "Confidential Transfer",
+      "category": "defi",
+      "motif": "private",
+      "code": "PT",
+      "logo": "/miniapps/private-transfer/logo.jpg",
+      "banner": "/miniapps/private-transfer/banner.jpg",
+      "svg": "/miniapps/private-transfer/logo.svg"
+    },
+    {
+      "slug": "profitanchor",
+      "name": "ProfitAnchor",
+      "category": "defi",
+      "motif": "anchor",
+      "code": "PA",
+      "logo": "/miniapps/profitanchor/logo.jpg",
+      "banner": "/miniapps/profitanchor/banner.jpg",
+      "svg": "/miniapps/profitanchor/logo.svg"
+    },
+    {
+      "slug": "profitanchor-admin",
+      "name": "ProfitAnchor Admin",
+      "category": "utility",
+      "motif": "anchor",
+      "code": "P+",
+      "logo": "/miniapps/profitanchor-admin/logo.jpg",
+      "banner": "/miniapps/profitanchor-admin/banner.jpg",
+      "svg": "/miniapps/profitanchor-admin/logo.svg"
+    },
+    {
+      "slug": "quadratic-funding",
+      "name": "Quadratic Funding",
+      "category": "finance",
+      "motif": "funding",
+      "code": "QF",
+      "logo": "/miniapps/quadratic-funding/logo.jpg",
+      "banner": "/miniapps/quadratic-funding/banner.jpg",
+      "svg": "/miniapps/quadratic-funding/logo.svg"
+    },
+    {
+      "slug": "recovery-guardian",
+      "name": "Recovery Guardian",
+      "category": "utility",
+      "motif": "guardian",
+      "code": "RG",
+      "logo": "/miniapps/recovery-guardian/logo.jpg",
+      "banner": "/miniapps/recovery-guardian/banner.jpg",
+      "svg": "/miniapps/recovery-guardian/logo.svg"
+    },
+    {
+      "slug": "red-envelope",
+      "name": "Red Envelope",
+      "category": "social",
+      "motif": "envelope",
+      "code": "RE",
+      "logo": "/miniapps/red-envelope/logo.jpg",
+      "banner": "/miniapps/red-envelope/banner.jpg",
+      "svg": "/miniapps/red-envelope/logo.svg"
+    },
+    {
+      "slug": "self-loan",
+      "name": "SelfLoan",
+      "category": "finance",
+      "motif": "loan",
+      "code": "SL",
+      "logo": "/miniapps/self-loan/logo.jpg",
+      "banner": "/miniapps/self-loan/banner.jpg",
+      "svg": "/miniapps/self-loan/logo.svg"
+    },
+    {
+      "slug": "soulbound-certificate",
+      "name": "Soulbound Certificate",
+      "category": "social",
+      "motif": "certificate",
+      "code": "SC",
+      "logo": "/miniapps/soulbound-certificate/logo.jpg",
+      "banner": "/miniapps/soulbound-certificate/banner.jpg",
+      "svg": "/miniapps/soulbound-certificate/logo.svg"
+    },
+    {
+      "slug": "time-capsule",
+      "name": "Time Capsule",
+      "category": "social",
+      "motif": "capsule",
+      "code": "TC",
+      "logo": "/miniapps/time-capsule/logo.jpg",
+      "banner": "/miniapps/time-capsule/banner.jpg",
+      "svg": "/miniapps/time-capsule/logo.svg"
+    },
+    {
+      "slug": "timestamp-proof",
+      "name": "Timestamp Proof",
+      "category": "tools",
+      "motif": "timestamp",
+      "code": "TP",
+      "logo": "/miniapps/timestamp-proof/logo.jpg",
+      "banner": "/miniapps/timestamp-proof/banner.jpg",
+      "svg": "/miniapps/timestamp-proof/logo.svg"
+    },
+    {
+      "slug": "trustanchor",
+      "name": "TrustAnchor",
+      "category": "governance",
+      "motif": "anchor",
+      "code": "TA",
+      "logo": "/miniapps/trustanchor/logo.jpg",
+      "banner": "/miniapps/trustanchor/banner.jpg",
+      "svg": "/miniapps/trustanchor/logo.svg"
+    },
+    {
+      "slug": "trustanchor-admin",
+      "name": "TrustAnchor Admin",
+      "category": "utility",
+      "motif": "anchor",
+      "code": "T+",
+      "logo": "/miniapps/trustanchor-admin/logo.jpg",
+      "banner": "/miniapps/trustanchor-admin/banner.jpg",
+      "svg": "/miniapps/trustanchor-admin/logo.svg"
+    },
+    {
+      "slug": "unbreakable-vault",
+      "name": "Unbreakable Vault",
+      "category": "tools",
+      "motif": "vault",
+      "code": "UV",
+      "logo": "/miniapps/unbreakable-vault/logo.jpg",
+      "banner": "/miniapps/unbreakable-vault/banner.jpg",
+      "svg": "/miniapps/unbreakable-vault/logo.svg"
+    },
+    {
+      "slug": "wallet-health",
+      "name": "Wallet Health",
+      "category": "tools",
+      "motif": "wallet",
+      "code": "WH",
+      "logo": "/miniapps/wallet-health/logo.jpg",
+      "banner": "/miniapps/wallet-health/banner.jpg",
+      "svg": "/miniapps/wallet-health/logo.svg"
+    }
+  ]
+}

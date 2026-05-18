@@ -77,7 +77,7 @@ export interface NeoDapiProvider<
   }>;
 }
 
-export type Nep21ProviderPreference = "any" | "onegate";
+export type Nep21ProviderPreference = "any" | "onegate" | "neoline";
 
 export type Nep21Window = Window & {
   NEP21Provider?: unknown;
@@ -161,7 +161,13 @@ function providerMatchesPreference(
 ): boolean {
   if (preference === "any") return true;
   const name = String(provider.name ?? key ?? "").toLowerCase();
-  return win.OneGateDapiProvider === provider || name.includes("onegate");
+  if (preference === "onegate") {
+    return win.OneGateDapiProvider === provider || name.includes("onegate");
+  }
+  if (preference === "neoline") {
+    return name.includes("neoline") || name.includes("neo line");
+  }
+  return false;
 }
 
 function findProviderCandidate(

@@ -7,8 +7,8 @@ export function normalizeSocialNetworkScope(value: unknown): SocialNetworkScope 
   return null;
 }
 
-export function getSocialNetworkScope(queryValue: unknown, bodyValue?: unknown): SocialNetworkScope {
-  return normalizeSocialNetworkScope(bodyValue) || normalizeSocialNetworkScope(queryValue) || "testnet";
+export function getSocialNetworkScope(queryValue: unknown, bodyValue?: unknown): SocialNetworkScope | null {
+  return normalizeSocialNetworkScope(bodyValue) || normalizeSocialNetworkScope(queryValue);
 }
 
 export function scopedSocialAppId(appId: string, network: SocialNetworkScope): string {

@@ -31,6 +31,12 @@ export default async function handler(
   const appIdFilter =
     canonicalizeMiniAppId((req.query.app_id as string | undefined) || "") ||
     null;
+  const networkParam = String(req.query.network || "")
+    .trim()
+    .toLowerCase();
+  if (networkParam !== "mainnet" && networkParam !== "testnet") {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
 
   const supabase = getServerSupabaseClient({ requireServiceRole: true });
   if (!supabase) {
@@ -41,6 +47,7 @@ export default async function handler(
   try {
     const { data, error } = await supabase.rpc("miniapp_stats_aggregate", {
       p_app_id: appIdFilter,
+      p_network: networkParam,
     });
 
     if (error) {

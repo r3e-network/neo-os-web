@@ -1,6 +1,7 @@
 import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
+import { normalizeNeoNetwork } from "@/lib/neo-network";
 import { relaxedLimit } from "@/lib/rate-limit";
 
 type Network = "mainnet" | "testnet";
@@ -118,7 +119,10 @@ export default async function handler(
   }
   if (relaxedLimit(req, res)) return;
 
-  const network: Network = req.query.network === "mainnet" ? "mainnet" : "testnet";
+  const network = normalizeNeoNetwork(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
 
   try {

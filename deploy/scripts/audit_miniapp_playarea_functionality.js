@@ -13,6 +13,7 @@ const REGISTRY_PATH = path.join(
   REPO_ROOT,
   "platform/host-app/components/playarea/PlayAreaRegistry.tsx",
 );
+const PLAYAREA_COMPONENTS_ROOT = path.dirname(REGISTRY_PATH);
 const CONSOLE_TOOL_PATH = path.join(
   APPS_ROOT,
   "shared/components-react/ConsoleToolPanel.tsx",
@@ -49,29 +50,43 @@ function walkFiles(dir) {
 
 function parseRegistryKinds() {
   const registry = readText(REGISTRY_PATH);
+  const playareaSource = walkFiles(PLAYAREA_COMPONENTS_ROOT)
+    .filter((filePath) => /PlayArea.*\.(tsx?|jsx?)$/.test(filePath))
+    .map(readText)
+    .join("\n");
   const customEntries = [
     ...registry.matchAll(/"(miniapp-[^"]+)":\s*(\w+PlayArea)/g),
   ].map((match) => [match[1], match[2]]);
   const customIds = new Set(customEntries.map(([appId]) => appId));
   const customComponents = new Map(customEntries);
-  const profiledSection = sliceBetween(
-    registry,
-    "const PROFILED_PLAYAREAS",
-    "export function hasNativePlayArea",
-  );
+  const profiledSection = [
+    readText(path.join(PLAYAREA_COMPONENTS_ROOT, "PlayAreaProfilesAa.tsx")),
+    readText(
+      path.join(PLAYAREA_COMPONENTS_ROOT, "PlayAreaProfilesBusiness.tsx"),
+    ),
+  ].join("\n");
   const profiledIds = new Set(
     [...profiledSection.matchAll(/"(miniapp-[^"]+)":\s*\{/g)].map(
       (match) => match[1],
     ),
   );
 
-  return { customIds, customComponents, profiledIds, registry };
+  return {
+    customIds,
+    customComponents,
+    profiledIds,
+    registry,
+    playareaSource,
+    profiledSection,
+  };
 }
 
 function sliceBetween(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
   if (start === -1) return "";
-  const end = endMarker ? source.indexOf(endMarker, start + startMarker.length) : -1;
+  const end = endMarker
+    ? source.indexOf(endMarker, start + startMarker.length)
+    : -1;
   return source.slice(start, end === -1 ? source.length : end);
 }
 
@@ -127,33 +142,29 @@ function profileEntrySource(appId, profiledSection) {
 }
 
 function hostSourceForApp(appId, kind, kinds) {
-  const registry = kinds.registry;
+  const playareaSource = kinds.playareaSource || kinds.registry;
   const pieces = [];
-  const profiledSection = sliceBetween(
-    registry,
-    "const PROFILED_PLAYAREAS",
-    "export function hasNativePlayArea",
-  );
+  const profiledSection = kinds.profiledSection || "";
 
   if (kind === "custom") {
     const componentName = kinds.customComponents.get(appId);
     const componentSource = componentName
-      ? extractFunctionSource(registry, componentName)
+      ? extractFunctionSource(playareaSource, componentName)
       : "";
     pieces.push(componentSource);
 
     for (const helperName of ["AnchorPlayArea", "AnchorAdminPlayArea"]) {
       if (componentSource.includes(`<${helperName}`)) {
-        pieces.push(extractFunctionSource(registry, helperName));
+        pieces.push(extractFunctionSource(playareaSource, helperName));
       }
     }
   } else if (kind === "oracle") {
-    pieces.push(extractFunctionSource(registry, "OracleConsolePlayArea"));
+    pieces.push(extractFunctionSource(playareaSource, "OracleConsolePlayArea"));
   } else if (kind === "profiled") {
-    pieces.push(extractFunctionSource(registry, "ProfiledPlayArea"));
+    pieces.push(extractFunctionSource(playareaSource, "ProfiledPlayArea"));
     pieces.push(profileEntrySource(appId, profiledSection));
   } else {
-    pieces.push(extractFunctionSource(registry, "GenericPlayArea"));
+    pieces.push(extractFunctionSource(playareaSource, "GenericPlayArea"));
   }
 
   return pieces.filter(Boolean).join("\n");
@@ -197,7 +208,9 @@ function sourceForApp(slug) {
   let source = sourceFiles.map(readText).join("\n");
   const mainSource = readText(path.join(srcRoot, "main.tsx"));
   if (mainSource.includes("createFactoryPlayArea")) {
-    source += "\n" + readText(path.join(APPS_ROOT, "shared/factory/FactoryPlayArea.tsx"));
+    source +=
+      "\n" +
+      readText(path.join(APPS_ROOT, "shared/factory/FactoryPlayArea.tsx"));
   }
   if (source.includes("ConsoleToolPanel")) {
     source += "\n" + readText(CONSOLE_TOOL_PATH);
@@ -224,7 +237,9 @@ function countManifestOperations(manifest) {
         const operations = module?.operations;
         return (
           count +
-          (operations && typeof operations === "object" && !Array.isArray(operations)
+          (operations &&
+          typeof operations === "object" &&
+          !Array.isArray(operations)
             ? Object.keys(operations).length
             : 0)
         );
@@ -254,7 +269,9 @@ function auditApp(app, kinds) {
     mainSource.includes("createFactoryPlayArea") ||
     (mainSource.includes("defineMiniApp") && source.includes("PlayArea"));
   const builtIndexPath = builtIndexPathForApp(app);
-  const hasBuiltIndex = Boolean(builtIndexPath && fs.existsSync(builtIndexPath));
+  const hasBuiltIndex = Boolean(
+    builtIndexPath && fs.existsSync(builtIndexPath),
+  );
   const buttonCount = countMatches(combinedSource, /<NeoButton|<button/g);
   const inputCount = countMatches(
     combinedSource,
@@ -293,18 +310,31 @@ function auditApp(app, kinds) {
   if ((kind === "profiled" || kind === "generic") && !hasStandaloneSurface) {
     gaps.push("profiled host surface has no standalone dApp to embed");
   }
-  if ((kind === "custom" || kind === "oracle" || kind === "profiled") && !hostSource.trim()) {
+  if (
+    (kind === "custom" || kind === "oracle" || kind === "profiled") &&
+    !hostSource.trim()
+  ) {
     gaps.push("native host playarea source not found");
   }
   if (
     kind !== "oracle" &&
-    buttonCount + inputCount + surfaceControlCount + actionCount + manifestOperationCount === 0
+    buttonCount +
+      inputCount +
+      surfaceControlCount +
+      actionCount +
+      manifestOperationCount ===
+      0
   ) {
     gaps.push("no detected user controls or app actions");
   }
   if (
     kind === "oracle" &&
-    buttonCount + inputCount + surfaceControlCount + actionCount + manifestOperationCount === 0
+    buttonCount +
+      inputCount +
+      surfaceControlCount +
+      actionCount +
+      manifestOperationCount ===
+      0
   ) {
     gaps.push("oracle console has no request-builder controls");
   }
@@ -317,10 +347,18 @@ function auditApp(app, kinds) {
   ) {
     gaps.push("governance app lacks proposal/vote flow");
   }
-  if (/coming soon|not implemented|status only|status-only|mock only/i.test(sourceText)) {
+  if (
+    /coming soon|not implemented|status only|status-only|mock only/i.test(
+      sourceText,
+    )
+  ) {
     gaps.push("source contains placeholder-only language");
   }
-  if (/\b[Ss]tage\s+|staged status preview|Ready to submit|Local preview/.test(sourceText)) {
+  if (
+    /\b[Ss]tage\s+|staged status preview|Ready to submit|Local preview/.test(
+      sourceText,
+    )
+  ) {
     gaps.push("source contains staging/status-only user-facing language");
   }
 
@@ -386,15 +424,19 @@ function workflowEvidenceForApp({
   const evidence = [];
   if (hasBuiltIndex) evidence.push("built-static-dapp");
   if (hasStandaloneSurface) evidence.push("standalone-playarea");
-  if (mainSource.includes("createFactoryPlayArea")) evidence.push("shared-factory-workflow");
+  if (mainSource.includes("createFactoryPlayArea"))
+    evidence.push("shared-factory-workflow");
   if (source.includes("ConsoleToolPanel")) evidence.push("console-tool-form");
-  if (source.includes("MiniAppOperationPanel")) evidence.push("operation-panel-form");
+  if (source.includes("MiniAppOperationPanel"))
+    evidence.push("operation-panel-form");
   if (source.includes("registerAction") || source.includes("registerActions")) {
     evidence.push("registered-actions");
   }
-  if (hostSource.includes("EmbeddedDappSurface")) evidence.push("host-embeds-real-dapp");
+  if (hostSource.includes("EmbeddedDappSurface"))
+    evidence.push("host-embeds-real-dapp");
   if (hostSource.includes("ActionBoard")) evidence.push("native-action-board");
-  if (hostSource.includes("fetch(") || source.includes("fetch(")) evidence.push("live-api-call");
+  if (hostSource.includes("fetch(") || source.includes("fetch("))
+    evidence.push("live-api-call");
   if (hasFileUpload) evidence.push("file-upload");
   if (manifestOperationCount > 0) evidence.push("manifest-operations");
   if (actionCount > 0) evidence.push("action-handlers");

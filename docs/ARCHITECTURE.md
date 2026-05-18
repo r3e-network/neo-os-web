@@ -6,7 +6,7 @@ contract model shipped in March 2026.
 
 The key boundary is simple:
 
-- this repo owns the MiniApp platform surface, including **10 OS service contracts** and **45 edge proxy functions**
+- this repo owns the MiniApp platform surface, including **4 partial platform domain contracts** and **41 edge proxy functions**
 - `neo-morpheus-oracle` owns Oracle / DataFeed / VRF / Compute / Paymaster
 - `neo-abstract-account` owns AA core contracts, verifiers, relay UX, and AA runtime
 
@@ -18,10 +18,10 @@ This repo owns:
 
 - `platform/host-app`: end-user host shell that injects `window.MiniAppSDK`
 - `platform/admin-console`: operational/admin UX
-- `platform/edge/functions`: thin gateways for auth, wallet binding, policy enforcement, forwarding to external services, **and 45 OS service Binder proxy functions** (the `os-*` edge functions)
-- `contracts/os-*`: **10 OS system service contracts** (StorageService, PaymentService, GameService, EscrowService, NFTService, ScriptEngine, BadgeService, LeaderboardService, CheckinService, VestingService)
+- `platform/edge/functions`: thin gateways for auth, wallet binding, policy enforcement, forwarding to external services, **and 41 OS service Binder proxy functions** (the `os-*` edge functions)
+- `contracts/platform/Platform*`: **4 partial platform domain contracts** split by anchor, DeFi, game, and social workflows
 - `contracts/`: platform infrastructure contracts (AppRegistry, Governance, PriceFeed, RandomnessLog, AutomationAnchor, PauseRegistry)
-- `apps/shared/services/os/`: **10 typed frontend OS proxy classes** with `EdgeClient` transport
+- `apps/shared/services/os/`: **9 typed frontend OS proxy classes** with `EdgeClient` transport
 - `apps/`: shared MiniApp UI/composable/template code plus example MiniApps (all using `defineMiniApp()`)
 - `deploy/scripts`: deployment, validation, and testnet workflow helpers
 
@@ -53,7 +53,7 @@ PlatformContext / PlatformServices
   ▼
 Supabase Edge + host-side proxy routes
   ┌──────────────────────────────────────────────────┐
-  │  45 OS Binder edge functions (os-storage-get,    │
+  │  41 OS Binder edge functions (os-storage-get,    │
   │  os-payment-deposit, os-game-bet, etc.)          │
   │  + existing auth / wallet binding / rate limit   │
   │  + API keys / scopes / usage caps                │
@@ -61,24 +61,21 @@ Supabase Edge + host-side proxy routes
             │                                │
             ▼                                ▼
   ┌─────────────────────┐    ┌───────────────────────────────┐
-  │  OS Service Contracts│    │  neo-morpheus-oracle           │
-  │  (10 on-chain)       │    │  oracle / datafeed / vrf /     │
-  │  StorageService      │    │  compute / paymaster runtime   │
-  │  PaymentService      │    └───────────────────────────────┘
-  │  GameService         │                   │
-  │  EscrowService       │    ┌───────────────────────────────┐
-  │  NFTService          │    │  neo-abstract-account          │
-  │  ScriptEngine        │    │  AA core / verifiers / relay   │
-  │  BadgeService        │    └───────────────────────────────┘
-  │  LeaderboardService  │                   │
-  │  CheckinService      │                   │
-  │  VestingService      │                   │
+  │  Platform Domain     │    │  neo-morpheus-oracle           │
+  │  Contracts           │    │  oracle / datafeed / vrf /     │
+  │  PlatformAnchor      │    │  compute / paymaster runtime   │
+  │  PlatformDeFi        │    └───────────────────────────────┘
+  │  PlatformGame        │                   │
+  │  PlatformSocial      │    ┌───────────────────────────────┐
+  │                       │    │  neo-abstract-account          │
+  │                       │    │  AA core / verifiers / relay   │
+  │                       │    └───────────────────────────────┘
   └─────────────────────┘                    │
             │                                │
             └────────────────┬───────────────┘
                              ▼
                           Neo N3
-  - OS service contracts (10)
+  - platform domain contracts
   - Platform infrastructure contracts (AppRegistry, Governance, etc.)
   - Morpheus Oracle / DataFeed
   - Abstract Account + verifiers
@@ -124,7 +121,7 @@ The edge layer is the platform policy boundary. It handles:
 - per-function scopes
 - rate limiting
 
-The **45 OS Binder edge functions** (`os-storage-get`, `os-payment-deposit`,
+The **41 OS Binder edge functions** (`os-storage-get`, `os-payment-deposit`,
 `os-game-bet`, etc.) follow a standardized pattern:
 1. Authenticate via Supabase JWT
 2. Validate app permission for the target OS service
@@ -162,32 +159,25 @@ to reach that stack.
 This repo exposes a host-side relay proxy and shared AA config, but the AA
 runtime remains external.
 
-### 5. OS Service Contracts (On-Chain Trust Boundary)
+### 5. Platform Domain Contracts (On-Chain Trust Boundary)
 
-The 10 OS service contracts enforce on-chain access control:
+The platform domain contracts enforce on-chain access control while keeping C# files split by workflow:
 
 - **appId scoping**: all data access is namespaced by `appId` from AppRegistry
-- **ScriptEngine sandboxing**: registered scripts can only read/write their own
-  app's StorageService data, cannot call external contracts or transfer assets
-- **PaymentService**: enforces per-app balance pools with platform + developer fee splits
+- **partial-file boundaries**: anchor, DeFi, game, and social logic live in separate files per contract
+- **payment paths**: enforce per-app balance pools with platform + developer fee splits
 - **PauseRegistry**: provides emergency stop for all OS services
 
 ## On-Chain Components Owned Here
 
-### OS System Service Contracts (MiniApp-OS v2)
+### Platform Domain Contracts (MiniApp-OS v2)
 
 | Contract | Directory | Purpose |
 | --- | --- | --- |
-| StorageService | `contracts/os-storage/` | On-chain KV storage scoped by appId |
-| PaymentService | `contracts/os-payment/` | Deposits, withdrawals, transfers, fee management |
-| GameService | `contracts/os-game/` | Betting pools, RNG integration, settlement |
-| EscrowService | `contracts/os-escrow/` | Lock/release/refund with milestone tracking |
-| NFTService | `contracts/os-nft/` | Mint/transfer/burn with soulbound and ticket modes |
-| ScriptEngine | `contracts/os-script/` | On-chain NeoVM bytecode execution at hook points |
-| BadgeService | `contracts/os-badge/` | Achievement badges scoped by appId |
-| LeaderboardService | `contracts/os-leaderboard/` | Ranked scores scoped by appId |
-| CheckinService | `contracts/os-checkin/` | Daily check-in streaks and rewards |
-| VestingService | `contracts/os-vesting/` | Token vesting schedules scoped by appId |
+| PlatformAnchor | `contracts/platform/PlatformAnchor/` | Governance anchors, agent staking, staking queries |
+| PlatformDeFi | `contracts/platform/PlatformDeFi/` | Lending, flashloan, treasury credit, capsule flows |
+| PlatformGame | `contracts/platform/PlatformGame/` | Coin flip, dice, gacha, countdown, RNG callbacks |
+| PlatformSocial | `contracts/platform/PlatformSocial/` | Red envelope, trust, vault, and social payment flows |
 
 ### Platform Infrastructure Contracts
 

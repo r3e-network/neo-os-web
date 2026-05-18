@@ -16,7 +16,7 @@ test("live harness coverage classifies representative active miniapps", () => {
   assert.equal(byId.get("miniapp-custom-anchor")?.coverage, "shared-runtime-flow");
   assert.equal(byId.get("miniapp-gas-lucky-pool")?.coverage, "server-backed-flow");
   assert.equal(byId.get("miniapp-asset-factory")?.coverage, "stateless-ui-flow");
-  assert.equal(byId.get("miniapp-recovery-guardian")?.coverage, "blocked-no-testnet-contract");
+  assert.equal(byId.get("miniapp-recovery-guardian")?.coverage, "live-chain-flow");
   assert.equal(byId.get("miniapp-aa-account-lab")?.coverage, "live-chain-flow");
   assert.equal(byId.get("miniapp-aa-market-hub")?.coverage, "live-chain-flow");
   assert.equal(byId.get("miniapp-aa-permissions-lab")?.coverage, "live-chain-flow");
@@ -31,5 +31,5 @@ test("live harness coverage summary exposes fix lists", () => {
 
   assert.equal(summary.totalActive, 60);
   assert.deepEqual(summary.missingLiveChainHarness, []);
-  assert.ok(summary.blockedNoTestnetContract.includes("miniapp-recovery-guardian"));
+  assert.deepEqual(summary.blockedNoTestnetContract, []);
 });

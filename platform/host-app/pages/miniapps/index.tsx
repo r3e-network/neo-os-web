@@ -77,6 +77,31 @@ const defaultAccent = {
   text: "text-gray-600",
 };
 
+type PageNetwork = "mainnet" | "testnet";
+
+function normalizePageNetwork(value: unknown): PageNetwork | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const text = String(raw ?? "").trim().toLowerCase();
+  if (text === "mainnet" || text === "neo-n3-mainnet") return "mainnet";
+  if (text === "testnet" || text === "neo-n3-testnet") return "testnet";
+  return null;
+}
+
+function resolvePageNetwork(
+  asPath: string | undefined,
+  queryNetwork: string | string[] | undefined,
+): PageNetwork {
+  const fromQuery = normalizePageNetwork(queryNetwork);
+  if (fromQuery) return fromQuery;
+
+  const safePath = String(asPath ?? "");
+  const queryString = safePath.includes("?") ? safePath.split("?")[1] : "";
+  const fromPath = normalizePageNetwork(
+    new URLSearchParams(queryString).get("network"),
+  );
+  return fromPath ?? getRpcNetwork();
+}
+
 function getStatusFilterKey(app: MiniAppInfo, targetNetwork: string): string {
   const availability = getMiniAppCatalogAvailability(app, targetNetwork);
   return availability.tone === "unsupported"
@@ -128,7 +153,7 @@ function MiniAppListingCard({
 
   return (
     <Link
-      href={`/miniapps/${app.app_id}`}
+      href={`/miniapps/${encodeURIComponent(app.app_id)}?network=${targetNetwork}`}
       className={`group relative overflow-hidden rounded-[22px] border border-gray-200 bg-white shadow-sm shadow-gray-950/5 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/10 ${large ? "col-span-full" : ""}`}
     >
       <div
@@ -270,7 +295,13 @@ export default function MiniAppsPage({
   const [loading, setLoading] = useState(!hasInitialApps);
   const [fetchError, setFetchError] = useState(false);
   const mountedRef = useRef(true);
-  const targetNetwork = getRpcNetwork();
+  const [targetNetwork, setTargetNetwork] = useState<PageNetwork>(() =>
+    getRpcNetwork(),
+  );
+
+  useEffect(() => {
+    setTargetNetwork(resolvePageNetwork(router.asPath, router.query.network));
+  }, [router.asPath, router.query.network]);
 
   useEffect(() => {
     mountedRef.current = true;

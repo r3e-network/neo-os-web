@@ -84,7 +84,7 @@ export async function handler(req: Request): Promise<Response> {
     p_daily_limit: DAILY_LIMIT,
   });
   if (bumpErr) {
-    const msg = bumpErr instanceof Error ? bumpErr.message : (bumpErr?.message || "");
+    const msg = bumpErr instanceof Error ? bumpErr.message : String(bumpErr || "");
     if (msg.includes("quota") || msg.includes("limit") || msg.includes("exceeded")) {
       return error(400, "exceeds daily quota", "QUOTA_EXCEEDED", req);
     }

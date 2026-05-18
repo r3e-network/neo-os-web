@@ -4,6 +4,12 @@ import { error, json } from "../_shared/response.ts";
 import { supabaseServiceClient } from "../_shared/supabase.ts";
 import { mustGetEnv } from "../_shared/env.ts";
 
+function stringField(row: unknown, key: string): string | undefined {
+  if (!row || typeof row !== "object") return undefined;
+  const value = (row as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
 function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
   if (a.byteLength !== b.byteLength) return false;
   let diff = 0;
@@ -57,8 +63,9 @@ export async function handler(req: Request): Promise<Response> {
   if (existingErr) {
     console.warn("[auth-social-sync] linked_identities lookup failed:", existingErr.message);
   }
-  if (existing?.user_id) {
-    return json({ user_id: existing.user_id, is_new: false }, {}, req);
+  const existingUserId = stringField(existing, "user_id");
+  if (existingUserId) {
+    return json({ user_id: existingUserId, is_new: false }, {}, req);
   }
 
   // Check if another identity with same email exists (merge case)
@@ -73,7 +80,8 @@ export async function handler(req: Request): Promise<Response> {
     if (byEmailErr) {
       console.warn("[auth-social-sync] email lookup failed:", byEmailErr.message);
     }
-    if (byEmail?.user_id) accountId = byEmail.user_id;
+    const byEmailUserId = stringField(byEmail, "user_id");
+    if (byEmailUserId) accountId = byEmailUserId;
   }
 
   // Create new user entry if needed
@@ -84,7 +92,8 @@ export async function handler(req: Request): Promise<Response> {
       if (userByEmailErr) {
         console.warn("[auth-social-sync] user email lookup failed:", userByEmailErr.message);
       }
-      if (userByEmail?.id) accountId = userByEmail.id;
+      const existingAccountId = stringField(userByEmail, "id");
+      if (existingAccountId) accountId = existingAccountId;
     }
 
     if (!accountId) {
@@ -97,7 +106,11 @@ export async function handler(req: Request): Promise<Response> {
       if (createErr || !newUser) {
         return error(500, "failed to create account", "DB_ERROR", req);
       }
-      accountId = newUser.id;
+      const newAccountId = stringField(newUser, "id");
+      if (!newAccountId) {
+        return error(500, "failed to create account", "DB_ERROR", req);
+      }
+      accountId = newAccountId;
 
       // Allocate custodial wallet via account pool service (best-effort)
       try {
@@ -132,6 +145,10 @@ export async function handler(req: Request): Promise<Response> {
         console.error("[auth-social-sync] wallet pool error:", err instanceof Error ? err.message : String(err));
       }
     }
+  }
+
+  if (!accountId) {
+    return error(500, "failed to resolve account", "DB_ERROR", req);
   }
 
   // Insert linked_identities

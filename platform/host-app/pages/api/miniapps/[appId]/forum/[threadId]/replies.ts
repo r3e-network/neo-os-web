@@ -87,13 +87,17 @@ async function getReplies(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!isServerSupabaseConfigured()) {
     res.status(200).json({ replies: [] });
     return;
   }
 
   const supabase = getServerSupabaseClient();
-  const network = getSocialNetworkScope(req.query.network);
   const scopedAppId = scopedSocialAppId(appId, network);
   if (!supabase) {
     res.status(200).json({ replies: [] });
@@ -131,6 +135,11 @@ async function createReply(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const network = getSocialNetworkScope(req.query.network, req.body?.network);
+  if (!network) {
+    return apiError.badRequest(res, "network must be mainnet or testnet");
+  }
+
   if (!hasServiceRoleSupabase()) {
     return apiError.configError(
       res,
@@ -151,7 +160,6 @@ async function createReply(
   if (!authedWallet) return;
 
   const { wallet, content } = req.body;
-  const network = getSocialNetworkScope(req.query.network, req.body?.network);
   const scopedAppId = scopedSocialAppId(appId, network);
 
   if (!isValidWalletAddress(wallet)) {

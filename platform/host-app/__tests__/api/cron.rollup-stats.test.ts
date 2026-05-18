@@ -11,6 +11,36 @@ describe("/api/cron/rollup-stats", () => {
     process.env.CRON_SECRET = "cron-secret";
   });
 
+  it("rejects missing network instead of silently using testnet", async () => {
+    jest.doMock("@/lib/server-supabase", () => ({
+      getServerSupabaseClient: jest.fn(() => ({
+        from: () => ({ upsert }),
+      })),
+    }));
+    jest.doMock("../../lib/chain", () => ({
+      getFlagshipApps: jest.fn(() => ({})),
+      getContractStats,
+    }));
+
+    const handler = require("@/pages/api/cron/rollup-stats").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "GET",
+      headers: { authorization: "Bearer cron-secret" },
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(400);
+    expect(JSON.parse(res._getData())).toEqual({
+      error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
+    });
+    expect(getContractStats).not.toHaveBeenCalled();
+  });
+
   it("rolls up the current flagship app set", async () => {
     getContractStats.mockResolvedValue({
       totalValueLocked: "0",
@@ -49,6 +79,7 @@ describe("/api/cron/rollup-stats", () => {
 
     const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
       method: "GET",
+      query: { network: "testnet" },
       headers: { authorization: "Bearer cron-secret" },
     });
 
@@ -56,7 +87,16 @@ describe("/api/cron/rollup-stats", () => {
 
     expect(getContractStats).toHaveBeenCalledTimes(9);
     expect(upsert).toHaveBeenCalledTimes(9);
+    expect(getContractStats).toHaveBeenCalledWith(
+      "0x1021e9e5c17285e706c293a39c525de13100ed92",
+      "testnet",
+      "miniapp-last-survivor",
+    );
     expect(res._getStatusCode()).toBe(200);
+    expect(JSON.parse(res._getData())).toMatchObject({
+      network: "testnet",
+      results: expect.any(Array),
+    });
     expect(JSON.parse(res._getData()).results).toHaveLength(9);
   });
 });

@@ -4,7 +4,7 @@ describe("middleware CSP", () => {
   beforeAll(() => {
     if (typeof globalThis.Request === "undefined") {
       (globalThis as unknown as { Request: typeof Request }).Request =
-        class Request {} as typeof Request;
+        class Request {} as unknown as typeof Request;
     }
     if (typeof globalThis.Response === "undefined") {
       (globalThis as unknown as { Response: typeof Response }).Response =
@@ -21,11 +21,12 @@ describe("middleware CSP", () => {
 
   function withProductionEnv<T>(run: () => T): T {
     const previous = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
+    const env = process.env as Record<string, string | undefined>;
+    env.NODE_ENV = "production";
     try {
       return run();
     } finally {
-      process.env.NODE_ENV = previous;
+      env.NODE_ENV = previous;
     }
   }
 

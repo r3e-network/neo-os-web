@@ -30,10 +30,23 @@ describe("Supabase Client", () => {
     expect(supabase).toBeDefined();
   });
 
-  it("warns when environment variables are missing", () => {
+  it("does not warn by default when environment variables are missing", () => {
     const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
     process.env.NEXT_PUBLIC_SUPABASE_URL = "";
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "";
+
+    jest.resetModules();
+    require("../../lib/supabase");
+
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("warns when missing environment variables are explicitly surfaced", () => {
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "";
+    process.env.NEXT_PUBLIC_SUPABASE_WARN_MISSING = "true";
 
     jest.resetModules();
     require("../../lib/supabase");

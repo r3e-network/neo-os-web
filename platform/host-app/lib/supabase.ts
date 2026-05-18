@@ -11,35 +11,41 @@ import { getPublicSupabaseEnv } from "./supabase-env";
 
 const { url: supabaseUrl, anonKey: supabaseAnonKey } = getPublicSupabaseEnv();
 const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+const shouldWarnMissingConfig =
+  process.env.NEXT_PUBLIC_SUPABASE_WARN_MISSING === "true";
 
-if (!isConfigured && typeof window !== "undefined") {
+if (!isConfigured && shouldWarnMissingConfig && typeof window !== "undefined") {
   logger.warn("Supabase environment variables not configured. Realtime features will be disabled.");
 }
 
-// Build-time fallback URL (never used for actual requests when isConfigured is false)
-const BUILD_FALLBACK_URL = "https://localhost.supabase.co";
-const BUILD_FALLBACK_KEY = "build-time-placeholder";
+function createUnavailableSupabaseClient(): SupabaseClient {
+  return new Proxy(
+    {},
+    {
+      get() {
+        throw new Error("Supabase is not configured. Check isSupabaseConfigured before use.");
+      },
+    },
+  ) as SupabaseClient;
+}
 
 /**
  * Singleton Supabase client instance
  * Configured for realtime subscriptions and public data access
- * Note: When not configured, client is created with fallback values but
- * consumers should check isSupabaseConfigured before making requests.
+ * Consumers should check isSupabaseConfigured before making requests.
  */
-export const supabase: SupabaseClient = createClient(
-  supabaseUrl || BUILD_FALLBACK_URL,
-  supabaseAnonKey || BUILD_FALLBACK_KEY,
-  {
-    auth: {
-      persistSession: false,
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 10,
+export const supabase: SupabaseClient = isConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
       },
-    },
-  },
-);
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    })
+  : createUnavailableSupabaseClient();
 
 /** Whether Supabase is properly configured */
 export const isSupabaseConfigured = isConfigured;

@@ -119,7 +119,7 @@ export async function enforceUsageCaps(input: UsageCapInput): Promise<Response |
   });
 
   if (bumpErr) {
-    const message = bumpErr instanceof Error ? bumpErr.message : (bumpErr?.message ?? "usage cap enforcement failed");
+    const message = bumpErr instanceof Error ? bumpErr.message : String(bumpErr || "usage cap enforcement failed");
     if (message.toLowerCase().includes("cap_exceeded")) {
       return error(403, "usage cap exceeded", "LIMIT_EXCEEDED", input.req);
     }
