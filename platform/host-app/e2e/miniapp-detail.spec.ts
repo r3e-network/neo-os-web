@@ -45,6 +45,20 @@ test.describe("MiniApp Detail", () => {
     await expect(domainBinding).toContainText("redenvelope.miniapp.neo");
   });
 
+  test("should route slug detail pages to the platform shell while preserving standalone dApp index", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/miniapps/oracle-price-console");
+
+    await expect(page.getByRole("heading", { name: "Oracle Price Console", level: 1 })).toBeVisible();
+    await expect(page.getByText("Oracle request state")).toBeVisible();
+
+    const standalone = await request.get("/miniapps/oracle-price-console/index.html");
+    expect(standalone.ok()).toBeTruthy();
+    expect(await standalone.text()).toContain('<div id="app"></div>');
+  });
+
   test("should resolve shared-mode runtime and invoke shared module operations with a mocked NeoLine NEP-21 wallet", async ({
     page,
   }) => {
