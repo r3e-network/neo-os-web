@@ -51,13 +51,13 @@ import type {
   WalletSDK,
   WalletSigner,
 } from "./wallet-sdk-types";
+import type { NeoDapiAccount } from "./nep21-provider";
 
 export type {
   ActiveWalletProvider,
   BatchInvokeParams,
   ContractArg,
   ContractEvent,
-  EligibilityResult,
   EventsListParams,
   EventsListResponse,
   GameState,

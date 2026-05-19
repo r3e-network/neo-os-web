@@ -22,6 +22,14 @@ const copies = [
     from: path.join(appRoot, ".next", "server"),
     to: path.join(standaloneRoot, ".next", "server"),
   },
+  // Next.js versions can emit vendor chunks under `.next/server/vendor-chunks`,
+  // but the webpack runtime may attempt to load them from
+  // `.next/server/chunks/vendor-chunks/*`. Mirror the directory so the
+  // Playwright standalone server never crashes with MODULE_NOT_FOUND.
+  {
+    from: path.join(appRoot, ".next", "server", "vendor-chunks"),
+    to: path.join(standaloneRoot, ".next", "server", "chunks", "vendor-chunks"),
+  },
   {
     from: path.join(appRoot, ".next", "BUILD_ID"),
     to: path.join(standaloneRoot, ".next", "BUILD_ID"),

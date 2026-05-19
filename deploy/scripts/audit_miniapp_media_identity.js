@@ -27,6 +27,15 @@ const ARCHIVED_APP_SLUGS = new Set([
   "neo-burger",
   "neoburger",
 ]);
+const OFFICIAL_SHARED_ICON_GROUPS = [
+  new Set([
+    "candidate-vote",
+    "council-governance",
+    "gov-merc",
+    "secret-vote",
+    "voting",
+  ]),
+];
 const EMOJI_PATTERN = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u;
 
 function readJson(filePath) {
@@ -199,6 +208,7 @@ function validateUniqueAssetContent(records, field, failures) {
   for (const [key, items] of byHash.entries()) {
     const distinctSlugs = new Set(items.map((item) => item.slug));
     if (distinctSlugs.size <= 1) continue;
+    if (isAllowedSharedIconGroup(field, distinctSlugs)) continue;
     failures.push({
       type: "duplicate-media-content",
       field,
@@ -208,6 +218,13 @@ function validateUniqueAssetContent(records, field, failures) {
       message: `${items.length} ${items[0].scope} records share identical ${field} file contents`,
     });
   }
+}
+
+function isAllowedSharedIconGroup(field, slugs) {
+  if (field !== "icon") return false;
+  return OFFICIAL_SHARED_ICON_GROUPS.some((group) =>
+    Array.from(slugs).every((slug) => group.has(slug)),
+  );
 }
 
 function validateNoEmojiInHostMetadata(failures) {

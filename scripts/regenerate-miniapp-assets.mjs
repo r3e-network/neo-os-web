@@ -18,6 +18,15 @@ const hostAssetRoot = path.join(repoRoot, "platform/host-app/public/miniapp-asse
 const definitionRoot = path.join(repoRoot, "platform/host-app/public/miniapp-definitions");
 const appsRoot = path.join(repoRoot, "apps");
 
+const OFFICIAL_BRAND_ASSET_SLUGS = new Set([
+  "candidate-vote",
+  "council-governance",
+  "gas-lucky-pool",
+  "gov-merc",
+  "secret-vote",
+  "voting",
+]);
+
 const cols = 8;
 const rows = 9;
 
@@ -395,6 +404,10 @@ function tinyWrapper(kind, slug) {
 }
 
 async function writeAssets(item, tile, index) {
+  if (OFFICIAL_BRAND_ASSET_SLUGS.has(item.slug)) {
+    return { slug: item.slug, index, category: item.category, officialBrandAsset: true };
+  }
+
   const logo = await sharp(tile)
     .resize(1024, 1024, { fit: "cover" })
     .jpeg({ quality: 88, mozjpeg: true })
@@ -471,6 +484,7 @@ async function writeAssets(item, tile, index) {
 
 function updateAppManifests(inventoryBySlug) {
   for (const item of inventoryBySlug.values()) {
+    if (OFFICIAL_BRAND_ASSET_SLUGS.has(item.slug)) continue;
     const file = path.join(appsRoot, item.slug, "neo-manifest.json");
     const manifest = readJson(file);
     if (!manifest) continue;
@@ -505,6 +519,7 @@ function updateDefinitions(inventoryBySlug) {
     if (!json) continue;
     const slug = inferDefinitionSlug(file, json, inventoryBySlug);
     if (!slug) continue;
+    if (OFFICIAL_BRAND_ASSET_SLUGS.has(slug)) continue;
     json.media = { ...(json.media || {}) };
     json.media.icon = `/miniapp-assets/${slug}/logo.jpg`;
     json.media.banner = `/miniapp-assets/${slug}/banner.jpg`;
@@ -518,6 +533,7 @@ function updateDefinitions(inventoryBySlug) {
 function removeOldPlaceholders(inventoryBySlug) {
   const oldNames = ["icon.png", "logo.png", "banner.png", "icon.svg"];
   for (const slug of inventoryBySlug.keys()) {
+    if (OFFICIAL_BRAND_ASSET_SLUGS.has(slug)) continue;
     const hostDir = path.join(hostAssetRoot, slug);
     if (!fs.existsSync(hostDir)) continue;
     for (const name of oldNames) {

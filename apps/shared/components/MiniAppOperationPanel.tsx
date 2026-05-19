@@ -806,9 +806,12 @@ function formatPreviewAmount(value: unknown): string {
   return amount.toFixed(2).replace(/\.00$/, "");
 }
 
-function splitOperations(operations: OperationDefinition[]) {
+function splitOperations(operations: OperationDefinition[]): {
+  primary: OperationDefinition[];
+  secondary: OperationDefinition[];
+} {
   if (operations.length <= 1) {
-    return { primary: operations, secondary: [] as OperationDefinition[] };
+    return { primary: operations, secondary: [] };
   }
 
   const primary = operations.filter((operation, index) => {
@@ -824,7 +827,7 @@ function splitOperations(operations: OperationDefinition[]) {
       `${operation.key} ${operation.actionMethod ?? ""}`.toLowerCase();
     return /claim|stake|withdraw|open|pay/.test(text);
   });
-  const safePrimary = primary.length > 0 ? primary : [operations[0]];
+  const safePrimary = primary.length > 0 ? primary : [operations[0]!];
   const secondary = operations.filter(
     (operation) => !safePrimary.includes(operation),
   );

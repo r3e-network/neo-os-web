@@ -8,20 +8,23 @@ const socialProviders = [
   {
     id: "google",
     name: "Google",
+    iconSrc: "/brand/oauth-google.svg",
     bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors",
     text: "text-gray-800",
   },
   {
     id: "twitter",
     name: "Twitter",
+    iconSrc: "/brand/oauth-x.svg",
     bg: "bg-sky-500 hover:bg-sky-600 transition-colors",
     text: "text-white",
   },
   {
     id: "github",
     name: "GitHub",
-    bg: "bg-gray-900 hover:bg-gray-800 transition-colors",
-    text: "text-white",
+    iconSrc: "/brand/oauth-github.svg",
+    bg: "bg-white border border-gray-300 hover:bg-gray-50 transition-colors",
+    text: "text-gray-800",
   },
 ];
 
@@ -50,6 +53,17 @@ export default function LoginPage() {
                 disabled={loading}
                 className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 ${p.bg} ${p.text}`}
               >
+                <img
+                  src={p.iconSrc}
+                  alt=""
+                  aria-hidden="true"
+                  data-testid={`oauth-${p.id}-logo`}
+                  width={20}
+                  height={20}
+                  className="h-5 w-5 shrink-0 object-contain"
+                  loading="eager"
+                  decoding="sync"
+                />
                 {interpolate(t("auth.continueWith"), { provider: p.name })}
               </button>
             ))}
@@ -87,8 +101,8 @@ export default function LoginPage() {
                   />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-bold text-gray-800">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-gray-800">
                       {t(`walletOptions.${w.id}.name`)}
                     </span>
                     {w.recommended && (
@@ -100,11 +114,11 @@ export default function LoginPage() {
                   <span className="mt-0.5 block text-xs font-medium leading-snug text-gray-500">
                     {t(`walletOptions.${w.id}.description`)}
                   </span>
-                </span>
-                <span
-                  className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
-                >
-                  {t("walletOptions.protocol.nep21")}
+                  <span
+                    className="mt-2 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-700"
+                  >
+                    {t("walletOptions.protocol.nep21")}
+                  </span>
                 </span>
               </button>
             ))}

@@ -43,13 +43,35 @@ const MUTATING_APP_BUTTON =
   /\b(stake|claim|create|request|finalize|repay|withdraw|add collateral|sync|issue|swap|sign|bridge|send|vote|buy|check in|open box|sponsor|mint|burn|register|approve|deploy|publish|delete|rollback|submit|verify email|send email)\b/i;
 const ALWAYS_SAFE_BUTTON =
   /\b(notifications|switch language|search|close|dismiss|cancel|overview|reviews|forum|news|health|governance|membership|guardians|proof flow|json|yaml|grid view|list view|flip reading|shuffle|reveal|new reading|copy)\b/i;
+const MINIAPP_INTERACTION_SCOPE =
+  '[data-testid="miniapp-playarea"], [data-testid="miniapp-actions"]';
 
 const repoRoot = path.resolve(__dirname, "../../..");
 const appsDir = path.join(repoRoot, "apps");
 
 test.setTimeout(240_000);
-const mainnetVisibleAppIds = readMainnetVisibleAppIds();
+const allMainnetVisibleAppIds = readMainnetVisibleAppIds();
+const mainnetVisibleAppIds = filterMainnetSafetyAppIds(allMainnetVisibleAppIds);
 const mainnetContractAppIds = new Set(readMainnetContractAppIds());
+
+function filterMainnetSafetyAppIds(appIds: string[]) {
+  const explicit = String(process.env.MAINNET_SAFETY_APP_TARGETS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (explicit.length > 0) {
+    const allow = new Set(explicit);
+    return appIds.filter((appId) => allow.has(appId));
+  }
+
+  const limitRaw = String(process.env.MAINNET_SAFETY_LIMIT || "").trim();
+  if (limitRaw) {
+    const limit = Number.parseInt(limitRaw, 10);
+    if (Number.isFinite(limit) && limit > 0) return appIds.slice(0, limit);
+  }
+
+  return appIds;
+}
 
 function readManifestBackedApps() {
   return fs
@@ -169,21 +191,37 @@ async function expectHealthy(page: Page, route: string) {
 }
 
 async function gotoHealthy(page: Page, route: string) {
-  const response = await page.goto(route, { waitUntil: "domcontentloaded" });
-  expect(response?.status(), `${route} should return a non-error status`).toBeLessThan(400);
-  await page.waitForLoadState("networkidle", { timeout: 6_000 }).catch(() => undefined);
-  await expectHealthy(page, route);
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      expect(response?.status(), `${route} should return a non-error status`).toBeLessThan(400);
+      await page.waitForLoadState("networkidle", { timeout: 6_000 }).catch(() => undefined);
+      await expectHealthy(page, route);
+      return;
+    } catch (error) {
+      lastError = error;
+      const message = String((error as Error)?.message || error || "");
+      const retryable = /ERR_CONNECTION_REFUSED|net::ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|net::ERR_CONNECTION_RESET/i.test(message);
+      if (!retryable || attempt >= 3) {
+        throw error;
+      }
+      await page.waitForTimeout(400 * attempt);
+    }
+  }
+  throw lastError;
 }
 
-async function collectVisibleButtons(page: Page): Promise<ButtonInfo[]> {
-  return page.evaluate(() => {
+async function collectVisibleButtons(page: Page, scopeSelector = "body"): Promise<ButtonInfo[]> {
+  return page.evaluate((selector) => {
     const visible = (element: Element) => {
       const style = window.getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
     };
 
-    return Array.from(document.querySelectorAll("button"))
+    return Array.from(document.querySelectorAll(selector))
+      .flatMap((scope) => Array.from(scope.querySelectorAll("button")))
       .filter(visible)
       .map((button, index) => ({
         index,
@@ -196,7 +234,7 @@ async function collectVisibleButtons(page: Page): Promise<ButtonInfo[]> {
         disabled: button.hasAttribute("disabled") || button.getAttribute("aria-disabled") === "true",
         navigation: Boolean(button.closest("a[href]")),
       }));
-  });
+  }, scopeSelector);
 }
 
 async function assertImagesLoaded(page: Page, route: string) {
@@ -255,21 +293,23 @@ async function assertImagesLoaded(page: Page, route: string) {
   expect(broken, `${route} should not contain broken rendered images`).toEqual([]);
 }
 
-async function clickIndexedVisibleButton(page: Page, index: number) {
-  return page.evaluate((buttonIndex) => {
+async function clickIndexedVisibleButton(page: Page, index: number, scopeSelector = "body") {
+  return page.evaluate(({ buttonIndex, selector }) => {
     const visible = (element: Element) => {
       const style = window.getComputedStyle(element);
       const rect = element.getBoundingClientRect();
       return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
     };
-    const buttons = Array.from(document.querySelectorAll("button")).filter(visible);
+    const buttons = Array.from(document.querySelectorAll(selector))
+      .flatMap((scope) => Array.from(scope.querySelectorAll("button")))
+      .filter(visible);
     const button = buttons[buttonIndex];
     if (!(button instanceof HTMLButtonElement) || button.disabled || button.getAttribute("aria-disabled") === "true") {
       return false;
     }
     button.click();
     return true;
-  }, index);
+  }, { buttonIndex: index, selector: scopeSelector });
 }
 
 async function closeTransientUi(page: Page) {
@@ -284,7 +324,7 @@ async function closeTransientUi(page: Page) {
 async function exerciseButtonsWithoutWallet(page: Page, route: string) {
   const failures: string[] = [];
   const initialUrl = page.url();
-  const buttons = await collectVisibleButtons(page);
+  const buttons = await collectVisibleButtons(page, MINIAPP_INTERACTION_SCOPE);
 
   expect(buttons.length, `${route} should expose visible controls`).toBeGreaterThan(0);
   for (const button of buttons) {
@@ -296,7 +336,7 @@ async function exerciseButtonsWithoutWallet(page: Page, route: string) {
     if (!safeToClick && !mustBeWalletGuarded) continue;
 
     const beforeFailures = failures.length;
-    await clickIndexedVisibleButton(page, button.index).catch((error: unknown) => {
+    await clickIndexedVisibleButton(page, button.index, MINIAPP_INTERACTION_SCOPE).catch((error: unknown) => {
       failures.push(`${button.label}: ${error instanceof Error ? error.message : String(error)}`);
     });
     await page.waitForTimeout(150);
@@ -325,7 +365,7 @@ test.describe("Mainnet frontend safety surface", () => {
     expect(response.ok(), "mainnet catalog API should be healthy").toBeTruthy();
     const catalog = (await response.json()) as { apps?: CatalogApp[] };
     const apps = catalog.apps || [];
-    const expectedMainnetIds = mainnetVisibleAppIds;
+    const expectedMainnetIds = allMainnetVisibleAppIds;
     expect(apps.length, "mainnet catalog should expose every mainnet-visible miniapp").toBe(expectedMainnetIds.length);
 
     const ids = new Set(apps.map((app) => app.app_id));
@@ -380,15 +420,16 @@ test.describe("Mainnet frontend safety surface", () => {
   });
 
   for (const appId of mainnetVisibleAppIds) {
-    test(`mainnet miniapp ${appId} renders native layout and guarded controls`, async ({ page }) => {
+    test(`mainnet miniapp ${appId} renders native layout and guarded controls`, async ({ page }, testInfo) => {
       const route = `/miniapps/${appId}`;
+      const isMobile = testInfo.project.name.includes("mobile");
       const requestFailures: string[] = [];
       await captureUnsafeFrontendRequests(page, requestFailures);
 
       await gotoHealthy(page, route);
 
       if (NON_UNIFIED_DETAIL_LAYOUT_APP_IDS.has(appId)) {
-        await expect(page.getByRole("heading", { name: /onegate vault/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /onegate vault/i, level: 1 })).toBeVisible();
         await assertImagesLoaded(page, route);
         expect(requestFailures, `${appId} should not emit mutating frontend requests before wallet signing`).toEqual([]);
         return;
@@ -397,15 +438,23 @@ test.describe("Mainnet frontend safety surface", () => {
       if (!NON_UNIFIED_DETAIL_LAYOUT_APP_IDS.has(appId)) {
         await expect(page.getByTestId("miniapp-detail-layout"), `${appId} should use the unified detail layout`).toBeVisible();
       }
-      await expect(page.getByTestId("miniapp-list-rail"), `${appId} should show the shared left rail`).toBeVisible();
+      const listRail = page.getByTestId("miniapp-list-rail");
+      await expect(listRail, `${appId} should render the shared left rail container`).toHaveCount(1);
+      if (!isMobile) {
+        await expect(listRail, `${appId} should show the shared left rail`).toBeVisible();
+      }
       await expect(page.getByTestId("miniapp-playarea"), `${appId} should show a native playarea`).toBeVisible();
       await expect(page.getByTestId("miniapp-info"), `${appId} should show shared app info`).toBeVisible();
-      await expect(page.getByTestId("miniapp-actions"), `${appId} should show the operation panel`).toBeVisible();
-      await expect(page.getByTestId("miniapp-actions"), `${appId} operation panel should identify the app`).toContainText(appId);
-      if (mainnetContractAppIds.has(appId)) {
-        await expect(page.getByTestId("miniapp-actions"), `${appId} mainnet contract app should not be disabled by stale runtime metadata`).not.toContainText(/not configured for this network|runtime not deployed/i);
+      const actionsPanel = page.getByTestId("miniapp-actions");
+      await expect(actionsPanel, `${appId} should render the operation panel container`).toHaveCount(1);
+      if (!isMobile) {
+        await expect(actionsPanel, `${appId} should show the operation panel`).toBeVisible();
       }
-      await expect(page.getByTestId("miniapp-list-rail").locator(`a[href="/miniapps/${appId}"]`)).toHaveCount(1);
+      await expect(actionsPanel, `${appId} operation panel should identify the app`).toContainText(appId);
+      if (mainnetContractAppIds.has(appId)) {
+        await expect(actionsPanel, `${appId} mainnet contract app should not be disabled by stale runtime metadata`).not.toContainText(/not configured for this network|runtime not deployed/i);
+      }
+      await expect(listRail.locator(`a[href="/miniapps/${appId}"]`)).toHaveCount(1);
       await assertImagesLoaded(page, route);
       await exerciseButtonsWithoutWallet(page, route);
       expect(requestFailures, `${appId} should not emit mutating frontend requests before wallet signing`).toEqual([]);

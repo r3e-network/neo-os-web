@@ -71,21 +71,51 @@ async function exerciseRenderedTabs(page: Page) {
 }
 
 async function expectOperationSurface(page: Page) {
-  const operationSurface = page.getByTestId("miniapp-actions");
-  await expect(operationSurface).toBeVisible();
-  await expect(operationSurface.getByRole("heading").first()).toBeVisible();
-  await expect(operationSurface).toContainText("Connect wallet from the top navigation");
+  const viewport = page.viewportSize();
+  const isXlViewport = (viewport?.width ?? 0) >= 1280;
 
-  const buttons = operationSurface.getByRole("button");
-  if ((await buttons.count()) > 0) {
-    await expect(buttons.first()).toBeVisible();
+  if (isXlViewport) {
+    const operationSurface = page.getByTestId("miniapp-actions");
+    await expect(operationSurface).toBeVisible();
+    await expect(operationSurface.getByRole("heading").first()).toBeVisible();
+    await expect(operationSurface).toContainText(
+      "Connect wallet from the top navigation",
+    );
+
+    const buttons = operationSurface.getByRole("button");
+    if ((await buttons.count()) > 0) {
+      await expect(buttons.first()).toBeVisible();
+    }
+    return;
   }
+
+  const dock = page.getByTestId("mobile-action-dock");
+  await expect(dock).toBeVisible();
+
+  const openButton = page.getByTestId("mobile-action-open");
+  await expect(openButton).toBeVisible();
+  await expect(openButton).toContainText(/action console/i);
+
+  await openButton.click();
+
+  const sheet = page.getByTestId("mobile-action-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText(/action console/i).first()).toBeVisible();
+
+  const closeButtons = sheet.getByLabel("Close actions");
+  await expect(closeButtons.first()).toBeVisible();
+  await closeButtons.last().click();
+  await expect(sheet).toBeHidden();
 }
 
 async function expectWalletEntryPoint(page: Page) {
   await expect(
     page.getByRole("button", { name: /log in \/ sign up/i }),
   ).toBeVisible({ timeout: 20_000 });
+}
+
+function miniappCardSelector(appId: string) {
+  return `a[href="/miniapps/${appId}"], a[href^="/miniapps/${appId}?"]`;
 }
 
 test.describe("Flagship MiniApp frontend workflows", () => {
@@ -98,10 +128,18 @@ test.describe("Flagship MiniApp frontend workflows", () => {
       await expect(page.getByText(new RegExp(app.category, "i")).first()).toBeVisible();
       await expectWalletEntryPoint(page);
       await expect(page.getByText("App ID:")).toBeVisible();
-      await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
+      const viewport = page.viewportSize();
+      const isXlViewport = (viewport?.width ?? 0) >= 1280;
+      if (isXlViewport) {
+        await expect(page.getByTestId("miniapp-list-rail")).toBeVisible();
+      } else {
+        await expect(page.getByTestId("miniapp-list-rail")).toBeHidden();
+      }
       await expect(page.getByTestId("miniapp-playarea")).toBeVisible();
       await expect(page.getByTestId("miniapp-info")).toBeVisible();
-      await expect(page.getByTestId("miniapp-actions")).toContainText(app.id);
+      if (isXlViewport) {
+        await expect(page.getByTestId("miniapp-actions")).toContainText(app.id);
+      }
 
       await exerciseRenderedTabs(page);
       await expectOperationSurface(page);
@@ -112,7 +150,7 @@ test.describe("Flagship MiniApp frontend workflows", () => {
     await page.goto("/miniapps");
 
     for (const app of FLAGSHIP_APPS) {
-      const card = page.locator(`a[href="/miniapps/${app.id}"]`);
+      const card = page.locator(miniappCardSelector(app.id));
       await expect(card).toBeVisible();
       await expect(card).toContainText(app.name);
       await expect(card).toContainText(new RegExp(app.category, "i"));
