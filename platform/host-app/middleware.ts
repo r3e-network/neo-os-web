@@ -133,6 +133,11 @@ function isOneGateVaultHtmlPath(pathname: string): boolean {
   );
 }
 
+function resolveMiniAppDetailRewriteId(pathname: string): string | null {
+  const match = pathname.match(/^\/miniapps\/([^/.][^/]*)\/?$/);
+  return match?.[1] || null;
+}
+
 export function middleware(req: NextRequest) {
   // Skip CSP for Next.js internals and static assets.
   const pathname = req.nextUrl.pathname;
@@ -150,10 +155,18 @@ export function middleware(req: NextRequest) {
   const nonce = randomNonce();
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-csp-nonce", nonce);
+  const detailRewriteId = resolveMiniAppDetailRewriteId(pathname);
 
-  const res = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  const res = detailRewriteId
+    ? NextResponse.rewrite(
+        new URL(`/miniapp-detail/${detailRewriteId}`, req.url),
+        {
+          request: { headers: requestHeaders },
+        },
+      )
+    : NextResponse.next({
+        request: { headers: requestHeaders },
+      });
 
   res.headers.set(
     "Content-Security-Policy",
