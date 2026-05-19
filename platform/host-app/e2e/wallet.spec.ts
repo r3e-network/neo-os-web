@@ -1,17 +1,19 @@
 import { test, expect } from "@playwright/test";
 
+const loginButtonName = /log in(?: \/ sign up)?/i;
+
 test.describe("Wallet Connection", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/miniapps");
   });
 
   test("should display login button", async ({ page }) => {
-    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    const connectButton = page.getByRole("button", { name: loginButtonName });
     await expect(connectButton).toBeVisible();
   });
 
   test("should show wallet and social options on click", async ({ page }) => {
-    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
 
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
@@ -28,7 +30,7 @@ test.describe("Wallet Connection", () => {
   });
 
   test("should display wallet option buttons", async ({ page }) => {
-    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
@@ -39,7 +41,7 @@ test.describe("Wallet Connection", () => {
   });
 
   test("should open and close login modal", async ({ page }) => {
-    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
     await expect(page.getByRole("heading", { name: "Welcome to Yiwu" })).toBeVisible();
 
@@ -51,7 +53,7 @@ test.describe("Wallet Connection", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/miniapps");
 
-    await page.getByRole("button", { name: /log in|sign up/i }).click();
+    await page.getByRole("button", { name: loginButtonName }).click();
     await expect(page.getByRole("dialog", { name: /connect wallet/i })).toBeVisible();
 
     const metrics = await page.getByTestId("login-modal-root").evaluate((root) => {
@@ -83,7 +85,7 @@ test.describe("Wallet Connection", () => {
   });
 
   test("should keep the developer key path hidden by default", async ({ page }) => {
-    const connectButton = page.getByRole("button", { name: /log in \/ sign up/i });
+    const connectButton = page.getByRole("button", { name: loginButtonName });
     await connectButton.click();
 
     await expect(page.getByText("Developer key")).toHaveCount(0);
