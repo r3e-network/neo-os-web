@@ -209,14 +209,18 @@ export function rememberNep21Provider(
   if (!win) return provider;
   cachedProvider = provider;
   cachedWindow = win;
-  win.NEP21Provider = provider;
+  const writableWindow = win as {
+    NEP21Provider?: NeoDapiProvider;
+    NEP21Providers?: Record<string, unknown> | unknown[];
+  };
+  writableWindow.NEP21Provider = provider;
   const registry =
-    win.NEP21Providers && typeof win.NEP21Providers === "object"
-      ? { ...(win.NEP21Providers as Record<string, unknown>) }
+    writableWindow.NEP21Providers && typeof writableWindow.NEP21Providers === "object"
+      ? { ...(writableWindow.NEP21Providers as Record<string, unknown>) }
       : {};
   const name = String(provider.name ?? "").trim();
   if (name) registry[name] = provider;
-  win.NEP21Providers = registry;
+  writableWindow.NEP21Providers = registry;
   return provider;
 }
 

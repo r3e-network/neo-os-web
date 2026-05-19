@@ -11,53 +11,12 @@ import {
   getMetric,
 } from "./PlayAreaShared";
 import type { PlayAreaRegistryProps } from "./PlayAreaShared";
-
-type ExplorerCouncilProposal = {
-  id?: string;
-  number?: number;
-  title?: string;
-  status?: string;
-  type?: string;
-  createdAt?: string;
-  endTime?: string;
-  proposerName?: string;
-  proposerOrganizationId?: string;
-  councilVotes?: {
-    for?: number;
-    against?: number;
-    neutral?: number;
-  };
-  communityVotes?: {
-    for?: number;
-    against?: number;
-    neutral?: number;
-  };
-  messageCount?: number;
-};
-
-type ExplorerCouncilCandidate = {
-  id?: string;
-  candidate?: string;
-  displayName?: string;
-  logoUrl?: string;
-  location?: string;
-  website?: string;
-  profileSource?: string;
-  rank?: number;
-  status?: string;
-  votes?: number;
-  supplySharePercent?: number;
-};
-
-type ExplorerCouncilGovernance = {
-  source?: string;
-  network?: "mainnet" | "testnet";
-  totalCount?: number;
-  totalVotes?: number;
-  candidates?: ExplorerCouncilCandidate[];
-  proposals?: ExplorerCouncilProposal[];
-  warnings?: string[];
-};
+import {
+  fetchCouncilGovernanceSnapshot,
+  type ExplorerCouncilCandidate,
+  type ExplorerCouncilGovernance,
+  type ExplorerCouncilProposal,
+} from "@/lib/council-governance-client";
 
 function formatCouncilDate(value?: string) {
   if (!value) return "";
@@ -193,12 +152,9 @@ export function CouncilGovernancePlayArea(props: PlayAreaRegistryProps) {
   );
 
   useEffect(() => {
-    const fetcher = globalThis.fetch;
-    if (typeof fetcher !== "function") return undefined;
     let cancelled = false;
     setExplorerGovernance(undefined);
-    fetcher(`/api/explorer/council-governance?network=${network}&limit=21`)
-      .then((response) => (response.ok ? response.json() : null))
+    fetchCouncilGovernanceSnapshot(network, 21)
       .then((data: ExplorerCouncilGovernance | null) => {
         if (!cancelled) setExplorerGovernance(data);
       })

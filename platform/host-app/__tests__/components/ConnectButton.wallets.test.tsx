@@ -122,6 +122,14 @@ describe("ConnectButton wallet choices", () => {
     expect(await screen.findByText(/欢迎使用/)).toBeInTheDocument();
     expect(screen.getByText("邮箱与社交账号")).toBeInTheDocument();
     expect(screen.getByText("Neo 生态钱包")).toBeInTheDocument();
+    expect(screen.getByTestId("oauth-google-logo")).toHaveAttribute(
+      "src",
+      "/brand/oauth-google.svg",
+    );
+    expect(screen.getByTestId("oauth-github-logo")).toHaveAttribute(
+      "src",
+      "/brand/oauth-github.svg",
+    );
 
     const onegate = screen.getByTestId("wallet-option-onegate");
     const neoline = screen.getByTestId("wallet-option-neoline");

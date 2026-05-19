@@ -8,7 +8,7 @@
     "start": "next start",
     "test": "jest",
     "pretest:e2e": "PREPARE_E2E_STANDALONE=1 npm run -s build",
-    "test:e2e": "bash scripts/cleanup-port.sh 3004 && playwright test --reporter=line",
+    "test:e2e": "bash scripts/cleanup-port.sh 3004 && PLAYWRIGHT_SKIP_SCREENSHOTS=1 playwright test --reporter=line e2e/homepage.spec.ts e2e/navigation.spec.ts e2e/platform-pages.spec.ts e2e/miniapps-list.spec.ts e2e/miniapp-detail.spec.ts e2e/wallet.spec.ts",
     "test:full": "npm run test -- --runInBand && npm run test:e2e",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

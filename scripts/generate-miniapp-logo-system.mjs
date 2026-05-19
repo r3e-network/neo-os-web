@@ -17,6 +17,15 @@ const references = [
   "https://chain.link/brand-assets",
 ];
 
+const officialBrandAssetSlugs = new Set([
+  "candidate-vote",
+  "council-governance",
+  "gas-lucky-pool",
+  "gov-merc",
+  "secret-vote",
+  "voting",
+]);
+
 const palettes = {
   tools: ["#00AF92", "#1262E5", "#EAF7FF", "#092A33"],
   utility: ["#00AF92", "#3A69D8", "#EEF8F5", "#17323A"],
@@ -443,6 +452,8 @@ async function writeRasters(basePath, logo, banner, options = {}) {
 }
 
 async function writeAssetSet(app, logo, banner) {
+  if (officialBrandAssetSlugs.has(app.slug)) return;
+
   const targets = [
     {
       path: path.join(repoRoot, "platform/host-app/public/miniapps", app.slug),
@@ -479,7 +490,14 @@ async function buildContactSheet(apps) {
   const images = [];
 
   for (const app of apps) {
-    const png = await sharp(Buffer.from(logoSvg(app))).resize(116, 116).png().toBuffer();
+    const officialSvg = path.join(repoRoot, "platform/host-app/public/miniapps", app.slug, "logo.svg");
+    const source = officialBrandAssetSlugs.has(app.slug) && fs.existsSync(officialSvg)
+      ? officialSvg
+      : Buffer.from(logoSvg(app));
+    const png = await sharp(source).resize(116, 116, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 0 },
+    }).png().toBuffer();
     images.push(`data:image/png;base64,${png.toString("base64")}`);
   }
 
@@ -525,6 +543,7 @@ async function main() {
       logo: `/miniapps/${app.slug}/logo.jpg`,
       banner: `/miniapps/${app.slug}/banner.jpg`,
       svg: `/miniapps/${app.slug}/logo.svg`,
+      officialBrandAsset: officialBrandAssetSlugs.has(app.slug) || undefined,
     });
   }
 
