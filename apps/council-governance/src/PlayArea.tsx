@@ -47,6 +47,9 @@ const POLICY_METHODS = [
   { key: "MaxSystemFee", labelKey: "methodMaxSystemFee" },
 ];
 
+const DEFAULT_POLICY_METHOD = POLICY_METHODS[0]?.key ?? "FeePerByte";
+const DEFAULT_DURATION_MS = DURATION_OPTIONS[1]?.value ?? 7 * 24 * 60 * 60 * 1000;
+
 function shortAddress(value?: string) {
   if (!value) return "-";
   if (value.length <= 14) return value;
@@ -92,9 +95,9 @@ export default function PlayArea({ t, state, dispatch, retryLoad }: PlayAreaProp
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [proposalType, setProposalType] = useState("0");
-  const [policyMethod, setPolicyMethod] = useState(POLICY_METHODS[0].key);
+  const [policyMethod, setPolicyMethod] = useState(DEFAULT_POLICY_METHOD);
   const [policyValue, setPolicyValue] = useState("");
-  const [duration, setDuration] = useState(String(DURATION_OPTIONS[1].value));
+  const [duration, setDuration] = useState(String(DEFAULT_DURATION_MS));
 
   const selectedProposal = useMemo(
     () => proposals.find((proposal) => proposal.id === selectedId) ?? null,

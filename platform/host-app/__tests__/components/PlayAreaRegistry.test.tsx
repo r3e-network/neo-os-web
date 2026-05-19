@@ -10,6 +10,7 @@ import {
   getNativePlayAreaOperationFallback,
   hasNativePlayArea,
 } from "../../components/playarea/PlayAreaRegistry";
+import { clearCouncilGovernanceClientCache } from "../../lib/council-governance-client";
 import type { MiniAppCategory, MiniAppInfo } from "../../components/types";
 
 type LocalMiniAppManifest = {
@@ -143,6 +144,7 @@ describe("PlayAreaRegistry", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    clearCouncilGovernanceClientCache();
     jest.clearAllMocks();
   });
 

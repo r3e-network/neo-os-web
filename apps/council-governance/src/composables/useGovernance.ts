@@ -13,6 +13,15 @@ const STATUS_REJECTED = 3;
 const STATUS_REVOKED = 4;
 const STATUS_EXPIRED = 5;
 const STATUS_EXECUTED = 6;
+const EXPLORER_CACHE_MS = 15_000;
+
+const explorerGovernanceCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    promise: Promise<unknown>;
+  }
+>();
 
 export type ProposalStatusKey =
   | "active"
@@ -225,6 +234,30 @@ function parseExplorerProposal(raw: unknown): Proposal | null {
   };
 }
 
+function fetchExplorerGovernanceData(url: string): Promise<unknown> {
+  const now = Date.now();
+  const cached = explorerGovernanceCache.get(url);
+  if (cached && cached.expiresAt > now) return cached.promise;
+
+  const promise = fetch(url, {
+    signal: AbortSignal.timeout(10_000),
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      return res.ok ? data : null;
+    })
+    .catch((error) => {
+      explorerGovernanceCache.delete(url);
+      throw error;
+    });
+
+  explorerGovernanceCache.set(url, {
+    expiresAt: now + EXPLORER_CACHE_MS,
+    promise,
+  });
+  return promise;
+}
+
 export const resolveStatus = (proposal: Proposal) => proposal.statusKey;
 
 export function useGovernance({
@@ -404,12 +437,12 @@ export function useGovernance({
 
   const loadExplorerProposals = async () => {
     try {
-      const res = await fetch(`${API_HOST}/api/explorer/council-governance?network=${resolveNetwork(currentChainId.get())}`, {
-        signal: AbortSignal.timeout(10_000),
-      });
-      const data = await res.json();
-      if (!res.ok || !Array.isArray(data?.proposals)) return false;
-      const mirrored = data.proposals
+      const data = await fetchExplorerGovernanceData(
+        `${API_HOST}/api/explorer/council-governance?network=${resolveNetwork(currentChainId.get())}`,
+      );
+      const governance = data as { proposals?: unknown };
+      if (!Array.isArray(governance.proposals)) return false;
+      const mirrored = governance.proposals
         .map(parseExplorerProposal)
         .filter((proposal: Proposal | null): proposal is Proposal => Boolean(proposal));
       proposals.set(mirrored.sort((a, b) => b.id - a.id));

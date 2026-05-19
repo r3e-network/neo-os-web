@@ -1,6 +1,6 @@
 # MiniApp PlayArea Functionality Audit
 
-Generated: 2026-05-18T10:24:24.577Z
+Generated: 2026-05-19T02:29:47.044Z
 
 ## Summary
 
@@ -31,7 +31,7 @@ Generated: 2026-05-18T10:24:24.577Z
 | miniapp-automation-copilot | profiled host + embedded real dApp | yes | yes | 7 | 5 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-breakupcontract | profiled host + embedded real dApp | yes | yes | 9 | 9 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-burn-league | profiled host + embedded real dApp | yes | yes | 3 | 5 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |
-| miniapp-council-governance | custom native playarea | yes | yes | 15 | 16 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, native-action-board, live-api-call, action-handlers, interactive-controls | usable-surface-present |
+| miniapp-council-governance | custom native playarea | yes | yes | 16 | 18 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, live-api-call, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-custom-anchor | custom native playarea | yes | yes | 1 | 15 | built-static-dapp, standalone-playarea, registered-actions, native-action-board, manifest-operations, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dailycheckin | custom native playarea | yes | yes | 5 | 9 | built-static-dapp, standalone-playarea, registered-actions, native-action-board, action-handlers, interactive-controls | usable-surface-present |
 | miniapp-dev-tipping | profiled host + embedded real dApp | yes | yes | 9 | 9 | built-static-dapp, standalone-playarea, registered-actions, host-embeds-real-dapp, action-handlers, interactive-controls | usable-surface-present |

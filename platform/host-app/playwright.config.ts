@@ -21,6 +21,7 @@ const safeLocalWorkers = Number.isFinite(localWorkerCount)
   ? Math.min(4, Math.max(1, localWorkerCount))
   : 1;
 const systemChrome = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "1";
+const skipScreenshots = process.env.PLAYWRIGHT_SKIP_SCREENSHOTS === "1";
 
 function resolveStandaloneCwd(): string {
   const pathFile = path.join(__dirname, ".playwright-standalone-path.txt");
@@ -36,6 +37,7 @@ function resolveStandaloneCwd(): string {
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: skipScreenshots ? ["**/capture-screenshots.spec.ts"] : undefined,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // Local hourly validation can still hit transient RPC/indexer hiccups; allow a single retry

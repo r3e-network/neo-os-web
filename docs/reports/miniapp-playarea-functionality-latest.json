@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-18T10:24:24.577Z",
+  "generatedAt": "2026-05-19T02:29:47.044Z",
   "summary": {
     "total": 60,
     "status": {
@@ -276,10 +276,10 @@
       "hasBuiltIndex": true,
       "builtIndex": "platform/host-app/public/miniapps/council-governance/index.html",
       "sourceFileCount": 5,
-      "buttonCount": 7,
+      "buttonCount": 9,
       "inputCount": 6,
-      "surfaceControlCount": 2,
-      "actionCount": 16,
+      "surfaceControlCount": 1,
+      "actionCount": 18,
       "operationsCount": 0,
       "hasFileUpload": false,
       "workflowEvidence": [
@@ -287,7 +287,6 @@
         "standalone-playarea",
         "registered-actions",
         "host-embeds-real-dapp",
-        "native-action-board",
         "live-api-call",
         "action-handlers",
         "interactive-controls"

@@ -60,6 +60,38 @@ function ensureDir(dir: string) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
+function isConnectionRefused(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("ECONNREFUSED") ||
+    message.includes("ERR_CONNECTION_REFUSED") ||
+    message.includes("net::ERR_CONNECTION_REFUSED")
+  );
+}
+
+async function withConnectionRetry<T>(
+  label: string,
+  task: () => Promise<T>,
+  { attempts = 6, backoffMs = 550 }: { attempts?: number; backoffMs?: number } = {},
+) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+      if (!isConnectionRefused(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      const delayMs = backoffMs * (attempt + 1);
+      // eslint-disable-next-line no-console
+      console.warn(`[screenshots] ${label} connection refused; retrying in ${delayMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 function readTestnetMiniApps() {
   const apps: Array<{ id: string; name: string; slug: string }> = [];
   for (const entry of fs.readdirSync(appsDir, { withFileTypes: true })) {
@@ -89,7 +121,10 @@ function readTestnetMiniApps() {
 }
 
 async function gotoReady(page: Page, route: string) {
-  await page.goto(route, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await withConnectionRetry(
+    `goto:${route}`,
+    () => page.goto(route, { waitUntil: "domcontentloaded", timeout: 60_000 }),
+  );
   await expect(page.locator("body"), `${route} body should render`).toBeVisible();
   await expect(page.locator("body"), `${route} should not show Runtime Error`).not.toContainText(
     "Runtime Error",
@@ -119,6 +154,13 @@ test.describe("UI screenshots (host-app)", () => {
       path.join(testInfo.outputDir, "screenshots", `host-app-${nowStamp()}`);
     ensureDir(baseDir);
     const mobileMode = String(process.env.SCREENSHOT_MOBILE_MODE || "all").toLowerCase();
+    const miniappMode = String(process.env.SCREENSHOT_MINIAPP_MODE || "all").toLowerCase();
+    const explicitMiniappTargets = new Set(
+      String(process.env.SCREENSHOT_MINIAPP_TARGETS || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
 
     const index: Array<{
       kind: "platform" | "miniapp";
@@ -155,7 +197,14 @@ test.describe("UI screenshots (host-app)", () => {
       });
     }
 
-    const miniapps = readTestnetMiniApps();
+    const miniapps = readTestnetMiniApps().filter((miniapp) => {
+      if (explicitMiniappTargets.size > 0) return explicitMiniappTargets.has(miniapp.id);
+      if (miniappMode === "flagship") return FLAGSHIP_MINIAPP_IDS.has(miniapp.id);
+      if (miniappMode === "flagship+tools") {
+        return FLAGSHIP_MINIAPP_IDS.has(miniapp.id) || OPERATOR_TOOL_IDS.has(miniapp.id);
+      }
+      return true;
+    });
     for (const miniapp of miniapps) {
       const route = `/miniapps/${miniapp.id}`;
       const stem = safeFileName(miniapp.id);

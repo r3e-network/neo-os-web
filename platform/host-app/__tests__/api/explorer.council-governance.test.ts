@@ -80,6 +80,9 @@ describe("/api/explorer/council-governance", () => {
       }),
     );
     expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("Cache-Control")).toBe(
+      "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
+    );
     expect(JSON.parse(res._getData())).toEqual(
       expect.objectContaining({
         source: "neo-explorer-ui",
