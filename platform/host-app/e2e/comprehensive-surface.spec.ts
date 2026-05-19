@@ -176,9 +176,46 @@ async function stubVolatileApiFeeds(page: Page) {
   );
 }
 
+function isConnectionRefused(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("ECONNREFUSED") ||
+    message.includes("ERR_CONNECTION_REFUSED") ||
+    message.includes("net::ERR_CONNECTION_REFUSED")
+  );
+}
+
+async function withConnectionRetry<T>(
+  label: string,
+  task: () => Promise<T>,
+  { attempts = 4, backoffMs = 750 }: { attempts?: number; backoffMs?: number } = {},
+) {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await task();
+    } catch (error) {
+      lastError = error;
+      if (!isConnectionRefused(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      const delayMs = backoffMs * (attempt + 1);
+      if (SURFACE_LOGS_ENABLED) {
+        console.log(`[surface] ${label} connection refused; retrying in ${delayMs}ms...`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 async function gotoHealthy(page: Page, route: string) {
   if (SURFACE_LOGS_ENABLED) console.log(`[surface] goto ${route}`);
-  const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+  const response = await withConnectionRetry(
+    `goto:${route}`,
+    () => page.goto(route, { waitUntil: "domcontentloaded" }),
+    { attempts: 5, backoffMs: 600 },
+  );
   await disableMotion(page);
   expect(
     response?.status(),
@@ -226,9 +263,21 @@ async function expectInternalLinksResolve(
   for (const href of links) {
     let lastStatus = 0;
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = await request.get(href, { timeout: 15_000 });
-      lastStatus = response.status();
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const response = await withConnectionRetry(
+          `request:${href}`,
+          () => request.get(href, { timeout: 15_000 }),
+          { attempts: 4, backoffMs: 500 },
+        );
+        lastStatus = response.status();
+      } catch (error) {
+        if (isConnectionRefused(error)) {
+          lastStatus = 0;
+          continue;
+        }
+        throw error;
+      }
 
       if (lastStatus < 500) {
         break;
@@ -425,20 +474,46 @@ async function assertImagesLoad(page: Page, route: string) {
   // keep decode Promises pending long enough to trip the Playwright test timeout.
   // Broken images are asserted via naturalWidth below instead.
   await page.waitForTimeout(250);
-  const brokenImages = await page.evaluate(() =>
-    Array.from(document.querySelectorAll("img"))
-      .filter((image) => {
-        const hasSource = Boolean(image.currentSrc || image.getAttribute("src"));
-        return hasSource && image.complete && image.naturalWidth === 0;
-      })
-      .map(
-        (image) =>
-          image.currentSrc ||
-          image.getAttribute("src") ||
-          image.getAttribute("alt") ||
-          "unknown image",
+  const brokenImages = await page.evaluate(async () => {
+    const images = Array.from(document.querySelectorAll("img"));
+    const candidates = images.filter((image) => {
+      const hasSource = Boolean(image.currentSrc || image.getAttribute("src"));
+      if (!hasSource || !image.complete) return false;
+      // NOTE: naturalWidth/naturalHeight can be reported as 0 for valid SVGs that only
+      // specify a viewBox (no explicit width/height). Treat SVGs as broken only when
+      // the network request itself fails.
+      return image.naturalWidth === 0;
+    });
+
+    const uniqueSrcs = Array.from(
+      new Set(
+        candidates
+          .map((image) => image.currentSrc || image.getAttribute("src") || "")
+          .map((value) => value.trim())
+          .filter(Boolean),
       ),
-  );
+    );
+
+    const failures: string[] = [];
+    for (const src of uniqueSrcs) {
+      try {
+        const url = new URL(src, window.location.href);
+        // For SVGs, validate via a lightweight fetch rather than naturalWidth.
+        if (url.pathname.toLowerCase().endsWith(".svg")) {
+          const response = await fetch(url.toString(), { method: "HEAD" });
+          if (!response.ok) failures.push(`${url.toString()} -> ${response.status}`);
+          continue;
+        }
+      } catch {
+        // Ignore URL parse errors; they will be reported below as-is.
+      }
+
+      // Non-SVG: keep the original naturalWidth heuristic.
+      failures.push(src);
+    }
+
+    return failures;
+  });
   expect(brokenImages, `${route} should not render broken images`).toEqual([]);
 }
 

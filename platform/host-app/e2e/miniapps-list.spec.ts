@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 
+function miniappCardSelector(appId: string) {
+  return `a[href="/miniapps/${appId}"], a[href^="/miniapps/${appId}?"]`;
+}
+
 test.describe("MiniApps List", () => {
   test.beforeEach(async ({ page }) => {
     const catalogRequest = page.waitForResponse(
@@ -35,11 +39,11 @@ test.describe("MiniApps List", () => {
     const cards = page.locator('a[href^="/miniapps/miniapp-"]');
     expect(supportedApps.length).toBeGreaterThan(30);
     await expect(cards).toHaveCount(supportedApps.length);
-    await expect(page.locator('a[href="/miniapps/miniapp-last-survivor"]')).toBeVisible();
-    await expect(page.locator('a[href="/miniapps/miniapp-fogplay"]')).toBeVisible();
-    await expect(page.locator('a[href="/miniapps/miniapp-neo-pay"]')).toBeVisible();
-    await expect(page.locator('a[href="/miniapps/miniapp-profitanchor"]')).toBeVisible();
-    await expect(page.locator('a[href="/miniapps/miniapp-trustanchor"]')).toBeVisible();
+    await expect(page.locator(miniappCardSelector("miniapp-last-survivor"))).toBeVisible();
+    await expect(page.locator(miniappCardSelector("miniapp-fogplay"))).toBeVisible();
+    await expect(page.locator(miniappCardSelector("miniapp-neo-pay"))).toBeVisible();
+    await expect(page.locator(miniappCardSelector("miniapp-profitanchor"))).toBeVisible();
+    await expect(page.locator(miniappCardSelector("miniapp-trustanchor"))).toBeVisible();
     await expect(page.locator('a[href="/miniapps/miniapp-flamingo"]')).toHaveCount(0);
     await expect(page.locator('a[href="/miniapps/miniapp-flaminggo"]')).toHaveCount(0);
     await expect(page.locator('a[href="/miniapps/miniapp-neoburger"]')).toHaveCount(0);
@@ -47,9 +51,9 @@ test.describe("MiniApps List", () => {
   });
 
   test("should link core cards to their detail pages", async ({ page }) => {
-    await expect(page.locator('a[href="/miniapps/miniapp-last-survivor"]')).toHaveAttribute("href", "/miniapps/miniapp-last-survivor");
-    await expect(page.locator('a[href="/miniapps/miniapp-redenvelope"]')).toHaveAttribute("href", "/miniapps/miniapp-redenvelope");
-    await expect(page.locator('a[href="/miniapps/miniapp-self-loan"]')).toHaveAttribute("href", "/miniapps/miniapp-self-loan");
+    await expect(page.locator(miniappCardSelector("miniapp-last-survivor"))).toHaveAttribute("href", /\/miniapps\/miniapp-last-survivor(\?|$)/);
+    await expect(page.locator(miniappCardSelector("miniapp-redenvelope"))).toHaveAttribute("href", /\/miniapps\/miniapp-redenvelope(\?|$)/);
+    await expect(page.locator(miniappCardSelector("miniapp-self-loan"))).toHaveAttribute("href", /\/miniapps\/miniapp-self-loan(\?|$)/);
   });
 
   test("should show status and category metadata", async ({ page }) => {

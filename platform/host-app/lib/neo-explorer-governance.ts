@@ -192,29 +192,31 @@ async function explorerRpc(
   let lastError: Error | null = null;
 
   for (const endpoint of resolveNeoExplorerGovernanceEndpoints(network)) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        signal: AbortSignal.timeout(5_000),
-      });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          signal: AbortSignal.timeout(5_000),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Neo Explorer governance HTTP ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Neo Explorer governance HTTP ${response.status}`);
+        }
+
+        const payload = (await response.json()) as RpcPayload;
+        if (payload.error) {
+          const error = asRecord(payload.error);
+          throw new Error(
+            asString(error.message, asString(error.code, "Neo Explorer governance RPC error")),
+          );
+        }
+
+        return payload.result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
       }
-
-      const payload = (await response.json()) as RpcPayload;
-      if (payload.error) {
-        const error = asRecord(payload.error);
-        throw new Error(
-          asString(error.message, asString(error.code, "Neo Explorer governance RPC error")),
-        );
-      }
-
-      return payload.result;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
 
@@ -431,7 +433,9 @@ export async function fetchNeoExplorerCouncilGovernance({
     ]);
 
   if (candidateOutcome.status === "rejected") {
-    warnings.push("candidates_unavailable");
+    throw candidateOutcome.reason instanceof Error
+      ? candidateOutcome.reason
+      : new Error("Neo Explorer governance candidates unavailable");
   }
   if (totalVotesOutcome.status === "rejected") {
     warnings.push("total_votes_unavailable");

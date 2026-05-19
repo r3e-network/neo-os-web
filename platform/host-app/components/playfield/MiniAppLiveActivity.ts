@@ -13,6 +13,7 @@ import {
   stackItemBool,
   timeAgo,
 } from "./MiniAppLiveDataShared";
+import { fetchCouncilGovernanceSnapshot } from "@/lib/council-governance-client";
 
 export type Activity = {
   title: string;
@@ -48,12 +49,6 @@ export type Activity = {
 };
 
 /* ── Activity feed (recent on-chain items) ──────────────────────────── */
-
-function browserTimeoutSignal(ms: number): AbortSignal | undefined {
-  if (typeof AbortSignal === "undefined") return undefined;
-  const timeout = (AbortSignal as typeof AbortSignal & { timeout?: (ms: number) => AbortSignal }).timeout;
-  return typeof timeout === "function" ? timeout(ms) : undefined;
-}
 
 export async function fetchAppActivity(
   appId: string,
@@ -263,17 +258,8 @@ type CouncilGovernanceSharedData = Pick<
 async function fetchCouncilGovernanceSharedData(
   network: "mainnet" | "testnet",
 ): Promise<CouncilGovernanceSharedData> {
-  const response = await fetch(
-    `/api/explorer/council-governance?network=${network}&limit=21`,
-    {
-      headers: { Accept: "application/json" },
-      signal: browserTimeoutSignal(10_000),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`Council governance backend ${response.status}`);
-  }
-  const data = await response.json();
+  const data = await fetchCouncilGovernanceSnapshot(network, 21);
+  if (!data) throw new Error("Council governance backend unavailable");
   const rawCandidates = Array.isArray(data?.candidates) ? data.candidates : [];
   const rawProposals = Array.isArray(data?.proposals) ? data.proposals : [];
   return {

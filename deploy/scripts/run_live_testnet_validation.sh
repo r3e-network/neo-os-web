@@ -52,7 +52,7 @@ fi
 if [[ $run_flagship -eq 1 ]]; then
   echo ""
   echo "=== Flagship Miniapp Live User Flows ==="
-  bash -lc "set -a; [ -f \"$REPO_ROOT/.env\" ] && . \"$REPO_ROOT/.env\"; set +a; node \"$SCRIPT_DIR/live_validate_flagship_user_flows.js\""
+  bash -c "set -a; [ -f \"$REPO_ROOT/.env\" ] && . \"$REPO_ROOT/.env\"; set +a; node \"$SCRIPT_DIR/live_validate_flagship_user_flows.js\""
 fi
 
 echo ""

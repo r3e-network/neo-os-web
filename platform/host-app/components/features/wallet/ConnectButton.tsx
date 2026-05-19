@@ -266,11 +266,13 @@ export function ConnectButton() {
                     className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <img
-                      src="https://www.svgrepo.com/show/475656/google-color.svg"
-                      className="w-5 h-5"
-                      alt="Google"
-                      loading="lazy"
-                      decoding="async"
+                      src="/brand/oauth-google.svg"
+                      className="h-5 w-5 shrink-0 object-contain"
+                      alt=""
+                      aria-hidden="true"
+                      data-testid="oauth-google-logo"
+                      loading="eager"
+                      decoding="sync"
                     />
                     {interpolate(t("auth.continueWith"), { provider: "Google" })}
                   </button>
@@ -279,11 +281,13 @@ export function ConnectButton() {
                     className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <img
-                      src="https://www.svgrepo.com/show/512317/github-142.svg"
-                      className="w-5 h-5"
-                      alt="GitHub"
-                      loading="lazy"
-                      decoding="async"
+                      src="/brand/oauth-github.svg"
+                      className="h-5 w-5 shrink-0 object-contain"
+                      alt=""
+                      aria-hidden="true"
+                      data-testid="oauth-github-logo"
+                      loading="eager"
+                      decoding="sync"
                     />
                     {interpolate(t("auth.continueWith"), { provider: "GitHub" })}
                   </button>
@@ -326,8 +330,8 @@ export function ConnectButton() {
                           <Wallet className="fallback-icon hidden h-6 w-6 text-neo group-hover:scale-105 transition-transform" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="flex items-center gap-2">
-                            <span className="truncate text-sm font-bold text-gray-800">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold text-gray-800">
                               {t(`walletOptions.${w.id}.name`)}
                             </span>
                             {w.recommended && (

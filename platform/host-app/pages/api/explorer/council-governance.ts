@@ -48,7 +48,10 @@ export default async function handler(
       skip,
     });
 
-    res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
+    );
     res.status(200).json(governance);
     return;
   } catch (err) {
