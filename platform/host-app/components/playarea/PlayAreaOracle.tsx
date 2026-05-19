@@ -52,6 +52,10 @@ export function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
     config.mode === "price"
       ? endpoint.replace(/^TWELVEDATA:/i, "")
       : shortHash(endpoint);
+  const displayInputDetail =
+    config.mode === "price"
+      ? "Morpheus live price feed"
+      : endpoint || "Endpoint pending";
 
   const build = useCallback(() => {
     const payload = {
@@ -186,7 +190,7 @@ export function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
           rows={[
             {
               label: config.mode === "price" ? "Feed symbol" : "Endpoint",
-              detail: endpoint || "Endpoint pending",
+              detail: displayInputDetail,
               value: endpoint ? displayInputValue : "waiting",
               valueLabel: "input",
               active: Boolean(endpoint),

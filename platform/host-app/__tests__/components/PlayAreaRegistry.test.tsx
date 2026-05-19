@@ -361,6 +361,20 @@ describe("PlayAreaRegistry", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("keeps Oracle Price Console focused on the clean feed symbol", () => {
+    renderPlayarea({
+      app_id: "miniapp-oracle-price-console",
+      name: "Oracle Price Console",
+      category: "utility",
+      description: "Query the Morpheus price feed",
+    });
+
+    expect(screen.getByText("Feed symbol")).toBeVisible();
+    expect(screen.getByText("Morpheus live price feed")).toBeVisible();
+    expect(screen.getByText("NEO-USD")).toBeVisible();
+    expect(screen.queryByText("TWELVEDATA:NEO-USD")).not.toBeInTheDocument();
+  });
+
   it("renders Forever Album as an actual uploader/gallery dApp, not a staged metadata preview", () => {
     renderPlayarea({
       app_id: "miniapp-forever-album",
