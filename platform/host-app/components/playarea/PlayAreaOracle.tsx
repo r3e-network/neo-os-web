@@ -48,6 +48,10 @@ export function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
     config.mode === "compute" ||
     config.mode === "seal" ||
     config.mode === "neodid";
+  const displayInputValue =
+    config.mode === "price"
+      ? endpoint.replace(/^TWELVEDATA:/i, "")
+      : shortHash(endpoint);
 
   const build = useCallback(() => {
     const payload = {
@@ -183,7 +187,7 @@ export function OracleConsolePlayArea(props: PlayAreaRegistryProps) {
             {
               label: config.mode === "price" ? "Feed symbol" : "Endpoint",
               detail: endpoint || "Endpoint pending",
-              value: endpoint ? shortHash(endpoint) : "waiting",
+              value: endpoint ? displayInputValue : "waiting",
               valueLabel: "input",
               active: Boolean(endpoint),
               icon: <Radio className="h-4 w-4" />,
