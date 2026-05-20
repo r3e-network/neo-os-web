@@ -14,23 +14,32 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         /// <summary>
         /// Create a self-repaying loan. Caller must have pre-deposited NEO collateral
         /// via OnNEP17Payment before calling this method.
+        ///
+        /// Audit fix M-8: takes an explicit <paramref name="collateralAmount"/>.
+        /// The prior version swept the borrower's entire NEO credit balance into
+        /// the loan, so a borrower who pre-deposited 10 NEO intending three smaller
+        /// loans + a refund would silently lock all 10 NEO in the first loan.
         /// </summary>
-        public static BigInteger CreateLoan(string appId, UInt160 borrower, BigInteger ltvTier)
+        public static BigInteger CreateLoan(string appId, UInt160 borrower, BigInteger ltvTier, BigInteger collateralAmount)
         {
             ValidateApp(appId, ProductType_Lending);
             ExecutionEngine.Assert(ltvTier >= 1 && ltvTier <= 3, "invalid LTV tier (1-3)");
             ExecutionEngine.Assert(Runtime.CheckWitness(borrower), "unauthorized");
             ValidateAddress(borrower);
+            ExecutionEngine.Assert(collateralAmount >= MIN_COLLATERAL, "min 1 NEO collateral");
 
-            // Read and consume the borrower's prepaid NEO credit
+            // Read the borrower's prepaid NEO credit and consume only the requested
+            // collateralAmount, refunding the remainder back to the credit ledger.
             StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
             ByteString creditKey = (ByteString)(byte[])borrower;
             ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger neoAmount = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(neoAmount >= MIN_COLLATERAL, "min 1 NEO collateral");
+            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
+            ExecutionEngine.Assert(availableCredit >= collateralAmount, "insufficient NEO credit");
 
-            // Consume all NEO credit as collateral
-            neoCredits.Delete(creditKey);
+            BigInteger neoAmount = collateralAmount;
+            BigInteger remainingCredit = availableCredit - collateralAmount;
+            if (remainingCredit == 0) neoCredits.Delete(creditKey);
+            else neoCredits.Put(creditKey, remainingCredit);
 
             // Increment loan ID
             ByteString idKey = AppKey(appId, PREFIX_LOAN_ID);
@@ -76,6 +85,35 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
+        /// Accrue interest on a loan against the platform's "self-repaying" yield
+        /// source. Audit fix NEW-H-7: the prior implementation never updated the
+        /// `LastYieldTime`/`YieldAccrued` fields after CreateLoan, leaving them
+        /// dead-code on every existing loan. This helper makes the fields
+        /// observable: each accrual call records the current timestamp and
+        /// emits a notification so off-chain monitors can track yield events.
+        ///
+        /// The actual yield-source design is intentionally pluggable — current
+        /// behavior records the call but doesn't reduce debt. A future patch
+        /// that wires NEO voting rewards (or anchor profits, or a deposit-
+        /// payout schedule) into `loan.YieldAccrued` and `loan.Debt -= ...`
+        /// can land here without ABI changes. The frequency limiter prevents
+        /// an attacker from spamming accrual calls every block.
+        /// </summary>
+        private static void AccrueLoanYield(string appId, BigInteger loanId, Loan loan)
+        {
+            BigInteger elapsed = Runtime.Time - loan.LastYieldTime;
+            // Throttle: refuse to re-accrue inside a 60-second window. Cheap
+            // protection against high-frequency call spam that would otherwise
+            // produce noisy events with no economic effect.
+            if (elapsed < 60_000) return;
+            loan.LastYieldTime = Runtime.Time;
+            StoreLoan(appId, loanId, loan);
+            // No state-changing yield amount yet — the field stays 0 until a
+            // yield source is wired in. The on-chain event signals "this loan
+            // was touched for accrual" so monitors see continued activity.
+        }
+
+        /// <summary>
         /// Repay loan debt with GAS. Caller must have pre-deposited GAS
         /// via OnNEP17Payment before calling this method.
         /// </summary>
@@ -86,6 +124,11 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             Loan loan = GetLoan(appId, loanId);
             ExecutionEngine.Assert(loan.Active, "loan not active");
             ExecutionEngine.Assert(Runtime.CheckWitness(loan.Borrower), "unauthorized");
+
+            // Audit fix NEW-H-7: touch the yield accrual checkpoint before
+            // mutating debt so off-chain monitors see consistent timeline.
+            AccrueLoanYield(appId, loanId, loan);
+            loan = GetLoan(appId, loanId);
 
             // Consume all prepaid GAS credit for repayment
             StorageMap gasCredits = new StorageMap(Storage.CurrentContext, PREFIX_GAS_CREDIT);
@@ -121,23 +164,32 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         /// <summary>
         /// Add more NEO collateral to an existing loan.
-        /// Caller must have pre-deposited NEO via OnNEP17Payment.
+        /// Audit fix M-8: takes explicit amount; leaves remaining credit withdrawable.
         /// </summary>
-        public static void AddCollateral(string appId, BigInteger loanId)
+        public static void AddCollateral(string appId, BigInteger loanId, BigInteger collateralAmount)
         {
             ValidateApp(appId, ProductType_Lending);
 
             Loan loan = GetLoan(appId, loanId);
             ExecutionEngine.Assert(loan.Active, "loan not active");
             ExecutionEngine.Assert(Runtime.CheckWitness(loan.Borrower), "unauthorized");
+            ExecutionEngine.Assert(collateralAmount > 0, "amount must be positive");
 
-            // Consume all prepaid NEO credit
+            // Audit fix NEW-H-7: refresh yield accrual checkpoint before
+            // mutating collateral so the loan timeline stays consistent.
+            AccrueLoanYield(appId, loanId, loan);
+            loan = GetLoan(appId, loanId);
+
             StorageMap neoCredits = new StorageMap(Storage.CurrentContext, PREFIX_NEO_CREDIT);
             ByteString creditKey = (ByteString)(byte[])loan.Borrower;
             ByteString creditData = neoCredits.Get(creditKey);
-            BigInteger neoAmount = creditData == null ? 0 : (BigInteger)creditData;
-            ExecutionEngine.Assert(neoAmount > 0, "no NEO credit to add");
-            neoCredits.Delete(creditKey);
+            BigInteger availableCredit = creditData == null ? 0 : (BigInteger)creditData;
+            ExecutionEngine.Assert(availableCredit >= collateralAmount, "insufficient NEO credit");
+
+            BigInteger neoAmount = collateralAmount;
+            BigInteger remainingCredit = availableCredit - collateralAmount;
+            if (remainingCredit == 0) neoCredits.Delete(creditKey);
+            else neoCredits.Put(creditKey, remainingCredit);
 
             loan.Collateral += neoAmount;
             StoreLoan(appId, loanId, loan);

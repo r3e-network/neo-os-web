@@ -35,6 +35,8 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "SoulboundCertificate issues non-transferable NEP-11 badges for permanent credentials.")]
+    // Audit fix NEW-H-2: pause-registry isPaused callback (MiniAppBase.ValidateNotGloballyPaused).
+    [ContractPermission("*", "isPaused")]
     public partial class MiniAppSoulboundCertificate : MiniAppBase
     {
         #region App Constants

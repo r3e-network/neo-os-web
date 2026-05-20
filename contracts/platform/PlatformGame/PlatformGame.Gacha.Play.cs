@@ -80,10 +80,15 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Request-bound callbacks verify requestId -> playId before payout
         /// - Transfers prize atomically
         /// </summary>
-        public static void ResolveGachaPull(string appId, BigInteger playId, BigInteger randomResult)
+        public static void ResolveGachaPull(string appId, BigInteger playId, BigInteger requestId, BigInteger randomResult)
         {
+            // Audit fix H-12: settlement must always carry the original requestId; the
+            // prior public entry hard-coded 0, and the internal resolver only enforced
+            // the requestId mapping when requestId > 0, so any oracle (or an attacker
+            // who reached this method) could resolve any play to any outcome.
             ValidateOracle();
-            ResolveGachaPullFromOracle(appId, playId, 0, (ByteString)randomResult.ToByteArray());
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            ResolveGachaPullFromOracle(appId, playId, requestId, (ByteString)randomResult.ToByteArray());
         }
 
         private static void ResolveGachaPullFromOracle(
@@ -95,7 +100,7 @@ namespace NeoMiniAppPlatform.Contracts
             RequireRegistered(appId);
             RequireGameType(appId, GameType_Gacha);
 
-            if (requestId > 0)
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
             {
                 byte[] reqKey = AppKey(appId, GA_PREFIX_REQ_TO_PLAY, requestId);
                 ByteString mappedPlay = Storage.Get(Storage.CurrentContext, reqKey);

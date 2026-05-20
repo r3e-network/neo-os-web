@@ -4,6 +4,83 @@ namespace NeoMiniAppPlatform.Contracts.Tests
 {
     public class ContractSecurityRegressionTest
     {
+        // -----------------------------------------------------------------
+        // Audit-fix regression tests — these assertions pin source patterns
+        // so a refactor cannot silently strip a Critical-tier guard.
+        // -----------------------------------------------------------------
+
+        [Fact]
+        public void AuditFixC2_QuadraticFundingBlocksSelfContribute()
+        {
+            // Audit fix C-2: round creator and project owner are prohibited from
+            // contributing. The guard sits in MiniAppQuadraticFunding.Projects.cs
+            // alongside an audit-fix comment for traceability.
+            string projects = ContractSourceAssertions.ReadSource(
+                "contracts", "MiniAppQuadraticFunding", "MiniAppQuadraticFunding.Projects.cs");
+            Assert.Contains("contributor != project.Owner", projects);
+            Assert.Contains("contributor != round.Creator", projects);
+            Assert.Contains("owner cannot contribute", projects);
+            Assert.Contains("round creator cannot contribute", projects);
+
+            // FinalizeRound must reject the round creator as a finalizer — only the
+            // gateway or platform admin may finalize.
+            string methods = ContractSourceAssertions.ReadSource(
+                "contracts", "MiniAppQuadraticFunding", "MiniAppQuadraticFunding.Methods.cs");
+            Assert.Contains("fromGateway || Runtime.CheckWitness(Admin())", methods);
+            Assert.DoesNotContain(
+                "fromGateway || Runtime.CheckWitness(round.Creator) || Runtime.CheckWitness(Admin())",
+                methods);
+        }
+
+        [Fact]
+        public void AuditFixC4_MiniAppIframesAreSandboxed()
+        {
+            // Audit fix C-4: miniapp iframes must declare a `sandbox` attribute that
+            // omits `allow-same-origin`. Both PlayAreaShared.tsx and PlayAreaMedia.tsx
+            // render miniapps; both must carry the attribute.
+            string shared = ContractSourceAssertions.ReadSource(
+                "platform", "host-app", "components", "playarea", "PlayAreaShared.tsx");
+            string media = ContractSourceAssertions.ReadSource(
+                "platform", "host-app", "components", "playarea", "PlayAreaMedia.tsx");
+
+            // Required: sandbox declared with allow-scripts (the miniapp needs JS).
+            Assert.Contains("sandbox=\"allow-scripts", shared);
+            Assert.Contains("sandbox=\"allow-scripts", media);
+            // Forbidden inside the sandbox attribute itself: allow-same-origin
+            // would defeat the sandbox by giving the miniapp access to
+            // window.parent.* and the host's auth tokens. The comment above
+            // each iframe may mention "allow-same-origin" while explaining the
+            // omission, so the check inspects only the lines that begin with
+            // `sandbox=`.
+            AssertSandboxLineExcludesSameOrigin(shared);
+            AssertSandboxLineExcludesSameOrigin(media);
+        }
+
+        private static void AssertSandboxLineExcludesSameOrigin(string source)
+        {
+            foreach (string line in source.Split('\n'))
+            {
+                string trimmed = line.TrimStart();
+                if (!trimmed.StartsWith("sandbox=\"")) continue;
+                Assert.DoesNotContain("allow-same-origin", trimmed);
+            }
+        }
+
+        [Fact]
+        public void AuditFixH3_HostSdkRefusesBrowserConstruction()
+        {
+            // Audit fix H-4 (aka the audit's H-3-adjacent SDK boundary fix):
+            // createHostSDK must call assertHostSdkServerContext() to refuse
+            // construction in a browser. Without this guard, a developer mistake
+            // bundling host-SDK code into the client would leak the API key to
+            // every miniapp.
+            string client = ContractSourceAssertions.ReadSource(
+                "platform", "sdk", "src", "client.ts");
+            Assert.Contains("assertHostSdkServerContext", client);
+            Assert.Contains("createHostSDK is server-only", client);
+            Assert.Contains("typeof window === \"undefined\"", client);
+        }
+
         [Fact]
         public void PlatformSocialEnvelopeUsesUInt160ZeroForMissingCreator()
         {
@@ -76,7 +153,11 @@ namespace NeoMiniAppPlatform.Contracts.Tests
         public void PlatformGameDiceUsesMorpheusVrfAndRequestBinding()
         {
             string platform = ContractSourceAssertions.ReadSourcesInDirectory("contracts", "platform", "PlatformGame");
-            string dice = ContractSourceAssertions.ReadSource("contracts", "platform", "PlatformGame", "PlatformGame.Dice.cs");
+            // Audit fix M-4/M-5: dice limit + storage helpers moved into
+            // PlatformGame.Dice.Internal.cs to keep the main file under the 300-line
+            // reviewability budget. The security invariants still hold; they're
+            // just split across two partials now, so this test reads both.
+            string dice = ContractSourceAssertions.ReadSourcesByPattern("PlatformGame.Dice*.cs", "contracts", "platform", "PlatformGame");
 
             Assert.Contains("GameType_Dice", platform);
             Assert.Contains("ResolveDiceBetFromOracle", platform);

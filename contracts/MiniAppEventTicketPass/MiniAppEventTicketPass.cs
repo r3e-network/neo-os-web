@@ -35,6 +35,16 @@ namespace NeoMiniAppPlatform.Contracts
     [ManifestExtra("Email", "dev@r3e.network")]
     [ManifestExtra("Version", "1.0.0")]
     [ManifestExtra("Description", "EventTicketPass issues NEP-11 tickets with QR check-in support for event management.")]
+    // Audit fix NEW-H-1 / NEW-H-2:
+    //   *:onNEP11Payment — Transfer() at Methods.cs:221-224 calls the recipient
+    //     contract's onNEP11Payment hook when `to` is a contract. Without this
+    //     permission, NEP-11 transfers to contract recipients (marketplaces,
+    //     vaults, claim escrows) revert at the manifest gate.
+    //   *:isPaused — MiniAppBase.ValidateNotGloballyPaused (MiniAppCompactBase.cs:90-94)
+    //     calls `pauseRegistry.isPaused(appId)` when a pause registry is set.
+    //     Without this permission, calling SetPauseRegistry on a deployed
+    //     contract bricks every state-mutating method.
+    [ContractPermission("*", "onNEP11Payment", "isPaused")]
     public partial class MiniAppEventTicketPass : MiniAppBase
     {
         #region App Constants

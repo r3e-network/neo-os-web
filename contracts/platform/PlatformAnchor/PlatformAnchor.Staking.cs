@@ -134,12 +134,29 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             if (Runtime.CallingScriptHash == NEO.Hash)
             {
                 AddCredit(PREFIX_NEO_CREDIT, from, amount);
-                if (data is string)
+                // Audit fix NEW-M-7: auto-stake only fires when the data field is
+                // a structured request explicitly opting in. The previous code
+                // treated any bare string memo matching a registered appId as an
+                // auto-stake intent, which meant any user paying NEO with a memo
+                // that happened to match an anchor appId got auto-staked. Now
+                // auto-stake requires a 2-element StdLib-serialized array
+                // (`["stake", appId]`) — a bare string is treated as a deposit
+                // only, with no automatic staking.
+                if (data is ByteString)
                 {
-                    string appId = (string)data;
-                    if (appId.Length > 0)
+                    ByteString payload = (ByteString)data;
+                    if (payload != null && payload.Length > 0)
                     {
-                        StakeFromCredit(appId, from, amount);
+                        object[] cmd = (object[])StdLib.Deserialize(payload);
+                        if (cmd != null && cmd.Length == 2)
+                        {
+                            string op = (string)cmd[0];
+                            string appId = (string)cmd[1];
+                            if (op == "stake" && appId != null && appId.Length > 0)
+                            {
+                                StakeFromCredit(appId, from, amount);
+                            }
+                        }
                     }
                 }
                 return;

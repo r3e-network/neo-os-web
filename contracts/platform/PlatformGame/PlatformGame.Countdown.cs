@@ -31,11 +31,16 @@ namespace NeoMiniAppPlatform.Contracts
         private const int CD_DIVIDEND_SHARE_BPS    = 3000;
         private const int CD_NEXT_ROUND_SHARE_BPS  = 1000;
         private const int CD_REFERRAL_SHARE_BPS    = 700;
-        private const long CD_BASE_KEY_PRICE       = 10000000;   // 0.1 GAS
+        private const long CD_BASE_KEY_PRICE       = 10000000;       // 0.1 GAS
         private const int CD_KEY_PRICE_INCREMENT_BPS = 10;
-        private const long CD_TIME_PER_KEY_SECONDS = 86400;
-        private const long CD_INITIAL_DURATION     = 86400;      // 24 hours
-        private const long CD_MAX_DURATION         = 86400;
+        // Runtime.Time on Neo N3 is BLOCK TIMESTAMP IN MILLISECONDS. Every
+        // duration below is expressed in ms so the round-end checks
+        // (`Runtime.Time >= round.EndTime`) actually measure the documented
+        // wall-clock interval. Previously these were seconds, giving a
+        // ~24-second effective round instead of 24 hours.
+        private const long CD_TIME_PER_KEY_MS      = 86400000L;      // 24h per key buy
+        private const long CD_INITIAL_DURATION_MS  = 86400000L;      // 24 hours
+        private const long CD_MAX_DURATION_MS      = 86400000L;      // 24 hours
         private const long CD_MIN_KEYS             = 1;
 
         // ---------------------------------------------------------------
@@ -173,9 +178,9 @@ namespace NeoMiniAppPlatform.Contracts
             round.LastBuyer = player;
 
             // Extend timer (capped at max duration from now)
-            BigInteger timeToAdd = keyCount * CD_TIME_PER_KEY_SECONDS;
+            BigInteger timeToAdd = keyCount * CD_TIME_PER_KEY_MS;
             BigInteger newEndTime = round.EndTime + timeToAdd;
-            BigInteger maxEndTime = Runtime.Time + CD_MAX_DURATION;
+            BigInteger maxEndTime = Runtime.Time + CD_MAX_DURATION_MS;
             if (newEndTime > maxEndTime) newEndTime = maxEndTime;
             round.EndTime = newEndTime;
 

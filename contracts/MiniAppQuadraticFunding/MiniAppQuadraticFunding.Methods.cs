@@ -46,6 +46,10 @@ namespace NeoMiniAppPlatform.Contracts
             BigInteger roundId = TotalRounds() + 1;
             Storage.Put(Storage.CurrentContext, PREFIX_ROUND_ID, roundId);
 
+            // Audit fix NEW-H-8: record the creator's initial matching deposit in
+            // the per-funder ledger so CancelRound can refund proportionally.
+            Put(BuildMatchingFunderKey(roundId, creator), matchingPool);
+
             RoundData round = new RoundData
             {
                 Creator = creator,
@@ -86,12 +90,50 @@ namespace NeoMiniAppPlatform.Contracts
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
             ExecutionEngine.Assert(fromGateway || Runtime.CheckWitness(contributor), "unauthorized");
 
+            // Audit fix NEW-H-8: track per-funder matching contributions so
+            // CancelRound can refund pro-rata instead of paying the entire pool
+            // back to the round creator. Without this ledger the creator could
+            // pocket matching contributions made by third-party sponsors.
             ConsumeDirectAssetCredit(round.Asset, contributor, amount);
+
+            ByteString funderKey = BuildMatchingFunderKey(roundId, contributor);
+            BigInteger existing = GetBigInteger(funderKey);
+            Put(funderKey, existing + amount);
 
             round.MatchingPool += amount;
             StoreRound(roundId, round);
 
             OnMatchingPoolAdded(roundId, contributor, amount, round.MatchingPool);
+        }
+
+        /// <summary>
+        /// Refund a single matching-pool funder after a round has been cancelled
+        /// (audit fix NEW-H-8). The original CreateRound funder is refunded via
+        /// CancelRound; this method handles any additional sponsors who topped up
+        /// via AddMatchingPool. Anyone can call it on behalf of an actual funder
+        /// once the round is cancelled — it just routes the refund to the
+        /// recorded funder address, gas-paid by the caller.
+        /// </summary>
+        public static void RefundMatchingPoolContribution(UInt160 funder, BigInteger roundId)
+        {
+            ValidateNotGloballyPaused(APP_ID);
+            ValidateAddress(funder);
+
+            RoundData round = GetRound(roundId);
+            RequireRoundExists(round);
+            ExecutionEngine.Assert(round.Cancelled, "round not cancelled");
+
+            ByteString funderKey = BuildMatchingFunderKey(roundId, funder);
+            BigInteger owed = GetBigInteger(funderKey);
+            ExecutionEngine.Assert(owed > 0, "no matching contribution to refund");
+            Delete(funderKey);
+
+            bool transferred = IsNeo(round.Asset)
+                ? NEO.Transfer(Runtime.ExecutingScriptHash, funder, owed)
+                : GAS.Transfer(Runtime.ExecutingScriptHash, funder, owed);
+            ExecutionEngine.Assert(transferred, "refund transfer failed");
+
+            OnMatchingWithdrawn(roundId, funder, owed);
         }
 
         public static void CancelRound(UInt160 creator, BigInteger roundId)
@@ -108,15 +150,22 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(round.TotalContributed == 0, "contributions already made");
             ExecutionEngine.Assert(Runtime.Time < round.StartTime, "round already started");
 
+            // Audit fix NEW-H-8: refund ONLY the creator's recorded matching
+            // contribution, not the whole pool. Third-party matching sponsors
+            // claim their share separately via RefundMatchingPoolContribution.
+            ByteString creatorKey = BuildMatchingFunderKey(roundId, creator);
+            BigInteger creatorContribution = GetBigInteger(creatorKey);
+            if (creatorContribution > 0) Delete(creatorKey);
+
             round.Cancelled = true;
-            round.MatchingWithdrawn = round.MatchingPool;
+            round.MatchingWithdrawn = creatorContribution;
             StoreRound(roundId, round);
 
-            if (round.MatchingPool > 0)
+            if (creatorContribution > 0)
             {
                 bool transferred = IsNeo(round.Asset)
-                    ? NEO.Transfer(Runtime.ExecutingScriptHash, creator, round.MatchingPool)
-                    : GAS.Transfer(Runtime.ExecutingScriptHash, creator, round.MatchingPool);
+                    ? NEO.Transfer(Runtime.ExecutingScriptHash, creator, creatorContribution)
+                    : GAS.Transfer(Runtime.ExecutingScriptHash, creator, creatorContribution);
                 ExecutionEngine.Assert(transferred, "transfer failed");
             }
 
@@ -134,9 +183,14 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(!round.Finalized, "round finalized");
             ExecutionEngine.Assert(Runtime.Time >= round.EndTime, "round still active");
 
+            // Audit fix C-2: the round creator can also register their own project and
+            // self-contribute, so they MUST NOT be allowed to choose match amounts.
+            // Finalization is restricted to platform admin (or the trusted gateway, which
+            // forwards from an attested match-computation service). round.Creator is no
+            // longer an authorized caller here.
             UInt160 gateway = Gateway();
             bool fromGateway = gateway != null && gateway.IsValid && Runtime.CallingScriptHash == gateway;
-            bool authorized = fromGateway || Runtime.CheckWitness(round.Creator) || Runtime.CheckWitness(Admin());
+            bool authorized = fromGateway || Runtime.CheckWitness(Admin());
             ExecutionEngine.Assert(authorized, "unauthorized");
 
             ExecutionEngine.Assert(projectIds != null && matchedAmounts != null, "invalid arrays");

@@ -3,9 +3,16 @@
 
 // Neo N3 RPC endpoints (mainnet).
 // Keep this list aligned with the host-app CSP `connect-src` allowlist.
+// Audit fix H-3 (miniapp review): dropped `mainnet1.neo.coz.io` — per the
+// project's mainnet-RPC memo (`reference_mainnet_rpc.md`) that endpoint is
+// dead; every call would fail-then-fallback. Preferred order now matches the
+// healthy-endpoint list documented in the memo.
 const RPC_ENDPOINTS = [
-  "https://mainnet1.neo.coz.io:443",
   "https://mainnet2.neo.coz.io:443",
+  "https://mainnet3.neo.coz.io:443",
+  "https://mainnet4.neo.coz.io:443",
+  "https://mainnet5.neo.coz.io:443",
+  "https://rpc10.n3.nspcc.ru:10331",
 ];
 
 // Contract addresses (from shared constants)
@@ -165,6 +172,7 @@ async function fetchAddressBalances(
 
   for (let i = 0; i < addresses.length; i++) {
     const address = addresses[i];
+    if (!address) continue;
     try {
       const balance = await getNep17Balances(address);
       wallets.push({

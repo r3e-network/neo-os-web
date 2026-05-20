@@ -58,33 +58,26 @@ export function ForeverAlbumPlayArea(props: PlayAreaRegistryProps) {
       }
     >
       <div className="grid gap-3">
-        <section className="overflow-hidden rounded-[18px] border border-violet-100 bg-violet-50/60 shadow-sm shadow-violet-950/5">
-          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-violet-100 bg-white/80 px-3.5 py-3">
-            <div className="min-w-0">
-              <h3 className="m-0 text-sm font-black text-gray-950">
-                Upload and view album
-              </h3>
-              <p className="m-0 mt-1 text-xs leading-5 text-gray-600">
-                This is the actual Forever Album dApp surface, not just a
-                metadata summary.
-              </p>
-            </div>
-            <a
-              href={dappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs font-black text-violet-700 transition hover:bg-violet-50"
-            >
-              Open full dApp
-              <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-          </div>
+        <section className="group relative overflow-hidden rounded-[18px] border border-violet-100 bg-violet-50/60 shadow-sm shadow-violet-950/5">
+          <a
+            href={dappUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open Forever Album in a new window"
+            title="Open in a new window"
+            className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-md border border-violet-200 bg-white/95 px-2 py-1 text-[11px] font-semibold text-violet-700 opacity-0 shadow-sm backdrop-blur transition hover:text-violet-900 group-hover:opacity-100 focus:opacity-100"
+          >
+            <ArrowRightLeft className="h-3 w-3" aria-hidden="true" />
+            New window
+          </a>
+          {/* Audit fix C-4: sandbox the miniapp iframe; see PlayAreaShared.tsx. */}
           <iframe
             title="Forever Album uploader"
             src={dappUrl}
-            className="block h-[640px] w-full border-0 bg-white"
+            className="block h-[720px] w-full border-0 bg-white"
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
+            sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
           />
         </section>
 

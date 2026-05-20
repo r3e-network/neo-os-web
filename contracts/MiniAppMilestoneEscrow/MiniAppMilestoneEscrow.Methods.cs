@@ -189,6 +189,17 @@ namespace NeoMiniAppPlatform.Contracts
             ExecutionEngine.Assert(escrow.Active, "escrow inactive");
             ExecutionEngine.Assert(escrow.Creator == creator, "not creator");
 
+            // Audit fix C-3: refuse to cancel while any milestone the creator already
+            // approved is unclaimed. Without this, a creator could approve milestone N
+            // (signalling "work accepted, payment ready"), let the beneficiary ship final
+            // work, then immediately cancel and reclaim the approved amount.
+            for (BigInteger i = 1; i <= escrow.MilestoneCount; i++)
+            {
+                MilestoneData ms = GetMilestone(escrowId, i);
+                ExecutionEngine.Assert(!(ms.Approved && !ms.Claimed),
+                    "approved milestone awaiting beneficiary claim");
+            }
+
             BigInteger remaining = escrow.TotalAmount - escrow.ReleasedAmount;
 
             escrow.Active = false;

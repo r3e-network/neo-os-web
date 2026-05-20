@@ -163,10 +163,16 @@ namespace NeoMiniAppPlatform.Contracts
         /// - Resolved flag prevents double-settlement
         /// - Reentrancy guard protects state
         /// </summary>
-        public static void ResolveCoinFlipBet(string appId, BigInteger betId, ByteString oracleResult)
+        public static void ResolveCoinFlipBet(string appId, BigInteger betId, BigInteger requestId, ByteString oracleResult)
         {
+            // Audit fix H-12: settlement must always carry the original requestId so
+            // the oracle response is bound to the specific bet. The previous signature
+            // accepted no requestId and the internal resolver had a `requestId > 0`
+            // shortcut that skipped the mapping check; a compromised oracle could then
+            // resolve any bet to any outcome.
             ValidateOracle();
-            ResolveCoinFlipBetFromOracle(appId, betId, 0, oracleResult);
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
+            ResolveCoinFlipBetFromOracle(appId, betId, requestId, oracleResult);
         }
 
         private static void ResolveCoinFlipBetFromOracle(
@@ -177,7 +183,7 @@ namespace NeoMiniAppPlatform.Contracts
         {
             RequireRegistered(appId);
 
-            if (requestId > 0)
+            ExecutionEngine.Assert(requestId > 0, "requestId required");
             {
                 byte[] reqKey = AppKey(appId, CF_PREFIX_REQ_TO_BET, requestId);
                 ByteString mappedBet = Storage.Get(Storage.CurrentContext, reqKey);

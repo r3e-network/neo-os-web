@@ -34,7 +34,7 @@ export function Footer() {
           <div className="lg:col-span-2 flex flex-col items-start pr-0 lg:pr-10">
             <Link
               href="/"
-              className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 transition-transform hover:scale-105 inline-block"
+              className="flex items-center gap-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neo/50 transition-transform hover:scale-105 inline-block"
             >
               <img
                 src="/brand/yiwu-mark.svg"
@@ -62,7 +62,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md inline-block"
+                    className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-md inline-block"
                   >
                     {link.label}
                   </Link>
@@ -81,7 +81,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md inline-block"
+                    className="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-md inline-block"
                   >
                     {link.label}
                   </Link>
@@ -104,7 +104,7 @@ export function Footer() {
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group flex items-center gap-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-md inline-flex w-fit"
+                      className="group flex items-center gap-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-neo/50 rounded-md inline-flex w-fit"
                     >
                       <div className="p-1.5 rounded-lg bg-gray-100 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                         {Icon && <Icon size={16} />}

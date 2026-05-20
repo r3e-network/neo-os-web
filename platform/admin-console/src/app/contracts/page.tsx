@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Contract {
   id: string;
@@ -81,13 +82,6 @@ export default function ContractsPage() {
     setIsEditing(true);
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center p-12">
-        <Spinner />
-      </div>
-    );
-
   return (
     <div className="space-y-6">
       {saveError && (
@@ -105,18 +99,23 @@ export default function ContractsPage() {
         </div>
       )}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Smart Contracts
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage tracked contracts and hashes
-          </p>
-        </div>
-        <Button onClick={openNew}>Track New Contract</Button>
+        <PageHeader
+          title="Smart Contracts"
+          description="Manage tracked contracts and hashes"
+          highlightLastWord
+        />
+        <Button onClick={openNew} disabled={loading}>
+          Track New Contract
+        </Button>
       </div>
 
-      {isEditing && (
+      {loading && (
+        <div className="flex justify-center p-12">
+          <Spinner />
+        </div>
+      )}
+
+      {!loading && isEditing && (
         <Card
           variant="glass"
           className="border-neo/50 shadow-[0_0_15px_rgba(0,229,153,0.1)]"
@@ -171,6 +170,7 @@ export default function ContractsPage() {
         </Card>
       )}
 
+      {!loading && (
       <Card variant="glass">
         <CardHeader>
           <CardTitle>Deployed Contracts Registry</CardTitle>
@@ -229,6 +229,7 @@ export default function ContractsPage() {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

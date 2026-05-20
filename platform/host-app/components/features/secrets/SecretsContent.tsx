@@ -36,7 +36,7 @@ export default function SecretsContent() {
 
   if (!connected) {
     return (
-      <Card>
+      <Card className="glass-card">
         <CardContent className="py-12 text-center">
           <p className="text-gray-500">
             Connect your wallet to manage secret tokens

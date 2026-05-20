@@ -1,865 +1,473 @@
+/**
+ * Daily Check-in PlayArea — Polymarket-light style.
+ *
+ * Tokens & layout patterns adapted directly from polymarket.com light theme:
+ *   - White canvas, hairline borders (#E6E8EA), Inter, dense metric rows
+ *   - Bold large numbers (tabular-nums) as the visual anchor
+ *   - Soft-tinted Yes/No (green/red) and primary blue (#1452F0) accents
+ *   - 14-15px radii on cards, 6-7px on buttons/chips
+ *   - The platform Action Console (outside the iframe) owns the primary
+ *     "Check In" / "Claim" CTA — the dApp is data only
+ */
+
 @use "@shared/styles/variables.scss" as *;
 @use "@shared/styles/mixins.scss" as *;
 @use "@shared/styles/tokens.scss" as *;
 @use "@shared/styles/playarea-base";
-@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap");
+
+/* ============================================================
+ *  Polymarket light tokens (local)
+ * ============================================================ */
+
+$pm-bg: #ffffff;
+$pm-surface: #fafbfc;
+$pm-surface-2: #f4f5f7;
+$pm-border: #e6e8ea;
+$pm-border-strong: #cad1d9;
+
+$pm-text: #18181b;
+$pm-text-2: #4a5562;
+$pm-text-muted: #77808d;
+$pm-text-faint: #aeb4bc;
+
+$pm-blue: #1452f0;
+$pm-blue-hover: #0e3fc7;
+$pm-blue-soft: #e7eefd;
+
+$pm-green: #27ae60;
+$pm-green-soft: #d7f5e0;
+$pm-green-text: #0f7a3a;
+
+$pm-red: #d93f3f;
+$pm-red-soft: #fae0e0;
+$pm-red-text: #a91f1f;
+
+$pm-amber: #f59e0b;
+
+/* ============================================================
+ *  Root canvas
+ * ============================================================ */
 
 .checkin-play-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 24px 16px;
-  min-height: 400px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  border-radius: $radius-2xl;
-  background: radial-gradient(circle at 50% -20%, rgba(255, 107, 53, 0.18) 0%, transparent 70%),
-    radial-gradient(circle at 50% 120%, rgba(196, 30, 58, 0.12) 0%, transparent 60%),
-    linear-gradient(to bottom, #ffffff, #f9fafb);
-  font-family: "Fredoka", sans-serif;
-  box-shadow: inset 0 0 80px rgba(255, 107, 53, 0.03);
-
-  &.streak-active {
-    background: radial-gradient(circle at 50% -20%, rgba(255, 107, 53, 0.28) 0%, transparent 70%),
-      radial-gradient(circle at 50% 120%, rgba(196, 30, 58, 0.18) 0%, transparent 60%),
-      linear-gradient(to bottom, #ffffff, #fff7f5);
-  }
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 30c0-1.1.9-2 2-2h2c1.1 0 2 .9 2 2s-.9 2-2 2h-2c-1.1 0-2-.9-2-2z' fill='%23ff6b35' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
-    opacity: 0.5;
-    pointer-events: none;
-    z-index: 0;
-  }
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px 24px;
+  min-height: 100vh;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: $pm-text;
+  background: $pm-bg;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Ember Background ── */
-
-.flame-bg-effects {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
+/* Hide the legacy fire/ember chrome — we render a clean light layout. */
+.flame-bg-effects,
+.ember,
+.checkin-best-text,
+.checkin-flame-stack,
+.confetti-container,
+.checkin-milestones-card,
+.checkin-global-card,
+.checkin-history-card,
+.checkin-rewards-card,
+.action-card,
+.status-pill,
+.reward-preview {
+  display: none !important;
 }
 
-.ember {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ff6b35;
-  opacity: 0;
-  animation: ember-float 5s ease-in-out infinite;
+/* The platform Action Console (outside the iframe) owns the primary CTA. */
+.checkin-btn,
+.checkin-btn--ready,
+.checkin-claim-btn {
+  display: none !important;
 }
 
-.ember-1 {
-  left: 20%;
-  bottom: -20px;
-  animation-delay: 0s;
-  box-shadow: 0 0 12px rgba(255, 107, 53, 0.8), 0 0 24px rgba(255, 107, 53, 0.4);
-}
-
-.ember-2 {
-  left: 55%;
-  bottom: -20px;
-  animation-delay: 2s;
-  width: 4px;
-  height: 4px;
-  background: #ffa726;
-  box-shadow: 0 0 10px rgba(255, 167, 38, 0.8), 0 0 20px rgba(255, 167, 38, 0.4);
-}
-
-.ember-3 {
-  left: 85%;
-  bottom: -20px;
-  animation-delay: 4s;
-  width: 5px;
-  height: 5px;
-  box-shadow: 0 0 15px rgba(255, 107, 53, 0.9), 0 0 30px rgba(255, 107, 53, 0.5);
-}
-
-@keyframes ember-float {
-  0% { opacity: 0; transform: translateY(0) scale(1) rotate(0deg); }
-  20% { opacity: 0.9; }
-  80% { opacity: 0.4; }
-  100% { opacity: 0; transform: translateY(-500px) scale(0.5) rotate(180deg); }
-}
-
-/* ── Streak Fire Ring ── */
+/* ============================================================
+ *  1. Hero — current streak (the focal datapoint).
+ *     JSX structure (cannot change without touching React):
+ *       .checkin-streak-section
+ *         .checkin-fire-ring
+ *           .checkin-streak-number   ← the big "0"
+ *         .checkin-streak-text       ← "Day Streak" label
+ *         .checkin-tier-badge        ← optional pill
+ *
+ *     Polymarket-style treatment: the ring becomes the whole hero card,
+ *     the number is left-aligned and oversized, the label is the eyebrow.
+ * ============================================================ */
 
 .checkin-streak-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
   position: relative;
-  z-index: 1;
+  display: grid;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
 }
 
 .checkin-fire-ring {
   position: relative;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, rgba(255, 107, 53, 0.12) 0%, rgba(255, 107, 53, 0.05) 100%);
-  border: 4px solid rgba(255, 107, 53, 0.15);
-  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  align-items: flex-end;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  padding: 24px 26px 20px;
+  border-radius: 16px;
+  background: $pm-bg;
+  border: 1px solid $pm-border;
+  box-shadow: none;
 
-  &::after {
-    content: "";
+  /* hide any decorative flame inside the ring */
+  & > .checkin-flame-stack {
+    display: none;
+  }
+
+  &::before {
+    content: "Current streak";
     position: absolute;
-    inset: -10px;
-    border-radius: 50%;
-    border: 2px dashed rgba(255, 107, 53, 0.1);
-    animation: rotate-slow 20s linear infinite;
+    top: 18px;
+    left: 26px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: $pm-text-muted;
   }
-
-  &.active {
-    border-color: rgba(255, 107, 53, 0.5);
-    box-shadow: 0 0 40px rgba(255, 107, 53, 0.2), 0 0 15px rgba(255, 107, 53, 0.1);
-  }
-
-  &.spark {
-    border-color: rgba(255, 165, 0, 0.6);
-    box-shadow: 0 0 30px rgba(255, 165, 0, 0.25), 0 0 60px rgba(255, 165, 0, 0.1);
-    background: radial-gradient(circle, rgba(255, 165, 0, 0.15) 0%, rgba(255, 165, 0, 0.05) 100%);
-  }
-
-  &.blaze {
-    border-color: rgba(255, 107, 53, 0.7);
-    box-shadow: 
-      0 0 30px rgba(255, 107, 53, 0.3), 
-      0 0 60px rgba(255, 107, 53, 0.2), 
-      inset 0 0 20px rgba(255, 107, 53, 0.1);
-    background: radial-gradient(circle, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0.08) 100%);
-  }
-
-  &.inferno {
-    border-color: rgba(196, 30, 58, 0.8);
-    box-shadow: 
-      0 0 40px rgba(196, 30, 58, 0.4), 
-      0 0 80px rgba(255, 107, 53, 0.25), 
-      0 0 120px rgba(255, 107, 53, 0.15),
-      inset 0 0 30px rgba(196, 30, 58, 0.15);
-    background: radial-gradient(circle, rgba(196, 30, 58, 0.25) 0%, rgba(196, 30, 58, 0.1) 100%);
-    animation: inferno-pulse 2s ease-in-out infinite;
-  }
-}
-
-@keyframes rotate-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes inferno-pulse {
-  0%, 100% { 
-    box-shadow: 0 0 40px rgba(196, 30, 58, 0.4), 0 0 80px rgba(255, 107, 53, 0.25), 0 0 120px rgba(255, 107, 53, 0.15);
-    transform: scale(1);
-  }
-  50% { 
-    box-shadow: 0 0 60px rgba(196, 30, 58, 0.55), 0 0 100px rgba(255, 107, 53, 0.35), 0 0 150px rgba(255, 107, 53, 0.2);
-    transform: scale(1.02);
-  }
-}
-
-.checkin-flame-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: absolute;
-  top: -12px;
-}
-
-.checkin-flame {
-  font-size: 28px;
-  line-height: 1;
-  filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6));
-}
-
-.checkin-flame-core {
-  animation: flame-dance 0.8s ease-in-out infinite alternate;
-}
-
-.checkin-flame-outer {
-  font-size: 22px;
-  margin-top: -14px;
-  opacity: 0.8;
-  animation: flame-dance 1s ease-in-out infinite alternate-reverse;
-}
-
-.checkin-flame-inferno {
-  font-size: 16px;
-  margin-top: -12px;
-  opacity: 0.6;
-  animation: flame-dance 0.6s ease-in-out infinite alternate;
-}
-
-@keyframes flame-dance {
-  from { transform: scaleY(1) scaleX(1); filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6)); }
-  to { transform: scaleY(1.25) scaleX(0.85); filter: drop-shadow(0 0 15px rgba(255, 107, 53, 0.9)); }
 }
 
 .checkin-streak-number {
-  font-size: 48px;
-  font-weight: 900;
-  font-family: "Fredoka", sans-serif;
-  background: linear-gradient(135deg, #fbbf24, #ff6b35, #c41e3a);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  margin-top: 22px;
+  font-size: 72px;
+  font-weight: 700;
   line-height: 1;
-  animation: scale-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  letter-spacing: -0.03em;
+  color: $pm-text;
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes scale-up {
-  0% { transform: scale(0.5); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.checkin-streak-text {
-  font-size: 14px;
+/* second label appended after the number: "days" */
+.checkin-fire-ring::after {
+  content: "days";
+  margin-bottom: 12px;
+  font-size: 16px;
   font-weight: 600;
-  color: #4b5563;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  color: $pm-text-muted;
+  letter-spacing: 0.01em;
 }
 
-.checkin-tier-badge {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  padding: 4px 12px;
-  border-radius: $radius-full;
-  text-transform: uppercase;
-
-  &.spark {
-    background: rgba(255, 165, 0, 0.15);
-    color: #ffa500;
-    box-shadow: 0 2px 10px rgba(255, 165, 0, 0.1);
-  }
-
-  &.blaze {
-    background: rgba(255, 107, 53, 0.15);
-    color: #ff6b35;
-    box-shadow: 0 2px 10px rgba(255, 107, 53, 0.1);
-  }
-
-  &.inferno {
-    background: rgba(196, 30, 58, 0.15);
-    color: #c41e3a;
-    box-shadow: 0 2px 10px rgba(196, 30, 58, 0.1);
-  }
-}
-
-.checkin-best-text {
+/* Show a "Best" sub-line stacked under the hero — uses .checkin-streak-text */
+.checkin-streak-text {
+  display: block;
+  padding: 10px 26px;
   font-size: 12px;
-  color: #9ca3af;
+  font-weight: 600;
+  color: $pm-text-muted;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  border-top: 1px dashed $pm-border;
+  margin: 0 -1px;
 }
 
-/* ── Week Progress ── */
+/* Optional tier chip — sits in the top-right of the hero card */
+.checkin-tier-badge {
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  background: $pm-blue-soft;
+  color: $pm-blue;
+  border: 1px solid rgba(20, 82, 240, 0.18);
+  z-index: 2;
+
+  &.blaze,
+  &.inferno {
+    background: rgba(245, 158, 11, 0.12);
+    color: $pm-amber;
+    border-color: rgba(245, 158, 11, 0.28);
+  }
+}
+
+/* Tier colour accents on the hero card */
+.checkin-fire-ring.blaze,
+.checkin-fire-ring.inferno {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, $pm-bg 80%);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.checkin-fire-ring.cold .checkin-streak-number {
+  color: $pm-text;
+}
+
+/* ============================================================
+ *  2. Week strip
+ * ============================================================ */
 
 .checkin-week-wrapper {
-  width: 100%;
-  max-width: 440px;
-  position: relative;
-  z-index: 1;
+  padding: 16px 18px 18px;
+  border-radius: 16px;
+  background: $pm-bg;
+  border: 1px solid $pm-border;
 }
 
 .checkin-week-progress-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
 .checkin-progress-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #4b5563;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $pm-text-muted;
+
+  &::before {
+    content: "This Week · ";
+    color: $pm-text-faint;
+  }
 }
 
 .checkin-week-complete-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: $pm-green-soft;
+  color: $pm-green-text;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.1em;
-  padding: 3px 10px;
-  border-radius: $radius-sm;
-  background: rgba(52, 211, 153, 0.15);
-  color: #10b981;
+  letter-spacing: 0.12em;
 }
 
 .checkin-week-row {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   gap: 8px;
 }
 
 .checkin-week-day-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 8px;
-  border-radius: $radius-md;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  min-width: 50px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 14px 0 12px;
+  border-radius: 10px;
+  background: $pm-surface;
+  border: 1px solid $pm-border;
+  color: $pm-text-faint;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 140ms ease;
 
   &.checked {
-    background: rgba(52, 211, 153, 0.08);
-    border-color: rgba(52, 211, 153, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+    background: $pm-green-soft;
+    border-color: rgba(39, 174, 96, 0.3);
+    color: $pm-green-text;
   }
 
-  &.today {
-    border-color: rgba(255, 107, 53, 0.4);
-    background: rgba(255, 107, 53, 0.02);
-  }
-
+  &.today,
   &.today-ready {
-    border-color: rgba(255, 107, 53, 0.6);
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.2);
-    animation: slot-glow 2s ease-in-out infinite;
-    transform: scale(1.05);
+    background: $pm-blue;
+    border-color: $pm-blue;
+    color: #ffffff;
+    box-shadow: 0 8px 18px -8px rgba(20, 82, 240, 0.55);
+    font-weight: 800;
   }
-
-  &.today-done {
-    border-color: rgba(52, 211, 153, 0.5);
-    background: rgba(52, 211, 153, 0.12);
-  }
-}
-
-@keyframes slot-glow {
-  0%, 100% { box-shadow: 0 0 15px rgba(255, 107, 53, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(255, 107, 53, 0.4); }
 }
 
 .checkin-day-icon {
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .checkin-day-label {
   font-size: 10px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
+  opacity: 0.65;
+
+  .today &,
+  .today-ready & {
+    opacity: 1;
+  }
 }
 
 .checkin-bonus-star {
   position: absolute;
-  top: -8px;
-  right: -6px;
-  font-size: 14px;
-  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+  top: -6px;
+  right: -4px;
+  font-size: 11px;
+  color: $pm-amber;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
 .checkin-week-connector {
-  margin-top: 12px;
-  height: 6px;
-  border-radius: $radius-full;
-  background: #f3f4f6;
+  margin-top: 14px;
+  height: 4px;
+  border-radius: 999px;
+  background: $pm-surface-2;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .checkin-connector-fill {
   height: 100%;
-  border-radius: $radius-full;
-  background: linear-gradient(90deg, #10b981, #fbbf24, #ff6b35);
-  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  background: $pm-blue;
+  transition: width 320ms ease;
 }
 
-/* ── Countdown ── */
+/* ============================================================
+ *  3. UTC + countdown row
+ * ============================================================ */
 
 .countdown-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  position: relative;
-  z-index: 1;
+  gap: 16px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: $pm-bg;
+  border: 1px solid $pm-border;
 }
 
 .utc-clock {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
-  padding: 10px 20px;
-  background: rgba(255, 107, 53, 0.08);
-  border: 1px solid rgba(255, 107, 53, 0.25);
-  border-radius: $radius-full;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.05);
+  color: $pm-text-2;
+  font-variant-numeric: tabular-nums;
 }
 
 .clock-display {
-  @include mono-number(15px);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #ff6b35;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: $pm-text;
 }
 
 .clock-utc-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: rgba(255, 107, 53, 0.6);
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $pm-text-faint;
 }
 
-/* ── Status Pill ── */
+/* Suppress the SVG ring — compact text pill instead */
+.countdown-section .countdown-timer__ring,
+.countdown-section .countdown-timer__urgency-hint {
+  display: none !important;
+}
 
-.status-pill {
+.countdown-section .countdown-timer__circle {
+  position: relative;
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.countdown-section .countdown-timer__display {
+  position: static;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 24px;
-  border-radius: $radius-full;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: $pm-blue-soft;
+  border: 1px solid rgba(20, 82, 240, 0.22);
+  transform: none;
+}
+
+.countdown-section .countdown-timer__time {
   font-size: 14px;
-  font-weight: 600;
-  font-family: "Fredoka", sans-serif;
-  background: rgba(196, 30, 58, 0.08);
-  color: #ef4444;
-  border: 1px solid rgba(196, 30, 58, 0.15);
-  transition: all 0.4s ease;
-  position: relative;
-  z-index: 1;
-
-  &.ready {
-    background: rgba(16, 185, 129, 0.08);
-    color: #10b981;
-    border-color: rgba(16, 185, 129, 0.3);
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
-    animation: pulse-ready 2s ease-in-out infinite;
-  }
-}
-
-@keyframes pulse-ready {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(16, 185, 129, 0.15); }
-  50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(16, 185, 129, 0.25); }
-}
-
-/* ── Action Card + Check-in Button ── */
-
-.action-card {
-  width: 100%;
-  max-width: 440px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 107, 53, 0.1);
-  border-radius: $radius-xl;
-  padding: 24px;
-  backdrop-filter: blur(12px);
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
-}
-
-.checkin-btn {
-  margin-top: 20px;
-  border-radius: $radius-lg !important;
-
-  &.checkin-btn--ready {
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-    animation: btn-breathe 2.5s ease-in-out infinite;
-  }
-}
-
-@keyframes btn-breathe {
-  0%, 100% { transform: translateY(0); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3); }
-  50% { transform: translateY(-4px); box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4); }
-}
-
-.btn-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
   font-weight: 700;
+  color: $pm-blue;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-shadow: none !important;
+}
+
+.countdown-section .countdown-timer__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-size: 20px;
-  font-family: "Fredoka", sans-serif;
-  letter-spacing: 0.05em;
+  color: $pm-blue-hover;
 }
 
-/* ── Reward Preview ── */
+/* ============================================================
+ *  4. Stats grid
+ * ============================================================ */
 
-.reward-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 16px 28px;
-  background: radial-gradient(circle at center, rgba(251, 191, 36, 0.12), rgba(255, 107, 53, 0.08));
-  border: 2px dashed rgba(255, 107, 53, 0.25);
-  border-radius: $radius-lg;
-  position: relative;
-  z-index: 1;
-  animation: preview-float 3s ease-in-out infinite;
-  box-shadow: 0 10px 30px rgba(255, 107, 53, 0.1);
-}
-
-@keyframes preview-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.reward-preview-label {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #ff6b35;
-}
-
-.reward-preview-amount {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 26px;
-  font-weight: 900;
-  font-family: "Fredoka", sans-serif;
-  background: linear-gradient(135deg, #fbbf24, #ff6b35, #ef4444);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 4px rgba(255, 107, 53, 0.2));
-}
-
-.reward-preview-hint {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6b7280;
-}
-
-/* ── Stats Cards ── */
-
-.checkin-stats-card,
-.checkin-rewards-card,
-.checkin-milestones-card,
-.checkin-global-card,
-.checkin-history-card {
-  width: 100%;
-  max-width: 480px;
-  position: relative;
-  z-index: 1;
-  border-radius: $radius-xl !important;
+.checkin-stats-card {
+  padding: 16px 18px !important;
+  border-radius: 14px !important;
+  background: $pm-bg !important;
+  border: 1px solid $pm-border !important;
+  box-shadow: none !important;
 }
 
 .checkin-section-title {
-  font-size: 14px;
+  margin: 0 0 12px;
+  font-size: 11px;
   font-weight: 700;
-  color: #1f2937;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 16px;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &::before {
-    content: "";
-    width: 4px;
-    height: 16px;
-    background: #ff6b35;
-    border-radius: $radius-full;
-  }
+  color: $pm-text-muted;
 }
 
 .checkin-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 .checkin-stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
   gap: 6px;
-  padding: 16px 8px;
-  background: #ffffff;
-  border-radius: $radius-lg;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-  transition: transform 0.3s ease;
-
-  &:hover {
-    transform: translateY(-4px);
-  }
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: $pm-surface;
+  border: 1px solid $pm-border;
+  text-align: left;
 }
 
 .checkin-stat-value {
   font-size: 22px;
   font-weight: 700;
-  color: #ff6b35;
-  font-family: "Fredoka", sans-serif;
+  color: $pm-text;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .checkin-stat-label {
   font-size: 10px;
-  font-weight: 600;
-  color: #9ca3af;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  text-align: center;
+  color: $pm-text-muted;
 }
 
-/* ── Rewards ── */
+/* ============================================================
+ *  Status toast (StandaloneDappSurface)
+ * ============================================================ */
 
-.checkin-rewards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.checkin-reward-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 18px 12px;
-  background: #ffffff;
-  border-radius: $radius-lg;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-}
-
-.checkin-reward-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #fbbf24;
-  font-family: "Fredoka", sans-serif;
-
-  &.checkin-reward-value--unclaimed {
-    color: #10b981;
-    text-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
-  }
-}
-
-.checkin-reward-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9ca3af;
-  text-transform: uppercase;
-}
-
-.checkin-claim-btn {
-  margin-top: 8px;
-  border-radius: $radius-md !important;
-}
-
-/* ── Milestones ── */
-
-.checkin-milestones-row {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.checkin-milestone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 16px 20px;
-  background: #ffffff;
-  border-radius: $radius-lg;
-  border: 1px solid #f3f4f6;
-  min-width: 100px;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-
-  &.reached {
-    background: rgba(16, 185, 129, 0.05);
-    border-color: rgba(16, 185, 129, 0.25);
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-
-  &.next {
-    border-color: rgba(255, 107, 53, 0.4);
-    background: rgba(255, 107, 53, 0.02);
-    box-shadow: 0 10px 20px rgba(255, 107, 53, 0.1);
-    transform: translateY(-4px);
-  }
-}
-
-.checkin-milestone-icon {
-  font-size: 20px;
-}
-
-.checkin-milestone-day {
-  font-size: 12px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.checkin-milestone-reward {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fbbf24;
-  font-family: "Fredoka", sans-serif;
-}
-
-.checkin-milestone-cumulative {
-  font-size: 10px;
-  color: #9ca3af;
-}
-
-/* ── History ── */
-
-.checkin-history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.checkin-history-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-radius: $radius-md;
-  border: 1px solid #f3f4f6;
-  font-size: 13px;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: translateX(4px);
-    border-color: rgba(255, 107, 53, 0.2);
-  }
-}
-
-.checkin-history-date {
-  color: #6b7280;
-  font-weight: 500;
-  min-width: 90px;
-}
-
-.checkin-history-streak {
-  color: #ff6b35;
-  font-weight: 600;
-  flex: 1;
-  text-align: center;
-}
-
-.checkin-history-reward {
-  color: #10b981;
-  font-weight: 700;
-  min-width: 70px;
-  text-align: right;
-}
-
-/* ── Confetti ── */
-
-.confetti-container {
+.standalone-dapp-root .status-toast {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 999;
-  overflow: hidden;
-}
-
-.confetti-piece {
-  position: absolute;
-  top: -10px;
-  opacity: 0;
-  animation: confetti-fall 2.5s ease-out forwards;
-}
-
-@keyframes confetti-fall {
-  0% { opacity: 1; top: -10px; transform: translateX(0) rotate(0deg); }
-  25% { opacity: 1; }
-  100% { opacity: 0; top: 100vh; transform: translateX(calc(-50px + 100px * var(--r, 0.5))) rotate(720deg); }
-}
-
-/* ── Reduced Motion ── */
-
-@media (prefers-reduced-motion: reduce) {
-  .status-pill { animation: none; transition: none; }
-  .ember { animation: none; display: none; }
-  .confetti-container { display: none; }
-  .reward-preview { animation: none; }
-  .checkin-fire-ring { animation: none; }
-  .checkin-flame { animation: none; }
-  .checkin-btn { animation: none; }
-  .checkin-week-day-slot { animation: none; }
-  .checkin-streak-number { animation: none; }
-}
-
-@media (max-width: 520px) {
-  .checkin-play-area {
-    gap: 20px;
-    padding: 22px 10px;
-  }
-
-  .checkin-week-row {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 4px;
-    width: 100%;
-  }
-
-  .checkin-week-day-slot {
-    min-width: 0;
-    padding: 8px 2px;
-
-    &.today-ready {
-      transform: none;
-    }
-  }
-
-  .checkin-day-icon {
-    font-size: 14px;
-  }
-
-  .checkin-day-label {
-    font-size: 9px;
-  }
-
-  .checkin-stats-grid {
-    gap: 8px;
-  }
-
-  .checkin-stat-item {
-    min-width: 0;
-    padding: 12px 4px;
-  }
-
-  .checkin-stat-value {
-    max-width: 100%;
-    font-size: 18px;
-    overflow-wrap: anywhere;
-  }
-
-  .checkin-stat-label {
-    max-width: 100%;
-    font-size: 9px;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: $pm-bg;
+  color: $pm-text;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid $pm-border;
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.18);
 }

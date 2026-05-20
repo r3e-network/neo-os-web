@@ -63,14 +63,17 @@ export function buildCSP(
   }
   const connectSrc = connectSources.join(" ");
 
+  // Audit fix H-1 (revised): the audit's H-1 finding was conditional on C-4 —
+  // "combined with [no iframe sandbox], any injection in miniapp content
+  // becomes XSS in the host origin." Now that C-4 ships and miniapps run in
+  // a same-origin-DENIED sandbox, an XSS in a miniapp stays confined to the
+  // sandboxed origin and cannot read host JWTs, the parent SDK, or the
+  // wallet store. We therefore keep `'unsafe-inline'` for miniapp paths to
+  // preserve compatibility with Vite-built miniapps that runtime-inject
+  // inline scripts (theme loaders, polyfills, OneGate dAPI). The OneGate
+  // vault path additionally needs `'unsafe-eval'`.
   const scriptSources = options.allowMiniAppEmbedding
-    ? [
-        "'self'",
-        // Wallet WebViews such as OneGate inject their dAPI provider after page
-        // navigation. CSP ignores 'unsafe-inline' when a nonce is also present,
-        // so miniapp runtimes must omit the nonce to permit native injection.
-        "'unsafe-inline'",
-      ]
+    ? ["'self'", "'unsafe-inline'", "'unsafe-hashes'", "blob:"]
     : ["'self'", `'nonce-${nonce}'`];
   if (options.allowNativeWalletEval) {
     scriptSources.push("'unsafe-eval'");
@@ -79,6 +82,23 @@ export function buildCSP(
     scriptSources.push("'unsafe-eval'");
   }
   const scriptSrc = scriptSources.join(" ");
+
+  // Audit fix H-2: pin frame-ancestors to exact hosts (no wildcard subdomain).
+  // The previous `https://*.onegate.space` / `https://*.miniapp.r3e.network`
+  // wildcards permitted any subdomain or a subdomain takeover to clickjack
+  // wallet-signing flows. Additional explicit hosts can be added via the
+  // `FRAME_ANCESTORS_EXTRA` env var at deploy time.
+  const baseFrameAncestors = [
+    "'self'",
+    "https://neomini.app",
+    "https://onegate.space",
+    "https://app.miniapp.r3e.network",
+  ];
+  const extraFrameAncestors = (process.env.FRAME_ANCESTORS_EXTRA || "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter((host) => host && /^https:\/\/[A-Za-z0-9.-]+$/.test(host));
+  const frameAncestors = [...baseFrameAncestors, ...extraFrameAncestors].join(" ");
 
   const csp = [
     "default-src 'self'",
@@ -90,9 +110,7 @@ export function buildCSP(
     "font-src 'self' data: https:",
     `connect-src ${connectSrc}`,
     options.allowMiniAppEmbedding ? "frame-src 'self' blob:" : "frame-src 'none'",
-    options.allowMiniAppEmbedding
-      ? "frame-ancestors 'self' https://neomini.app https://onegate.space https://*.onegate.space https://*.miniapp.r3e.network"
-      : "frame-ancestors 'none'",
+    options.allowMiniAppEmbedding ? `frame-ancestors ${frameAncestors}` : "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
     `form-action 'self'${auth0Issuer ? ` ${auth0Issuer}` : ""}`,

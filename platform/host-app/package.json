@@ -12,6 +12,7 @@
     "test:full": "npm run test -- --runInBand && npm run test:e2e",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit",
     "quality:loop": "bash ./scripts/quality-loop.sh"
   },
   "dependencies": {
