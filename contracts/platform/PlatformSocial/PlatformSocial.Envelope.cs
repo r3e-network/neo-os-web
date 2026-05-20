@@ -138,6 +138,44 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             return amount;
         }
 
+        /// <summary>
+        /// Creator reclaims unclaimed GAS from an expired envelope. CreateEnvelope
+        /// consumed the creator's full GAS credit, and ClaimEnvelope rejects after
+        /// ExpiryTime — without this method the unclaimed RemainingAmount would be
+        /// locked in the contract forever. Refund is gated on:
+        ///   • envelope exists
+        ///   • caller is the original creator (witness)
+        ///   • envelope has actually expired (Runtime.Time > ExpiryTime)
+        ///   • RemainingAmount > 0
+        /// </summary>
+        public static BigInteger RefundExpiredEnvelope(string appId, BigInteger envelopeId)
+        {
+            ValidateAppRegistered(appId, APP_TYPE_ENVELOPE);
+
+            EnvelopeData envelope = GetEnvelope(appId, envelopeId);
+            ExecutionEngine.Assert(envelope.Creator != UInt160.Zero, "envelope not found");
+            ExecutionEngine.Assert(Runtime.CheckWitness(envelope.Creator), "only creator");
+            ExecutionEngine.Assert(Runtime.Time > (ulong)envelope.ExpiryTime, "not expired yet");
+            ExecutionEngine.Assert(envelope.RemainingAmount > 0, "nothing to refund");
+
+            BigInteger refund = envelope.RemainingAmount;
+
+            // Zero out the remaining amount BEFORE transferring (checks-effects-
+            // interactions). Also mark every unclaimed packet as consumed by setting
+            // ClaimedCount to PacketCount so a follow-up ClaimEnvelope would short-
+            // circuit on "envelope empty".
+            envelope.RemainingAmount = 0;
+            envelope.ClaimedCount = envelope.PacketCount;
+            StoreEnvelope(appId, envelopeId, envelope);
+
+            ExecutionEngine.Assert(
+                GAS.Transfer(Runtime.ExecutingScriptHash, envelope.Creator, refund),
+                "refund transfer failed");
+
+            OnEnvelopeRefunded(appId, envelopeId, envelope.Creator, refund);
+            return refund;
+        }
+
         #endregion
     }
 }
