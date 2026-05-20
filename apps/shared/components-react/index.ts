@@ -7,6 +7,9 @@ export type { NeoCardProps, CardVariant } from "./NeoCard";
 export { NeoInput } from "./NeoInput";
 export type { NeoInputProps } from "./NeoInput";
 
+export { NeoSelect } from "./NeoSelect";
+export type { NeoSelectProps, NeoSelectOption } from "./NeoSelect";
+
 export { ConsoleToolPanel, previewId } from "./ConsoleToolPanel";
 export type {
   ConsoleField,
