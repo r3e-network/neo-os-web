@@ -20,6 +20,22 @@ describe("/api/explorer/council-governance", () => {
     delete process.env.NEO_RPC_TESTNET;
   });
 
+  it("answers public read CORS preflight without touching upstream services", async () => {
+    const handler = require("@/pages/api/explorer/council-governance")
+      .default as (req: NextApiRequest, res: NextApiResponse) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "OPTIONS",
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("GET,OPTIONS");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("normalizes Neo Explorer candidate governance data", async () => {
     process.env.NEO_EXPLORER_API_TESTNET = "https://explorer-api.example.test/";
     mockFetch
@@ -80,6 +96,7 @@ describe("/api/explorer/council-governance", () => {
       }),
     );
     expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
     expect(res.getHeader("Cache-Control")).toBe(
       "public, max-age=15, s-maxage=30, stale-while-revalidate=60",
     );

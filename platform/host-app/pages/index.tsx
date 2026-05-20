@@ -120,6 +120,18 @@ function serializeMiniApps(apps: MiniAppInfo[]): MiniAppInfo[] {
   }));
 }
 
+function isExpectedCatalogRefreshAbort(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const name = err.name.toLowerCase();
+  const message = err.message.toLowerCase();
+  return (
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    message.includes("signal timed out") ||
+    message.includes("operation was aborted")
+  );
+}
+
 export const getStaticProps: GetStaticProps<LandingPageProps> = async () => {
   const definitions = await loadMiniAppDefinitions();
   const initialApps = sortMiniApps(
@@ -179,7 +191,9 @@ export default function LandingPage({
         setFeaturedApps(partitions.flagship);
         setToolApps(partitions.tools);
       } catch (err) {
-        logger.error("Failed to fetch miniapp catalog:", err);
+        if (!isExpectedCatalogRefreshAbort(err)) {
+          logger.error("Failed to fetch miniapp catalog:", err);
+        }
       } finally {
         if (active) setCatalogLoading(false);
       }
