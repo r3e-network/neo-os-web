@@ -6,7 +6,7 @@
  */
 
 import { useState } from "react";
-import { NeoButton, NeoCard, NeoInput } from "@shared/components-react";
+import { NeoButton, NeoCard, NeoInput, NeoSelect } from "@shared/components-react";
 import { useStateBindings } from "@shared/react/hooks/useStateBindings";
 import type { Observable } from "@shared/react/context";
 import TombstoneCard from "./pages/index/components/TombstoneCard";
@@ -125,7 +125,19 @@ export default function PlayArea({ t, state, dispatch }: PlayAreaProps) {
             <span className="tribute-title">{t("payTribute") || "Pay Tribute"}</span>
             <NeoInput value={tributeMessage} label={t("tributeMessage") || "Message"} placeholder={t("tributeMessagePlaceholder") || "Your tribute..."} onChange={setTributeMessage} />
             <div className="tribute-row">
-              <NeoInput value={tributeOfferingType} label={t("offeringType") || "Offering Type"} placeholder="0" onChange={setTributeOfferingType} />
+              <NeoSelect
+                value={tributeOfferingType}
+                label={t("offeringType") || "Offering Type"}
+                options={[
+                  { value: "0", label: t("incense") || "Incense" },
+                  { value: "1", label: t("candle") || "Candle" },
+                  { value: "2", label: t("flower") || "Flowers" },
+                  { value: "3", label: t("fruit") || "Fruit" },
+                  { value: "4", label: t("wine") || "Wine" },
+                  { value: "5", label: t("feast") || "Feast" },
+                ]}
+                onChange={setTributeOfferingType}
+              />
               <NeoInput value={tributeOfferingCost} label={t("offeringCost") || "Cost"} placeholder="1" onChange={setTributeOfferingCost} />
             </div>
             <NeoButton variant="primary" loading={isPaying} onClick={() => handlePayTribute(selectedMemorial.id)} aria-label={t("payTribute") || "Pay Tribute"}>
