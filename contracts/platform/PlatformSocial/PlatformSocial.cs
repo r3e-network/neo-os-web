@@ -17,6 +17,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void EnvelopeCreatedHandler(string appId, BigInteger envelopeId, UInt160 creator, BigInteger totalAmount, BigInteger packetCount);
     public delegate void EnvelopeClaimedHandler(string appId, BigInteger envelopeId, UInt160 claimer, BigInteger amount, BigInteger remaining);
     public delegate void EnvelopeCompletedHandler(string appId, BigInteger envelopeId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
+    public delegate void EnvelopeRefundedHandler(string appId, BigInteger envelopeId, UInt160 creator, BigInteger refundAmount);
     public delegate void RangeGasPoolCreatedHandler(string appId, BigInteger poolId, UInt160 creator, BigInteger totalAmount, BigInteger minClaimAmount, BigInteger maxClaimAmount, BigInteger maxClaims);
     public delegate void RangeGasPoolClaimedHandler(string appId, BigInteger poolId, UInt160 claimer, BigInteger amount, BigInteger remainingAmount, BigInteger remainingClaims);
     public delegate void RangeGasPoolCompletedHandler(string appId, BigInteger poolId, UInt160 bestLuckWinner, BigInteger bestLuckAmount);
@@ -31,6 +32,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
     public delegate void AttemptMadeHandler(string appId, BigInteger vaultId, UInt160 attacker, bool success, BigInteger attemptNumber);
     public delegate void VaultBrokenHandler(string appId, BigInteger vaultId, UInt160 winner, BigInteger reward);
     public delegate void BountyIncreasedHandler(string appId, BigInteger vaultId, BigInteger amount, BigInteger newTotal);
+    public delegate void VaultRefundedHandler(string appId, BigInteger vaultId, UInt160 creator, BigInteger refund);
 
     /// <summary>
     /// PlatformSocial - Multi-tenant social engine consolidating RedEnvelope,
@@ -159,6 +161,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         [DisplayName("EnvelopeCompleted")]
         public static event EnvelopeCompletedHandler OnEnvelopeCompleted;
 
+        [DisplayName("EnvelopeRefunded")]
+        public static event EnvelopeRefundedHandler OnEnvelopeRefunded;
+
         [DisplayName("RangeGasPoolCreated")]
         public static event RangeGasPoolCreatedHandler OnRangeGasPoolCreated;
 
@@ -200,6 +205,9 @@ namespace NeoMiniAppPlatform.Contracts.Platform
 
         [DisplayName("BountyIncreased")]
         public static event BountyIncreasedHandler OnBountyIncreased;
+
+        [DisplayName("VaultRefunded")]
+        public static event VaultRefundedHandler OnVaultRefunded;
 
         // -----------------------------------------------------------------------
         // Data Structures
