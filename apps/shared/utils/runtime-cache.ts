@@ -1,3 +1,13 @@
+/**
+ * Cross-app cache helpers backed by localStorage.
+ *
+ * Use these for data that is genuinely shared across miniapps (e.g. the
+ * Morpheus runtime catalog). For app-scoped cache (per-miniapp state with
+ * automatic prefixing), use the CacheService instance on PlatformServices.
+ */
+
+import { safeReadJSON, safeWriteJSON, safeRemoveStorage } from "./safe-storage";
+
 type CacheEnvelope<T> = {
   value: T;
   updatedAt: number;
@@ -8,53 +18,16 @@ function safeNow(): number {
   return Date.now();
 }
 
-function readRaw(key: string): string | null {
-  try {
-    if (typeof localStorage !== "undefined") {
-      return localStorage.getItem(key);
-    }
-  } catch {
-    // ignore storage read failures
-  }
-  return null;
-}
-
-function writeRaw(key: string, value: string): void {
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(key, value);
-    }
-  } catch {
-    // ignore storage write failures
-  }
-}
-
-function removeRaw(key: string): void {
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.removeItem(key);
-    }
-  } catch {
-    // ignore storage remove failures
-  }
-}
-
 export function readCachedJSON<T>(key: string): T | null {
-  const raw = readRaw(key);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
+  return safeReadJSON<T>(key);
 }
 
 export function writeCachedJSON<T>(key: string, value: T): void {
-  writeRaw(key, JSON.stringify(value));
+  safeWriteJSON(key, value);
 }
 
 export function clearCachedValue(key: string): void {
-  removeRaw(key);
+  safeRemoveStorage(key);
 }
 
 export function readTimedCache<T>(key: string): CacheEnvelope<T> | null {
