@@ -46,6 +46,30 @@
     @apply bg-white border border-gray-200 shadow-sm;
   }
 
+  /* Polymarket-style "live" pulse — a soft 1.6s ease-in-out glow used on
+     status dots next to LIVE labels. Falls back to no animation when the
+     user requests reduced motion. */
+  .animate-pulse-dot {
+    animation: pm-pulse-dot 1.6s ease-in-out infinite;
+  }
+
+  @keyframes pm-pulse-dot {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+    }
+    50% {
+      opacity: 0.7;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse-dot {
+      animation: none;
+    }
+  }
+
   /* Polymarket-light card: solid white, hairline border, no blur, no shadow.
      Hover lifts the border to neo green and adds a very subtle shadow. */
   .glass-card {
