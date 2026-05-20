@@ -182,7 +182,16 @@ namespace NeoMiniAppPlatform.Contracts.Platform
                 NEO.Transfer(Runtime.ExecutingScriptHash, capsule.Owner, capsule.Principal),
                 "principal transfer failed");
 
-            // Transfer GAS compound minus fee
+            // Transfer GAS compound minus fee. The fee portion that's actually
+            // retained equals min(fee, compound) — when compound <= fee, the
+            // entire compound stays in the contract as the fee.
+            BigInteger feeRetained = capsule.Compound > fee ? fee : capsule.Compound;
+            if (feeRetained > 0)
+            {
+                ByteString feeKey = AppKey(appId, PREFIX_TOTAL_CAPSULE_FEES);
+                Put(feeKey, GetBigInteger(feeKey) + feeRetained);
+            }
+
             if (capsule.Compound > fee)
             {
                 ExecutionEngine.Assert(

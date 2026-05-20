@@ -70,6 +70,15 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             BigInteger fee = loanAmount * LENDING_FEE_BPS / 10000;
             BigInteger netLoan = loanAmount - fee;
 
+            // Track the retained origination fee so admin can sweep accumulated
+            // protocol revenue. Without this the fee just sat untracked in the
+            // contract balance and would have required a contract upgrade to recover.
+            if (fee > 0)
+            {
+                ByteString feeKey = AppKey(appId, PREFIX_TOTAL_LENDING_FEES);
+                Put(feeKey, GetBigInteger(feeKey) + fee);
+            }
+
             Loan loan = new Loan
             {
                 Borrower = borrower,
