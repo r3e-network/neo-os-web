@@ -98,7 +98,7 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ExecutionEngine.Assert(Runtime.CheckWitness(owner), "unauthorized");
             ExecutionEngine.Assert(lockDays >= CAPSULE_MIN_LOCK_DAYS && lockDays <= CAPSULE_MAX_LOCK_DAYS,
                 "invalid lock period (7-365 days)");
-            ExecutionEngine.Assert(principalAmount >= CAPSULE_MIN_DEPOSIT, "min 1 NEO deposit");
+            ExecutionEngine.Assert(principalAmount >= CAPSULE_MIN_DEPOSIT, "min 20 NEO deposit");
 
             // Consume only the requested principalAmount; refund the rest back to
             // the user's credit ledger so they can withdraw it via WithdrawCredit.
