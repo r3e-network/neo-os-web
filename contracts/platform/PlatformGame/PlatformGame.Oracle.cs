@@ -110,9 +110,22 @@ namespace NeoMiniAppPlatform.Contracts
 
             if (!success)
             {
+                // Refund the stake on oracle failure so a Morpheus outage can't
+                // silently keep player funds. Each game type uses its own bet/play
+                // ledger so we dispatch per type. Without these refunds, CoinFlip
+                // and Gacha plays would stay Unresolved forever (no public retry
+                // path exists) and the consumed GAS credit would be lost.
                 if (context.GameType == GameType_Dice)
                 {
                     RefundDiceBetFromOracle(context.AppId, context.OperationId, requestId);
+                }
+                else if (context.GameType == GameType_CoinFlip)
+                {
+                    RefundCoinFlipBetFromOracle(context.AppId, context.OperationId, requestId);
+                }
+                else if (context.GameType == GameType_Gacha)
+                {
+                    RefundGachaPlayFromOracle(context.AppId, context.OperationId, requestId);
                 }
                 Storage.Delete(Storage.CurrentContext, OracleRequestKey(requestId));
                 return;
