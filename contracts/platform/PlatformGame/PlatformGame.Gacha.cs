@@ -104,6 +104,7 @@ namespace NeoMiniAppPlatform.Contracts
         public delegate void GachaMachineCreatedHandler(string appId, UInt160 creator, BigInteger machineId);
         public delegate void GachaPlayInitiatedHandler(string appId, UInt160 player, BigInteger machineId, BigInteger playId, ByteString seed);
         public delegate void GachaPlayResolvedHandler(string appId, UInt160 player, BigInteger machineId, BigInteger itemIndex, BigInteger playId, BigInteger assetType, UInt160 assetHash, BigInteger amount, string tokenId);
+        public delegate void GachaPlayRefundedHandler(string appId, UInt160 player, BigInteger machineId, BigInteger playId, BigInteger amount);
         public delegate void GachaMachineActivatedHandler(string appId, BigInteger machineId, bool active);
 
         [DisplayName("GachaMachineCreated")]
@@ -114,6 +115,9 @@ namespace NeoMiniAppPlatform.Contracts
 
         [DisplayName("GachaPlayResolved")]
         public static event GachaPlayResolvedHandler OnGachaPlayResolved;
+
+        [DisplayName("GachaPlayRefunded")]
+        public static event GachaPlayRefundedHandler OnGachaPlayRefunded;
 
         [DisplayName("GachaMachineActivated")]
         public static event GachaMachineActivatedHandler OnGachaMachineActivated;
