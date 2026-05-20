@@ -15,6 +15,24 @@ describe("/api/explorer/recent", () => {
     process.env.NEO_RPC_TESTNET = "https://testnet-rpc.example.test";
   });
 
+  it("answers public read CORS preflight without touching upstream services", async () => {
+    const handler = require("@/pages/api/explorer/recent").default as (
+      req: NextApiRequest,
+      res: NextApiResponse,
+    ) => Promise<void>;
+
+    const { req, res } = createMocks<NextApiRequest, NextApiResponse>({
+      method: "OPTIONS",
+    });
+
+    await handler(req, res);
+
+    expect(res._getStatusCode()).toBe(204);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
+    expect(res.getHeader("Access-Control-Allow-Methods")).toBe("GET,OPTIONS");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("rejects missing network instead of silently using testnet", async () => {
     const handler = require("@/pages/api/explorer/recent").default as (
       req: NextApiRequest,
@@ -29,6 +47,7 @@ describe("/api/explorer/recent", () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(400);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
     expect(JSON.parse(res._getData())).toEqual({
       error: { code: "BAD_REQUEST", message: "network must be mainnet or testnet" },
     });
@@ -99,6 +118,7 @@ describe("/api/explorer/recent", () => {
       }),
     );
     expect(res._getStatusCode()).toBe(200);
+    expect(res.getHeader("Access-Control-Allow-Origin")).toBe("*");
     expect(JSON.parse(res._getData())).toEqual(
       expect.objectContaining({
         network: "testnet",

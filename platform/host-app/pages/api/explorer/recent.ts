@@ -2,6 +2,7 @@ import { apiError } from "@/lib/api-response";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { logger } from "@/lib/logger";
 import { normalizeNeoNetwork } from "@/lib/neo-network";
+import { handlePublicReadCors } from "@/lib/public-read-cors";
 import { relaxedLimit } from "@/lib/rate-limit";
 
 type Network = "mainnet" | "testnet";
@@ -114,6 +115,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  if (handlePublicReadCors(req, res)) return;
+
   if (req.method !== "GET") {
     return apiError.methodNotAllowed(res);
   }
