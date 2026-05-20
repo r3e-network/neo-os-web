@@ -75,6 +75,15 @@ namespace NeoMiniAppPlatform.Contracts
 
         /// <summary>Maximum ticket supply per event.</summary>
         private const int MAX_SUPPLY = 100000;
+
+        /// <summary>
+        /// Maximum number of events a single creator address may register.
+        /// Bounds storage growth: at MAX_SUPPLY tickets per event, a creator
+        /// could otherwise mint unbounded tickets across unbounded events. The
+        /// limit is high enough for legitimate event organizers (one venue can
+        /// realistically run 100 events / year) but stops single-creator spam.
+        /// </summary>
+        private const int MAX_EVENTS_PER_CREATOR = 100;
         #endregion
 
         #region Storage Prefixes
