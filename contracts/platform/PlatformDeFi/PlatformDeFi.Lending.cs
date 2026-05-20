@@ -7,6 +7,24 @@ using Neo.SmartContract.Framework.Services;
 
 namespace NeoMiniAppPlatform.Contracts.Platform
 {
+    /// <summary>
+    /// SelfLoan lending model (current shipping behavior):
+    ///
+    /// • Borrowers lock NEO collateral and receive GAS up to an LTV tier.
+    /// • There is NO time-based liquidation and NO automatic yield accrual —
+    ///   <see cref="AccrueLoanYield"/> is a placeholder for a future yield
+    ///   source (NEO voting rewards or anchor profits). Debt stays static
+    ///   until the borrower explicitly repays via <see cref="RepayLoan"/>.
+    /// • If a borrower never repays, the NEO collateral stays locked in the
+    ///   contract forever. The borrower can call <see cref="AbandonLoan"/> to
+    ///   formally walk away from a loan, forfeiting collateral to the app.
+    ///   Forfeited NEO accumulates in PREFIX_TOTAL_ABANDONED_COLLATERAL and is
+    ///   swept by app admin via <see cref="WithdrawAbandonedCollateral"/>.
+    /// • This is the "NEO hostage" model — borrowers are incentivized to repay
+    ///   only by their desire to reclaim the collateral. Without an actual
+    ///   yield source wired in, loans never compound interest, so simply
+    ///   waiting costs the contract nothing.
+    /// </summary>
     public partial class PlatformDeFiContract
     {
         #region Lending Methods
@@ -213,6 +231,89 @@ namespace NeoMiniAppPlatform.Contracts.Platform
             ReturnLoanCollateralToBorrower(appId, loanId, loan);
 
             OnLoanClosed(appId, loanId, loan.Borrower);
+        }
+
+        /// <summary>
+        /// Borrower explicitly walks away from an outstanding loan, forfeiting
+        /// the NEO collateral. The contract retains the NEO until the app admin
+        /// sweeps it via <see cref="WithdrawAbandonedCollateral"/>.
+        ///
+        /// Without this path the loan ledger could grow forever with stale
+        /// "active" loans where the borrower has clearly disengaged. Making the
+        /// abandonment explicit gives every loan a defined closure: repaid,
+        /// closed normally, or abandoned with forfeited collateral.
+        /// </summary>
+        public static void AbandonLoan(string appId, BigInteger loanId)
+        {
+            ValidateApp(appId, ProductType_Lending);
+
+            Loan loan = GetLoan(appId, loanId);
+            ExecutionEngine.Assert(loan.Active, "loan not active");
+            ExecutionEngine.Assert(Runtime.CheckWitness(loan.Borrower), "unauthorized");
+
+            // Mark loan inactive and flag it as abandoned for off-chain analytics.
+            loan.Active = false;
+            StoreLoan(appId, loanId, loan);
+            Put(AppKey(appId, PREFIX_LOAN_ABANDONED, loanId), 1);
+
+            // Move the collateral out of the active-loans accumulator into the
+            // abandoned-collateral pool. Net contract NEO holdings unchanged.
+            UpdateTotalCollateral(appId, loan.Collateral, false);
+            ByteString abandonedKey = AppKey(appId, PREFIX_TOTAL_ABANDONED_COLLATERAL);
+            Put(abandonedKey, GetBigInteger(abandonedKey) + loan.Collateral);
+
+            // Also subtract the outstanding debt from the platform's total-debt
+            // accumulator so observability numbers reflect the cleared liability.
+            if (loan.Debt > 0)
+            {
+                UpdateTotalDebt(appId, loan.Debt, false);
+            }
+
+            OnLoanAbandoned(appId, loanId, loan.Borrower, loan.Collateral);
+        }
+
+        /// <summary>
+        /// Sweep accumulated abandoned-loan NEO collateral to a designated
+        /// recipient. Gated by ValidateAppAuthority — platform admin or the
+        /// app's own admin. Mirrors the capsule penalty withdrawal pattern.
+        /// </summary>
+        public static void WithdrawAbandonedCollateral(string appId, UInt160 to)
+        {
+            ValidateAppAuthority(appId);
+            ValidateAddress(to);
+
+            ByteString abandonedKey = AppKey(appId, PREFIX_TOTAL_ABANDONED_COLLATERAL);
+            BigInteger amount = GetBigInteger(abandonedKey);
+            ExecutionEngine.Assert(amount > 0, "no abandoned collateral");
+
+            // Reset BEFORE transfer (checks-effects-interactions) so a re-entrant
+            // NEO contract cannot drain the counter twice.
+            Put(abandonedKey, 0);
+
+            ExecutionEngine.Assert(
+                NEO.Transfer(Runtime.ExecutingScriptHash, to, amount),
+                "abandoned collateral transfer failed");
+
+            OnAbandonedCollateralWithdrawn(appId, to, amount);
+        }
+
+        /// <summary>
+        /// Read whether a loan was abandoned (vs. normally closed). Returns false
+        /// for loans that don't exist or were closed via full repayment.
+        /// </summary>
+        [Safe]
+        public static bool IsLoanAbandoned(string appId, BigInteger loanId)
+        {
+            return GetBigInteger(AppKey(appId, PREFIX_LOAN_ABANDONED, loanId)) == 1;
+        }
+
+        /// <summary>
+        /// Read the per-app abandoned-collateral pool balance awaiting admin sweep.
+        /// </summary>
+        [Safe]
+        public static BigInteger GetTotalAbandonedCollateral(string appId)
+        {
+            return GetBigInteger(AppKey(appId, PREFIX_TOTAL_ABANDONED_COLLATERAL));
         }
 
         #endregion
