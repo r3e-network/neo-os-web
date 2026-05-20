@@ -14,4 +14,18 @@ describe("next config OneGate Vault routing", () => {
       ]),
     );
   });
+
+  it("does not allow wildcard frame ancestors for static miniapp assets", async () => {
+    const headers = await nextConfig.headers();
+    const miniappRule = headers.find((rule: { source: string }) => rule.source === "/miniapps/:path*");
+    const csp = miniappRule?.headers.find(
+      (header: { key: string }) => header.key === "Content-Security-Policy",
+    )?.value;
+
+    expect(csp).toContain(
+      "frame-ancestors 'self' https://neomini.app https://onegate.space https://app.miniapp.r3e.network",
+    );
+    expect(csp).not.toContain("https://*.onegate.space");
+    expect(csp).not.toContain("https://*.miniapp.r3e.network");
+  });
 });

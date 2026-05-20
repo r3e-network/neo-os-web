@@ -5,6 +5,16 @@ try {
 } catch {}
 
 const ONEGATE_VAULT_STANDALONE_ENTRY = "/miniapps/gas-lucky-pool/index.html";
+const MINIAPP_FRAME_ANCESTORS = [
+  "'self'",
+  "https://neomini.app",
+  "https://onegate.space",
+  "https://app.miniapp.r3e.network",
+  ...(process.env.FRAME_ANCESTORS_EXTRA || "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter((host) => host && /^https:\/\/[A-Za-z0-9.-]+$/.test(host)),
+].join(" ");
 
 function parsePositiveInt(value) {
   const parsed = Number(value);
@@ -31,7 +41,7 @@ const MiniAppCSP = `
   font-src 'self' data: https:;
   connect-src 'self' https://*.r3e.network https://*.seed.r3e.network https://*.neo.coz.io https://api.n3index.dev https://*.supabase.co https://*.sentry.io wss://*.supabase.co;
   frame-src 'self' blob:;
-  frame-ancestors 'self' https://neomini.app https://onegate.space https://*.onegate.space https://*.miniapp.r3e.network;
+  frame-ancestors ${MINIAPP_FRAME_ANCESTORS};
   form-action 'self';
   base-uri 'self';
   object-src 'none';
