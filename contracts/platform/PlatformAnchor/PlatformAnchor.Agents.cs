@@ -62,35 +62,6 @@ namespace NeoMiniAppPlatform.Contracts.Platform
         }
 
         /// <summary>
-        /// DEPRECATED — instant agent rotation removed. A compromised app-admin
-        /// key could otherwise redirect every NEO vote in a single tx. Use the
-        /// propose/execute timelock flow instead: <see cref="ProposeAgentAccountChange"/>
-        /// followed by <see cref="ExecuteAgentAccountChange"/> after the delay.
-        /// </summary>
-        public static void SetAgentAccount(
-            string appId,
-            BigInteger agentId,
-            UInt160 agentAccount,
-            ByteString verificationScriptHash)
-        {
-            ExecutionEngine.Assert(false, "use ProposeAgentAccountChange + timelock");
-        }
-
-        /// <summary>
-        /// DEPRECATED — see <see cref="SetAgentAccount"/>. Rotate agents one at a
-        /// time via the timelock so a single compromised proposal can be cancelled
-        /// without affecting the rest of the committee.
-        /// </summary>
-        public static void SetAgentAccounts(
-            string appId,
-            BigInteger[] agentIds,
-            UInt160[] agentAccounts,
-            ByteString[] verificationScriptHashes)
-        {
-            ExecutionEngine.Assert(false, "use ProposeAgentAccountChange + timelock");
-        }
-
-        /// <summary>
         /// Stage a pending agent account rotation. The change applies after
         /// AGENT_ROTATION_TIMELOCK_MS via <see cref="ExecuteAgentAccountChange"/>.
         /// Re-proposing on the same agentId overwrites the prior pending slot,
